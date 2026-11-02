@@ -84,3 +84,14 @@ export const MOCK_FLOW = {
  * Its harmonics (src/data/tides-limon.ts) are used for the whole Gandoca–Limón stretch; see docs/TIDES.md.
  */
 export const TIDE_STATION = { name: 'LIMÓN', uhslc: 268, lngLat: [-83.02038, 9.9887] as [number, number] } as const;
+
+/**
+ * The same gauge live on IOC Sea Level Monitoring (PLAN 2.11, docs/OBSERVATIONS.md): code `limon`,
+ * radar sensor `rad`, 1-minute samples. Its radar zero sits 5.990 m below UHSLC's (fitted
+ * 2026-09-20..30, r = 0.999), and UHSLC's mean sea level was 0.61 m in 2025–26 (fit trend
+ * included), so mean sea level reads 6.60 m on the radar. Verify flags drift from that.
+ */
+export const LIVE_GAUGE = { code: 'limon', sensor: 'rad', mslOnSensorM: 6.6 } as const;
+
+/** Limón International airport, the only weather station on the coast with a public feed (METAR, daytime only). */
+export const METAR_STATION = { icao: 'MRLM', name: 'LIMÓN AIRPORT', lngLat: [-83.026, 9.961] as [number, number] } as const;
