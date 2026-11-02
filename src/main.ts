@@ -17,7 +17,7 @@ import { mountSeafloor } from './layers/seafloor';
 import { mountSeafloorHud } from './seafloor-hud';
 import { fetchZones, mountZones } from './layers/zones';
 import { mountZonesHud } from './zones-hud';
-import { fetchMouths, mountFishing } from './layers/fishing';
+import { fetchMouths, fetchOccurrences, mountFishing } from './layers/fishing';
 import { loadSpecies, mountFishingHud } from './fishing-hud';
 import { layers } from './layers/registry';
 import { bindMapLayers } from './layers/visibility';
@@ -113,11 +113,11 @@ fetchSeafloor()
       return Number.isFinite(z) && z < 0 ? -z : undefined;
     };
     // Shore and kayak habitat score: built from the depth grid, reefs and river mouths.
-    fetchMouths()
-      .then(({ data: mouths }) => {
+    Promise.all([fetchMouths(), fetchOccurrences()])
+      .then(([{ data: mouths }, occurrences]) => {
         const species = loadSpecies();
         const month = new Date(time.validMs()).getUTCMonth();
-        const layer = mountFishing(map, { region: data.region, land: data.land, reefs: data.reefs, mouths, bounds: [REGION.bounds[0][0], REGION.bounds[0][1], REGION.bounds[1][0], REGION.bounds[1][1]] }, { species, month });
+        const layer = mountFishing(map, { region: data.region, land: data.land, reefs: data.reefs, mouths, bounds: [REGION.bounds[0][0], REGION.bounds[0][1], REGION.bounds[1][0], REGION.bounds[1][1]] }, { species, month }, occurrences);
         mountFishingHud(hud, map, layer, time, species);
       })
       .catch((err) => console.warn('fishing layer unavailable', err));
