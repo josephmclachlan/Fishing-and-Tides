@@ -1,12 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import macroUrl from '../../public/data/seafloor/gebco-macro.i16?inline';
-import regionUrl from '../../public/data/seafloor/gebco-region.i16?inline';
-import landUrl from '../../public/data/seafloor/land-mask.rle16?inline';
-import manifest from '../../public/data/seafloor/manifest.json';
-import { unRle } from '../adapters/seafloor';
 import { SPOTS } from '../region';
-import { M_PER_DEG_LNG, type Grid } from './bathy';
-import { _speedAndSlope, nearshorePoint, refractAt, seafloorDepth, spreading, traceRay, type DepthFn } from './refraction';
+import { M_PER_DEG_LNG } from './bathy';
+import { realDepth as depth } from './fixtures/seafloor';
+import { _speedAndSlope, nearshorePoint, refractAt, spreading, traceRay, type DepthFn } from './refraction';
 import { kinematics, shoalingCoefficient } from './waves';
 
 const RAD = Math.PI / 180;
@@ -107,13 +103,6 @@ describe('backward spectral refraction', () => {
 });
 
 describe('on the real GEBCO grid', () => {
-  // Vite inlines the packed grids as base64 data URLs.
-  const bytes = (dataUrl: string) => Uint8Array.from(atob(dataUrl.slice(dataUrl.indexOf(',') + 1)), (ch) => ch.charCodeAt(0)).buffer;
-  const g = manifest.grids;
-  const region: Grid = { ...g.region, z: new Int16Array(bytes(regionUrl)) };
-  const macro: Grid = { ...g.macro, z: new Int16Array(bytes(macroUrl)) };
-  const land: Grid = { ...g.land, z: unRle(new Uint16Array(bytes(landUrl)), g.land.cols, g.land.rows) };
-  const depth = seafloorDepth(region, macro, land);
 
   it('gives every spot a finite, plausible coefficient for a north-east trade swell', () => {
     for (const s of SPOTS) {
