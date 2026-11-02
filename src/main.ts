@@ -42,11 +42,11 @@ import { MOCK_FLOW, REGION, SPOTS } from './region';
 import { fetchWind, windAt, type WindData } from './adapters/wind';
 import { dataAge, describeAge } from './adapters/data-age';
 import { createNet } from './net';
-import { createPhysicsClient, type PhysicsClient } from './physics/client';
-import { tideState } from './physics/tide';
-import { LIMON_HARMONICS } from './data/tides-limon';
+import { createPhysicsClient } from './physics/client';
 import { nearest } from './geo';
-import type { RipLevel } from './physics/rip';
+import { createSpotPhysics, type SpotPhysics } from './spot-physics';
+import { mountRip } from './layers/rip';
+import { mountSurfZoneHud } from './surf-zone-hud';
 
 registerSW({ immediate: true });
 
@@ -73,11 +73,13 @@ const flowSources: { wind: FlowSource; current: FlowSource } = {
 };
 // The wind reading comes from the wind field at its reference point, so HUD and particles agree at every hour.
 const windAtRef: [number, number] = [0, 0];
-// Rip risk at the spot nearest the map centre, from the physics worker (PLAN 3.6) once the seafloor loads.
-let spotRip: RipLevel | null = null;
+// Rip risk at the spot nearest the map centre, from the physics worker (PLAN 3.6, 4.2) once the seafloor loads.
+let spotPhysics: SpotPhysics | null = null;
 const conditionsAt = () => {
   const c = baseConditions();
-  if (spotRip) c.ripRisk = spotRip;
+  const centre = map.getCenter();
+  const r = spotPhysics?.byName(nearest([centre.lng, centre.lat], SPOTS)!.point.name)?.result;
+  if (r) c.ripRisk = r.rip.level;
   return c;
 };
 const baseConditions = () => {
@@ -172,37 +174,21 @@ fetchZones()
   })
   .catch((err) => console.warn('protected zones unavailable', err));
 
-// Spot physics off the main thread: refraction, breaking and rip risk for the nearest spot.
-// Swell is the mock reading until the waves adapter (PLAN 2.2); tide and wind are live.
-let physics: PhysicsClient | null = null;
-const updateSpotPhysics = () => {
-  if (!physics) return;
-  const c = baseConditions();
-  const ms = time.validMs();
-  const centre = map.getCenter();
-  const pin = nearest([centre.lng, centre.lat], SPOTS)!.point.lngLat;
-  physics
-    .latest({
-      pin,
-      sea: { Hs: c.swellHeightM, Tp: c.swellPeriodS, fromDeg: c.swellDirDeg },
-      tideLevel: tideState(LIMON_HARMONICS, ms).level,
-      wind: { speedMs: c.windKt / KT_PER_MS, fromDeg: c.windDirDeg },
-    })
-    .then((r) => (spotRip = r ? r.rip.level : null))
-    .catch((err) => console.warn('spot physics failed', err));
-};
+// Spot physics off the main thread (refraction, breaking, rip risk) for every named spot: the rip
+// overlay, the SURF ZONE readouts and the RIP readout. Swell is the mock reading until the waves
+// adapter (PLAN 2.2); tide and wind are live.
+const ripLayer = mountRip(map);
 let physicsQueued = false;
 const queueSpotPhysics = () => {
-  if (physicsQueued) return;
+  if (physicsQueued || !spotPhysics) return;
   physicsQueued = true;
   requestAnimationFrame(() => {
     physicsQueued = false;
-    updateSpotPhysics();
+    spotPhysics?.update();
   });
 };
 time.subscribe(queueSpotPhysics);
-map.on('moveend', queueSpotPhysics);
-setInterval(updateSpotPhysics, 60_000);
+setInterval(queueSpotPhysics, 60_000);
 
 // Depth, reefs and seamarks: static assets, precached for offline use.
 fetchSeafloor()
@@ -210,8 +196,10 @@ fetchSeafloor()
     mountSeafloorHud(hud, map, data);
     landGrid = data.land;
     harboursHud?.refresh();
-    physics = createPhysicsClient({ region: data.region, macro: data.macro, land: data.land });
-    updateSpotPhysics();
+    spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land }), baseConditions, () => time.validMs());
+    spotPhysics.subscribe(() => ripLayer.update(spotPhysics!.all()));
+    mountSurfZoneHud(hud, map, spotPhysics);
+    spotPhysics.update();
     depthAt = (lng, lat) => {
       const z = sample(data.region, lng, lat);
       return Number.isFinite(z) && z < 0 ? -z : undefined;

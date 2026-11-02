@@ -40,7 +40,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 
 ## Phase 4: Forecast and fishing UI
 - [ ] 4.1 Tide chart panel and spot pages (**S**)
-- [ ] 4.2 Rip risk overlay and spot-tier breaker readouts (**S**)
+- [x] 4.2 Rip risk overlay and spot-tier breaker readouts (**S**). `src/layers/rip.ts`, `src/surf-hud.ts`
 - [x] 4.3 Protected-zone overlays: Gandoca-Manzanillo, Cahuita (**S**)
 - [ ] 4.4 Species habitat model framework and scoring (**O**)
 - [x] 4.5 Fishing layer: shore/kayak mode (**S**)
