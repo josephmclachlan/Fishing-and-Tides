@@ -18,7 +18,8 @@ import type { LockFx } from './zoom-fx';
 import type { Target } from './target';
 import { REGION } from './region';
 import { t } from './i18n';
-import { ENHANCE_WIDE_ZOOM, ENHANCE_ZOOM, planHops, steppedEase, zoomOutToFit } from './zoom';
+import { ENHANCE_WIDE_ZOOM, ENHANCE_ZOOM, planHops, plainFlyMs, steppedEase, zoomOutToFit } from './zoom';
+import { haversineM } from './geo';
 
 /** Step timings, ms. Slow on purpose so it reads as a sensor working, not a glitch. */
 const T = { wide: 1600, designate: 1300, center: 1200, zoom: 2200, tiles: 3000, resolve: 2600, settle: 700, hold: 2500 };
@@ -29,7 +30,8 @@ const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const once = (map: MapLibreMap, ev: 'moveend' | 'idle') => new Promise<void>((r) => map.once(ev, () => r()));
 
-export function createEnhancer(map: MapLibreMap, fx: LockFx) {
+/** `enabled` is the ENHANCE setting (src/settings.ts); off means the plain fly-to. */
+export function createEnhancer(map: MapLibreMap, fx: LockFx, enabled: () => boolean = () => true) {
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   let run = 0;
   let active = false;
@@ -57,6 +59,18 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx) {
       map.easeTo({ ...opts, essential: true });
       await done;
     };
+
+    if (!enabled()) {
+      // ENHANCE off: one continuous eased move, pan and zoom together, no pixels, boxes or steps.
+      // Detail fades in as the zoom tiers are crossed (map paint easing and CSS in style.css).
+      const c = map.getCenter();
+      const ms = plainFlyMs(haversineM([c.lng, c.lat], target.lngLat), ENHANCE_ZOOM - map.getZoom());
+      const done = once(map, 'moveend');
+      map.flyTo({ center: target.lngLat, zoom: ENHANCE_ZOOM, duration: ms * k, curve: 1.3, easing: easeInOut, essential: true });
+      await done;
+      if (alive()) active = false;
+      return;
+    }
 
     fx.start(target.name);
 

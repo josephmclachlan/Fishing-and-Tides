@@ -2,8 +2,9 @@
 import { SPOTS } from './region';
 import { t } from './i18n';
 import { resolveTarget, type Target } from './target';
+import type { Settings } from './settings';
 
-export function mountSeek(root: HTMLElement, onTarget: (t: Target) => void) {
+export function mountSeek(root: HTMLElement, onTarget: (t: Target) => void, settings?: Settings) {
   const el = document.createElement('section');
   el.className = 'panel seek';
   el.innerHTML = `
@@ -34,5 +35,10 @@ export function mountSeek(root: HTMLElement, onTarget: (t: Target) => void) {
     if (hit) pick(hit);
     else msg.textContent = t('seek.noMatch');
   });
+  // Button wording follows the ENHANCE setting: the effect name when on, a plain GO when off.
+  const go = el.querySelector<HTMLElement>('.seek-go')!;
+  const label = () => (go.textContent = t(!settings || settings.enhance() ? 'seek.go' : 'seek.goPlain'));
+  settings?.subscribe(label);
+  label();
   for (const b of tabs) b.addEventListener('click', () => pick(SPOTS[Number(b.dataset.i)]));
 }

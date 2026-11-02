@@ -7,6 +7,8 @@ import { mockConditions, mockCurrentField, mockWindField } from './mock';
 import { createLockFx, mountZoomTiers } from './zoom-fx';
 import { createEnhancer } from './enhance';
 import { mountSeek } from './seek';
+import { createSettings, safeStorage } from './settings';
+import { mountSettingsUi } from './settings-ui';
 import { fetchSeafloor } from './adapters/seafloor';
 import { mountSeafloor } from './layers/seafloor';
 import { mountSeafloorHud } from './seafloor-hud';
@@ -51,11 +53,13 @@ const conditionsAt = () => {
 mountHud(hud, map, conditionsAt);
 mountTimeSlider(hud, time);
 // The lock-on effect plays only for a picked target, never on scroll/pinch zoom.
-const enhancer = createEnhancer(map, createLockFx(map, hud));
-mountSeek(hud, (t) => enhancer.go(t));
+const settings = createSettings(safeStorage());
+const enhancer = createEnhancer(map, createLockFx(map, hud), settings.enhance);
+mountSeek(hud, (t) => enhancer.go(t), settings);
 // Layer toggles and activity presets; other layers register into `layers` (src/layers/registry.ts).
 bindMapLayers(map, layers);
 mountLayersPanel(hud, layers);
+mountSettingsUi(hud, settings);
 
 const flow = mountFlow(map, flowSources);
 if (flow) {
