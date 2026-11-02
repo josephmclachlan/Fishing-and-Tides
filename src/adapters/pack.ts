@@ -55,6 +55,8 @@ export interface SeriesMeta {
   licence: string;
   /** Binary file name, relative to the manifest. */
   file: string;
+  /** 'gzip' when the body is gzipped (GitHub Pages won't compress binary files itself). */
+  encoding?: 'gzip';
 }
 
 export interface GridSeries {

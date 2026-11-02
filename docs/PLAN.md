@@ -17,7 +17,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 
 ## Phase 2: Data adapters
 - [x] 2.1 Adapter interface, cache layer, data-age tracking (**O**)
-- [ ] 2.2 Open-Meteo Marine adapter (waves, swell) (**S**)
+- [x] 2.2 Open-Meteo Marine adapter (waves, swell) (**S**). MFWAM to day 9 then GFS-Wave to day 16, ERA5 climatology; feeds the HUD swell and the spot physics; `src/adapters/waves.ts`
 - [x] 2.3 Open-Meteo wind adapter (GFS/ECMWF) (**S**). 16-day grid from the scheduled data build, NOAA blended-winds monthly climatology for OUTLOOK; `src/adapters/wind.ts`
 - [ ] 2.4 CoastWatch ERDDAP adapter: SST and chlorophyll (**S**)
 - [ ] 2.5 Copernicus/HYCOM currents adapter (**S**)
@@ -64,7 +64,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 6.6 Sea state comfort index from wind-wave and swell partitions (**S**, needs 2.2). Pure index in physics/sea-state.ts; HUD uses SIM partitions until 2.2 lands
 - [x] 6.7 Anchorages and harbours layer: OSM seamarks, NGA World Port Index, shelter from wind direction (**S**). Curated OSM places + coastline-fetch shelter; WPI unreachable, see docs/HARBOURS.md
 - [x] 6.8 Spearfishing and protected-area rules: SINAC/INCOPESCA zones, closed seasons, rules card per zone (**S**, extends 4.3)
-- [ ] 6.9 Register wind, currents and waves with the layer store when the particle layer lands (**S**, needs 1.4). Wind and currents done in 1.4; waves waits for a swell field (2.2)
+- [ ] 6.9 Register wind, currents and waves with the layer store when the particle layer lands (**S**, needs 1.4). Wind and currents done in 1.4. The swell field now exists (2.2: `wavesAt` and the `waves` series, swell direction as unit vectors `swu`/`swv`), so this is ready: draw waves as a third flow kind or as crest lines, and register `waves`
 
 ## Phase 7: Final additions (see DESIGN.md sections 9 and 10)
 Built last, once Phases 2 to 6 are in. Each reuses the adapters, the layer registry and the SYSTEM CHECK panel.
