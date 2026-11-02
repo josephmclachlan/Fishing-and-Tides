@@ -24,7 +24,7 @@ If a fetch fails, the build keeps the previous files from the live site, so the 
 | `cache.ts` | `cachedFetch(url)`: network first with a timeout; good responses are stored in Cache Storage with an `x-fetched-at` header; offline or on an HTTP error it returns the stored copy with `fromCache: true` and its original fetch time. |
 | `series.ts` | `loadSeries('wind')`: fetch manifest and body through the cache, validate, decode, report the age. |
 | `frames.ts` | Time and band logic: `bracket` finds the frames either side of the slider's valid time, `vectorAt` gives a blended `VectorField` (what `layers/flow.ts` draws), `scalarAt` samples one value at a point, NaN-aware so readings next to the coast still work. `pickSeries` decides which series answers (below). |
-| `data-age.ts` | `dataAge.report(feed, fetchedAt)` from every adapter; the HUD's DATA AGE shows the oldest live feed, green under 12 h, amber to 48 h, red after (DESIGN §7). Static assets (depth, zones) are not reported, since their age isn't a freshness problem. |
+| `data-age.ts` | `dataAge.report(feed, fetchedAt)` from every adapter; the HUD's DATA AGE shows the oldest live feed, green under 12 h, amber to 48 h, red after (DESIGN §7); `describeAge` gives the state, text and cached flag, `src/net.ts` the online state. Static assets (depth, zones) are not reported, since their age isn't a freshness problem. |
 
 Rules every adapter follows (from CLAUDE.md, made concrete):
 - Return data plus `fetchedAt`, and report it to `dataAge`.

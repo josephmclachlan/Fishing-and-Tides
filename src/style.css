@@ -261,7 +261,11 @@ body[data-enhance='off'] .from-spot > * { animation: tier-in 0.9s ease-out both;
   body .maplibregl-ctrl-bottom-left, body .maplibregl-ctrl-bottom-right { bottom: var(--dock-h, 64px); }
   .maplibregl-ctrl-attrib { font-size: 10px; }
   .dock-bar { width: 100%; min-height: 48px; padding: 6px 36px 6px 12px; flex-wrap: wrap; justify-content: flex-start; gap: 0 14px; position: relative; font: inherit; color: inherit; text-shadow: inherit; text-align: left; background: none; border: 0; cursor: pointer; }
-  .dock-bar .d-time { flex-basis: 100%; gap: 10px; }
+  /* Row 1: hour and (when it matters) OFFLINE / DATA AGE; row 2: readouts. */
+  .dock-bar .d-time { order: 0; gap: 10px; }
+  .dock-bar .d-status { order: 1; }
+  .dock-bar::after { content: ''; order: 2; flex: 1 1 100%; height: 0; }
+  .dock-bar > .ro:not(.d-time):not(.d-status) { order: 3; }
   .dock-bar .seg { font-size: 15px; }
   .dock-bar .lbl { min-width: 0; font-size: 9px; }
   .dock-chev { position: absolute; right: 14px; top: 50%; width: 0; height: 0; margin-top: -4px; border: 6px solid transparent; border-bottom: 8px solid var(--amber); border-top: 0; filter: drop-shadow(0 0 4px var(--amber)); }
@@ -328,3 +332,9 @@ body[data-band='outlook'] #t-valid, body[data-band='outlook'] #t-off { color: va
   /* The rules card opens below the top bar so the tabs stay reachable. */
   .rules-card { top: calc(var(--top-h, 100px) + 8px); max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
 }
+
+/* Connectivity (PLAN 5.2): the title dot goes amber when offline or running on stored data; tags sit by DATA AGE and on the phone strip. */
+body[data-net='offline'] .title .blink, body[data-net='cached'] .title .blink { color: var(--amber); animation: none; }
+.tag#age-net, .tag#d-net { margin-left: 6px; font-size: 10px; letter-spacing: 1px; }
+.dock-bar .d-status { gap: 6px; margin-left: auto; margin-right: 6px; }
+.dock-bar .d-status[hidden] { display: none; }
