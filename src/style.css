@@ -76,8 +76,6 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--amber)
   .bottom { gap: 10px; }
   .btn { width: 100%; margin-left: 0; }
   .wide-only { display: none; }
-  /* Side panel fills the lower screen on phones, so the lock readout goes above the reticle. */
-  .fx-coords { top: calc(50% - var(--size) / 2 - 120px); }
 }
 
 /* HUD kit: gauge + alert strip */
@@ -115,7 +113,20 @@ body[data-tier='COAST'] .from-spot { display: none; }
     color-mix(in srgb, var(--amber) 22%, transparent) 53%, transparent);
   box-shadow: 0 0 18px color-mix(in srgb, var(--amber) 30%, transparent);
 }
-.fx.locked .fx-sweep, .fx.reduced .fx-sweep { display: none; }
+.fx-sweep:not(.on) { display: none; }
+
+/* Enhance target box: highlighted area the next view will show; everything else dims. */
+.fx-box {
+  position: absolute; top: 0; left: 0; display: none; border: 2px solid var(--amber);
+  box-shadow: 0 0 0 200vmax color-mix(in srgb, var(--bg) 55%, transparent), 0 0 14px var(--amber), inset 0 0 14px color-mix(in srgb, var(--amber) 40%, transparent);
+  animation: designate 1.3s steps(1) 1;
+}
+.fx-box.on { display: block; }
+.fx-box-lbl {
+  position: absolute; bottom: 100%; left: -2px; margin-bottom: 4px; padding: 1px 6px; white-space: nowrap;
+  color: var(--bg); background: var(--amber); letter-spacing: 3px; font-size: 12px;
+}
+@keyframes designate { 0%, 30%, 60% { opacity: 1; } 15%, 45% { opacity: 0.15; } }
 .fx-lock {
   position: absolute; left: 50%; top: 50%; width: var(--size); height: var(--size); transform: translate(-50%, -50%);
   color: var(--amber);
@@ -131,7 +142,7 @@ body[data-tier='COAST'] .from-spot { display: none; }
 }
 .fx-tag { top: calc(50% - var(--size) / 2 - 34px); display: flex; gap: 12px; letter-spacing: 3px; font-size: 13px; color: var(--amber); }
 .fx-tier { color: var(--green); }
-.fx-coords { top: calc(50% + var(--size) / 2 + 10px); display: grid; gap: 2px; color: var(--green); }
+.fx-coords { top: min(calc(50% + var(--size) / 2 + 10px), calc(100% - 180px)); display: grid; gap: 2px; color: var(--green); }
 .fx-coords > div { display: flex; gap: 8px; align-items: baseline; }
 .fx-coords .lbl { min-width: 30px; }
 .fx-coords .seg { font-size: 15px; }
@@ -139,3 +150,30 @@ body[data-tier='COAST'] .from-spot { display: none; }
 .fx.locked .fx-state { animation: blink 0.3s 3 steps(1); }
 .fx-locked .reticle { border-color: var(--green); }
 .fx-locked .reticle::before, .fx-locked .reticle::after { background: var(--green); }
+
+/* Target picker (PLAN 1.7) */
+.seek { top: 70px; right: 8px; width: 330px; display: grid; gap: 6px; }
+.seek-row { display: flex; gap: 6px; }
+.seek-in {
+  flex: 1; min-width: 0; font: inherit; font-size: 16px; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--amber); background: var(--bg); border: 1px solid var(--amber-dim); padding: 8px; outline: none;
+}
+.seek-in:focus { border-color: var(--amber); box-shadow: 0 0 8px var(--amber-dim); }
+.seek-in::placeholder { color: var(--amber); opacity: 0.45; }
+.seek-go { margin-left: 0; padding: 8px 10px; width: auto; }
+.seek-msg { font-size: 11px; letter-spacing: 1px; color: var(--red); }
+.seek-msg:empty { display: none; }
+.seek-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.tab {
+  font: inherit; font-size: 11px; letter-spacing: 1px; white-space: nowrap; cursor: pointer;
+  color: var(--amber); background: transparent; border: 1px solid var(--amber-dim); padding: 7px 8px;
+}
+.tab.on { color: var(--green); border-color: var(--green); text-shadow: 0 0 6px var(--green); }
+
+@media (max-width: 600px) {
+  /* Side panel fills the lower screen on phones, so the lock readout goes above the reticle. */
+  .fx-coords { top: max(calc(50% - var(--size) / 2 - 100px), 204px); }
+  .fx-tag { top: max(calc(50% - var(--size) / 2 - 34px), 270px); }
+  .seek { top: 92px; left: 8px; right: 8px; width: auto; }
+  .seek-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+}

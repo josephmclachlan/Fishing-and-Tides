@@ -9,7 +9,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [ ] 1.4 WebGL particle layer for wind/currents on mock vector fields (**O**)
 - [ ] 1.5 Time slider and forecast-hour state store (**S**)
 - [x] 1.6 Deploy to GitHub Pages on merge to main (**S**)
-- [ ] 1.7 "Enhance" fly-to: pick a beach or coordinate (search box or spot tab) and, from a zoomed-out view, box the target, highlight it, zoom in, resolve block by block, then box again, repeating in 2 to 4 hops until on the beach or ocean point (**O**)
+- [x] 1.7 "Enhance" fly-to: pick a beach or coordinate (search box or spot tab) and, from a zoomed-out view, box the target, highlight it, zoom in, resolve block by block, then box again, repeating in 2 to 4 hops until on the beach or ocean point (**O**)
 
 ## Phase 2: Data adapters
 - [ ] 2.1 Adapter interface, cache layer, data-age tracking (**O**)

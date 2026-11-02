@@ -1,25 +1,20 @@
 /**
- * Zoom tiers + the military-satellite "lock-on" transition (DESIGN.md §5, PLAN 1.3).
+ * Zoom tiers and the military-satellite "lock-on" effect (DESIGN.md §5, PLAN 1.3 / 1.7).
  *
- * Owns the current tier (with hysteresis) and publishes it as `body[data-tier]`, which
- * CSS and the HUD key off. Crossing a tier plays the transition:
- *   1. scanline sweep across the screen (down when zooming in, up when zooming out),
- *   2. the map drops to coarse pixel blocks; square cells sharpen one by one, in random
- *      order, until the whole frame has "locked on",
- *   3. targeting brackets close on the reticle, ACQUIRING -> LOCKED,
- *   4. live lat / lon / altitude readout beside the reticle.
+ * `mountZoomTiers` tracks the tier (with hysteresis) as you scroll or pinch and publishes it
+ * as `body[data-tier]`; CSS, map layers and the HUD reveal detail from that. No effect plays.
+ *
+ * `createLockFx` is the effect itself, driven step by step by the enhance sequence
+ * (src/enhance.ts) when a beach or coordinate is picked:
+ *   - a highlighted target box that tracks the map,
+ *   - coarse pixel blocks while the camera moves, then square cells sharpening one by one in
+ *     random order under a scanline sweep,
+ *   - targeting brackets closing on the reticle, with live lat / lon / altitude.
  */
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import { tierForZoom, type Tier } from './region';
-import { CELL_SPAN, LOCK_STEPS, RESOLVE_CELL_PX, cellBlockAt, nextTier, tierDirection } from './zoom';
+import { CELL_SPAN, LOCK_STEPS, RESOLVE_CELL_PX, cellBlockAt, nextTier } from './zoom';
 import { cameraAltitudeM, toDDM } from './geo';
-
-const ACQUIRE_MS = 1100; // sweep + sharpen
-const HOLD_MS = 900; // LOCKED stays up before fading
-
-export function currentTier(): Tier {
-  return (document.body.dataset.tier as Tier) ?? 'COAST';
-}
 
 /** Camera altitude for the map's current view, m. */
 export function mapAltitudeM(map: MapLibreMap): number {
@@ -31,9 +26,38 @@ export function formatAltitude(m: number): string {
   return m >= 10_000 ? `${(m / 1000).toFixed(0)}KM` : m >= 1000 ? `${(m / 1000).toFixed(1)}KM` : `${m.toFixed(0)}M`;
 }
 
-export function mountZoomTiers(map: MapLibreMap, before: HTMLElement) {
-  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+/** Track the zoom tier and publish it as body[data-tier]. Detail changes; no transition plays. */
+export function mountZoomTiers(map: MapLibreMap) {
+  let tier: Tier = tierForZoom(map.getZoom());
+  document.body.dataset.tier = tier;
+  map.on('move', () => {
+    const next = nextTier(tier, map.getZoom());
+    if (next !== tier) document.body.dataset.tier = tier = next;
+  });
+}
 
+export type Bounds = [[number, number], [number, number]];
+
+export interface LockFx {
+  /** Show the overlay for a new target. */
+  start(title: string): void;
+  /** Status word next to the reticle, e.g. ACQUIRING. */
+  state(text: string): void;
+  /** Highlight a geographic box (tracks the map as it moves), or clear it. */
+  box(bounds: Bounds | null, label?: string): void;
+  /** Drop the picture to coarse blocks, each cell on a fresh random schedule. */
+  coarse(): void;
+  /** Sharpen cell by cell over `ms` under a scanline sweep. False if cancelled meanwhile. */
+  resolve(ms: number): Promise<boolean>;
+  /** Brackets go green: target locked. */
+  lock(text?: string): void;
+  /** Fade out after `holdMs`. */
+  finish(holdMs: number): void;
+  /** Hide immediately. */
+  cancel(): void;
+}
+
+export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
   const pixels = document.createElement('canvas');
   pixels.className = 'fx-pixels';
   pixels.setAttribute('aria-hidden', 'true');
@@ -50,6 +74,7 @@ export function mountZoomTiers(map: MapLibreMap, before: HTMLElement) {
   fx.className = 'fx';
   fx.setAttribute('aria-hidden', 'true');
   fx.innerHTML = `
+    <div class="fx-box"><span class="fx-box-lbl"></span></div>
     <div class="fx-sweep"></div>
     <div class="fx-lock"><i></i><i></i><i></i><i></i></div>
     <div class="fx-tag"><span class="fx-state">ACQUIRING</span><span class="fx-tier"></span></div>
@@ -63,21 +88,20 @@ export function mountZoomTiers(map: MapLibreMap, before: HTMLElement) {
 
   const q = (s: string) => fx.querySelector<HTMLElement>(s)!;
   const sweep = q('.fx-sweep');
-  const state = q('.fx-state');
-  const tierEl = q('.fx-tier');
+  const stateEl = q('.fx-state');
+  const titleEl = q('.fx-tier');
+  const boxEl = q('.fx-box');
+  const boxLbl = q('.fx-box-lbl');
   const coords = { lat: q('[data-k=lat]'), lon: q('[data-k=lon]'), alt: q('[data-k=alt]') };
 
-  let tier: Tier = tierForZoom(map.getZoom());
-  document.body.dataset.tier = tier;
-
-  let start = 0;
-  let dir: -1 | 0 | 1 = 1;
-  let raf = 0;
-  let t = 1; // acquire progress 0..1; 1 = sharp, pixel layer off
+  let t = 1; // resolve progress 0..1; 1 = sharp, pixel layer off
   let delays: Float32Array = new Float32Array(0); // per-cell start of its resolve
   let gridCols = 0;
   let gridRows = 0;
+  let raf = 0;
   let hideTimer = 0;
+  let boxBounds: Bounds | null = null;
+  let resolving: ((ok: boolean) => void) | null = null;
 
   const layout = () => {
     gridCols = Math.ceil(window.innerWidth / RESOLVE_CELL_PX);
@@ -161,66 +185,110 @@ export function mountZoomTiers(map: MapLibreMap, before: HTMLElement) {
     coords.alt.textContent = formatAltitude(mapAltitudeM(map));
   };
 
-  const frame = () => {
-    t = Math.min(1, (performance.now() - start) / ACQUIRE_MS);
-    const y = dir < 0 ? 1 - t : t;
-    sweep.style.transform = `translateY(${(y * 110 - 5).toFixed(2)}vh)`;
-    fx.style.setProperty('--lock', (1 - t).toFixed(3));
-    if (t < 1) {
-      map.triggerRepaint(); // keep 'render' firing so the pixel layer tracks the live map
-      raf = requestAnimationFrame(frame);
-    } else {
-      pixels.classList.remove('on');
-      fx.classList.add('locked');
-      document.body.classList.add('fx-locked');
-      state.textContent = 'LOCKED';
-      hideTimer = window.setTimeout(() => {
-        fx.classList.remove('on', 'locked');
-        document.body.classList.remove('fx-locked');
-      }, HOLD_MS);
-    }
+  const placeBox = () => {
+    if (!boxBounds) return;
+    const [[w, s], [e, n]] = boxBounds;
+    const a = map.project([w, n]);
+    const b = map.project([e, s]);
+    boxEl.style.transform = `translate(${a.x.toFixed(1)}px, ${a.y.toFixed(1)}px)`;
+    boxEl.style.width = `${(b.x - a.x).toFixed(1)}px`;
+    boxEl.style.height = `${(b.y - a.y).toFixed(1)}px`;
   };
 
-  const play = (to: Tier, d: -1 | 0 | 1) => {
+  const stopResolve = (ok: boolean) => {
     cancelAnimationFrame(raf);
-    clearTimeout(hideTimer);
-    dir = d;
-    start = performance.now();
-    tierEl.textContent = `TIER ${to}`;
-    state.textContent = d < 0 ? 'WIDE SCAN' : 'ACQUIRING';
-    fx.classList.remove('locked');
-    document.body.classList.remove('fx-locked');
-    fx.classList.add('on');
-    fx.classList.toggle('reduced', reduceMotion.matches);
-    updateCoords();
-    if (reduceMotion.matches) {
-      // No sweep or pixelation: just the lock state.
-      start -= ACQUIRE_MS;
-      frame();
-      return;
-    }
-    t = 0;
-    layout();
-    delays = new Float32Array(gridCols * gridRows).map(() => Math.random() * (1 - CELL_SPAN));
-    pixels.classList.add('on');
-    map.triggerRepaint();
-    raf = requestAnimationFrame(frame);
+    resolving?.(ok);
+    resolving = null;
   };
 
   map.on('render', () => {
+    if (!fx.classList.contains('on')) return;
     if (t < 1) drawPixels();
+    placeBox();
   });
-
   map.on('move', () => {
     if (fx.classList.contains('on')) updateCoords();
-    const next = nextTier(tier, map.getZoom());
-    if (next === tier) return;
-    const d = tierDirection(tier, next);
-    tier = next;
-    document.body.dataset.tier = tier;
-    play(tier, d);
   });
 
-  // Boot: lock on once the first frame of the real map is up.
-  map.once('load', () => play(tier, 1));
+  return {
+    start(title) {
+      stopResolve(false);
+      clearTimeout(hideTimer);
+      titleEl.textContent = title;
+      stateEl.textContent = 'ACQUIRING';
+      fx.classList.remove('locked');
+      document.body.classList.remove('fx-locked');
+      fx.style.setProperty('--lock', '1');
+      fx.classList.add('on');
+      updateCoords();
+    },
+    state(text) {
+      stateEl.textContent = text;
+    },
+    box(bounds, label = '') {
+      if (bounds) {
+        // A new designation clears the previous sector's lock.
+        fx.classList.remove('locked');
+        document.body.classList.remove('fx-locked');
+        fx.style.setProperty('--lock', '1');
+      }
+      boxBounds = bounds;
+      boxLbl.textContent = label;
+      boxEl.classList.toggle('on', !!bounds);
+      placeBox();
+    },
+    coarse() {
+      stopResolve(false);
+      fx.classList.remove('locked');
+      document.body.classList.remove('fx-locked');
+      fx.style.setProperty('--lock', '1');
+      layout();
+      delays = new Float32Array(gridCols * gridRows).map(() => Math.random() * (1 - CELL_SPAN));
+      t = 0;
+      pixels.classList.add('on');
+      map.triggerRepaint();
+    },
+    resolve(ms) {
+      stopResolve(false);
+      return new Promise<boolean>((done) => {
+        resolving = done;
+        const start = performance.now();
+        sweep.classList.add('on');
+        const frame = () => {
+          t = Math.min(1, (performance.now() - start) / ms);
+          sweep.style.transform = `translateY(${(t * 110 - 5).toFixed(2)}vh)`;
+          fx.style.setProperty('--lock', (1 - t).toFixed(3));
+          map.triggerRepaint(); // keep 'render' firing so the pixel layer tracks the live map
+          if (t < 1) raf = requestAnimationFrame(frame);
+          else {
+            pixels.classList.remove('on');
+            sweep.classList.remove('on');
+            stopResolve(true);
+          }
+        };
+        raf = requestAnimationFrame(frame);
+      });
+    },
+    lock(text = 'LOCKED') {
+      stateEl.textContent = text;
+      fx.style.setProperty('--lock', '0');
+      fx.classList.add('locked');
+      document.body.classList.add('fx-locked');
+    },
+    finish(holdMs) {
+      clearTimeout(hideTimer);
+      hideTimer = window.setTimeout(() => this.cancel(), holdMs);
+    },
+    cancel() {
+      stopResolve(false);
+      clearTimeout(hideTimer);
+      t = 1;
+      boxBounds = null;
+      boxEl.classList.remove('on');
+      pixels.classList.remove('on');
+      sweep.classList.remove('on');
+      fx.classList.remove('on', 'locked');
+      document.body.classList.remove('fx-locked');
+    },
+  };
 }
