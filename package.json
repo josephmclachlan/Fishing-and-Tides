@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "data:seafloor": "node scripts/fetch-seafloor.ts",
+    "data:tides": "node scripts/fit-tides.ts",
     "data:zones": "node scripts/fetch-zones.ts",
     "data:fishing": "node scripts/fetch-fishing.ts"
   },

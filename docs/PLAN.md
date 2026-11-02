@@ -24,13 +24,13 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [ ] 2.7 UHSLC Limón gauge fetch for tide validation (**S**)
 - [ ] 2.8 Verify tool, automatic: scheduled daily GitHub Action runs one check per adapter (reachability, freshness, schema, physical ranges, cross-source agreement) and opens or updates an issue on failure; checks live in `src/verify/`, shared with 2.9 (**O**, needs 2.1; grow it with each adapter)
 - [ ] 2.9 Verify tool, manual: SYSTEM CHECK HUD panel with a green/amber/red row per feed, the failing check and its age, and a re-run button; once 2.11 and 2.12 land it also compares each forecast with what was observed (**S**, needs 2.8)
-- [ ] 2.10 Research note first (`docs/OBSERVATIONS.md`): confirm which local observation sources are actually reachable and usable for Gandoca to Limón (UHSLC Limón gauge, Limón airport METAR MRLM, IMN stations, any wave or met buoy near the coast, satellite passes), with URLs, update cadence, licence and format; if no wave buoy exists, say so (**S**)
+- [x] 2.10 Research note first (`docs/OBSERVATIONS.md`): confirm which local observation sources are actually reachable and usable for Gandoca to Limón (UHSLC Limón gauge, Limón airport METAR MRLM, IMN stations, any wave or met buoy near the coast, satellite passes), with URLs, update cadence, licence and format; if no wave buoy exists, say so (**S**)
 - [ ] 2.11 Live observation adapters: UHSLC Limón tide gauge, Limón airport METAR (MRLM, ID to confirm in 2.10), and IMN stations if reachable; each returns data plus `fetchedAt` and its own observation time (**S**, needs 2.1, 2.10; extends 2.7)
 - [ ] 2.12 Satellite observation adapters: SST, chlorophyll/Kd490 and scatterometer wind (e.g. ASCAT) passes over the region, with the pass time and cloud gaps flagged (**S**, needs 2.1, 2.10; extends 2.4)
 - [ ] 2.13 LIVE OBS layer and panel: the latest real reading from each station and satellite pass shown on the map and in a HUD panel, each with its age and a green/amber/red freshness state (**S**, needs 2.11, 2.12, 1.8)
 
 ## Phase 3: Physics engine
-- [ ] 3.1 Tide harmonic predictor from TPXO/FES constituents, validated vs UHSLC (**O**)
+- [x] 3.1 Tide harmonic predictor, validated vs UHSLC (**O**). Constants fitted to the Limón gauge itself; see `docs/TIDES.md`
 - [ ] 3.2 Dispersion solver and shoaling (**O**)
 - [ ] 3.3 Refraction ray tracing over bathymetry (**O**)
 - [ ] 3.4 Breaking height, breaker type, wave energy and force (**O**)

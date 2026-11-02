@@ -12,7 +12,7 @@ Tides here are small (microtidal, under about 0.5 m), so tide *timing* matters m
 
 | Domain | Source | Use |
 |---|---|---|
-| Tides | TPXO9 or FES2014 harmonic constituents | Tide height and timing computed on device, forever offline |
+| Tides | Harmonic constants fitted to the UHSLC Limón gauge (TPXO/FES need registration); see `docs/TIDES.md` | Tide height and timing computed on device, forever offline |
 | Tide validation | UHSLC Limón tide gauge | Check and tune the harmonic constants |
 | Waves and swell | WaveWatch III, Open-Meteo Marine | Offshore Hs, Tp, direction, swell partitions (Open-Meteo is the easy default) |
 | Currents | Copernicus Marine, HYCOM | Offshore surface currents; nearshore currents modeled by us |
@@ -161,7 +161,7 @@ A planned EN/ESP toggle with a full Spanish translation, shown in the HUD as a s
 
 ## 12. Live local observations
 
-The coast has few live sensors, so the app uses every real reading it can get for Gandoca to Limón and is honest about what is missing. Candidates (to be confirmed by PLAN 2.10): the UHSLC Limón tide gauge, the Limón airport METAR (MRLM), IMN stations if reachable, and satellite passes (SST, chlorophyll/Kd490, scatterometer wind). Whether any wave or met buoy is near this coast is an open question; if none, waves stay model-only and the app says so.
+The coast has few live sensors, so the app uses every real reading it can get for Gandoca to Limón and is honest about what is missing. Confirmed in `docs/OBSERVATIONS.md` (PLAN 2.10): the Limón tide gauge (live from IOC every minute, quality-controlled hourly from UHSLC), the Limón airport METAR **MRLM** (daytime only), and satellite SST, chlorophyll/Kd490 and blended scatterometer wind from NOAA CoastWatch. IMN publishes no usable feed. There is **no wave or met buoy** within about 800 km, so waves stay model-only and the app says so.
 
 - **LIVE OBS layer and panel:** each reading with its age and a freshness colour, on the map and in a HUD panel.
 - **Local bias correction:** the model-minus-observed error at these stations is learned and removed from the forecast (wind, tides, SST; extends the weather blend in section 9), shown with a confidence value.
