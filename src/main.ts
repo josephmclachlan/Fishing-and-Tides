@@ -129,6 +129,7 @@ const baseConditions = () => {
     c.swellDirDeg = swell ? sea.swellDir : sea.dir;
   }
   // Sea temperature (PLAN 2.4): the newest satellite map at the map centre, or offshore of Cahuita when inland.
+  const ctr = map.getCenter();
   const sst = satellite && (sstAt(satellite, ctr.lng, ctr.lat, time.validMs()) ?? sstAt(satellite, ...MOCK_FLOW.windRef, time.validMs()));
   if (sst) c.waterTempC = sst.value;
   return c;
