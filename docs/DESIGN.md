@@ -141,3 +141,14 @@ It runs two ways from the same code in `src/verify/`:
 
 Each new adapter adds its checks; a PR that adds an adapter without them is incomplete.
 
+## 11. Language (EN/ESP)
+
+A planned EN/ESP toggle with a full Spanish translation, shown in the HUD as a small UK flag (EN) and Costa Rica flag (ESP) drawn in the HUD style (amber/green line art, no photos). The work is mostly string extraction, so it starts early (PLAN 1.10): every user-facing string goes through a `t(key)` helper from the beginning, which makes the later translation (PLAN 5.6) a matter of filling in `es.ts`. The Spanish uses local Costa Rican marine and fishing terms, not generic or Castilian ones, and is checked by a local speaker where possible. The choice is remembered on the device, and the first run follows the browser language.
+
+## 12. Live local observations
+
+The coast has few live sensors, so the app uses every real reading it can get for Gandoca to Limón and is honest about what is missing. Candidates (to be confirmed by PLAN 2.10): the UHSLC Limón tide gauge, the Limón airport METAR (MRLM), IMN stations if reachable, and satellite passes (SST, chlorophyll/Kd490, scatterometer wind). Whether any wave or met buoy is near this coast is an open question; if none, waves stay model-only and the app says so.
+
+- **LIVE OBS layer and panel:** each reading with its age and a freshness colour, on the map and in a HUD panel.
+- **Local bias correction:** the model-minus-observed error at these stations is learned and removed from the forecast (wind, tides, SST; extends the weather blend in section 9), shown with a confidence value.
+- **SYSTEM CHECK:** compares each forecast with what was observed, so drift shows up as amber or red (section 10).
