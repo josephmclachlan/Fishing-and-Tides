@@ -1,7 +1,9 @@
 import '@fontsource/share-tech-mono';
 import './style.css';
 import { registerSW } from 'virtual:pwa-register';
-import { createMap } from './map';
+import { createMap, STYLE_URL } from './map';
+import { mountSyncUi } from './sync-ui';
+import { tripJobs } from './offline/jobs';
 import { mountPinchGuard } from './pinch-guard';
 import { mountHud } from './hud';
 import { mockConditions, mockCurrentField, mockWindField } from './mock';
@@ -342,6 +344,11 @@ const refreshIfStale = () => {
 };
 loadWind();
 net.subscribe(refreshIfStale);
+// SYNC FOR TRIP (PLAN 5.1): the region's map, forecasts and live feeds stored for use with no signal; reload what is shown after.
+mountSyncUi(hud, {
+  net, storage: safeStorage(), styleUrl: STYLE_URL, base: import.meta.env.BASE_URL, jobs: () => tripJobs(),
+  onDone: () => (loadWind(), loadGauge(), loadLightning()),
+});
 document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && refreshIfStale());
 
 // Protected areas: static outlines, precached for offline use.

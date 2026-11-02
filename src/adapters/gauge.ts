@@ -49,7 +49,8 @@ export async function fetchGauge(opts: { hours?: number; now?: number; deps?: Pa
   const hours = opts.hours ?? 24;
   // Whole minutes in the URL so the cache key is stable within a minute.
   const url = `${URL}?query=data&code=${LIVE_GAUGE.code}&timestart=${iso(now - hours * 3.6e6)}&timestop=${iso(now + 60e3)}&format=json`;
-  const r = await cachedFetch(url, { deps: opts.deps });
+  // The URL moves every minute, so the offline copy lives under one key (the last readings fetched).
+  const r = await cachedFetch(url, { key: `${URL}?query=data&code=${LIVE_GAUGE.code}&format=json&latest`, deps: opts.deps });
   const readings = parseIoc(await r.response.json());
   dataAge.report('gauge', r.fetchedAt, r.fromCache);
   return { readings, fetchedAt: r.fetchedAt, fromCache: r.fromCache };

@@ -560,3 +560,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
   /* Swell rows carry three numbers: give them the drawer's full width. */
   .side .sw-row { grid-column: 1 / -1; }
 }
+
+/* Sync for trip (PLAN 5.1): the button shows progress, so keep its width steady while it counts. */
+#sync { font-variant-numeric: tabular-nums; min-width: 15ch; }
+#sync:disabled { cursor: default; box-shadow: none; }

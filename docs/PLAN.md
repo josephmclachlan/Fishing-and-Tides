@@ -50,7 +50,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 4.8 Fishing readability and BITE score: amber-only heat, SHORE/BOAT reach highlight, BEST SPOTS list, BITE score and BEST TIMES strip from tide, light, solunar, wind and waves (**O**). `src/fishing/bite.ts`, `src/fishing-hud.ts`. SST and clarity wait on 2.4, 2.12, 6.1 (see 7.11)
 
 ## Phase 5: Offline and polish
-- [ ] 5.1 "Sync for trip": tiles, bathymetry, 7-day forecasts, scores to IndexedDB (**O**)
+- [x] 5.1 "Sync for trip": tiles, bathymetry, 7-day forecasts, scores to IndexedDB (**O**). Cache Storage, not IndexedDB; scores are computed on device from the synced inputs. `src/offline/`, `src/sync-ui.ts`, see `docs/DATA.md`
 - [x] 5.2 Offline fallback paths and DATA AGE colour states (**S**)
 - [x] 5.3 Mobile layout and sunlight-readability pass (**S**)
 - [x] 5.4 Performance pass (**O**). Seafloor baking in a worker, no per-frame layout reads; see `docs/PERFORMANCE.md`
