@@ -8,7 +8,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [ ] 1.3 Zoom tiers and the military-satellite zoom transition effect (**O**)
 - [ ] 1.4 WebGL particle layer for wind/currents on mock vector fields (**O**)
 - [ ] 1.5 Time slider and forecast-hour state store (**S**)
-- [ ] 1.6 Deploy previews (Cloudflare Pages or Netlify) (**S**)
+- [x] 1.6 Deploy to GitHub Pages on merge to main (**S**)
 
 ## Phase 2: Data adapters
 - [ ] 2.1 Adapter interface, cache layer, data-age tracking (**O**)
