@@ -4,7 +4,8 @@
  * OBIS and GBIF hold tens of records per species here, collected where scientists and divers
  * happened to look, so they are weak evidence. Each record near a cell nudges that species' score
  * up by 10% (fading over ~2 km), capped at +30%, and never lifts a cell the habitat model
- * scored zero (wrong depth). More data later (PLAN 4.4) can replace the nudge with a fitted term.
+ * scored zero (wrong depth). The same records also fit the habitat weights (PLAN 4.4, fit.ts);
+ * the nudge stays as a local term for spots the four habitat components don't explain.
  */
 import { haversineM } from '../geo';
 import type { OccurrenceFile } from './occurrence-taxa';
