@@ -103,3 +103,14 @@ describe('sunlight mode setting', () => {
     expect(fn).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('sound setting', () => {
+  it('is off until the user turns it on, then remembered', () => {
+    const s = mem();
+    expect(createSettings(s, [], false).sound()).toBe(false);
+    createSettings(s, [], false).setSound(true);
+    expect(createSettings(s, [], false).sound()).toBe(true);
+    createSettings(s, [], false).setSound(false);
+    expect(createSettings(s, [], false).sound()).toBe(false);
+  });
+});

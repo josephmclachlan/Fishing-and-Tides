@@ -52,7 +52,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 5.2 Offline fallback paths and DATA AGE colour states (**S**)
 - [x] 5.3 Mobile layout and sunlight-readability pass (**S**)
 - [ ] 5.4 Performance pass (**O**)
-- [ ] 5.5 Optional UI sounds (**S**)
+- [x] 5.5 Optional UI sounds (**S**). Synthesized (Web Audio, no files), off by default, SOUND toggle
 - [x] 5.6 EN/ESP language toggle: full Spanish in `src/i18n/es.ts` using local Costa Rican marine and fishing terms, a toggle in the HUD with small UK and Costa Rica flag graphics in the HUD style, choice persisted on the device and the browser language used as the first-run default; units, dates and number formats follow the language where they differ (**S**, needs 1.10, and all UI text in place)
 
 ## Phase 6: Activity data (see DESIGN.md section 6)

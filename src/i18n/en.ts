@@ -25,6 +25,8 @@ export const en = {
   'sheet.time': 'TIME',
   'sheet.settings': 'SET',
   'settings.title': 'SETTINGS',
+  'settings.sound': 'SOUND',
+  'settings.soundTitle': 'Interface sounds: short synthesized blips on taps and alerts',
   'settings.sun': 'SUN',
   'settings.sunTitle': 'Sunlight mode: stronger contrast, no scanlines or glow',
   'ui.close': 'Close',
