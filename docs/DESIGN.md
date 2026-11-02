@@ -130,7 +130,9 @@ One slider (state in `src/time.ts`) drives every time-varying layer and readout.
 - Installable PWA (service worker plus web manifest).
 - **"Sync for trip" button** downloads map tiles and bathymetry for the whole region, 7 days of swell, wind and current forecasts, and precomputed fishing and rip scores into IndexedDB / Cache Storage.
 - Tides and physics are computed on device, so other spots and times still work offline.
-- **DATA AGE readout:** segmented display of time since last sync. Green when fresh, amber after 12 h, red after 48 h.
+- **DATA AGE readout:** segmented display of the age of the oldest live feed (the model data's own fetch time, not when the phone downloaded it): `03H00` under 100 h, then `04D12H`. Green under 12 h, amber to 48 h, red after.
+- **Fallbacks, in order:** (1) network; (2) the phone's last stored copy of the feed, which keeps its original age, so DATA AGE turns amber or red and a CACHED tag appears; (3) simulated values with no age at all: DATA AGE reads SIM (SIMUL.), never an invented number. Offline (the phone has no network) shows an OFFLINE tag by DATA AGE, in the phone's bottom strip even with the drawer shut, and turns the title dot amber. The strip also shows the age whenever it is not fresh.
+- **Coming back:** when the network returns, or the app returns to the front with data older than 3 h or from the stored copy, the feeds reload by themselves; no page refresh needed.
 
 ## 8. Visual style
 

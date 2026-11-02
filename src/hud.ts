@@ -5,6 +5,7 @@ import { alertStrip, gauge, panelHeader, readout, setAlert, setGauge } from './h
 import { nearest } from './geo';
 import { formatAltitude, mapAltitudeM } from './zoom-fx';
 import { t, type Key } from './i18n';
+import { describeAge, type AgeView } from './adapters/data-age';
 
 /** Show `html` only at `tier` and finer (CSS keys off body[data-tier]). */
 const from = (tier: 'coast' | 'spot', html: string) => `<div class="from-${tier}">${html}</div>`;
@@ -12,7 +13,13 @@ const from = (tier: 'coast' | 'spot', html: string) => `<div class="from-${tier}
 const fmt = (n: number, d = 1) => n.toFixed(d);
 const pad3 = (n: number) => String(Math.round(n) % 360).padStart(3, '0');
 
-export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions) {
+/** Where DATA AGE and connectivity come from (PLAN 5.2). */
+export interface HudStatus {
+  age(): AgeView;
+  online(): boolean;
+}
+
+export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions, status?: HudStatus) {
   root.innerHTML = `
     <header class="panel top">
       <div class="title"><span class="blink">◉</span> FISHING&amp;TIDES <span class="dim wide-only">// ${REGION.name}</span></div>
@@ -46,13 +53,14 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions)
         <span class="ro"><span class="lbl">${t('cond.swell')}</span><span class="seg" id="d-swell">--</span></span>
         <span class="ro"><span class="lbl">${t('cond.wind')}</span><span class="seg" id="d-wind">--</span></span>
         <span class="ro"><span class="lbl">${t('cond.tide')}</span><span class="seg" id="d-tide">--</span></span>
+        <span class="ro d-status" id="d-status" hidden><span class="tag" id="d-net"></span><span class="seg" id="d-age"></span></span>
       </button>
       <div class="dock-body" id="dock-body">
       <div class="ro"><span class="lbl">${t('hud.lat')}</span><span class="seg green" id="lat">--</span></div>
       <div class="ro"><span class="lbl">${t('hud.lon')}</span><span class="seg green" id="lon">--</span></div>
       <div class="ro wide-only"><span class="lbl">${t('hud.zoom')}</span><span class="seg green" id="zoom">--</span></div>
       <div class="ro"><span class="lbl">${t('hud.alt')}</span><span class="seg green" id="alt">--</span></div>
-      <div class="ro"><span class="lbl">${t('hud.dataAge')}</span><span class="seg" id="age">--</span></div>
+      <div class="ro"><span class="lbl">${t('hud.dataAge')}</span><span class="seg" id="age">--</span><span class="tag" id="age-net" hidden></span></div>
       <button id="sync" class="btn" title="${t('hud.syncTitle')}">${t('hud.sync')}</button>
       </div>
     </footer>
@@ -78,6 +86,31 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions)
   map.on('move', updateView);
   updateView();
 
+  // DATA AGE: oldest live feed, coloured per DESIGN §7. With no live feed the readings are simulated, so say so
+  // rather than show an invented age. OFFLINE / CACHED stay visible on the phone strip even with the drawer shut.
+  const renderStatus = () => {
+    const a = status?.age() ?? describeAge(undefined, Date.now());
+    const online = status?.online() ?? true;
+    const tone = a.state === 'stale' ? 'red' : a.state === 'fresh' ? 'green' : '';
+    const text = a.state === 'none' ? t('age.sim') : a.text;
+    const net = !online ? t('net.offline') : a.fromCache ? t('net.cached') : '';
+    const age = $('age');
+    age.textContent = text;
+    age.className = `seg ${tone}`;
+    const tag = $('age-net');
+    tag.hidden = !net;
+    tag.textContent = net;
+    // Strip: only when something needs attention (not fresh, or no network).
+    const attention = !!net || a.state === 'aging' || a.state === 'stale' || a.state === 'none';
+    $('d-status').hidden = !attention;
+    $('d-net').hidden = !net;
+    $('d-net').textContent = net;
+    const dAge = $('d-age');
+    dAge.textContent = text;
+    dAge.className = `seg ${tone}`;
+    document.body.dataset.net = !online ? 'offline' : a.fromCache ? 'cached' : 'live';
+  };
+
   const tick = () => {
     const d = getData();
     $('clock').textContent = new Date().toISOString().slice(11, 19);
@@ -93,10 +126,7 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions)
     rip.className = 'seg ' + (d.ripRisk === 'HIGH' ? 'red' : d.ripRisk === 'MOD' ? '' : 'green');
     setGauge($('ripgauge'), { LOW: 0.2, MOD: 0.55, HIGH: 1 }[d.ripRisk], d.ripRisk === 'HIGH' ? 'red' : d.ripRisk === 'MOD' ? '' : 'green');
     setAlert($('alert'), d.ripRisk === 'HIGH' ? t('hud.alertRip') : null);
-    const ageH = (Date.now() - d.fetchedAt) / 3.6e6;
-    const age = $('age');
-    age.textContent = `${String(Math.floor(ageH)).padStart(2, '0')}H${String(Math.floor((ageH % 1) * 60)).padStart(2, '0')}`;
-    age.className = 'seg ' + (ageH >= 48 ? 'red' : ageH >= 12 ? '' : 'green');
+    renderStatus();
   };
   tick();
   setInterval(tick, 1000);

@@ -49,7 +49,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 
 ## Phase 5: Offline and polish
 - [ ] 5.1 "Sync for trip": tiles, bathymetry, 7-day forecasts, scores to IndexedDB (**O**)
-- [ ] 5.2 Offline fallback paths and DATA AGE colour states (**S**)
+- [x] 5.2 Offline fallback paths and DATA AGE colour states (**S**)
 - [ ] 5.3 Mobile layout and sunlight-readability pass (**S**)
 - [ ] 5.4 Performance pass (**O**)
 - [ ] 5.5 Optional UI sounds (**S**)
