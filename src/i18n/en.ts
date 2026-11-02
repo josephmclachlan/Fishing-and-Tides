@@ -21,6 +21,14 @@ export const en = {
   'sheet.cond': 'COND',
   'sheet.time': 'TIME',
   'ui.close': 'Close',
+  'lang.en': 'ENGLISH',
+  'lang.es': 'ESPAÑOL',
+  'lang.group': 'Language',
+  // Compass letters on GPS coordinates (Spanish writes O for west)
+  'hemi.N': 'N',
+  'hemi.S': 'S',
+  'hemi.E': 'E',
+  'hemi.W': 'W',
 
   // Conditions panel
   'cond.title': 'CONDITIONS',

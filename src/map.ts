@@ -6,6 +6,7 @@ maplibregl.setWorkerUrl(workerUrl);
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { GRATICULE_STEP, REGION, SPOTS, TIER_ZOOM } from './region';
 import { graticule, toDDM } from './geo';
+import { hemispheres } from './i18n';
 
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/dark';
 
@@ -89,7 +90,7 @@ function addOverlays(map: Map) {
       type: 'FeatureCollection',
       features: SPOTS.map((s) => ({
         type: 'Feature',
-        properties: { name: s.name, ddm: `${toDDM(s.lngLat[1], 'lat')} ${toDDM(s.lngLat[0], 'lng')}` },
+        properties: { name: s.name, ddm: `${toDDM(s.lngLat[1], 'lat', hemispheres())} ${toDDM(s.lngLat[0], 'lng', hemispheres())}` },
         geometry: { type: 'Point', coordinates: s.lngLat } })),
     },
   });
@@ -118,12 +119,13 @@ function addOverlays(map: Map) {
   });
 }
 
-export function createMap(container: string): Map {
+/** `view` restores the camera after a language change; otherwise the map opens on the region. */
+export function createMap(container: string, view?: { center: [number, number]; zoom: number } | null): Map {
   const map = new maplibregl.Map({
     container,
     style: STYLE_URL,
-    center: REGION.center,
-    zoom: REGION.initialZoom,
+    center: view?.center ?? REGION.center,
+    zoom: view?.zoom ?? REGION.initialZoom,
     maxBounds: REGION.viewBounds,
     attributionControl: { compact: true },
     // North-up, top-down only: a satellite sensor view. Also keeps an accidental two-finger
@@ -135,6 +137,12 @@ export function createMap(container: string): Map {
   });
   map.touchZoomRotate.disableRotation();
   map.keyboard.disableRotation();
+  // Compact credits start open and are wide; fold them to the (i) button so they don't sit over the HUD.
+  map.once('load', () => {
+    const a = map.getContainer().querySelector('.maplibregl-ctrl-attrib');
+    a?.classList.remove('maplibregl-compact-show');
+    a?.removeAttribute('open');
+  });
   map.on('style.load', () => {
     hudify(map);
     addTierLayers(map);

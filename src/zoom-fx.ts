@@ -17,7 +17,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import { tierForZoom, type Tier } from './region';
 import { CELL_SPAN, LOCK_STEPS, RESOLVE_CELL_PX, cellBlockAt, nextTier, zoomBlock } from './zoom';
 import { cameraAltitudeM, toDDM } from './geo';
-import { t as tr } from './i18n'; // 't' is the resolve progress below
+import { hemispheres, t as tr } from './i18n'; // 't' is the resolve progress below
 
 /** Camera altitude for the map's current view, m. */
 export function mapAltitudeM(map: MapLibreMap): number {
@@ -214,8 +214,8 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
 
   const updateCoords = () => {
     const c = map.getCenter();
-    coords.lat.textContent = toDDM(c.lat, 'lat');
-    coords.lon.textContent = toDDM(c.lng, 'lng');
+    coords.lat.textContent = toDDM(c.lat, 'lat', hemispheres());
+    coords.lon.textContent = toDDM(c.lng, 'lng', hemispheres());
     coords.alt.textContent = formatAltitude(mapAltitudeM(map));
   };
 

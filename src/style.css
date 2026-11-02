@@ -239,12 +239,17 @@ body[data-enhance='off'] .from-spot > * { animation: tier-in 0.9s ease-out both;
   .top { gap: 4px 12px; padding: 6px 10px; }
   .title { font-size: 13px; letter-spacing: 1px; }
   .top .lbl { min-width: 0; }
+  .tier-lbl { display: none; }
   .top .seg { font-size: 16px; }
-  .top-tabs { display: flex; flex: 1 1 100%; gap: 6px; }
-  .top-tabs .tab { flex: 1 1 0; min-height: 40px; padding: 6px 2px; text-align: center; font-size: 11px; justify-content: center; }
-  .top-tabs .enh-toggle { flex-grow: 1.7; }
+  .top-tabs { display: flex; flex-wrap: wrap; flex: 1 1 100%; gap: 4px 6px; }
+  .top-tabs .tab { flex: 1 1 0; min-height: 36px; padding: 6px 2px; text-align: center; font-size: 11px; justify-content: center; }
+  /* Two rows: the views (LAYERS FIND COND BOAT) first, then the settings (ENHANCE, language flags). */
+  .top-tabs > .tab { order: 1; }
+  .top-tabs::after { content: ''; order: 2; flex: 1 1 100%; height: 0; }
+  .top-tabs > .enh-toggle { order: 3; flex: 1 1 0; min-height: 30px; }
+  .top-tabs > .lang { order: 3; }
 
-  .side, .seek, .layers { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgba(5, 8, 5, 0.94); overflow-y: auto; }
+  .side, .seek, .layers { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgba(5, 8, 5, 0.97); overflow-y: auto; }
   .ph { min-height: 34px; }
   body[data-sheet='cond'] .side { display: grid; grid-template-columns: 1fr 1fr; top: auto; bottom: calc(var(--dock-h, 64px) + 8px); max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
   body[data-sheet='find'] .seek { display: grid; top: calc(var(--top-h, 100px) + 8px); }
@@ -307,4 +312,19 @@ body[data-band='outlook'] #t-valid, body[data-band='outlook'] #t-off { color: va
 @media (max-width: 600px) {
   .boat { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgba(5, 8, 5, 0.94); }
   .boat.open { display: grid; top: calc(var(--top-h, 100px) + 8px); bottom: auto; max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
+}
+
+/* Language toggle (PLAN 5.6): two flag buttons, the active one lit. */
+.lang { display: flex; gap: 4px; }
+.tab.flag { display: inline-flex; align-items: center; justify-content: center; padding: 4px 5px; min-height: 34px; }
+.tab.flag:not(.on) { opacity: 0.55; }
+.tab.flag svg { display: block; }
+@media (max-width: 600px) {
+  .lang { flex: 0 0 auto; }
+  .top-tabs .tab.flag { flex: 0 0 auto; min-height: 30px; padding: 2px 8px; }
+  .top-tabs .tab { min-width: 0; overflow: hidden; }
+}
+@media (max-width: 600px) {
+  /* The rules card opens below the top bar so the tabs stay reachable. */
+  .rules-card { top: calc(var(--top-h, 100px) + 8px); max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
 }

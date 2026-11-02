@@ -16,7 +16,7 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions)
   root.innerHTML = `
     <header class="panel top">
       <div class="title"><span class="blink">◉</span> FISHING&amp;TIDES <span class="dim wide-only">// ${REGION.name}</span></div>
-      <div class="ro"><span class="lbl">${t('hud.tier')}</span><span class="seg green" id="tier">--</span></div>
+      <div class="ro"><span class="lbl tier-lbl">${t('hud.tier')}</span><span class="seg green" id="tier">--</span></div>
       <div class="ro"><span class="lbl">${t('hud.utc')}</span><span class="seg" id="clock">--:--:--</span></div>
       <div class="top-tabs"></div>
     </header>
