@@ -59,14 +59,49 @@ The **military-satellite zoom effect** (scanline sweep, pixelation that sharpens
 
 **Enhance fly-to** (80s action-movie "enhance"): searching or tapping a beach or coordinate (spot tabs, or a search box taking a beach name, decimal degrees or degrees + decimal minutes) first pulls smoothly all the way back to the wide view (the whole region on screen) without panning, then flashes a box over the target where it sits, smoothly pans to centre it under the crosshair, and steps into the box, and the picture breaks into pixels in proportion to the zoom: sharp when the hop starts, blocks growing as it zooms (anchored on the target so the coastline outline stays readable), coarsest on arrival, then resolving piece by piece. Once clear, a smaller box is drawn and the sequence repeats, about one hop per zoom tier (2 to 4 hops), until it lands on the beach or ocean point.
 
-## 6. Offline
+## 6. Layers and activity modes
+
+Everything is a **layer** you can switch on or off from the LAYERS drawer (top bar on phones, right side on wider screens): waves/swell, currents, wind, water temp, clarity, rip risk, surf breaks, depth, reefs, seamarks, fishing, protected zones, anchorages. The default is ALL. One tap on an **activity** preset (FISH, DIVE, SURF, SAIL) switches on just the layers that activity needs; tapping the active preset again, or ALL, brings everything back. Toggling a single layer by hand leaves the preset (the header reads CUSTOM) and returns to the preset's name if the set matches again. Choices persist on the device. Layers whose data isn't built yet show SOON.
+
+| Preset | Layers on |
+|---|---|
+| FISH | fishing, water temp, clarity (chlorophyll edges), currents, wind, depth, reefs, protected zones |
+| DIVE (dive, snorkel, spearfish) | clarity, waves/swell, currents, rip risk, depth, reefs, protected zones, seamarks |
+| SURF | waves/swell, wind, rip risk, surf breaks, depth, reefs |
+| SAIL | wind, waves/swell, currents, depth, seamarks, anchorages, reefs |
+
+Code: the catalog and presets are in `src/layers/registry.ts`. New layers (particles, fishing, and so on) call `layers.register(id, { setVisible })` and get the current state immediately and on every change; plain MapLibre layers just declare `mapPrefixes` in the catalog.
+
+### Extra data each activity needs
+
+The shared ocean data in section 2 covers most of it. These are the gaps, each with a PLAN task (Phase 6).
+
+| Activity | Needs | Public source | How it's used |
+|---|---|---|---|
+| **Dive / snorkel** | Underwater visibility: diffuse attenuation Kd490, chlorophyll, suspended sediment. River plumes after rain (Sixaola, Estrella, Banano) are the main killer here. | NOAA CoastWatch ERDDAP VIIRS Kd490 and chlorophyll; Copernicus Marine Ocean Colour (OLCI); rainfall from Open-Meteo or NASA GPM IMERG | Visibility estimate: Secchi depth ≈ 1.7 / Kd490, nudged by recent rain and swell. Clouds gap the satellite data, so fall back to rain plus waves. |
+| | Surge and bottom motion | Our own physics (3.2) from wave height, period and depth | Bottom orbital velocity `u = πH / (T sinh(kh))` at the spot depth, shown as a calm/surgy/dangerous band |
+| | Current and rip at entry points | Currents adapter, rip score (3.5) | Warn on entry/exit and drift direction |
+| **Spearfishing** | Where spearing is allowed or banned, closed seasons, size limits | SINAC (protected-area boundaries; the official source), INCOPESCA regulations and closed seasons, WDPA as a cross-check | Protected zones overlay (4.3) plus a rules card per zone. We state what the rules say and link the source; check locally before relying on it. |
+| | Visibility, depth, reef structure | As dive, plus GEBCO and Allen Coral Atlas (already in) | Pick reef edges and ledges in the right depth with enough clarity |
+| **Surf** | Break quality: swell height, period and direction against each break's orientation, offshore wind, tide | Open-Meteo Marine swell partitions (primary and secondary), our refraction (3.3) and breaking (3.4), wind from 2.3 | Per-break score. Offshore wind = angle between wind and the shore normal. |
+| | Break locations and type (reef, point, beach), orientation, hazards | OpenStreetMap `sport=surfing` plus hand-curated spots in `src/region.ts` (Salsa Brava, Playa Negra, Punta Uva, Cocles) | Seed list, verified on the map. Local knowledge needed; no open dataset is complete. |
+| | Crowd and wave count | No open source | Out of scope |
+| **Sail** | Gusts, squalls and storm risk | Open-Meteo `wind_gusts_10m` and CAPE; NOAA NHC for tropical systems | Gust and squall alerts in the alert strip |
+| | Sea state (steepness, wind sea vs swell, period) | Open-Meteo Marine wind-wave and swell partitions | Comfort index: short steep seas against long swell |
+| | Anchorages, harbours, hazards, wrecks | OpenStreetMap seamarks (some already in), NGA World Port Index (public domain) | Anchorages layer, with depth from GEBCO and shelter from wind direction |
+| | Harbour entrance conditions | Tide and current at Moín and Limón (3.1, UHSLC gauge) | Entrance bar warnings |
+| **Fish** | See section 4 | | |
+
+Not for navigation: this applies to all of the above, depth and charts in particular, and the app says so.
+
+## 7. Offline
 
 - Installable PWA (service worker plus web manifest).
 - **"Sync for trip" button** downloads map tiles and bathymetry for the whole region, 7 days of swell, wind and current forecasts, and precomputed fishing and rip scores into IndexedDB / Cache Storage.
 - Tides and physics are computed on device, so other spots and times still work offline.
 - **DATA AGE readout:** segmented display of time since last sync. Green when fresh, amber after 12 h, red after 48 h.
 
-## 7. Visual style
+## 8. Visual style
 
 Retrofuturistic HUD in the Evangelion / NASA mission-control vein:
 - Near-black background, phosphor **amber** (primary) and **green** (secondary), red for warnings.

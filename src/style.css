@@ -174,7 +174,7 @@ body[data-tier='COAST'] .from-spot { display: none; }
   /* Side panel fills the lower screen on phones, so the lock readout goes above the reticle. */
   .fx-coords { top: max(calc(50% - var(--size) / 2 - 100px), 204px); }
   .fx-tag { top: max(calc(50% - var(--size) / 2 - 34px), 270px); }
-  .seek { top: 92px; left: 8px; right: 8px; width: auto; }
+  .seek { top: 128px; left: 8px; right: 8px; width: auto; }
   .seek-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 }
 
@@ -182,3 +182,23 @@ body[data-tier='COAST'] .from-spot { display: none; }
 .seg.sm { font-size: 13px; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .side .wide-only { display: contents; }
 @media (max-width: 600px) { .side .wide-only { display: none; } }
+
+/* Layers drawer (PLAN 1.8) */
+.layers { right: 8px; bottom: 76px; width: 330px; max-height: calc(100% - 320px); overflow-y: auto; display: none; gap: 6px; }
+.layers.open { display: grid; }
+.lay-acts, .lay-grid { display: grid; gap: 4px; }
+.lay-acts { grid-template-columns: repeat(5, 1fr); }
+.lay-grid { grid-template-columns: 1fr 1fr; }
+.layers .tab { min-height: 36px; padding: 6px; text-align: center; }
+.layers .tab.lay { opacity: 0.45; border-style: dashed; }
+.layers .tab.lay.on { opacity: 1; border-style: solid; }
+.layers .tab.lay .soon { display: none; font-style: normal; font-size: 9px; letter-spacing: 1px; margin-left: 6px; color: var(--amber); opacity: 0.7; }
+.layers .tab.lay.pending .soon { display: inline; }
+.lay-open { white-space: nowrap; pointer-events: auto; }
+@media (max-width: 600px) {
+  .layers { left: 8px; right: 8px; bottom: 120px; width: auto; max-height: calc(100% - 200px); background: rgba(5, 8, 5, 0.94); z-index: 5; }
+  .layers .tab { min-height: 44px; }
+  .lay-open { font-size: 12px; padding: 5px 8px; }
+  .lay-mode { display: none; }
+  .top { gap: 10px; }
+}
