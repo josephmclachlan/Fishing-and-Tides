@@ -49,7 +49,7 @@ export const ENHANCE_ZOOM = 14;
 /** Most zoom levels one enhance hop covers; the box drawn is 1 / 2^step of the screen. */
 export const ENHANCE_MAX_STEP = 2.5;
 export const ENHANCE_MAX_HOPS = 4;
-/** Zoom to pull back to first when the target is off screen or we're already zoomed in. */
+/** Most zoomed-in the enhance's opening pull-back may stop at (it also backs off until the region fits). */
 export const ENHANCE_WIDE_ZOOM = 9;
 
 /**
@@ -77,4 +77,22 @@ export function zoomBlock(z: number, z0: number, z1: number): number {
   const f = span > 0 ? Math.min(1, Math.max(0, (z - z0) / span)) : 1;
   const size = MAX_BLOCK ** f;
   return LOCK_STEPS.find((b) => b <= size + 1e-9) ?? 1;
+}
+
+/**
+ * Zoom levels to pull back, keeping the centre fixed, so a point at screen offset (dx, dy) px
+ * from the centre lands within `margin` of the half-viewport (w, h). Pulling back k levels
+ * shrinks screen offsets by 2^k, so k = log2(offset / allowed), at least 0.
+ */
+export function zoomOutToFit(dx: number, dy: number, w: number, h: number, margin = 0.8): number {
+  const need = Math.max(Math.abs(dx) / ((w / 2) * margin), Math.abs(dy) / ((h / 2) * margin));
+  return need > 1 ? Math.log2(need) : 0;
+}
+
+/**
+ * Easing that moves in `n` discrete jumps instead of a glide, like an old tracking system
+ * stepping its optics. Holds each step, lands exactly on 1.
+ */
+export function steppedEase(n: number): (x: number) => number {
+  return (x) => (x >= 1 ? 1 : Math.floor(Math.max(0, x) * n) / n);
 }

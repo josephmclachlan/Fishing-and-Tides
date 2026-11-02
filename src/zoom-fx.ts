@@ -6,7 +6,8 @@
  *
  * `createLockFx` is the effect itself, driven step by step by the enhance sequence
  * (src/enhance.ts) when a beach or coordinate is picked:
- *   - a highlighted target box that tracks the map,
+ *   - a highlighted target box framing what the view will show at a given zoom, centred on
+ *     the target and tracking it as the map moves,
  *   - pixel blocks that grow in proportion to the zoom (sharp when a hop starts, coarsest on
  *     arrival, anchored on the target so the coastline outline stays readable), then square
  *     cells sharpening one by one in random order under a scanline sweep,
@@ -37,15 +38,24 @@ export function mountZoomTiers(map: MapLibreMap) {
   });
 }
 
-export type Bounds = [[number, number], [number, number]];
+/** Box framing what the screen will show once zoomed to `zoom` with `at` centred. */
+export interface BoxSpec {
+  at: [number, number];
+  zoom: number;
+}
 
 export interface LockFx {
   /** Show the overlay for a new target. */
   start(title: string): void;
   /** Status word next to the reticle, e.g. ACQUIRING. */
   state(text: string): void;
-  /** Highlight a geographic box (tracks the map as it moves), or clear it. */
-  box(bounds: Bounds | null, label?: string): void;
+  /**
+   * Highlight the area the view will show at `spec.zoom` centred on `spec.at`, or clear it.
+   * Drawn in screen space around the target's projected point (a viewport-shaped box scaled
+   * by 2^(zoom now - spec.zoom)), so it stays right however the map is panned or zoomed and
+   * grows to fill the screen as the zoom arrives.
+   */
+  box(spec: BoxSpec | null, label?: string): void;
   /**
    * Pixelate in step with a zoom from `z0` to `z1`: sharp now, coarsest at `z1`. The block grid
    * is anchored on `anchor` so blocks scale out from the target. Picks fresh random cell
@@ -112,7 +122,7 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
   let gridRows = 0;
   let raf = 0;
   let hideTimer = 0;
-  let boxBounds: Bounds | null = null;
+  let boxSpec: BoxSpec | null = null;
   let resolving: ((ok: boolean) => void) | null = null;
 
   const layout = () => {
@@ -209,13 +219,14 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
   };
 
   const placeBox = () => {
-    if (!boxBounds) return;
-    const [[w, s], [e, n]] = boxBounds;
-    const a = map.project([w, n]);
-    const b = map.project([e, s]);
-    boxEl.style.transform = `translate(${a.x.toFixed(1)}px, ${a.y.toFixed(1)}px)`;
-    boxEl.style.width = `${(b.x - a.x).toFixed(1)}px`;
-    boxEl.style.height = `${(b.y - a.y).toFixed(1)}px`;
+    if (!boxSpec) return;
+    const p = map.project(boxSpec.at);
+    const k = 2 ** (map.getZoom() - boxSpec.zoom);
+    const w = map.getContainer().clientWidth * k;
+    const h = map.getContainer().clientHeight * k;
+    boxEl.style.transform = `translate(${(p.x - w / 2).toFixed(1)}px, ${(p.y - h / 2).toFixed(1)}px)`;
+    boxEl.style.width = `${w.toFixed(1)}px`;
+    boxEl.style.height = `${h.toFixed(1)}px`;
   };
 
   const stopResolve = (ok: boolean) => {
@@ -248,16 +259,16 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
     state(text) {
       stateEl.textContent = text;
     },
-    box(bounds, label = '') {
-      if (bounds) {
+    box(spec, label = '') {
+      if (spec) {
         // A new designation clears the previous sector's lock.
         fx.classList.remove('locked');
         document.body.classList.remove('fx-locked');
         fx.style.setProperty('--lock', '1');
       }
-      boxBounds = bounds;
+      boxSpec = spec;
       boxLbl.textContent = label;
-      boxEl.classList.toggle('on', !!bounds);
+      boxEl.classList.toggle('on', !!spec);
       placeBox();
     },
     magnify(z0, z1, at) {
@@ -317,7 +328,7 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
       stopResolve(false);
       clearTimeout(hideTimer);
       mode = 'off';
-      boxBounds = null;
+      boxSpec = null;
       boxEl.classList.remove('on');
       pixels.classList.remove('on');
       sweep.classList.remove('on');
