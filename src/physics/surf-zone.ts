@@ -46,19 +46,42 @@ export interface SpotWaves {
   angleDeg: number;
 }
 
-/** Refraction + breaking for a shoreline pin; null when there's no water deep enough nearby. */
-export function spotWaves(depth: DepthFn, pin: [number, number], sea: SeaState, opts: RefractOptions & { readDepth?: number } = {}): SpotWaves | null {
-  const readDepth = opts.readDepth ?? 10;
+/** Where and how a shoreline pin meets the sea; depends only on the seafloor, so callers cache it per spot. */
+export interface SpotGeometry {
+  pin: [number, number];
+  /** Read point with at least `readDepth` of water, [lng, lat]. */
+  point: [number, number];
+  /** Seaward shore normal, compass degrees. */
+  normalDeg: number;
+  /** Mean nearshore slope tan β between the pin and the read point. */
+  slope: number | null;
+}
+
+export function spotGeometry(depth: DepthFn, pin: [number, number], readDepth = 10): SpotGeometry | null {
   const point = nearshorePoint(depth, pin, readDepth);
   if (!point) return null;
   const mx = M_PER_DEG_LNG * Math.cos(pin[1] * RAD);
   const dx = (point[0] - pin[0]) * mx;
   const dy = (point[1] - pin[1]) * M_PER_DEG_LAT;
-  const normalDeg = ((Math.atan2(dx, dy) / RAD) % 360 + 360) % 360;
-  const h = depth(point[0], point[1]);
-  const slope = meanSlope(h, Math.hypot(dx, dy));
-  const refraction = refractAt(depth, point, sea.Tp, { fromDeg: sea.fromDeg, spreadDeg: sea.spreadDeg ?? defaultSpread(sea.Tp) }, opts);
-  const angleDeg = Number.isNaN(refraction.fromDeg) ? 0 : wrap180(refraction.fromDeg - normalDeg);
-  const b = breaker({ H0: sea.Hs, T: sea.Tp, Kr: refraction.Kr || 0, slope, angleDeg: Math.abs(angleDeg) < 90 ? angleDeg : 0 });
-  return { point, normalDeg, slope, refraction, breaker: b, angleDeg };
+  const normalDeg = (((Math.atan2(dx, dy) / RAD) % 360) + 360) % 360;
+  return { pin, point, normalDeg, slope: meanSlope(depth(point[0], point[1]), Math.hypot(dx, dy)) };
+}
+
+/** Refraction for a spot: depends on period, direction and spread but not height, so it caches well. */
+export function spotRefraction(depth: DepthFn, geom: SpotGeometry, sea: SeaState, opts: RefractOptions = {}): RefractionResult {
+  return refractAt(depth, geom.point, sea.Tp, { fromDeg: sea.fromDeg, spreadDeg: sea.spreadDeg ?? defaultSpread(sea.Tp) }, opts);
+}
+
+/** The breaker for a sea state, from the spot's geometry and refraction. Cheap. */
+export function spotWavesFrom(geom: SpotGeometry, refraction: RefractionResult, sea: SeaState): SpotWaves {
+  const angleDeg = Number.isNaN(refraction.fromDeg) ? 0 : wrap180(refraction.fromDeg - geom.normalDeg);
+  const b = breaker({ H0: sea.Hs, T: sea.Tp, Kr: refraction.Kr || 0, slope: geom.slope, angleDeg: Math.abs(angleDeg) < 90 ? angleDeg : 0 });
+  return { point: geom.point, normalDeg: geom.normalDeg, slope: geom.slope, refraction, breaker: b, angleDeg };
+}
+
+/** Refraction + breaking for a shoreline pin; null when there's no water deep enough nearby. */
+export function spotWaves(depth: DepthFn, pin: [number, number], sea: SeaState, opts: RefractOptions & { readDepth?: number } = {}): SpotWaves | null {
+  const geom = spotGeometry(depth, pin, opts.readDepth);
+  if (!geom) return null;
+  return spotWavesFrom(geom, spotRefraction(depth, geom, sea, opts), sea);
 }

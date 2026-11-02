@@ -36,7 +36,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 3.3 Refraction ray tracing over bathymetry (**O**). `src/physics/refraction.ts`, see `docs/PHYSICS.md`
 - [x] 3.4 Breaking height, breaker type, wave energy and force (**O**). `src/physics/breaking.ts`, `surf-zone.ts`
 - [x] 3.5 Rip risk score with length/strength band (**O**). `src/physics/rip.ts`
-- [ ] 3.6 Move heavy physics to a Web Worker (**S**)
+- [x] 3.6 Move heavy physics to a Web Worker (**S**). HUD rip readout now computed in it
 
 ## Phase 4: Forecast and fishing UI
 - [ ] 4.1 Tide chart panel and spot pages (**S**)
