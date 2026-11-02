@@ -320,3 +320,7 @@ body[data-band='outlook'] #t-valid, body[data-band='outlook'] #t-off { color: va
   .top-tabs .tab.flag { flex: 0 0 auto; min-height: 40px; padding: 4px 3px; }
   .top-tabs .tab { min-width: 0; overflow: hidden; }
 }
+@media (max-width: 600px) {
+  /* The rules card opens below the top bar so the tabs stay reachable. */
+  .rules-card { top: calc(var(--top-h, 100px) + 8px); max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
+}
