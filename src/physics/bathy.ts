@@ -64,6 +64,17 @@ export function cellAt(g: Grid, lng: number, lat: number): number {
 }
 
 /**
+ * Sea or land at a point: the fine coastline mask (1 = land) where it covers, else the coarse
+ * elevation grid (below 0 m = sea). Unknown (outside both) counts as sea.
+ */
+export function isWater(land: Grid, elevation: Grid, lng: number, lat: number): boolean {
+  const m = cellAt(land, lng, lat);
+  if (!Number.isNaN(m)) return m !== 1;
+  const z = sample(elevation, lng, lat);
+  return !(z >= 0);
+}
+
+/**
  * Lines where the grid crosses `level`, by marching squares with linear interpolation
  * along cell edges. Saddle cells are resolved by the cell-centre mean. Segments are
  * stitched into polylines; a closed ring repeats its first point at the end.
