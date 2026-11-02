@@ -73,3 +73,9 @@ export const MOCK_FLOW = {
     { center: [-83.0, 11.6] as [number, number], radiusDeg: 0.45, speedMs: 0.2 },
   ],
 } as const;
+
+/**
+ * Tide reference station (PLAN 3.1): the UHSLC Limón gauge, the only tide gauge on this coast.
+ * Its harmonics (src/data/tides-limon.ts) are used for the whole Gandoca–Limón stretch; see docs/TIDES.md.
+ */
+export const TIDE_STATION = { name: 'LIMÓN', uhslc: 268, lngLat: [-83.02038, 9.9887] as [number, number] } as const;

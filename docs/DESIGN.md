@@ -12,7 +12,7 @@ Tides here are small (microtidal, under about 0.5 m), so tide *timing* matters m
 
 | Domain | Source | Use |
 |---|---|---|
-| Tides | TPXO9 or FES2014 harmonic constituents | Tide height and timing computed on device, forever offline |
+| Tides | Harmonic constants fitted to the UHSLC Limón gauge (TPXO/FES need registration); see `docs/TIDES.md` | Tide height and timing computed on device, forever offline |
 | Tide validation | UHSLC Limón tide gauge | Check and tune the harmonic constants |
 | Waves and swell | WaveWatch III, Open-Meteo Marine | Offshore Hs, Tp, direction, swell partitions (Open-Meteo is the easy default) |
 | Currents | Copernicus Marine, HYCOM | Offshore surface currents; nearshore currents modeled by us |

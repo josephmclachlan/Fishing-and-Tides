@@ -1,7 +1,9 @@
 import { MOCK_FLOW, REGION } from './region';
+import { LIMON_HARMONICS } from './data/tides-limon';
+import { predict } from './physics/tide';
 import { KT_PER_MS, fromSpeedDir, gridField, nearestOnLine, vortexSpeed, type VectorField } from './physics/flow';
 
-/** Mock conditions until Phase 2 adapters land. Shape mirrors what adapters will return. */
+/** Mock conditions until Phase 2 adapters land (the tide is already real). Shape mirrors what adapters will return. */
 export interface Conditions {
   fetchedAt: number;
   swellHeightM: number;
@@ -22,11 +24,11 @@ export interface Conditions {
  * harmonic, still varies, because nothing else is predictable that far out.
  */
 export function mockConditions(now = Date.now(), at = now, climatology = false): Conditions {
-  // Fake semidiurnal-ish tide so the readout moves.
   const t = at / 3.6e6;
   const swell = 1.4 + (climatology ? 0 : 0.35) * Math.sin((2 * Math.PI * (t - now / 3.6e6)) / 40);
-  const tide = 0.18 * Math.sin((2 * Math.PI * t) / 12.42) + 0.06 * Math.sin((2 * Math.PI * t) / 24);
-  const tideNext = 0.18 * Math.sin((2 * Math.PI * (t + 0.1)) / 12.42) + 0.06 * Math.sin((2 * Math.PI * (t + 0.1)) / 24);
+  // Real tide (PLAN 3.1): Limón harmonics, metres relative to MSL.
+  const tide = predict(LIMON_HARMONICS, at);
+  const tideNext = predict(LIMON_HARMONICS, at + 360_000);
   return {
     fetchedAt: now - 3 * 3.6e6,
     swellHeightM: swell,
