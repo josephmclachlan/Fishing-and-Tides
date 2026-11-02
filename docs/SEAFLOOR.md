@@ -20,5 +20,5 @@ Rebuild with `npm run data:seafloor` (writes `public/data/seafloor/`, ~1.5 MB, ~
 - **GMRT** (Lamont, CC BY 4.0): serves this area at ~120 m nodes, but they're interpolated from the same GEBCO base plus a few multibeam lines. No real gain.
 - **Costa Rican charts**: no public digital hydrographic survey or ENC data found. SNIT/IGN geoservices weren't reachable from the build machine. Paper/ENC charts (NGA, UKHO) aren't openly licensed.
 - **UNEP-WCMC Global Distribution of Coral Reefs v4.1**: only 6 coarse polygons here, non-commercial licence. Allen Coral Atlas is finer and CC BY.
-- **Protected areas**: WDPA (Protected Planet) has Cahuita NP and Gandoca-Manzanillo with marine areas, but its terms bar redistributing the data, so don't bundle it. SINAC/SNIT is the official source. Left for PLAN 4.3.
+- **Protected areas**: WDPA (Protected Planet) has Cahuita NP and Gandoca-Manzanillo with marine areas, but its terms bar redistributing the data, so don't bundle it. SINAC/SNIT is the official source. Done in PLAN 4.3 from OSM boundaries (SINAC 2019): see docs/ZONES.md.
 - **OpenSeaMap raster tiles**: would show the same OSM seamarks but in chart colours, not the HUD style.
