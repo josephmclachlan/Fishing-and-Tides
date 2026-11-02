@@ -28,6 +28,8 @@ import { createTimeStore } from './time';
 import { mountTimeSlider } from './time-slider';
 import { KT_PER_MS, sampleField, fromDeg } from './physics/flow';
 import { MOCK_FLOW, REGION } from './region';
+import { fetchWind, windAt, type WindData } from './adapters/wind';
+import { dataAge } from './adapters/data-age';
 
 registerSW({ immediate: true });
 
@@ -36,19 +38,24 @@ const hud = document.getElementById('hud')!;
 // Tiers first: the HUD reads the tier they publish on each move.
 mountZoomTiers(map);
 const time = createTimeStore();
-// Wind and current particles on mock fields until the PLAN 2.3 / 2.5 adapters.
+// Current particles on a mock field until the PLAN 2.5 adapter.
 // Past a week no model has skill: the OUTLOOK band shows climatology (the mock's mean pattern, hour 0).
 const climatological = () => time.band() === 'outlook';
 const windHour = () => (climatological() ? 0 : time.offsetH());
 const hoursSinceEpoch = (ms: number) => ms / 3.6e6;
+// Real wind (PLAN 2.3) once loaded: forecast grid, then monthly climatology for OUTLOOK. Mock until then, or if none is published.
+let wind: WindData | null = null;
+const windField = () => (wind && windAt(wind, time.band(), time.validMs())?.field) || mockWindField(windHour());
 const flowSources: { wind: FlowSource; current: FlowSource } = {
-  wind: { field: mockWindField(windHour()), ...FLOW_STYLE.wind },
+  wind: { field: windField(), ...FLOW_STYLE.wind },
   current: { field: mockCurrentField(hoursSinceEpoch(time.validMs())), ...FLOW_STYLE.current },
 };
 // The wind reading comes from the wind field at its reference point, so HUD and particles agree at every hour.
 const windAtRef: [number, number] = [0, 0];
 const conditionsAt = () => {
   const c = mockConditions(Date.now(), time.validMs(), climatological());
+  // DATA AGE: the oldest live feed once any has loaded (src/adapters/data-age.ts).
+  c.fetchedAt = dataAge.oldest()?.fetchedAt ?? c.fetchedAt;
   if (sampleField(flowSources.wind.field, ...MOCK_FLOW.windRef, windAtRef)) {
     c.windKt = Math.hypot(...windAtRef) * KT_PER_MS;
     c.windDirDeg = fromDeg(...windAtRef);
@@ -83,13 +90,22 @@ time.subscribe(() => {
   fieldsQueued = true;
   requestAnimationFrame(() => {
     fieldsQueued = false;
-    flowSources.wind = { ...flowSources.wind, field: mockWindField(windHour()) };
+    flowSources.wind = { ...flowSources.wind, field: windField() };
     flowSources.current = { ...flowSources.current, field: mockCurrentField(hoursSinceEpoch(time.validMs())) };
     flow?.setSource('wind', flowSources.wind);
     flow?.setSource('current', flowSources.current);
     flowHud?.refresh();
   });
 });
+
+fetchWind()
+  .then((d) => {
+    if (!d.forecast && !d.climatology) return console.warn('wind: no forecast or climatology published; using mock');
+    wind = d;
+    flowSources.wind = { ...flowSources.wind, field: windField() };
+    flow?.setSource('wind', flowSources.wind);
+  })
+  .catch((err) => console.warn('wind unavailable', err));
 
 // Protected areas: static outlines, precached for offline use.
 fetchZones()
