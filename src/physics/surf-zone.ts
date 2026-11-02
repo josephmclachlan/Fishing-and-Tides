@@ -51,7 +51,7 @@ export interface SpotGeometry {
   pin: [number, number];
   /** Read point with at least `readDepth` of water, [lng, lat]. */
   point: [number, number];
-  /** Seaward shore normal, compass degrees. */
+  /** Seaward shore normal, compass degrees (from the coastline around the pin; see `shoreNormal`). */
   normalDeg: number;
   /** Mean nearshore slope tan β between the pin and the read point. */
   slope: number | null;
@@ -63,8 +63,28 @@ export function spotGeometry(depth: DepthFn, pin: [number, number], readDepth = 
   const mx = M_PER_DEG_LNG * Math.cos(pin[1] * RAD);
   const dx = (point[0] - pin[0]) * mx;
   const dy = (point[1] - pin[1]) * M_PER_DEG_LAT;
-  const normalDeg = (((Math.atan2(dx, dy) / RAD) % 360) + 360) % 360;
-  return { pin, point, normalDeg, slope: meanSlope(depth(point[0], point[1]), Math.hypot(dx, dy)) };
+  return { pin, point, normalDeg: shoreNormal(depth, pin) ?? (((Math.atan2(dx, dy) / RAD) % 360) + 360) % 360, slope: meanSlope(depth(point[0], point[1]), Math.hypot(dx, dy)) };
+}
+
+/**
+ * Seaward shore normal at a pin: the mean direction of the water around it, sampled on rings of
+ * 150, 300 and 500 m at 5° steps. Follows the local coastline (the land mask is ~33 m), where the
+ * direction to the nearest deep water can cut across a bay. Null if no water is in reach.
+ */
+export function shoreNormal(depth: DepthFn, pin: [number, number]): number | null {
+  const mx = M_PER_DEG_LNG * Math.cos(pin[1] * RAD);
+  let sx = 0;
+  let sy = 0;
+  for (const r of [150, 300, 500])
+    for (let a = 0; a < 360; a += 5) {
+      const ar = a * RAD;
+      if (depth(pin[0] + (Math.sin(ar) * r) / mx, pin[1] + (Math.cos(ar) * r) / M_PER_DEG_LAT) > 0) {
+        sx += Math.sin(ar);
+        sy += Math.cos(ar);
+      }
+    }
+  if (Math.hypot(sx, sy) < 1e-9) return null;
+  return (((Math.atan2(sx, sy) / RAD) % 360) + 360) % 360;
 }
 
 /** Refraction for a spot: depends on period, direction and spread but not height, so it caches well. */

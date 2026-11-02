@@ -1,22 +1,25 @@
 /**
  * BREAK rows in the side panel from the coast tier in (PLAN 6.4): the nearest catalog break within
  * 1.5 km of the reticle, its type and the way it faces, its hazards, and a CHECK tag when the guides
- * disagree or only one covers it. INFO opens a card with the guides it came from.
+ * disagree or only one covers it. INFO opens a card with the guides it came from. The SURF row is
+ * the surf model's rating (PLAN 6.3): band, score out of 10 and the wind relative to the shore.
  */
 import type { Map } from 'maplibre-gl';
 import { t, type Key } from './i18n';
 import { breaksNear, compass8 } from './surf-breaks';
 import type { SurfBreak } from './data/surf-breaks';
+import type { SurfQuality } from './surf-quality';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
-export function mountSurfHud(root: HTMLElement, map: Map) {
+export function mountSurfHud(root: HTMLElement, map: Map, quality: (name: string) => SurfQuality | undefined = () => undefined) {
   const side = root.querySelector<HTMLElement>('.side');
-  if (!side) return;
+  if (!side) return { refresh() {} };
   side.insertAdjacentHTML(
     'beforeend',
     `<div class="from-coast">
       <div class="ro"><span class="lbl">${t('surf.title')}</span><span class="seg sm green" id="sb-name">--</span></div>
+      <div class="ro"><span class="lbl">${t('surf.q')}</span><span class="seg sm" id="sb-q">--</span></div>
       <div class="ro"><span class="lbl">${t('surf.type')}</span><span class="seg sm" id="sb-type">--</span></div>
       <div class="ro"><span class="lbl">${t('surf.hazard')}</span><span class="seg sm" id="sb-haz">--</span></div>
       <div class="ro"><button type="button" class="tab" id="sb-info" hidden>${t('rules.source')}</button></div>
@@ -52,9 +55,14 @@ export function mountSurfHud(root: HTMLElement, map: Map) {
     $('sb-type').textContent = hit ? `${t(`surf.type.${hit.type}` as Key)} ${t(`surf.shape.${hit.shape}` as Key)}, ${t('surf.faces', { dir: compass8(hit.facing) })}` : '--';
     $('sb-haz').textContent = hit ? (hit.hazards.map((h) => t(`surf.hazard.${h}` as Key)).join(', ') || t('surf.hazard.none')) : '--';
     $('sb-info').hidden = !hit;
+    const q = hit ? quality(hit.name) : undefined;
+    const qEl = $('sb-q');
+    qEl.textContent = q ? `${t(`surf.band.${q.band}` as Key)} ${q.score.toFixed(1)} · ${t(`surf.wind.${q.windKind}` as Key)}` : '--';
+    qEl.className = 'seg sm ' + (!q ? '' : q.band === 'GOOD' || q.band === 'EPIC' ? 'green' : q.band === 'POOR' ? 'red' : '');
   };
   map.on('move', () => {
     if (!queued) (queued = true), requestAnimationFrame(update);
   });
   update();
+  return { refresh: update };
 }

@@ -14,7 +14,7 @@ import type { SpotState } from '../spot-physics';
 const FONT = ['Noto Sans Regular'];
 const RAD = Math.PI / 180;
 /** Half the length of the surf-zone bar along the shore, m. */
-const BAR_HALF_M = 350;
+const BAR_HALF_M = 200;
 /** Arrow-head barb length, m, and angle off the shaft. */
 const BARB_M = 45;
 const BARB_DEG = 28;

@@ -10,15 +10,25 @@ import { KT_PER_MS } from './physics/flow';
 import type { SpotResult } from './physics/spot-model';
 import { tideState } from './physics/tide';
 import { SPOTS } from './region';
+import { SURF_BREAKS, type SurfBreak } from './data/surf-breaks';
+import { surfQuality, type SurfQuality } from './surf-quality';
+
+/** Every place we model: the named spots plus catalog surf breaks that aren't one of them. */
+export const PLACES: readonly { name: string; lngLat: [number, number]; brk?: SurfBreak }[] = [
+  ...SPOTS.map((s) => ({ ...s, brk: SURF_BREAKS.find((b) => b.name === s.name) })),
+  ...SURF_BREAKS.filter((b) => !SPOTS.some((s) => s.name === b.name)).map((b) => ({ name: b.name, lngLat: b.lngLat, brk: b })),
+];
 
 export interface SpotState {
   name: string;
   pin: [number, number];
   result: SpotResult | null;
+  /** Surf quality (PLAN 6.3), for catalog breaks. */
+  surf?: SurfQuality;
 }
 
 export interface SpotPhysics {
-  /** Latest results, one per SPOTS entry, in SPOTS order (empty until the first run finishes). */
+  /** Latest results, one per PLACES entry, in PLACES order (empty until the first run finishes). */
   all(): SpotState[];
   byName(name: string): SpotState | undefined;
   /** Recompute (coalesced; call as often as you like). */
@@ -44,10 +54,17 @@ export function createSpotPhysics(
     const tideLevel = tideState(LIMON_HARMONICS, ms).level;
     const sea = { Hs: c.swellHeightM, Tp: c.swellPeriodS, fromDeg: c.swellDirDeg };
     const wind = { speedMs: c.windKt / KT_PER_MS, fromDeg: c.windDirDeg };
+    const seas = PLACES.map((p) => seaAt(p.lngLat) ?? sea);
     client
-      .latestMany(SPOTS.map((s) => ({ pin: s.lngLat, sea: seaAt(s.lngLat) ?? sea, tideLevel, wind })))
+      .latestMany(PLACES.map((p, i) => ({ pin: p.lngLat, sea: seas[i], tideLevel, wind })))
       .then((rs) => {
-        states = SPOTS.map((s, i) => ({ name: s.name, pin: s.lngLat, result: rs[i] }));
+        states = PLACES.map((s, i) => {
+          const r = rs[i];
+          const surf = s.brk && r
+            ? surfQuality({ brk: s.brk, Hb: r.waves.breaker.Hb, Tp: seas[i].Tp, swellFromDeg: seas[i].fromDeg, windMs: wind.speedMs, windFromDeg: wind.fromDeg })
+            : undefined;
+          return { name: s.name, pin: s.lngLat, result: r, surf };
+        });
         subs.forEach((fn) => fn());
       })
       .catch((err) => console.warn('spot physics failed', err));
