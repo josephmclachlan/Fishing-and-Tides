@@ -7,13 +7,14 @@
  * `createLockFx` is the effect itself, driven step by step by the enhance sequence
  * (src/enhance.ts) when a beach or coordinate is picked:
  *   - a highlighted target box that tracks the map,
- *   - coarse pixel blocks while the camera moves, then square cells sharpening one by one in
- *     random order under a scanline sweep,
+ *   - pixel blocks that grow in proportion to the zoom (sharp when a hop starts, coarsest on
+ *     arrival, anchored on the target so the coastline outline stays readable), then square
+ *     cells sharpening one by one in random order under a scanline sweep,
  *   - targeting brackets closing on the reticle, with live lat / lon / altitude.
  */
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import { tierForZoom, type Tier } from './region';
-import { CELL_SPAN, LOCK_STEPS, RESOLVE_CELL_PX, cellBlockAt, nextTier } from './zoom';
+import { CELL_SPAN, LOCK_STEPS, RESOLVE_CELL_PX, cellBlockAt, nextTier, zoomBlock } from './zoom';
 import { cameraAltitudeM, toDDM } from './geo';
 
 /** Camera altitude for the map's current view, m. */
@@ -45,8 +46,12 @@ export interface LockFx {
   state(text: string): void;
   /** Highlight a geographic box (tracks the map as it moves), or clear it. */
   box(bounds: Bounds | null, label?: string): void;
-  /** Drop the picture to coarse blocks, each cell on a fresh random schedule. */
-  coarse(): void;
+  /**
+   * Pixelate in step with a zoom from `z0` to `z1`: sharp now, coarsest at `z1`. The block grid
+   * is anchored on `anchor` so blocks scale out from the target. Picks fresh random cell
+   * schedules for the resolve that follows.
+   */
+  magnify(z0: number, z1: number, anchor: [number, number]): void;
   /** Sharpen cell by cell over `ms` under a scanline sweep. False if cancelled meanwhile. */
   resolve(ms: number): Promise<boolean>;
   /** Brackets go green: target locked. */
@@ -94,7 +99,14 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
   const boxLbl = q('.fx-box-lbl');
   const coords = { lat: q('[data-k=lat]'), lon: q('[data-k=lon]'), alt: q('[data-k=alt]') };
 
-  let t = 1; // resolve progress 0..1; 1 = sharp, pixel layer off
+  // Pixel layer: off, growing with the zoom, or resolving cell by cell (t = 0..1).
+  let mode: 'off' | 'zoom' | 'resolve' = 'off';
+  let t = 1;
+  let zoomFrom = 0;
+  let zoomTo = 0;
+  let anchor: [number, number] = [0, 0];
+  let originX = 0; // screen position of the grid's top-left, so a cell corner sits on the anchor
+  let originY = 0;
   let delays: Float32Array = new Float32Array(0); // per-cell start of its resolve
   let gridCols = 0;
   let gridRows = 0;
@@ -104,8 +116,14 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
   let resolving: ((ok: boolean) => void) | null = null;
 
   const layout = () => {
-    gridCols = Math.ceil(window.innerWidth / RESOLVE_CELL_PX);
-    gridRows = Math.ceil(window.innerHeight / RESOLVE_CELL_PX);
+    const c = RESOLVE_CELL_PX;
+    const p = map.project(anchor);
+    originX = (((p.x % c) + c) % c) - c;
+    originY = (((p.y % c) + c) % c) - c;
+    pixels.style.transform = `translate(${originX.toFixed(1)}px, ${originY.toFixed(1)}px)`;
+    // One spare row/column so the shifted grid still covers the screen.
+    gridCols = Math.ceil(window.innerWidth / c) + 1;
+    gridRows = Math.ceil(window.innerHeight / c) + 1;
     const w = gridCols * RESOLVE_CELL_PX;
     const h = gridRows * RESOLVE_CELL_PX;
     if (pixels.width !== w || pixels.height !== h) {
@@ -120,14 +138,18 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
    * Paint unresolved cells as coarse blocks over the live map; resolved cells are left clear.
    * Runs inside MapLibre's 'render' event, while the WebGL frame is still readable.
    */
+  const blockAt = (cell: number) =>
+    mode === 'zoom' ? zoomBlock(map.getZoom(), zoomFrom, zoomTo) : cellBlockAt(t, delays[cell] ?? 0);
+
   const drawPixels = () => {
-    layout(); // follows a rotate/resize mid-transition
+    layout(); // follows the anchor, and a rotate/resize mid-transition
     const src = map.getCanvas();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     ctx.clearRect(0, 0, pixels.width, pixels.height);
     let coarsest = 1;
-    for (const d of delays) coarsest = Math.max(coarsest, cellBlockAt(t, d));
+    for (let i = 0; i < gridCols * gridRows; i++) coarsest = Math.max(coarsest, blockAt(i));
+    if (coarsest <= 1) return;
     let prev: CanvasRenderingContext2D | null = null;
     for (const b of [...LOCK_STEPS].reverse()) {
       if (b > coarsest) break;
@@ -140,7 +162,7 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
       } else lv.clearRect(0, 0, w, h);
       if (!prev) {
         lv.imageSmoothingEnabled = true;
-        lv.drawImage(src, 0, 0, vw, vh); // device px -> CSS px
+        lv.drawImage(src, -originX, -originY, vw, vh); // device px -> CSS px, in grid space
       } else {
         // 2x2 max: dilate the previous level by one pixel with 'lighten', then take every other pixel.
         const pw = prev.canvas.width;
@@ -164,13 +186,14 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
     const c = RESOLVE_CELL_PX;
     for (let r = 0; r < gridRows; r++) {
       for (let k = 0; k < gridCols; k++) {
-        const b = cellBlockAt(t, delays[r * gridCols + k] ?? 0);
+        const b = blockAt(r * gridCols + k);
         if (b <= 1) continue;
         const lv = levels.get(b)!.canvas;
         const x = k * c;
         const y = r * c;
         ctx.drawImage(lv, x / b, y / b, c / b, c / b, x, y, c, c);
         // Faint sensor-tile frame on cells still resolving.
+        if (mode !== 'resolve') continue;
         ctx.globalAlpha = b >= 16 ? 0.35 : 0.18;
         ctx.strokeRect(x + 0.5, y + 0.5, c - 1, c - 1);
         ctx.globalAlpha = 1;
@@ -203,7 +226,7 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
 
   map.on('render', () => {
     if (!fx.classList.contains('on')) return;
-    if (t < 1) drawPixels();
+    if (mode !== 'off') drawPixels();
     placeBox();
   });
   map.on('move', () => {
@@ -237,14 +260,17 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
       boxEl.classList.toggle('on', !!bounds);
       placeBox();
     },
-    coarse() {
+    magnify(z0, z1, at) {
       stopResolve(false);
       fx.classList.remove('locked');
       document.body.classList.remove('fx-locked');
       fx.style.setProperty('--lock', '1');
+      zoomFrom = z0;
+      zoomTo = z1;
+      anchor = at;
+      mode = 'zoom';
       layout();
       delays = new Float32Array(gridCols * gridRows).map(() => Math.random() * (1 - CELL_SPAN));
-      t = 0;
       pixels.classList.add('on');
       map.triggerRepaint();
     },
@@ -253,6 +279,13 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
       return new Promise<boolean>((done) => {
         resolving = done;
         const start = performance.now();
+        if (mode === 'off') {
+          resolving = null;
+          done(true); // nothing pixelated (e.g. reduced motion)
+          return;
+        }
+        mode = 'resolve';
+        t = 0;
         sweep.classList.add('on');
         const frame = () => {
           t = Math.min(1, (performance.now() - start) / ms);
@@ -261,6 +294,7 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
           map.triggerRepaint(); // keep 'render' firing so the pixel layer tracks the live map
           if (t < 1) raf = requestAnimationFrame(frame);
           else {
+            mode = 'off';
             pixels.classList.remove('on');
             sweep.classList.remove('on');
             stopResolve(true);
@@ -282,7 +316,7 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
     cancel() {
       stopResolve(false);
       clearTimeout(hideTimer);
-      t = 1;
+      mode = 'off';
       boxBounds = null;
       boxEl.classList.remove('on');
       pixels.classList.remove('on');
