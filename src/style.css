@@ -248,3 +248,14 @@ body[data-band='outlook'] #t-valid, body[data-band='outlook'] #t-off { color: va
 
 /* Shore/kayak target picker (PLAN 4.5) */
 .fish-pick .tab { padding: 0 8px; min-width: 28px; }
+
+/* Fishing rules card (PLAN 6.8) */
+.rules-card { position: absolute; z-index: 30; top: 70px; left: 50%; transform: translateX(-50%); width: min(560px, calc(100% - 16px)); max-height: calc(100% - 140px); overflow-y: auto; pointer-events: auto; background: rgba(5, 8, 5, 0.94); }
+.rules-card[hidden] { display: none; }
+.rules-list { list-style: none; margin: 4px 0 10px; padding: 0; display: grid; gap: 8px; font-size: 12px; letter-spacing: 1px; line-height: 1.45; }
+.rule-tag { display: inline-block; margin-right: 8px; padding: 0 6px; border: 1px solid currentColor; font-size: 10px; letter-spacing: 2px; }
+.rule-tag.green { color: var(--green); }
+.rule-tag.amber { color: var(--amber); }
+.rule-src { display: block; margin-top: 2px; color: var(--green); font-size: 10px; letter-spacing: 1px; word-break: break-all; }
+.rules-advice { margin: 6px 0 2px; font-size: 10px; letter-spacing: 1px; color: var(--amber); opacity: 0.8; }
+.rules-close { margin-left: auto; }
