@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { LineString } from 'geojson';
 import { haversineM, bearingDeg } from '../geo';
 import { createSpotModel } from '../physics/spot-model';
 import { land, realDepth } from '../physics/fixtures/seafloor';
 import { cellAt } from '../physics/bathy';
 import { SPOTS } from '../region';
-import { maskNormal, offset, ripFeatures, shoreBand, surfZoneWidth } from './rip';
+import { coastStations, maskNormal, offset, ripFeatures, ripSites, riskAt, surfZoneWidth } from './rip';
+import { SURF_BREAKS } from '../data/surf-breaks';
 
 describe('rip overlay geometry', () => {
   it('offsets by distance and bearing', () => {
@@ -22,24 +22,70 @@ describe('rip overlay geometry', () => {
     expect(surfZoneWidth(5, 0.001)).toBe(800);
   });
 
-  it('draws a bar per spot, arrows only for MOD/HIGH, and a label, pointing out to sea', () => {
+  it('shades only MOD/HIGH stretches of coast, rings the fixed sites, and labels the model reading', () => {
     const m = createSpotModel(realDepth, { fanStepDeg: 1 });
     const spots = SPOTS.slice(2, 4);
     const small = { Hs: 0.3, Tp: 7, fromDeg: 45 };
     const large = { Hs: 2.5, Tp: 13, fromDeg: 45 };
     const calm = spots.map((s) => ({ name: s.name, pin: s.lngLat, sea: small, result: m.spot({ pin: s.lngLat, sea: small, tideLevel: 0.5 }) }));
     const big = spots.map((s) => ({ name: s.name, pin: s.lngLat, sea: large, result: m.spot({ pin: s.lngLat, sea: large, tideLevel: 0 }) }));
-    const kinds = (fc: ReturnType<typeof ripFeatures>) => fc.features.map((f) => f.properties!.kind);
-    expect(kinds(ripFeatures(calm))).toEqual(['zone', 'label', 'zone', 'label']);
-    const fc = ripFeatures(big);
-    expect(kinds(fc)).toEqual(['zone', 'arrow', 'arrow', 'label', 'zone', 'arrow', 'arrow', 'label']);
-    expect(fc.features[1].properties!.level).toBe('HIGH');
-    // The shaft heads seaward along the shore normal.
-    const shaft = (fc.features[1].geometry as LineString).coordinates as [number, number][];
-    expect(bearingDeg(shaft[0], shaft[1])).toBeCloseTo(big[0].result!.waves.normalDeg, 0);
-    expect(String(fc.features[3].properties!.label)).toContain('RIP HIGH');
-    expect(ripFeatures([{ name: 'X', pin: [0, 0], sea: small, result: null }]).features).toHaveLength(0);
-  }, 20_000);
+    const stations = coastStations(land).filter((st) => haversineM(st.p, spots[0].lngLat) < 8000);
+    const sites = ripSites([{ name: 'Kelly Creek', rank: 1, at: [-82.83881, 9.73674] }], SURF_BREAKS);
+    const kinds = (fc: ReturnType<typeof ripFeatures>) => new Set(fc.features.map((f) => f.properties!.kind));
+    // Calm: no shading and no labels, only the fixed sites, drawn LOW.
+    const quiet = ripFeatures(calm, stations, sites);
+    expect([...kinds(quiet)]).toEqual(['site']);
+    expect(quiet.features.every((f) => f.properties!.level === 'LOW')).toBe(true);
+    // Big swell at low tide: the coast lights up HIGH near the spots and the labels name them.
+    const fc = ripFeatures(big, stations, sites);
+    expect(kinds(fc)).toEqual(new Set(['coast', 'site', 'label']));
+    const coast = fc.features.filter((f) => f.properties!.kind === 'coast');
+    expect(coast.length).toBeGreaterThan(20);
+    expect(coast.some((f) => f.properties!.level === 'HIGH')).toBe(true);
+    const label = fc.features.find((f) => f.properties!.kind === 'label')!;
+    expect(String(label.properties!.label)).toContain(`${spots[0].name} · RIP HIGH`);
+    expect(ripFeatures([{ name: 'X', pin: [0, 0], sea: small, result: null }], stations).features).toHaveLength(0);
+  }, 30_000);
+
+  it('puts coast stations on open water just off the beach, never in rivers or on land', () => {
+    const st = coastStations(land);
+    // About 70 km of coast at one station per ~120 m, give or take headlands and islands.
+    expect(st.length).toBeGreaterThan(300);
+    expect(st.length).toBeLessThan(3000);
+    for (const s of st) {
+      expect(cellAt(land, s.p[0], s.p[1])).not.toBe(1);
+      // Open sea straight out from every station.
+      expect(cellAt(land, ...offset(s.p, s.normalDeg, 500))).not.toBe(1);
+    }
+    // A station near every named spot.
+    for (const s of SPOTS) expect(Math.min(...st.map((x) => haversineM(x.p, s.lngLat))), s.name).toBeLessThan(400);
+  }, 30_000);
+
+  it('blends risk between spots and is less sure far from them', () => {
+    const at = (score: number, pin: [number, number]) => ({ name: '', pin, sea: { Hs: 1, Tp: 10, fromDeg: 45 }, result: { rip: { score } } }) as never;
+    const a: [number, number] = [-82.84, 9.74];
+    const b: [number, number] = [-82.74, 9.74];
+    const states = [at(0.2, a), at(0.8, b)];
+    expect(riskAt(a, states)!.score).toBeCloseTo(0.2, 2);
+    const mid = riskAt([-82.79, 9.74], states)!;
+    expect(mid.score).toBeCloseTo(0.5, 2);
+    expect(riskAt(a, states)!.conf).toBe(1);
+    expect(riskAt([-82.79, 9.74], states)!.conf).toBeLessThan(1);
+    expect(riskAt(a, [])).toBeNull();
+  });
+
+  it('takes rip sites from rip-prone breaks and real river mouths, once each', () => {
+    const sites = ripSites(
+      [
+        { name: 'Río Estrella', rank: 1, at: [-82.89217, 9.79269] },
+        { name: 'Río Estrella', rank: 1, at: [-82.89471, 9.79371] },
+        { name: 'Culvert', rank: 0.5, at: [-82.8, 9.7] },
+      ],
+      SURF_BREAKS,
+    );
+    expect(sites.filter((s) => s.kind === 'mouth').map((s) => s.name)).toEqual(['Río Estrella']);
+    expect(sites.filter((s) => s.kind === 'break').map((s) => s.name)).toContain('SALSA BRAVA');
+  });
 
   it('reads the shore normal off the coastline mask: Salsa Brava faces roughly north', () => {
     const salsa = SPOTS.find((s) => s.name === 'SALSA BRAVA')!.lngLat;
@@ -47,27 +93,6 @@ describe('rip overlay geometry', () => {
     const off = Math.abs(((n - 0 + 540) % 360) - 180);
     expect(off).toBeLessThan(45);
     expect(maskNormal(land, [-82.9, 9.6])).toBeNull(); // deep inland: no sea in reach
-  });
-
-  it('traces the band along the shore, on the water, never across the land', () => {
-    for (const s of SPOTS) {
-      const n = maskNormal(land, s.lngLat);
-      if (n === null) continue;
-      const lines = shoreBand(land, s.lngLat, n, 350, 30);
-      const pts = lines.flat();
-      expect(pts.length, s.name).toBeGreaterThan(10);
-      for (const p of pts) {
-        expect(cellAt(land, p[0], p[1]), s.name).not.toBe(1);
-        expect(haversineM(s.lngLat, p), s.name).toBeLessThan(700);
-      }
-      // No segment of the band crosses land.
-      for (const l of lines)
-        for (let i = 1; i < l.length; i++)
-          for (let k = 1; k < 10; k++) {
-            const q: [number, number] = [l[i - 1][0] + ((l[i][0] - l[i - 1][0]) * k) / 10, l[i - 1][1] + ((l[i][1] - l[i - 1][1]) * k) / 10];
-            expect(cellAt(land, q[0], q[1]), s.name).not.toBe(1);
-          }
-    }
   });
 
   it('every spot pin sits within ~60 m of the sea in the coastline mask (none stranded inland)', () => {

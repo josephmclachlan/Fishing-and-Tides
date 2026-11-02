@@ -25,7 +25,7 @@ import { mountHarboursHud } from './harbours-hud';
 import type { Grid } from './physics/bathy';
 import { createBoatStore } from './boat/store';
 import { mountBoatPanel } from './boat-panel';
-import { dictFor, setDict } from './i18n';
+import { dictFor, setDict, t } from './i18n';
 import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
 import { mountSounds } from './sounds';
@@ -63,7 +63,8 @@ import { createNet } from './net';
 import { createPhysicsClient } from './physics/client';
 import { nearest } from './geo';
 import { createSpotPhysics, type SpotPhysics } from './spot-physics';
-import { mountRip } from './layers/rip';
+import { mountRip, ripSites } from './layers/rip';
+import { SURF_BREAKS } from './data/surf-breaks';
 import { mountSurfZoneHud } from './surf-zone-hud';
 import { mountDiveHud } from './dive-hud';
 
@@ -202,7 +203,7 @@ layers.subscribe(() => {
   const a = activityForPreset(p);
   if (a) condGroups.setActivity(a);
 });
-mountExplain(hud);
+const explain = mountExplain(hud);
 
 const flow = mountFlow(map, flowSources);
 if (flow) {
@@ -274,6 +275,18 @@ fetchZones()
 // overlay, the SURF ZONE readouts and the RIP readout. Sea state from the waves adapter at each
 // spot (the mock swell until it loads); tide and wind are live.
 const ripLayer = mountRip(map);
+// Fixed rip sites: river mouths and the breaks whose guides list rips. Tap a site or the shaded shore to read what it means.
+fetchMouths()
+  .then(({ data }) => ripLayer.setSites(ripSites(data, SURF_BREAKS)))
+  .catch((err) => console.warn('rip sites unavailable', err));
+map.on('click', 'rp-site', (e) => {
+  const f = e.features?.[0]?.properties;
+  if (f) explain.show(`${f.name}`, f.site === 'mouth' ? 'ripMouth' : 'ripBreak', e.point);
+});
+map.on('click', 'rp-coast', (e) => {
+  // A site ring sits on the shaded shore: the ring's own explainer wins.
+  if (!map.queryRenderedFeatures(e.point, { layers: ['rp-site'] }).length) explain.show(t('layer.rip'), 'ripCoast', e.point);
+});
 /**
  * Offshore sea state for the physics at a shoreline pin. The models give mean, not peak,
  * periods; the swell's mean period stands in for Tp when swell dominates, as it does on this

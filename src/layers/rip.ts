@@ -1,13 +1,21 @@
 /**
- * Rip risk overlay (PLAN 4.2): at each named spot, a band along the surf zone coloured by the
- * rip level (green LOW, amber MOD, red HIGH) and, for MOD and HIGH, an arrow running seaward
- * as far as a rip is expected to reach, labelled with its strength and length. Style layer
- * ids start with `rp-`, which the catalog's 'rip' layer binds to (layers/registry.ts).
+ * Rip risk overlay (PLAN 4.2, reworked). What it shows, and what it doesn't:
  *
- * With the OSM coastline mask (`land`, ~33 m cells) the band traces the real shore, just
- * seaward of the waterline, and the shore normal comes from the mask too. The physics' own
- * normal is read off the ~460 m depth grid, which can be tens of degrees out on a curved
- * shore, and a straight bar from it cut across land at Salsa Brava and Playa Negra.
+ * - **Risk along the coast.** Rips can form on any beach with breaking waves, and nobody can
+ *   forecast exactly where a sand-bar rip opens. So the overlay shades the whole exposed shore
+ *   (stations every ~120 m along the OSM coastline, just seaward of the waterline) with the
+ *   modelled risk, blended from the two nearest named spots the physics runs at. Only MOD and
+ *   HIGH are drawn: a calm day shows nothing. The shading fades with distance from a modelled
+ *   spot, because the blend is less sure there.
+ * - **Fixed rip sites.** Places where rips form again and again because something holds the
+ *   channel in place: river and creek mouths (water draining seaward cuts a gap in the bar) and
+ *   surf breaks whose guides list rips as a hazard (reef gaps, points). Shown as rings at every
+ *   risk level; they turn amber or red when the risk around them is up.
+ * - **The model's reading at each spot**, as a text label offshore of the spot (MOD and HIGH
+ *   only): strength, speed and expected reach. No arrows: an arrow from the spot pin pretended
+ *   to know where the rip would be.
+ *
+ * Style layer ids start with `rp-`, which the catalog's 'rip' layer binds to (layers/registry.ts).
  */
 import type { ExpressionSpecification, GeoJSONSource, Map } from 'maplibre-gl';
 import type { Feature, FeatureCollection } from 'geojson';
@@ -15,29 +23,16 @@ import { t, type Key } from '../i18n';
 import { firstSymbolId } from '../map';
 import { cellAt, M_PER_DEG_LAT, M_PER_DEG_LNG, type Grid } from '../physics/bathy';
 import type { SpotState } from '../spot-physics';
+import { ripLevel } from '../physics/rip';
 
 const FONT = ['Noto Sans Regular'];
 const RAD = Math.PI / 180;
-/** Half the length of the surf-zone bar along the shore, m. */
-const BAR_HALF_M = 200;
-/** Arrow-head barb length, m, and angle off the shaft. */
-const BARB_M = 45;
-const BARB_DEG = 28;
 
 /** Point `m` metres from `p` on compass bearing `deg` (flat-earth; fine at these distances). */
 export function offset(p: [number, number], deg: number, m: number): [number, number] {
   const a = deg * RAD;
   return [p[0] + (Math.sin(a) * m) / (M_PER_DEG_LNG * Math.cos(p[1] * RAD)), p[1] + (Math.cos(a) * m) / M_PER_DEG_LAT];
 }
-
-/** Along-shore spacing of the band's points, and the step used to find the waterline, m. */
-const ALONG_STEP_M = 25;
-const SEARCH_STEP_M = 8;
-/** How far inland and seaward of the pin's shore line the waterline is looked for, m. */
-const SEARCH_IN_M = 250;
-const SEARCH_OUT_M = 400;
-/** The coastline mask's cells are ~33 m and sit up to a cell inland of the drawn coast: keep the band clear of the beach. */
-const MASK_SLACK_M = 25;
 
 const isLand = (land: Grid, p: [number, number]) => cellAt(land, p[0], p[1]) === 1;
 
@@ -67,85 +62,138 @@ export function maskNormal(land: Grid, pin: [number, number], radiusM = 300): nu
   return (((Math.atan2(sx, sy) / RAD) % 360) + 360) % 360;
 }
 
-/**
- * The surf-zone band as lines `seawardM` out from the waterline, following the coast for
- * `halfM` either side of the pin. Each along-shore station looks along the normal for the
- * land-to-sea edge nearest the pin's shore line; stations that find none, or that jump to
- * another stretch of coast (across a bay), break the line, so it never crosses land.
- */
-export function shoreBand(land: Grid, pin: [number, number], normalDeg: number, halfM: number, seawardM: number): [number, number][][] {
-  const lines: [number, number][][] = [];
-  let line: [number, number][] = [];
-  let lastT: number | null = null;
-  const flush = () => {
-    if (line.length >= 2) lines.push(line);
-    line = [];
-    lastT = null;
-  };
-  for (let s = -halfM; s <= halfM + 1e-9; s += ALONG_STEP_M) {
-    const base = offset(pin, normalDeg + 90, s);
-    let best: number | null = null;
-    let prevLand = isLand(land, offset(base, normalDeg, -SEARCH_IN_M));
-    for (let t = -SEARCH_IN_M + SEARCH_STEP_M; t <= SEARCH_OUT_M; t += SEARCH_STEP_M) {
-      const here = isLand(land, offset(base, normalDeg, t));
-      if (prevLand && !here && (best === null || Math.abs(t) < Math.abs(best))) best = t;
-      prevLand = here;
-    }
-    if (best === null || (lastT !== null && Math.abs(best - lastT) > 3 * ALONG_STEP_M)) {
-      flush();
-      if (best === null) continue;
-    }
-    const p = offset(base, normalDeg, best + seawardM);
-    if (isLand(land, p)) {
-      flush();
-      continue;
-    }
-    line.push(p);
-    lastT = best;
-  }
-  flush();
-  return lines;
-}
-
 /** Surf-zone width from breaking depth and slope (unknown slope: an intermediate beach, 0.03), m. */
 export const surfZoneWidth = (hb: number, slope: number | null) => Math.min(800, Math.max(20, hb / (slope && slope > 0 ? slope : 0.03)));
 
+/** A shoreline station: a point just seaward of the waterline, and the way the shore faces. */
+export interface Station {
+  p: [number, number];
+  normalDeg: number;
+}
+
+/** Along-shore spacing of the coast stations, m, and how far seaward of the waterline they sit. */
+const STATION_STEP_M = 120;
+const STATION_SEAWARD_M = 40;
+/** A station must see open water this far out along its normal (rivers, lagoons and harbours don't). */
+const EXPOSURE_M = 900;
+
 /**
- * GeoJSON for the overlay. Pure, so it's tested without a map. Without the coastline mask the
- * band is a straight bar square to the physics' shore normal (the first paint, before it loads).
+ * Shoreline stations from the coastline mask: land cells with a water neighbour, thinned to one
+ * per `stepM` square, kept only where the shore faces open sea (no land within `EXPOSURE_M`
+ * along the seaward normal). Pure; runs once when the mask loads (a few tens of ms).
  */
-export function ripFeatures(states: readonly SpotState[], land?: Grid | null): FeatureCollection {
+export function coastStations(land: Grid, stepM = STATION_STEP_M): Station[] {
+  const { cols, rows, z } = land;
+  const latMid = land.lat0 - (rows * land.dlat) / 2;
+  const cellX = land.dlon * M_PER_DEG_LNG * Math.cos(latMid * RAD);
+  const cellY = land.dlat * M_PER_DEG_LAT;
+  const binC = Math.max(1, Math.round(stepM / cellX));
+  const binR = Math.max(1, Math.round(stepM / cellY));
+  const seen = new Set<number>();
+  // A bin full of river bank would test every cell in it; a few tries are enough to find its beach.
+  const tries = new globalThis.Map<number, number>();
+  const out: Station[] = [];
+  for (let r = 1; r < rows - 1; r++)
+    for (let c = 1; c < cols - 1; c++) {
+      const i = r * cols + c;
+      if (z[i] !== 1) continue;
+      if (z[i - 1] === 1 && z[i + 1] === 1 && z[i - cols] === 1 && z[i + cols] === 1) continue;
+      const bin = Math.floor(r / binR) * 100000 + Math.floor(c / binC);
+      if (seen.has(bin) || (tries.get(bin) ?? 0) >= 4) continue;
+      tries.set(bin, (tries.get(bin) ?? 0) + 1);
+      const at: [number, number] = [land.lon0 + c * land.dlon, land.lat0 - r * land.dlat];
+      const n = maskNormal(land, at, 250);
+      if (n === null) continue;
+      let open = true;
+      for (let m = 60; m <= EXPOSURE_M && open; m += 30) if (isLand(land, offset(at, n, m))) open = false;
+      if (!open) continue;
+      // A jagged rocky shore can put the first step back on land: step out until it's water.
+      const p = [STATION_SEAWARD_M, 2 * STATION_SEAWARD_M].map((m) => offset(at, n, m)).find((q) => !isLand(land, q));
+      if (!p) continue;
+      seen.add(bin);
+      out.push({ p, normalDeg: n });
+    }
+  return out;
+}
+
+const flatM = (a: [number, number], b: [number, number]) =>
+  Math.hypot((a[0] - b[0]) * M_PER_DEG_LNG * Math.cos(a[1] * RAD), (a[1] - b[1]) * M_PER_DEG_LAT);
+
+/** Blend weight falls to this at and beyond `FAR_M` from the nearest modelled spot. */
+const NEAR_M = 3000;
+const FAR_M = 15000;
+const MIN_CONF = 0.35;
+
+/**
+ * Rip score at a point, blended from the two nearest spots with a result (inverse distance
+ * squared), and how sure the blend is (1 within 3 km of a spot, down to 0.35 at 15 km).
+ */
+export function riskAt(p: [number, number], states: readonly SpotState[]): { score: number; conf: number } | null {
+  const near = states
+    .filter((s) => s.result)
+    .map((s) => ({ s, d: flatM(p, s.pin) }))
+    .sort((a, b) => a.d - b.d)
+    .slice(0, 2);
+  if (!near.length) return null;
+  let w = 0;
+  let sum = 0;
+  for (const { s, d } of near) {
+    const wi = 1 / Math.max(d, 100) ** 2;
+    w += wi;
+    sum += wi * s.result!.rip.score;
+  }
+  const d0 = near[0].d;
+  const conf = d0 <= NEAR_M ? 1 : Math.max(MIN_CONF, 1 - ((1 - MIN_CONF) * (d0 - NEAR_M)) / (FAR_M - NEAR_M));
+  return { score: sum / w, conf };
+}
+
+/** A place where rips keep forming: a river mouth or a break whose guides list rips. */
+export interface RipSite {
+  name: string;
+  at: [number, number];
+  kind: 'mouth' | 'break';
+}
+
+/** Fixed rip sites from river mouths (main rivers and creeks, not culverts) and the surf break catalogue. */
+export function ripSites(mouths: readonly { name: string; rank: number; at: [number, number] }[], breaks: readonly { name: string; lngLat: [number, number]; hazards: readonly string[] }[]): RipSite[] {
+  const sites: RipSite[] = breaks.filter((b) => b.hazards.includes('rip')).map((b) => ({ name: b.name, at: b.lngLat, kind: 'break' }));
+  for (const m of mouths) {
+    if (m.rank < 1) continue;
+    // The mouths file has a few rivers twice (two channels); one ring each.
+    if (sites.some((s) => flatM(s.at, m.at) < 400)) continue;
+    sites.push({ name: m.name, at: m.at, kind: 'mouth' });
+  }
+  return sites;
+}
+
+/**
+ * GeoJSON for the overlay. Pure, so it's tested without a map. `stations` are the coast
+ * stations (none until the coastline mask loads: then only the sites and labels show).
+ */
+export function ripFeatures(states: readonly SpotState[], stations: readonly Station[] = [], sites: readonly RipSite[] = [], land?: Grid | null): FeatureCollection {
   const features: Feature[] = [];
+  for (const st of stations) {
+    const r = riskAt(st.p, states);
+    if (!r) continue;
+    const level = ripLevel(r.score);
+    if (level === 'LOW') continue;
+    features.push({ type: 'Feature', properties: { kind: 'coast', level, conf: Math.round(r.conf * 100) / 100 }, geometry: { type: 'Point', coordinates: st.p } });
+  }
+  for (const site of sites) {
+    const r = riskAt(site.at, states);
+    const level = r ? ripLevel(r.score) : 'LOW';
+    features.push({ type: 'Feature', properties: { kind: 'site', level, site: site.kind, name: site.name }, geometry: { type: 'Point', coordinates: site.at } });
+  }
   for (const s of states) {
     const r = s.result;
-    if (!r) continue;
+    if (!r || r.rip.level === 'LOW') continue;
     const normalDeg = (land && maskNormal(land, s.pin)) ?? r.waves.normalDeg;
-    const level = r.rip.level;
     const xb = surfZoneWidth(r.waves.breaker.hb, r.waves.slope);
-    const zone = (coordinates: [number, number][]): Feature => ({ type: 'Feature', properties: { kind: 'zone', level, name: s.name }, geometry: { type: 'LineString', coordinates } });
-    if (land) for (const l of shoreBand(land, s.pin, normalDeg, BAR_HALF_M, xb / 2 + MASK_SLACK_M)) features.push(zone(l));
-    else {
-      const mid = offset(s.pin, normalDeg, xb / 2);
-      features.push(zone([offset(mid, normalDeg - 90, BAR_HALF_M), offset(mid, normalDeg + 90, BAR_HALF_M)]));
-    }
     const label = [
-      `${t('rip.short')} ${t(`rip.${level}` as Key)}`,
-      level === 'LOW' ? null : `${t(`rip.str.${r.rip.strength}` as Key)} ${r.rip.speedMs.toFixed(1)} ${t('unit.ms')} · ${Math.round(r.rip.lengthM / 10) * 10} ${t('unit.m')}`,
-      `${t('sz.brk')} ${r.waves.breaker.Hb.toFixed(1)} ${t('unit.m')}${r.waves.breaker.type ? ' ' + t(`sz.type.${r.waves.breaker.type}` as Key) : ''}`,
-    ].filter(Boolean).join('\n');
-    let labelAt = offset(s.pin, normalDeg, xb + MASK_SLACK_M + 150);
-    if (level !== 'LOW') {
-      const from = offset(s.pin, normalDeg, xb * 0.2 + (land ? MASK_SLACK_M : 0));
-      const tip = offset(s.pin, normalDeg, Math.max(r.rip.lengthM, xb * 0.6));
-      features.push({ type: 'Feature', properties: { kind: 'arrow', level }, geometry: { type: 'LineString', coordinates: [from, tip] } });
-      features.push({
-        type: 'Feature',
-        properties: { kind: 'arrow', level },
-        geometry: { type: 'LineString', coordinates: [offset(tip, normalDeg + 180 - BARB_DEG, BARB_M), tip, offset(tip, normalDeg + 180 + BARB_DEG, BARB_M)] },
-      });
-      labelAt = offset(tip, normalDeg, 150);
-    }
-    features.push({ type: 'Feature', properties: { kind: 'label', level, label }, geometry: { type: 'Point', coordinates: labelAt } });
+      `${s.name} · ${t('rip.short')} ${t(`rip.${r.rip.level}` as Key)}`,
+      `${t(`rip.str.${r.rip.strength}` as Key)} ${r.rip.speedMs.toFixed(1)} ${t('unit.ms')} · ${t('rip.reachShort')} ${Math.round(r.rip.lengthM / 10) * 10} ${t('unit.m')}`,
+    ].join('\n');
+    features.push({ type: 'Feature', properties: { kind: 'label', level: r.rip.level, label }, geometry: { type: 'Point', coordinates: offset(s.pin, normalDeg, Math.max(xb, r.rip.lengthM) + 250) } });
   }
   return { type: 'FeatureCollection', features };
 }
@@ -154,35 +202,81 @@ function cssColour(name: string, fallback: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
 
-export function mountRip(map: Map) {
-  const colour: ExpressionSpecification = ['match', ['get', 'level'], 'HIGH', cssColour('--red', '#ff3b2f'), 'MOD', cssColour('--amber', '#ffb000'), cssColour('--green', '#39ff7a')];
+export interface RipLayer {
+  update(states: readonly SpotState[], land?: Grid | null): void;
+  setSites(sites: readonly RipSite[]): void;
+}
+
+export function mountRip(map: Map): RipLayer {
+  const colour: ExpressionSpecification = ['match', ['get', 'level'], 'HIGH', cssColour('--red', '#ff3b2f'), cssColour('--amber', '#ffb000')];
   let data: FeatureCollection = { type: 'FeatureCollection', features: [] };
+  let states: readonly SpotState[] = [];
+  let stations: Station[] = [];
+  let stationsFor: Grid | null = null;
+  let sites: readonly RipSite[] = [];
+  let landGrid: Grid | null = null;
   const add = () => {
     if (map.getSource('rp')) return;
     const below = firstSymbolId(map);
     map.addSource('rp', { type: 'geojson', data });
+    // Risk along the shore: overlapping soft dots read as one glowing band at the waterline.
     map.addLayer({
-      id: 'rp-zone', type: 'line', source: 'rp', minzoom: 9, filter: ['==', ['get', 'kind'], 'zone'],
-      layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': colour, 'line-width': ['interpolate', ['exponential', 2], ['zoom'], 9, 3, 13, 10, 16, 40], 'line-opacity': 0.55, 'line-blur': 1 },
+      id: 'rp-coast', type: 'circle', source: 'rp', minzoom: 9, filter: ['==', ['get', 'kind'], 'coast'],
+      paint: {
+        'circle-color': colour,
+        'circle-radius': ['interpolate', ['exponential', 2], ['zoom'], 9, 3, 12, 8, 15, 40],
+        'circle-blur': 0.6,
+        'circle-opacity': ['interpolate', ['linear'], ['zoom'], 9, ['*', 0.75, ['get', 'conf']], 14, ['*', 0.45, ['get', 'conf']]],
+      },
     }, below);
+    // Fixed sites: a ring (hollow, so it never hides the reef or the beach under it).
     map.addLayer({
-      id: 'rp-arrow', type: 'line', source: 'rp', minzoom: 11, filter: ['==', ['get', 'kind'], 'arrow'],
-      layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': colour, 'line-width': ['interpolate', ['linear'], ['zoom'], 11, 1.5, 15, 3], 'line-dasharray': [2, 1.5] },
+      id: 'rp-site', type: 'circle', source: 'rp', minzoom: 10.5, filter: ['==', ['get', 'kind'], 'site'],
+      paint: {
+        'circle-color': 'rgba(0,0,0,0)',
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 10.5, 4, 15, 11],
+        'circle-stroke-color': colour,
+        'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 10.5, 1.2, 15, 2.5],
+        'circle-stroke-opacity': ['match', ['get', 'level'], 'LOW', 0.45, 1],
+      },
+    });
+    map.addLayer({
+      id: 'rp-site-label', type: 'symbol', source: 'rp', minzoom: 12.5, filter: ['==', ['get', 'kind'], 'site'],
+      layout: {
+        'text-field': ['match', ['get', 'site'], 'mouth', t('rip.siteMouth'), t('rip.siteBreak')],
+        'text-font': FONT, 'text-size': 10, 'text-letter-spacing': 0.1, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-optional': true,
+      },
+      paint: { 'text-color': colour, 'text-halo-color': '#000', 'text-halo-width': 1.5, 'text-opacity': ['match', ['get', 'level'], 'LOW', 0.6, 1] },
     });
     map.addLayer({
       id: 'rp-label', type: 'symbol', source: 'rp', minzoom: 11.5, filter: ['==', ['get', 'kind'], 'label'],
-      layout: { 'text-field': ['get', 'label'], 'text-font': FONT, 'text-size': 11, 'text-letter-spacing': 0.08, 'text-justify': 'center', 'text-allow-overlap': false },
+      layout: {
+        'text-field': ['get', 'label'], 'text-font': FONT, 'text-size': 11, 'text-letter-spacing': 0.08, 'text-justify': 'auto',
+        // Breaks, reefs and wrecks crowd the same water: let the label slide to whichever side is free.
+        'text-variable-anchor': ['top', 'bottom', 'left', 'right', 'top-left', 'top-right', 'bottom-left', 'bottom-right'], 'text-radial-offset': 0.6,
+      },
       paint: { 'text-color': colour, 'text-halo-color': '#000', 'text-halo-width': 1.5 },
     });
   };
   if (map.isStyleLoaded()) add();
   else map.once('style.load', add);
+  const render = () => {
+    if (landGrid && stationsFor !== landGrid) {
+      stations = coastStations(landGrid);
+      stationsFor = landGrid;
+    }
+    data = ripFeatures(states, stations, sites, landGrid);
+    (map.getSource('rp') as GeoJSONSource | undefined)?.setData(data);
+  };
   return {
-    update(states: readonly SpotState[], land?: Grid | null) {
-      data = ripFeatures(states, land);
-      (map.getSource('rp') as GeoJSONSource | undefined)?.setData(data);
+    update(next, land) {
+      states = next;
+      landGrid = land ?? null;
+      render();
+    },
+    setSites(next) {
+      sites = next;
+      render();
     },
   };
 }
