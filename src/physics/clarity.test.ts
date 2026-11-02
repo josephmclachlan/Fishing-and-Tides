@@ -98,6 +98,28 @@ describe('clarity layer maths', () => {
     expect(wet.cause).toBe('river');
     expect(riverRain(ctx(80).rain, t0)[0].rainMm).toBeGreaterThan(70);
   });
+  it('carries the plume down-current (PLAN 7.2)', () => {
+    // 40 mm/h ten hours ago; the current sets north-west at 0.4 m/s, so the plume runs up the coast ~14 km.
+    const c = { ...ctx(0), rain: { times: [t0 - 10 * H], byRiver: Object.fromEntries(PLUME_RIVERS.map((r) => [r.name, [40]])), fetchedAt: t0, fromCache: false } };
+    const drifting: ClarityContext = { ...c, currentAt: () => [-0.28, 0.28] };
+    const [lng, lat] = sixaola.mouth;
+    const up = [lng - 0.06, lat + 0.06] as const; // down-current, ~9 km
+    const down = [lng + 0.06, lat - 0.06] as const; // up-current, same distance
+    expect(riverRain(drifting.rain, t0, drifting.currentAt)[0].drift[1]).toBeGreaterThan(5000);
+    expect(clarityAt(drifting, ...up)!.visM).toBeLessThan(clarityAt(c, ...up)!.visM);
+    expect(clarityAt(drifting, ...up)!.visM).toBeLessThan(clarityAt(drifting, ...down)!.visM);
+  });
+  it('gives a range around the estimate that widens for later days', () => {
+    // Steady drizzle from a day ago through the next four days, so the plume itself stays about the same.
+    const times = Array.from({ length: 120 }, (_, i) => t0 + (i - 24) * H);
+    const steady: ClarityContext = { ...ctx(0), nowMs: t0, rain: { times, byRiver: Object.fromEntries(PLUME_RIVERS.map((r) => [r.name, times.map(() => 1.5)])), fetchedAt: t0, fromCache: false } };
+    const [lng, lat] = [sixaola.mouth[0] + 0.03, sixaola.mouth[1] + 0.01];
+    const now = clarityAt(steady, lng, lat)!;
+    const later = clarityAt({ ...steady, ms: t0 + 3 * 864e5 }, lng, lat)!;
+    expect(now.visLo).toBeLessThanOrEqual(now.visM);
+    expect(now.visHi).toBeGreaterThanOrEqual(now.visM);
+    expect(later.visHi / later.visLo).toBeGreaterThan(now.visHi / now.visLo);
+  });
   it('is null on land and fills a grid over the region', () => {
     expect(clarityAt(ctx(0), -83.2, 9.8)).toBeNull();
     const g = clarityGrid(ctx(0));

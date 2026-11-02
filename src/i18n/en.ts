@@ -198,6 +198,11 @@ export const en = {
   // Current under the reticle
   'flow.current': 'CURRENT',
   'clarity.vis': 'VIS',
+  'clarity.days': 'VIS +DAYS',
+  'clarity.conf': 'Confidence: {c}. The range is the likely spread (about 2 in 3 days fall inside it).',
+  'clarity.conf.HIGH': 'HIGH',
+  'clarity.conf.MED': 'MEDIUM',
+  'clarity.conf.LOW': 'LOW',
   'clarity.cause.plankton': 'PLANKTON',
   'clarity.cause.river': 'RIVER',
   'clarity.cause.swell': 'SWELL',

@@ -79,10 +79,10 @@ Fishing and rip scores are not stored: they are computed on the phone from the s
 | CURRENTS | `currents`, `currents-coast` | sync `currents` | currents |
 | WIND | `wind` forecast, wind climatology | sync `wind`; climatology precached | wind, wind-clim |
 | WATER TEMP | satellite SST | sync `sst` | sst, sst-coast |
-| CLARITY | satellite chlorophyll and Kd490, catchment rain, waves, seafloor | sync `sst`, `rain`, `waves`; seafloor precached | sst, rain |
+| CLARITY | satellite chlorophyll and Kd490, catchment rain, currents, waves, seafloor | sync `sst`, `rain`, `currents`, `waves`; seafloor precached | sst, rain |
 | WEATHER | Open-Meteo weather, NHC storms | sync `weather`, `storms` | weather, storms |
 | LIGHTNING | GLM flashes (collector branch) | sync `lightning` (live site only) | lightning |
-| LIVE OBS | gauge, airport METAR, satellite passes | sync `gauge`, `metar`, `passes` | gauge, metar, sst-pass, chl-pass |
+| LIVE OBS | gauge, airport METAR, satellite passes (SST, colour, ASCAT wind) | sync `gauge`, `metar`, `passes` | gauge, metar, sst-pass, chl-pass, scat-pass |
 | RIP RISK, SURF BREAKS | waves, wind, tide (on device), seafloor | from the synced inputs | through waves and wind |
 | DEPTH, REEFS, SEAMARKS | seafloor grids, reefs, OSM marks | precached | (static build) |
 | FISHING | OBIS/GBIF records, river mouths, plus tide, sun and moon on device | precached | occurrences, obis, gbif |
@@ -149,7 +149,17 @@ It is a drawer behind an OBS tab whose lamp shows the stalest source; on phones 
 - **River plumes**: `PLUME_RIVERS` in `src/region.ts` (Sixaola, Estrella, Banano, Bananito) each have a mouth, an approximate catchment area and a rain point inside the catchment. `src/adapters/catchment-rain.ts` fetches hourly rain for those points straight from Open-Meteo (3 days back, 16 ahead, one call). Rain before the valid time is weighted by exp(−age / 24 h). A plume reaches full strength (Kd 3/m, about 0.6 m visibility) at 60 mm of that weighted rain, and spreads as a Gaussian 6 km wide for a 1000 km² catchment, scaling with √(area × strength).
 - **Resuspension**: the bed orbital velocity from the waves adapter's Hs and period at the cell's depth (Soulsby 1997). It adds up to 1.1/m between 0.15 and 0.5 m/s.
 
-These constants are round-number rules of thumb, not fitted. Calibration against dive reports and turbidity trends is PLAN 7.2. The CLARITY layer (`src/layers/clarity.ts`) computes this every 0.004° over the region for the slider's hour, so plumes grow and clear as you scrub through forecast rain. The VIS readout under SST gives the value at the cross-hair and names the main cause (RIVER, SWELL or PLANKTON).
+These constants are round-number rules of thumb, not fitted: there are no local dive logs or turbidity records to calibrate against yet.
+
+**Forecast and confidence (PLAN 7.2, `src/physics/clarity-forecast.ts`).** The satellite term no longer freezes at the newest map, which runs days late (gap-filled Kd490 about a week, chlorophyll two or three days):
+
+- Per cell, the daily maps give a median, the newest value and the trend over the last three days, all in ln Kd. Ahead of the newest map the trend carries on for up to 2 days, and the departure from the median fades with an e-folding time of 3 days.
+- Its 1σ spread grows from the retrieval error (±30%) to the cell's own day-to-day spread.
+- River plumes now drift. The tip is the mouth plus the surface current at the mouth (averaged over the plume's rain-weighted age) times that age, capped at 30 km. The plume is the same Gaussian around the mouth-to-tip segment, so after rain it smears up or down the coast with the current.
+- The band adds the low and high ends of each term: satellite ×/÷ e^σ, plume ×/÷ (2 + 0.5 per day of lead), and resuspension with the wave height ±(15% + 5% per day).
+- It reads as the likely range, about 1σ. Confidence is HIGH when high/low visibility is under 2, MEDIUM under 3.5, LOW above.
+
+In the HUD, VIS shows the estimate, then the range and the cause (`5 M 3–9 PLANKTON`, confidence in the tooltip). VIS +DAYS gives midday visibility at the cross-hair for the next three days, with `?` on a low-confidence day. The CLARITY layer (`src/layers/clarity.ts`) computes this every 0.004° over the region for the slider's hour, so plumes grow and clear as you scrub through forecast rain. The VIS readout under SST gives the value at the cross-hair and names the main cause (RIVER, SWELL or PLANKTON).
 
 ## Weather (PLAN 7.3)
 
