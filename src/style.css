@@ -457,8 +457,12 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .side > *, .side .ro { min-width: 0; }
 .side .ro > .seg { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; white-space: normal; }
 .side .ro > .seg.sm { overflow: visible; text-overflow: clip; }
+/* Pickers (‹ TARPON ›) keep their value on one line between the buttons. */
+.side .ro:has(button) > .seg { flex: 0 0 auto; overflow-wrap: normal; white-space: nowrap; }
 .side .ro > .lbl { flex: 0 0 auto; }
 .side .ro > .lbl:only-child, .side .ro > .lbl:last-child:not(:first-child) { flex: 1 1 auto; min-width: 0; white-space: normal; }
 @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
   .side .ro:not(:has(button)) { flex-wrap: wrap; }
+  /* The two-column drawer: a picker row needs the full width. */
+  .side .fish-pick { grid-column: 1 / -1; }
 }
