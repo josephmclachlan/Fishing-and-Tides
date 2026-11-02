@@ -165,6 +165,16 @@ export const en = {
   'fx.sectorClear': 'SECTOR CLEAR',
   'fx.sector': 'SECTOR {n}/{total}',
 
+  // Protected zones (PLAN 4.3). Rules text stays short; SINAC is the authority, check locally.
+  'zone.title': 'PROTECTED',
+  'zone.label': 'ZONE',
+  'zone.none': 'NONE',
+  'zone.cahuita.name': 'CAHUITA NATIONAL PARK',
+  'zone.gandoca.name': 'GANDOCA-MANZANILLO REFUGE',
+  'zone.status.closed': 'NO FISHING',
+  'zone.status.restricted': 'RESTRICTED',
+  'zone.alert': 'PROTECTED AREA: {name}: {status}',
+
   // Settings
   'settings.enhance': 'ENHANCE',
   'settings.on': 'ON',

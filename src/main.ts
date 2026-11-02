@@ -12,6 +12,8 @@ import { mountSettingsUi } from './settings-ui';
 import { fetchSeafloor } from './adapters/seafloor';
 import { mountSeafloor } from './layers/seafloor';
 import { mountSeafloorHud } from './seafloor-hud';
+import { fetchZones, mountZones } from './layers/zones';
+import { mountZonesHud } from './zones-hud';
 import { layers } from './layers/registry';
 import { bindMapLayers } from './layers/visibility';
 import { mountLayersPanel } from './layers-panel';
@@ -82,6 +84,14 @@ time.subscribe(() => {
     flowHud?.refresh();
   });
 });
+
+// Protected areas: static outlines, precached for offline use.
+fetchZones()
+  .then(({ data, geojson }) => {
+    mountZonesHud(hud, map, data);
+    mountZones(map, geojson);
+  })
+  .catch((err) => console.warn('protected zones unavailable', err));
 
 // Depth, reefs and seamarks: static assets, precached for offline use.
 fetchSeafloor()
