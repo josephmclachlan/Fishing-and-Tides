@@ -75,6 +75,9 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--amber)
   .lbl { min-width: 54px; }
   .bottom { gap: 10px; }
   .btn { width: 100%; margin-left: 0; }
+  .wide-only { display: none; }
+  /* Side panel fills the lower screen on phones, so the lock readout goes above the reticle. */
+  .fx-coords { top: calc(50% - var(--size) / 2 - 120px); }
 }
 
 /* HUD kit: gauge + alert strip */
@@ -90,3 +93,49 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--amber)
   animation: blink 1s infinite steps(1);
 }
 .alert[hidden] { display: none; }
+
+/* Zoom tiers (PLAN 1.3): HUD rows that only appear at finer tiers */
+body[data-tier='MACRO'] .from-coast,
+body[data-tier='MACRO'] .from-spot,
+body[data-tier='COAST'] .from-spot { display: none; }
+.from-coast, .from-spot { display: contents; }
+
+/* Satellite lock-on transition */
+.fx-pixels {
+  position: fixed; top: 0; left: 0; pointer-events: none; display: none;
+  image-rendering: pixelated; filter: contrast(1.1);
+}
+.fx-pixels.on { display: block; }
+.fx { --lock: 1; --size: calc(110px + var(--lock) * 60vmin); position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.35s; overflow: hidden; }
+.fx.on { opacity: 1; transition: none; }
+.fx-sweep {
+  position: absolute; left: 0; right: 0; top: 0; height: 90px; margin-top: -45px;
+  background: linear-gradient(to bottom, transparent,
+    color-mix(in srgb, var(--amber) 22%, transparent) 47%, var(--amber) 50%,
+    color-mix(in srgb, var(--amber) 22%, transparent) 53%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--amber) 30%, transparent);
+}
+.fx.locked .fx-sweep, .fx.reduced .fx-sweep { display: none; }
+.fx-lock {
+  position: absolute; left: 50%; top: 50%; width: var(--size); height: var(--size); transform: translate(-50%, -50%);
+  color: var(--amber);
+}
+.fx-lock i { position: absolute; width: 22px; height: 22px; border: 2px solid currentColor; filter: drop-shadow(0 0 4px currentColor); }
+.fx-lock i:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; }
+.fx-lock i:nth-child(2) { top: 0; right: 0; border-left: 0; border-bottom: 0; }
+.fx-lock i:nth-child(3) { bottom: 0; left: 0; border-right: 0; border-top: 0; }
+.fx-lock i:nth-child(4) { bottom: 0; right: 0; border-left: 0; border-top: 0; }
+.fx-tag, .fx-coords {
+  position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap;
+  background: color-mix(in srgb, var(--bg) 80%, transparent); padding: 2px 8px; text-shadow: 0 0 6px currentColor;
+}
+.fx-tag { top: calc(50% - var(--size) / 2 - 34px); display: flex; gap: 12px; letter-spacing: 3px; font-size: 13px; color: var(--amber); }
+.fx-tier { color: var(--green); }
+.fx-coords { top: calc(50% + var(--size) / 2 + 10px); display: grid; gap: 2px; color: var(--green); }
+.fx-coords > div { display: flex; gap: 8px; align-items: baseline; }
+.fx-coords .lbl { min-width: 30px; }
+.fx-coords .seg { font-size: 15px; }
+.fx.locked .fx-lock, .fx.locked .fx-state { color: var(--green); }
+.fx.locked .fx-state { animation: blink 0.3s 3 steps(1); }
+.fx-locked .reticle { border-color: var(--green); }
+.fx-locked .reticle::before, .fx-locked .reticle::after { background: var(--green); }

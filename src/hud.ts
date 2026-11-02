@@ -1,7 +1,12 @@
 import type { Map } from 'maplibre-gl';
-import { REGION, tierForZoom } from './region';
+import { REGION, SPOTS, tierForZoom } from './region';
 import type { Conditions } from './mock';
 import { alertStrip, gauge, panelHeader, readout, setAlert, setGauge } from './hud-kit';
+import { nearest } from './geo';
+import { formatAltitude, mapAltitudeM } from './zoom-fx';
+
+/** Show `html` only at `tier` and finer (CSS keys off body[data-tier]). */
+const from = (tier: 'coast' | 'spot', html: string) => `<div class="from-${tier}">${html}</div>`;
 
 const fmt = (n: number, d = 1) => n.toFixed(d);
 const pad3 = (n: number) => String(Math.round(n) % 360).padStart(3, '0');
@@ -21,14 +26,22 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions)
       ${readout('WIND', 'wind', 'KT')}
       ${readout('WND DIR', 'wdir', '°')}
       ${readout('SST', 'sst', '°C')}
-      ${readout('TIDE', 'tide', 'M')}
-      <div class="ro"><span class="lbl">RIP RISK</span><span class="seg" id="rip">--</span></div>
-      ${gauge('RIP', 'ripgauge')}
+      ${from('coast', readout('TIDE', 'tide', 'M'))}
+      ${from('coast', `<div class="ro"><span class="lbl">RIP RISK</span><span class="seg" id="rip">--</span></div>`)}
+      ${from('coast', gauge('RIP', 'ripgauge'))}
+      ${from(
+        'spot',
+        `${panelHeader('TARGET')}
+        <div class="ro"><span class="lbl">SPOT</span><span class="seg green" id="tgt">--</span></div>
+        ${readout('RANGE', 'tgtrng', 'KM', 'green')}
+        ${readout('BRG', 'tgtbrg', '°T', 'green')}`,
+      )}
     </aside>
     <footer class="panel bottom">
       <div class="ro"><span class="lbl">LAT</span><span class="seg green" id="lat">--</span></div>
       <div class="ro"><span class="lbl">LON</span><span class="seg green" id="lon">--</span></div>
-      <div class="ro"><span class="lbl">ZOOM</span><span class="seg green" id="zoom">--</span></div>
+      <div class="ro wide-only"><span class="lbl">ZOOM</span><span class="seg green" id="zoom">--</span></div>
+      <div class="ro"><span class="lbl">ALT</span><span class="seg green" id="alt">--</span></div>
       <div class="ro"><span class="lbl">DATA AGE</span><span class="seg" id="age">--</span></div>
       <button id="sync" class="btn" title="Full offline download arrives in PLAN 5.1">SYNC FOR TRIP</button>
     </footer>
@@ -42,7 +55,14 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions)
     $('lat').textContent = fmt(c.lat, 4);
     $('lon').textContent = fmt(c.lng, 4);
     $('zoom').textContent = fmt(map.getZoom(), 1);
-    $('tier').textContent = tierForZoom(map.getZoom());
+    $('alt').textContent = formatAltitude(mapAltitudeM(map));
+    $('tier').textContent = document.body.dataset.tier ?? tierForZoom(map.getZoom());
+    if (document.body.dataset.tier === 'SPOT') {
+      const t = nearest([c.lng, c.lat], SPOTS)!;
+      $('tgt').textContent = t.point.name;
+      $('tgtrng').textContent = fmt(t.distanceM / 1000, 1);
+      $('tgtbrg').textContent = pad3(t.bearingDeg);
+    }
   };
   map.on('move', updateView);
   updateView();

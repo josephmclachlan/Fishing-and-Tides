@@ -10,7 +10,7 @@ Ocean conditions + fishing app for Costa Rica's Caribbean coast (Gandoca to Lim√
 - Vitest for unit tests (add with the first physics task).
 
 ## Commands
-- `npm run dev` / `npm run build` / `npm run preview`
+- `npm run dev` / `npm run build` / `npm run preview` / `npm test` (Vitest)
 - Build must pass (`tsc` + `vite build`) before every PR.
 
 ## Layout

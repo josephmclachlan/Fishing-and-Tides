@@ -52,7 +52,9 @@ SST and fronts, chlorophyll edges, depth contours, river mouth plumes, tide phas
 | Coast | 8 to 11 | Fishing corridors, spot markers, protected zones, currents |
 | Spot | ≥ 12 | Refracted breaker height, rip channels, tide curve, depth contours |
 
-Crossing a tier triggers the **military-satellite zoom effect**: scanline sweep, brief pixelation that sharpens as it "locks on", targeting reticle, and live lat/lon/altitude readouts.
+Crossing a tier triggers the **military-satellite zoom effect**: scanline sweep, brief pixelation that sharpens as it "locks on" (square cells resolve one by one in random order), targeting reticle, and live lat/lon/altitude readouts.
+
+**Enhance fly-to** (80s action-movie "enhance"): searching or tapping a beach or coordinate while zoomed out draws a box over the target region and highlights it, zooms into the box, and the new view comes in as large blurry pixels that resolve piece by piece. Once clear, a smaller box is drawn and the sequence repeats, about one hop per zoom tier (2 to 4 hops), until it lands on the beach or ocean point.
 
 ## 6. Offline
 
