@@ -23,7 +23,7 @@ Tides here are small (microtidal, under about 0.5 m), so tide *timing* matters m
 | Species | OBIS, GBIF | Occurrence records to fit habitat models |
 | Fishing pressure | Global Fishing Watch | Vessel activity, offshore corridors |
 
-All network calls go through one adapter module per source, behind a small cache (edge function or static prebuilt JSON) so the client never hammers upstream APIs.
+All network calls go through one adapter module per source, behind a small cache so the client never hammers upstream APIs: gridded forecasts are fetched by a scheduled data build and published as static packed files, and live point readings use an offline-first fetch helper. See `docs/DATA.md`.
 
 ## 3. Physics
 
