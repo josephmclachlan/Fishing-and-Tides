@@ -20,7 +20,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 2.2 Open-Meteo Marine adapter (waves, swell) (**S**). MFWAM to day 9 then GFS-Wave to day 16, ERA5 climatology; feeds the HUD swell and the spot physics; `src/adapters/waves.ts`
 - [x] 2.3 Open-Meteo wind adapter (GFS/ECMWF) (**S**). 16-day grid from the scheduled data build, NOAA blended-winds monthly climatology for OUTLOOK; `src/adapters/wind.ts`
 - [ ] 2.4 CoastWatch ERDDAP adapter: SST and chlorophyll (**S**)
-- [ ] 2.5 Copernicus/HYCOM currents adapter (**S**)
+- [x] 2.5 Copernicus/HYCOM currents adapter (**S**). Copernicus SMOC via Open-Meteo, 0.25° regional grid plus a 1/12° coastal nest, forecast mean past day 9; `src/adapters/currents.ts`
 - [x] 2.6 GEBCO bathymetry clipped to region, packed as a tile/grid asset, plus reefs, seamarks and a depth layer (**S**)
 - [ ] 2.7 UHSLC Limón gauge fetch for tide validation (**S**)
 - [ ] 2.8 Verify tool, automatic: scheduled daily GitHub Action runs one check per adapter (reachability, freshness, schema, physical ranges, cross-source agreement) and opens or updates an issue on failure; checks live in `src/verify/`, shared with 2.9 (**O**, needs 2.1; grow it with each adapter)
