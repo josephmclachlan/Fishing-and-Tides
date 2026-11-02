@@ -58,6 +58,8 @@ import { MOCK_FLOW, REGION, SPOTS } from './region';
 import { fetchWind, windAt, type WindData } from './adapters/wind';
 import { currentsAt, fetchCurrents, type CurrentsData } from './adapters/currents';
 import { fetchWaves, wavesAt, type SeaState, type WavesData } from './adapters/waves';
+import { fetchSatellite, sstAt, type SatelliteData } from './adapters/satellite';
+import { mountSst } from './layers/sst';
 import { dataAge, describeAge } from './adapters/data-age';
 import { createNet } from './net';
 import { createPhysicsClient } from './physics/client';
@@ -122,8 +124,20 @@ const baseConditions = () => {
     c.swellPeriodS = swell ? sea.swellT : sea.tm;
     c.swellDirDeg = swell ? sea.swellDir : sea.dir;
   }
+  // Sea temperature (PLAN 2.4): the newest satellite map at the map centre, or offshore of Cahuita when inland.
+  const sst = satellite && (sstAt(satellite, ctr.lng, ctr.lat, time.validMs()) ?? sstAt(satellite, ...MOCK_FLOW.windRef, time.validMs()));
+  if (sst) c.waterTempC = sst.value;
   return c;
 };
+// Satellite SST and ocean colour (PLAN 2.4): HUD sea temperature and the WATER TEMP isotherms.
+let satellite: SatelliteData | null = null;
+fetchSatellite()
+  .then((d) => {
+    if (!d.sst && !d.sstCoast) return console.warn('sst: nothing published; using mock');
+    satellite = d;
+    mountSst(map, d);
+  })
+  .catch((err) => console.warn('satellite unavailable', err));
 // Real waves once loaded (forecast to day 16, then climatology); the mock swell until then.
 let waves: WavesData | null = null;
 const seaStateAt = (lng: number, lat: number): SeaState | null => (waves ? wavesAt(waves, time.band(), time.validMs(), lng, lat) : null);

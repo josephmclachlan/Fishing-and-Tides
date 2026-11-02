@@ -18,6 +18,7 @@ import { buildWaves } from './forecast/waves.ts';
 import { buildStorms } from './forecast/storms.ts';
 import { buildCurrents } from './forecast/currents.ts';
 import { buildMetar } from './forecast/metar.ts';
+import { buildChl, buildKd490, buildSst } from './forecast/satellite.ts';
 
 const OUT = 'public/data/forecast';
 /**
@@ -33,6 +34,10 @@ const FEEDS: Record<string, { build: (dir: string) => Promise<string>; refreshH:
   currents: { build: buildCurrents, refreshH: 12, series: ['currents', 'currents-coast'] },
   // Limón airport METAR, hourly while the airport is open; no CORS, so relayed.
   metar: { build: buildMetar, refreshH: 0.5 },
+  // CoastWatch ERDDAP satellite maps (no CORS, so relayed). Daily products, a few days late.
+  sst: { build: buildSst, refreshH: 12, series: ['sst', 'sst-coast'] },
+  chl: { build: buildChl, refreshH: 12 },
+  kd490: { build: buildKd490, refreshH: 24 },
 };
 
 const wanted = process.argv.slice(2).filter((a) => !a.startsWith('-'));

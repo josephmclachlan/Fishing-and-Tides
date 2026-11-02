@@ -35,11 +35,11 @@ All on NOAA CoastWatch ERDDAP (`https://coastwatch.pfeg.noaa.gov/erddap/` and `h
 | Variable | Dataset ID | Resolution | Lag | Note |
 |---|---|---|---|---|
 | SST | `jplMURSST41` | 0.01° daily, gap-free analysis | about 3 days (latest 2026-10-29 on 11-02) | Blends satellites, so no cloud holes, but it is an analysis, not a pass |
-| Chlorophyll | `nesdisVHNnoaa20chlaDaily` (NRT), `nesdisVHNnoaaSNPPnoaa20chlaGapfilledDaily` (gap-filled) | 4 km / 9 km daily | 1 to 3 days | Nearshore pixels are often cloud or river-plume flagged (NaN) |
-| Kd490 (clarity) | `nesdisVHNkd490Daily` (NRT), `noaacwNPPN20S3AkdSCIDINEOFDaily` (gap-filled) | 4 km daily | 1 to 3 days | The nearshore cells tested on 2026-10-29 were all NaN (cloud), so the gap-filled product matters here |
+| Chlorophyll | `noaacwN20VIIRSchlaDaily` (NOAA-20 NRT, raw passes), `noaacwNPPN20VIIRSDINEOFDaily` (gap-filled NRT, **used by 2.4**) | 4 km / 9 km daily | 3 days | Nearshore pixels are often cloud or river-plume flagged (NaN) in the raw product |
+| Kd490 (clarity) | `noaacwNPPVIIRSkd490Daily` (NRT, raw), `noaacwNPPN20S3AkdSCIDINEOF2kmDaily` (gap-filled science quality 2 km, **used by 2.4**) | 4 km / 2 km daily | NRT 1 to 3 days; gap-filled about 10 days | The nearshore cells tested on 2026-10-29 were all NaN (cloud), so the gap-filled product matters here |
 | Scatterometer wind | `noaacwBlendednrtWinds6hr` (blended, coastwatch.noaa.gov) | 0.25°, 6-hourly | under 1 day | The ASCAT-only `erdQMwind1day` stopped on 2022-12-31. KNMI (`scatterometer.knmi.nl`, reachable) has true ASCAT passes if we want the pass time |
 
-S-NPP is at end of mission (the dataset titles say so); prefer the NOAA-20/21 or merged products.
+S-NPP is at end of mission (the dataset titles say so); prefer the NOAA-20/21 or merged products. The `nesdisVHN…` ids listed here earlier no longer answer on coastwatch.noaa.gov (checked 2026-11-02).
 
 ## Forecast models (for PLAN 2.2, 2.3, 2.5)
 

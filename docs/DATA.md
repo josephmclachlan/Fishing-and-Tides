@@ -62,6 +62,9 @@ A `Check` is `{ feed, kind, label, run() → { status, detail } }`, with `kind` 
 | `waves` | `scripts/forecast/waves.ts` | Météo-France MFWAM (to ~day 9), then NOAA GFS-Wave 0.25° (to day 16), via Open-Meteo Marine | 0.25° grid, 518 sea points (land skipped using the GEBCO grid); 3-hourly; Hs, mean period, direction, primary swell (height, period, direction), wind sea (height, period) | ~520 KB | Every 12 h (MFWAM updates twice a day) |
 | `waves-clim` | `scripts/fetch-climatology.ts` | ERA5 ocean waves via Open-Meteo, days 8–21 of each month 2020–2024 | 1° grid at sea points, 12 months; Hs, mean period, direction only (no swell partitions in ERA5 there) | small | Static, committed, precached |
 | `currents`, `currents-coast` | `scripts/forecast/currents.ts` | Météo-France SMOC 1/12° (Copernicus Marine; includes tides and Stokes drift) via Open-Meteo Marine, to ~day 9 | `currents`: 0.25° grid at 518 sea points; `currents-coast`: SMOC's own 1/12° over Gandoca–Limón (115 sea points). Hourly to day 7, then 3-hourly. The app overlays the nest on the regional grid (`overlayFields`) into one particle field | ~150 KB + ~20 KB | Every 12 h |
+| `sst`, `sst-coast` | `scripts/forecast/satellite.ts` | MUR SST v4.1 (NASA JPL) via CoastWatch ERDDAP `jplMURSST41`: gap-free daily analysis, about 2 days late | `sst`: 0.05° over the macro view (141×111); `sst-coast`: the full 0.01° over Gandoca–Limón (126×101). Last 7 daily maps, kind `observed` | ~80 KB + ~16 KB | Every 12 h |
+| `chl` | same | Chlorophyll-a, gap-filled (DINEOF) VIIRS NOAA-20/S-NPP, NRT, `noaacwNPPN20VIIRSDINEOFDaily`, about 3 days late | Native 9 km over the macro view (85×67), last 7 daily maps | ~35 KB | Every 12 h |
+| `kd490` | same | Kd490, gap-filled VIIRS + OLCI, science quality 2 km, `noaacwNPPN20S3AkdSCIDINEOF2kmDaily`, about 10 days late | Native 2 km over Gandoca–Limón (61×49), last 7 daily maps | ~15 KB | Every 24 h |
 | `storms` | `scripts/forecast/storms.ts` | NHC CurrentStorms.json (no CORS, so relayed) | Plain JSON: active Atlantic storms with position, wind, pressure, motion, advisory link; empty list in a quiet season | tiny | Every build (advisories come every 6 h in season) |
 
 Bodies are gzipped (`.i16.gz`, `encoding: 'gzip'` in the manifest) because GitHub Pages doesn't compress binary files; `series.ts` unzips with `DecompressionStream` when it sees the gzip magic bytes.
@@ -69,6 +72,12 @@ Bodies are gzipped (`.i16.gz`, `encoding: 'gzip'` in the manifest) because GitHu
 **Call budget.** The workflow runs every 6 h, but each feed has a `refreshH` (wind 6, waves 12, currents 12): a feed whose published copy is younger is copied forward from the live site instead of refetched. That keeps the build around 8,000 Open-Meteo calls a day, under the 10,000 limit. Directions are stored as unit vectors so blending frames across north works.
 
 Local development: `npm run data:forecast` fills `public/data/forecast/` (gitignored); without it the app uses the mock fields. `npm run data:climatology` rebuilds the committed climatology.
+
+## Satellite SST and ocean colour (PLAN 2.4)
+
+`src/adapters/satellite.ts` loads the `sst`, `sst-coast`, `chl` and `kd490` maps above. They are observations (manifest `kind: 'observed'`, valid times = when observed), so `observedAt` blends between the days inside the week and holds the newest map for any later time: the slider's whole forecast shows the latest satellite picture, and every reading carries its observation time. Gap-filled products are used because afternoon cloud hides this coast most days; the raw passes with their cloud holes and pass times are PLAN 2.12. The HUD's SST is the newest map at the map centre (the 0.01° nest where it has sea), and the WATER TEMP layer (`src/layers/sst.ts`) draws isotherms from it: every 0.5 °C over the macro view, every 0.25 °C at the coast tier. Bunched isotherms are fronts. Chlorophyll and Kd490 have no layer yet; CLARITY (PLAN 6.1) builds on them (Secchi depth ≈ 1.7 / Kd490).
+
+ERDDAP sends no CORS headers, so these go through the data build. Verify checks per feed: manifest, relay age, how old the newest map is (SST amber past 4 days, chlorophyll 6, Kd490 16) and physical ranges, plus the coast nest against the macro grid.
 
 ## Weather (PLAN 7.3)
 
