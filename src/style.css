@@ -38,7 +38,7 @@ body { touch-action: pan-x pan-y; }
 
 .top { top: max(8px, env(safe-area-inset-top)); left: 8px; right: 8px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
 .title { font-size: 15px; letter-spacing: 2px; margin-right: auto; }
-.side { top: 70px; left: 8px; width: 240px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; align-content: start; max-height: calc(100% - 70px - var(--dock-h, 150px) - 16px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--amber) transparent; }
+.side { top: calc(var(--top-h, 62px) + 8px); left: 8px; width: 240px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; align-content: start; max-height: calc(100% - var(--top-h, 62px) - var(--dock-h, 150px) - 16px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--amber) transparent; }
 .bottom { bottom: max(8px, env(safe-area-inset-bottom)); left: 8px; right: 8px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
 .ph { font-size: 12px; letter-spacing: 3px; border-bottom: 1px solid var(--amber-dim); padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between; }
 .tag { color: var(--bg); background: var(--amber); padding: 0 4px; text-shadow: none; }
@@ -181,7 +181,7 @@ body[data-enhance='off'] .from-spot > * { animation: tier-in 0.9s ease-out both;
 .fx-locked .reticle::before, .fx-locked .reticle::after { background: var(--green); }
 
 /* Target picker (PLAN 1.7) */
-.seek { top: 70px; right: 8px; width: 330px; display: grid; gap: 6px; }
+.seek { top: calc(var(--top-h, 62px) + 8px); right: 8px; width: 330px; display: grid; gap: 6px; }
 .seek-row { display: flex; gap: 6px; }
 .seek-in {
   flex: 1; min-width: 0; font: inherit; font-size: 16px; letter-spacing: 1px; text-transform: uppercase;
@@ -418,6 +418,9 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .ck-items { list-style: none; margin: 0; padding: 4px 8px 8px; display: grid; gap: 6px; border-top: 1px solid var(--amber-dim); }
 .ck-item { display: grid; grid-template-columns: 42px 62px 1fr; gap: 6px; font-size: 11px; letter-spacing: 1px; align-items: baseline; }
 .ck-kind { opacity: 0.7; }
+/* LIVE OBS rows (src/live-obs.ts): lamp, source and age, then the reading and its detail. */
+.ob-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; padding: 6px 8px; }
+.ob-val { flex-basis: 100%; font-size: 18px; }
 .tag.green { background: var(--green); }
 .tag.red { background: var(--red); }
 .check-open .lamp { display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; background: var(--amber); }
