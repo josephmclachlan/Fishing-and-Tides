@@ -103,6 +103,10 @@ Not for navigation: this applies to all of the above, depth and charts in partic
 - Tides and physics are computed on device, so other spots and times still work offline.
 - **DATA AGE readout:** segmented display of time since last sync. Green when fresh, amber after 12 h, red after 48 h.
 
+## 8. Language (EN/ESP)
+
+A planned EN/ESP toggle with a full Spanish translation, shown in the HUD as a small UK flag and Spain flag drawn in the HUD style (amber/green line art, no photos). The work is mostly string extraction, so it starts early (PLAN 1.10): every user-facing string goes through a `t(key)` helper from the beginning, which makes the later translation (PLAN 5.6) a matter of filling in `es.ts`. The Spanish uses local Costa Rican marine and fishing terms, not generic or Castilian ones, and is checked by a local speaker where possible. The choice is remembered on the device, and the first run follows the browser language.
+
 ## 8. Visual style
 
 Retrofuturistic HUD in the Evangelion / NASA mission-control vein:

@@ -12,6 +12,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 1.7 "Enhance" fly-to: pick a beach or coordinate (search box or spot tab) and, from a zoomed-out view, box the target, highlight it, zoom in, resolve block by block, then box again, repeating in 2 to 4 hops until on the beach or ocean point (**O**)
 - [x] 1.8 Layer registry, LAYERS drawer and activity presets (FISH, DIVE, SURF, SAIL, ALL) (**S**)
 - [ ] 1.9 ENHANCE on/off toggle (settings, persisted on the device): off replaces the pull-back, box, pixel resolve and stepped zoom with one continuous eased fly-to that pans and zooms together, with finer data fading in as the zoom tiers are crossed; no pixelation, reticle flashes or discrete jumps (**S**, extends 1.3, 1.7)
+- [ ] 1.10 i18n scaffold, do early: a small `t(key)` helper with `src/i18n/en.ts`, and move every existing UI string (labels, alerts, layer names, presets, panel text) into it, so all new UI text is translatable from the start; no hard-coded user-facing strings in new code (**S**)
 
 ## Phase 2: Data adapters
 - [ ] 2.1 Adapter interface, cache layer, data-age tracking (**O**)
@@ -47,6 +48,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [ ] 5.3 Mobile layout and sunlight-readability pass (**S**)
 - [ ] 5.4 Performance pass (**O**)
 - [ ] 5.5 Optional UI sounds (**S**)
+- [ ] 5.6 EN/ESP language toggle: full Spanish in `src/i18n/es.ts` using local Costa Rican marine and fishing terms, a toggle in the HUD with small UK and Spain flag graphics in the HUD style, choice persisted on the device and the browser language used as the first-run default; units, dates and number formats follow the language where they differ (**S**, needs 1.10, and all UI text in place)
 
 ## Phase 6: Activity data (see DESIGN.md section 6)
 - [ ] 6.1 Water clarity: Kd490 and chlorophyll from ERDDAP/Copernicus, plus a rain-plume estimate from river-mouth rainfall, as the CLARITY layer (**S**, builds on 2.4)
