@@ -64,6 +64,9 @@ import { createSpotPhysics, type SpotPhysics } from './spot-physics';
 import { mountRip } from './layers/rip';
 import { mountSurfZoneHud } from './surf-zone-hud';
 import { mountDiveHud } from './dive-hud';
+import { fetchGauge, type GaugeReading } from './adapters/gauge';
+import { mountTideHud } from './tide-hud';
+import { mountSpotPage } from './spot-page';
 
 registerSW({ immediate: true });
 
@@ -135,6 +138,13 @@ let weatherHud: ReturnType<typeof mountWeatherHud> = null;
 let lightningHud: ReturnType<typeof mountLightningHud> = null;
 mountHud(hud, map, conditionsAt, { age: () => describeAge(dataAge.oldest(), Date.now()), online: net.online, alerts: () => [...(weatherHud?.alerts() ?? []), ...(lightningHud?.alerts() ?? [])] });
 mountTimeSlider(hud, time);
+// Tide chart (PLAN 4.1): the slider's day at Limón, with the live gauge (PLAN 2.11) drawn over it.
+let gauge: GaugeReading[] = [];
+const tideHud = mountTideHud(hud, time, () => gauge);
+const loadGauge = () =>
+  fetchGauge({ hours: 30 })
+    .then((d) => ((gauge = d.readings), tideHud?.refresh(), spotPage.refresh()))
+    .catch((err) => console.warn('tide gauge unavailable', err));
 // The lock-on effect plays only for a picked target, never on scroll/pinch zoom.
 const enhancer = createEnhancer(map, createLockFx(map, hud), settings.enhance);
 // Phone: panels are drawers, closed until tapped; wide screens start with the LAYERS drawer open.
@@ -176,6 +186,10 @@ let landGrid: Grid | null = null;
 const harboursHud = mountHarboursHud(hud, map, { windFromDeg: () => conditionsAt().windDirDeg, land: () => landGrid });
 // Boat mode: GPS track and pin log, kept on the device. Depth at a pin comes from the seafloor grid once it loads.
 let depthAt: ((lng: number, lat: number) => number | undefined) | null = null;
+// Spot pages (PLAN 4.1): tide, sky and the spot's physics on one sheet; its tab sits before BOAT.
+const spotPage = mountSpotPage(hud, map, { time, sheets, physics: () => spotPhysics, observed: () => gauge, go: (t) => enhancer.go(t) });
+loadGauge();
+setInterval(loadGauge, 10 * 60_000);
 mountBoatPanel(hud, map, createBoatStore(safeStorage()), sheets, () => depthAt);
 // SYSTEM CHECK: its tab joins the settings controls on a phone.
 mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeStorage() });
@@ -289,6 +303,7 @@ fetchSeafloor()
       ripLayer.update(spotPhysics!.all(), data.land);
       surfBreaks.update((name) => spotPhysics!.byName(name)?.surf);
       surfHud.refresh();
+      spotPage.refresh();
     });
     mountSurfZoneHud(hud, map, spotPhysics);
     mountDiveHud(hud, map, spotPhysics);
