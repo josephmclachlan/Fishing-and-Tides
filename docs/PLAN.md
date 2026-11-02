@@ -42,7 +42,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [ ] 4.1 Tide chart panel and spot pages (**S**)
 - [x] 4.2 Rip risk overlay and spot-tier breaker readouts (**S**). `src/layers/rip.ts`, `src/surf-hud.ts`
 - [x] 4.3 Protected-zone overlays: Gandoca-Manzanillo, Cahuita (**S**)
-- [ ] 4.4 Species habitat model framework and scoring (**O**)
+- [x] 4.4 Species habitat model framework and scoring (**O**). Weights fitted to OBIS/GBIF records with the 4.5 rules as prior; `src/fishing/fit.ts`, see `docs/FISHING.md`
 - [x] 4.5 Fishing layer: shore/kayak mode (**S**)
 - [x] 4.6 Fishing layer: boat mode, GPS track, drop-pin log (**S**)
 - [x] 4.7 OBIS/GBIF and Global Fishing Watch data folded into scores (**S**)
