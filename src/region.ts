@@ -9,6 +9,8 @@ export const REGION = {
   // zooming out never hits a wall (the camera only stops well beyond the analysed area).
   viewBounds: [[-90, 4.5], [-75, 16]] as [[number, number], [number, number]],
   initialZoom: 9.3,
+  /** Costa Rica is UTC-6 all year (no daylight saving). Used for local sun, moon and solunar days. */
+  tzOffsetH: -6,
 };
 
 /** Zoom tiers from DESIGN.md §5: MACRO below COAST, COAST from 8, SPOT from 12. */
