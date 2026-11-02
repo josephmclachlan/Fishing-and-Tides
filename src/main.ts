@@ -16,6 +16,7 @@ import { dictFor, setDict } from './i18n';
 import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
 import { mountSettingsUi } from './settings-ui';
+import { mountSettingsPanel } from './settings-panel';
 import { fetchSeafloor } from './adapters/seafloor';
 import { mountSeafloor } from './layers/seafloor';
 import { mountSeafloorHud } from './seafloor-hud';
@@ -46,7 +47,7 @@ import type { RipLevel } from './physics/rip';
 registerSW({ immediate: true });
 
 // Language first: every panel builds its text once, from the active dictionary.
-const settings = createSettings(safeStorage(), navigator.languages ?? [navigator.language]);
+const settings = createSettings(safeStorage(), navigator.languages ?? [navigator.language], window.matchMedia('(prefers-contrast: more)').matches);
 setDict(dictFor(settings.lang()));
 document.documentElement.lang = settings.lang();
 const map = createMap('map', takeView(safeSession()));
@@ -104,6 +105,8 @@ mountSurfHud(hud, map);
 // Boat mode: GPS track and pin log, kept on the device. Depth at a pin comes from the seafloor grid once it loads.
 let depthAt: ((lng: number, lat: number) => number | undefined) | null = null;
 mountBoatPanel(hud, map, createBoatStore(safeStorage()), sheets, () => depthAt);
+// Last, so SET is the last tab and the settings controls (ENHANCE, SUN, language) are all mounted to be moved into it.
+mountSettingsPanel(hud, sheets);
 
 const flow = mountFlow(map, flowSources);
 if (flow) {

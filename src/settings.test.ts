@@ -79,3 +79,27 @@ describe('view carried across a language reload', () => {
     expect(takeView(undefined)).toBeNull();
   });
 });
+
+describe('sunlight mode setting', () => {
+  it('follows the device high-contrast setting until the user chooses', () => {
+    const s = mem();
+    expect(createSettings(s, [], false).sun()).toBe(false);
+    expect(createSettings(s, [], true).sun()).toBe(true);
+    expect(s.m['ft.sun']).toBeUndefined();
+  });
+  it('remembers the choice either way, and it beats the device setting', () => {
+    const s = mem();
+    createSettings(s, [], true).setSun(false);
+    expect(createSettings(s, [], true).sun()).toBe(false);
+    createSettings(s, [], false).setSun(true);
+    expect(createSettings(s, [], false).sun()).toBe(true);
+  });
+  it('notifies on change only', () => {
+    const st = createSettings(mem(), [], false);
+    const fn = vi.fn();
+    st.subscribe(fn);
+    st.setSun(false);
+    st.setSun(true);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+});

@@ -8,6 +8,7 @@ import { isLang, pickLang, type Lang } from './i18n';
 type Storage = Pick<globalThis.Storage, 'getItem' | 'setItem'>;
 const KEY = 'ft.enhance';
 const LANG_KEY = 'ft.lang';
+const SUN_KEY = 'ft.sun';
 const VIEW_KEY = 'ft.view';
 
 export interface Settings {
@@ -17,19 +18,25 @@ export interface Settings {
   /** UI language: the saved choice, else the browser's (es* gives Spanish), else English. */
   lang(): Lang;
   setLang(lang: Lang): void;
+  /** Sunlight mode: stronger contrast, no scanlines or glow. Follows the device's high-contrast setting until the user chooses. */
+  sun(): boolean;
+  setSun(on: boolean): void;
   subscribe(fn: () => void): () => void;
 }
 
-export function createSettings(storage?: Storage, browserLangs: readonly string[] = []): Settings {
+export function createSettings(storage?: Storage, browserLangs: readonly string[] = [], prefersContrast = false): Settings {
   let enhance = true;
   let stored: string | null = null;
+  let storedSun: string | null = null;
   try {
     enhance = storage?.getItem(KEY) !== 'off';
     stored = storage?.getItem(LANG_KEY) ?? null;
+    storedSun = storage?.getItem(SUN_KEY) ?? null;
   } catch {
     /* storage blocked: defaults */
   }
   let lang = pickLang(stored, browserLangs);
+  let sun = storedSun === 'on' ? true : storedSun === 'off' ? false : prefersContrast;
   const subs = new Set<() => void>();
   const save = (key: string, value: string) => {
     try {
@@ -51,6 +58,13 @@ export function createSettings(storage?: Storage, browserLangs: readonly string[
       if (!isLang(next) || next === lang) return;
       lang = next;
       save(LANG_KEY, next);
+      subs.forEach((fn) => fn());
+    },
+    sun: () => sun,
+    setSun(on) {
+      if (on === sun) return;
+      sun = on;
+      save(SUN_KEY, on ? 'on' : 'off');
       subs.forEach((fn) => fn());
     },
     subscribe(fn) {

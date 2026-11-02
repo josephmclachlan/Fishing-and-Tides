@@ -65,13 +65,15 @@ The **military-satellite zoom effect** (scanline sweep, pixelation that sharpens
 
 ## 5b. Phone layout
 
-On a phone the map comes first. Only two HUD pieces stay on screen: the top bar (title, tier, UTC clock and two rows of tabs: the views LAYERS, FIND, COND, BOAT, then the settings row with the ENHANCE toggle and the EN/ESP flags) and a bottom strip (the chosen forecast hour plus swell, wind and tide). Everything else is a **drawer** that stays closed until its tab is tapped:
+On a phone the map comes first. Only two HUD pieces stay on screen: the top bar (title, tier, UTC clock and one row of tabs: LAYERS, FIND, COND, BOAT, SET) and a bottom strip (the chosen forecast hour plus swell, wind and tide). Everything else is a **drawer** that stays closed until its tab is tapped:
 
 | Tab | Drawer |
 |---|---|
 | FIND | Beach and coordinate search with the spot tabs; closes itself when a target is picked so the fly-to is in full view |
 | COND | Conditions, seafloor, target and zone readouts |
 | LAYERS | Activity presets and layer toggles |
+| BOAT | Boat mode: GPS track, pins, species |
+| SET | Settings: ENHANCE, SUN (sunlight mode) and the EN/ESP flags. On wide screens these stay in the top bar |
 | Bottom strip (tap, chevron points up) | Forecast time slider, step and play buttons, lat/lon/altitude, data age, SYNC FOR TRIP |
 
 One drawer is open at a time. A drawer closes from its own tab or strip (tap again), its X, a tap on the map (a drag or pinch leaves it open, so the readouts can be watched while panning), or Esc. Drawers sit between the top bar and the bottom strip, so a tab is never covered. Wide screens keep the full layout with the LAYERS drawer open and the same close controls. Code: `src/sheets.ts`.
@@ -143,6 +145,8 @@ Retrofuturistic HUD in the Evangelion / NASA mission-control vein:
 - Thin bordered panels with corner brackets, hazard stripes for alerts.
 - Animated wind and current particles (WebGL), subtle flicker on state changes. Wind is amber, currents green, both brighter when faster and red when strong (wind 25 kt or more, current 1.5 kt or more). Particles keep a steady on-screen pace at every zoom; currents stay in the sea (clipped to the OSM coastline). With both on, wind thins out so the sea stays readable. Under the reticle the side panel reads CURRENT (kt) and SET (°T, the direction it flows toward).
 - Must stay readable in sunlight on a phone: high contrast, large hit targets.
+- **Readability pass (PLAN 5.3):** on a phone, small print is at least 11 px, tabs and buttons are 40 to 48 px tall, the top bar is one row of tabs (about 80 px), and the HUD respects safe-area insets. A phone held sideways (short and touch) uses the same drawer layout. The OS reduced-motion setting turns off flicker and blinking.
+- **SUN mode** (a toggle in SET, saved on the device; on by default when the OS asks for high contrast): drops the scanlines, vignette and glow, makes panels near-opaque with solid amber borders and full-strength labels, so the HUD survives glare. The map itself stays dark.
 
 ## 9. Final additions
 
