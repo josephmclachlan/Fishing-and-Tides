@@ -23,7 +23,7 @@ export interface LayerDef {
 }
 
 export const LAYERS: readonly LayerDef[] = [
-  { id: 'waves', group: 'OCEAN' },
+  { id: 'waves', group: 'OCEAN', mapPrefixes: ['wv-'] },
   { id: 'currents', group: 'OCEAN' },
   { id: 'wind', group: 'OCEAN' },
   { id: 'sst', group: 'OCEAN' },

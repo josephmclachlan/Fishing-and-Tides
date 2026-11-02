@@ -64,7 +64,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 6.6 Sea state comfort index from wind-wave and swell partitions (**S**, needs 2.2). Pure index in physics/sea-state.ts; HUD uses SIM partitions until 2.2 lands
 - [x] 6.7 Anchorages and harbours layer: OSM seamarks, NGA World Port Index, shelter from wind direction (**S**). Curated OSM places + coastline-fetch shelter; WPI unreachable, see docs/HARBOURS.md
 - [x] 6.8 Spearfishing and protected-area rules: SINAC/INCOPESCA zones, closed seasons, rules card per zone (**S**, extends 4.3)
-- [ ] 6.9 Register wind, currents and waves with the layer store when the particle layer lands (**S**, needs 1.4). Wind and currents done in 1.4. The swell field now exists (2.2: `wavesAt` and the `waves` series, swell direction as unit vectors `swu`/`swv`), so this is ready: draw waves as a third flow kind or as crest lines, and register `waves`
+- [x] 6.9 Register wind, currents and waves with the layer store when the particle layer lands (**S**, needs 1.4). Waves done as crest lines (`src/layers/waves.ts`, `wv-` ids), not particles: static, cheap, direction and height readable at a glance. Wind and currents done in 1.4. The swell field now exists (2.2: `wavesAt` and the `waves` series, swell direction as unit vectors `swu`/`swv`), so this is ready: draw waves as a third flow kind or as crest lines, and register `waves`
 
 ## Phase 7: Final additions (see DESIGN.md sections 9 and 10)
 Built last, once Phases 2 to 6 are in. Each reuses the adapters, the layer registry and the SYSTEM CHECK panel.
