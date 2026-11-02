@@ -202,3 +202,6 @@ body[data-tier='COAST'] .from-spot { display: none; }
   .lay-mode { display: none; }
   .top { gap: 10px; }
 }
+
+/* Wind and current particles (PLAN 1.4): own canvas over the map, under the lock-on effect and HUD */
+.flow-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }

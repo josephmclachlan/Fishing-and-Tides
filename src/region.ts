@@ -50,3 +50,26 @@ export const SEAFLOOR = {
   /** Opacity of each band (bands.length + 1): shallow water reads brightest. */
   bandAlphas: [0.3, 0.25, 0.21, 0.17, 0.14, 0.11, 0.085, 0.065, 0.05, 0.038, 0.028],
 } as const;
+
+/**
+ * Geometry behind the mock wind and current fields (PLAN 1.4), until the wind (2.3) and
+ * current (2.5) adapters land. [lng, lat]. Rough, for a plausible-looking flow only.
+ */
+export const MOCK_FLOW = {
+  /** Point where the mock wind matches the HUD's mock reading (12 kt from 070°). */
+  windRef: REGION.center,
+  /** Caribbean coast from the San Juan mouth to Colón, north-west to south-east; the coastal current runs this way. */
+  coast: [
+    [-83.68, 10.93], [-83.52, 10.54], [-83.35, 10.31], [-83.07, 10.01], [-82.82, 9.74],
+    [-82.75, 9.655], [-82.65, 9.635], [-82.56, 9.58], [-82.2, 9.42], [-81.75, 9.05],
+    [-81.2, 8.83], [-80.6, 9.07], [-79.9, 9.36],
+  ] as [number, number][],
+  /** Panama–Colombia Gyre: cyclonic (anticlockwise), it turns the nearshore flow south-east along this coast. */
+  gyre: { center: [-80.7, 10.9] as [number, number], radiusDeg: 1.6, speedMs: 0.3 },
+  /** Offshore eddies for texture. Positive speed is anticlockwise. */
+  eddies: [
+    { center: [-82.25, 10.45] as [number, number], radiusDeg: 0.35, speedMs: -0.25 },
+    { center: [-81.55, 10.05] as [number, number], radiusDeg: 0.3, speedMs: 0.22 },
+    { center: [-83.0, 11.6] as [number, number], radiusDeg: 0.45, speedMs: 0.2 },
+  ],
+} as const;

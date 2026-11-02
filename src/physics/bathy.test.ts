@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NODATA, cellAt, chaikin, clipLines, contour, gridBounds, hillshade, sample, tidLabel, tidMeasured, type Grid } from './bathy';
+import { NODATA, cellAt, chaikin, clipLines, contour, gridBounds, hillshade, isWater, sample, tidLabel, tidMeasured, type Grid } from './bathy';
 
 /** Grid of f(lng, lat) on a `n`×`n` lattice with 0.01° cells, NW cell centre at (0, 0). */
 function grid(n: number, f: (lng: number, lat: number) => number, cell = 0.01): Grid {
@@ -116,5 +116,20 @@ describe('clipLines', () => {
   it('leaves an all-water line whole and drops an all-land one', () => {
     expect(clipLines([[[0, 0], [1, 1], [2, 0]]], water, 0.5)).toHaveLength(1);
     expect(clipLines([[[4.5, 0], [5.5, 0]]], water, 0.1)).toEqual([]);
+  });
+});
+
+describe('isWater', () => {
+  // Fine mask over 0..0.04°: land (1) west of 0.02°. Coarse elevation: land above 0 m north of −0.1°.
+  const land = grid(5, (x) => (x < 0.02 ? 1 : 0));
+  const elev: Grid = { cols: 3, rows: 3, lon0: -0.1, lat0: 0.1, dlon: 0.1, dlat: 0.1, z: Float32Array.from([10, 10, 10, -50, -50, -50, -50, -50, -50]) };
+  it('uses the fine mask where it covers', () => {
+    expect(isWater(land, elev, 0.0, -0.01)).toBe(false);
+    expect(isWater(land, elev, 0.03, -0.01)).toBe(true);
+  });
+  it('falls back to the elevation grid, and counts unknown as sea', () => {
+    expect(isWater(land, elev, -0.1, 0.1)).toBe(false);
+    expect(isWater(land, elev, -0.1, -0.1)).toBe(true);
+    expect(isWater(land, elev, 5, 5)).toBe(true);
   });
 });

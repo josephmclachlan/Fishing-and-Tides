@@ -110,7 +110,7 @@ Retrofuturistic HUD in the Evangelion / NASA mission-control vein:
 - CRT glow (text-shadow), faint scanlines, slight vignette.
 - Segmented seven-segment style digits for numbers, monospace labels in caps.
 - Thin bordered panels with corner brackets, hazard stripes for alerts.
-- Animated wind and current particles (WebGL), subtle flicker on state changes.
+- Animated wind and current particles (WebGL), subtle flicker on state changes. Wind is amber, currents green, both brighter when faster and red when strong (wind 25 kt or more, current 1.5 kt or more). Particles keep a steady on-screen pace at every zoom; currents stay in the sea (clipped to the OSM coastline). With both on, wind thins out so the sea stays readable. Under the reticle the side panel reads CURRENT (kt) and SET (°T, the direction it flows toward).
 - Must stay readable in sunlight on a phone: high contrast, large hit targets.
 
 ## 9. Final additions
