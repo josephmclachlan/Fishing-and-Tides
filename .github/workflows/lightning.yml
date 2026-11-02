@@ -1,0 +1,43 @@
+name: Collect lightning
+
+# Recent GOES GLM flashes over the region (PLAN 7.6, docs/LIGHTNING.md). Runs every 10 minutes and
+# publishes one file, lightning.json, as the only commit on the orphan branch `data-lightning`, which the
+# app reads from raw.githubusercontent.com. Kept off the Pages deploy so a 10-minute cadence does not
+# redeploy the whole site. GitHub may delay scheduled runs; the app shows the file's age.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lightning
+  cancel-in-progress: true
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install h5py==3.12.1
+      - run: python3 -I scripts/lightning.py --bbox="$(node scripts/lightning-bbox.ts)" --out "$RUNNER_TEMP/lightning.json"
+      - name: Publish to data-lightning
+        run: |
+          cd "$RUNNER_TEMP"
+          rm -rf pub && mkdir pub && mv lightning.json pub/
+          cd pub
+          git init -q -b data-lightning
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lightning.json
+          git commit -qm "Lightning $(date -u +%FT%TZ)"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" data-lightning
