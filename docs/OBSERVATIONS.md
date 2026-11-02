@@ -69,3 +69,9 @@ Notes:
 | OUTLOOK (16 to 30 d) | Harmonic | ERA5-Ocean climatology for the date | ERA5 climatology for the date | Climatology (mean of the SMOC days we have, until a currents reanalysis is wired) |
 
 The live gauge and METAR do not feed the forecast directly; they feed LIVE OBS (2.13), the verify tool (2.8, 2.9) and the bias correction (7.10).
+
+## In the app (PLAN 2.11)
+
+- **Gauge** (`src/adapters/gauge.ts`): fetched straight from IOC by the phone (last 24 h, 1-minute radar), put on mean sea level with `LIVE_GAUGE.mslOnSensorM` = 6.60 m (the 5.990 m radar-to-UHSLC offset plus UHSLC's 2025–26 mean of 0.61 m), and paired with the harmonic prediction. On 2026-11-02 the last day matched the predicted tide's shape to 2.2 cm RMS, with the sea standing 11 to 12 cm above the tide (weather and seasonal level). The verify checks flag a shape mismatch over 8 cm or a mean departure over 25 cm (a datum change, or a real surge).
+- **METAR** (`src/adapters/metar.ts`): relayed hourly by the data build as `data/forecast/metar.json` (the Pages workflow now runs every hour; the model grids still refresh only every 6 or 12 h). The verify cross-check compares the latest airport wind with the forecast wind at the airport for that hour.
+- Both feed LIVE OBS (2.13), SYSTEM CHECK (2.9) and the daily verify Action (2.8).

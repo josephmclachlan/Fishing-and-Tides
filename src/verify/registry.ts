@@ -5,6 +5,9 @@
  */
 import { fetchWind, windChecks } from '../adapters/wind';
 import { fetchWaves, wavesChecks } from '../adapters/waves';
+import { currentsChecks, fetchCurrents } from '../adapters/currents';
+import { gaugeChecks } from '../adapters/gauge';
+import { fetchMetar, metarChecks } from '../adapters/metar';
 import { weatherChecks } from '../adapters/weather';
 import { fetchStorms, stormsChecks } from '../adapters/storms';
 import { occurrenceChecks } from '../fishing/checks';
@@ -14,6 +17,9 @@ export function allChecks(base: string = import.meta.env.BASE_URL): Check[] {
   return [
     ...windChecks(() => fetchWind({ base })),
     ...wavesChecks(() => fetchWaves({ base })),
+    ...currentsChecks(() => fetchCurrents({ base })),
+    ...gaugeChecks(),
+    ...metarChecks(() => fetchMetar({ base }), () => fetchWind({ base })),
     ...weatherChecks(),
     ...stormsChecks(() => fetchStorms({ base })),
     ...occurrenceChecks(base),

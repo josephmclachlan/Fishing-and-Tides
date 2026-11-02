@@ -17,6 +17,8 @@ const pad3 = (n: number) => String(Math.round(n) % 360).padStart(3, '0');
 export interface HudStatus {
   age(): AgeView;
   online(): boolean;
+  /** Extra alert-strip messages (storms, heavy rain). Shown after the rip warning, joined with a dot. */
+  alerts?(): string[];
 }
 
 export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions, status?: HudStatus) {
@@ -125,7 +127,7 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions,
     rip.textContent = t(`rip.${d.ripRisk}` as Key);
     rip.className = 'seg ' + (d.ripRisk === 'HIGH' ? 'red' : d.ripRisk === 'MOD' ? '' : 'green');
     setGauge($('ripgauge'), { LOW: 0.2, MOD: 0.55, HIGH: 1 }[d.ripRisk], d.ripRisk === 'HIGH' ? 'red' : d.ripRisk === 'MOD' ? '' : 'green');
-    setAlert($('alert'), d.ripRisk === 'HIGH' ? t('hud.alertRip') : null);
+    setAlert($('alert'), [...(d.ripRisk === 'HIGH' ? [t('hud.alertRip')] : []), ...(status?.alerts?.() ?? [])].join(' · ') || null);
     renderStatus();
   };
   tick();

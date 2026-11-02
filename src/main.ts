@@ -10,7 +10,12 @@ import { mountSeek } from './seek';
 import { createSettings, safeSession, safeStorage, takeView } from './settings';
 import { mountSurfBreaks } from './layers/surf-breaks';
 import { mountSurfHud } from './surf-hud';
+import { mountWeatherHud } from './weather-hud';
+import { mountStorms } from './layers/storms';
+import { fetchWeather } from './adapters/weather';
+import { fetchStorms } from './adapters/storms';
 import { mountSeaStateHud } from './sea-state-hud';
+import { mountAstroHud } from './astro-hud';
 import { mountHarbours } from './layers/harbours';
 import { mountHarboursHud } from './harbours-hud';
 import type { Grid } from './physics/bathy';
@@ -43,6 +48,7 @@ import { mountTimeSlider } from './time-slider';
 import { KT_PER_MS, sampleField, fromDeg } from './physics/flow';
 import { MOCK_FLOW, REGION, SPOTS } from './region';
 import { fetchWind, windAt, type WindData } from './adapters/wind';
+import { currentsAt, fetchCurrents, type CurrentsData } from './adapters/currents';
 import { fetchWaves, wavesAt, type SeaState, type WavesData } from './adapters/waves';
 import { dataAge, describeAge } from './adapters/data-age';
 import { createNet } from './net';
@@ -64,7 +70,6 @@ const hud = document.getElementById('hud')!;
 // Tiers first: the HUD reads the tier they publish on each move.
 mountZoomTiers(map);
 const time = createTimeStore();
-// Current particles on a mock field until the PLAN 2.5 adapter.
 // Past a week no model has skill: the OUTLOOK band shows climatology (the mock's mean pattern, hour 0).
 const climatological = () => time.band() === 'outlook';
 const windHour = () => (climatological() ? 0 : time.offsetH());
@@ -72,9 +77,12 @@ const hoursSinceEpoch = (ms: number) => ms / 3.6e6;
 // Real wind (PLAN 2.3) once loaded: forecast grid, then monthly climatology for OUTLOOK. Mock until then, or if none is published.
 let wind: WindData | null = null;
 const windField = () => (wind && windAt(wind, time.band(), time.validMs())?.field) || mockWindField(windHour());
+// Real surface currents (PLAN 2.5): SMOC regional grid with the 1/12° coastal nest, the forecast mean past day 9. Mock until loaded.
+let currents: CurrentsData | null = null;
+const currentField = () => (currents && currentsAt(currents, time.band(), time.validMs())?.field) || mockCurrentField(hoursSinceEpoch(time.validMs()));
 const flowSources: { wind: FlowSource; current: FlowSource } = {
   wind: { field: windField(), ...FLOW_STYLE.wind },
-  current: { field: mockCurrentField(hoursSinceEpoch(time.validMs())), ...FLOW_STYLE.current },
+  current: { field: currentField(), ...FLOW_STYLE.current },
 };
 // The wind reading comes from the wind field at its reference point, so HUD and particles agree at every hour.
 const windAtRef: [number, number] = [0, 0];
@@ -116,7 +124,8 @@ fetchWaves()
   .catch((err) => console.warn('waves unavailable', err));
 // DATA AGE and connectivity for the HUD (PLAN 5.2).
 const net = createNet();
-mountHud(hud, map, conditionsAt, { age: () => describeAge(dataAge.oldest(), Date.now()), online: net.online });
+let weatherHud: ReturnType<typeof mountWeatherHud> = null;
+mountHud(hud, map, conditionsAt, { age: () => describeAge(dataAge.oldest(), Date.now()), online: net.online, alerts: () => weatherHud?.alerts() ?? [] });
 mountTimeSlider(hud, time);
 // The lock-on effect plays only for a picked target, never on scroll/pinch zoom.
 const enhancer = createEnhancer(map, createLockFx(map, hud), settings.enhance);
@@ -134,6 +143,13 @@ mountSheets(hud, map, sheets);
 const surfBreaks = mountSurfBreaks(map);
 const surfHud = mountSurfHud(hud, map, (name) => spotPhysics?.byName(name)?.surf);
 mountSeaStateHud(hud, conditionsAt);
+// Weather and active tropical storms (PLAN 7.3, 7.5): live feeds, rows stay -- until they load.
+weatherHud = mountWeatherHud(hud, { validMs: () => time.validMs() });
+time.subscribe(() => weatherHud?.refresh());
+const stormLayer = mountStorms(map);
+fetchWeather().then((d) => weatherHud?.setWeather(d)).catch((err) => console.warn('weather unavailable', err));
+fetchStorms().then((d) => (stormLayer.setStorms(d.storms), weatherHud?.setStorms(d.storms))).catch((err) => console.warn('storms unavailable', err));
+mountAstroHud(hud, map, time);
 mountHarbours(map);
 let landGrid: Grid | null = null;
 const harboursHud = mountHarboursHud(hud, map, { windFromDeg: () => conditionsAt().windDirDeg, land: () => landGrid });
@@ -160,7 +176,7 @@ time.subscribe(() => {
   requestAnimationFrame(() => {
     fieldsQueued = false;
     flowSources.wind = { ...flowSources.wind, field: windField() };
-    flowSources.current = { ...flowSources.current, field: mockCurrentField(hoursSinceEpoch(time.validMs())) };
+    flowSources.current = { ...flowSources.current, field: currentField() };
     flow?.setSource('wind', flowSources.wind);
     flow?.setSource('current', flowSources.current);
     flowHud?.refresh();
@@ -174,7 +190,17 @@ let windLoading = false;
 const loadWind = () => {
   if (windLoading) return;
   windLoading = true;
-  fetchWind()
+  fetchCurrents()
+  .then((d) => {
+    if (!d.forecast) return console.warn('currents: no forecast published; using mock');
+    currents = d;
+    flowSources.current = { ...flowSources.current, field: currentField() };
+    flow?.setSource('current', flowSources.current);
+    flowHud?.refresh();
+  })
+  .catch((err) => console.warn('currents unavailable', err));
+
+fetchWind()
     .then((d) => {
       if (!d.forecast && !d.climatology) return console.warn('wind: no forecast or climatology published; using mock');
       wind = d;

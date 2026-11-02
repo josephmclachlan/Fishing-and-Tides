@@ -4,9 +4,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-  # Refresh the forecast grids (scripts/fetch-forecast.ts) after each model cycle lands.
+  # Hourly: relays the Limón METAR and NHC storms; model grids refresh only when their refreshH
+  # has passed (scripts/fetch-forecast.ts), so the hourly runs cost no Open-Meteo calls.
   schedule:
-    - cron: '17 */6 * * *'
+    - cron: '17 * * * *'
 
 permissions:
   contents: read
