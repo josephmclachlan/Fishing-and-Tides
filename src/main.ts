@@ -8,6 +8,8 @@ import { createLockFx, mountZoomTiers } from './zoom-fx';
 import { createEnhancer } from './enhance';
 import { mountSeek } from './seek';
 import { createSettings, safeSession, safeStorage, takeView } from './settings';
+import { mountSurfBreaks } from './layers/surf-breaks';
+import { mountSurfHud } from './surf-hud';
 import { createBoatStore } from './boat/store';
 import { mountBoatPanel } from './boat-panel';
 import { dictFor, setDict } from './i18n';
@@ -96,6 +98,9 @@ mountSettingsUi(hud, settings);
 mountLayersPanel(hud, layers, sheets);
 mountLangUi(hud, settings, map);
 mountSheets(hud, map, sheets);
+// Surf break catalog (PLAN 6.4): markers and BREAK rows.
+mountSurfBreaks(map);
+mountSurfHud(hud, map);
 // Boat mode: GPS track and pin log, kept on the device. Depth at a pin comes from the seafloor grid once it loads.
 let depthAt: ((lng: number, lat: number) => number | undefined) | null = null;
 mountBoatPanel(hud, map, createBoatStore(safeStorage()), sheets, () => depthAt);
