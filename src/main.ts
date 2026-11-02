@@ -43,6 +43,7 @@ import { mountTimeSlider } from './time-slider';
 import { KT_PER_MS, sampleField, fromDeg } from './physics/flow';
 import { MOCK_FLOW, REGION, SPOTS } from './region';
 import { fetchWind, windAt, type WindData } from './adapters/wind';
+import { currentsAt, fetchCurrents, type CurrentsData } from './adapters/currents';
 import { fetchWaves, wavesAt, type SeaState, type WavesData } from './adapters/waves';
 import { dataAge, describeAge } from './adapters/data-age';
 import { createNet } from './net';
@@ -63,7 +64,6 @@ const hud = document.getElementById('hud')!;
 // Tiers first: the HUD reads the tier they publish on each move.
 mountZoomTiers(map);
 const time = createTimeStore();
-// Current particles on a mock field until the PLAN 2.5 adapter.
 // Past a week no model has skill: the OUTLOOK band shows climatology (the mock's mean pattern, hour 0).
 const climatological = () => time.band() === 'outlook';
 const windHour = () => (climatological() ? 0 : time.offsetH());
@@ -71,9 +71,12 @@ const hoursSinceEpoch = (ms: number) => ms / 3.6e6;
 // Real wind (PLAN 2.3) once loaded: forecast grid, then monthly climatology for OUTLOOK. Mock until then, or if none is published.
 let wind: WindData | null = null;
 const windField = () => (wind && windAt(wind, time.band(), time.validMs())?.field) || mockWindField(windHour());
+// Real surface currents (PLAN 2.5): SMOC regional grid with the 1/12° coastal nest, the forecast mean past day 9. Mock until loaded.
+let currents: CurrentsData | null = null;
+const currentField = () => (currents && currentsAt(currents, time.band(), time.validMs())?.field) || mockCurrentField(hoursSinceEpoch(time.validMs()));
 const flowSources: { wind: FlowSource; current: FlowSource } = {
   wind: { field: windField(), ...FLOW_STYLE.wind },
-  current: { field: mockCurrentField(hoursSinceEpoch(time.validMs())), ...FLOW_STYLE.current },
+  current: { field: currentField(), ...FLOW_STYLE.current },
 };
 // The wind reading comes from the wind field at its reference point, so HUD and particles agree at every hour.
 const windAtRef: [number, number] = [0, 0];
@@ -159,7 +162,7 @@ time.subscribe(() => {
   requestAnimationFrame(() => {
     fieldsQueued = false;
     flowSources.wind = { ...flowSources.wind, field: windField() };
-    flowSources.current = { ...flowSources.current, field: mockCurrentField(hoursSinceEpoch(time.validMs())) };
+    flowSources.current = { ...flowSources.current, field: currentField() };
     flow?.setSource('wind', flowSources.wind);
     flow?.setSource('current', flowSources.current);
     flowHud?.refresh();
@@ -173,7 +176,17 @@ let windLoading = false;
 const loadWind = () => {
   if (windLoading) return;
   windLoading = true;
-  fetchWind()
+  fetchCurrents()
+  .then((d) => {
+    if (!d.forecast) return console.warn('currents: no forecast published; using mock');
+    currents = d;
+    flowSources.current = { ...flowSources.current, field: currentField() };
+    flow?.setSource('current', flowSources.current);
+    flowHud?.refresh();
+  })
+  .catch((err) => console.warn('currents unavailable', err));
+
+fetchWind()
     .then((d) => {
       if (!d.forecast && !d.climatology) return console.warn('wind: no forecast or climatology published; using mock');
       wind = d;

@@ -16,6 +16,7 @@ import { get } from './forecast/common.ts';
 import { buildWind } from './forecast/wind.ts';
 import { buildWaves } from './forecast/waves.ts';
 import { buildStorms } from './forecast/storms.ts';
+import { buildCurrents } from './forecast/currents.ts';
 
 const OUT = 'public/data/forecast';
 /**
@@ -28,6 +29,7 @@ const FEEDS: Record<string, { build: (dir: string) => Promise<string>; refreshH:
   waves: { build: buildWaves, refreshH: 12 },
   // NHC advisories come every 6 h in season and it sends no CORS headers, so the build relays them.
   storms: { build: buildStorms, refreshH: 3 },
+  currents: { build: buildCurrents, refreshH: 12, series: ['currents', 'currents-coast'] },
 };
 
 const wanted = process.argv.slice(2).filter((a) => !a.startsWith('-'));
