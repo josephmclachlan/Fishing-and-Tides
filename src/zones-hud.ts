@@ -2,6 +2,7 @@
  * ZONE readout in the side panel from the coast tier in (PLAN 4.3): the protected area under the
  * reticle and what it means for fishing, plus a hazard strip while inside one that bars fishing.
  */
+import { condSlot } from './cond-groups';
 import type { Map } from 'maplibre-gl';
 import { readout } from './hud-kit';
 import { t } from './i18n';
@@ -10,7 +11,7 @@ import { mountRulesCard } from './rules-card';
 import { zoneAt, type ZonePoly } from './zone-lookup';
 
 export function mountZonesHud(root: HTMLElement, map: Map, zones: ZonePoly[]) {
-  const side = root.querySelector<HTMLElement>('.side');
+  const side = condSlot(root, 'place', 30);
   if (!side) return;
   side.insertAdjacentHTML(
     'beforeend',

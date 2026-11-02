@@ -6,6 +6,7 @@ import { nearest } from './geo';
 import { formatAltitude, mapAltitudeM } from './zoom-fx';
 import { t, type Key } from './i18n';
 import { describeAge, type AgeView } from './adapters/data-age';
+import { condSlot, groupsHtml } from './cond-groups';
 
 /** Show `html` only at `tier` and finer (CSS keys off body[data-tier]). */
 const from = (tier: 'coast' | 'spot', html: string) => `<div class="from-${tier}">${html}</div>`;
@@ -31,22 +32,12 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions,
     </header>
     <aside class="panel side" id="cond-panel">
       ${panelHeader(t('cond.title'), t('cond.mock'))}
-      ${readout(t('cond.swell'), 'swell', t('unit.m'))}
-      ${readout(t('cond.period'), 'period', t('unit.s'))}
-      ${readout(t('cond.swellDir'), 'sdir', t('unit.deg'))}
-      ${readout(t('cond.wind'), 'wind', t('unit.kt'))}
-      ${readout(t('cond.windDir'), 'wdir', t('unit.deg'))}
-      ${readout(t('cond.sst'), 'sst', t('unit.degC'))}
-      ${from('coast', readout(t('cond.tide'), 'tide', t('unit.m')))}
-      ${from('coast', `<div class="ro"><span class="lbl">${t('cond.rip')}</span><span class="seg" id="rip">--</span></div>`)}
-      ${from('coast', gauge(t('cond.ripGauge'), 'ripgauge'))}
-      ${from(
-        'spot',
-        `${panelHeader(t('target.title'))}
-        <div class="ro"><span class="lbl">${t('target.spot')}</span><span class="seg green" id="tgt">--</span></div>
-        ${readout(t('target.range'), 'tgtrng', t('unit.km'), 'green')}
-        ${readout(t('target.bearing'), 'tgtbrg', t('unit.degT'), 'green')}`,
-      )}
+      ${groupsHtml(`
+        <div class="ro ro-multi"><span class="lbl">${t('cond.swell')}</span><span class="seg" id="swell">--</span><span class="unit">${t('unit.m')}</span><span class="seg" id="period">--</span><span class="unit">${t('unit.s')}</span><span class="seg" id="sdir">--</span><span class="unit">${t('unit.deg')}</span></div>
+        <div class="ro ro-multi"><span class="lbl">${t('cond.wind')}</span><span class="seg" id="wind">--</span><span class="unit">${t('unit.kt')}</span><span class="seg" id="wdir">--</span><span class="unit">${t('unit.deg')}</span></div>
+        ${from('coast', readout(t('cond.tide'), 'tide', t('unit.m')))}
+        ${from('coast', `<div class="ro"><span class="lbl">${t('cond.rip')}</span><span class="seg" id="rip">--</span></div>`)}
+        ${from('coast', gauge(t('cond.ripGauge'), 'ripgauge'))}`)}
     </aside>
     <footer class="panel bottom">
       <button type="button" class="dock-bar" id="dock-bar" aria-controls="dock-body" aria-expanded="false" title="${t('sheet.time')}">
@@ -66,6 +57,18 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions,
     </footer>
     ${alertStrip('alert')}
     <div class="reticle" aria-hidden="true"></div>`;
+
+  // SST opens the WATER group (currents, depth and dive rows join it); the target opens PLACE.
+  condSlot(root, 'water', 10)!.insertAdjacentHTML('beforeend', readout(t('cond.sst'), 'sst', t('unit.degC')));
+  condSlot(root, 'place', 10)!.insertAdjacentHTML(
+    'beforeend',
+    from(
+      'spot',
+      `<div class="ro"><span class="lbl">${t('target.spot')}</span><span class="seg green" id="tgt">--</span></div>
+      ${readout(t('target.range'), 'tgtrng', t('unit.km'), 'green')}
+      ${readout(t('target.bearing'), 'tgtbrg', t('unit.degT'), 'green')}`,
+    ),
+  );
 
   const $ = (id: string) => root.querySelector<HTMLElement>('#' + id)!;
 

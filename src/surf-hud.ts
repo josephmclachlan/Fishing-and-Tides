@@ -4,6 +4,7 @@
  * disagree or only one covers it. INFO opens a card with the guides it came from. The SURF row is
  * the surf model's rating (PLAN 6.3): band, score out of 10 and the wind relative to the shore.
  */
+import { condSlot } from './cond-groups';
 import type { Map } from 'maplibre-gl';
 import { t, type Key } from './i18n';
 import { breaksNear, compass8 } from './surf-breaks';
@@ -13,7 +14,7 @@ import type { SurfQuality } from './surf-quality';
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
 export function mountSurfHud(root: HTMLElement, map: Map, quality: (name: string) => SurfQuality | undefined = () => undefined) {
-  const side = root.querySelector<HTMLElement>('.side');
+  const side = condSlot(root, 'waves', 30);
   if (!side) return { refresh() {} };
   side.insertAdjacentHTML(
     'beforeend',

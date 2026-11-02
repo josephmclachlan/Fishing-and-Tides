@@ -2,6 +2,7 @@
  * SEAFLOOR readouts in the side panel: depth and its data source under the reticle,
  * plus the reef zone and bottom cover at the spot tier (PLAN 2.6).
  */
+import { condSlot } from './cond-groups';
 import type { Map } from 'maplibre-gl';
 import type { Feature, MultiPolygon, Polygon } from 'geojson';
 import type { Seafloor } from './adapters/seafloor';
@@ -40,7 +41,7 @@ function classAt(polys: Poly[], layer: string, p: [number, number]): string | nu
 }
 
 export function mountSeafloorHud(root: HTMLElement, map: Map, sf: Seafloor) {
-  const side = root.querySelector<HTMLElement>('.side');
+  const side = condSlot(root, 'water', 30);
   if (!side) return;
   side.insertAdjacentHTML(
     'beforeend',

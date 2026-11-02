@@ -3,6 +3,7 @@
  * (tap the arrows to change it), then the habitat score at the reticle and how the forecast month
  * suits the species. The species is remembered on the device.
  */
+import { condSlot } from './cond-groups';
 import type { Map } from 'maplibre-gl';
 import { t, type Key } from './i18n';
 import type { FishingLayer } from './layers/fishing';
@@ -21,7 +22,7 @@ export function loadSpecies(): SpeciesId {
 }
 
 export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer, time: TimeStore, initial: SpeciesId) {
-  const side = root.querySelector<HTMLElement>('.side');
+  const side = condSlot(root, 'fishing', 10);
   if (!side) return;
   side.insertAdjacentHTML(
     'beforeend',

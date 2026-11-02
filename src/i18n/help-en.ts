@@ -5,6 +5,8 @@
  */
 export const helpEn = {
   'help.hint': 'TAP A LABEL TO LEARN WHAT IT MEANS',
+  'help.totalHs': 'All the waves at sea added together (significant wave height), with their average period and the direction most of them come from. Swells and wind waves add by energy, not by height: a 1 m swell and a 1 m wind sea make about 1.4 m, not 2 m.',
+  'help.swellTrains': 'The sea is often several wave trains at once, and this lists each one, biggest first. SWELL 1 and SWELL 2 come from different storms or directions; WIND SEA is short chop made by the local wind. A long-period swell (12 s or more, shown green) is a groundswell: far more power than its height suggests. Two trains from different directions make a crossed, peaky sea; a small long swell can still be the one that surfs.',
   'help.swell': 'The height of the long, organised waves that have travelled in from far-off storms, measured from trough to crest in metres. Bigger swell means more power at the beach. It is not the same as the waves you see breaking, which depend on the bottom (see BREAKER).',
   'help.period': 'The seconds between one swell crest and the next. Long (10 s or more) means powerful, clean waves that break further out and run longer. Short (under 7 s) means weak, choppy, wind-made waves. Two swells of the same height feel very different at 6 s and at 14 s.',
   'help.swellDir': 'The compass direction the swell comes FROM, in degrees (0 is north, 90 east). 040° means it arrives from the north-east. Compare it with the way a beach faces: a swell from the side barely reaches it.',
@@ -29,7 +31,7 @@ export const helpEn = {
   'help.surfScore': 'A surf quality score out of 10 for the nearest break, from wave size, swell period, swell direction and wind. Bands: FLAT, POOR, FAIR, GOOD, EPIC. The wind word says how the wind meets the shore: OFFSHORE grooms the waves, ONSHORE spoils them, CROSS is sideways, GLASSY is no wind.',
   'help.breakType': 'The kind of wave. REEF: breaks over coral or rock, hollow but shallow. BEACH: sand bottom, peaks that shift with the sandbanks. POINT: wraps along a headland. RIGHT or LEFT is the way it peels as you ride it, PEAKS goes both ways.',
   'help.hazard': 'Known dangers at the break from the guides: shallow reef, sea urchins, rips, shorebreak (waves dumping on the sand) and crowds. Not a complete list.',
-  'help.seaState': 'How the sea feels for a boat: COMFORTABLE, LIVELY, ROUGH or UNCOMFORTABLE. It combines the local wind waves and the long swell. Short steep waves and waves crossing from two directions are the worst. Simulated until the marine forecast feed is connected.',
+  'help.seaState': 'How the sea feels for a boat: COMFORTABLE, LIVELY, ROUGH or UNCOMFORTABLE. It combines the local wind waves and the long swell. Short steep waves and waves crossing from two directions are the worst. Built from the forecast wind sea and swells; tagged SIM when the forecast has no split and it is estimated from the wind.',
   'help.comfort': 'COMFORT is a score from 0 (worst) to 100 (flat and easy) for ride comfort on a boat. Height, steepness and a confused cross sea all take points off.',
   'help.harbour': 'The nearest harbour, boat terminal, pier or anchorage to the cross-hair, from old public map data. Not a chart and not for navigation.',
   'help.harbourRange': 'Distance in kilometres from the cross-hair to that harbour or anchorage.',

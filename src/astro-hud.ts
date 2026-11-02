@@ -3,6 +3,7 @@
  * rise/set, and solunar windows for the day on the time slider at the map centre. All computed on the
  * device (src/physics/astro.ts), so it works offline and needs no feed, hence no DATA AGE tag.
  */
+import { condSlot } from './cond-groups';
 import { t, type Key } from './i18n';
 import { REGION } from './region';
 import { daySky, localDayStart, type SolunarWindow } from './physics/astro';
@@ -24,7 +25,7 @@ const windows = (ws: SolunarWindow[], kind: SolunarWindow['kind']) => ws.filter(
 const pips = (n: number) => '●'.repeat(n) + '○'.repeat(4 - n);
 
 export function mountAstroHud(root: HTMLElement, map: MlMap, time: TimeStore) {
-  const side = root.querySelector<HTMLElement>('.side');
+  const side = condSlot(root, 'fishing', 20);
   if (!side) return;
   const row = (label: Key, id: string) => `<div class="ro"><span class="lbl">${t(label)}</span><span class="seg sm" id="${id}">--</span></div>`;
   side.insertAdjacentHTML(
