@@ -80,6 +80,7 @@ Fishing and rip scores are not stored: they are computed on the phone from the s
 | WIND | `wind` forecast, wind climatology | sync `wind`; climatology precached | wind, wind-clim |
 | WATER TEMP | satellite SST | sync `sst` | sst, sst-coast |
 | CLARITY | satellite chlorophyll and Kd490, catchment rain, currents, waves, seafloor | sync `sst`, `rain`, `currents`, `waves`; seafloor precached | sst, rain |
+| SARGASSUM | AFAI detections, currents, wind, seafloor (coastline) | sync `sargassum`, `currents`, `wind`; seafloor precached | sargassum |
 | WEATHER | Open-Meteo weather, NHC storms | sync `weather`, `storms` | weather, storms |
 | LIGHTNING | GLM flashes (collector branch) | sync `lightning` (live site only) | lightning |
 | LIVE OBS | gauge, airport METAR, satellite passes (SST, colour, ASCAT wind) | sync `gauge`, `metar`, `passes` | gauge, metar, sst-pass, chl-pass, scat-pass |
@@ -88,8 +89,6 @@ Fishing and rip scores are not stored: they are computed on the phone from the s
 | FISHING | OBIS/GBIF records, river mouths, plus tide, sun and moon on device | precached | occurrences, obis, gbif |
 | PROTECTED, ANCHORAGES | zones GeoJSON, harbours in `region.ts` | precached / built in | (static build) |
 | Basemap | OpenFreeMap style, fonts, tiles | sync map step (`trip-v1`) | none |
-
-Sargassum (PLAN 7.1) is not built yet: its adapter adds a verify check, and the test above then asks for its sync job.
 
 Checked in the built app (Chromium, `vite preview`): after a sync with the browse cache emptied and the network off, the region map loads at z9 and at z14.5 over Cahuita with no failed map requests, wind and the gauge line draw from the stored copies, and DATA AGE shows OFFLINE.
 
@@ -107,6 +106,7 @@ Checked in the built app (Chromium, `vite preview`): after a sync with the brows
 | `kd490` | same | Kd490, gap-filled VIIRS + OLCI, science quality 2 km, `noaacwNPPN20S3AkdSCIDINEOF2kmDaily`, about 10 days late | Native 2 km over Gandoca–Limón (61×49), last 7 daily maps | ~15 KB | Every 24 h |
 | `sst-pass` | same | ACSPO L3S SST afternoon and night passes (NOAA), not gap-filled | 0.02° over Gandoca–Limón (63×51), last 4 days, two passes a day, each stamped with its pass time; `seaCells` in the manifest so cloud can be told from land | ~6 KB | Every 6 h |
 | `chl-pass` | same | NOAA-20 VIIRS chlorophyll NRT 4 km, not gap-filled, stamped at the nominal 18:57 UTC overpass | 34×27 over Gandoca–Limón, last 7 days | ~1 KB | Every 12 h |
+| `sargassum` | `scripts/forecast/satellite.ts` | USF Alternative Floating Algae Index, daily, NOAA AOML OceanWatch ERDDAP (`noaa_aoml_atlantic_oceanwatch_AFAI_1D`, 0.015°), flagged here (`src/adapters/sargassum-parse.ts`) | Weed cover (share of the sea surface) per 0.06° cell over `SARG_BOX` (59×47), last 7 days, NaN where cloud, land or the coast hid it | ~1 KB | Every 12 h |
 | `scat-pass` | `scripts/forecast/satellite.ts` + `scripts/scat.py` | ASCAT wind on Metop-B and Metop-C, Copernicus Marine `WIND_GLO_PHY_L3_NRT_012_002` (L3 swaths, 0.125°), through the Copernicus Marine Python toolbox with the account in the `COPERNICUSMARINE_USERNAME` / `COPERNICUSMARINE_PASSWORD` Actions secrets | u, v over `SCAT_BOX` (20×18, the coast plus ~120 km of sea), last 4 days, up to four swaths a day, each stamped with its median measurement time | ~4 KB | Every 6 h |
 | `storms` | `scripts/forecast/storms.ts` | NHC CurrentStorms.json (no CORS, so relayed) | Plain JSON: active Atlantic storms with position, wind, pressure, motion, advisory link; empty list in a quiet season | tiny | Every build (advisories come every 6 h in season) |
 
@@ -160,6 +160,16 @@ These constants are round-number rules of thumb, not fitted: there are no local 
 - It reads as the likely range, about 1σ. Confidence is HIGH when high/low visibility is under 2, MEDIUM under 3.5, LOW above.
 
 In the HUD, VIS shows the estimate, then the range and the cause (`5 M 3–9 PLANKTON`, confidence in the tooltip). VIS +DAYS gives midday visibility at the cross-hair for the next three days, with `?` on a low-confidence day. The CLARITY layer (`src/layers/clarity.ts`) computes this every 0.004° over the region for the slider's hour, so plumes grow and clear as you scrub through forecast rain. The VIS readout under SST gives the value at the cross-hair and names the main cause (RIVER, SWELL or PLANKTON).
+
+## Sargassum (PLAN 7.1)
+
+**Detection** (`src/adapters/sargassum-parse.ts`, run by the data build). The daily USF AFAI map (Hu et al. 2015; Wang and Hu 2016) at 0.015° over `SARG_BOX`. A pixel is weed when its AFAI stands more than max(8e-4, 5 σ) above the median of its 0.3° block, σ being the day's robust noise. Wang and Hu's MODIS cut (1.79e-4) flags 15–20% of clear sea in this product, so the cut is set from the noise instead. Not judged: pixels within ~3 km of cloud, ~9 km of land or shallower than 20 m; blocks whose background is turbid (plume water, more than 3e-4 above the day's median); lone flagged pixels; and any 6 km cell more than half flagged (glint or a processing stripe: one sat off Punta Gorda on 2026-10-29). A flagged pixel's weed fraction is ΔAFAI / 0.02 (the AFAI of a fully covered pixel), and each 0.06° cell publishes the mean over its judged pixels, NaN when fewer than 4 were judged. On 2026-10-26 to 11-01 this found mats in 0 to 16 cells a day, the clearest a streak 30–60 km off Limón; the first, looser cut had put most detections along the Tortuguero–San Juan plume front. Treat it as indicative: it is not validated against USF's own SaWS product.
+
+**Forecast** (`src/physics/drift.ts`, `src/layers/sargassum.ts`, on the phone). Each cell's newest sighting in the last 5 days seeds a mat (up to 400, largest first) with its weed area (cover × cell area, km²). Mats move with dx/dt = current + α · wind10, midpoint steps of an hour, for α = 1, 2 and 3% (published drift studies of pelagic Sargassum find 1–3%). The current is the `currents` feed (SMOC, which already includes tides and Stokes drift) with the coastal nest; between the model's last sea cell and the beach the nearest current within two cells is used, else wind only. Before the forecasts begin (sightings are 1 to 5 days old) their first hour stands in, i.e. persistence. A mat that reaches the coast within 8 km of a named spot lands there; each beach gets the weed area per day for 5 days (averaged over the three windages), its first arrival and how many windages agree. Levels per day: LOW from 0.01 km², MOD from 0.1, HIGH from 0.5 (a few kg of weed per m², so 0.1 km² is a few hundred tonnes; uncalibrated).
+
+**Display.** Amber cells where weed was last seen (stronger with more), faint hatching over sea not seen in 5 days (unknown, not clear), dim dashed tracks of the 2% member with a dot at the slider's time, and beach labels when a landing is forecast. The SARG readout under VIS gives the level at the spot nearest the cross-hair for the slider's day and the first arrival day, or ASHORE; it says CLOUD instead of NONE when under a fifth of the sea was seen. On 2026-11-02 the mats seen off Limón and Tortuguero all drift south-east toward Bocas del Toro and Colón with the coastal current, so no beach here gets a landing.
+
+Checks: manifest, relay age (12 h cadence), newest map under 3 days (red past 6), a fifth of the sea seen in 5 days (amber only: cloud is weather), cover within 0..1.
 
 ## Weather (PLAN 7.3)
 

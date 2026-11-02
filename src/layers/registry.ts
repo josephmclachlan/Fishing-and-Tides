@@ -8,7 +8,7 @@
  */
 
 export type LayerId =
-  | 'waves' | 'currents' | 'wind' | 'sst' | 'clarity' | 'weather' | 'lightning' | 'obs'
+  | 'waves' | 'currents' | 'wind' | 'sst' | 'clarity' | 'sargassum' | 'weather' | 'lightning' | 'obs'
   | 'rip' | 'surf'
   | 'depth' | 'reefs' | 'seamarks'
   | 'fishing' | 'zones' | 'anchorages';
@@ -28,6 +28,7 @@ export const LAYERS: readonly LayerDef[] = [
   { id: 'wind', group: 'OCEAN' },
   { id: 'sst', group: 'OCEAN', mapPrefixes: ['ss-'] },
   { id: 'clarity', group: 'OCEAN', mapPrefixes: ['cl-'] },
+  { id: 'sargassum', group: 'OCEAN', mapPrefixes: ['sg-'] },
   { id: 'weather', group: 'OCEAN', mapPrefixes: ['st-'] },
   { id: 'lightning', group: 'OCEAN', mapPrefixes: ['lt-'] },
   { id: 'obs', group: 'OCEAN', mapPrefixes: ['ob-'] },
@@ -50,8 +51,8 @@ const ALL_IDS = LAYERS.map((l) => l.id);
 export const ACTIVITIES: readonly Activity[] = [
   { id: 'all', layers: ALL_IDS },
   { id: 'fishing', layers: ['fishing', 'sst', 'clarity', 'weather', 'lightning', 'obs', 'currents', 'wind', 'depth', 'reefs', 'zones'] },
-  { id: 'dive', layers: ['lightning', 'clarity', 'waves', 'currents', 'rip', 'depth', 'reefs', 'zones', 'seamarks'] },
-  { id: 'surf', layers: ['lightning', 'waves', 'wind', 'rip', 'surf', 'depth', 'reefs'] },
+  { id: 'dive', layers: ['lightning', 'clarity', 'sargassum', 'waves', 'currents', 'rip', 'depth', 'reefs', 'zones', 'seamarks'] },
+  { id: 'surf', layers: ['lightning', 'sargassum', 'waves', 'wind', 'rip', 'surf', 'depth', 'reefs'] },
   { id: 'sail', layers: ['wind', 'weather', 'lightning', 'obs', 'waves', 'currents', 'depth', 'seamarks', 'anchorages', 'reefs'] },
 ];
 

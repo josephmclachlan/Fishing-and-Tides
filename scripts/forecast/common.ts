@@ -110,6 +110,21 @@ export function seaMask(g: GridGeom, marginDeg = 0.15): Uint8Array {
   return out;
 }
 
+/** Depth (m, positive down; ≤ 0 on land) at each cell centre of `g`, nearest GEBCO 1′ cell. */
+export function depthGrid(g: GridGeom): Float32Array {
+  const m = JSON.parse(readFileSync('public/data/seafloor/manifest.json', 'utf8')).grids.macro;
+  const b = readFileSync(`public/data/seafloor/${m.file}`);
+  const z = new Int16Array(b.buffer, b.byteOffset, b.byteLength / 2);
+  const out = new Float32Array(g.cols * g.rows).fill(NaN);
+  for (let r = 0; r < g.rows; r++)
+    for (let c = 0; c < g.cols; c++) {
+      const cc = Math.round((g.lon0 + c * g.dlon - m.lon0) / m.dlon);
+      const rr = Math.round((m.lat0 - (g.lat0 - r * g.dlat)) / m.dlat);
+      if (rr >= 0 && rr < m.rows && cc >= 0 && cc < m.cols) out[r * g.cols + c] = -z[rr * m.cols + cc];
+    }
+  return out;
+}
+
 /** Write `<dir>/<feed>.json` + gzipped `<feed>.i16.gz`. Returns the compressed size. */
 export function writeSeries(dir: string, meta: Omit<SeriesMeta, 'file'>, frames: Record<string, ArrayLike<number>[]>): number {
   mkdirSync(dir, { recursive: true });
