@@ -15,6 +15,7 @@ export const HELP_BY_ID: Readonly<Record<string, HelpId>> = {
   rip: 'rip', ripgauge: 'rip', curr: 'current', cset: 'set', tgt: 'target', tgtrng: 'range', tgtbrg: 'bearing',
   'sz-hb': 'breaker', 'sz-type': 'wavetype', 'sz-pow': 'power', 'sz-drift': 'drift', 'sz-rips': 'ripStrength', 'sz-ripl': 'ripReach',
   'dv-3': 'surge', 'dv-6': 'surge', 'dv-12': 'surge',
+  'tc-hi': 'tide', 'tc-lo': 'tide', 'sp-hb': 'breaker', 'sp-rip': 'rip', 'sp-drift': 'drift', 'sp-surf': 'surfScore', 'sp-dive': 'surge',
   'sb-name': 'break', 'sb-q': 'surfScore', 'sb-type': 'breakType', 'sb-haz': 'hazard',
   'ss-comfort': 'seaState', 'ss-score': 'comfort', 'ss-detail': 'seaState',
   'an-name': 'harbour', 'an-dist': 'harbourRange', 'an-shelter': 'shelter', 'an-fetch': 'shelter',

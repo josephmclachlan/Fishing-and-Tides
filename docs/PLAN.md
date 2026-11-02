@@ -39,7 +39,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 3.6 Move heavy physics to a Web Worker (**S**). HUD rip readout now computed in it
 
 ## Phase 4: Forecast and fishing UI
-- [ ] 4.1 Tide chart panel and spot pages (**S**)
+- [x] 4.1 Tide chart panel and spot pages (**S**). `src/tide-chart.ts`, `src/spot-page.ts`, see `docs/TIDES.md`
 - [x] 4.2 Rip risk overlay and spot-tier breaker readouts (**S**). `src/layers/rip.ts`, `src/surf-hud.ts`
 - [x] 4.3 Protected-zone overlays: Gandoca-Manzanillo, Cahuita (**S**)
 - [x] 4.4 Species habitat model framework and scoring (**O**). Weights fitted to OBIS/GBIF records with the 4.5 rules as prior; `src/fishing/fit.ts`, see `docs/FISHING.md`
