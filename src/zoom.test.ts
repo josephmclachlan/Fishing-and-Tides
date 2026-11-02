@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LOCK_STEPS, MAX_BLOCK, RESOLVE_CELL_PX, cellBlockAt, nextTier, pixelBlockAt, planHops, tierDirection, zoomBlock } from './zoom';
+import { LOCK_STEPS, MAX_BLOCK, RESOLVE_CELL_PX, cellBlockAt, nextTier, pixelBlockAt, planHops, tierDirection, steppedEase, zoomBlock, zoomOutToFit } from './zoom';
 
 describe('nextTier', () => {
   it('switches tiers once zoom clears the edge by the hysteresis band', () => {
@@ -91,5 +91,24 @@ describe('zoomBlock', () => {
     }
     expect(zoomBlock(5, 9, 14)).toBe(1);
     expect(zoomBlock(20, 9, 14)).toBe(MAX_BLOCK);
+  });
+});
+
+describe('zoomOutToFit', () => {
+  it('is 0 when the point is already well inside the view', () => {
+    expect(zoomOutToFit(50, -40, 400, 800)).toBe(0);
+  });
+  it('pulls back just enough to bring an off-screen point inside the margin', () => {
+    // 800 px right of centre on a 400 px wide view: allowed 0.8 * 200 = 160 px -> 5x -> log2(5).
+    expect(zoomOutToFit(800, 0, 400, 800)).toBeCloseTo(Math.log2(5), 12);
+    // The tighter axis wins.
+    expect(zoomOutToFit(100, -1280, 400, 800)).toBeCloseTo(Math.log2(4), 12);
+  });
+});
+
+describe('steppedEase', () => {
+  it('moves in n held steps and lands on 1', () => {
+    const e = steppedEase(4);
+    expect([0, 0.1, 0.25, 0.49, 0.5, 0.99, 1].map(e)).toEqual([0, 0, 0.25, 0.25, 0.5, 0.75, 1]);
   });
 });

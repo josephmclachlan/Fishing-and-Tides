@@ -126,7 +126,15 @@ export function createMap(container: string): Map {
     zoom: REGION.initialZoom,
     maxBounds: REGION.maxBounds,
     attributionControl: { compact: true },
+    // North-up, top-down only: a satellite sensor view. Also keeps an accidental two-finger
+    // twist from skewing the grid and the enhance box.
+    dragRotate: false,
+    pitchWithRotate: false,
+    touchPitch: false,
+    maxPitch: 0,
   });
+  map.touchZoomRotate.disableRotation();
+  map.keyboard.disableRotation();
   map.on('style.load', () => {
     hudify(map);
     addTierLayers(map);
