@@ -44,7 +44,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 4.3 Protected-zone overlays: Gandoca-Manzanillo, Cahuita (**S**)
 - [ ] 4.4 Species habitat model framework and scoring (**O**)
 - [x] 4.5 Fishing layer: shore/kayak mode (**S**)
-- [ ] 4.6 Fishing layer: boat mode, GPS track, drop-pin log (**S**)
+- [x] 4.6 Fishing layer: boat mode, GPS track, drop-pin log (**S**)
 - [ ] 4.7 OBIS/GBIF and Global Fishing Watch data folded into scores (**S**)
 
 ## Phase 5: Offline and polish

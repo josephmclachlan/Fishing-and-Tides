@@ -8,6 +8,8 @@ import { createLockFx, mountZoomTiers } from './zoom-fx';
 import { createEnhancer } from './enhance';
 import { mountSeek } from './seek';
 import { createSettings, safeStorage } from './settings';
+import { createBoatStore } from './boat/store';
+import { mountBoatPanel } from './boat-panel';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
 import { mountSettingsUi } from './settings-ui';
 import { fetchSeafloor } from './adapters/seafloor';
@@ -23,7 +25,7 @@ import { mountLayersPanel } from './layers-panel';
 import { FLOW_STYLE, mountFlow } from './layers/flow';
 import type { FlowSource } from './layers/flow-sim';
 import { mountFlowHud } from './flow-hud';
-import { isWater } from './physics/bathy';
+import { isWater, sample } from './physics/bathy';
 import { createTimeStore } from './time';
 import { mountTimeSlider } from './time-slider';
 import { KT_PER_MS, sampleField, fromDeg } from './physics/flow';
@@ -68,6 +70,9 @@ bindMapLayers(map, layers);
 mountSettingsUi(hud, settings);
 mountLayersPanel(hud, layers, sheets);
 mountSheets(hud, map, sheets);
+// Boat mode: GPS track and pin log, kept on the device. Depth at a pin comes from the seafloor grid once it loads.
+let depthAt: ((lng: number, lat: number) => number | undefined) | null = null;
+mountBoatPanel(hud, map, createBoatStore(safeStorage()), sheets, () => depthAt);
 
 const flow = mountFlow(map, flowSources);
 if (flow) {
@@ -103,6 +108,10 @@ fetchZones()
 fetchSeafloor()
   .then(({ data }) => {
     mountSeafloorHud(hud, map, data);
+    depthAt = (lng, lat) => {
+      const z = sample(data.region, lng, lat);
+      return Number.isFinite(z) && z < 0 ? -z : undefined;
+    };
     // Shore and kayak habitat score: built from the depth grid, reefs and river mouths.
     fetchMouths()
       .then(({ data: mouths }) => {

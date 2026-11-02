@@ -1,0 +1,170 @@
+/**
+ * BOAT drawer (PLAN 4.6): record a GPS track, drop a mark or log a catch, export the trip as GPX.
+ * Everything runs on the device with no signal. A top-bar BOAT tab toggles the drawer (a sheet,
+ * see sheets.ts, so on a phone it slides over the map like the others). The map layer is in
+ * layers/boat.ts.
+ */
+import type { Map } from 'maplibre-gl';
+import { t, type Key } from './i18n';
+import { closeButton, type Sheets } from './sheets';
+import { BOAT_SPECIES } from './boat/species';
+import { createGps, type GpsState } from './boat/gps';
+import type { BoatStore } from './boat/store';
+import { M_PER_NM, recentSpeedKt, toGPX, trackStats } from './boat/track';
+import { mountBoatLayer } from './layers/boat';
+
+const hhmm = (ms: number) => {
+  const m = Math.floor(ms / 60_000);
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+};
+
+export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sheets: Sheets, depthAt: () => ((lng: number, lat: number) => number | undefined) | null) {
+  const gps = createGps(
+    (p) => {
+      store.addFix(p);
+      update();
+    },
+    () => update(),
+  );
+  const layer = mountBoatLayer(map, store, () => {
+    const p = gps.last();
+    return p && gps.state() === 'ok' ? [p.lng, p.lat] : null;
+  });
+
+  const el = document.createElement('section');
+  el.className = 'panel boat';
+  el.id = 'boat-panel';
+  el.innerHTML = `
+    <div class="ph">${t('boat.title')} <span class="tag">${t('boat.tag')}</span></div>
+    <div class="ro"><span class="lbl">${t('boat.gps')}</span><span class="seg sm" id="b-gps">--</span></div>
+    <div class="ro"><span class="lbl">${t('boat.dist')}</span><span class="seg" id="b-dist">0.0</span><span class="unit">${t('unit.nm')}</span></div>
+    <div class="ro"><span class="lbl">${t('boat.time')}</span><span class="seg" id="b-time">00:00</span></div>
+    <div class="ro"><span class="lbl">${t('boat.speed')}</span><span class="seg" id="b-spd">--</span><span class="unit">${t('unit.kt')}</span></div>
+    <div class="ro"><span class="lbl">${t('boat.pins')}</span><span class="seg" id="b-pins">0</span></div>
+    <div class="boat-btns">
+      <button type="button" class="tab" id="b-rec"></button>
+      <button type="button" class="tab" id="b-mark">${t('boat.mark')}</button>
+    </div>
+    <div class="boat-btns">
+      <button type="button" class="tab" id="b-prev" aria-label="${t('boat.prev')}">‹</button>
+      <span class="seg sm green" id="b-sp">--</span>
+      <button type="button" class="tab" id="b-next" aria-label="${t('boat.next')}">›</button>
+      <button type="button" class="tab" id="b-catch">${t('boat.catch')}</button>
+    </div>
+    <div class="boat-btns">
+      <button type="button" class="tab" id="b-export">${t('boat.export')}</button>
+      <button type="button" class="tab" id="b-clear">${t('boat.clear')}</button>
+    </div>
+    <div class="seek-msg" id="b-msg" role="status"></div>
+    <ul class="boat-pins" id="b-list"></ul>
+    <p class="rules-advice">${t('boat.note')}</p>`;
+  el.querySelector('.ph')!.appendChild(closeButton(() => sheets.close('boat')));
+  root.appendChild(el);
+
+  // The top-bar tab.
+  const tab = document.createElement('button');
+  tab.type = 'button';
+  tab.className = 'tab boat-open';
+  tab.textContent = t('boat.tab');
+  tab.setAttribute('aria-controls', el.id);
+  root.querySelector('.top-tabs')?.appendChild(tab);
+  tab.addEventListener('click', () => sheets.toggle('boat'));
+  const syncOpen = () => {
+    const v = sheets.is('boat');
+    el.classList.toggle('open', v);
+    tab.classList.toggle('on', v);
+    tab.setAttribute('aria-expanded', String(v));
+  };
+  sheets.subscribe(syncOpen);
+  syncOpen();
+
+  const $ = <T extends HTMLElement>(id: string) => el.querySelector<T>('#' + id)!;
+  let sp = 0;
+  let clearArmed = 0;
+  const say = (m: string) => {
+    $('b-msg').textContent = m;
+    setTimeout(() => $('b-msg').textContent === m && ($('b-msg').textContent = ''), 3000);
+  };
+
+  function update() {
+    const s = store.state();
+    const { distanceM, durationMs } = trackStats(s.points);
+    const g = gps.state();
+    $('b-gps').textContent = t(`boat.gps.${g}` as Key);
+    $('b-gps').className = 'seg sm ' + (g === 'ok' ? 'green' : g === 'denied' || g === 'unavailable' ? 'red' : '');
+    $('b-dist').textContent = (distanceM / M_PER_NM).toFixed(1);
+    $('b-time').textContent = hhmm(durationMs);
+    const kt = recentSpeedKt(s.points);
+    $('b-spd').textContent = kt === null ? '--' : kt.toFixed(1);
+    $('b-pins').textContent = String(s.pins.length);
+    $('b-rec').textContent = s.recording ? t('boat.stop') : t('boat.rec');
+    $('b-rec').classList.toggle('on', s.recording);
+    $('b-sp').textContent = t(`boat.sp.${BOAT_SPECIES[sp]}` as Key);
+    $('b-list').innerHTML = s.pins
+      .slice(-5)
+      .reverse()
+      .map((p) => `<li data-id="${p.id}"><button type="button" class="tab pin-go">${new Date(p.t).toISOString().slice(11, 16)} ${p.kind === 'catch' ? t(`boat.sp.${p.species ?? 'other'}` as Key) : t('boat.mark')}${p.depthM !== undefined ? ` ${Math.round(p.depthM)}${t('unit.m')}` : ''}</button><button type="button" class="tab pin-x" aria-label="${t('boat.remove')}">✕</button></li>`)
+      .join('');
+  }
+
+  // Recording resumes after a reload if it was on.
+  if (store.state().recording) gps.start();
+  store.subscribe(update);
+  update();
+
+  const pin = (kind: 'mark' | 'catch') => {
+    const f = gps.last();
+    if (!f || gps.state() !== 'ok') return say(t('boat.noFix'));
+    const depth = depthAt()?.(f.lng, f.lat);
+    store.addPin({ lng: f.lng, lat: f.lat, t: Date.now() }, kind, { species: kind === 'catch' ? BOAT_SPECIES[sp] : undefined, depthM: depth });
+  };
+  $('b-rec').addEventListener('click', () => {
+    if (store.state().recording) {
+      store.stop();
+      gps.stop();
+    } else {
+      store.start();
+      gps.start();
+    }
+  });
+  $('b-mark').addEventListener('click', () => pin('mark'));
+  $('b-catch').addEventListener('click', () => pin('catch'));
+  $('b-prev').addEventListener('click', () => ((sp = (sp + BOAT_SPECIES.length - 1) % BOAT_SPECIES.length), update()));
+  $('b-next').addEventListener('click', () => ((sp = (sp + 1) % BOAT_SPECIES.length), update()));
+  $('b-export').addEventListener('click', () => {
+    const s = store.state();
+    if (!s.points.length && !s.pins.length) return say(t('boat.exportEmpty'));
+    const day = new Date(s.points[0]?.t ?? s.pins[0].t).toISOString().slice(0, 10);
+    const blob = new Blob([toGPX(s.points, s.pins, `${t('boat.trip')} ${day}`)], { type: 'application/gpx+xml' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `fishing-and-tides-${day}.gpx`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+  });
+  // Two taps to clear, so a stray touch cannot wipe a day's track.
+  $('b-clear').addEventListener('click', () => {
+    if (Date.now() - clearArmed < 3000) {
+      store.clear();
+      clearArmed = 0;
+      $('b-clear').textContent = t('boat.clear');
+    } else {
+      clearArmed = Date.now();
+      $('b-clear').textContent = t('boat.clearSure');
+      setTimeout(() => ($('b-clear').textContent = t('boat.clear')), 3000);
+    }
+  });
+  $('b-list').addEventListener('click', (e) => {
+    const li = (e.target as HTMLElement).closest<HTMLElement>('li');
+    const pinData = store.state().pins.find((p) => p.id === li?.dataset.id);
+    if (!li || !pinData) return;
+    if ((e.target as HTMLElement).closest('.pin-x')) store.removePin(pinData.id);
+    else map.easeTo({ center: [pinData.lng, pinData.lat], zoom: Math.max(map.getZoom(), 13), duration: 1200 });
+  });
+
+  window.addEventListener('pagehide', () => store.flush());
+  void layer;
+  return { gps };
+}
+
+export type { GpsState };
