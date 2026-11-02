@@ -41,8 +41,8 @@ export interface SourceSpan {
 /** The JSON manifest written next to the .i16 file. */
 export interface SeriesMeta {
   feed: string;
-  /** 'forecast' for model output, 'climatology' for historical means by calendar date. */
-  kind: 'forecast' | 'climatology';
+  /** 'forecast' for model output, 'climatology' for historical means by calendar date, 'observed' for measured maps (satellite), times = when observed. */
+  kind: 'forecast' | 'climatology' | 'observed';
   /** When the data build fetched it (ISO). Feeds DATA AGE. */
   fetchedAt: string;
   /** Model run (initialisation) time if the source reports it (ISO). */
@@ -108,7 +108,7 @@ export function validateMeta(m: unknown): string[] {
   const o = m as Partial<SeriesMeta> | null;
   if (!o || typeof o !== 'object') return ['manifest is not an object'];
   if (typeof o.feed !== 'string') e.push('feed missing');
-  if (o.kind !== 'forecast' && o.kind !== 'climatology') e.push('kind must be forecast or climatology');
+  if (o.kind !== 'forecast' && o.kind !== 'climatology' && o.kind !== 'observed') e.push('kind must be forecast, climatology or observed');
   if (typeof o.fetchedAt !== 'string' || Number.isNaN(Date.parse(o.fetchedAt))) e.push('fetchedAt is not a date');
   const g = o.grid;
   if (!g || !(g.cols > 1 && g.rows > 1 && g.dlon > 0 && g.dlat > 0) || ![g.lon0, g.lat0].every(Number.isFinite)) e.push('grid is malformed');

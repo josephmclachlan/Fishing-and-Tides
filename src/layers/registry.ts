@@ -26,7 +26,7 @@ export const LAYERS: readonly LayerDef[] = [
   { id: 'waves', group: 'OCEAN', mapPrefixes: ['wv-'] },
   { id: 'currents', group: 'OCEAN' },
   { id: 'wind', group: 'OCEAN' },
-  { id: 'sst', group: 'OCEAN' },
+  { id: 'sst', group: 'OCEAN', mapPrefixes: ['ss-'] },
   { id: 'clarity', group: 'OCEAN' },
   { id: 'weather', group: 'OCEAN', mapPrefixes: ['st-'] },
   { id: 'lightning', group: 'OCEAN', mapPrefixes: ['lt-'] },

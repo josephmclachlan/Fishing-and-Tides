@@ -19,7 +19,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 2.1 Adapter interface, cache layer, data-age tracking (**O**)
 - [x] 2.2 Open-Meteo Marine adapter (waves, swell) (**S**). MFWAM to day 9 then GFS-Wave to day 16, ERA5 climatology; feeds the HUD swell and the spot physics; `src/adapters/waves.ts`
 - [x] 2.3 Open-Meteo wind adapter (GFS/ECMWF) (**S**). 16-day grid from the scheduled data build, NOAA blended-winds monthly climatology for OUTLOOK; `src/adapters/wind.ts`
-- [ ] 2.4 CoastWatch ERDDAP adapter: SST and chlorophyll (**S**)
+- [x] 2.4 CoastWatch ERDDAP adapter: SST and chlorophyll (**S**). MUR SST (0.05° + 0.01° coast nest), gap-filled chlorophyll and Kd490, relayed by the data build; HUD SST and the WATER TEMP isotherm layer; `src/adapters/satellite.ts`
 - [x] 2.5 Copernicus/HYCOM currents adapter (**S**). Copernicus SMOC via Open-Meteo, 0.25° regional grid plus a 1/12° coastal nest, forecast mean past day 9; `src/adapters/currents.ts`
 - [x] 2.6 GEBCO bathymetry clipped to region, packed as a tile/grid asset, plus reefs, seamarks and a depth layer (**S**)
 - [x] 2.7 UHSLC Limón gauge fetch for tide validation (**S**). Done by `scripts/fit-tides.ts` (3.1), which fetches UHSLC and validates on held-out years
