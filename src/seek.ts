@@ -3,10 +3,12 @@ import { SPOTS } from './region';
 import { t } from './i18n';
 import { resolveTarget, type Target } from './target';
 import type { Settings } from './settings';
+import type { Sheets } from './sheets';
 
-export function mountSeek(root: HTMLElement, onTarget: (t: Target) => void, settings?: Settings) {
+export function mountSeek(root: HTMLElement, onTarget: (t: Target) => void, settings?: Settings, sheets?: Sheets) {
   const el = document.createElement('section');
   el.className = 'panel seek';
+  el.id = 'seek-panel';
   el.innerHTML = `
     <form class="seek-row" autocomplete="off">
       <input class="seek-in" name="q" list="seek-spots" spellcheck="false" enterkeyhint="go"
@@ -26,6 +28,7 @@ export function mountSeek(root: HTMLElement, onTarget: (t: Target) => void, sett
     msg.textContent = '';
     tabs.forEach((b) => b.classList.toggle('on', SPOTS[Number(b.dataset.i)].name === t.name));
     input.blur(); // drop the phone keyboard so the map is visible
+    sheets?.close('find'); // and the sheet, so the fly-to is in full view
     onTarget(t);
   };
 
