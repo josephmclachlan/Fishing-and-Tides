@@ -10,6 +10,10 @@ import { mountSeek } from './seek';
 import { createSettings, safeSession, safeStorage, takeView } from './settings';
 import { mountSurfBreaks } from './layers/surf-breaks';
 import { mountSurfHud } from './surf-hud';
+import { mountWeatherHud } from './weather-hud';
+import { mountStorms } from './layers/storms';
+import { fetchWeather } from './adapters/weather';
+import { fetchStorms } from './adapters/storms';
 import { mountSeaStateHud } from './sea-state-hud';
 import { mountHarbours } from './layers/harbours';
 import { mountHarboursHud } from './harbours-hud';
@@ -119,7 +123,8 @@ fetchWaves()
   .catch((err) => console.warn('waves unavailable', err));
 // DATA AGE and connectivity for the HUD (PLAN 5.2).
 const net = createNet();
-mountHud(hud, map, conditionsAt, { age: () => describeAge(dataAge.oldest(), Date.now()), online: net.online });
+let weatherHud: ReturnType<typeof mountWeatherHud> = null;
+mountHud(hud, map, conditionsAt, { age: () => describeAge(dataAge.oldest(), Date.now()), online: net.online, alerts: () => weatherHud?.alerts() ?? [] });
 mountTimeSlider(hud, time);
 // The lock-on effect plays only for a picked target, never on scroll/pinch zoom.
 const enhancer = createEnhancer(map, createLockFx(map, hud), settings.enhance);
@@ -137,6 +142,12 @@ mountSheets(hud, map, sheets);
 const surfBreaks = mountSurfBreaks(map);
 const surfHud = mountSurfHud(hud, map, (name) => spotPhysics?.byName(name)?.surf);
 mountSeaStateHud(hud, conditionsAt);
+// Weather and active tropical storms (PLAN 7.3, 7.5): live feeds, rows stay -- until they load.
+weatherHud = mountWeatherHud(hud, { validMs: () => time.validMs() });
+time.subscribe(() => weatherHud?.refresh());
+const stormLayer = mountStorms(map);
+fetchWeather().then((d) => weatherHud?.setWeather(d)).catch((err) => console.warn('weather unavailable', err));
+fetchStorms().then((d) => (stormLayer.setStorms(d.storms), weatherHud?.setStorms(d.storms))).catch((err) => console.warn('storms unavailable', err));
 mountHarbours(map);
 let landGrid: Grid | null = null;
 const harboursHud = mountHarboursHud(hud, map, { windFromDeg: () => conditionsAt().windDirDeg, land: () => landGrid });
