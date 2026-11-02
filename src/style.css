@@ -76,3 +76,17 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--amber)
   .bottom { gap: 10px; }
   .btn { width: 100%; margin-left: 0; }
 }
+
+/* HUD kit: gauge + alert strip */
+.gauge { display: flex; align-items: center; gap: 6px; }
+.gauge-bar { flex: 1; height: 8px; border: 1px solid var(--amber-dim); }
+.gauge-bar i { display: block; height: 100%; background: var(--amber); box-shadow: 0 0 6px var(--amber); transition: width 0.4s; }
+.gauge.green .gauge-bar i { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.gauge.red .gauge-bar i { background: var(--red); box-shadow: 0 0 6px var(--red); }
+.alert {
+  position: absolute; top: 64px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 16px);
+  padding: 6px 16px; color: var(--bg); background: var(--red); letter-spacing: 3px; font-size: 13px;
+  background-image: repeating-linear-gradient(-45deg, transparent 0 8px, rgba(0,0,0,0.25) 8px 16px);
+  animation: blink 1s infinite steps(1);
+}
+.alert[hidden] { display: none; }
