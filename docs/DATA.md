@@ -52,3 +52,12 @@ A `Check` is `{ feed, kind, label, run() → { status, detail } }`, with `kind` 
 ## Service worker
 
 `data/forecast/**` is left out of the precache (it changes every few hours and would force an app update each time). `cachedFetch` owns its offline copy instead, so there is one cache and one notion of age. "Sync for trip" (5.1) will pre-fill the same cache.
+
+## Feeds
+
+| Feed | Built by | Source | Grid and times | Size | Refresh |
+|---|---|---|---|---|---|
+| `wind` | `scripts/forecast/wind.ts` | Open-Meteo best match (ICON/GFS/ECMWF), 10 m wind | 0.25° over the macro view (29×23); hourly to day 7, 3-hourly to day 16 | ~630 KB | Every 6 h (Pages workflow, `17 */6 * * *`) |
+| `wind-clim` | `scripts/fetch-climatology.ts` | NOAA NCEI Blended Sea Surface Winds v2, monthly means 2015–2024 (ERDDAP) | Same grid, 12 months | ~30 KB | Static, committed, precached |
+
+Local development: `npm run data:forecast` fills `public/data/forecast/` (gitignored); without it the app uses the mock fields. `npm run data:climatology` rebuilds the committed climatology.

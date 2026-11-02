@@ -18,7 +18,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 ## Phase 2: Data adapters
 - [x] 2.1 Adapter interface, cache layer, data-age tracking (**O**)
 - [ ] 2.2 Open-Meteo Marine adapter (waves, swell) (**S**)
-- [ ] 2.3 Open-Meteo wind adapter (GFS/ECMWF) (**S**)
+- [x] 2.3 Open-Meteo wind adapter (GFS/ECMWF) (**S**). 16-day grid from the scheduled data build, NOAA blended-winds monthly climatology for OUTLOOK; `src/adapters/wind.ts`
 - [ ] 2.4 CoastWatch ERDDAP adapter: SST and chlorophyll (**S**)
 - [ ] 2.5 Copernicus/HYCOM currents adapter (**S**)
 - [x] 2.6 GEBCO bathymetry clipped to region, packed as a tile/grid asset, plus reefs, seamarks and a depth layer (**S**)

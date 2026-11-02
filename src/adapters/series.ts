@@ -8,6 +8,17 @@ import { dataAge } from './data-age';
 import { decodeSeries, validateMeta, type GridSeries, type SeriesMeta } from './pack';
 
 export const FORECAST_DIR = 'data/forecast/';
+/** Static monthly climatologies (OUTLOOK band), precached. */
+export const CLIMATOLOGY_DIR = 'data/climatology/';
+
+export interface LoadOptions {
+  /** Site base URL, default Vite's BASE_URL. */
+  base?: string;
+  dir?: string;
+  /** Report the age to DATA AGE (off for static climatology). Default true. */
+  report?: boolean;
+  deps?: Partial<CacheDeps>;
+}
 
 export interface Loaded {
   series: GridSeries;
@@ -17,8 +28,9 @@ export interface Loaded {
   fromCache: boolean;
 }
 
-export async function loadSeries(name: string, base: string = import.meta.env.BASE_URL, deps?: Partial<CacheDeps>): Promise<Loaded> {
-  const url = (f: string) => `${base}${FORECAST_DIR}${f}`;
+export async function loadSeries(name: string, opts: LoadOptions = {}): Promise<Loaded> {
+  const { base = import.meta.env.BASE_URL, dir = FORECAST_DIR, report = true, deps } = opts;
+  const url = (f: string) => `${base}${dir}${f}`;
   const m = await cachedFetch(url(`${name}.json`), { deps });
   const meta = (await m.response.json()) as SeriesMeta;
   const problems = validateMeta(meta);
@@ -27,6 +39,6 @@ export async function loadSeries(name: string, base: string = import.meta.env.BA
   const series = decodeSeries(meta, new Int16Array(await bin.response.arrayBuffer()));
   // The age that matters is how old the model data is, not when this phone downloaded it.
   const fetchedAt = Date.parse(meta.fetchedAt);
-  dataAge.report(meta.feed, fetchedAt, m.fromCache);
+  if (report) dataAge.report(meta.feed, fetchedAt, m.fromCache);
   return { series, fetchedAt, fromCache: m.fromCache };
 }
