@@ -91,6 +91,11 @@ export function wavesChecks(load: () => Promise<WavesData>): Check[] {
     { feed: 'waves', kind: 'fresh', label: 'Fetched within the last 24 h', run: async () => freshness(Date.now() - Date.parse((await need()).meta.fetchedAt), 12 * 3.6e6) },
     // Land cells are NaN by design, so allow most of the grid to be missing.
     { feed: 'waves', kind: 'range', label: 'Hs within 0..8 m', run: async () => inRange(values(await need(), 'hs'), 0, 8, 'm', 0.7) },
-    { feed: 'waves', kind: 'range', label: 'Mean period within 1..25 s', run: async () => inRange(values(await need(), 'tm'), 1, 25, 's', 0.7) },
+    // Only where there are waves: a near-calm cell has no meaningful period (models write 0 s).
+    { feed: 'waves', kind: 'range', label: 'Mean period within 1..25 s where Hs ≥ 0.1 m', run: async () => {
+      const s = await need();
+      const hs = values(s, 'hs');
+      return inRange(values(s, 'tm').filter((_, i) => hs[i] >= 0.1), 1, 25, 's', 0.7);
+    } },
   ];
 }
