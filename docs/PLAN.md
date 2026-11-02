@@ -11,6 +11,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 1.6 Deploy to GitHub Pages on merge to main (**S**)
 - [x] 1.7 "Enhance" fly-to: pick a beach or coordinate (search box or spot tab) and, from a zoomed-out view, box the target, highlight it, zoom in, resolve block by block, then box again, repeating in 2 to 4 hops until on the beach or ocean point (**O**)
 - [x] 1.8 Layer registry, LAYERS drawer and activity presets (FISH, DIVE, SURF, SAIL, ALL) (**S**)
+- [ ] 1.9 ENHANCE on/off toggle (settings, persisted on the device): off replaces the pull-back, box, pixel resolve and stepped zoom with one continuous eased fly-to that pans and zooms together, with finer data fading in as the zoom tiers are crossed; no pixelation, reticle flashes or discrete jumps (**S**, extends 1.3, 1.7)
 
 ## Phase 2: Data adapters
 - [ ] 2.1 Adapter interface, cache layer, data-age tracking (**O**)
