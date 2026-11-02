@@ -35,7 +35,7 @@ export const LAYERS: readonly LayerDef[] = [
   { id: 'seamarks', group: 'SEAFLOOR', mapPrefixes: ['sf-marks'] },
   { id: 'fishing', group: 'USE', mapPrefixes: ['fh-', 'bt-'] },
   { id: 'zones', group: 'USE', mapPrefixes: ['pz-'] },
-  { id: 'anchorages', group: 'USE' },
+  { id: 'anchorages', group: 'USE', mapPrefixes: ['an-'] },
 ];
 
 export type ActivityId = 'all' | 'fishing' | 'dive' | 'surf' | 'sail';
