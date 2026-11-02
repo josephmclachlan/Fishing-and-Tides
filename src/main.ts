@@ -7,9 +7,11 @@ import { mockConditions, mockCurrentField, mockWindField } from './mock';
 import { createLockFx, mountZoomTiers } from './zoom-fx';
 import { createEnhancer } from './enhance';
 import { mountSeek } from './seek';
-import { createSettings, safeStorage } from './settings';
+import { createSettings, safeSession, safeStorage, takeView } from './settings';
 import { createBoatStore } from './boat/store';
 import { mountBoatPanel } from './boat-panel';
+import { dictFor, setDict } from './i18n';
+import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
 import { mountSettingsUi } from './settings-ui';
 import { fetchSeafloor } from './adapters/seafloor';
@@ -35,7 +37,11 @@ import { dataAge } from './adapters/data-age';
 
 registerSW({ immediate: true });
 
-const map = createMap('map');
+// Language first: every panel builds its text once, from the active dictionary.
+const settings = createSettings(safeStorage(), navigator.languages ?? [navigator.language]);
+setDict(dictFor(settings.lang()));
+document.documentElement.lang = settings.lang();
+const map = createMap('map', takeView(safeSession()));
 const hud = document.getElementById('hud')!;
 // Tiers first: the HUD reads the tier they publish on each move.
 mountZoomTiers(map);
@@ -67,7 +73,6 @@ const conditionsAt = () => {
 mountHud(hud, map, conditionsAt);
 mountTimeSlider(hud, time);
 // The lock-on effect plays only for a picked target, never on scroll/pinch zoom.
-const settings = createSettings(safeStorage());
 const enhancer = createEnhancer(map, createLockFx(map, hud), settings.enhance);
 // Phone: panels are drawers, closed until tapped; wide screens start with the LAYERS drawer open.
 const sheets = createSheets(window.matchMedia(PHONE_QUERY).matches ? null : 'layers');
@@ -76,6 +81,7 @@ mountSeek(hud, (t) => enhancer.go(t), settings, sheets);
 bindMapLayers(map, layers);
 mountSettingsUi(hud, settings);
 mountLayersPanel(hud, layers, sheets);
+mountLangUi(hud, settings, map);
 mountSheets(hud, map, sheets);
 // Boat mode: GPS track and pin log, kept on the device. Depth at a pin comes from the seafloor grid once it loads.
 let depthAt: ((lng: number, lat: number) => number | undefined) | null = null;

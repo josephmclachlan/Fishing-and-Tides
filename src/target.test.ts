@@ -20,6 +20,8 @@ describe('parseCoordinate', () => {
   });
   it('reads hemisphere letters, either order', () => {
     expect(parseCoordinate('9.65N 82.75W')).toEqual([-82.75, 9.65]);
+    expect(parseCoordinate('9.65N 82.75O')).toEqual([-82.75, 9.65]);
+    expect(parseCoordinate('82.75 O, 9.65 N')).toEqual([-82.75, 9.65]);
     expect(parseCoordinate('82.75W, 9.65N')).toEqual([-82.75, 9.65]);
   });
   it('reads degrees + decimal minutes as the HUD shows them', () => {
