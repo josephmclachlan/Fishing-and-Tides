@@ -51,7 +51,25 @@ A `Check` is `{ feed, kind, label, run() → { status, detail } }`, with `kind` 
 
 ## Service worker
 
-`data/forecast/**` is left out of the precache (it changes every few hours and would force an app update each time). `cachedFetch` owns its offline copy instead, so there is one cache and one notion of age. "Sync for trip" (5.1) will pre-fill the same cache.
+`data/forecast/**` is left out of the precache (it changes every few hours and would force an app update each time). `cachedFetch` owns its offline copy instead, so there is one cache and one notion of age. "Sync for trip" (5.1) pre-fills the same cache.
+
+Everything else under `public/data` (seafloor grids, reefs, zones, fishing records, climatology) is precached with the app, so it is on the phone from the first visit.
+
+Map style, fonts, sprites and tiles from OpenFreeMap go through one route: stale-while-revalidate into `map-tiles`, capped at 3,000 entries (oldest evicted). Vector tile keys drop the weekly planet folder (`/planet/20261025_080012_pt/14/…` → `/planet/v/14/…`), so a tile cached last week is still found after OpenFreeMap publishes a new build.
+
+## Sync for trip (PLAN 5.1)
+
+The SYNC FOR TRIP button (`src/sync-ui.ts`, `src/offline/`) gets the phone ready for a day with no signal:
+
+1. **Map** (`offline/tiles.ts`, `offline/sync.ts`): the dark style, its TileJSON, sprites at 1× and 2×, six glyph ranges of Noto Sans Regular, and the tiles of `tripPlan()`: z0–6 over `REGION.viewBounds` (everything you can pan to), z7–10 over `REGION.maxBounds`, z11–14 over `REGION.bounds` (the coast). The hillshade raster stops at its z6. About 2,170 tiles and 23 MB, taking from under a minute to a few minutes depending on signal; 8 downloads at a time, one retry each. They go into their own cache, `trip-v1`, which nothing evicts; the service worker's map route falls back to it when `map-tiles` misses (the `cachedResponseWillBeUsed` plugin in `vite.config.ts`). Sync requests carry `ftsync=1`, which the route skips, so each tile is stored once.
+2. **Forecasts and feeds** (`offline/jobs.ts`): wind, waves, currents, satellite SST and ocean colour, weather, catchment rain, storms, the Limón gauge (now stored under a stable key, since its URL carries the time) and lightning, each fetched once through `cachedFetch`. A feed counts as missing when nothing was published or, for the feeds that report it, when the network failed and the older copy was kept.
+3. **Check**: the seafloor manifest, grids and reef files are in the precache.
+
+The result (`{ at, tiles, failed, bytes, feeds, feedsFailed, staticOk, persisted }`) is kept in `localStorage['ft.sync']` and shown in the TRIP row: green within a day of a complete sync, amber after or when something was missing, red after 7 days. The sync also asks the browser to keep the site's storage (`navigator.storage.persist()`), which phones grant to installed apps.
+
+Fishing and rip scores are not stored: they are computed on the phone from the synced inputs (tide, waves, wind, seafloor, habitat model), so they stay right for any time on the slider.
+
+Checked in the built app (Chromium, `vite preview`): after a sync with the browse cache emptied and the network off, the region map loads at z9 and at z14.5 over Cahuita with no failed map requests, wind and the gauge line draw from the stored copies, and DATA AGE shows OFFLINE.
 
 ## Feeds
 

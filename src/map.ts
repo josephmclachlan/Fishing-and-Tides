@@ -8,7 +8,7 @@ import { GRATICULE_STEP, REGION, SPOTS, TIER_ZOOM } from './region';
 import { graticule, toDDM } from './geo';
 import { hemispheres } from './i18n';
 
-const STYLE_URL = 'https://tiles.openfreemap.org/styles/dark';
+export const STYLE_URL = 'https://tiles.openfreemap.org/styles/dark';
 
 /** Recolour the base style into the phosphor HUD palette. */
 function hudify(map: Map) {

@@ -133,9 +133,5 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions,
   };
   tick();
   setInterval(tick, 1000);
-
-  $('sync').addEventListener('click', () => {
-    $('sync').textContent = t('hud.syncSoon');
-    setTimeout(() => ($('sync').textContent = t('hud.sync')), 1500);
-  });
+  // #sync is wired by sync-ui.ts (PLAN 5.1).
 }

@@ -35,6 +35,15 @@ describe('cachedFetch', () => {
     expect(r.fromCache).toBe(true);
   });
 
+  it('keeps a changing URL findable under a stable key', async () => {
+    const { caches, store } = fakeCaches();
+    await cachedFetch('u?t=1', { key: 'u?latest', deps: { caches, now: () => 7, fetch: async () => new Response('a') } });
+    expect([...store.keys()]).toEqual(['u?latest']);
+    const r = await cachedFetch('u?t=2', { key: 'u?latest', deps: { caches, fetch: async () => { throw new TypeError('offline'); } } });
+    expect(await r.response.text()).toBe('a');
+    expect(r).toMatchObject({ fetchedAt: 7, fromCache: true });
+  });
+
   it('throws when offline with nothing cached', async () => {
     await expect(cachedFetch('u', { deps: { caches: null, fetch: async () => { throw new TypeError('offline'); } } })).rejects.toThrow('offline');
   });

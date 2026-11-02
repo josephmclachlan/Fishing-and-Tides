@@ -32,8 +32,20 @@ const defaults = (): CacheDeps => ({
   now: Date.now,
 });
 
-export async function cachedFetch(url: string, opts: { timeoutMs?: number; deps?: Partial<CacheDeps> } = {}): Promise<CachedResponse> {
+export interface CachedFetchOptions {
+  timeoutMs?: number;
+  /**
+   * Cache key, when the URL itself changes on every call (the gauge asks for "the last 30 h",
+   * so its URL carries the time): one stable key keeps the last good copy findable offline.
+   * Must be an http(s) URL. Default: the URL.
+   */
+  key?: string;
+  deps?: Partial<CacheDeps>;
+}
+
+export async function cachedFetch(url: string, opts: CachedFetchOptions = {}): Promise<CachedResponse> {
   const d = { ...defaults(), ...opts.deps };
+  const key = opts.key ?? url;
   const store = d.caches ? await d.caches.open(CACHE).catch(() => null) : null;
   let netErr: unknown;
   try {
@@ -45,12 +57,12 @@ export async function cachedFetch(url: string, opts: { timeoutMs?: number; deps?
     const body = await res.arrayBuffer();
     const headers = new Headers(res.headers);
     headers.set(HEADER, String(fetchedAt));
-    if (store) await store.put(url, new Response(body.slice(0), { status: 200, headers })).catch(() => {});
+    if (store) await store.put(key, new Response(body.slice(0), { status: 200, headers })).catch(() => {});
     return { response: new Response(body, { status: 200, headers }), fetchedAt, fromCache: false };
   } catch (err) {
     netErr = err;
   }
-  const hit = store ? await store.match(url) : undefined;
+  const hit = store ? await store.match(key) : undefined;
   if (hit) return { response: hit, fetchedAt: Number(hit.headers.get(HEADER)) || 0, fromCache: true };
   throw netErr;
 }

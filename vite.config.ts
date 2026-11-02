@@ -25,12 +25,26 @@ export default defineConfig({
         // Forecast grids change every few hours; src/adapters/cache.ts keeps their offline copy (docs/DATA.md).
         globIgnores: ['**/data/forecast/**'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
-        // Map tiles/styles cached as you browse; full region pre-download comes with "Sync for trip" (PLAN 5.1).
+        // Map style, fonts and tiles cached as you browse (capped, oldest evicted). "Sync for trip" (PLAN 5.1,
+        // src/offline/sync.ts) stores the whole region in `trip-v1`, which this route falls back to on a miss; its own
+        // downloads carry `ftsync=1` and skip the route. The plugins run inside the service worker, so they are
+        // self-contained (workbox-build copies their source).
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/tiles\.openfreemap\.org\//,
+            urlPattern: /^https:\/\/tiles\.openfreemap\.org\/(?!.*[?&]ftsync=1)/,
             handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'map-tiles', expiration: { maxEntries: 3000 } },
+            options: {
+              cacheName: 'map-tiles',
+              expiration: { maxEntries: 3000 },
+              plugins: [
+                {
+                  // OpenFreeMap moves to a new planet folder weekly: key tiles without it (same as tileKey in src/offline/tiles.ts).
+                  cacheKeyWillBeUsed: async ({ request }) => request.url.replace(/\/planet\/[^/]+\/(\d+\/\d+\/\d+\.pbf)/, '/planet/v/$1'),
+                  cachedResponseWillBeUsed: async ({ request, cachedResponse }) =>
+                    cachedResponse ?? (await (await caches.open('trip-v1')).match(request.url.replace(/\/planet\/[^/]+\/(\d+\/\d+\/\d+\.pbf)/, '/planet/v/$1'))),
+                },
+              ],
+            },
           },
         ],
       },
