@@ -46,6 +46,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 4.5 Fishing layer: shore/kayak mode (**S**)
 - [x] 4.6 Fishing layer: boat mode, GPS track, drop-pin log (**S**)
 - [x] 4.7 OBIS/GBIF and Global Fishing Watch data folded into scores (**S**)
+- [x] 4.8 Fishing readability and BITE score: amber-only heat, SHORE/BOAT reach highlight, BEST SPOTS list, BITE score and BEST TIMES strip from tide, light, solunar, wind and waves (**O**). `src/fishing/bite.ts`, `src/fishing-hud.ts`. SST and clarity wait on 2.4, 2.12, 6.1 (see 7.11)
 
 ## Phase 5: Offline and polish
 - [ ] 5.1 "Sync for trip": tiles, bathymetry, 7-day forecasts, scores to IndexedDB (**O**)
@@ -78,3 +79,4 @@ Built last, once Phases 2 to 6 are in. Each reuses the adapters, the layer regis
 - [x] 7.7 Sun, moon and solunar: sunrise/sunset, golden hour, moon phase and rise/set, solunar windows, computed on device so they work offline (**O**, pure physics module with tests)
 - [ ] 7.8 Go/no-go verdict per activity (Fishing, Diving/Snorkel/Spear, Surfing, Sailing): combine the activity's inputs into GO, MARGINAL or NO-GO with the top reasons, shown on the HUD and in each preset (**O**, needs 3.5, 6.2, 6.3, 6.6, 7.2, 7.4, 7.6)
 - [ ] 7.9 Register the new layers (sargassum, weather, lightning) and offline-sync them; add their feeds to the verify checks (**S**, needs 5.1, 2.8)
+- [ ] 7.11 Cross-feature sync pass: whenever a data source or model lands after a feature was first built, go back and wire it into the older features. First cases: weather, ocean (SST, clarity, currents, waves, tide) and sun/moon into the fishing score (BITE score covers tide, light, solunar, wind and swell; SST and clarity wait on 2.4, 2.12, 6.1), then the same sweep for dive, surf and sail verdicts (7.8). Keep a table of feature x input in docs so gaps are visible (**O**, rolling)

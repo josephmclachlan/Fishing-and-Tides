@@ -33,7 +33,7 @@ export interface FishingInput {
   bounds: [number, number, number, number];
 }
 
-export interface Cell { lng: number; lat: number; f: CellFeatures }
+export interface Cell { lng: number; lat: number; f: CellFeatures; /** Distance to the shore, m. */ coastM: number }
 
 /** Allen Atlas classes that hold fish: reef structure and hard or living bottom. */
 const REEFISH = new Set(['REEF CREST', 'OUTER REEF FLAT', 'INNER REEF FLAT', 'TERRESTRIAL REEF FLAT', 'BACK REEF SLOPE', 'REEF SLOPE', 'SHELTERED REEF SLOPE', 'PLATEAU', 'CORAL/ALGAE', 'ROCK']);
@@ -112,7 +112,8 @@ export function buildCells(input: FishingInput): { lattice: Lattice; cells: Cell
       const lng = lngOf(l, c), lat = latOf(l, r);
       const depthM = depthAt(lng, lat);
       if (!(depthM > 0 && depthM <= MAX_DEPTH_M) || cellAt(input.land, lng, lat) === 1) continue;
-      if (!Number.isFinite(coastDistanceM(input.land, lng, lat))) continue;
+      const coastM = coastDistanceM(input.land, lng, lat);
+      if (!Number.isFinite(coastM)) continue;
       // Steepest of the four neighbours ~440 m away, in m of depth per km.
       let slope = 0;
       for (const [dx, dy] of [[dLng, 0], [-dLng, 0], [0, dLng], [0, -dLng]]) {
@@ -120,7 +121,7 @@ export function buildCells(input: FishingInput): { lattice: Lattice; cells: Cell
         if (Number.isFinite(d2)) slope = Math.max(slope, (Math.abs(d2 - depthM) / ((dLng * M_PER_DEG_LAT) / 1000)));
       }
       index[r * l.cols + c] = cells.length;
-      cells.push({ lng, lat, f: { depthM, mouthKm: mouthKm(input.mouths, lng, lat), reef: share(mask, l, c, r, 2), slopeMPerKm: slope } });
+      cells.push({ lng, lat, f: { depthM, mouthKm: mouthKm(input.mouths, lng, lat), reef: share(mask, l, c, r, 2), slopeMPerKm: slope }, coastM });
     }
   return { lattice: l, cells, index };
 }
