@@ -172,7 +172,8 @@ Every feed can silently break (API change, outage, stale data, bad units), so ea
 It runs two ways from the same code in `src/verify/`:
 
 - **Automatic:** a scheduled GitHub Action (daily) runs every check and opens, or updates, a GitHub issue naming the failing feed and check; it closes the issue when the feeds recover.
-- **Manual:** a SYSTEM CHECK HUD panel lists every feed with a green (pass), amber (degraded: stale or sources disagree) or red (failed) lamp, the failing check, and the data age, with a re-run button. Offline, it shows the last result and its age instead of failing.
+- **Manual:** a SYSTEM CHECK HUD panel (`src/system-check.ts`, the CHECK button in the top bar, or in SET on a phone) lists every feed with a green (pass), amber (degraded: stale or sources disagree) or red (failed) lamp, the worst check and the feed's data age, with a re-run button; tapping a feed lists all its checks. A small lamp on the CHECK button shows the overall result with the drawer shut. The last run is kept on the device: offline, the panel shows it with its age and the re-run button is off, instead of running checks that could only fail. Check labels and detail come from the adapters in English; the panel chrome is translated.
+- **One list:** `src/verify/registry.ts` `allChecks()` gathers every adapter's checks, and both the panel and the daily Action run it. A new adapter adds one line there.
 
 Each new adapter adds its checks; a PR that adds an adapter without them is incomplete.
 

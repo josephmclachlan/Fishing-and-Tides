@@ -1,5 +1,5 @@
 /**
- * SET drawer (PLAN 5.3): on a phone the settings controls (ENHANCE, SUN, language flags) live in a drawer
+ * SET drawer (PLAN 5.3): on a phone the settings controls (ENHANCE, SUN, language flags, SYSTEM CHECK) live in a drawer
  * behind one top-bar tab, which keeps the top bar to a single row of tabs. On wide screens they stay in the
  * top bar. The same elements move between the two places when the screen changes shape.
  */
@@ -8,7 +8,7 @@ import { PHONE_QUERY, closeButton, type Sheets } from './sheets';
 
 export function mountSettingsPanel(root: HTMLElement, sheets: Sheets) {
   const tabs = root.querySelector<HTMLElement>('.top-tabs')!;
-  const controls = [...tabs.querySelectorAll<HTMLElement>('.enh-toggle, .sun-toggle, .snd-toggle, .lang')];
+  const controls = [...tabs.querySelectorAll<HTMLElement>('.enh-toggle, .sun-toggle, .snd-toggle, .lang, .check-open')];
 
   const el = document.createElement('section');
   el.className = 'panel settings';

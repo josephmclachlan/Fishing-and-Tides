@@ -24,7 +24,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 2.6 GEBCO bathymetry clipped to region, packed as a tile/grid asset, plus reefs, seamarks and a depth layer (**S**)
 - [ ] 2.7 UHSLC Limón gauge fetch for tide validation (**S**)
 - [ ] 2.8 Verify tool, automatic: scheduled daily GitHub Action runs one check per adapter (reachability, freshness, schema, physical ranges, cross-source agreement) and opens or updates an issue on failure; checks live in `src/verify/`, shared with 2.9 (**O**, needs 2.1; grow it with each adapter)
-- [ ] 2.9 Verify tool, manual: SYSTEM CHECK HUD panel with a green/amber/red row per feed, the failing check and its age, and a re-run button; once 2.11 and 2.12 land it also compares each forecast with what was observed (**S**, needs 2.8)
+- [x] 2.9 Verify tool, manual: SYSTEM CHECK HUD panel with a green/amber/red row per feed, the failing check and its age, and a re-run button (done on the checks that exist; each new adapter adds to `src/verify/registry.ts`). Still to do once 2.11 and 2.12 land: compare each forecast with what was observed (**S**, needs 2.8)
 - [x] 2.10 Research note first (`docs/OBSERVATIONS.md`): confirm which local observation sources are actually reachable and usable for Gandoca to Limón (UHSLC Limón gauge, Limón airport METAR MRLM, IMN stations, any wave or met buoy near the coast, satellite passes), with URLs, update cadence, licence and format; if no wave buoy exists, say so (**S**)
 - [ ] 2.11 Live observation adapters: UHSLC Limón tide gauge, Limón airport METAR (MRLM, ID to confirm in 2.10), and IMN stations if reachable; each returns data plus `fetchedAt` and its own observation time (**S**, needs 2.1, 2.10; extends 2.7)
 - [ ] 2.12 Satellite observation adapters: SST, chlorophyll/Kd490 and scatterometer wind (e.g. ASCAT) passes over the region, with the pass time and cloud gaps flagged (**S**, needs 2.1, 2.10; extends 2.4)
@@ -40,7 +40,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 
 ## Phase 4: Forecast and fishing UI
 - [ ] 4.1 Tide chart panel and spot pages (**S**)
-- [ ] 4.2 Rip risk overlay and spot-tier breaker readouts (**S**)
+- [x] 4.2 Rip risk overlay and spot-tier breaker readouts (**S**). `src/layers/rip.ts`, `src/surf-hud.ts`
 - [x] 4.3 Protected-zone overlays: Gandoca-Manzanillo, Cahuita (**S**)
 - [ ] 4.4 Species habitat model framework and scoring (**O**)
 - [x] 4.5 Fishing layer: shore/kayak mode (**S**)
