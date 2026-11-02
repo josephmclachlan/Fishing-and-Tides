@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LOCK_STEPS, RESOLVE_CELL_PX, cellBlockAt, nextTier, pixelBlockAt, tierDirection } from './zoom';
+import { LOCK_STEPS, RESOLVE_CELL_PX, cellBlockAt, nextTier, pixelBlockAt, planHops, tierDirection } from './zoom';
 
 describe('nextTier', () => {
   it('switches tiers once zoom clears the edge by the hysteresis band', () => {
@@ -50,5 +50,24 @@ describe('pixel lock-on', () => {
     expect(cellBlockAt(0.6, 0.4)).toBeLessThan(LOCK_STEPS[0]);
     // Latest-starting cell is sharp by t = 1.
     expect(cellBlockAt(1, 0.6)).toBe(1);
+  });
+});
+
+describe('planHops', () => {
+  it('splits a long zoom into even hops no bigger than the max step', () => {
+    const hops = planHops(9, 14);
+    expect(hops).toEqual([11.5, 14]);
+    const far = planHops(6, 14);
+    expect(far).toHaveLength(4);
+    expect(far.at(-1)).toBe(14);
+    for (let i = 1; i < far.length; i++) expect(far[i] - far[i - 1]).toBeCloseTo(2, 9);
+  });
+  it('caps the hop count', () => {
+    expect(planHops(0, 14)).toHaveLength(4);
+  });
+  it('is a single hop when already close or past the target zoom', () => {
+    expect(planHops(13.9, 14)).toEqual([14]);
+    expect(planHops(15, 14)).toEqual([14]);
+    expect(planHops(12, 14)).toEqual([14]);
   });
 });

@@ -43,3 +43,22 @@ export const CELL_SPAN = 0.4;
 export function cellBlockAt(t: number, delay: number, span = CELL_SPAN): number {
   return pixelBlockAt((t - delay) / span);
 }
+
+/** Zoom the enhance fly-to lands on: close enough to see the beach and its breakers. */
+export const ENHANCE_ZOOM = 14;
+/** Most zoom levels one enhance hop covers; the box drawn is 1 / 2^step of the screen. */
+export const ENHANCE_MAX_STEP = 2.5;
+export const ENHANCE_MAX_HOPS = 4;
+/** Zoom to pull back to first when the target is off screen or we're already zoomed in. */
+export const ENHANCE_WIDE_ZOOM = 9;
+
+/**
+ * Zoom levels for each hop of the enhance sequence, from `z0` up to `zf`, evenly spaced,
+ * at most `maxStep` apart (but never more than `maxHops` hops). Always ends at `zf`.
+ */
+export function planHops(z0: number, zf: number, maxStep = ENHANCE_MAX_STEP, maxHops = ENHANCE_MAX_HOPS): number[] {
+  const dz = zf - z0;
+  if (!(dz > 0.25)) return [zf];
+  const n = Math.min(maxHops, Math.max(1, Math.ceil(dz / maxStep - 1e-9)));
+  return Array.from({ length: n }, (_, i) => (i === n - 1 ? zf : z0 + (dz * (i + 1)) / n));
+}
