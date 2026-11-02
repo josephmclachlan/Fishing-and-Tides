@@ -1,14 +1,16 @@
 /**
  * "Enhance" fly-to (PLAN 1.7): the 80s action-movie zoom onto a picked beach or coordinate.
  *
- *   1. Full pull-back in steps to the wide view (zoom at which the whole region fits the
- *      screen), without panning, and further if needed until the target is in view.
- *   2. Per hop (see planHops): box and highlight the target where it sits on screen, framing
- *      what the next view will show, then zoom into that box in discrete steps while the
+ *   1. Smooth pull-back to the wide view (zoom at which the whole region fits the screen),
+ *      without panning, and further if needed until the target is in view.
+ *   2. Per hop (see planHops): flash a box on the target where it sits on screen, framing what
+ *      the next view will show; smoothly pan to centre it under the crosshair (first hop only,
+ *      after that it's already centred); then zoom into the box in discrete steps while the
  *      picture breaks into blocks that grow with the zoom; wait for tiles, resolve cell by cell.
  *   3. Lock on the target.
  *
- * No smooth glides: every camera move is stepped (steppedEase), like old tracking optics.
+ * Motion grammar: smooth moves cover ground we've already seen ("known data"); stepped moves
+ * (steppedEase, like old tracking optics) are new detail loading.
  * Any touch, drag or wheel on the map cancels it and hands control back.
  */
 import type { Map as MapLibreMap } from 'maplibre-gl';
@@ -18,9 +20,10 @@ import { REGION } from './region';
 import { ENHANCE_WIDE_ZOOM, ENHANCE_ZOOM, planHops, steppedEase, zoomOutToFit } from './zoom';
 
 /** Step timings, ms. Slow on purpose so it reads as a sensor working, not a glitch. */
-const T = { wide: 1800, designate: 1300, zoom: 2200, tiles: 3000, resolve: 2600, settle: 700, hold: 2500 };
-/** Discrete camera jumps per move. */
-const STEPS = { wide: 5, zoom: 9 };
+const T = { wide: 1600, designate: 1300, center: 1200, zoom: 2200, tiles: 3000, resolve: 2600, settle: 700, hold: 2500 };
+/** Discrete camera jumps per stepped zoom-in. */
+const ZOOM_STEPS = 9;
+const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
 
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const once = (map: MapLibreMap, ev: 'moveend' | 'idle') => new Promise<void>((r) => map.once(ev, () => r()));
@@ -56,7 +59,7 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx) {
 
     fx.start(target.name);
 
-    // 1. Full pull-back to the wide view, never panning; further if the target is still off screen.
+    // 1. Smooth pull-back to the wide view, never panning; further if the target is still off screen.
     const z0 = map.getZoom();
     const p = map.project(target.lngLat);
     const { clientWidth: w, clientHeight: h } = map.getContainer();
@@ -65,10 +68,10 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx) {
     const wide = Math.min(z0, ENHANCE_WIDE_ZOOM, regionFit, z0 - zoomOutToFit(p.x - w / 2, p.y - h / 2, w, h));
     if (z0 - wide > 0.05) {
       fx.state('WIDE SCAN');
-      await moveTo({ zoom: wide, duration: T.wide * k, easing: steppedEase(STEPS.wide) });
+      await moveTo({ zoom: wide, duration: T.wide * k, easing: easeInOut });
     }
 
-    // 2. Box the target where it sits, zoom into the box, resolve; repeat.
+    // 2. Box the target where it sits, centre it, step into the box, resolve; repeat.
     const hops = planHops(map.getZoom(), ENHANCE_ZOOM);
     for (let i = 0; i < hops.length; i++) {
       if (!alive()) return;
@@ -77,9 +80,17 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx) {
       await wait(T.designate * k);
       if (!alive()) return;
 
+      // Smooth pan so the crosshair sits on the target (known ground, so no stepping).
+      const c = map.project(target.lngLat);
+      if (Math.hypot(c.x - w / 2, c.y - h / 2) > 2) {
+        fx.state('SLEWING');
+        await moveTo({ center: target.lngLat, duration: T.center * k, easing: easeInOut });
+        if (!alive()) return;
+      }
+
       fx.state('ENHANCE');
       if (!reduceMotion.matches) fx.magnify(map.getZoom(), hops[i], target.lngLat);
-      await moveTo({ center: target.lngLat, zoom: hops[i], duration: T.zoom * k, easing: steppedEase(STEPS.zoom) });
+      await moveTo({ center: target.lngLat, zoom: hops[i], duration: T.zoom * k, easing: steppedEase(ZOOM_STEPS) });
       if (!alive()) return;
       fx.box(null);
       if (!map.areTilesLoaded()) await Promise.race([once(map, 'idle'), wait(T.tiles)]);
