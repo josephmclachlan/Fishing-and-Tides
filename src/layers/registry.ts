@@ -34,7 +34,7 @@ export const LAYERS: readonly LayerDef[] = [
   { id: 'reefs', group: 'SEAFLOOR', mapPrefixes: ['sf-reef', 'sf-zone', 'sf-bottom'] },
   { id: 'seamarks', group: 'SEAFLOOR', mapPrefixes: ['sf-marks'] },
   { id: 'fishing', group: 'USE' },
-  { id: 'zones', group: 'USE' },
+  { id: 'zones', group: 'USE', mapPrefixes: ['pz-'] },
   { id: 'anchorages', group: 'USE' },
 ];
 
