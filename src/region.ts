@@ -16,14 +16,14 @@ export function tierForZoom(z: number): Tier {
   return 'SPOT';
 }
 
-/** Named coastal spots, [lng, lat] (MapLibre order). Keep each on the shoreline. */
+/** Named coastal spots, [lng, lat] (MapLibre order). Keep each on the shoreline (verified 2026-11-02 against OpenFreeMap z14 water polygons; each pin is on land within ~30 m of the coast). */
 export const SPOTS: { name: string; lngLat: [number, number] }[] = [
-  { name: 'LIMÓN', lngLat: [-83.022, 9.993] },
-  { name: 'PLAYA BONITA', lngLat: [-83.005, 10.003] },
-  { name: 'CAHUITA', lngLat: [-82.831, 9.736] },
-  { name: 'PLAYA NEGRA', lngLat: [-82.769, 9.662] },
-  { name: 'SALSA BRAVA', lngLat: [-82.752, 9.654] },
-  { name: 'PUNTA UVA', lngLat: [-82.693, 9.64] },
-  { name: 'MANZANILLO', lngLat: [-82.654, 9.632] },
-  { name: 'GANDOCA', lngLat: [-82.602, 9.607] },
+  { name: 'LIMÓN', lngLat: [-83.0235, 9.9927] },
+  { name: 'PLAYA BONITA', lngLat: [-83.0634, 10.0099] },
+  { name: 'CAHUITA', lngLat: [-82.84, 9.7397] },
+  { name: 'PLAYA NEGRA', lngLat: [-82.7789, 9.6633] },
+  { name: 'SALSA BRAVA', lngLat: [-82.7522, 9.6563] },
+  { name: 'PUNTA UVA', lngLat: [-82.6862, 9.6427] },
+  { name: 'MANZANILLO', lngLat: [-82.6569, 9.634] },
+  { name: 'GANDOCA', lngLat: [-82.6139, 9.6065] },
 ];
