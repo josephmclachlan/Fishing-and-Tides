@@ -65,7 +65,7 @@ The **military-satellite zoom effect** (scanline sweep, pixelation that sharpens
 
 ## 5b. Phone layout
 
-On a phone the map comes first. Only two HUD pieces stay on screen: the top bar (title, tier, UTC clock and a row of tabs: ENHANCE, LAYERS, FIND, COND) and a bottom strip (the chosen forecast hour plus swell, wind and tide). Everything else is a **drawer** that stays closed until its tab is tapped:
+On a phone the map comes first. Only two HUD pieces stay on screen: the top bar (title, tier, UTC clock and two rows of tabs: the views LAYERS, FIND, COND, BOAT, then the settings row with the ENHANCE toggle and the EN/ESP flags) and a bottom strip (the chosen forecast hour plus swell, wind and tide). Everything else is a **drawer** that stays closed until its tab is tapped:
 
 | Tab | Drawer |
 |---|---|

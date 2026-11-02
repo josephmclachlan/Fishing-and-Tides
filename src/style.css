@@ -241,9 +241,13 @@ body[data-enhance='off'] .from-spot > * { animation: tier-in 0.9s ease-out both;
   .top .lbl { min-width: 0; }
   .tier-lbl { display: none; }
   .top .seg { font-size: 16px; }
-  .top-tabs { display: flex; flex: 1 1 100%; gap: 6px; }
-  .top-tabs .tab { flex: 1 1 0; min-height: 40px; padding: 6px 2px; text-align: center; font-size: 11px; justify-content: center; }
-  .top-tabs .enh-toggle { flex-grow: 1.7; }
+  .top-tabs { display: flex; flex-wrap: wrap; flex: 1 1 100%; gap: 4px 6px; }
+  .top-tabs .tab { flex: 1 1 0; min-height: 36px; padding: 6px 2px; text-align: center; font-size: 11px; justify-content: center; }
+  /* Two rows: the views (LAYERS FIND COND BOAT) first, then the settings (ENHANCE, language flags). */
+  .top-tabs > .tab { order: 1; }
+  .top-tabs::after { content: ''; order: 2; flex: 1 1 100%; height: 0; }
+  .top-tabs > .enh-toggle { order: 3; flex: 1 1 0; min-height: 30px; }
+  .top-tabs > .lang { order: 3; }
 
   .side, .seek, .layers { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgba(5, 8, 5, 0.97); overflow-y: auto; }
   .ph { min-height: 34px; }
@@ -317,7 +321,7 @@ body[data-band='outlook'] #t-valid, body[data-band='outlook'] #t-off { color: va
 .tab.flag svg { display: block; }
 @media (max-width: 600px) {
   .lang { flex: 0 0 auto; }
-  .top-tabs .tab.flag { flex: 0 0 auto; min-height: 40px; padding: 4px 3px; }
+  .top-tabs .tab.flag { flex: 0 0 auto; min-height: 30px; padding: 2px 8px; }
   .top-tabs .tab { min-width: 0; overflow: hidden; }
 }
 @media (max-width: 600px) {
