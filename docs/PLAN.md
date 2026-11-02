@@ -23,7 +23,11 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 2.6 GEBCO bathymetry clipped to region, packed as a tile/grid asset, plus reefs, seamarks and a depth layer (**S**)
 - [ ] 2.7 UHSLC Limón gauge fetch for tide validation (**S**)
 - [ ] 2.8 Verify tool, automatic: scheduled daily GitHub Action runs one check per adapter (reachability, freshness, schema, physical ranges, cross-source agreement) and opens or updates an issue on failure; checks live in `src/verify/`, shared with 2.9 (**O**, needs 2.1; grow it with each adapter)
-- [ ] 2.9 Verify tool, manual: SYSTEM CHECK HUD panel with a green/amber/red row per feed, the failing check and its age, and a re-run button (**S**, needs 2.8)
+- [ ] 2.9 Verify tool, manual: SYSTEM CHECK HUD panel with a green/amber/red row per feed, the failing check and its age, and a re-run button; once 2.11 and 2.12 land it also compares each forecast with what was observed (**S**, needs 2.8)
+- [ ] 2.10 Research note first (`docs/OBSERVATIONS.md`): confirm which local observation sources are actually reachable and usable for Gandoca to Limón (UHSLC Limón gauge, Limón airport METAR MRLM, IMN stations, any wave or met buoy near the coast, satellite passes), with URLs, update cadence, licence and format; if no wave buoy exists, say so (**S**)
+- [ ] 2.11 Live observation adapters: UHSLC Limón tide gauge, Limón airport METAR (MRLM, ID to confirm in 2.10), and IMN stations if reachable; each returns data plus `fetchedAt` and its own observation time (**S**, needs 2.1, 2.10; extends 2.7)
+- [ ] 2.12 Satellite observation adapters: SST, chlorophyll/Kd490 and scatterometer wind (e.g. ASCAT) passes over the region, with the pass time and cloud gaps flagged (**S**, needs 2.1, 2.10; extends 2.4)
+- [ ] 2.13 LIVE OBS layer and panel: the latest real reading from each station and satellite pass shown on the map and in a HUD panel, each with its age and a green/amber/red freshness state (**S**, needs 2.11, 2.12, 1.8)
 
 ## Phase 3: Physics engine
 - [ ] 3.1 Tide harmonic predictor from TPXO/FES constituents, validated vs UHSLC (**O**)
@@ -67,6 +71,7 @@ Built last, once Phases 2 to 6 are in. Each reuses the adapters, the layer regis
 - [ ] 7.2 Water clarity predictions: forecast visibility a few days ahead from Kd490, chlorophyll and turbidity trends, river plume transport after rain (Sixaola, Estrella, Banano) and swell resuspension, with a confidence band (**O**, extends 6.1, needs 2.2)
 - [ ] 7.3 Weather adapters: GFS, ECMWF and ICON via Open-Meteo for rain, cloud, UV and temperature, plus the NHC feeds (active storms, forecast cone) (**S**, needs 2.1)
 - [ ] 7.4 Ensemble blend with local bias correction: weight the models per variable by their recent error against the Limón gauge, nearby stations and buoys, and report spread as a confidence value (**O**, needs 7.3)
+- [ ] 7.10 Local bias correction from observations: extend 7.4 to wind, tides and SST by learning the model-minus-observed error at the Limón airport station, tide gauge and satellite SST, apply it to the forecast, and show the correction and its confidence (**O**, needs 2.11, 2.12, 7.4)
 - [ ] 7.5 Weather tracker UI: rain radar and accumulation, cloud, sun/UV index, and hurricane tracks with cone and wind radii, as layers and an alert-strip feed (**S**, needs 7.3)
 - [ ] 7.6 Lightning alerts: GOES GLM strike layer plus a "strike within N km" warning in the alert strip (**S**, needs 2.1)
 - [ ] 7.7 Sun, moon and solunar: sunrise/sunset, golden hour, moon phase and rise/set, solunar windows, computed on device so they work offline (**O**, pure physics module with tests)
