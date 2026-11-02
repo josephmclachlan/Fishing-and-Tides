@@ -296,6 +296,17 @@ export const es: Dict = {
   'surf.advice': 'LAS GUÍAS A VECES NO COINCIDEN Y LOS ROMPIENTES CAMBIAN CON LA ARENA, EL OLEAJE Y LA MAREA. CONSULTE A SURFISTAS LOCALES ANTES DE ENTRAR. NO ES UN CONSEJO DE SEGURIDAD.',
 
   // Harbours and anchorages (PLAN 6.7)
+  'sea.title': 'ESTADO DEL MAR',
+  'sea.comfort': 'CONFORT',
+  'sea.comfortable': 'CÓMODO',
+  'sea.lively': 'MOVIDO',
+  'sea.rough': 'AGITADO',
+  'sea.uncomfortable': 'INCÓMODO',
+  'sea.detail': '{h} M · {tp} S · PEND {steep}',
+  'sea.dominant.wind-sea': 'MANDA MAR DE VIENTO',
+  'sea.dominant.swell': 'MANDA MAR DE FONDO',
+  'sea.cross': 'MAR CRUZADO',
+  'sea.sim': 'SIM',
   'place.title': 'PUERTO',
   'place.none': 'NINGUNO CERCA',
   'place.distance': 'DISTANCIA',

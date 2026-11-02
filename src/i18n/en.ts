@@ -289,6 +289,17 @@ export const en = {
   'surf.hazard.none': 'NONE LISTED',
 
   // Harbours and anchorages (PLAN 6.7)
+  'sea.title': 'SEA STATE',
+  'sea.comfort': 'COMFORT',
+  'sea.comfortable': 'COMFORTABLE',
+  'sea.lively': 'LIVELY',
+  'sea.rough': 'ROUGH',
+  'sea.uncomfortable': 'UNCOMFORTABLE',
+  'sea.detail': '{h} M · {tp} S · STEEP {steep}',
+  'sea.dominant.wind-sea': 'WIND SEA LEADS',
+  'sea.dominant.swell': 'SWELL LEADS',
+  'sea.cross': 'CROSS SEA',
+  'sea.sim': 'SIM',
   'place.title': 'HARBOUR',
   'place.none': 'NONE NEAR',
   'place.distance': 'RANGE',
