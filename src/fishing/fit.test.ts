@@ -19,6 +19,7 @@ for (let r = 0; r < N; r++)
       lng: (c + 0.5) * STEP,
       lat: N * STEP - (r + 0.5) * STEP,
       f: { depthM: r === 0 ? 60 : 15, mouthKm: (c * STEP * 111) / 1, reef: r > 30 && c > 30 ? 1 : 0, slopeMPerKm: c >= 18 && c <= 21 ? 40 : 0 },
+      coastM: 500,
     });
   }
 

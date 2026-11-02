@@ -326,7 +326,13 @@ fetchSeafloor()
         const species = loadSpecies();
         const month = new Date(time.validMs()).getUTCMonth();
         const layer = mountFishing(map, { region: data.region, land: data.land, reefs: data.reefs, mouths, bounds: [REGION.bounds[0][0], REGION.bounds[0][1], REGION.bounds[1][0], REGION.bounds[1][1]] }, { species, month }, occurrences);
-        mountFishingHud(hud, map, layer, time, species);
+        const windOut: [number, number] = [0, 0];
+        const fishEnv = () => {
+          const c = map.getCenter();
+          const w = sampleField(flowSources.wind.field, c.lng, c.lat, windOut) ? Math.hypot(...windOut) : null;
+          return { windMs: w, hsM: seaStateAt(c.lng, c.lat)?.hs ?? null };
+        };
+        mountFishingHud(hud, map, layer, time, species, fishEnv);
       })
       .catch((err) => console.warn('fishing layer unavailable', err));
     // Currents stay in the sea once the coastline mask is here.

@@ -18,7 +18,7 @@ The four weights sum to 1. They start from hand-written rules and are fitted to 
 
 Species: tarpon, snook, jack, snapper, barracuda (`src/fishing/species.ts`).
 
-**What this is not.** The depth ranges, mouth reach and seasons are angling rules of thumb written by hand, and the weights are those rules updated by a few dozen records (below), not checked with local guides. Tide windows, rips, water clarity and temperature are not in the score yet. The score is not a catch forecast. Treat it as a way to pick where to look, and check closed seasons and protected areas (PROTECTED layer, PLAN 6.8) before fishing.
+**What this is not.** The depth ranges, mouth reach and seasons are angling rules of thumb written by hand, and the weights are those rules updated by a few dozen records (below), not checked with local guides. Rips, water clarity and temperature are not in the score yet (tide, light, solunar and weather are in the BITE score below). The score is not a catch forecast. Treat it as a way to pick where to look, and check closed seasons and protected areas (PROTECTED layer, PLAN 6.8) before fishing.
 
 ## Fitted habitat weights (PLAN 4.4)
 
@@ -56,3 +56,18 @@ Not in yet: offshore fronts and FAD positions (no open data source found; fronts
 **Verify checks** (`src/fishing/checks.ts`): OBIS and GBIF reachable, record file fresh (a 90-day cadence), schema, and records inside the box with believable years. They are exported for the daily Action (PLAN 2.8) and SYSTEM CHECK (2.9) to pick up.
 
 **Global Fishing Watch is not in yet.** Its API needs a free token. To add it, register at globalfishingwatch.org/our-apis, put the token in the repo secrets as `GFW_TOKEN`, and a data build can fetch vessel effort for the offshore boat layer. Until then boat mode has no fishing-pressure layer.
+
+## Reading the map and the BITE score (PLAN 4.8)
+
+**Heat.** Amber only: nothing is drawn below fair (0.3), faint amber for fair water and a firmer fill for the best. **REACH** highlights SHORE (within 400 m of the beach: cast, wade, short paddle), BOAT (beyond 400 m) or ALL. **BEST SPOTS** lists up to five separated cells (>= 600 m apart) within 15 km of the reticle with plain reasons (river mouth, reef, drop-off); tap one to fly there.
+
+**BITE** (`src/fishing/bite.ts`) says how good the timing is at the reticle for the slider time:
+
+`timing = 0.40 tide + 0.35 light + 0.15 solunar + 0.10 calm`, `bite = timing x weather x (0.4 + 0.6 x habitat)`
+
+- tide: current flow relative to the fastest within 13 h either side (floor 0.3 at slack). Fish feed on moving water.
+- light: sun -6 to +6 degrees (dawn, dusk) 1.0; to 20 degrees 0.8; night 0.65; midday 0.45.
+- solunar: major window 1.0, minor 0.8, else 0.5, tilted by the day rating. Folklore, so the smallest weight.
+- calm and weather: wind above 5 m/s and waves above 1 m pull both down; heavy rain takes a little more (not wired to a feed yet).
+
+All weights are hand-written rules of thumb, not checked against catches. BEST TIMES is the same timing across the day in 10-minute steps (no weather, which is only known for the slider hour), with the three best runs listed. Water temperature and clarity are not included until PLAN 2.4, 2.12 and 6.1 land (tracked in 7.11).
