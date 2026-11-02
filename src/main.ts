@@ -10,6 +10,9 @@ import { mountSeek } from './seek';
 import { fetchSeafloor } from './adapters/seafloor';
 import { mountSeafloor } from './layers/seafloor';
 import { mountSeafloorHud } from './seafloor-hud';
+import { layers } from './layers/registry';
+import { bindMapLayers } from './layers/visibility';
+import { mountLayersPanel } from './layers-panel';
 
 registerSW({ immediate: true });
 
@@ -21,6 +24,9 @@ mountHud(hud, map, () => mockConditions());
 // The lock-on effect plays only for a picked target, never on scroll/pinch zoom.
 const enhancer = createEnhancer(map, createLockFx(map, hud));
 mountSeek(hud, (t) => enhancer.go(t));
+// Layer toggles and activity presets; other layers register into `layers` (src/layers/registry.ts).
+bindMapLayers(map, layers);
+mountLayersPanel(hud, layers);
 
 // Depth, reefs and seamarks: static assets, precached for offline use.
 fetchSeafloor()
