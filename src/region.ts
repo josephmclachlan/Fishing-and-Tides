@@ -8,11 +8,18 @@ export const REGION = {
   initialZoom: 9.3,
 };
 
-/** Zoom tiers from DESIGN.md §5. */
+/** Zoom tiers from DESIGN.md §5: MACRO below COAST, COAST from 8, SPOT from 12. */
 export type Tier = 'MACRO' | 'COAST' | 'SPOT';
+export const TIERS: readonly Tier[] = ['MACRO', 'COAST', 'SPOT'];
+export const TIER_ZOOM = { COAST: 8, SPOT: 12 } as const;
+/** Zoom distance past a tier edge needed to switch tier, so hovering on an edge doesn't flap. */
+export const TIER_HYSTERESIS = 0.15;
+/** Graticule spacing per tier, degrees. */
+export const GRATICULE_STEP: Record<Tier, number> = { MACRO: 1, COAST: 0.1, SPOT: 0.01 };
+
 export function tierForZoom(z: number): Tier {
-  if (z < 8) return 'MACRO';
-  if (z < 12) return 'COAST';
+  if (z < TIER_ZOOM.COAST) return 'MACRO';
+  if (z < TIER_ZOOM.SPOT) return 'COAST';
   return 'SPOT';
 }
 
