@@ -1,7 +1,8 @@
 /**
- * Shore and kayak target species (PLAN 4.5). Plain data for the rule-based habitat score in
- * habitat.ts. Names are i18n keys (`fish.<id>`). The numbers are angling-guide rules of thumb,
- * not fitted models: PLAN 4.4 / 4.7 replace them with OBIS/GBIF-fitted suitability.
+ * Shore and kayak target species (PLAN 4.5). Plain data for the habitat score in habitat.ts.
+ * Names are i18n keys (`fish.<id>`). The numbers are angling-guide rules of thumb. The structure
+ * weights `w` are only the prior: fit.ts updates them from the OBIS/GBIF records (PLAN 4.4).
+ * Depth range, mouth reach and season are used as written.
  */
 export type SpeciesId = 'tarpon' | 'snook' | 'jack' | 'snapper' | 'barracuda';
 
@@ -9,7 +10,7 @@ export interface Species {
   id: SpeciesId;
   /** Water depth, m: [absolute min, ideal from, ideal to, absolute max]. Score is 0 outside min..max. */
   depthM: readonly [number, number, number, number];
-  /** Weights of the structure terms (sum to 1): river mouth, reef, drop-off. */
+  /** Prior weights of the structure terms (sum to 1): river mouth, reef, drop-off. Fitted in fit.ts. */
   w: { mouth: number; reef: number; drop: number };
   /** How far, km, a river mouth's pull reaches (score falls off as a Gaussian of this width). */
   mouthReachKm: number;

@@ -23,7 +23,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 2.5 Copernicus/HYCOM currents adapter (**S**). Copernicus SMOC via Open-Meteo, 0.25° regional grid plus a 1/12° coastal nest, forecast mean past day 9; `src/adapters/currents.ts`
 - [x] 2.6 GEBCO bathymetry clipped to region, packed as a tile/grid asset, plus reefs, seamarks and a depth layer (**S**)
 - [x] 2.7 UHSLC Limón gauge fetch for tide validation (**S**). Done by `scripts/fit-tides.ts` (3.1), which fetches UHSLC and validates on held-out years
-- [ ] 2.8 Verify tool, automatic: scheduled daily GitHub Action runs one check per adapter (reachability, freshness, schema, physical ranges, cross-source agreement) and opens or updates an issue on failure; checks live in `src/verify/`, shared with 2.9 (**O**, needs 2.1; grow it with each adapter)
+- [x] 2.8 Verify tool, automatic: scheduled daily GitHub Action runs one check per adapter (reachability, freshness, schema, physical ranges, cross-source agreement) and opens or updates an issue on failure; checks live in `src/verify/`, shared with 2.9 (**O**, needs 2.1; grow it with each adapter). `.github/workflows/verify.yml` runs `npm run verify` (scripts/verify, the shared `src/verify/registry.ts`) daily at 06:40 UTC and keeps one `verify`-labelled issue
 - [x] 2.9 Verify tool, manual: SYSTEM CHECK HUD panel with a green/amber/red row per feed, the failing check and its age, and a re-run button (done on the checks that exist; each new adapter adds to `src/verify/registry.ts`). Still to do once 2.11 and 2.12 land: compare each forecast with what was observed (**S**, needs 2.8)
 - [x] 2.10 Research note first (`docs/OBSERVATIONS.md`): confirm which local observation sources are actually reachable and usable for Gandoca to Limón (UHSLC Limón gauge, Limón airport METAR MRLM, IMN stations, any wave or met buoy near the coast, satellite passes), with URLs, update cadence, licence and format; if no wave buoy exists, say so (**S**)
 - [x] 2.11 Live observation adapters: UHSLC Limón tide gauge, Limón airport METAR (MRLM, ID to confirm in 2.10), and IMN stations if reachable; each returns data plus `fetchedAt` and its own observation time (**S**, needs 2.1, 2.10; extends 2.7). IOC live gauge direct from the browser (`src/adapters/gauge.ts`, compared with the harmonic tide), MRLM METAR relayed by the hourly data build (`src/adapters/metar.ts`); IMN has no feed
@@ -42,7 +42,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [ ] 4.1 Tide chart panel and spot pages (**S**)
 - [x] 4.2 Rip risk overlay and spot-tier breaker readouts (**S**). `src/layers/rip.ts`, `src/surf-hud.ts`
 - [x] 4.3 Protected-zone overlays: Gandoca-Manzanillo, Cahuita (**S**)
-- [ ] 4.4 Species habitat model framework and scoring (**O**)
+- [x] 4.4 Species habitat model framework and scoring (**O**). Weights fitted to OBIS/GBIF records with the 4.5 rules as prior; `src/fishing/fit.ts`, see `docs/FISHING.md`
 - [x] 4.5 Fishing layer: shore/kayak mode (**S**)
 - [x] 4.6 Fishing layer: boat mode, GPS track, drop-pin log (**S**)
 - [x] 4.7 OBIS/GBIF and Global Fishing Watch data folded into scores (**S**)

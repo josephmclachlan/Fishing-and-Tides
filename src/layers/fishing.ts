@@ -2,6 +2,7 @@
  * Shore and kayak fishing layer (PLAN 4.5): the habitat score of the chosen species, drawn as a
  * heat of ~220 m cells within a paddle or long cast of the coast, from the coast tier in.
  * Green is fair, amber is the best water. Style layer ids start with `fh-` (catalog 'fishing').
+ * The weights are fitted to the OBIS/GBIF records when the layer mounts (PLAN 4.4, fishing/fit.ts).
  */
 import type { ExpressionSpecification, Map } from 'maplibre-gl';
 import type { FeatureCollection } from 'geojson';
@@ -10,6 +11,7 @@ import { firstSymbolId } from '../map';
 import { CONTOURS_FROM } from './seafloor';
 import { buildCells, cellIndexAt, cellRing, type FishingInput, type Mouth } from '../fishing/cells';
 import { baseScore, habitatScore, seasonFactor } from '../fishing/habitat';
+import { fitWeights, recordCells, type HabitatFit } from '../fishing/fit';
 import { SPECIES, speciesById, type SpeciesId } from '../fishing/species';
 import { occurrenceBoost, recordsFor, withEvidence } from '../fishing/occurrences';
 import type { OccurrenceFile } from '../fishing/occurrence-taxa';
@@ -50,6 +52,8 @@ export interface FishingLayer {
   setMonth(month: number): void;
   /** Habitat score 0..1 at a point for the current species and month, or null outside the fishing reach. */
   scoreAt(lng: number, lat: number): number | null;
+  /** The fitted habitat weights per species (PLAN 4.4). */
+  fits: Readonly<Record<SpeciesId, HabitatFit>>;
 }
 
 export function mountFishing(map: Map, input: FishingInput, initial: { species: SpeciesId; month: number }, occurrences: OccurrenceFile | null = null): FishingLayer {
@@ -61,11 +65,13 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
 
   // Records nudge a species' score where it has been seen (src/fishing/occurrences.ts).
   const boostAt = (id: SpeciesId, lng: number, lat: number) => occurrenceBoost(recordsFor(occurrences, id), lng, lat);
+  // Habitat weights: the hand-written rules updated by the records (a few ms for all species).
+  const fits = Object.fromEntries(SPECIES.map((s) => [s.id, fitWeights(s, built.cells, recordCells(built.lattice, built.index, built.cells, recordsFor(occurrences, s.id)))])) as Record<SpeciesId, HabitatFit>;
   const geojson: FeatureCollection = {
     type: 'FeatureCollection',
     features: built.cells.map((c) => {
       const properties: Record<string, number> = {};
-      for (const s of SPECIES) properties[s.id] = Math.round(withEvidence(baseScore(s, c.f), boostAt(s.id, c.lng, c.lat)) * 100) / 100; // season applied in the paint
+      for (const s of SPECIES) properties[s.id] = Math.round(withEvidence(baseScore(s, c.f, fits[s.id].weights), boostAt(s.id, c.lng, c.lat)) * 100) / 100; // season applied in the paint
       return { type: 'Feature' as const, properties, geometry: { type: 'Polygon' as const, coordinates: [cellRing(c.lng, c.lat)] } };
     }),
   };
@@ -85,6 +91,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   else map.once('style.load', add);
 
   return {
+    fits,
     setSpecies(id) {
       sp = speciesById(id);
       paint();
@@ -97,7 +104,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
       const i = cellIndexAt(built.lattice, built.index, lng, lat);
       if (i < 0) return null;
       const c = built.cells[i];
-      return Math.min(1, habitatScore(sp, c.f, month) * (1 + (boostAt(sp.id, c.lng, c.lat))));
+      return Math.min(1, habitatScore(sp, c.f, month, fits[sp.id].weights) * (1 + (boostAt(sp.id, c.lng, c.lat))));
     },
   };
 }

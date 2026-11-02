@@ -4,6 +4,8 @@
  * Place names (spots, region) are proper nouns and stay in src/region.ts.
  * Labels are monospace caps to suit the HUD.
  */
+import { helpEn } from './help-en';
+
 export const en = {
   // Top bar and footer
   'hud.tier': 'TIER',
@@ -406,6 +408,7 @@ export const en = {
   'settings.on': 'ON',
   'settings.off': 'OFF',
   'settings.enhanceTitle': 'ENHANCE fly-to effect: on plays the satellite zoom, off flies the same route with smooth moves only',
+  ...helpEn,
 
   // Sun, moon and solunar (PLAN 7.7). Times are Costa Rica local time, computed on the device.
   'astro.title': 'SUN & MOON',

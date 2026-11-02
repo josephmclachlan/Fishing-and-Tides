@@ -52,8 +52,6 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions,
       <button type="button" class="dock-bar" id="dock-bar" aria-controls="dock-body" aria-expanded="false" title="${t('sheet.time')}">
         <span class="dock-chev" aria-hidden="true"></span>
         <span class="ro d-time"><span class="seg" id="d-off">--</span><span class="seg green" id="d-valid">--</span></span>
-        <span class="ro"><span class="lbl">${t('cond.swell')}</span><span class="seg" id="d-swell">--</span></span>
-        <span class="ro"><span class="lbl">${t('cond.wind')}</span><span class="seg" id="d-wind">--</span></span>
         <span class="ro"><span class="lbl">${t('cond.tide')}</span><span class="seg" id="d-tide">--</span></span>
         <span class="ro d-status" id="d-status" hidden><span class="tag" id="d-net"></span><span class="seg" id="d-age"></span></span>
       </button>
@@ -116,10 +114,10 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions,
   const tick = () => {
     const d = getData();
     $('clock').textContent = new Date().toISOString().slice(11, 19);
-    $('swell').textContent = $('d-swell').textContent = fmt(d.swellHeightM);
+    $('swell').textContent = fmt(d.swellHeightM);
     $('period').textContent = fmt(d.swellPeriodS, 0);
     $('sdir').textContent = pad3(d.swellDirDeg);
-    $('wind').textContent = $('d-wind').textContent = fmt(d.windKt, 0);
+    $('wind').textContent = fmt(d.windKt, 0);
     $('wdir').textContent = pad3(d.windDirDeg);
     $('sst').textContent = fmt(d.waterTempC);
     $('tide').textContent = $('d-tide').textContent = (d.tideM >= 0 ? '+' : '') + fmt(d.tideM, 2) + (d.tideRising ? '▲' : '▼');

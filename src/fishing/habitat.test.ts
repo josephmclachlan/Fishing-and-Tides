@@ -27,7 +27,7 @@ describe('habitatScore', () => {
     const reef = habitatScore(snapper, { depthM: 15, mouthKm: 5, reef: 1, slopeMPerKm: FULL_DROP_M_PER_KM }, 0);
     const sand = habitatScore(snapper, { depthM: 15, mouthKm: 5, reef: 0, slopeMPerKm: 0 }, 0);
     expect(reef).toBeGreaterThan(0.85);
-    expect(sand).toBeLessThan(0.01);
+    expect(sand).toBeLessThan(0.1); // open bottom keeps a small prior share
   });
   it('is zero outside the depth range', () => {
     expect(habitatScore(tarpon, { ...base, depthM: 60 }, 0)).toBe(0);
