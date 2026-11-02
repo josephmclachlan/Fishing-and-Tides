@@ -11,7 +11,7 @@
  *   Energy flux        P = E Cg, W per metre of crest (the "wave power" readout)
  *   Breaking speed     cb = √(g (hb + Hb))                    solitary-wave celerity at the break
  *   Impact pressure    p = ½ ρ cb², Pa                         what a breaking crest pushes with
- *   Longshore current  V = 1.17 √(g Hb) sin αb cos αb         Longuet-Higgins (1970) / CEM II-4
+ *   Longshore current  V = 1.17 √(g Hb,rms) sin αb cos αb     Komar & Inman (1970) / CEM II-4; Hb,rms = Hb,s/√2
  *
  * Sea states use Hs in place of H throughout (Komar & Gaughan with Hs gives the significant
  * breaker height). References: CEM (2002) II-4; Dean & Dalrymple (2002) Coastal Processes ch. 4.
@@ -86,6 +86,13 @@ export interface BreakerInput {
   angleDeg?: number;
 }
 
+/** Wave angle at the break by Snell's law from a known angle at depth h (straight contours in between). */
+export function angleAtBreak(angleDeg: number, T: number, h: number, hb: number): number {
+  if (!(hb > 0) || !(h > 0)) return angleDeg;
+  const s = (Math.sin(angleDeg * RAD) * kinematics(T, hb).c) / kinematics(T, h).c;
+  return Math.asin(Math.max(-1, Math.min(1, s))) / RAD;
+}
+
 export interface Breaker {
   /** Breaker height, m. */
   Hb: number;
@@ -102,7 +109,7 @@ export interface Breaker {
   speedMs: number;
   /** Impact pressure of the breaking crest, kPa (≈ tonnes-force per m² × 9.81). */
   impactKPa: number;
-  /** Longshore current, m/s (signed with the angle; 0 if the angle is unknown). */
+  /** Longshore current from the rms breaker height, m/s (signed with the angle; 0 if the angle is unknown). */
   longshoreMs: number;
 }
 
@@ -125,7 +132,7 @@ export function breaker(inp: BreakerInput): Breaker {
     powerKWm: P / 1000,
     speedMs,
     impactKPa: (0.5 * RHO_SEA * speedMs * speedMs) / 1000,
-    longshoreMs: inp.angleDeg == null ? 0 : longshoreCurrent(Hb, inp.angleDeg),
+    longshoreMs: inp.angleDeg == null ? 0 : longshoreCurrent(Hb / Math.SQRT2, inp.angleDeg),
   };
 }
 

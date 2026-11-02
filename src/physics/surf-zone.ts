@@ -3,7 +3,7 @@
  * just outside the break, then the breaker model. Pure, no DOM, SI units.
  */
 import { M_PER_DEG_LAT, M_PER_DEG_LNG } from './bathy';
-import { breaker, meanSlope, type Breaker } from './breaking';
+import { angleAtBreak, breaker, meanSlope, type Breaker } from './breaking';
 import { nearshorePoint, refractAt, type DepthFn, type RefractionResult, type RefractOptions } from './refraction';
 
 const RAD = Math.PI / 180;
@@ -75,7 +75,10 @@ export function spotRefraction(depth: DepthFn, geom: SpotGeometry, sea: SeaState
 /** The breaker for a sea state, from the spot's geometry and refraction. Cheap. */
 export function spotWavesFrom(geom: SpotGeometry, refraction: RefractionResult, sea: SeaState): SpotWaves {
   const angleDeg = Number.isNaN(refraction.fromDeg) ? 0 : wrap180(refraction.fromDeg - geom.normalDeg);
-  const b = breaker({ H0: sea.Hs, T: sea.Tp, Kr: refraction.Kr || 0, slope: geom.slope, angleDeg: Math.abs(angleDeg) < 90 ? angleDeg : 0 });
+  const inp = { H0: sea.Hs, T: sea.Tp, Kr: refraction.Kr || 0, slope: geom.slope };
+  // The arrival angle is at the read point; waves turn further in before they break.
+  const atRead = Math.abs(angleDeg) < 90 ? angleDeg : 0;
+  const b = breaker({ ...inp, angleDeg: angleAtBreak(atRead, sea.Tp, refraction.depth, breaker(inp).hb) });
   return { point: geom.point, normalDeg: geom.normalDeg, slope: geom.slope, refraction, breaker: b, angleDeg };
 }
 

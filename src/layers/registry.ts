@@ -28,7 +28,7 @@ export const LAYERS: readonly LayerDef[] = [
   { id: 'wind', group: 'OCEAN' },
   { id: 'sst', group: 'OCEAN' },
   { id: 'clarity', group: 'OCEAN' },
-  { id: 'rip', group: 'SURF ZONE' },
+  { id: 'rip', group: 'SURF ZONE', mapPrefixes: ['rp-'] },
   { id: 'surf', group: 'SURF ZONE' },
   { id: 'depth', group: 'SEAFLOOR', mapPrefixes: ['sf-shade', 'sf-contour'] },
   { id: 'reefs', group: 'SEAFLOOR', mapPrefixes: ['sf-reef', 'sf-zone', 'sf-bottom'] },

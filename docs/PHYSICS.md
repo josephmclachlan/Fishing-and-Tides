@@ -66,3 +66,7 @@ Known rip channels per spot aren't in the data yet; `knownChannel` is ready for 
 Spot refraction (70 to 300 ms) runs in a Web Worker. The main thread posts the seafloor grids once, then asks for a spot (pin, sea state, tide level, wind). `spot-model.ts` caches the spot geometry per pin and the refraction per period (0.5 s), direction (5°) and spread, so a change in height, tide or wind, or scrubbing the slider through hours with the same swell, only re-runs the breaker and rip formulas (well under a millisecond). The client keeps one request in flight and lets the newest waiting request replace older ones, so a fast scrub never builds a backlog. Without Worker support it runs the same model in-thread.
 
 The HUD's RIP readout now comes from this for the spot nearest the map centre, using the live tide and wind and, until the waves adapter (2.2) lands, the mock swell.
+
+## On the map (PLAN 4.2)
+
+`src/spot-physics.ts` runs every named spot through the worker whenever the forecast hour, swell, wind or tide changes. The RIP RISK layer (`src/layers/rip.ts`) draws a bar along each spot's surf zone in green, amber or red. For MOD and HIGH it adds a dashed arrow running out to the expected rip reach, labelled with strength, speed, reach and the breaker. At the spot tier the side panel's SURF ZONE block shows the breaker height and type, wave power, longshore drift, rip strength and reach for the spot nearest the reticle. The longshore drift uses the rms breaker height and the angle at the break, found by Snell's law from the 10 m read point.

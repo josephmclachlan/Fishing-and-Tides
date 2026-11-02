@@ -36,7 +36,7 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--amber)
 
 .top { top: max(8px, env(safe-area-inset-top)); left: 8px; right: 8px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
 .title { font-size: 15px; letter-spacing: 2px; margin-right: auto; }
-.side { top: 70px; left: 8px; width: 210px; display: grid; gap: 4px; }
+.side { top: 70px; left: 8px; width: 210px; display: grid; gap: 4px; align-content: start; max-height: calc(100% - 70px - var(--dock-h, 150px) - 16px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--amber) transparent; }
 .bottom { bottom: max(8px, env(safe-area-inset-bottom)); left: 8px; right: 8px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
 .ph { font-size: 12px; letter-spacing: 3px; border-bottom: 1px solid var(--amber-dim); padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between; }
 .tag { color: var(--bg); background: var(--amber); padding: 0 4px; text-shadow: none; }

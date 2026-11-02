@@ -12,6 +12,8 @@ export interface PhysicsClient {
   spot(req: SpotRequest): Promise<SpotResult | null>;
   /** Like `spot`, but if called again before the previous one starts, the earlier call resolves with the newer result. */
   latest(req: SpotRequest): Promise<SpotResult | null>;
+  /** Several spots at once, coalesced the same way (a newer batch replaces a waiting one). */
+  latestMany(reqs: SpotRequest[]): Promise<(SpotResult | null)[]>;
   dispose(): void;
 }
 
@@ -47,34 +49,41 @@ export function createPhysicsClient(grids: SeafloorGrids): PhysicsClient {
     send = (req) => Promise.resolve(model.spot(req));
   }
 
-  // One in flight; the most recent waiting request replaces any older waiting one.
+  return {
+    spot: send,
+    latest: coalesce(send),
+    latestMany: coalesce((reqs: SpotRequest[]) => Promise.all(reqs.map(send))),
+    dispose,
+  };
+}
+
+/**
+ * Wrap an async function so only one call runs at a time; while it runs, the most recent
+ * new call waits and replaces any older waiting one, and everyone who waited gets its result.
+ */
+export function coalesce<A, R>(fn: (arg: A) => Promise<R>): (arg: A) => Promise<R> {
   let busy = false;
-  let queued: { req: SpotRequest; waiters: ((r: Promise<SpotResult | null>) => void)[] } | null = null;
-  const run = (req: SpotRequest): Promise<SpotResult | null> => {
+  let queued: { arg: A; waiters: ((r: Promise<R>) => void)[] } | null = null;
+  const run = (arg: A): Promise<R> => {
     busy = true;
-    const p = send(req);
+    const p = fn(arg);
     p.finally(() => {
       busy = false;
       if (queued) {
         const q = queued;
         queued = null;
-        const next = run(q.req);
+        const next = run(q.arg);
         q.waiters.forEach((w) => w(next));
       }
     }).catch(() => {});
     return p;
   };
-
-  return {
-    spot: send,
-    latest(req) {
-      if (!busy) return run(req);
-      return new Promise((resolve) => {
-        const waiters = queued?.waiters ?? [];
-        waiters.push((p) => resolve(p));
-        queued = { req, waiters };
-      });
-    },
-    dispose,
+  return (arg) => {
+    if (!busy) return run(arg);
+    return new Promise<R>((resolve) => {
+      const waiters = queued?.waiters ?? [];
+      waiters.push(resolve);
+      queued = { arg, waiters };
+    });
   };
 }

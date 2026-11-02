@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  GAMMA_DEFAULT, breaker, breakerHeight, breakerIndex, breakerType, depthLimited, energyDensity, iribarren, longshoreCurrent, meanSlope, waveFlux,
+  GAMMA_DEFAULT, angleAtBreak, breaker, breakerHeight, breakerIndex, breakerType, depthLimited, energyDensity, iribarren, longshoreCurrent, meanSlope, waveFlux,
 } from './breaking';
 import { G, RHO_SEA } from './waves';
 
@@ -60,6 +60,13 @@ describe('energy and force', () => {
     // Sheltered (Kr → 0): nothing arrives.
     const lee = breaker({ H0: 1.2, T: 11, Kr: 0, slope: null });
     expect([lee.Hb, lee.powerKWm, lee.type]).toEqual([0, 0, null]);
+  });
+
+  it('waves turn toward the normal between the read point and the break', () => {
+    const a = angleAtBreak(30, 10, 10, 1.5);
+    expect(a).toBeLessThan(30);
+    expect(a).toBeGreaterThan(10);
+    expect(angleAtBreak(-30, 10, 10, 1.5)).toBeCloseTo(-a, 9);
   });
 
   it('mean slope from a point and its distance', () => {
