@@ -10,9 +10,22 @@ import { firstSymbolId } from '../map';
 import { buildCells, cellIndexAt, cellRing, type FishingInput, type Mouth } from '../fishing/cells';
 import { baseScore, habitatScore, seasonFactor } from '../fishing/habitat';
 import { SPECIES, speciesById, type SpeciesId } from '../fishing/species';
+import { occurrenceBoost, recordsFor, withEvidence } from '../fishing/occurrences';
+import type { OccurrenceFile } from '../fishing/occurrence-taxa';
 
 const { COAST, SPOT } = TIER_ZOOM;
 const DIR = 'data/fishing/mouths.geojson';
+const OCC = 'data/fishing/occurrences.json';
+
+/** OBIS/GBIF records (PLAN 4.7). They only nudge scores, so a failed load just means no nudge. */
+export async function fetchOccurrences(base: string = import.meta.env.BASE_URL): Promise<OccurrenceFile | null> {
+  try {
+    const res = await fetch(`${base}${OCC}`);
+    return res.ok ? ((await res.json()) as OccurrenceFile) : null;
+  } catch {
+    return null;
+  }
+}
 
 export async function fetchMouths(base: string = import.meta.env.BASE_URL): Promise<{ data: Mouth[]; fetchedAt: number }> {
   const res = await fetch(`${base}${DIR}`);
@@ -38,18 +51,20 @@ export interface FishingLayer {
   scoreAt(lng: number, lat: number): number | null;
 }
 
-export function mountFishing(map: Map, input: FishingInput, initial: { species: SpeciesId; month: number }): FishingLayer {
+export function mountFishing(map: Map, input: FishingInput, initial: { species: SpeciesId; month: number }, occurrences: OccurrenceFile | null = null): FishingLayer {
   const built = buildCells(input);
   let sp = speciesById(initial.species);
   let month = initial.month;
   const amber = cssColour('--amber', '#ffb000');
   const green = cssColour('--green', '#39ff7a');
 
+  // Records nudge a species' score where it has been seen (src/fishing/occurrences.ts).
+  const boostAt = (id: SpeciesId, lng: number, lat: number) => occurrenceBoost(recordsFor(occurrences, id), lng, lat);
   const geojson: FeatureCollection = {
     type: 'FeatureCollection',
     features: built.cells.map((c) => {
       const properties: Record<string, number> = {};
-      for (const s of SPECIES) properties[s.id] = Math.round(baseScore(s, c.f) * 100) / 100; // season applied in the paint
+      for (const s of SPECIES) properties[s.id] = Math.round(withEvidence(baseScore(s, c.f), boostAt(s.id, c.lng, c.lat)) * 100) / 100; // season applied in the paint
       return { type: 'Feature' as const, properties, geometry: { type: 'Polygon' as const, coordinates: [cellRing(c.lng, c.lat)] } };
     }),
   };
@@ -79,7 +94,9 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     },
     scoreAt(lng, lat) {
       const i = cellIndexAt(built.lattice, built.index, lng, lat);
-      return i < 0 ? null : habitatScore(sp, built.cells[i].f, month);
+      if (i < 0) return null;
+      const c = built.cells[i];
+      return Math.min(1, habitatScore(sp, c.f, month) * (1 + (boostAt(sp.id, c.lng, c.lat))));
     },
   };
 }

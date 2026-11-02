@@ -45,7 +45,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [ ] 4.4 Species habitat model framework and scoring (**O**)
 - [x] 4.5 Fishing layer: shore/kayak mode (**S**)
 - [x] 4.6 Fishing layer: boat mode, GPS track, drop-pin log (**S**)
-- [ ] 4.7 OBIS/GBIF and Global Fishing Watch data folded into scores (**S**)
+- [x] 4.7 OBIS/GBIF and Global Fishing Watch data folded into scores (**S**)
 
 ## Phase 5: Offline and polish
 - [ ] 5.1 "Sync for trip": tiles, bathymetry, 7-day forecasts, scores to IndexedDB (**O**)

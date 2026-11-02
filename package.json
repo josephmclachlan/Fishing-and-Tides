@@ -12,6 +12,7 @@
     "data:tides": "node scripts/fit-tides.ts",
     "data:zones": "node scripts/fetch-zones.ts",
     "data:fishing": "node scripts/fetch-fishing.ts",
+    "data:occurrences": "node scripts/fetch-occurrences.ts",
     "data:forecast": "node scripts/fetch-forecast.ts",
     "data:climatology": "node scripts/fetch-climatology.ts"
   },
