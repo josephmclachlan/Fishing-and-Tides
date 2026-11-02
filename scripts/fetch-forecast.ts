@@ -15,6 +15,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { get } from './forecast/common.ts';
 import { buildWind } from './forecast/wind.ts';
 import { buildWaves } from './forecast/waves.ts';
+import { buildStorms } from './forecast/storms.ts';
 
 const OUT = 'public/data/forecast';
 /**
@@ -25,6 +26,8 @@ const OUT = 'public/data/forecast';
 const FEEDS: Record<string, { build: (dir: string) => Promise<string>; refreshH: number; series?: string[] }> = {
   wind: { build: buildWind, refreshH: 6 },
   waves: { build: buildWaves, refreshH: 12 },
+  // NHC advisories come every 6 h in season and it sends no CORS headers, so the build relays them.
+  storms: { build: buildStorms, refreshH: 3 },
 };
 
 const wanted = process.argv.slice(2).filter((a) => !a.startsWith('-'));
@@ -37,9 +40,9 @@ async function keepPrevious(name: string): Promise<string> {
   let oldest = '';
   for (const series of FEEDS[name].series ?? [name]) {
     const meta = await (await get(`${fallback}${series}.json`, {}, 2)).json();
-    const bin = await (await get(`${fallback}${meta.file}`, {}, 2)).arrayBuffer();
     writeFileSync(`${OUT}/${series}.json`, JSON.stringify(meta));
-    writeFileSync(`${OUT}/${meta.file}`, new Uint8Array(bin));
+    // Packed grids have a binary beside the manifest; plain JSON feeds (storms) do not.
+    if (meta.file) writeFileSync(`${OUT}/${meta.file}`, new Uint8Array(await (await get(`${fallback}${meta.file}`, {}, 2)).arrayBuffer()));
     if (!oldest || meta.fetchedAt < oldest) oldest = meta.fetchedAt;
   }
   return oldest;
