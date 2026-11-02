@@ -242,14 +242,22 @@ export function nearshorePoint(depth: DepthFn, pin: [number, number], targetDept
   const mx = M_PER_DEG_LNG * Math.cos(pin[1] * RAD);
   for (let i = 0; i < 72; i++) {
     const a = i * 5 * RAD;
-    for (let d = 25; d <= maxKm * 1000 && d < bestD; d += 25) {
-      const p: [number, number] = [pin[0] + (Math.sin(a) * d) / mx, pin[1] + (Math.cos(a) * d) / M_PER_DEG_LAT];
-      const h = depth(p[0], p[1]);
-      if (h >= targetDepth) {
-        best = p;
-        bestD = d;
-        break;
+    const at = (d: number): [number, number] => [pin[0] + (Math.sin(a) * d) / mx, pin[1] + (Math.cos(a) * d) / M_PER_DEG_LAT];
+    for (let d = 25; d <= maxKm * 1000 && d < bestD + 25; d += 25) {
+      if (!(depth(...at(d)) >= targetDepth)) continue;
+      // Bisect the last 25 m to about a metre so ties between headings resolve to the truly nearest.
+      let lo = d - 25;
+      let hi = d;
+      while (hi - lo > 1) {
+        const mid = (lo + hi) / 2;
+        if (depth(...at(mid)) >= targetDepth) hi = mid;
+        else lo = mid;
       }
+      if (hi < bestD) {
+        best = at(hi);
+        bestD = hi;
+      }
+      break;
     }
   }
   return best;
