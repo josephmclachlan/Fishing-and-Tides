@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bracket, pickSeries, projectMonthly, scalarAt, vectorAt } from './frames';
+import { bracket, meanSeries, overlayFields, pickSeries, projectMonthly, scalarAt, vectorAt } from './frames';
 import type { GridSeries } from './pack';
 
 const H = 3.6e6;
@@ -73,5 +73,30 @@ describe('projectMonthly', () => {
     expect(p.values.u[b.i0][0]).toBe(11);
     expect(p.values.u[b.i1][0]).toBe(0);
     expect(p.values.u[b.i0]).toBe(months.values.u[11]);
+  });
+});
+
+describe('meanSeries', () => {
+  it('averages frames and covers every time', () => {
+    const m = meanSeries(series([0, H, 2 * H]));
+    expect(m.values.u[0][0]).toBeCloseTo(1);
+    expect(m.values.v[0][3]).toBeNaN();
+    expect(bracket(m.meta.times, Date.UTC(2030, 0, 1))).not.toBeNull();
+    expect(m.meta.kind).toBe('climatology');
+  });
+});
+
+describe('overlayFields', () => {
+  const coarse = { cols: 3, rows: 3, lon0: 0, lat0: 2, dlon: 1, dlat: 1, u: new Float32Array(9).fill(1), v: new Float32Array(9).fill(0) };
+  const fine = { cols: 3, rows: 3, lon0: 0.5, lat0: 1.5, dlon: 0.5, dlat: 0.5, u: Float32Array.from([5, 5, 5, 5, 5, 5, 5, 5, NaN]), v: new Float32Array(9) };
+  const o = overlayFields(fine, coarse);
+  const at = (lng: number, lat: number) => o.u[Math.round((2 - lat) / 0.5) * o.cols + Math.round(lng / 0.5)];
+  it('uses the fine spacing over the coarse extent', () => {
+    expect([o.cols, o.rows, o.dlon]).toEqual([5, 5, 0.5]);
+  });
+  it('takes fine values inside the nest and coarse outside', () => {
+    expect(at(1, 1)).toBe(5);
+    expect(at(0, 0)).toBe(1);
+    expect(at(2, 2)).toBe(1);
   });
 });

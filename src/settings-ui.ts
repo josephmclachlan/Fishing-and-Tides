@@ -39,4 +39,20 @@ export function mountSettingsUi(root: HTMLElement, settings: Settings) {
   sun.addEventListener('click', () => settings.setSun(!settings.sun()));
   settings.subscribe(renderSun);
   renderSun();
+
+  // UI sounds (src/sounds.ts): off by default.
+  const snd = document.createElement('button');
+  snd.type = 'button';
+  snd.className = 'tab snd-toggle';
+  snd.title = t('settings.soundTitle');
+  root.querySelector('.top-tabs')?.appendChild(snd);
+  const renderSnd = () => {
+    const on = settings.sound();
+    snd.setAttribute('aria-pressed', String(on));
+    snd.classList.toggle('on', on);
+    snd.textContent = `${t('settings.sound')}: ${t(on ? 'settings.on' : 'settings.off')}`;
+  };
+  snd.addEventListener('click', () => settings.setSound(!settings.sound()));
+  settings.subscribe(renderSnd);
+  renderSnd();
 }

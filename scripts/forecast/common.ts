@@ -1,7 +1,8 @@
 /**
  * Shared helpers for the forecast data build (docs/DATA.md). Node 22.18+, no dependencies.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
 import { encodeSeries, type GridGeom, type SeriesMeta } from '../../src/adapters/pack.ts';
 
 export const UA = 'fishing-and-tides data build (github.com/josephmclachlan/Fishing-and-Tides)';
@@ -45,15 +46,18 @@ export const uvToward = (speed: number, towardDeg: number): [number, number] => 
  * Valid times to keep, matching the slider's steps (src/time.ts): hourly for the first 7 days,
  * 3-hourly after. Returns indices into `times` (epoch ms, hourly).
  */
-export function keepIndices(times: readonly number[]): number[] {
+export function keepIndices(times: readonly number[], hourlyUntilH = 168): number[] {
   const t0 = times[0];
   const out: number[] = [];
   times.forEach((t, i) => {
     const h = Math.round((t - t0) / 3.6e6);
-    if (h <= 168 || h % 3 === 0) out.push(i);
+    if (h <= hourlyUntilH || h % 3 === 0) out.push(i);
   });
   return out;
 }
+
+/** A unit vector pointing where something travels, from the direction it comes FROM (waves). */
+export const unitFrom = (fromDeg: number): [number, number] => uvFrom(1, fromDeg);
 
 export interface OmPoint {
   hourly: Record<string, (number | null)[]> & { time: number[] };
@@ -65,6 +69,7 @@ export interface OmPoint {
  */
 export async function openMeteoGrid(endpoint: string, query: string, pts: [number, number][], chunk = 100, pauseMs = 12000): Promise<OmPoint[]> {
   const out: OmPoint[] = [];
+  if (pts.length === 0) return out;
   for (let i = 0; i < pts.length; i += chunk) {
     const part = pts.slice(i, i + chunk);
     const url = `${endpoint}?latitude=${part.map((p) => p[1]).join(',')}&longitude=${part.map((p) => p[0]).join(',')}&timeformat=unixtime&timezone=GMT&${query}`;
@@ -79,12 +84,39 @@ export async function openMeteoGrid(endpoint: string, query: string, pts: [numbe
   return out;
 }
 
-/** Write `<dir>/<feed>.json` + `<feed>.i16`. Returns the byte size. */
+/**
+ * Sea cells of `g`: those with any GEBCO 1′ cell below −2 m within `marginDeg`, from the
+ * seafloor build (public/data/seafloor). Lets sea-only feeds skip land points, which
+ * Open-Meteo would still count against the rate limit.
+ */
+export function seaMask(g: GridGeom, marginDeg = 0.15): Uint8Array {
+  const m = JSON.parse(readFileSync('public/data/seafloor/manifest.json', 'utf8')).grids.macro;
+  const z = new Int16Array(readFileSync(`public/data/seafloor/${m.file}`).buffer.slice(0));
+  const out = new Uint8Array(g.cols * g.rows);
+  const k = Math.ceil(marginDeg / m.dlon);
+  for (let r = 0; r < g.rows; r++)
+    for (let c = 0; c < g.cols; c++) {
+      const cc = Math.round((g.lon0 + c * g.dlon - m.lon0) / m.dlon);
+      const rr = Math.round((m.lat0 - (g.lat0 - r * g.dlat)) / m.dlat);
+      search: for (let dr = -k; dr <= k; dr++)
+        for (let dc = -k; dc <= k; dc++) {
+          const y = rr + dr, x = cc + dc;
+          if (y >= 0 && y < m.rows && x >= 0 && x < m.cols && z[y * m.cols + x] < -2) {
+            out[r * g.cols + c] = 1;
+            break search;
+          }
+        }
+    }
+  return out;
+}
+
+/** Write `<dir>/<feed>.json` + gzipped `<feed>.i16.gz`. Returns the compressed size. */
 export function writeSeries(dir: string, meta: Omit<SeriesMeta, 'file'>, frames: Record<string, ArrayLike<number>[]>): number {
   mkdirSync(dir, { recursive: true });
   const packed = encodeSeries(meta, frames);
-  const file = `${meta.feed}.i16`;
-  writeFileSync(`${dir}/${file}`, new Uint8Array(packed.buffer));
-  writeFileSync(`${dir}/${meta.feed}.json`, JSON.stringify({ ...meta, file }));
-  return packed.byteLength;
+  const file = `${meta.feed}.i16.gz`;
+  const gz = gzipSync(new Uint8Array(packed.buffer), { level: 9 });
+  writeFileSync(`${dir}/${file}`, gz);
+  writeFileSync(`${dir}/${meta.feed}.json`, JSON.stringify({ ...meta, file, encoding: 'gzip' }));
+  return gz.byteLength;
 }

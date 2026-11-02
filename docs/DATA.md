@@ -57,7 +57,13 @@ A `Check` is `{ feed, kind, label, run() → { status, detail } }`, with `kind` 
 
 | Feed | Built by | Source | Grid and times | Size | Refresh |
 |---|---|---|---|---|---|
-| `wind` | `scripts/forecast/wind.ts` | Open-Meteo best match (ICON/GFS/ECMWF), 10 m wind | 0.25° over the macro view (29×23); hourly to day 7, 3-hourly to day 16 | ~630 KB | Every 6 h (Pages workflow, `17 */6 * * *`) |
-| `wind-clim` | `scripts/fetch-climatology.ts` | NOAA NCEI Blended Sea Surface Winds v2, monthly means 2015–2024 (ERDDAP) | Same grid, 12 months | ~30 KB | Static, committed, precached |
+| `wind` | `scripts/forecast/wind.ts` | Open-Meteo best match (ICON/GFS/ECMWF), 10 m wind | 0.25° over the macro view (29×23); hourly to day 7, 3-hourly to day 16 | ~450 KB | Every 6 h (Pages workflow, `17 */6 * * *`) |
+| `wind-clim` | `scripts/fetch-climatology.ts` | NOAA NCEI Blended Sea Surface Winds v2, monthly means 2015–2024 (ERDDAP) | Same grid, 12 months | ~20 KB | Static, committed, precached |
+| `waves` | `scripts/forecast/waves.ts` | Météo-France MFWAM (to ~day 9), then NOAA GFS-Wave 0.25° (to day 16), via Open-Meteo Marine | 0.25° grid, 518 sea points (land skipped using the GEBCO grid); 3-hourly; Hs, mean period, direction, primary swell (height, period, direction), wind sea (height, period) | ~520 KB | Every 12 h (MFWAM updates twice a day) |
+| `waves-clim` | `scripts/fetch-climatology.ts` | ERA5 ocean waves via Open-Meteo, days 8–21 of each month 2020–2024 | 1° grid at sea points, 12 months; Hs, mean period, direction only (no swell partitions in ERA5 there) | small | Static, committed, precached |
+
+Bodies are gzipped (`.i16.gz`, `encoding: 'gzip'` in the manifest) because GitHub Pages doesn't compress binary files; `series.ts` unzips with `DecompressionStream` when it sees the gzip magic bytes.
+
+**Call budget.** The workflow runs every 6 h, but each feed has a `refreshH` (wind 6, waves 12): a feed whose published copy is younger is copied forward from the live site instead of refetched. That keeps the build around 7,000 Open-Meteo calls a day, under the 10,000 limit. Directions are stored as unit vectors so blending frames across north works.
 
 Local development: `npm run data:forecast` fills `public/data/forecast/` (gitignored); without it the app uses the mock fields. `npm run data:climatology` rebuilds the committed climatology.

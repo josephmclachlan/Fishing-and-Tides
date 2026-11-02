@@ -9,6 +9,7 @@ type Storage = Pick<globalThis.Storage, 'getItem' | 'setItem'>;
 const KEY = 'ft.enhance';
 const LANG_KEY = 'ft.lang';
 const SUN_KEY = 'ft.sun';
+const SOUND_KEY = 'ft.sound';
 const VIEW_KEY = 'ft.view';
 
 export interface Settings {
@@ -21,6 +22,9 @@ export interface Settings {
   /** Sunlight mode: stronger contrast, no scanlines or glow. Follows the device's high-contrast setting until the user chooses. */
   sun(): boolean;
   setSun(on: boolean): void;
+  /** UI sounds (PLAN 5.5). Default off: nothing plays until the user turns it on. */
+  sound(): boolean;
+  setSound(on: boolean): void;
   subscribe(fn: () => void): () => void;
 }
 
@@ -28,10 +32,12 @@ export function createSettings(storage?: Storage, browserLangs: readonly string[
   let enhance = true;
   let stored: string | null = null;
   let storedSun: string | null = null;
+  let sound = false;
   try {
     enhance = storage?.getItem(KEY) !== 'off';
     stored = storage?.getItem(LANG_KEY) ?? null;
     storedSun = storage?.getItem(SUN_KEY) ?? null;
+    sound = storage?.getItem(SOUND_KEY) === 'on';
   } catch {
     /* storage blocked: defaults */
   }
@@ -65,6 +71,13 @@ export function createSettings(storage?: Storage, browserLangs: readonly string[
       if (on === sun) return;
       sun = on;
       save(SUN_KEY, on ? 'on' : 'off');
+      subs.forEach((fn) => fn());
+    },
+    sound: () => sound,
+    setSound(on) {
+      if (on === sound) return;
+      sound = on;
+      save(SOUND_KEY, on ? 'on' : 'off');
       subs.forEach((fn) => fn());
     },
     subscribe(fn) {

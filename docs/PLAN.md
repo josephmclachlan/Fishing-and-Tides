@@ -17,14 +17,14 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 
 ## Phase 2: Data adapters
 - [x] 2.1 Adapter interface, cache layer, data-age tracking (**O**)
-- [ ] 2.2 Open-Meteo Marine adapter (waves, swell) (**S**)
+- [x] 2.2 Open-Meteo Marine adapter (waves, swell) (**S**). MFWAM to day 9 then GFS-Wave to day 16, ERA5 climatology; feeds the HUD swell and the spot physics; `src/adapters/waves.ts`
 - [x] 2.3 Open-Meteo wind adapter (GFS/ECMWF) (**S**). 16-day grid from the scheduled data build, NOAA blended-winds monthly climatology for OUTLOOK; `src/adapters/wind.ts`
 - [ ] 2.4 CoastWatch ERDDAP adapter: SST and chlorophyll (**S**)
 - [ ] 2.5 Copernicus/HYCOM currents adapter (**S**)
 - [x] 2.6 GEBCO bathymetry clipped to region, packed as a tile/grid asset, plus reefs, seamarks and a depth layer (**S**)
 - [ ] 2.7 UHSLC Limón gauge fetch for tide validation (**S**)
 - [ ] 2.8 Verify tool, automatic: scheduled daily GitHub Action runs one check per adapter (reachability, freshness, schema, physical ranges, cross-source agreement) and opens or updates an issue on failure; checks live in `src/verify/`, shared with 2.9 (**O**, needs 2.1; grow it with each adapter)
-- [ ] 2.9 Verify tool, manual: SYSTEM CHECK HUD panel with a green/amber/red row per feed, the failing check and its age, and a re-run button; once 2.11 and 2.12 land it also compares each forecast with what was observed (**S**, needs 2.8)
+- [x] 2.9 Verify tool, manual: SYSTEM CHECK HUD panel with a green/amber/red row per feed, the failing check and its age, and a re-run button (done on the checks that exist; each new adapter adds to `src/verify/registry.ts`). Still to do once 2.11 and 2.12 land: compare each forecast with what was observed (**S**, needs 2.8)
 - [x] 2.10 Research note first (`docs/OBSERVATIONS.md`): confirm which local observation sources are actually reachable and usable for Gandoca to Limón (UHSLC Limón gauge, Limón airport METAR MRLM, IMN stations, any wave or met buoy near the coast, satellite passes), with URLs, update cadence, licence and format; if no wave buoy exists, say so (**S**)
 - [ ] 2.11 Live observation adapters: UHSLC Limón tide gauge, Limón airport METAR (MRLM, ID to confirm in 2.10), and IMN stations if reachable; each returns data plus `fetchedAt` and its own observation time (**S**, needs 2.1, 2.10; extends 2.7)
 - [ ] 2.12 Satellite observation adapters: SST, chlorophyll/Kd490 and scatterometer wind (e.g. ASCAT) passes over the region, with the pass time and cloud gaps flagged (**S**, needs 2.1, 2.10; extends 2.4)
@@ -52,7 +52,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 5.2 Offline fallback paths and DATA AGE colour states (**S**)
 - [x] 5.3 Mobile layout and sunlight-readability pass (**S**)
 - [ ] 5.4 Performance pass (**O**)
-- [ ] 5.5 Optional UI sounds (**S**)
+- [x] 5.5 Optional UI sounds (**S**). Synthesized (Web Audio, no files), off by default, SOUND toggle
 - [x] 5.6 EN/ESP language toggle: full Spanish in `src/i18n/es.ts` using local Costa Rican marine and fishing terms, a toggle in the HUD with small UK and Costa Rica flag graphics in the HUD style, choice persisted on the device and the browser language used as the first-run default; units, dates and number formats follow the language where they differ (**S**, needs 1.10, and all UI text in place)
 
 ## Phase 6: Activity data (see DESIGN.md section 6)
@@ -64,7 +64,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 6.6 Sea state comfort index from wind-wave and swell partitions (**S**, needs 2.2). Pure index in physics/sea-state.ts; HUD uses SIM partitions until 2.2 lands
 - [x] 6.7 Anchorages and harbours layer: OSM seamarks, NGA World Port Index, shelter from wind direction (**S**). Curated OSM places + coastline-fetch shelter; WPI unreachable, see docs/HARBOURS.md
 - [x] 6.8 Spearfishing and protected-area rules: SINAC/INCOPESCA zones, closed seasons, rules card per zone (**S**, extends 4.3)
-- [ ] 6.9 Register wind, currents and waves with the layer store when the particle layer lands (**S**, needs 1.4). Wind and currents done in 1.4; waves waits for a swell field (2.2)
+- [ ] 6.9 Register wind, currents and waves with the layer store when the particle layer lands (**S**, needs 1.4). Wind and currents done in 1.4. The swell field now exists (2.2: `wavesAt` and the `waves` series, swell direction as unit vectors `swu`/`swv`), so this is ready: draw waves as a third flow kind or as crest lines, and register `waves`
 
 ## Phase 7: Final additions (see DESIGN.md sections 9 and 10)
 Built last, once Phases 2 to 6 are in. Each reuses the adapters, the layer registry and the SYSTEM CHECK panel.

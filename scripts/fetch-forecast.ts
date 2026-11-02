@@ -5,6 +5,7 @@
  *
  *   npm run data:forecast            # all feeds
  *   npm run data:forecast -- wind    # just one
+ *   npm run data:forecast -- --force # refetch even if the published copy is recent
  *
  * If a feed fails and FALLBACK_URL is set (the live site's data/forecast/ URL), the
  * previously published files are copied back, so a bad run shows older data with an amber
@@ -13,32 +14,63 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { get } from './forecast/common.ts';
 import { buildWind } from './forecast/wind.ts';
+import { buildWaves } from './forecast/waves.ts';
 
 const OUT = 'public/data/forecast';
-const FEEDS: Record<string, (dir: string) => Promise<string>> = { wind: buildWind };
+/**
+ * `refreshH`: how often the source's model actually updates. The workflow runs every 6 h, and
+ * a feed whose published copy is younger than this is copied forward instead of refetched,
+ * which keeps the build well under Open-Meteo's daily call limit (docs/DATA.md).
+ */
+const FEEDS: Record<string, { build: (dir: string) => Promise<string>; refreshH: number; series?: string[] }> = {
+  wind: { build: buildWind, refreshH: 6 },
+  waves: { build: buildWaves, refreshH: 12 },
+};
 
 const wanted = process.argv.slice(2).filter((a) => !a.startsWith('-'));
 const names = wanted.length ? wanted : Object.keys(FEEDS);
 const fallback = process.env.FALLBACK_URL;
 mkdirSync(OUT, { recursive: true });
 
+/** Copy the live site's published files for a feed's series into OUT. Returns the oldest fetchedAt. */
+async function keepPrevious(name: string): Promise<string> {
+  let oldest = '';
+  for (const series of FEEDS[name].series ?? [name]) {
+    const meta = await (await get(`${fallback}${series}.json`, {}, 2)).json();
+    const bin = await (await get(`${fallback}${meta.file}`, {}, 2)).arrayBuffer();
+    writeFileSync(`${OUT}/${series}.json`, JSON.stringify(meta));
+    writeFileSync(`${OUT}/${meta.file}`, new Uint8Array(bin));
+    if (!oldest || meta.fetchedAt < oldest) oldest = meta.fetchedAt;
+  }
+  return oldest;
+}
+
+const force = process.argv.includes('--force');
 let failed = 0;
 for (const name of names) {
-  const build = FEEDS[name];
-  if (!build) throw new Error(`unknown feed ${name}; have ${Object.keys(FEEDS).join(', ')}`);
+  const feed = FEEDS[name];
+  if (!feed) throw new Error(`unknown feed ${name}; have ${Object.keys(FEEDS).join(', ')}`);
   console.log(`${name}…`);
+  if (fallback && !force) {
+    try {
+      const prev = await (await get(`${fallback}${name}.json`, {}, 1)).json();
+      const ageH = (Date.now() - Date.parse(prev.fetchedAt)) / 3.6e6;
+      if (ageH < feed.refreshH - 0.5) {
+        console.log(`${name}: published copy is ${ageH.toFixed(1)} h old, under ${feed.refreshH} h; kept ${await keepPrevious(name)}`);
+        continue;
+      }
+    } catch {
+      // Nothing published yet: build it.
+    }
+  }
   try {
-    console.log(await build(OUT));
+    console.log(await feed.build(OUT));
   } catch (err) {
     failed++;
     console.error(`${name} FAILED: ${err instanceof Error ? err.message : err}`);
     if (!fallback) continue;
     try {
-      const meta = await (await get(`${fallback}${name}.json`, {}, 2)).json();
-      const bin = await (await get(`${fallback}${meta.file}`, {}, 2)).arrayBuffer();
-      writeFileSync(`${OUT}/${name}.json`, JSON.stringify(meta));
-      writeFileSync(`${OUT}/${meta.file}`, new Uint8Array(bin));
-      console.log(`${name}: kept the previous files, fetched ${meta.fetchedAt}`);
+      console.log(`${name}: kept the previous files, fetched ${await keepPrevious(name)}`);
     } catch (e) {
       console.error(`${name}: no previous files either (${e instanceof Error ? e.message : e})`);
     }
