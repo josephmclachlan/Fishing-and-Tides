@@ -5,6 +5,7 @@
  * Written by Claude, not yet checked by a local speaker: wording fixes are welcome.
  */
 import type { Dict } from './en';
+import { helpEs } from './help-es';
 
 export const es: Dict = {
   // Top bar and footer
@@ -399,4 +400,5 @@ export const es: Dict = {
   'shelter.exposed': 'EXPUESTO',
   'shelter.fetch': '{km} KM DE FETCH DEL {dir}',
   'place.advice': 'NO ES UNA CARTA NÁUTICA. LA PROFUNDIDAD, EL FONDEO Y LAS REGLAS DEL PUERTO CAMBIAN Y ESTAS FUENTES SON VIEJAS. EL ABRIGO SE CALCULA CON LA COSTA Y EL VIENTO PRONOSTICADO, NO CON CONOCIMIENTO LOCAL. NO USAR PARA NAVEGAR.',
+  ...helpEs,
 };

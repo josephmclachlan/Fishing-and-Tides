@@ -26,6 +26,8 @@ import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
 import { mountSounds } from './sounds';
 import { mountSettingsUi } from './settings-ui';
 import { mountSettingsPanel } from './settings-panel';
+import { mountGlance } from './glance';
+import { mountExplain } from './explain';
 import { mountSystemCheck } from './system-check';
 import { allChecks } from './verify/registry';
 import { fetchSeafloor } from './adapters/seafloor';
@@ -158,6 +160,9 @@ mountBoatPanel(hud, map, createBoatStore(safeStorage()), sheets, () => depthAt);
 mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeStorage() });
 // Last, so SET is the last tab and the settings controls (ENHANCE, SUN, language) are all mounted to be moved into it.
 mountSettingsPanel(hud, sheets);
+// Phone glance strip (the few values that matter per activity) and tap-a-label explainers.
+mountGlance(hud, safeStorage());
+mountExplain(hud);
 
 const flow = mountFlow(map, flowSources);
 if (flow) {

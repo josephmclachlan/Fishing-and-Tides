@@ -4,6 +4,8 @@
  * Place names (spots, region) are proper nouns and stay in src/region.ts.
  * Labels are monospace caps to suit the HUD.
  */
+import { helpEn } from './help-en';
+
 export const en = {
   // Top bar and footer
   'hud.tier': 'TIER',
@@ -398,6 +400,7 @@ export const en = {
   'settings.on': 'ON',
   'settings.off': 'OFF',
   'settings.enhanceTitle': 'ENHANCE fly-to effect: on plays the satellite zoom, off flies the same route with smooth moves only',
+  ...helpEn,
 } as const;
 
 export type Key = keyof typeof en;
