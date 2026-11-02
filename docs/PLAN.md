@@ -15,7 +15,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 1.10 i18n scaffold, do early: a small `t(key)` helper with `src/i18n/en.ts`, and move every existing UI string (labels, alerts, layer names, presets, panel text) into it, so all new UI text is translatable from the start; no hard-coded user-facing strings in new code (**S**)
 
 ## Phase 2: Data adapters
-- [ ] 2.1 Adapter interface, cache layer, data-age tracking (**O**)
+- [x] 2.1 Adapter interface, cache layer, data-age tracking (**O**)
 - [ ] 2.2 Open-Meteo Marine adapter (waves, swell) (**S**)
 - [ ] 2.3 Open-Meteo wind adapter (GFS/ECMWF) (**S**)
 - [ ] 2.4 CoastWatch ERDDAP adapter: SST and chlorophyll (**S**)
