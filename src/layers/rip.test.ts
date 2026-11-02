@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 import type { LineString } from 'geojson';
 import { haversineM, bearingDeg } from '../geo';
 import { createSpotModel } from '../physics/spot-model';
-import { realDepth } from '../physics/fixtures/seafloor';
+import { land, realDepth } from '../physics/fixtures/seafloor';
+import { cellAt } from '../physics/bathy';
 import { SPOTS } from '../region';
-import { offset, ripFeatures, surfZoneWidth } from './rip';
+import { maskNormal, offset, ripFeatures, shoreBand, surfZoneWidth } from './rip';
 
 describe('rip overlay geometry', () => {
   it('offsets by distance and bearing', () => {
@@ -39,4 +40,46 @@ describe('rip overlay geometry', () => {
     expect(String(fc.features[3].properties!.label)).toContain('RIP HIGH');
     expect(ripFeatures([{ name: 'X', pin: [0, 0], sea: small, result: null }]).features).toHaveLength(0);
   }, 20_000);
+
+  it('reads the shore normal off the coastline mask: Salsa Brava faces roughly north', () => {
+    const salsa = SPOTS.find((s) => s.name === 'SALSA BRAVA')!.lngLat;
+    const n = maskNormal(land, salsa)!;
+    const off = Math.abs(((n - 0 + 540) % 360) - 180);
+    expect(off).toBeLessThan(45);
+    expect(maskNormal(land, [-82.9, 9.6])).toBeNull(); // deep inland: no sea in reach
+  });
+
+  it('traces the band along the shore, on the water, never across the land', () => {
+    for (const s of SPOTS) {
+      const n = maskNormal(land, s.lngLat);
+      if (n === null) continue;
+      const lines = shoreBand(land, s.lngLat, n, 350, 30);
+      const pts = lines.flat();
+      expect(pts.length, s.name).toBeGreaterThan(10);
+      for (const p of pts) {
+        expect(cellAt(land, p[0], p[1]), s.name).not.toBe(1);
+        expect(haversineM(s.lngLat, p), s.name).toBeLessThan(700);
+      }
+      // No segment of the band crosses land.
+      for (const l of lines)
+        for (let i = 1; i < l.length; i++)
+          for (let k = 1; k < 10; k++) {
+            const q: [number, number] = [l[i - 1][0] + ((l[i][0] - l[i - 1][0]) * k) / 10, l[i - 1][1] + ((l[i][1] - l[i - 1][1]) * k) / 10];
+            expect(cellAt(land, q[0], q[1]), s.name).not.toBe(1);
+          }
+    }
+  });
+
+  it('every spot pin sits within ~60 m of the sea in the coastline mask (none stranded inland)', () => {
+    for (const s of SPOTS) {
+      let nearest = Infinity;
+      for (let b = 0; b < 360; b += 10)
+        for (let m = 0; m <= 200; m += 5)
+          if (cellAt(land, ...offset(s.lngLat, b, m)) === 0) {
+            nearest = Math.min(nearest, m);
+            break;
+          }
+      expect(nearest, s.name).toBeLessThanOrEqual(60);
+    }
+  });
 });

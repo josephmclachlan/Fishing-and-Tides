@@ -36,7 +36,7 @@ export const SURF_BREAKS: readonly SurfBreak[] = [
   {
     id: 'salsa-brava',
     name: 'SALSA BRAVA',
-    lngLat: [-82.7522, 9.6563],
+    lngLat: [-82.7524, 9.6582],
     type: 'reef',
     shape: 'right',
     facing: 350,
@@ -53,7 +53,7 @@ export const SURF_BREAKS: readonly SurfBreak[] = [
   {
     id: 'cocles',
     name: 'PLAYA COCLES',
-    lngLat: [-82.737, 9.6505],
+    lngLat: [-82.7368, 9.6507],
     type: 'beach',
     shape: 'peaks',
     facing: 40,

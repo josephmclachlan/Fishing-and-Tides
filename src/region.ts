@@ -34,16 +34,16 @@ export function tierForZoom(z: number): Tier {
   return 'SPOT';
 }
 
-/** Named coastal spots, [lng, lat] (MapLibre order). Keep each on the shoreline (verified 2026-11-02 against OpenFreeMap z14 water polygons; each pin is on land within ~30 m of the coast). */
+/** Named coastal spots, [lng, lat] (MapLibre order). Keep each on the shoreline (re-checked 2026-11-02 against OpenFreeMap z14 `ocean` polygons, ignoring tile-edge segments; each pin is on land within ~20 m of the sea). */
 export const SPOTS: { name: string; lngLat: [number, number] }[] = [
   { name: 'LIMÓN', lngLat: [-83.0235, 9.9927] },
   { name: 'PLAYA BONITA', lngLat: [-83.0634, 10.0099] },
   { name: 'CAHUITA', lngLat: [-82.84, 9.7397] },
   { name: 'PLAYA NEGRA', lngLat: [-82.7789, 9.6633] },
-  { name: 'SALSA BRAVA', lngLat: [-82.7522, 9.6563] },
-  { name: 'PUNTA UVA', lngLat: [-82.6862, 9.6427] },
+  { name: 'SALSA BRAVA', lngLat: [-82.7524, 9.6582] },
+  { name: 'PUNTA UVA', lngLat: [-82.6871, 9.6432] },
   { name: 'MANZANILLO', lngLat: [-82.6569, 9.634] },
-  { name: 'GANDOCA', lngLat: [-82.6139, 9.6065] },
+  { name: 'GANDOCA', lngLat: [-82.6128, 9.6075] },
 ];
 
 /** Seafloor layer (PLAN 2.6). Depths in metres, positive down. */

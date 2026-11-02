@@ -40,7 +40,7 @@ describe('helpers', () => {
     expect(compass8(-45)).toBe('NW');
   });
   it('finds breaks near a point, nearest first', () => {
-    const near = breaksNear(-82.7522, 9.6563, 5000);
+    const near = breaksNear(-82.7524, 9.6582, 5000);
     expect(near[0].brk.id).toBe('salsa-brava');
     expect(near[0].distanceM).toBeLessThan(1);
     expect(breaksNear(-82.5, 9.5, 1000)).toEqual([]);

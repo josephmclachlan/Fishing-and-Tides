@@ -21,6 +21,10 @@ export interface FlowSource {
   fullMs: number;
   /** Speed drawn in red (a warning), m/s. */
   strongMs: number;
+  /** Brightness of the slowest flow, 0..1 (default 0): a floor so light flow still reads. */
+  minBright?: number;
+  /** Slowest on-screen pace, px/s (default none): light flow still visibly moves. Brightness still shows the speed. */
+  minPxS?: number;
 }
 
 /** The map view: centre in world units, world size and viewport in CSS px (north-up, no tilt). */
@@ -115,7 +119,9 @@ export class FlowSim {
         this.spawn(i, view, src);
         continue;
       }
-      advect(this.x[i], this.y[i], this.v[0], this.v[1], dt, src.pxPerMs, view.world, this.p);
+      const pace = Math.hypot(this.v[0], this.v[1]) * src.pxPerMs;
+      const k = src.minPxS && pace > 1e-6 && pace < src.minPxS ? src.minPxS / pace : 1;
+      advect(this.x[i], this.y[i], this.v[0] * k, this.v[1] * k, dt, src.pxPerMs, view.world, this.p);
       const [x, y] = this.p;
       if (Math.abs(x - view.x) > hw || Math.abs(y - view.y) > hh || (src.water && !src.water(lngOfX(x), latOfY(y)))) {
         this.spawn(i, view, src);
@@ -146,7 +152,8 @@ export class FlowSim {
       out[o] = this.x[i] - ox;
       out[o + 1] = this.y[i] - oy;
       const s = this.speed[i];
-      out[o + 2] = smooth01(s / src.fullMs) + (s >= src.strongMs ? 2 : 0);
+      const floor = src.minBright ?? 0;
+      out[o + 2] = floor + (1 - floor) * smooth01(s / src.fullMs) + (s >= src.strongMs ? 2 : 0);
       out[o + 3] = this.alive[i] ? this.serial[i] + 0.99 * this.lifeAlpha(i) : -1;
     }
   }

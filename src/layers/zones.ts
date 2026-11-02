@@ -9,6 +9,7 @@ import type { Feature, FeatureCollection, MultiPolygon } from 'geojson';
 import { TIER_ZOOM } from '../region';
 import { t, type Key } from '../i18n';
 import { firstSymbolId } from '../map';
+import { CONTOURS_FROM } from './seafloor';
 import type { LngLat, ZoneProps } from '../zones';
 import type { ZonePoly } from '../zone-lookup';
 
@@ -45,7 +46,8 @@ export function mountZones(map: Map, geojson: FeatureCollection) {
   };
   const add = () => {
     if (map.getSource('pz')) return;
-    const below = map.getLayer('grat-macro') ? 'grat-macro' : firstSymbolId(map);
+    // Under the depth contours, so the seafloor still reads through a protected area.
+    const below = map.getLayer(CONTOURS_FROM) ? CONTOURS_FROM : map.getLayer('grat-macro') ? 'grat-macro' : firstSymbolId(map);
     map.addSource('pz', { type: 'geojson', data: labelled, attribution: 'SINAC via © OpenStreetMap' });
     const colour: ExpressionSpecification = ['match', ['get', 'status'], 'closed', red, amber];
     map.addLayer({ id: 'pz-fill', type: 'fill', source: 'pz', paint: { 'fill-color': colour, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0.1, TIER_ZOOM.SPOT, 0.14] } }, below);

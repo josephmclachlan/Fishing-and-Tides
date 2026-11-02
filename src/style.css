@@ -8,6 +8,8 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--amber); font-family: var(--font); overflow: hidden; }
+/* A pinch on a panel must not zoom the page (it slid the HUD off screen); the map takes its own pinches. See pinch-guard.ts. */
+body { touch-action: pan-x pan-y; }
 #map { position: fixed; inset: 0; }
 #hud { position: fixed; inset: 0; pointer-events: none; }
 #hud .panel, #hud .btn { pointer-events: auto; }
@@ -36,7 +38,7 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--amber)
 
 .top { top: max(8px, env(safe-area-inset-top)); left: 8px; right: 8px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
 .title { font-size: 15px; letter-spacing: 2px; margin-right: auto; }
-.side { top: 70px; left: 8px; width: 210px; display: grid; gap: 4px; align-content: start; max-height: calc(100% - 70px - var(--dock-h, 150px) - 16px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--amber) transparent; }
+.side { top: 70px; left: 8px; width: 240px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; align-content: start; max-height: calc(100% - 70px - var(--dock-h, 150px) - 16px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--amber) transparent; }
 .bottom { bottom: max(8px, env(safe-area-inset-bottom)); left: 8px; right: 8px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
 .ph { font-size: 12px; letter-spacing: 3px; border-bottom: 1px solid var(--amber-dim); padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between; }
 .tag { color: var(--bg); background: var(--amber); padding: 0 4px; text-shadow: none; }
@@ -426,8 +428,16 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
   .astro summary { min-height: 44px; align-items: center; }
 }
 
-/* Long readouts (sea state, shelter fetch) wrap inside their column instead of pushing the drawer wider than the phone. */
+/*
+ * Long readouts (spot names, break type, sea state, shelter fetch) wrap inside the conditions
+ * column instead of running off its edge, on every screen. The column is minmax(0, 1fr), so one
+ * long value can't stretch the grid track past the panel and clip every row with it.
+ */
+.side > *, .side .ro { min-width: 0; }
+.side .ro > .seg { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; white-space: normal; }
+.side .ro > .seg.sm { overflow: visible; text-overflow: clip; }
+.side .ro > .lbl { flex: 0 0 auto; }
+.side .ro > .lbl:only-child, .side .ro > .lbl:last-child:not(:first-child) { flex: 1 1 auto; min-width: 0; white-space: normal; }
 @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
-  .side .ro:not(:has(button)) { flex-wrap: wrap; min-width: 0; }
-  .side .ro .seg { min-width: 0; overflow-wrap: anywhere; }
+  .side .ro:not(:has(button)) { flex-wrap: wrap; }
 }

@@ -17,6 +17,13 @@ import { byTier, firstSymbolId } from '../map';
 import { renderShade, type ShadeOptions } from './seafloor-shade';
 
 const { COAST, SPOT } = TIER_ZOOM;
+/**
+ * The lowest contour layer. Area fills from other layers (fishing heat, protected zones) go
+ * under it, so the contours and their labels always draw on top of them.
+ */
+export const CONTOURS_FROM = 'sf-contour-deep';
+/** Fill layers that must stay under the contours, whichever loads first. */
+const FILLS_UNDER_CONTOURS = ['fh-cells', 'pz-fill'];
 const FONT = ['Noto Sans Regular'];
 
 /** Theme colours come from the CSS variables in style.css. */
@@ -119,6 +126,8 @@ export async function mountSeafloor(map: Map, sf: Seafloor) {
     line('sf-contour-macro-200', ['all', ['==', ['get', 'grid'], 'macro'], ['==', d, 200]], 0, COAST + 0.5, ['interpolate', ['linear'], ['zoom'], COAST - 0.5, 0.55, COAST + 0.5, 0], false);
     line('sf-contour-coast', ['all', ['==', ['get', 'grid'], 'coast'], isMajor], COAST - 0.5, 24, ['interpolate', ['linear'], ['zoom'], COAST - 0.5, 0, COAST + 0.5, 0.55, SPOT, 0.65], false);
     line('sf-contour-coast-minor', ['all', ['==', ['get', 'grid'], 'coast'], ['!', isMajor]], SEAFLOOR.minorZoom, 24, fadeIn(SEAFLOOR.minorZoom, 0.45), true);
+
+    for (const id of FILLS_UNDER_CONTOURS) if (map.getLayer(id)) map.moveLayer(id, CONTOURS_FROM);
 
     // OSM named reef outlines: the coast-tier view of where the reefs are.
     const osmReef: FilterSpecification = ['==', ['get', 'kind'], 'reef-area'];
