@@ -24,8 +24,10 @@ describe('rip overlay geometry', () => {
   it('draws a bar per spot, arrows only for MOD/HIGH, and a label, pointing out to sea', () => {
     const m = createSpotModel(realDepth, { fanStepDeg: 1 });
     const spots = SPOTS.slice(2, 4);
-    const calm = spots.map((s) => ({ name: s.name, pin: s.lngLat, result: m.spot({ pin: s.lngLat, sea: { Hs: 0.3, Tp: 7, fromDeg: 45 }, tideLevel: 0.5 }) }));
-    const big = spots.map((s) => ({ name: s.name, pin: s.lngLat, result: m.spot({ pin: s.lngLat, sea: { Hs: 2.5, Tp: 13, fromDeg: 45 }, tideLevel: 0 }) }));
+    const small = { Hs: 0.3, Tp: 7, fromDeg: 45 };
+    const large = { Hs: 2.5, Tp: 13, fromDeg: 45 };
+    const calm = spots.map((s) => ({ name: s.name, pin: s.lngLat, sea: small, result: m.spot({ pin: s.lngLat, sea: small, tideLevel: 0.5 }) }));
+    const big = spots.map((s) => ({ name: s.name, pin: s.lngLat, sea: large, result: m.spot({ pin: s.lngLat, sea: large, tideLevel: 0 }) }));
     const kinds = (fc: ReturnType<typeof ripFeatures>) => fc.features.map((f) => f.properties!.kind);
     expect(kinds(ripFeatures(calm))).toEqual(['zone', 'label', 'zone', 'label']);
     const fc = ripFeatures(big);
@@ -35,6 +37,6 @@ describe('rip overlay geometry', () => {
     const shaft = (fc.features[1].geometry as LineString).coordinates as [number, number][];
     expect(bearingDeg(shaft[0], shaft[1])).toBeCloseTo(big[0].result!.waves.normalDeg, 0);
     expect(String(fc.features[3].properties!.label)).toContain('RIP HIGH');
-    expect(ripFeatures([{ name: 'X', pin: [0, 0], result: null }]).features).toHaveLength(0);
+    expect(ripFeatures([{ name: 'X', pin: [0, 0], sea: small, result: null }]).features).toHaveLength(0);
   }, 20_000);
 });
