@@ -16,11 +16,12 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { REGION, SCAT_BOX } from '../../src/region.ts';
+import { REGION, SARG_BOX, SCAT_BOX } from '../../src/region.ts';
 import type { GridGeom, SourceSpan } from '../../src/adapters/pack.ts';
 import { erddapToGrid, type ErddapGrid } from '../../src/adapters/erddap-parse.ts';
 import { scatFrames, type ScatJson } from '../../src/adapters/scat-parse.ts';
-import { get, seaMask, writeSeries } from './common.ts';
+import { aggregateCover, detectSargassum, SARG } from '../../src/adapters/sargassum-parse.ts';
+import { depthGrid, get, seaMask, writeSeries } from './common.ts';
 
 const PFEG = 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/';
 const CW = 'https://coastwatch.noaa.gov/erddap/griddap/';
@@ -166,4 +167,43 @@ export async function buildScatPass(dir: string): Promise<string> {
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
+}
+
+/**
+ * Sargassum detections (PLAN 7.1): the USF Alternative Floating Algae Index, daily, from NOAA AOML's
+ * OceanWatch ERDDAP (noaa_aoml_atlantic_oceanwatch_AFAI_1D, 0.015°), last 7 days over SARG_BOX.
+ * Each day is flagged pixel by pixel (src/adapters/sargassum-parse.ts) and published as the share of
+ * the sea surface covered by weed per 0.06° cell (mean ΔAFAI / AFAI_FULL over the judged pixels),
+ * NaN where cloud, land or the coast hid it (unknown, not clear).
+ * ERDDAP stamps each day at 12:00 UTC; the passes behind it are from the afternoon before that night.
+ */
+export async function buildSargassum(dir: string): Promise<string> {
+  const id = 'noaa_aoml_atlantic_oceanwatch_AFAI_1D';
+  const [[w, s], [e, n]] = SARG_BOX;
+  const sel = `AFAI[last-6:1:last][(${s}):1:(${n})][(${w}):1:(${e})]`;
+  const url = `https://cwcgom.aoml.noaa.gov/erddap/griddap/${id}.json?${sel.replace(/\[/g, '%5B').replace(/\]/g, '%5D')}`;
+  const body = (await (await get(url, {}, 4)).json()) as { table: { columnNames: string[]; rows: unknown[][] } };
+  // AFAI is clipped to -0.002..0.004 in this product; NaN is cloud.
+  const g = erddapToGrid(body.table, -0.01, 0.01);
+  const depth = depthGrid(g.grid);
+  const agg = g.frames.map((f) => {
+    const frac = new Float32Array(f.length);
+    const codes = detectSargassum(f, depth, g.grid.cols, g.grid.rows, SARG, frac);
+    return aggregateCover(codes, g.grid.cols, g.grid.rows, SARG.aggregate, SARG.minValid, frac);
+  });
+  const f = SARG.aggregate;
+  const grid = { cols: agg[0].cols, rows: agg[0].rows, lon0: g.grid.lon0 + ((f - 1) / 2) * g.grid.dlon, lat0: g.grid.lat0 - ((f - 1) / 2) * g.grid.dlat, dlon: f * g.grid.dlon, dlat: f * g.grid.dlat };
+  const size = writeSeries(dir, {
+    feed: 'sargassum', kind: 'observed', fetchedAt: new Date().toISOString(), grid, times: g.times, seaCells: seaCount(grid),
+    // Mat cover is small (a 1 km pixel flagged at the cut is ~4% weed), so store it finely.
+    vars: [{ name: 'cover', unit: '1', scale: 0.00002, offset: 0 }],
+    sources: span(id, 'USF AFAI (Hu, USF) via NOAA AOML OceanWatch, daily 1 km; detection here', g.times),
+    licence: 'USF Optical Oceanography Lab AFAI via NOAA AOML OceanWatch ERDDAP, free use and redistribution',
+  }, { cover: agg.map((a) => a.cover) });
+  const stat = agg.map((a) => {
+    let seen = 0, hit = 0;
+    for (const x of a.cover) if (Number.isFinite(x)) (seen++, x > 0 && hit++);
+    return `${hit}/${seen}`;
+  });
+  return `sargassum: ${grid.cols}×${grid.rows}, ${day(g.times[0])}..${day(g.times[g.times.length - 1])}, cells with mats/seen ${stat.join(' ')}, ${kb(size)}`;
 }

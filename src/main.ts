@@ -82,6 +82,8 @@ import { mountDiveHud } from './dive-hud';
 import { fetchGauge, type GaugeReading } from './adapters/gauge';
 import { mountTideHud } from './tide-hud';
 import { mountSpotPage } from './spot-page';
+import { fetchSargassum, type SargassumData } from './adapters/sargassum';
+import { mountSargassum, mountSargassumHud, sargassumForecast, type SargForecast } from './layers/sargassum';
 
 registerSW({ immediate: true });
 
@@ -301,6 +303,26 @@ fetchCatchmentRain()
   .then((d) => ((catchmentRain = d), refreshClarity()))
   .catch((err) => console.warn('catchment rain unavailable', err));
 
+// Sargassum (PLAN 7.1): the newest satellite sightings drifted with the current and 1–3% of the wind into a
+// 5-day landing outlook per beach. Needs the detections, the current forecast and the coastline; rerun as each loads.
+let sargassum: SargassumData | null = null;
+let sargForecast: SargForecast | null = null;
+const sargLayer = mountSargassum(map);
+const sargHud = mountSargassumHud(hud, map, () => ({ f: sargForecast, ms: time.validMs() }));
+const showSargassum = () => {
+  if (sargForecast) sargLayer.update(sargForecast, time.validMs());
+  sargHud?.refresh();
+};
+const runSargassum = () => {
+  if (!sargassum?.series || !currents?.forecast || !waterMask) return;
+  sargForecast = sargassumForecast({ data: sargassum, currents, wind, isWater: waterMask, now: Date.now() });
+  showSargassum();
+};
+time.subscribe(showSargassum);
+fetchSargassum()
+  .then((d) => ((sargassum = d), runSargassum()))
+  .catch((err) => console.warn('sargassum unavailable', err));
+
 // New forecast hour: rebuild both fields. Scrubbing fires many times a frame, so do it once per frame.
 let fieldsQueued = false;
 time.subscribe(() => {
@@ -328,6 +350,7 @@ const loadWind = () => {
   .then((d) => {
     if (!d.forecast) return console.warn('currents: no forecast published; using mock');
     currents = d;
+    runSargassum();
     flowSources.current = { ...flowSources.current, field: currentField() };
     flow?.setSource('current', flowSources.current);
     flowHud?.refresh();
@@ -338,6 +361,7 @@ fetchWind()
     .then((d) => {
       if (!d.forecast && !d.climatology) return console.warn('wind: no forecast or climatology published; using mock');
       wind = d;
+      runSargassum();
       flowSources.wind = { ...flowSources.wind, field: windField() };
       flow?.setSource('wind', flowSources.wind);
     })
@@ -444,6 +468,7 @@ fetchSeafloor()
       .catch((err) => console.warn('fishing layer unavailable', err));
     // Currents stay in the sea once the coastline mask is here.
     waterMask = (lng, lat) => isWater(data.land, data.macro, lng, lat);
+    runSargassum();
     rebuildCrests();
     const current = { ...flowSources.current, water: waterMask };
     flowSources.current = current;

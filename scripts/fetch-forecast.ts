@@ -18,7 +18,7 @@ import { buildWaves } from './forecast/waves.ts';
 import { buildStorms } from './forecast/storms.ts';
 import { buildCurrents } from './forecast/currents.ts';
 import { buildMetar } from './forecast/metar.ts';
-import { buildChl, buildChlPass, buildKd490, buildScatPass, buildSst, buildSstPass } from './forecast/satellite.ts';
+import { buildChl, buildChlPass, buildKd490, buildSargassum, buildScatPass, buildSst, buildSstPass } from './forecast/satellite.ts';
 
 const OUT = 'public/data/forecast';
 /**
@@ -43,6 +43,8 @@ const FEEDS: Record<string, { build: (dir: string) => Promise<string>; refreshH:
   'chl-pass': { build: buildChlPass, refreshH: 12 },
   // ASCAT wind passes (PLAN 2.14), Copernicus Marine; needs the account secrets and the Python toolbox.
   'scat-pass': { build: buildScatPass, refreshH: 6 },
+  // Sargassum detections from the daily USF AFAI map (PLAN 7.1), NOAA AOML ERDDAP (no CORS, so relayed).
+  sargassum: { build: buildSargassum, refreshH: 12 },
 };
 
 const wanted = process.argv.slice(2).filter((a) => !a.startsWith('-'));
