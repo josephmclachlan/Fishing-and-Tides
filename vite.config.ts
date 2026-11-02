@@ -4,6 +4,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   // GitHub Pages serves from /<repo>/; set by the deploy workflow.
   base: process.env.BASE_PATH ?? '/',
+  // Packed seafloor grids, so tests can import them (`?inline`) to check physics on real depths.
+  assetsInclude: ['**/*.i16', '**/*.u8', '**/*.rle16'],
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',

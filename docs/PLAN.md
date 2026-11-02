@@ -32,7 +32,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 ## Phase 3: Physics engine
 - [x] 3.1 Tide harmonic predictor, validated vs UHSLC (**O**). Constants fitted to the Limón gauge itself; see `docs/TIDES.md`
 - [x] 3.2 Dispersion solver and shoaling (**O**). `src/physics/waves.ts`
-- [ ] 3.3 Refraction ray tracing over bathymetry (**O**)
+- [x] 3.3 Refraction ray tracing over bathymetry (**O**). `src/physics/refraction.ts`, see `docs/PHYSICS.md`
 - [ ] 3.4 Breaking height, breaker type, wave energy and force (**O**)
 - [ ] 3.5 Rip risk score with length/strength band (**O**)
 - [ ] 3.6 Move heavy physics to a Web Worker (**S**)
