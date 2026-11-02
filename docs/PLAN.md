@@ -30,7 +30,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [ ] 2.13 LIVE OBS layer and panel: the latest real reading from each station and satellite pass shown on the map and in a HUD panel, each with its age and a green/amber/red freshness state (**S**, needs 2.11, 2.12, 1.8)
 
 ## Phase 3: Physics engine
-- [ ] 3.1 Tide harmonic predictor from TPXO/FES constituents, validated vs UHSLC (**O**)
+- [x] 3.1 Tide harmonic predictor, validated vs UHSLC (**O**). Constants fitted to the Limón gauge itself; see `docs/TIDES.md`
 - [ ] 3.2 Dispersion solver and shoaling (**O**)
 - [ ] 3.3 Refraction ray tracing over bathymetry (**O**)
 - [ ] 3.4 Breaking height, breaker type, wave energy and force (**O**)
