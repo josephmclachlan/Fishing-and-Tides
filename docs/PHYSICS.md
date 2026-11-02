@@ -70,3 +70,7 @@ The HUD's RIP readout now comes from this for the spot nearest the map centre, u
 ## On the map (PLAN 4.2)
 
 `src/spot-physics.ts` runs every named spot through the worker whenever the forecast hour, swell, wind or tide changes. The RIP RISK layer (`src/layers/rip.ts`) draws a bar along each spot's surf zone in green, amber or red. For MOD and HIGH it adds a dashed arrow running out to the expected rip reach, labelled with strength, speed, reach and the breaker. At the spot tier the side panel's SURF ZONE block shows the breaker height and type, wave power, longshore drift, rip strength and reach for the spot nearest the reticle. The longshore drift uses the rms breaker height and the angle at the break, found by Snell's law from the 10 m read point.
+
+## 6.2 Dive surge (`surge.ts`, `src/dive-hud.ts`)
+
+The wave at the spot's 10 m read point (offshore Hs × the 3.3 factor K) is shoaled to 3, 6 and 12 m (capped where it would already have broken). The peak bed velocity is ub = πH / (T sinh kh), and the water swings ub·T/2π each way. The significant height is used, so the band errs on the cautious side: **CALM** below 0.25 m/s, **SURGY** to 0.6 m/s, **DANGEROUS** above. A diver can hold position against roughly 0.3 to 0.5 m/s. At the spot tier the side panel's DIVE SURGE rows show the band, the speed and the swing for each depth, e.g. `SURGY 0.5 M/S ±0.5M` at 3 m off Cahuita on a 1 m, 10 s day. These thresholds are our guidance, not a published standard.

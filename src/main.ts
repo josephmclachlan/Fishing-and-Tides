@@ -51,6 +51,7 @@ import { nearest } from './geo';
 import { createSpotPhysics, type SpotPhysics } from './spot-physics';
 import { mountRip } from './layers/rip';
 import { mountSurfZoneHud } from './surf-zone-hud';
+import { mountDiveHud } from './dive-hud';
 
 registerSW({ immediate: true });
 
@@ -240,6 +241,7 @@ fetchSeafloor()
       surfHud.refresh();
     });
     mountSurfZoneHud(hud, map, spotPhysics);
+    mountDiveHud(hud, map, spotPhysics);
     spotPhysics.update();
     depthAt = (lng, lat) => {
       const z = sample(data.region, lng, lat);
