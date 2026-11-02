@@ -8,6 +8,8 @@ import { fetchCatchmentRain } from '../adapters/catchment-rain';
 import { fetchCurrents } from '../adapters/currents';
 import { fetchGauge } from '../adapters/gauge';
 import { fetchLightning } from '../adapters/lightning';
+import { fetchMetar } from '../adapters/metar';
+import { fetchPasses } from '../adapters/passes';
 import { fetchSatellite } from '../adapters/satellite';
 import { fetchStorms } from '../adapters/storms';
 import { fetchWaves } from '../adapters/waves';
@@ -20,6 +22,27 @@ const need = (ok: unknown, what: string) => {
 };
 const live = (d: { fromCache: boolean }, what: string) => need(!d.fromCache, `${what}: network did not answer, kept the older copy`);
 
+/**
+ * The verify feeds (src/verify/registry.ts) each job refreshes. A test holds every live feed in
+ * the verify list to a job here, so a new feed can't be checked daily yet missed by the sync (PLAN 7.9).
+ */
+export const JOB_FEEDS: Record<string, readonly string[]> = {
+  wind: ['wind'],
+  waves: ['waves'],
+  currents: ['currents'],
+  sst: ['sst', 'sst-coast', 'chl', 'kd490'],
+  passes: ['sst-pass', 'chl-pass'],
+  weather: ['weather'],
+  rain: ['rain'],
+  storms: ['storms'],
+  gauge: ['gauge'],
+  metar: ['metar'],
+  lightning: ['lightning'],
+};
+
+/** Verify feeds that are precached with the app rather than synced (checked in the sync's last step). */
+export const PRECACHED_FEEDS: readonly string[] = ['occurrences', 'obis', 'gbif'];
+
 export function tripJobs(base: string = import.meta.env.BASE_URL): SyncJob[] {
   return [
     { name: 'wind', run: async () => need((await fetchWind({ base })).forecast, 'no wind forecast') },
@@ -30,6 +53,9 @@ export function tripJobs(base: string = import.meta.env.BASE_URL): SyncJob[] {
     { name: 'rain', run: async () => live(await fetchCatchmentRain(), 'rain') },
     { name: 'storms', run: async () => live(await fetchStorms({ base }), 'storms') },
     { name: 'gauge', run: async () => live(await fetchGauge({ hours: 30 }), 'gauge') },
+    // LIVE OBS (PLAN 2.13): the airport's reports and the satellite passes.
+    { name: 'metar', run: async () => live(await fetchMetar({ base }), 'metar') },
+    { name: 'passes', run: async () => { const d = await fetchPasses({ base }); need(d.sst || d.chl, 'no satellite passes'); } },
     // Published only from the live site (null in dev and preview): nothing to sync there.
     { name: 'lightning', run: async () => { const d = await fetchLightning(); if (d) live(d, 'lightning'); } },
   ];

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadSummary, mapAssets, marked, saveSummary, styleFonts, syncForTrip, TRIP_CACHE, type SyncProgress } from './sync';
+import { loadSummary, mapAssets, marked, saveSummary, STATIC_FILES, styleFonts, syncForTrip, TRIP_CACHE, type SyncProgress } from './sync';
 import { countRange, tilesIn } from './tiles';
 import { REGION } from '../region';
 
@@ -109,6 +109,29 @@ describe('syncForTrip', () => {
     const { caches } = fakeCaches();
     const { f } = fakeFetch(() => true);
     await expect(syncForTrip({ styleUrl: 'https://s/style', base: '/', plan: z0, jobs: [], deps: { caches, fetch: f, swReady: async () => false } })).rejects.toThrow('style');
+  });
+});
+
+describe('static check', () => {
+  const manifest = { grids: { a: { file: 'a.i16' } }, reefs: 'r.geojson', marks: 'm.geojson' };
+  const run = (have: (u: string) => boolean) => {
+    const { caches } = fakeCaches();
+    (caches as unknown as { match: (u: string) => Promise<Response | undefined> }).match = async (u) => (have(u) ? new Response('') : undefined);
+    const f = (async (u: RequestInfo | URL) => (String(u).endsWith('/data/seafloor/manifest.json') ? Response.json(manifest) : fakeFetch().f(u))) as typeof fetch;
+    return syncForTrip({ styleUrl: 'https://s/style', base: '/', plan: [], jobs: [], deps: { caches, fetch: f, swReady: async () => true } });
+  };
+  it('passes when the seafloor files and the other static data are all precached', async () => {
+    const seen: string[] = [];
+    expect((await run((u) => (seen.push(u), true))).staticOk).toBe(true);
+    expect(seen.some((u) => u.endsWith('/data/seafloor/a.i16'))).toBe(true);
+    expect(seen.some((u) => u.endsWith('/data/zones/zones.geojson'))).toBe(true);
+  });
+  it('fails when one is missing', async () => {
+    expect((await run((u) => !u.endsWith('occurrences.json'))).staticOk).toBe(false);
+  });
+  it('names files the app actually ships', () => {
+    const shipped = Object.keys(import.meta.glob('../../public/data/**/*.{json,geojson}')).map((k) => k.replace('../../public/', ''));
+    for (const f of STATIC_FILES) expect(shipped, f).toContain(f);
   });
 });
 
