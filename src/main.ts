@@ -21,6 +21,8 @@ import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
 import { mountSettingsUi } from './settings-ui';
 import { mountSettingsPanel } from './settings-panel';
+import { mountSystemCheck } from './system-check';
+import { allChecks } from './verify/registry';
 import { fetchSeafloor } from './adapters/seafloor';
 import { mountSeafloor } from './layers/seafloor';
 import { mountSeafloorHud } from './seafloor-hud';
@@ -115,6 +117,8 @@ const harboursHud = mountHarboursHud(hud, map, { windFromDeg: () => conditionsAt
 // Boat mode: GPS track and pin log, kept on the device. Depth at a pin comes from the seafloor grid once it loads.
 let depthAt: ((lng: number, lat: number) => number | undefined) | null = null;
 mountBoatPanel(hud, map, createBoatStore(safeStorage()), sheets, () => depthAt);
+// SYSTEM CHECK: its tab joins the settings controls on a phone.
+mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeStorage() });
 // Last, so SET is the last tab and the settings controls (ENHANCE, SUN, language) are all mounted to be moved into it.
 mountSettingsPanel(hud, sheets);
 
