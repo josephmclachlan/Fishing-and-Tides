@@ -290,4 +290,20 @@ export const es: Dict = {
   'surf.hazard.crowd': 'MUCHA GENTE',
   'surf.hazard.none': 'NINGUNO',
   'surf.advice': 'LAS GUÍAS A VECES NO COINCIDEN Y LOS ROMPIENTES CAMBIAN CON LA ARENA, EL OLEAJE Y LA MAREA. CONSULTE A SURFISTAS LOCALES ANTES DE ENTRAR. NO ES UN CONSEJO DE SEGURIDAD.',
+
+  // Harbours and anchorages (PLAN 6.7)
+  'place.title': 'PUERTO',
+  'place.none': 'NINGUNO CERCA',
+  'place.distance': 'DISTANCIA',
+  'place.check': 'VERIFICAR',
+  'place.kind.harbour': 'PUERTO',
+  'place.kind.marina': 'TERMINAL DE BOTES',
+  'place.kind.pier': 'MUELLE',
+  'place.kind.anchorage': 'FONDEADERO',
+  'shelter.title': 'ABRIGO',
+  'shelter.sheltered': 'ABRIGADO',
+  'shelter.partial': 'PARCIALMENTE EXPUESTO',
+  'shelter.exposed': 'EXPUESTO',
+  'shelter.fetch': '{km} KM DE FETCH DEL {dir}',
+  'place.advice': 'NO ES UNA CARTA NÁUTICA. LA PROFUNDIDAD, EL FONDEO Y LAS REGLAS DEL PUERTO CAMBIAN Y ESTAS FUENTES SON VIEJAS. EL ABRIGO SE CALCULA CON LA COSTA Y EL VIENTO PRONOSTICADO, NO CON CONOCIMIENTO LOCAL. NO USAR PARA NAVEGAR.',
 };

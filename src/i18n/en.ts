@@ -284,6 +284,22 @@ export const en = {
   'surf.advice': 'GUIDES DISAGREE AT TIMES AND BREAKS CHANGE WITH SAND, SWELL AND TIDE. CHECK WITH LOCAL SURFERS BEFORE PADDLING OUT. NOT SAFETY ADVICE.',
   'surf.hazard.none': 'NONE LISTED',
 
+  // Harbours and anchorages (PLAN 6.7)
+  'place.title': 'HARBOUR',
+  'place.none': 'NONE NEAR',
+  'place.distance': 'RANGE',
+  'place.check': 'CHECK',
+  'place.kind.harbour': 'HARBOUR',
+  'place.kind.marina': 'BOAT TERMINAL',
+  'place.kind.pier': 'PIER',
+  'place.kind.anchorage': 'ANCHORAGE',
+  'shelter.title': 'SHELTER',
+  'shelter.sheltered': 'SHELTERED',
+  'shelter.partial': 'PARTLY EXPOSED',
+  'shelter.exposed': 'EXPOSED',
+  'shelter.fetch': '{km} KM FETCH FROM {dir}',
+  'place.advice': 'NOT A CHART. DEPTH, HOLDING AND PORT RULES CHANGE AND THESE SOURCES ARE OLD. SHELTER IS COMPUTED FROM THE COASTLINE AND THE FORECAST WIND, NOT FROM LOCAL KNOWLEDGE. NOT FOR NAVIGATION.',
+
   // Settings
   'settings.enhance': 'ENHANCE',
   'settings.on': 'ON',

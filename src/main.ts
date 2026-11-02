@@ -10,6 +10,9 @@ import { mountSeek } from './seek';
 import { createSettings, safeSession, safeStorage, takeView } from './settings';
 import { mountSurfBreaks } from './layers/surf-breaks';
 import { mountSurfHud } from './surf-hud';
+import { mountHarbours } from './layers/harbours';
+import { mountHarboursHud } from './harbours-hud';
+import type { Grid } from './physics/bathy';
 import { createBoatStore } from './boat/store';
 import { mountBoatPanel } from './boat-panel';
 import { dictFor, setDict } from './i18n';
@@ -101,6 +104,9 @@ mountSheets(hud, map, sheets);
 // Surf break catalog (PLAN 6.4): markers and BREAK rows.
 mountSurfBreaks(map);
 mountSurfHud(hud, map);
+mountHarbours(map);
+let landGrid: Grid | null = null;
+const harboursHud = mountHarboursHud(hud, map, { windFromDeg: () => conditionsAt().windDirDeg, land: () => landGrid });
 // Boat mode: GPS track and pin log, kept on the device. Depth at a pin comes from the seafloor grid once it loads.
 let depthAt: ((lng: number, lat: number) => number | undefined) | null = null;
 mountBoatPanel(hud, map, createBoatStore(safeStorage()), sheets, () => depthAt);
@@ -197,6 +203,8 @@ setInterval(updateSpotPhysics, 60_000);
 fetchSeafloor()
   .then(({ data }) => {
     mountSeafloorHud(hud, map, data);
+    landGrid = data.land;
+    harboursHud?.refresh();
     physics = createPhysicsClient({ region: data.region, macro: data.macro, land: data.land });
     updateSpotPhysics();
     depthAt = (lng, lat) => {

@@ -62,7 +62,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 6.4 Surf break catalog: curated Caribbean breaks (type, orientation, hazards), verified against map tiles (**S**)
 - [ ] 6.5 Marine wind detail: gusts, CAPE squall flag, NHC tropical alerts into the alert strip (**S**, needs 2.3)
 - [ ] 6.6 Sea state comfort index from wind-wave and swell partitions (**S**, needs 2.2)
-- [ ] 6.7 Anchorages and harbours layer: OSM seamarks, NGA World Port Index, shelter from wind direction (**S**)
+- [x] 6.7 Anchorages and harbours layer: OSM seamarks, NGA World Port Index, shelter from wind direction (**S**). Curated OSM places + coastline-fetch shelter; WPI unreachable, see docs/HARBOURS.md
 - [x] 6.8 Spearfishing and protected-area rules: SINAC/INCOPESCA zones, closed seasons, rules card per zone (**S**, extends 4.3)
 - [ ] 6.9 Register wind, currents and waves with the layer store when the particle layer lands (**S**, needs 1.4). Wind and currents done in 1.4; waves waits for a swell field (2.2)
 
