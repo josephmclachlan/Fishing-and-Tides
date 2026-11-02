@@ -62,3 +62,19 @@ export function planHops(z0: number, zf: number, maxStep = ENHANCE_MAX_STEP, max
   const n = Math.min(maxHops, Math.max(1, Math.ceil(dz / maxStep - 1e-9)));
   return Array.from({ length: n }, (_, i) => (i === n - 1 ? zf : z0 + (dz * (i + 1)) / n));
 }
+
+/** Coarsest block, CSS px, reached when an enhance hop's zoom lands. */
+export const MAX_BLOCK = LOCK_STEPS[0];
+
+/**
+ * Block size while zooming from `z0` to `z1`: sharp (1 px) at the start, coarsest on arrival,
+ * growing in proportion to the zoom travelled (size = MAX_BLOCK^f, f = fraction of the way,
+ * so each equal step in zoom multiplies the block by the same factor). Snapped down to a
+ * LOCK_STEPS size so blocks tile the resolve cells.
+ */
+export function zoomBlock(z: number, z0: number, z1: number): number {
+  const span = z1 - z0;
+  const f = span > 0 ? Math.min(1, Math.max(0, (z - z0) / span)) : 1;
+  const size = MAX_BLOCK ** f;
+  return LOCK_STEPS.find((b) => b <= size + 1e-9) ?? 1;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LOCK_STEPS, RESOLVE_CELL_PX, cellBlockAt, nextTier, pixelBlockAt, planHops, tierDirection } from './zoom';
+import { LOCK_STEPS, MAX_BLOCK, RESOLVE_CELL_PX, cellBlockAt, nextTier, pixelBlockAt, planHops, tierDirection, zoomBlock } from './zoom';
 
 describe('nextTier', () => {
   it('switches tiers once zoom clears the edge by the hysteresis band', () => {
@@ -69,5 +69,27 @@ describe('planHops', () => {
     expect(planHops(13.9, 14)).toEqual([14]);
     expect(planHops(15, 14)).toEqual([14]);
     expect(planHops(12, 14)).toEqual([14]);
+  });
+});
+
+describe('zoomBlock', () => {
+  it('is sharp at the start of the zoom and coarsest on arrival', () => {
+    expect(zoomBlock(9, 9, 11.5)).toBe(1);
+    expect(zoomBlock(11.5, 9, 11.5)).toBe(MAX_BLOCK);
+  });
+  it('grows in equal ratios for equal zoom travelled', () => {
+    // 32 = 2^5, so each fifth of the way doubles the block.
+    const sizes = [0, 0.2, 0.4, 0.6, 0.8, 1].map((f) => zoomBlock(10 + 2.5 * f, 10, 12.5));
+    expect(sizes).toEqual([1, 2, 4, 8, 16, 32]);
+  });
+  it('never shrinks as zoom rises and clamps outside the range', () => {
+    let prev = 0;
+    for (let z = 8; z <= 15; z += 0.05) {
+      const b = zoomBlock(z, 9, 14);
+      expect(b).toBeGreaterThanOrEqual(prev);
+      prev = b;
+    }
+    expect(zoomBlock(5, 9, 14)).toBe(1);
+    expect(zoomBlock(20, 9, 14)).toBe(MAX_BLOCK);
   });
 });

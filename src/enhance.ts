@@ -4,7 +4,8 @@
  *   1. Slew: pan to the target (pulling back to a wide view first if it's off screen or
  *      we're already zoomed in).
  *   2. Per hop (2 to 4, see planHops): box and highlight the area the next view will show,
- *      zoom into it under coarse pixel blocks, wait for the tiles, then resolve cell by cell.
+ *      zoom into it as the picture breaks into blocks that grow with the zoom (sharp at the
+ *      start, coarsest on arrival), wait for the tiles, then resolve cell by cell.
  *   3. Lock on the target.
  *
  * Any touch, drag or wheel on the map cancels it and hands control back.
@@ -79,7 +80,7 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx) {
       if (!alive()) return;
 
       fx.state('ENHANCE');
-      if (!reduceMotion.matches) fx.coarse();
+      if (!reduceMotion.matches) fx.magnify(map.getZoom(), hops[i], target.lngLat);
       await moveTo({ center: target.lngLat, zoom: hops[i], duration: T.zoom * k, easing: easeInOut });
       if (!alive()) return;
       fx.box(null);
@@ -87,7 +88,7 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx) {
       if (!alive()) return;
 
       fx.state('RESOLVING');
-      if (!reduceMotion.matches && !(await fx.resolve(T.resolve))) return;
+      if (!(await fx.resolve(T.resolve))) return;
       fx.lock(i === hops.length - 1 ? 'LOCKED' : 'SECTOR CLEAR');
       await wait(T.settle * k);
     }
