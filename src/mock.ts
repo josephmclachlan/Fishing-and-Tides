@@ -81,9 +81,25 @@ export function mockWindField(hour = 0): VectorField {
  *  - A few offshore eddies.
  */
 export function mockCurrentField(hour = 0): VectorField {
+  // Only the coastal jet's strength changes with the hour, so the geometry is sampled once (PLAN 5.4):
+  // scrubbing the slider used to redo the coastline distance for every grid point on every step.
+  const { still, jet } = (mockCurrentParts ??= currentParts());
+  const k = 0.35 * (1 + 0.15 * Math.sin((2 * Math.PI * hour) / 12.42));
+  const u = new Float32Array(still.u.length);
+  const v = new Float32Array(still.v.length);
+  for (let i = 0; i < u.length; i++) {
+    u[i] = still.u[i] + k * jet.u[i];
+    v[i] = still.v[i] + k * jet.v[i];
+  }
+  return { ...still, u, v };
+}
+
+let mockCurrentParts: { still: VectorField; jet: VectorField } | null = null;
+
+/** The hour-independent parts: the open-sea pattern, and the jet's unit-strength shape (fading ~25 km offshore). */
+function currentParts(): { still: VectorField; jet: VectorField } {
   const { coast, gyre, eddies } = MOCK_FLOW;
-  const tide = 1 + 0.15 * Math.sin((2 * Math.PI * hour) / 12.42);
-  return gridField(REGION.maxBounds, 0.05, (lng, lat) => {
+  const still = gridField(REGION.maxBounds, 0.05, (lng, lat) => {
     const cc = 0.4 * smoothstep(10.8, 12.6, lat);
     let u = -cc;
     let v = 0.6 * cc * smoothstep(-81.5, -83.5, lng);
@@ -97,8 +113,12 @@ export function mockCurrentField(hour = 0): VectorField {
       u -= s * dy;
       v += s * dx;
     }
-    const { km, tangent } = nearestOnLine([lng, lat], coast);
-    const jet = 0.35 * tide * Math.exp(-km / 25);
-    return [u + jet * tangent[0], v + jet * tangent[1]];
+    return [u, v];
   });
+  const jet = gridField(REGION.maxBounds, 0.05, (lng, lat) => {
+    const { km, tangent } = nearestOnLine([lng, lat], coast);
+    const f = Math.exp(-km / 25);
+    return [f * tangent[0], f * tangent[1]];
+  });
+  return { still, jet };
 }

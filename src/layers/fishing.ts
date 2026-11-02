@@ -75,7 +75,10 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   const inReach = (coastM: number) => reach === 'all' || (reach === 'shore' ? coastM <= SHORE_M : coastM > SHORE_M);
 
   // Records nudge a species' score where it has been seen (src/fishing/occurrences.ts).
-  const boostAt = (id: SpeciesId, lng: number, lat: number) => occurrenceBoost(recordsFor(occurrences, id), lng, lat);
+  // Only records near the cells can nudge them (occurrenceBoost looks 0.03° out), so drop the rest once (PLAN 5.4).
+  const [bw, bs, be, bn] = input.bounds;
+  const near = Object.fromEntries(SPECIES.map((s) => [s.id, recordsFor(occurrences, s.id).filter(([x, y]) => x > bw - 0.03 && x < be + 0.03 && y > bs - 0.03 && y < bn + 0.03)])) as unknown as Record<SpeciesId, ReturnType<typeof recordsFor>>;
+  const boostAt = (id: SpeciesId, lng: number, lat: number) => occurrenceBoost(near[id], lng, lat);
   // Habitat weights: the hand-written rules updated by the records (a few ms for all species).
   const fits = Object.fromEntries(SPECIES.map((s) => [s.id, fitWeights(s, built.cells, recordCells(built.lattice, built.index, built.cells, recordsFor(occurrences, s.id)))])) as Record<SpeciesId, HabitatFit>;
   const geojson: FeatureCollection = {
