@@ -62,6 +62,8 @@ import { currentsAt, fetchCurrents, type CurrentsData } from './adapters/current
 import { fetchWaves, wavesAt, type SeaState, type WavesData } from './adapters/waves';
 import { fetchSatellite, sstAt, type SatelliteData } from './adapters/satellite';
 import { mountSst } from './layers/sst';
+import { mountClarity, mountClarityHud, type ClarityContext } from './layers/clarity';
+import { fetchCatchmentRain, type CatchmentRain } from './adapters/catchment-rain';
 import { dataAge, describeAge } from './adapters/data-age';
 import { createNet } from './net';
 import { createPhysicsClient } from './physics/client';
@@ -138,6 +140,7 @@ fetchSatellite()
     if (!d.sst && !d.sstCoast) return console.warn('sst: nothing published; using mock');
     satellite = d;
     mountSst(map, d);
+    refreshClarity();
   })
   .catch((err) => console.warn('satellite unavailable', err));
 // Real waves once loaded (forecast to day 16, then climatology); the mock swell until then.
@@ -158,6 +161,7 @@ fetchWaves()
     waves = d;
     rebuildCrests();
     queueSpotPhysics();
+    refreshClarity();
   })
   .catch((err) => console.warn('waves unavailable', err));
 // DATA AGE and connectivity for the HUD (PLAN 5.2).
@@ -246,6 +250,32 @@ if (flow) {
   layers.register('currents', { setVisible: (on) => flow.setVisible('current', on) });
 }
 const flowHud = mountFlowHud(hud, map, () => flowSources.current);
+
+// Water clarity (PLAN 6.1): newest satellite optics, plus river plumes after catchment rain and waves stirring
+// the bottom, both from the forecast at the slider's hour. Needs the depth grid, so it starts once that loads.
+let catchmentRain: CatchmentRain | null = null;
+let clarityElevation: Grid | null = null;
+const clarityLayer = mountClarity(map);
+const clarityCtx = (): ClarityContext | null =>
+  clarityElevation && {
+    satellite, rain: catchmentRain, elevation: clarityElevation, ms: time.validMs(),
+    seaAt: (lng, lat) => {
+      const s = seaStateAt(lng, lat);
+      if (!s) return null;
+      const swell = Number.isFinite(s.swellHs) && Number.isFinite(s.swellT);
+      return { hs: s.hs, tp: swell ? s.swellT : s.tm };
+    },
+  };
+const clarityHud = mountClarityHud(hud, map, clarityCtx);
+const refreshClarity = () => {
+  const c = clarityCtx();
+  if (c) clarityLayer.update(c);
+  clarityHud?.refresh();
+};
+time.subscribe(refreshClarity);
+fetchCatchmentRain()
+  .then((d) => ((catchmentRain = d), refreshClarity()))
+  .catch((err) => console.warn('catchment rain unavailable', err));
 
 // New forecast hour: rebuild both fields. Scrubbing fires many times a frame, so do it once per frame.
 let fieldsQueued = false;
@@ -352,6 +382,8 @@ fetchSeafloor()
     mountSeafloorHud(hud, map, data);
     landGrid = data.land;
     harboursHud?.refresh();
+    clarityElevation = data.region;
+    refreshClarity();
     spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land }), baseConditions, () => time.validMs(), spotSea);
     spotPhysics.subscribe(() => {
       ripLayer.update(spotPhysics!.all(), data.land);

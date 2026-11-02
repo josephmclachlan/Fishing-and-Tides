@@ -51,6 +51,7 @@ export const es: Dict = {
   'check.feed.sst': 'TEMP. MAR',
   'check.feed.chl': 'CLOROFILA',
   'check.feed.kd490': 'CLARIDAD KD490',
+  'check.feed.rain': 'LLUVIA EN CUENCAS',
   'check.feed.obis': 'OBIS',
   'check.feed.gbif': 'GBIF',
   'check.feed.occurrences': 'REGISTROS',
@@ -148,6 +149,10 @@ export const es: Dict = {
 
   // Current under the reticle
   'flow.current': 'CORRIENTE',
+  'clarity.vis': 'VISIB.',
+  'clarity.cause.plankton': 'PLANCTON',
+  'clarity.cause.river': 'RÍO',
+  'clarity.cause.swell': 'OLEAJE',
   'flow.set': 'RUMBO',
   'flow.land': 'TIERRA',
 

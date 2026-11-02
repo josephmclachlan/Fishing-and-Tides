@@ -52,6 +52,7 @@ export const en = {
   'check.feed.sst': 'SEA TEMP',
   'check.feed.chl': 'CHLOROPHYLL',
   'check.feed.kd490': 'CLARITY KD490',
+  'check.feed.rain': 'CATCHMENT RAIN',
   'check.feed.obis': 'OBIS',
   'check.feed.gbif': 'GBIF',
   'check.feed.occurrences': 'RECORDS',
@@ -149,6 +150,10 @@ export const en = {
 
   // Current under the reticle
   'flow.current': 'CURRENT',
+  'clarity.vis': 'VIS',
+  'clarity.cause.plankton': 'PLANKTON',
+  'clarity.cause.river': 'RIVER',
+  'clarity.cause.swell': 'SWELL',
   'flow.set': 'SET',
   'flow.land': 'LAND',
 
