@@ -106,8 +106,8 @@ mountLayersPanel(hud, layers, sheets);
 mountLangUi(hud, settings, map);
 mountSheets(hud, map, sheets);
 // Surf break catalog (PLAN 6.4): markers and BREAK rows.
-mountSurfBreaks(map);
-mountSurfHud(hud, map);
+const surfBreaks = mountSurfBreaks(map);
+const surfHud = mountSurfHud(hud, map, (name) => spotPhysics?.byName(name)?.surf);
 mountSeaStateHud(hud, conditionsAt);
 mountHarbours(map);
 let landGrid: Grid | null = null;
@@ -197,7 +197,11 @@ fetchSeafloor()
     landGrid = data.land;
     harboursHud?.refresh();
     spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land }), baseConditions, () => time.validMs());
-    spotPhysics.subscribe(() => ripLayer.update(spotPhysics!.all()));
+    spotPhysics.subscribe(() => {
+      ripLayer.update(spotPhysics!.all());
+      surfBreaks.update((name) => spotPhysics!.byName(name)?.surf);
+      surfHud.refresh();
+    });
     mountSurfZoneHud(hud, map, spotPhysics);
     spotPhysics.update();
     depthAt = (lng, lat) => {

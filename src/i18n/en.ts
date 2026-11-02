@@ -288,6 +288,16 @@ export const en = {
 
   // Surf breaks (PLAN 6.4)
   'surf.title': 'BREAK',
+  'surf.q': 'SURF',
+  'surf.band.FLAT': 'FLAT',
+  'surf.band.POOR': 'POOR',
+  'surf.band.FAIR': 'FAIR',
+  'surf.band.GOOD': 'GOOD',
+  'surf.band.EPIC': 'EPIC',
+  'surf.wind.offshore': 'OFFSHORE',
+  'surf.wind.onshore': 'ONSHORE',
+  'surf.wind.cross': 'CROSS',
+  'surf.wind.calm': 'GLASSY',
   'surf.none': 'NONE NEAR',
   'surf.type': 'TYPE',
   'surf.faces': 'FACES {dir}',

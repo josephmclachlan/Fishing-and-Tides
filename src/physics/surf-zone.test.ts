@@ -52,3 +52,22 @@ describe('spot surf zone', () => {
     }
   }, 20_000);
 });
+
+describe('shore normal from the coastline', () => {
+  it('agrees with the surf catalog facings (measured independently from the land mask) within 25°', async () => {
+    const { SURF_BREAKS } = await import('../data/surf-breaks');
+    const { shoreNormal } = await import('./surf-zone');
+    // Playa Bonita is left out: its catalog facing (10°, marked CHECK) disagrees with the coastline
+    // there, which runs NW–SE with open water from about 15° to 90° (normal ≈ 50°). See docs/SURF.md.
+    for (const b of SURF_BREAKS.filter((x) => x.id !== 'playa-bonita')) {
+      const n = shoreNormal(realDepth, b.lngLat)!;
+      const diff = Math.abs(((n - b.facing + 540) % 360) - 180);
+      expect(diff, `${b.name}: ${n.toFixed(0)} vs ${b.facing}`).toBeLessThan(25);
+    }
+  });
+
+  it('points east on a straight beach facing east', async () => {
+    const { shoreNormal } = await import('./surf-zone');
+    expect(shoreNormal(planar, pin)).toBeCloseTo(90, 6);
+  });
+});

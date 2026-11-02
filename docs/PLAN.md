@@ -58,7 +58,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 ## Phase 6: Activity data (see DESIGN.md section 6)
 - [ ] 6.1 Water clarity: Kd490 and chlorophyll from ERDDAP/Copernicus, plus a rain-plume estimate from river-mouth rainfall, as the CLARITY layer (**S**, builds on 2.4)
 - [ ] 6.2 Dive surge: bottom orbital velocity per spot from the shoaling solver, shown as a calm/surgy/dangerous band (**O**, needs 3.2)
-- [ ] 6.3 Surf break model: per-break orientation, swell window and offshore-wind angle give a quality score; seed the SURF BREAKS layer (**O**, needs 3.3, 3.4)
+- [x] 6.3 Surf break model: per-break orientation, swell window and offshore-wind angle give a quality score; seed the SURF BREAKS layer (**O**, needs 3.3, 3.4). `src/surf-quality.ts`, see `docs/SURF.md`
 - [x] 6.4 Surf break catalog: curated Caribbean breaks (type, orientation, hazards), verified against map tiles (**S**)
 - [ ] 6.5 Marine wind detail: gusts, CAPE squall flag, NHC tropical alerts into the alert strip (**S**, needs 2.3)
 - [x] 6.6 Sea state comfort index from wind-wave and swell partitions (**S**, needs 2.2). Pure index in physics/sea-state.ts; HUD uses SIM partitions until 2.2 lands
