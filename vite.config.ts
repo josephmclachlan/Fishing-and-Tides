@@ -18,7 +18,8 @@ export default defineConfig({
         icons: [{ src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }],
       },
       workbox: {
-        globPatterns: ['**/*.{js,mjs,css,html,svg,woff,woff2}'],
+        // Seafloor grids and reef/seamark GeoJSON (public/data/seafloor) are precached so depth works offline.
+        globPatterns: ['**/*.{js,mjs,css,html,svg,woff,woff2,json,geojson,i16,u8,rle16}'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         // Map tiles/styles cached as you browse; full region pre-download comes with "Sync for trip" (PLAN 5.1).
         runtimeCaching: [

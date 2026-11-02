@@ -34,3 +34,19 @@ export const SPOTS: { name: string; lngLat: [number, number] }[] = [
   { name: 'MANZANILLO', lngLat: [-82.6569, 9.634] },
   { name: 'GANDOCA', lngLat: [-82.6139, 9.6065] },
 ];
+
+/** Seafloor layer (PLAN 2.6). Depths in metres, positive down. */
+export const SEAFLOOR = {
+  /** Contours from the 1′ grid over the whole Caribbean view. */
+  macroContours: [200, 500, 1000, 2000, 3000, 4000],
+  /** Contours from the 15″ grid inside REGION.bounds, shown from the coast tier. */
+  coastContours: [5, 10, 20, 30, 50, 100, 200],
+  /** Contours drawn brighter and labelled first; the rest are dashed minors. */
+  majorContours: [10, 50, 100, 200, 1000, 2000, 3000],
+  /** Minor coast contours (5, 20, 30 m) appear from this zoom. */
+  minorZoom: 10.5,
+  /** Shading band edges, shallow to deep. */
+  bands: [5, 10, 20, 50, 100, 200, 500, 1000, 2000, 3000],
+  /** Opacity of each band (bands.length + 1): shallow water reads brightest. */
+  bandAlphas: [0.3, 0.25, 0.21, 0.17, 0.14, 0.11, 0.085, 0.065, 0.05, 0.038, 0.028],
+} as const;

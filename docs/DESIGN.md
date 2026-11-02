@@ -18,7 +18,8 @@ Tides here are small (microtidal, under about 0.5 m), so tide *timing* matters m
 | Currents | Copernicus Marine, HYCOM | Offshore surface currents; nearshore currents modeled by us |
 | Wind | GFS, ECMWF via Open-Meteo | Wind field and particles |
 | Sea temp, chlorophyll | NOAA CoastWatch ERDDAP (VIIRS, MODIS) | SST, temperature fronts, chlorophyll edges |
-| Bathymetry | GEBCO, plus digitized charts where possible | Shoaling, refraction, depth contours, fishing depth |
+| Bathymetry | GEBCO 2026 (15″), OSM coastline mask; see `docs/SEAFLOOR.md` | Shoaling, refraction, depth contours, fishing depth |
+| Reefs, seamarks | Allen Coral Atlas, OpenStreetMap | Reef zones and bottom cover, named reefs, wrecks, lights |
 | Species | OBIS, GBIF | Occurrence records to fit habitat models |
 | Fishing pressure | Global Fishing Watch | Vessel activity, offshore corridors |
 

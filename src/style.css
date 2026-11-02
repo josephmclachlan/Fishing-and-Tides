@@ -177,3 +177,8 @@ body[data-tier='COAST'] .from-spot { display: none; }
   .seek { top: 92px; left: 8px; right: 8px; width: auto; }
   .seek-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 }
+
+/* Seafloor readouts (PLAN 2.6): text values in the segmented style, smaller to fit */
+.seg.sm { font-size: 13px; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.side .wide-only { display: contents; }
+@media (max-width: 600px) { .side .wide-only { display: none; } }

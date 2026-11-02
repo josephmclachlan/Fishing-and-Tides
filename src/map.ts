@@ -36,7 +36,7 @@ function hudify(map: Map) {
 
 const { COAST, SPOT } = TIER_ZOOM;
 /** Paint value that eases between tiers: `macro` below COAST, `coast` across COAST, `spot` from SPOT. */
-const byTier = (macro: number, coast: number, spot: number): ExpressionSpecification =>
+export const byTier = (macro: number, coast: number, spot: number): ExpressionSpecification =>
   ['interpolate', ['linear'], ['zoom'], COAST - 0.5, macro, COAST + 0.5, coast, SPOT - 0.5, coast, SPOT + 0.5, spot];
 
 /**
@@ -66,7 +66,7 @@ function addTierLayers(map: Map) {
   }
 }
 
-function firstSymbolId(map: Map) {
+export function firstSymbolId(map: Map) {
   return map.getStyle().layers?.find((l) => l.type === 'symbol')?.id;
 }
 
