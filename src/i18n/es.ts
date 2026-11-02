@@ -356,6 +356,15 @@ export const es: Dict = {
 
   // Harbours and anchorages (PLAN 6.7)
   'layer.weather': 'CLIMA',
+  'wx.gust': 'RÁFAGAS',
+  'wx.cape': 'CAPE',
+  'wx.squall': 'CHUBASCO 6H',
+  'wx.squall.none': 'BAJO',
+  'wx.squall.watch': 'VIGILANCIA',
+  'wx.squall.high': 'ALTO',
+  'wx.alertSquall': 'VIGILANCIA DE CHUBASCOS: AIRE INESTABLE, RÁFAGAS O LLUVIA FUERTE PROBABLES',
+  'wx.alertSquallHigh': 'RIESGO ALTO DE CHUBASCOS: POSIBLES TORMENTAS FUERTES',
+  'unit.jkg': 'J/KG',
   'wx.title': 'CLIMA',
   'wx.rain': 'LLUVIA AHORA',
   'wx.rain24': 'LLUVIA 24H',

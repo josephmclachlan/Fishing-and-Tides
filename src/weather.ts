@@ -14,6 +14,8 @@ export interface WeatherSummary {
   cloudPct: number;
   uv: number;
   tempC: number;
+  gustKt: number;
+  capeJkg: number;
   /** Largest minus smallest model rain rate, mm/h: how much the models disagree. */
   rainSpreadMmH: number;
   /** Rain over the 24 h from the valid time, mm (mean of the models that cover all of it). */
@@ -37,6 +39,8 @@ export function summarise(d: WeatherData, ms: number): WeatherSummary | null {
     cloudPct: mean(finite(now.map((w) => w.cloudPct))),
     uv: mean(finite(now.map((w) => w.uv))),
     tempC: mean(finite(now.map((w) => w.tempC))),
+    gustKt: mean(finite(now.map((w) => w.gustKt))),
+    capeJkg: mean(finite(now.map((w) => w.capeJkg))),
     rainSpreadMmH: Math.max(...rains) - Math.min(...rains),
     rain24Mm: mean(acc),
   };
@@ -46,6 +50,33 @@ export function summarise(d: WeatherData, ms: number): WeatherSummary | null {
 export const HEAVY_RAIN_MM_H = 10;
 export function heavyRainSoon(d: WeatherData, ms: number): boolean {
   return [0, 1, 2].some((h) => (summarise(d, ms + h * 3.6e6)?.rainMmH ?? 0) >= HEAVY_RAIN_MM_H);
+}
+
+/**
+ * Squall flag. A heuristic, not a forecast of a specific storm: convective energy (mean CAPE of the
+ * models) high enough for deep thunderstorms, together with either strong gusts or heavy rain in the
+ * same hour. CAPE >= 1000 J/kg is moderately unstable and >= 2500 very unstable (common usage);
+ * the gust and rain gates (25 kt, 5 mm/h) keep it from firing on dry unstable air.
+ */
+export type Squall = 'none' | 'watch' | 'high';
+export const CAPE_WATCH = 1000;
+export const CAPE_HIGH = 2500;
+export function squallLevel(s: Pick<WeatherSummary, 'capeJkg' | 'gustKt' | 'rainMmH'>): Squall {
+  if (!(s.capeJkg >= CAPE_WATCH)) return 'none';
+  const active = s.gustKt >= 25 || s.rainMmH >= 5;
+  return s.capeJkg >= CAPE_HIGH && active ? 'high' : active ? 'watch' : 'none';
+}
+
+/** The worst squall level in the 6 hours from `ms`. */
+export function squallSoon(d: WeatherData, ms: number): Squall {
+  let worst: Squall = 'none';
+  for (let h = 0; h < 6; h++) {
+    const s = summarise(d, ms + h * 3.6e6);
+    const l = s ? squallLevel(s) : 'none';
+    if (l === 'high') return 'high';
+    if (l === 'watch') worst = 'watch';
+  }
+  return worst;
 }
 
 export const STORM_ALERT_KM = 1500;

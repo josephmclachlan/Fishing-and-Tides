@@ -12,13 +12,13 @@ import { freshness, inRange, type Check } from '../verify/types';
 
 export const WEATHER_MODELS = ['gfs_seamless', 'ecmwf_ifs025', 'icon_seamless'] as const;
 export type WeatherModel = (typeof WEATHER_MODELS)[number];
-export const WEATHER_VARS = ['precipitation', 'cloud_cover', 'uv_index', 'temperature_2m'] as const;
+export const WEATHER_VARS = ['precipitation', 'cloud_cover', 'uv_index', 'temperature_2m', 'wind_gusts_10m', 'cape'] as const;
 export type WeatherVar = (typeof WEATHER_VARS)[number];
 
 export interface WeatherData {
   /** Hour starts, epoch ms. */
   times: number[];
-  /** model → variable → hourly values (NaN where the model has none). Rain mm per hour, cloud %, UV index, °C. */
+  /** model → variable → hourly values (NaN where the model has none). Rain mm per hour, cloud %, UV index, °C, gusts kt, CAPE J/kg. */
   models: Partial<Record<WeatherModel, Record<WeatherVar, number[]>>>;
   /** When the bytes were fetched, epoch ms. */
   fetchedAt: number;
@@ -26,7 +26,7 @@ export interface WeatherData {
 }
 
 export const weatherUrl = (point: readonly [number, number] = REGION.center, days = 16) =>
-  `https://api.open-meteo.com/v1/forecast?latitude=${point[1]}&longitude=${point[0]}&hourly=${WEATHER_VARS.join(',')}&models=${WEATHER_MODELS.join(',')}&forecast_days=${days}&timeformat=unixtime`;
+  `https://api.open-meteo.com/v1/forecast?latitude=${point[1]}&longitude=${point[0]}&hourly=${WEATHER_VARS.join(',')}&models=${WEATHER_MODELS.join(',')}&forecast_days=${days}&timeformat=unixtime&wind_speed_unit=kn`;
 
 /** Turn Open-Meteo's `hourly` block (unixtime, keys like `precipitation_gfs_seamless`) into WeatherData. */
 export function parseWeather(json: unknown, fetchedAt: number, fromCache = false): WeatherData {
@@ -60,6 +60,8 @@ export interface WeatherNow {
   cloudPct: number;
   uv: number;
   tempC: number;
+  gustKt: number;
+  capeJkg: number;
 }
 
 /** Index of the hour containing `ms`, or -1 outside the series. */
@@ -77,7 +79,7 @@ export function weatherAt(d: WeatherData, ms: number): WeatherNow[] {
   for (const m of WEATHER_MODELS) {
     const v = d.models[m];
     if (!v || Number.isNaN(v.precipitation[i])) continue;
-    out.push({ model: m, rainMmH: v.precipitation[i], cloudPct: v.cloud_cover[i], uv: v.uv_index[i], tempC: v.temperature_2m[i] });
+    out.push({ model: m, rainMmH: v.precipitation[i], cloudPct: v.cloud_cover[i], uv: v.uv_index[i], tempC: v.temperature_2m[i], gustKt: v.wind_gusts_10m[i], capeJkg: v.cape[i] });
   }
   return out;
 }
@@ -107,6 +109,8 @@ export function weatherChecks(load: () => Promise<WeatherData> = () => fetchWeat
     { feed: 'weather', kind: 'fresh', label: 'Fetched within the last 3 h', run: async () => freshness(Date.now() - (await data()).fetchedAt, 1.5 * 3.6e6) },
     { feed: 'weather', kind: 'range', label: 'Temperature within 15..40 °C', run: async () => inRange(await all('temperature_2m'), 15, 40, '°C', 0.02) },
     { feed: 'weather', kind: 'range', label: 'Rain within 0..150 mm per hour', run: async () => inRange(await all('precipitation'), 0, 150, 'mm/h', 0.02) },
+    { feed: 'weather', kind: 'range', label: 'Gusts within 0..120 kt', run: async () => inRange(await all('wind_gusts_10m'), 0, 120, 'kt', 0.02) },
+    { feed: 'weather', kind: 'range', label: 'CAPE within 0..6000 J/kg', run: async () => inRange(await all('cape'), 0, 6000, 'J/kg', 0.02) },
     { feed: 'weather', kind: 'range', label: 'UV index within 0..16', run: async () => inRange(await all('uv_index'), 0, 16, '', 0.02) },
     { feed: 'weather', kind: 'agree', label: 'Models agree on temperature within 3 °C', run: async () => {
       const d = await data();

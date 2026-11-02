@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseWeather } from './adapters/weather';
-import { heavyRainSoon, nearestStorm, summarise } from './weather';
+import { heavyRainSoon, nearestStorm, squallLevel, squallSoon, summarise } from './weather';
 import { parseStorms } from './adapters/storms-parse';
 
 const T0 = 1_000_000_000;
@@ -46,5 +46,24 @@ describe('weather summary', () => {
     expect(n.category).toBe(3);
     expect(n.km).toBeGreaterThan(400);
     expect(nearestStorm([])).toBeNull();
+  });
+
+  it('squall flag needs unstable air plus gusts or heavy rain', () => {
+    expect(squallLevel({ capeJkg: 500, gustKt: 40, rainMmH: 10 })).toBe('none');
+    expect(squallLevel({ capeJkg: 1500, gustKt: 10, rainMmH: 1 })).toBe('none');
+    expect(squallLevel({ capeJkg: 1500, gustKt: 30, rainMmH: 1 })).toBe('watch');
+    expect(squallLevel({ capeJkg: 3000, gustKt: 10, rainMmH: 6 })).toBe('high');
+    expect(squallLevel({ capeJkg: NaN, gustKt: 40, rainMmH: 10 })).toBe('none');
+  });
+  it('looks six hours ahead for the worst level', () => {
+    const t0 = 1_000_000_000;
+    const col = (f: (i: number) => number) => Array.from({ length: 12 }, (_, i) => f(i));
+    const w = parseWeather({ hourly: {
+      time: col((i) => t0 / 1000 + i * 3600),
+      precipitation_gfs_seamless: col((i) => (i === 4 ? 8 : 0)), cloud_cover_gfs_seamless: col(() => 90), uv_index_gfs_seamless: col(() => 1), temperature_2m_gfs_seamless: col(() => 26),
+      wind_gusts_10m_gfs_seamless: col(() => 12), cape_gfs_seamless: col(() => 3000),
+    } }, t0);
+    expect(squallSoon(w, t0)).toBe('high');
+    expect(squallSoon(w, t0 + 6 * 3.6e6)).toBe('none');
   });
 });
