@@ -2,6 +2,7 @@ import '@fontsource/share-tech-mono';
 import './style.css';
 import { registerSW } from 'virtual:pwa-register';
 import { createMap } from './map';
+import { mountPinchGuard } from './pinch-guard';
 import { mountHud } from './hud';
 import { mockConditions, mockCurrentField, mockWindField } from './mock';
 import { createLockFx, mountZoomTiers } from './zoom-fx';
@@ -71,6 +72,7 @@ const settings = createSettings(safeStorage(), navigator.languages ?? [navigator
 setDict(dictFor(settings.lang()));
 document.documentElement.lang = settings.lang();
 const map = createMap('map', takeView(safeSession()));
+mountPinchGuard(map);
 const hud = document.getElementById('hud')!;
 // Tiers first: the HUD reads the tier they publish on each move.
 mountZoomTiers(map);
@@ -284,7 +286,7 @@ fetchSeafloor()
     harboursHud?.refresh();
     spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land }), baseConditions, () => time.validMs(), spotSea);
     spotPhysics.subscribe(() => {
-      ripLayer.update(spotPhysics!.all());
+      ripLayer.update(spotPhysics!.all(), data.land);
       surfBreaks.update((name) => spotPhysics!.byName(name)?.surf);
       surfHud.refresh();
     });

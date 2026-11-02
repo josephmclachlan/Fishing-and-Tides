@@ -37,6 +37,26 @@ describe('FlowSim', () => {
     }
   });
 
+  it('gives light flow a floor of pace and brightness when asked, and leaves faster flow alone', () => {
+    const light: FlowSource = { ...east, minPxS: 50, minBright: 0.4 }; // 2 m/s × 10 = 20 px/s, under the floor
+    const sim = new FlowSim(20, rng());
+    const v = { ...view(), w: 2000, h: 2000 };
+    sim.seed(v, light, false);
+    const x0 = Float64Array.from(sim.x);
+    sim.step(0.1, v, light);
+    for (let i = 0; i < sim.n; i++) expect((sim.x[i] - x0[i]) * v.world).toBeCloseTo(5, 6); // 50 px/s × 0.1 s
+    const out = new Float32Array(sim.n * 4);
+    sim.write(out, 0, 0, light);
+    // 2 of 4 m/s full: smoothstep(0.5) = 0.5, lifted to 0.4 + 0.6 × 0.5.
+    expect(out[2]).toBeCloseTo(0.7, 6);
+    const fast: FlowSource = { ...east, minPxS: 5 };
+    const sim2 = new FlowSim(20, rng());
+    sim2.seed(v, fast, false);
+    const x1 = Float64Array.from(sim2.x);
+    sim2.step(0.1, v, fast);
+    for (let i = 0; i < sim2.n; i++) expect((sim2.x[i] - x1[i]) * v.world).toBeCloseTo(2, 6);
+  });
+
   it('keeps currents in the sea: particles never live on land', () => {
     const seaEastOf = -82.83;
     const src = { ...east, water: (lng: number) => lng > seaEastOf };

@@ -8,6 +8,7 @@ import type { ExpressionSpecification, Map } from 'maplibre-gl';
 import type { FeatureCollection } from 'geojson';
 import { TIER_ZOOM } from '../region';
 import { firstSymbolId } from '../map';
+import { CONTOURS_FROM } from './seafloor';
 import { buildCells, cellIndexAt, cellRing, type FishingInput, type Mouth } from '../fishing/cells';
 import { baseScore, habitatScore, seasonFactor } from '../fishing/habitat';
 import { fitWeights, recordCells, type HabitatFit } from '../fishing/fit';
@@ -78,12 +79,12 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     if (!map.getLayer('fh-cells')) return;
     const score: ExpressionSpecification = ['*', ['get', sp.id], seasonFactor(sp, month)];
     map.setPaintProperty('fh-cells', 'fill-color', ['interpolate', ['linear'], score, 0.1, green, 0.6, amber]);
-    map.setPaintProperty('fh-cells', 'fill-opacity', ['interpolate', ['linear'], ['zoom'], COAST, 0, COAST + 1, ['interpolate', ['linear'], score, 0, 0, 0.15, 0.1, 0.8, 0.55], SPOT + 2, ['interpolate', ['linear'], score, 0, 0, 0.15, 0.06, 0.8, 0.4]]);
+    map.setPaintProperty('fh-cells', 'fill-opacity', ['interpolate', ['linear'], ['zoom'], COAST, 0, COAST + 1, ['interpolate', ['linear'], score, 0, 0, 0.15, 0.08, 0.8, 0.4], SPOT + 2, ['interpolate', ['linear'], score, 0, 0, 0.15, 0.05, 0.8, 0.28]]);
   };
   const add = () => {
     if (map.getSource('fh')) return;
     map.addSource('fh', { type: 'geojson', data: geojson, attribution: 'Habitat guide: GEBCO, Allen Coral Atlas, OSM' });
-    map.addLayer({ id: 'fh-cells', type: 'fill', source: 'fh', minzoom: COAST, paint: { 'fill-color': green, 'fill-opacity': 0 } }, map.getLayer('sf-contour-label') ? 'sf-contour-label' : firstSymbolId(map));
+    map.addLayer({ id: 'fh-cells', type: 'fill', source: 'fh', minzoom: COAST, paint: { 'fill-color': green, 'fill-opacity': 0 } }, map.getLayer(CONTOURS_FROM) ? CONTOURS_FROM : firstSymbolId(map));
     paint();
   };
   if (map.getLayer('grat-macro') || map.isStyleLoaded()) add();

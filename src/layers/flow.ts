@@ -25,10 +25,11 @@ export type FlowKind = 'wind' | 'current';
 /**
  * Look of each layer. Paces are picked so typical flow moves ~40 px/s on screen: 12 kt of wind
  * and a 0.7 kt current look alike. Red marks small-craft wind (25 kt) and a current too strong
- * to paddle or swim against (1.5 kt).
+ * to paddle or swim against (1.5 kt). Light wind (the 4 to 6 kt land breeze of a calm morning)
+ * keeps a floor of pace and brightness, or it all but vanishes under the real currents.
  */
-export const FLOW_STYLE: Record<FlowKind, { pxPerMs: number; fullMs: number; strongMs: number }> = {
-  wind: { pxPerMs: 7, fullMs: 10, strongMs: 25 / KT_PER_MS },
+export const FLOW_STYLE: Record<FlowKind, { pxPerMs: number; fullMs: number; strongMs: number; minBright?: number; minPxS?: number }> = {
+  wind: { pxPerMs: 7, fullMs: 7, strongMs: 25 / KT_PER_MS, minBright: 0.45, minPxS: 28 },
   current: { pxPerMs: 100, fullMs: 0.5, strongMs: 1.5 / KT_PER_MS },
 };
 
@@ -159,9 +160,12 @@ interface Run {
   slotT: number;
 }
 
-/** Wind is drawn first so currents sit on top; it thins out when both show, so the sea stays readable. */
-const ORDER: FlowKind[] = ['wind', 'current'];
-const WIND_SHARE_WITH_CURRENTS = 0.6;
+/**
+ * Currents are drawn first so the wind sits on top. With the real current grid the whole sea
+ * flows, so when both show the currents thin out and the wind keeps its full count.
+ */
+const ORDER: FlowKind[] = ['current', 'wind'];
+const CURRENT_SHARE_WITH_WIND = 0.4;
 
 /** Mount the particle canvas over `map`. Null when WebGL2 isn't available (the map still works). */
 export function mountFlow(map: MapLibreMap, sources: Record<FlowKind, FlowSource>): FlowLayer | null {
@@ -217,7 +221,7 @@ export function mountFlow(map: MapLibreMap, sources: Record<FlowKind, FlowSource
     return { x: mercX(c.lng), y: mercY(c.lat), world: worldPx(map.getZoom()), w: container.clientWidth, h: container.clientHeight };
   };
   const wanted = (kind: FlowKind) => {
-    const share = kind === 'wind' && runs.has('current') ? WIND_SHARE_WITH_CURRENTS : 1;
+    const share = kind === 'current' && runs.has('wind') ? CURRENT_SHARE_WITH_WIND : 1;
     const n = ((container.clientWidth * container.clientHeight) / AREA_PER_PARTICLE) * share * budget;
     return Math.round(Math.min(MAX_PARTICLES, Math.max(MIN_PARTICLES, n)));
   };
@@ -338,7 +342,7 @@ export function mountFlow(map: MapLibreMap, sources: Record<FlowKind, FlowSource
         gl.deleteTexture(runs.get(kind)!.tex);
         runs.delete(kind);
       }
-      realloc(); // wind thins or fills back in as currents come and go
+      realloc(); // currents thin or fill back in as the wind comes and goes
       cancelAnimationFrame(raf);
       last = 0;
       if (runs.size) raf = requestAnimationFrame(frame);
