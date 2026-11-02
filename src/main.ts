@@ -17,6 +17,10 @@ import { FLOW_STYLE, mountFlow } from './layers/flow';
 import type { FlowSource } from './layers/flow-sim';
 import { mountFlowHud } from './flow-hud';
 import { isWater } from './physics/bathy';
+import { createTimeStore } from './time';
+import { mountTimeSlider } from './time-slider';
+import { KT_PER_MS, sampleField, fromDeg } from './physics/flow';
+import { MOCK_FLOW } from './region';
 
 registerSW({ immediate: true });
 
@@ -24,7 +28,28 @@ const map = createMap('map');
 const hud = document.getElementById('hud')!;
 // Tiers first: the HUD reads the tier they publish on each move.
 mountZoomTiers(map);
-mountHud(hud, map, () => mockConditions());
+const time = createTimeStore();
+// Wind and current particles on mock fields until the PLAN 2.3 / 2.5 adapters.
+// Past a week no model has skill: the OUTLOOK band shows climatology (the mock's mean pattern, hour 0).
+const climatological = () => time.band() === 'outlook';
+const windHour = () => (climatological() ? 0 : time.offsetH());
+const hoursSinceEpoch = (ms: number) => ms / 3.6e6;
+const flowSources: { wind: FlowSource; current: FlowSource } = {
+  wind: { field: mockWindField(windHour()), ...FLOW_STYLE.wind },
+  current: { field: mockCurrentField(hoursSinceEpoch(time.validMs())), ...FLOW_STYLE.current },
+};
+// The wind reading comes from the wind field at its reference point, so HUD and particles agree at every hour.
+const windAtRef: [number, number] = [0, 0];
+const conditionsAt = () => {
+  const c = mockConditions(Date.now(), time.validMs(), climatological());
+  if (sampleField(flowSources.wind.field, ...MOCK_FLOW.windRef, windAtRef)) {
+    c.windKt = Math.hypot(...windAtRef) * KT_PER_MS;
+    c.windDirDeg = fromDeg(...windAtRef);
+  }
+  return c;
+};
+mountHud(hud, map, conditionsAt);
+mountTimeSlider(hud, time);
 // The lock-on effect plays only for a picked target, never on scroll/pinch zoom.
 const enhancer = createEnhancer(map, createLockFx(map, hud));
 mountSeek(hud, (t) => enhancer.go(t));
@@ -32,17 +57,27 @@ mountSeek(hud, (t) => enhancer.go(t));
 bindMapLayers(map, layers);
 mountLayersPanel(hud, layers);
 
-// Wind and current particles on mock fields until the PLAN 2.3 / 2.5 adapters.
-const flowSources: { wind: FlowSource; current: FlowSource } = {
-  wind: { field: mockWindField(), ...FLOW_STYLE.wind },
-  current: { field: mockCurrentField(), ...FLOW_STYLE.current },
-};
 const flow = mountFlow(map, flowSources);
 if (flow) {
   layers.register('wind', { setVisible: (on) => flow.setVisible('wind', on) });
   layers.register('currents', { setVisible: (on) => flow.setVisible('current', on) });
 }
 const flowHud = mountFlowHud(hud, map, () => flowSources.current);
+
+// New forecast hour: rebuild both fields. Scrubbing fires many times a frame, so do it once per frame.
+let fieldsQueued = false;
+time.subscribe(() => {
+  if (fieldsQueued) return;
+  fieldsQueued = true;
+  requestAnimationFrame(() => {
+    fieldsQueued = false;
+    flowSources.wind = { ...flowSources.wind, field: mockWindField(windHour()) };
+    flowSources.current = { ...flowSources.current, field: mockCurrentField(hoursSinceEpoch(time.validMs())) };
+    flow?.setSource('wind', flowSources.wind);
+    flow?.setSource('current', flowSources.current);
+    flowHud?.refresh();
+  });
+});
 
 // Depth, reefs and seamarks: static assets, precached for offline use.
 fetchSeafloor()

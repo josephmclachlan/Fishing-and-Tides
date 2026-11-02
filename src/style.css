@@ -68,8 +68,32 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--amber)
 .maplibregl-ctrl-attrib { background: rgba(0,0,0,0.6) !important; color: var(--amber) !important; font-family: var(--font); }
 .maplibregl-ctrl-attrib a { color: var(--amber) !important; }
 
+/* Forecast time slider (PLAN 1.5): first row of the bottom panel. */
+.timebar { flex: 1 1 100%; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-bottom: 8px; border-bottom: 1px solid var(--amber-dim); }
+.t-track { flex: 1 1 220px; min-width: 160px; display: grid; }
+.timebar .range { width: 100%; height: 36px; margin: 0; background: transparent; cursor: pointer; -webkit-appearance: none; appearance: none; touch-action: none; --fill: 0%; }
+.timebar .range::-webkit-slider-runnable-track { height: 10px; border: 1px solid var(--amber-dim);
+  background: linear-gradient(to right, var(--amber) var(--fill), transparent var(--fill)),
+    repeating-linear-gradient(to right, transparent 0 calc(100% / 24 - 1px), var(--amber-dim) calc(100% / 24 - 1px) calc(100% / 24)); }
+.timebar .range::-moz-range-track { height: 10px; border: 1px solid var(--amber-dim);
+  background: linear-gradient(to right, var(--amber) var(--fill), transparent var(--fill)),
+    repeating-linear-gradient(to right, transparent 0 calc(100% / 24 - 1px), var(--amber-dim) calc(100% / 24 - 1px) calc(100% / 24)); }
+.timebar .range::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 30px; margin-top: -11px; background: var(--bg); border: 2px solid var(--green); box-shadow: 0 0 10px var(--green); }
+.timebar .range::-moz-range-thumb { width: 14px; height: 26px; border-radius: 0; background: var(--bg); border: 2px solid var(--green); box-shadow: 0 0 10px var(--green); }
+.timebar .range:focus-visible { outline: 1px dashed var(--green); outline-offset: 2px; }
+.t-btns { display: flex; gap: 6px; }
+.t-btns .tab { min-width: 52px; min-height: 36px; text-align: center; }
+.t-btns .tab:disabled { opacity: 0.3; cursor: default; }
+/* A forecast hour is on screen: tint the clock so it is never mistaken for live data. */
+body.forecast #clock { color: var(--green); }
+
 @media (max-width: 600px) {
-  .side { top: auto; bottom: 120px; width: auto; right: 8px; grid-template-columns: 1fr 1fr; }
+  .timebar { gap: 8px 10px; }
+  .t-track { flex-basis: 100%; order: 3; }
+  .t-btns { order: 4; width: 100%; }
+  .t-btns .tab { flex: 1; min-height: 44px; }
+  .timebar .band-ro { display: none; }
+  .side { top: auto; bottom: 272px; width: auto; right: 8px; grid-template-columns: 1fr 1fr; }
   .ph { grid-column: 1 / -1; }
   .seg { font-size: 17px; }
   .lbl { min-width: 54px; }
@@ -184,7 +208,7 @@ body[data-tier='COAST'] .from-spot { display: none; }
 @media (max-width: 600px) { .side .wide-only { display: none; } }
 
 /* Layers drawer (PLAN 1.8) */
-.layers { right: 8px; bottom: 76px; width: 330px; max-height: calc(100% - 320px); overflow-y: auto; display: none; gap: 6px; }
+.layers { right: 8px; bottom: 150px; width: 330px; max-height: calc(100% - 400px); overflow-y: auto; display: none; gap: 6px; }
 .layers.open { display: grid; }
 .lay-acts, .lay-grid { display: grid; gap: 4px; }
 .lay-acts { grid-template-columns: repeat(5, 1fr); }
@@ -196,7 +220,7 @@ body[data-tier='COAST'] .from-spot { display: none; }
 .layers .tab.lay.pending .soon { display: inline; }
 .lay-open { white-space: nowrap; pointer-events: auto; }
 @media (max-width: 600px) {
-  .layers { left: 8px; right: 8px; bottom: 120px; width: auto; max-height: calc(100% - 200px); background: rgba(5, 8, 5, 0.94); z-index: 5; }
+  .layers { left: 8px; right: 8px; bottom: 272px; width: auto; max-height: calc(100% - 350px); background: rgba(5, 8, 5, 0.94); z-index: 5; }
   .layers .tab { min-height: 44px; }
   .lay-open { font-size: 12px; padding: 5px 8px; }
   .lay-mode { display: none; }
@@ -205,3 +229,14 @@ body[data-tier='COAST'] .from-spot { display: none; }
 
 /* Wind and current particles (PLAN 1.4): own canvas over the map, under the lock-on effect and HUD */
 .flow-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+/* Confidence bands (PLAN 1.5): labels under the track, dimmed particles and a hatched look as certainty drops. */
+.t-bands { display: flex; font-size: 9px; letter-spacing: 2px; gap: 2px; margin-top: 2px; }
+.t-bands span { text-align: center; overflow: hidden; white-space: nowrap; border-top: 2px solid var(--green); color: var(--green); }
+.t-bands .b-lowconf { border-top: 2px dashed var(--amber); color: var(--amber); }
+.t-bands .b-outlook { border-top: 2px dotted var(--red); color: var(--red); }
+body[data-band='lowconf'] .flow-canvas { opacity: 0.55; }
+body[data-band='outlook'] .flow-canvas { opacity: 0.3; }
+body[data-band='lowconf'] .side, body[data-band='outlook'] .side { border-style: dashed; }
+body[data-band='outlook'] .side .seg:not(#tide) { opacity: 0.7; }
+body[data-band='outlook'] #t-valid, body[data-band='outlook'] #t-off { color: var(--red); animation: none; }

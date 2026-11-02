@@ -96,6 +96,20 @@ The shared ocean data in section 2 covers most of it. These are the gaps, each w
 
 Not for navigation: this applies to all of the above, depth and charts in particular, and the app says so.
 
+## 6b. Time slider and confidence bands
+
+One slider (state in `src/time.ts`) drives every time-varying layer and readout. It reaches 30 days in three bands, each styled differently so uncertain data is never mistaken for a forecast:
+
+| Band | Range | Step | Data | Look |
+|---|---|---|---|---|
+| FORECAST | 0 to 7 d | 1 h | Model output (waves, wind, currents) | Green label, full-strength particles |
+| LOW CONF | 7 to 16 d | 3 h | Same models, poor skill | Amber dashed label, dimmed particles, dashed panels |
+| OUTLOOK | 16 to 30 d (and beyond later) | 1 d | Climatology: historical averages for that date | Red dotted label, faint particles, panel tagged CLIMATE AVG |
+
+- **Tides are exact in every band**, because they come from harmonic constants, not weather.
+- Today the bands run on mock data (OUTLOOK uses the mock's mean pattern); the Phase 2 adapters supply real forecasts, and a historical-averages source for OUTLOOK is still to plan (e.g. ERA5 or Open-Meteo Historical, by day of year).
+- A historical (past-date) mode would extend the same store with negative offsets; not built yet.
+
 ## 7. Offline
 
 - Installable PWA (service worker plus web manifest).
