@@ -5,6 +5,7 @@
  * with time (particles, tide and condition readouts, later every adapter) subscribes here and
  * asks for `validMs()`, so the slider is the single source of truth for "what time am I looking at".
  */
+import { t, type Key } from './i18n';
 
 /**
  * The slider reaches 30 days, in three bands of decreasing certainty:
@@ -16,10 +17,10 @@
  */
 export const HORIZON_H = 720;
 export type Band = 'forecast' | 'lowconf' | 'outlook';
-export const BANDS: readonly { id: Band; label: string; fromH: number; stepH: number }[] = [
-  { id: 'forecast', label: 'FORECAST', fromH: 0, stepH: 1 },
-  { id: 'lowconf', label: 'LOW CONF', fromH: 168, stepH: 3 },
-  { id: 'outlook', label: 'OUTLOOK', fromH: 384, stepH: 24 },
+export const BANDS: readonly { id: Band; fromH: number; stepH: number }[] = [
+  { id: 'forecast', fromH: 0, stepH: 1 },
+  { id: 'lowconf', fromH: 168, stepH: 3 },
+  { id: 'outlook', fromH: 384, stepH: 24 },
 ];
 const HOUR_MS = 3.6e6;
 
@@ -76,11 +77,11 @@ export function createTimeStore(nowMs = Date.now()): TimeStore {
 
 /** "+06H" style offset label for the segmented display. */
 export function offsetLabel(offsetH: number): string {
-  return offsetH <= 0 ? 'NOW' : `+${String(offsetH).padStart(2, '0')}H`;
+  return offsetH <= 0 ? t('time.now') : `+${String(offsetH).padStart(2, '0')}H`;
 }
 
 /** Day, date and hour of a valid time in UTC, e.g. "MON 02 14:00". */
 export function validLabel(ms: number): string {
   const d = new Date(ms);
-  return `${['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][d.getUTCDay()]} ${String(d.getUTCDate()).padStart(2, '0')} ${String(d.getUTCHours()).padStart(2, '0')}:00`;
+  return `${t(`day.${d.getUTCDay()}` as Key)} ${String(d.getUTCDate()).padStart(2, '0')} ${String(d.getUTCHours()).padStart(2, '0')}:00`;
 }

@@ -1,5 +1,6 @@
 /** Target picker (PLAN 1.7): spot tabs plus a search box for a beach name or coordinate. */
 import { SPOTS } from './region';
+import { t } from './i18n';
 import { resolveTarget, type Target } from './target';
 
 export function mountSeek(root: HTMLElement, onTarget: (t: Target) => void) {
@@ -8,8 +9,8 @@ export function mountSeek(root: HTMLElement, onTarget: (t: Target) => void) {
   el.innerHTML = `
     <form class="seek-row" autocomplete="off">
       <input class="seek-in" name="q" list="seek-spots" spellcheck="false" enterkeyhint="go"
-        placeholder="BEACH OR LAT, LON" aria-label="Find a beach or coordinate" />
-      <button class="btn seek-go" type="submit">ENHANCE</button>
+        placeholder="${t('seek.placeholder')}" aria-label="${t('seek.aria')}" />
+      <button class="btn seek-go" type="submit">${t('seek.go')}</button>
     </form>
     <datalist id="seek-spots">${SPOTS.map((s) => `<option value="${s.name}"></option>`).join('')}</datalist>
     <div class="seek-msg" role="status"></div>
@@ -29,9 +30,9 @@ export function mountSeek(root: HTMLElement, onTarget: (t: Target) => void) {
 
   el.querySelector('form')!.addEventListener('submit', (e) => {
     e.preventDefault();
-    const t = resolveTarget(input.value);
-    if (t) pick(t);
-    else msg.textContent = 'NO MATCH: TRY A BEACH OR 9.65, -82.75';
+    const hit = resolveTarget(input.value);
+    if (hit) pick(hit);
+    else msg.textContent = t('seek.noMatch');
   });
   for (const b of tabs) b.addEventListener('click', () => pick(SPOTS[Number(b.dataset.i)]));
 }

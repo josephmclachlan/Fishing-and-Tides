@@ -1,0 +1,177 @@
+/**
+ * English UI text (PLAN 1.10). Every user-facing string lives here, keyed by id, so a second
+ * language (es.ts, PLAN 5.6) only has to satisfy the same keys. Placeholders are `{name}`.
+ * Place names (spots, region) are proper nouns and stay in src/region.ts.
+ * Labels are monospace caps to suit the HUD.
+ */
+export const en = {
+  // Top bar and footer
+  'hud.tier': 'TIER',
+  'hud.utc': 'UTC',
+  'hud.lat': 'LAT',
+  'hud.lon': 'LON',
+  'hud.zoom': 'ZOOM',
+  'hud.alt': 'ALT',
+  'hud.dataAge': 'DATA AGE',
+  'hud.sync': 'SYNC FOR TRIP',
+  'hud.syncTitle': 'Full offline download arrives in PLAN 5.1',
+  'hud.syncSoon': 'SYNC: PHASE 5',
+  'hud.alertRip': 'HIGH RIP CURRENT RISK',
+
+  // Conditions panel
+  'cond.title': 'CONDITIONS',
+  'cond.mock': 'MOCK',
+  'cond.swell': 'SWELL',
+  'cond.period': 'PERIOD',
+  'cond.swellDir': 'SWL DIR',
+  'cond.wind': 'WIND',
+  'cond.windDir': 'WND DIR',
+  'cond.sst': 'SST',
+  'cond.tide': 'TIDE',
+  'cond.rip': 'RIP RISK',
+  'cond.ripGauge': 'RIP',
+  'rip.LOW': 'LOW',
+  'rip.MOD': 'MOD',
+  'rip.HIGH': 'HIGH',
+  'target.title': 'TARGET',
+  'target.spot': 'SPOT',
+  'target.range': 'RANGE',
+  'target.bearing': 'BRG',
+
+  // Units
+  'unit.m': 'M',
+  'unit.s': 'S',
+  'unit.kt': 'KT',
+  'unit.km': 'KM',
+  'unit.deg': '°',
+  'unit.degC': '°C',
+  'unit.degT': '°T',
+
+  // Zoom tiers (shown in the TIER readout)
+  'tier.MACRO': 'MACRO',
+  'tier.COAST': 'COAST',
+  'tier.SPOT': 'SPOT',
+
+  // Current under the reticle
+  'flow.current': 'CURRENT',
+  'flow.set': 'SET',
+  'flow.land': 'LAND',
+
+  // Seafloor panel
+  'sf.title': 'SEAFLOOR',
+  'sf.tag': 'GEBCO',
+  'sf.depth': 'DEPTH',
+  'sf.source': 'SOURCE',
+  'sf.reef': 'REEF',
+  'sf.bottom': 'BOTTOM',
+  'sf.land': 'LAND',
+  'sf.osmCoast': 'OSM COAST',
+  'sf.shoreline': 'SHORELINE',
+  'sf.none': 'NONE',
+  'sf.gebco1': 'GEBCO 1′',
+  'sf.cls.OUTER REEF FLAT': 'OUTER FLAT',
+  'sf.cls.INNER REEF FLAT': 'INNER FLAT',
+  'sf.cls.TERRESTRIAL REEF FLAT': 'SHORE FLAT',
+  'sf.cls.SHELTERED REEF SLOPE': 'SHELTER SLOPE',
+  'sf.cls.BACK REEF SLOPE': 'BACK SLOPE',
+  'sf.cls.SHALLOW LAGOON': 'SHALLOW LAGN',
+  // GEBCO depth source types (keyed by the English label from physics/bathy tidLabel)
+  'sf.tid.SINGLEBEAM': 'SINGLEBEAM',
+  'sf.tid.MULTIBEAM': 'MULTIBEAM',
+  'sf.tid.SEISMIC': 'SEISMIC',
+  'sf.tid.SOUNDING': 'SOUNDING',
+  'sf.tid.ENC': 'ENC',
+  'sf.tid.LIDAR': 'LIDAR',
+  'sf.tid.SAT OPTICAL': 'SAT OPTICAL',
+  'sf.tid.MIXED SURVEY': 'MIXED SURVEY',
+  'sf.tid.SAT GRAVITY': 'SAT GRAVITY',
+  'sf.tid.INTERP': 'INTERP',
+  'sf.tid.CHART': 'CHART',
+  'sf.tid.ENC CONTOUR': 'ENC CONTOUR',
+  'sf.tid.MULTI SOURCE': 'MULTI SOURCE',
+  'sf.tid.AIR GRAVITY': 'AIR GRAVITY',
+  'sf.tid.ESTIMATED': 'ESTIMATED',
+  'sf.tid.GRID': 'GRID',
+  'sf.tid.UNKNOWN': 'UNKNOWN',
+  'sf.tid.STEERING': 'STEERING',
+
+  // Layers drawer
+  'layers.title': 'LAYERS',
+  'layers.custom': 'CUSTOM',
+  'layers.soon': 'SOON',
+  'layers.activity': 'Activity',
+  'group.OCEAN': 'OCEAN',
+  'group.SURF ZONE': 'SURF ZONE',
+  'group.SEAFLOOR': 'SEAFLOOR',
+  'group.USE': 'USE',
+  'layer.waves': 'WAVES/SWELL',
+  'layer.currents': 'CURRENTS',
+  'layer.wind': 'WIND',
+  'layer.sst': 'WATER TEMP',
+  'layer.clarity': 'CLARITY',
+  'layer.rip': 'RIP RISK',
+  'layer.surf': 'SURF BREAKS',
+  'layer.depth': 'DEPTH',
+  'layer.reefs': 'REEFS',
+  'layer.seamarks': 'SEAMARKS',
+  'layer.fishing': 'FISHING',
+  'layer.zones': 'PROTECTED',
+  'layer.anchorages': 'ANCHORAGES',
+  'activity.all': 'ALL',
+  'activity.fishing': 'FISH',
+  'activity.dive': 'DIVE',
+  'activity.surf': 'SURF',
+  'activity.sail': 'SAIL',
+
+  // Forecast time slider
+  'time.fcst': 'FCST',
+  'time.validUtc': 'VALID UTC',
+  'time.band': 'BAND',
+  'time.now': 'NOW',
+  'time.aria': 'Forecast time',
+  'time.back': 'Back',
+  'time.forward': 'Forward',
+  'time.play': 'PLAY',
+  'time.pause': 'PAUSE',
+  'time.climateAvg': 'CLIMATE AVG',
+  'time.dayUnit': 'D',
+  'time.hourUnit': 'H',
+  'band.forecast': 'FORECAST',
+  'band.lowconf': 'LOW CONF',
+  'band.outlook': 'OUTLOOK',
+  'day.0': 'SUN',
+  'day.1': 'MON',
+  'day.2': 'TUE',
+  'day.3': 'WED',
+  'day.4': 'THU',
+  'day.5': 'FRI',
+  'day.6': 'SAT',
+
+  // Target picker
+  'seek.placeholder': 'BEACH OR LAT, LON',
+  'seek.aria': 'Find a beach or coordinate',
+  'seek.go': 'ENHANCE',
+  'seek.goPlain': 'GO',
+  'seek.noMatch': 'NO MATCH: TRY A BEACH OR 9.65, -82.75',
+
+  // Enhance effect
+  'fx.acquiring': 'ACQUIRING',
+  'fx.wideScan': 'WIDE SCAN',
+  'fx.designated': 'TARGET DESIGNATED',
+  'fx.slewing': 'SLEWING',
+  'fx.enhance': 'ENHANCE',
+  'fx.resolving': 'RESOLVING',
+  'fx.locked': 'LOCKED',
+  'fx.sectorClear': 'SECTOR CLEAR',
+  'fx.sector': 'SECTOR {n}/{total}',
+
+  // Settings
+  'settings.enhance': 'ENHANCE',
+  'settings.on': 'ON',
+  'settings.off': 'OFF',
+  'settings.enhanceTitle': 'ENHANCE fly-to effect: on plays the satellite zoom, off flies smoothly',
+} as const;
+
+export type Key = keyof typeof en;
+/** What every language file must provide. */
+export type Dict = Record<Key, string>;

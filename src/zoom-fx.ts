@@ -17,6 +17,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import { tierForZoom, type Tier } from './region';
 import { CELL_SPAN, LOCK_STEPS, RESOLVE_CELL_PX, cellBlockAt, nextTier, zoomBlock } from './zoom';
 import { cameraAltitudeM, toDDM } from './geo';
+import { t as tr } from './i18n'; // 't' is the resolve progress below
 
 /** Camera altitude for the map's current view, m. */
 export function mapAltitudeM(map: MapLibreMap): number {
@@ -92,11 +93,11 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
     <div class="fx-box"><span class="fx-box-lbl"></span></div>
     <div class="fx-sweep"></div>
     <div class="fx-lock"><i></i><i></i><i></i><i></i></div>
-    <div class="fx-tag"><span class="fx-state">ACQUIRING</span><span class="fx-tier"></span></div>
+    <div class="fx-tag"><span class="fx-state">${tr('fx.acquiring')}</span><span class="fx-tier"></span></div>
     <div class="fx-coords">
-      <div><span class="lbl">LAT</span><span class="seg" data-k="lat">--</span></div>
-      <div><span class="lbl">LON</span><span class="seg" data-k="lon">--</span></div>
-      <div><span class="lbl">ALT</span><span class="seg" data-k="alt">--</span></div>
+      <div><span class="lbl">${tr('hud.lat')}</span><span class="seg" data-k="lat">--</span></div>
+      <div><span class="lbl">${tr('hud.lon')}</span><span class="seg" data-k="lon">--</span></div>
+      <div><span class="lbl">${tr('hud.alt')}</span><span class="seg" data-k="alt">--</span></div>
     </div>`;
   before.parentElement!.insertBefore(pixels, before);
   before.parentElement!.insertBefore(fx, before);
@@ -249,7 +250,7 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
       stopResolve(false);
       clearTimeout(hideTimer);
       titleEl.textContent = title;
-      stateEl.textContent = 'ACQUIRING';
+      stateEl.textContent = tr('fx.acquiring');
       fx.classList.remove('locked');
       document.body.classList.remove('fx-locked');
       fx.style.setProperty('--lock', '1');
@@ -314,7 +315,7 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
         raf = requestAnimationFrame(frame);
       });
     },
-    lock(text = 'LOCKED') {
+    lock(text = tr('fx.locked')) {
       stateEl.textContent = text;
       fx.style.setProperty('--lock', '0');
       fx.classList.add('locked');

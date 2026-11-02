@@ -17,6 +17,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { LockFx } from './zoom-fx';
 import type { Target } from './target';
 import { REGION } from './region';
+import { t } from './i18n';
 import { ENHANCE_WIDE_ZOOM, ENHANCE_ZOOM, planHops, steppedEase, zoomOutToFit } from './zoom';
 
 /** Step timings, ms. Slow on purpose so it reads as a sensor working, not a glitch. */
@@ -67,7 +68,7 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx) {
     const regionFit = map.cameraForBounds(REGION.bounds)?.zoom ?? ENHANCE_WIDE_ZOOM;
     const wide = Math.min(z0, ENHANCE_WIDE_ZOOM, regionFit, z0 - zoomOutToFit(p.x - w / 2, p.y - h / 2, w, h));
     if (z0 - wide > 0.05) {
-      fx.state('WIDE SCAN');
+      fx.state(t('fx.wideScan'));
       await moveTo({ zoom: wide, duration: T.wide * k, easing: easeInOut });
     }
 
@@ -75,20 +76,20 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx) {
     const hops = planHops(map.getZoom(), ENHANCE_ZOOM);
     for (let i = 0; i < hops.length; i++) {
       if (!alive()) return;
-      fx.box({ at: target.lngLat, zoom: hops[i] }, `SECTOR ${i + 1}/${hops.length}`);
-      fx.state('TARGET DESIGNATED');
+      fx.box({ at: target.lngLat, zoom: hops[i] }, t('fx.sector', { n: i + 1, total: hops.length }));
+      fx.state(t('fx.designated'));
       await wait(T.designate * k);
       if (!alive()) return;
 
       // Smooth pan so the crosshair sits on the target (known ground, so no stepping).
       const c = map.project(target.lngLat);
       if (Math.hypot(c.x - w / 2, c.y - h / 2) > 2) {
-        fx.state('SLEWING');
+        fx.state(t('fx.slewing'));
         await moveTo({ center: target.lngLat, duration: T.center * k, easing: easeInOut });
         if (!alive()) return;
       }
 
-      fx.state('ENHANCE');
+      fx.state(t('fx.enhance'));
       if (!reduceMotion.matches) fx.magnify(map.getZoom(), hops[i], target.lngLat);
       await moveTo({ center: target.lngLat, zoom: hops[i], duration: T.zoom * k, easing: steppedEase(ZOOM_STEPS) });
       if (!alive()) return;
@@ -96,9 +97,9 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx) {
       if (!map.areTilesLoaded()) await Promise.race([once(map, 'idle'), wait(T.tiles)]);
       if (!alive()) return;
 
-      fx.state('RESOLVING');
+      fx.state(t('fx.resolving'));
       if (!(await fx.resolve(T.resolve))) return;
-      fx.lock(i === hops.length - 1 ? 'LOCKED' : 'SECTOR CLEAR');
+      fx.lock(i === hops.length - 1 ? t('fx.locked') : t('fx.sectorClear'));
       await wait(T.settle * k);
     }
     if (!alive()) return;

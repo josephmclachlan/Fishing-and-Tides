@@ -1,4 +1,5 @@
 /** LAYERS drawer (PLAN 1.8): activity presets plus per-layer toggles, as HUD buttons sized for a thumb. */
+import { t, type Key } from './i18n';
 import { ACTIVITIES, LAYERS, type LayerGroup, type LayerStore } from './layers/registry';
 
 export function mountLayersPanel(root: HTMLElement, store: LayerStore) {
@@ -7,12 +8,12 @@ export function mountLayersPanel(root: HTMLElement, store: LayerStore) {
   el.className = 'panel layers';
   el.id = 'layers-drawer';
   el.innerHTML = `
-    <div class="ph">LAYERS <span class="tag" id="lay-mode">ALL</span></div>
-    <div class="lay-acts" role="group" aria-label="Activity">${ACTIVITIES.map((a) => `<button type="button" class="tab" data-act="${a.id}">${a.label}</button>`).join('')}</div>
+    <div class="ph">${t('layers.title')} <span class="tag" id="lay-mode">${t('activity.all')}</span></div>
+    <div class="lay-acts" role="group" aria-label="${t('layers.activity')}">${ACTIVITIES.map((a) => `<button type="button" class="tab" data-act="${a.id}">${t(`activity.${a.id}` as Key)}</button>`).join('')}</div>
     ${groups
       .map(
-        (g) => `<div class="lay-group"><div class="lbl">${g}</div><div class="lay-grid">${LAYERS.filter((l) => l.group === g)
-          .map((l) => `<button type="button" class="tab lay" data-id="${l.id}" aria-pressed="true">${l.label}<i class="soon">SOON</i></button>`)
+        (g) => `<div class="lay-group"><div class="lbl">${t(`group.${g}` as Key)}</div><div class="lay-grid">${LAYERS.filter((l) => l.group === g)
+          .map((l) => `<button type="button" class="tab lay" data-id="${l.id}" aria-pressed="true">${t(`layer.${l.id}` as Key)}<i class="soon">${t('layers.soon')}</i></button>`)
           .join('')}</div></div>`,
       )
       .join('')}`;
@@ -30,9 +31,9 @@ export function mountLayersPanel(root: HTMLElement, store: LayerStore) {
 
   const render = () => {
     const a = store.activity();
-    const name = ACTIVITIES.find((x) => x.id === a)?.label ?? 'CUSTOM';
+    const name = a ? t(`activity.${a}` as Key) : t('layers.custom');
     mode.textContent = name;
-    open.innerHTML = `LAYERS<span class="lay-mode">: ${name}</span>`;
+    open.innerHTML = `${t('layers.title')}<span class="lay-mode">: ${name}</span>`;
     for (const b of acts) b.classList.toggle('on', b.dataset.act === a);
     for (const b of toggles) {
       const id = b.dataset.id as (typeof LAYERS)[number]['id'];
