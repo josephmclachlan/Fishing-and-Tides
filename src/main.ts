@@ -38,6 +38,10 @@ import { activityForPreset, mountCondGroups } from './cond-groups';
 import { mountSwellHud } from './swell-hud';
 import { mountExplain } from './explain';
 import { mountSystemCheck } from './system-check';
+import { mountLiveObs } from './live-obs';
+import { fetchMetar } from './adapters/metar';
+import type { MetarObs } from './adapters/metar-parse';
+import { fetchPasses, type PassData } from './adapters/passes';
 import { allChecks } from './verify/registry';
 import { fetchSeafloor } from './adapters/seafloor';
 import { mountSeafloor } from './layers/seafloor';
@@ -179,7 +183,7 @@ let gauge: GaugeReading[] = [];
 const tideHud = mountTideHud(hud, time, () => gauge);
 const loadGauge = () =>
   fetchGauge({ hours: 30 })
-    .then((d) => ((gauge = d.readings), tideHud?.refresh(), spotPage.refresh()))
+    .then((d) => ((gauge = d.readings), tideHud?.refresh(), spotPage.refresh(), liveObs?.refresh()))
     .catch((err) => console.warn('tide gauge unavailable', err));
 // The lock-on effect plays only for a picked target, never on scroll/pinch zoom.
 const enhancer = createEnhancer(map, createLockFx(map, hud), settings.enhance);
@@ -229,6 +233,16 @@ setInterval(loadGauge, 10 * 60_000);
 mountBoatPanel(hud, map, createBoatStore(safeStorage()), sheets, () => depthAt);
 // SYSTEM CHECK: its tab joins the settings controls on a phone.
 mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeStorage() });
+// LIVE OBS (PLAN 2.13): the newest real reading from the gauge, the airport and the satellite passes, with ages.
+let metarObs: MetarObs[] = [];
+let passes: PassData | null = null;
+const liveObs = mountLiveObs(hud, map, sheets, () => ({ gauge, metar: metarObs, passes }));
+fetchMetar()
+  .then((d) => ((metarObs = d.obs), liveObs.refresh()))
+  .catch((err) => console.warn('metar unavailable', err));
+fetchPasses()
+  .then((d) => ((passes = d), liveObs.refresh()))
+  .catch((err) => console.warn('satellite passes unavailable', err));
 // Last, so SET is the last tab and the settings controls (ENHANCE, SUN, language) are all mounted to be moved into it.
 mountSettingsPanel(hud, sheets);
 // Phone glance strip (the few values that matter per activity) and tap-a-label explainers.

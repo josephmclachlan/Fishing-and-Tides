@@ -85,6 +85,19 @@ ERDDAP sends no CORS headers, so these go through the data build. Verify checks 
 
 `src/adapters/passes.ts` reads `sst-pass` and `chl-pass`: `passList` gives each pass its time, the share of the sea it saw (cells with a value / the manifest's `seaCells`) and its mean, and `latestSeen` the newest pass that saw a point. These are what LIVE OBS (2.13) shows and what the bias correction (7.10) will learn from. Checks: newest pass age, a clear pass within 3 days for SST and 7 for chlorophyll (amber only: cloud is weather, not a fault), and the mean pass-minus-MUR SST over clear cells (amber past 0.8 °C). There is no scatterometer wind: see PLAN 2.14.
 
+## LIVE OBS (PLAN 2.13)
+
+`src/live-obs.ts` shows the newest real measurement from each source, with its age and a freshness lamp: the Limón tide gauge (level above MSL and departure from the predicted tide), the Limón airport METAR (wind, gust, air temperature), and the newest SST and chlorophyll passes that saw at least 10% of the sea (mean, clear share, afternoon or night). The limits follow each source's normal cadence:
+
+| Source | Green up to | Amber up to |
+|---|---|---|
+| Gauge | 30 min | 3 h |
+| METAR | 90 min | 14 h (the airport is closed overnight) |
+| SST pass | 48 h | 4 days |
+| Chlorophyll pass | 4 days | 8 days |
+
+It is a drawer behind an OBS tab whose lamp shows the stalest source; on phones the tab sits in SET with SYSTEM CHECK. It also shows as map labels (catalog layer `obs`, style ids `ob-`) at the stations and at the centre of what each pass saw.
+
 ## Water clarity (PLAN 6.1)
 
 `src/physics/clarity.ts` turns everything into a diffuse attenuation coefficient and adds the causes, since attenuation from separate causes adds: Kd = Kd490 (satellite; chlorophyll through Morel and Maritorena 2001 where the map has none; 0.11/m background with neither) + river plume + swell resuspension. Visibility is the Secchi depth 1.7 / Kd. Green 8 m or more, amber 3 to 8 m, red under 3 m.
