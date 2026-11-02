@@ -10,6 +10,7 @@ import { gaugeChecks } from '../adapters/gauge';
 import { fetchMetar, metarChecks } from '../adapters/metar';
 import { fetchSatellite, satelliteChecks } from '../adapters/satellite';
 import { catchmentRainChecks } from '../adapters/catchment-rain';
+import { fetchPasses, passChecks } from '../adapters/passes';
 import { weatherChecks } from '../adapters/weather';
 import { fetchStorms, stormsChecks } from '../adapters/storms';
 import { fetchLightning, lightningChecks } from '../adapters/lightning';
@@ -25,6 +26,7 @@ export function allChecks(base: string = import.meta.env.BASE_URL): Check[] {
     ...metarChecks(() => fetchMetar({ base }), () => fetchWind({ base })),
     ...satelliteChecks(() => fetchSatellite({ base })),
     ...catchmentRainChecks(),
+    ...passChecks(() => fetchPasses({ base }), () => fetchSatellite({ base })),
     ...weatherChecks(),
     ...stormsChecks(() => fetchStorms({ base })),
     ...lightningChecks(() => fetchLightning()),

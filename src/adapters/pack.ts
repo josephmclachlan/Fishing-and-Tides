@@ -57,6 +57,8 @@ export interface SeriesMeta {
   file: string;
   /** 'gzip' when the body is gzipped (GitHub Pages won't compress binary files itself). */
   encoding?: 'gzip';
+  /** Observed maps with cloud holes: how many grid cells are sea, so the share seen = cells with a value / seaCells. */
+  seaCells?: number;
 }
 
 export interface GridSeries {

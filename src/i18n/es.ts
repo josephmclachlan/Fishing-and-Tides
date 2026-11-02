@@ -52,6 +52,8 @@ export const es: Dict = {
   'check.feed.chl': 'CLOROFILA',
   'check.feed.kd490': 'CLARIDAD KD490',
   'check.feed.rain': 'LLUVIA EN CUENCAS',
+  'check.feed.sst-pass': 'PASES TEMP. MAR',
+  'check.feed.chl-pass': 'PASES CLOROFILA',
   'check.feed.obis': 'OBIS',
   'check.feed.gbif': 'GBIF',
   'check.feed.occurrences': 'REGISTROS',

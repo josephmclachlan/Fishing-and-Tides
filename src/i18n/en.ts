@@ -53,6 +53,8 @@ export const en = {
   'check.feed.chl': 'CHLOROPHYLL',
   'check.feed.kd490': 'CLARITY KD490',
   'check.feed.rain': 'CATCHMENT RAIN',
+  'check.feed.sst-pass': 'SST PASSES',
+  'check.feed.chl-pass': 'CHLOROPHYLL PASSES',
   'check.feed.obis': 'OBIS',
   'check.feed.gbif': 'GBIF',
   'check.feed.occurrences': 'RECORDS',
