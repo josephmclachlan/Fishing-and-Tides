@@ -10,7 +10,8 @@
  *
  * The plume and resuspension terms are rules of thumb with round-number constants, not fitted to
  * local observations: they say "after heavy rain the water near the Sixaola is brown", with the
- * right shape in space and time. Calibration against dive reports is PLAN 7.2.
+ * right shape in space and time. The forecast past the newest data and its confidence band are in
+ * clarity-forecast.ts (PLAN 7.2); no local dive or turbidity records exist yet to calibrate against.
  */
 import { bottomOrbitalVelocitySea } from './waves';
 

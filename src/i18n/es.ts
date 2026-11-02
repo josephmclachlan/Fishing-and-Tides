@@ -197,6 +197,11 @@ export const es: Dict = {
   // Current under the reticle
   'flow.current': 'CORRIENTE',
   'clarity.vis': 'VISIB.',
+  'clarity.days': 'VIS +DÍAS',
+  'clarity.conf': 'Confianza: {c}. El rango es la dispersión probable (unos 2 de cada 3 días caen dentro).',
+  'clarity.conf.HIGH': 'ALTA',
+  'clarity.conf.MED': 'MEDIA',
+  'clarity.conf.LOW': 'BAJA',
   'clarity.cause.plankton': 'PLANCTON',
   'clarity.cause.river': 'RÍO',
   'clarity.cause.swell': 'OLEAJE',

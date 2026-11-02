@@ -59,7 +59,7 @@ import { FLOW_STYLE, mountFlow } from './layers/flow';
 import type { FlowSource } from './layers/flow-sim';
 import { mountFlowHud } from './flow-hud';
 import { isWater, sample } from './physics/bathy';
-import { createTimeStore } from './time';
+import { bandFor, createTimeStore } from './time';
 import { mountTimeSlider } from './time-slider';
 import { KT_PER_MS, sampleField, fromDeg } from './physics/flow';
 import { MOCK_FLOW, REGION, SPOTS } from './region';
@@ -268,16 +268,23 @@ if (flow) {
 }
 const flowHud = mountFlowHud(hud, map, () => flowSources.current);
 
-// Water clarity (PLAN 6.1): newest satellite optics, plus river plumes after catchment rain and waves stirring
-// the bottom, both from the forecast at the slider's hour. Needs the depth grid, so it starts once that loads.
+// Water clarity (PLAN 6.1, 7.2): satellite optics carried forward from the newest map, plus river plumes after
+// catchment rain, drifting with the current, and waves stirring the bottom, from the forecast at the slider's hour
+// (or the hour asked for: the VIS DAYS row). Needs the depth grid, so it starts once that loads.
 let catchmentRain: CatchmentRain | null = null;
 let clarityElevation: Grid | null = null;
 const clarityLayer = mountClarity(map);
+const bandAt = (ms: number) => bandFor((ms - time.baseMs()) / 3.6e6).id;
+const currentOut: [number, number] = [0, 0];
 const clarityCtx = (): ClarityContext | null =>
   clarityElevation && {
     satellite, rain: catchmentRain, elevation: clarityElevation, ms: time.validMs(),
-    seaAt: (lng, lat) => {
-      const s = seaStateAt(lng, lat);
+    currentAt: (lng, lat, ms) => {
+      const f = currents && currentsAt(currents, bandAt(ms), ms)?.field;
+      return f && sampleField(f, lng, lat, currentOut) ? [currentOut[0], currentOut[1]] : null;
+    },
+    seaAt: (lng, lat, ms) => {
+      const s = ms === undefined ? seaStateAt(lng, lat) : waves && wavesAt(waves, bandAt(ms), ms, lng, lat);
       if (!s) return null;
       const swell = Number.isFinite(s.swellHs) && Number.isFinite(s.swellT);
       return { hs: s.hs, tp: swell ? s.swellT : s.tm };

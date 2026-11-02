@@ -2,14 +2,15 @@
  * CLARITY map layer and VIS readout (PLAN 6.1): estimated underwater visibility over Gandoca–Limón,
  * from the satellite Kd490 (chlorophyll where it has none), river plumes after catchment rain and
  * waves stirring the bottom (physics/clarity.ts). Green ≥ 8 m, amber 3 to 8 m, red under 3 m.
- * Rain and waves come from the forecast, so the layer changes as the time slider moves; the
- * satellite part is the newest map. Style layer ids start with `cl-` (catalog 'clarity').
+ * Rain, currents and waves come from the forecast, so the layer changes as the time slider moves;
+ * the satellite part is carried forward from the newest map (PLAN 7.2, physics/clarity-forecast.ts). Style layer ids start with `cl-` (catalog 'clarity').
  */
 import type { Map } from 'maplibre-gl';
 import { PLUME_RIVERS, REGION } from '../region';
 import { M_PER_DEG_LAT, M_PER_DEG_LNG, sample, type Grid } from '../physics/bathy';
-import { clarity, clarityLevel, effectiveRain, plumeKd, type Clarity, type ClarityLevel } from '../physics/clarity';
-import { chlAt, kd490At, type SatelliteData } from '../adapters/satellite';
+import { clarity, clarityLevel, effectiveRain, kdFromChl, resuspensionKd, type Clarity, type ClarityLevel } from '../physics/clarity';
+import { clarityBand, driftedPlumeKd, plumeAge, plumeDrift, satKdAt, satState, waveSpread, type ClarityBand, type SatState } from '../physics/clarity-forecast';
+import { observedAt, type SatelliteData } from '../adapters/satellite';
 import type { CatchmentRain } from '../adapters/catchment-rain';
 import { readout } from '../hud-kit';
 import { t, type Key } from '../i18n';
@@ -24,30 +25,73 @@ export interface ClarityContext {
   /** Elevation (m, positive up) for depth and the land mask. */
   elevation: Grid;
   /** Sea state at a point and the slider's time, or null. Sampled on a 0.05° lattice. */
-  seaAt: (lng: number, lat: number) => { hs: number; tp: number } | null;
+  seaAt: (lng: number, lat: number, ms?: number) => { hs: number; tp: number } | null;
+  /** Surface current (m/s east, north) at a point and time, for plume drift (PLAN 7.2). */
+  currentAt?: (lng: number, lat: number, ms: number) => readonly [number, number] | null;
   ms: number;
+  /** Now, for the forecast lead time; default Date.now(). */
+  nowMs?: number;
 }
 
-/** Plume rain per river at `ms`. */
-export const riverRain = (rain: CatchmentRain | null, ms: number) =>
-  PLUME_RIVERS.map((r) => ({ ...r, rainMm: rain?.byRiver[r.name] ? effectiveRain(rain.times, rain.byRiver[r.name], ms) : 0 }));
+/**
+ * Plume rain per river at `ms`, and how far the surface current has carried the plume (PLAN 7.2):
+ * the mean current at the mouth over the plume's rain-weighted age, sampled at four times.
+ */
+export const riverRain = (rain: CatchmentRain | null, ms: number, currentAt?: ClarityContext['currentAt']) =>
+  PLUME_RIVERS.map((r) => {
+    const mm = rain?.byRiver[r.name];
+    const rainMm = mm ? effectiveRain(rain.times, mm, ms) : 0;
+    let drift: [number, number] = [0, 0];
+    if (mm && rainMm > 0 && currentAt) {
+      const age = plumeAge(rain.times, mm, ms);
+      let u = 0, v = 0, n = 0;
+      for (let k = 0; k < 4; k++) {
+        const c = currentAt(r.mouth[0], r.mouth[1], ms - (k / 3) * age * 1000);
+        if (c) (u += c[0]), (v += c[1]), n++;
+      }
+      if (n) drift = plumeDrift(age, [u / n, v / n]);
+    }
+    return { ...r, rainMm, drift };
+  });
 
-/** Clarity at one sea point; null on land. */
-export function clarityAt(c: ClarityContext, lng: number, lat: number, rivers = riverRain(c.rain, c.ms), sea = c.seaAt(lng, lat)): Clarity | null {
+/** Ocean-colour history per point, worked out once per satellite load (the grid asks for every cell). */
+const satMemo = new WeakMap<SatelliteData, globalThis.Map<string, SatState | null>>();
+
+/** A point's satellite Kd history: Kd490 where the coast map has it, else chlorophyll through Morel and Maritorena. */
+export function satHistory(sat: SatelliteData, lng: number, lat: number): SatState | null {
+  let memo = satMemo.get(sat);
+  if (!memo) satMemo.set(sat, (memo = new globalThis.Map()));
+  const key = `${lng.toFixed(4)},${lat.toFixed(4)}`;
+  if (memo.has(key)) return memo.get(key)!;
+  const from = (s: SatelliteData['kd490'], name: string, toKd: (x: number) => number) => {
+    if (!s) return null;
+    const t = s.meta.times;
+    return satState(t, t.map((ms) => toKd(observedAt(s, name, lng, lat, ms)?.value ?? NaN)));
+  };
+  const st = from(sat.kd490, 'kd490', (x) => x) ?? from(sat.chl, 'chl', (x) => (Number.isFinite(x) ? kdFromChl(x) : NaN));
+  memo.set(key, st);
+  return st;
+}
+
+export type ClarityAt = Clarity & ClarityBand;
+
+/** Clarity at one sea point, with its band; null on land. */
+export function clarityAt(c: ClarityContext, lng: number, lat: number, rivers = riverRain(c.rain, c.ms, c.currentAt), sea = c.seaAt(lng, lat, c.ms)): ClarityAt | null {
   const z = sample(c.elevation, lng, lat);
   if (!(z < 0)) return null;
   const mx = M_PER_DEG_LNG * Math.cos(lat * RAD);
   let plume = 0;
-  for (const r of rivers) if (r.rainMm > 0) plume += plumeKd(r.catchmentKm2, r.rainMm, Math.hypot((lng - r.mouth[0]) * mx, (lat - r.mouth[1]) * M_PER_DEG_LAT));
-  const sat = c.satellite;
-  return clarity({
-    kd490: (sat && kd490At(sat, lng, lat, c.ms)?.value) ?? NaN,
-    chl: (sat && chlAt(sat, lng, lat, c.ms)?.value) ?? NaN,
-    plumeKd: plume,
-    hs: sea?.hs ?? NaN,
-    tp: sea?.tp ?? NaN,
-    depthM: -z,
+  for (const r of rivers) if (r.rainMm > 0) plume += driftedPlumeKd(r.catchmentKm2, r.rainMm, (lng - r.mouth[0]) * mx, (lat - r.mouth[1]) * M_PER_DEG_LAT, r.drift);
+  const sat = satKdAt(c.satellite ? satHistory(c.satellite, lng, lat) : null, c.ms);
+  const leadDays = Math.max(0, (c.ms - (c.nowMs ?? Date.now())) / 864e5);
+  const hs = sea?.hs ?? NaN, tp = sea?.tp ?? NaN, depthM = -z;
+  const w = waveSpread(leadDays);
+  const mid = clarity({ kd490: sat.kd, chl: NaN, plumeKd: plume, hs, tp, depthM });
+  const band = clarityBand({
+    sat, plumeKd: plume, leadDays,
+    res: { lo: resuspensionKd(hs * (1 - w), tp, depthM), mid: resuspensionKd(hs, tp, depthM), hi: resuspensionKd(hs * (1 + w), tp, depthM) },
   });
+  return { ...mid, ...band };
 }
 
 export interface ClarityGrid {
@@ -65,7 +109,7 @@ export function clarityGrid(c: ClarityContext): ClarityGrid {
   const [[w, s], [e, n]] = REGION.bounds;
   const cols = Math.round((e - w) / CLARITY_STEP) + 1, rows = Math.round((n - s) / CLARITY_STEP) + 1;
   const vis = new Float32Array(cols * rows).fill(NaN);
-  const rivers = riverRain(c.rain, c.ms);
+  const rivers = riverRain(c.rain, c.ms, c.currentAt);
   // The wave grid is 0.25° (nest 1/12°), so one sea state per 0.05° block is plenty.
   const seaMemo = new globalThis.Map<string, { hs: number; tp: number } | null>();
   const seaFor = (lng: number, lat: number) => {
@@ -145,14 +189,31 @@ export function mountClarity(map: Map): ClarityLayer {
   };
 }
 
-/** VIS readout in the side panel under SST: visibility at the cross-hair, coloured by level, with the main cause. */
+/** Local noon (Costa Rica) of the day `k` days after the one containing `ms`. */
+export function noonAhead(ms: number, k: number, tzOffsetH: number = REGION.tzOffsetH): number {
+  const H = 3.6e6;
+  const local = ms + tzOffsetH * H;
+  return Math.floor(local / 864e5) * 864e5 + 12 * H - tzOffsetH * H + k * 864e5;
+}
+
+const visText = (v: number) => (v >= 20 ? '20+' : v.toFixed(v < 3 ? 1 : 0));
+
+/**
+ * VIS readout in the side panel under SST: visibility at the cross-hair, coloured by level, with
+ * its likely range and the main cause (PLAN 6.1, 7.2). Under it, VIS DAYS: midday visibility for
+ * the next three days, with how sure each is.
+ */
 export function mountClarityHud(root: HTMLElement, map: Map, ctx: () => ClarityContext | null) {
   const side = root.querySelector<HTMLElement>('.side');
   const sst = side?.querySelector('#sst')?.parentElement;
   if (!side || !sst) return null;
-  sst.insertAdjacentHTML('afterend', readout(t('clarity.vis'), 'vis', t('unit.m')));
+  sst.insertAdjacentHTML(
+    'afterend',
+    `${readout(t('clarity.vis'), 'vis', t('unit.m'))}<div class="ro"><span class="lbl">${t('clarity.days')}</span><span class="seg sm" id="vis-days">--</span></div>`,
+  );
   const el = side.querySelector<HTMLElement>('#vis')!;
   const unit = el.nextElementSibling as HTMLElement;
+  const days = side.querySelector<HTMLElement>('#vis-days')!;
   const TONE: Record<ClarityLevel, string> = { GOOD: 'green', FAIR: 'amber', POOR: 'red' };
   let queued = false;
   const update = () => {
@@ -160,9 +221,28 @@ export function mountClarityHud(root: HTMLElement, map: Map, ctx: () => ClarityC
     const c = ctx();
     const p = map.getCenter();
     const x = c ? clarityAt(c, p.lng, p.lat) : null;
-    el.textContent = x ? (x.visM >= 20 ? '20+' : x.visM.toFixed(x.visM < 3 ? 1 : 0)) : '--';
+    el.textContent = x ? visText(x.visM) : '--';
     el.className = 'seg ' + (x ? TONE[x.level] : '');
-    unit.textContent = x ? `${t('unit.m')} ${x.cause === 'clear' ? '' : t(`clarity.cause.${x.cause}` as Key)}` : t('unit.m');
+    unit.textContent = x
+      ? `${t('unit.m')} ${visText(x.visLo)}–${visText(x.visHi)} ${x.cause === 'clear' ? '' : t(`clarity.cause.${x.cause}` as Key)}`.trim()
+      : t('unit.m');
+    el.title = x ? t('clarity.conf', { c: t(`clarity.conf.${x.confidence}` as Key) }) : '';
+    // Next three middays at the cross-hair: "+1 6 · +2 9 · +3 12?", ? for low confidence.
+    if (!c || !x) {
+      days.textContent = '--';
+      return;
+    }
+    const now = c.nowMs ?? Date.now();
+    days.innerHTML = [1, 2, 3]
+      .map((k) => {
+        const ms = noonAhead(now, k);
+        const d = clarityAt({ ...c, ms }, p.lng, p.lat);
+        if (!d) return '';
+        const mark = d.confidence === 'LOW' ? '?' : '';
+        return `<span class="${TONE[d.level]}">+${k} ${visText(d.visM)}${mark}</span>`;
+      })
+      .filter(Boolean)
+      .join(' ');
   };
   map.on('move', () => {
     if (!queued) (queued = true), requestAnimationFrame(update);

@@ -31,7 +31,7 @@ export const JOB_FEEDS: Record<string, readonly string[]> = {
   waves: ['waves'],
   currents: ['currents'],
   sst: ['sst', 'sst-coast', 'chl', 'kd490'],
-  passes: ['sst-pass', 'chl-pass'],
+  passes: ['sst-pass', 'chl-pass', 'scat-pass'],
   weather: ['weather'],
   rain: ['rain'],
   storms: ['storms'],
@@ -55,7 +55,7 @@ export function tripJobs(base: string = import.meta.env.BASE_URL): SyncJob[] {
     { name: 'gauge', run: async () => live(await fetchGauge({ hours: 30 }), 'gauge') },
     // LIVE OBS (PLAN 2.13): the airport's reports and the satellite passes.
     { name: 'metar', run: async () => live(await fetchMetar({ base }), 'metar') },
-    { name: 'passes', run: async () => { const d = await fetchPasses({ base }); need(d.sst || d.chl, 'no satellite passes'); } },
+    { name: 'passes', run: async () => { const d = await fetchPasses({ base }); need(d.sst || d.chl || d.scat, 'no satellite passes'); } },
     // Published only from the live site (null in dev and preview): nothing to sync there.
     { name: 'lightning', run: async () => { const d = await fetchLightning(); if (d) live(d, 'lightning'); } },
   ];
