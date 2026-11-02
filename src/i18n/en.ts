@@ -175,6 +175,21 @@ export const en = {
   'zone.status.restricted': 'RESTRICTED',
   'zone.alert': 'PROTECTED AREA: {name}: {status}',
 
+  // Shore and kayak fishing layer (PLAN 4.5)
+  'fish.target': 'TARGET',
+  'fish.score': 'HABITAT',
+  'fish.none': 'OUT OF REACH',
+  'fish.prev': 'Previous species',
+  'fish.next': 'Next species',
+  'fish.tarpon': 'TARPON',
+  'fish.snook': 'SNOOK',
+  'fish.jack': 'JACK',
+  'fish.snapper': 'SNAPPER',
+  'fish.barracuda': 'BARRACUDA',
+  'season.peak': 'PEAK',
+  'season.good': 'GOOD',
+  'season.off': 'OFF',
+
   // Settings
   'settings.enhance': 'ENHANCE',
   'settings.on': 'ON',

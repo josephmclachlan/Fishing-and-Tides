@@ -245,3 +245,6 @@ body[data-band='outlook'] .flow-canvas { opacity: 0.3; }
 body[data-band='lowconf'] .side, body[data-band='outlook'] .side { border-style: dashed; }
 body[data-band='outlook'] .side .seg:not(#tide) { opacity: 0.7; }
 body[data-band='outlook'] #t-valid, body[data-band='outlook'] #t-off { color: var(--red); animation: none; }
+
+/* Shore/kayak target picker (PLAN 4.5) */
+.fish-pick .tab { padding: 0 8px; min-width: 28px; }
