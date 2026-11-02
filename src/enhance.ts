@@ -11,6 +11,8 @@
  *
  * Motion grammar: smooth moves cover ground we've already seen ("known data"); stepped moves
  * (steppedEase, like old tracking optics) are new detail loading.
+ * ENHANCE off flies the same route (zoom out, pan to centre, zoom in) as three smooth moves, with
+ * none of the overlay, box, pixelation or stepping.
  * Any touch, drag or wheel on the map cancels it and hands control back.
  */
 import type { Map as MapLibreMap } from 'maplibre-gl';
@@ -18,7 +20,7 @@ import type { LockFx } from './zoom-fx';
 import type { Target } from './target';
 import { REGION } from './region';
 import { t } from './i18n';
-import { ENHANCE_WIDE_ZOOM, ENHANCE_ZOOM, planHops, plainFlyMs, steppedEase, zoomOutToFit } from './zoom';
+import { ENHANCE_WIDE_ZOOM, ENHANCE_ZOOM, planHops, plainPanMs, plainZoomMs, steppedEase, zoomOutToFit } from './zoom';
 import { haversineM } from './geo';
 
 /** Step timings, ms. Slow on purpose so it reads as a sensor working, not a glitch. */
@@ -30,7 +32,7 @@ const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const once = (map: MapLibreMap, ev: 'moveend' | 'idle') => new Promise<void>((r) => map.once(ev, () => r()));
 
-/** `enabled` is the ENHANCE setting (src/settings.ts); off means the plain fly-to. */
+/** `enabled` is the ENHANCE setting (src/settings.ts); off means the same journey as smooth moves only. */
 export function createEnhancer(map: MapLibreMap, fx: LockFx, enabled: () => boolean = () => true) {
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   let run = 0;
@@ -60,19 +62,10 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx, enabled: () => bool
       await done;
     };
 
-    if (!enabled()) {
-      // ENHANCE off: one continuous eased move, pan and zoom together, no pixels, boxes or steps.
-      // Detail fades in as the zoom tiers are crossed (map paint easing and CSS in style.css).
-      const c = map.getCenter();
-      const ms = plainFlyMs(haversineM([c.lng, c.lat], target.lngLat), ENHANCE_ZOOM - map.getZoom());
-      const done = once(map, 'moveend');
-      map.flyTo({ center: target.lngLat, zoom: ENHANCE_ZOOM, duration: ms * k, curve: 1.3, easing: easeInOut, essential: true });
-      await done;
-      if (alive()) active = false;
-      return;
-    }
-
-    fx.start(target.name);
+    // ENHANCE off keeps the same journey (pull back, pan, zoom in) as smooth moves only: no overlay,
+    // box, pixelation or stepped zoom. Detail fades in as the zoom tiers are crossed (style.css).
+    const fancy = enabled();
+    if (fancy) fx.start(target.name);
 
     // 1. Smooth pull-back to the wide view, never panning; further if the target is still off screen.
     const z0 = map.getZoom();
@@ -82,8 +75,22 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx, enabled: () => bool
     const regionFit = map.cameraForBounds(REGION.bounds)?.zoom ?? ENHANCE_WIDE_ZOOM;
     const wide = Math.min(z0, ENHANCE_WIDE_ZOOM, regionFit, z0 - zoomOutToFit(p.x - w / 2, p.y - h / 2, w, h));
     if (z0 - wide > 0.05) {
-      fx.state(t('fx.wideScan'));
+      if (fancy) fx.state(t('fx.wideScan'));
       await moveTo({ zoom: wide, duration: T.wide * k, easing: easeInOut });
+    }
+    if (!alive()) return;
+
+    if (!fancy) {
+      // 2. Smooth pan to centre the target, then 3. a smooth zoom in onto it.
+      const c = map.getCenter();
+      const m = map.project(target.lngLat);
+      if (Math.hypot(m.x - w / 2, m.y - h / 2) > 2) {
+        await moveTo({ center: target.lngLat, duration: plainPanMs(haversineM([c.lng, c.lat], target.lngLat)) * k, easing: easeInOut });
+        if (!alive()) return;
+      }
+      await moveTo({ center: target.lngLat, zoom: ENHANCE_ZOOM, duration: plainZoomMs(ENHANCE_ZOOM - map.getZoom()) * k, easing: easeInOut });
+      if (alive()) active = false;
+      return;
     }
 
     // 2. Box the target where it sits, centre it, step into the box, resolve; repeat.

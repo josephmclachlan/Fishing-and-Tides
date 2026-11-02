@@ -8,6 +8,7 @@ import { createLockFx, mountZoomTiers } from './zoom-fx';
 import { createEnhancer } from './enhance';
 import { mountSeek } from './seek';
 import { createSettings, safeStorage } from './settings';
+import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
 import { mountSettingsUi } from './settings-ui';
 import { fetchSeafloor } from './adapters/seafloor';
 import { mountSeafloor } from './layers/seafloor';
@@ -59,11 +60,14 @@ mountTimeSlider(hud, time);
 // The lock-on effect plays only for a picked target, never on scroll/pinch zoom.
 const settings = createSettings(safeStorage());
 const enhancer = createEnhancer(map, createLockFx(map, hud), settings.enhance);
-mountSeek(hud, (t) => enhancer.go(t), settings);
+// Phone: panels are drawers, closed until tapped; wide screens start with the LAYERS drawer open.
+const sheets = createSheets(window.matchMedia(PHONE_QUERY).matches ? null : 'layers');
+mountSeek(hud, (t) => enhancer.go(t), settings, sheets);
 // Layer toggles and activity presets; other layers register into `layers` (src/layers/registry.ts).
 bindMapLayers(map, layers);
-mountLayersPanel(hud, layers);
 mountSettingsUi(hud, settings);
+mountLayersPanel(hud, layers, sheets);
+mountSheets(hud, map, sheets);
 
 const flow = mountFlow(map, flowSources);
 if (flow) {
