@@ -19,6 +19,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import { FlowSim, type FlowSource, type FlowView } from './flow-sim';
 import { KT_PER_MS, mercX, mercY, worldPx } from '../physics/flow';
 import { REGION } from '../region';
+import { sizeOf } from '../layout-size';
 
 export type FlowKind = 'wind' | 'current';
 
@@ -218,18 +219,21 @@ export function mountFlow(map: MapLibreMap, sources: Record<FlowKind, FlowSource
 
   const view = (): FlowView => {
     const c = map.getCenter();
-    return { x: mercX(c.lng), y: mercY(c.lat), world: worldPx(map.getZoom()), w: container.clientWidth, h: container.clientHeight };
+    const { w, h } = sizeOf(container);
+    return { x: mercX(c.lng), y: mercY(c.lat), world: worldPx(map.getZoom()), w, h };
   };
   const wanted = (kind: FlowKind) => {
     const share = kind === 'current' && runs.has('wind') ? CURRENT_SHARE_WITH_WIND : 1;
-    const n = ((container.clientWidth * container.clientHeight) / AREA_PER_PARTICLE) * share * budget;
+    const { w, h } = sizeOf(container);
+    const n = ((w * h) / AREA_PER_PARTICLE) * share * budget;
     return Math.round(Math.min(MAX_PARTICLES, Math.max(MIN_PARTICLES, n)));
   };
 
   const resize = () => {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const w = Math.round(container.clientWidth * dpr);
-    const h = Math.round(container.clientHeight * dpr);
+    const size = sizeOf(container);
+    const w = Math.round(size.w * dpr);
+    const h = Math.round(size.h * dpr);
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;

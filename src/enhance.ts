@@ -22,6 +22,7 @@ import { REGION } from './region';
 import { t } from './i18n';
 import { ENHANCE_WIDE_ZOOM, ENHANCE_ZOOM, planHops, plainPanMs, plainZoomMs, steppedEase, zoomOutToFit } from './zoom';
 import { haversineM } from './geo';
+import { sizeOf } from './layout-size';
 
 /** Step timings, ms. Slow on purpose so it reads as a sensor working, not a glitch. */
 const T = { wide: 1600, designate: 1300, center: 1200, zoom: 2200, tiles: 3000, resolve: 2600, settle: 700, hold: 2500 };
@@ -70,7 +71,7 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx, enabled: () => bool
     // 1. Smooth pull-back to the wide view, never panning; further if the target is still off screen.
     const z0 = map.getZoom();
     const p = map.project(target.lngLat);
-    const { clientWidth: w, clientHeight: h } = map.getContainer();
+    const { w, h } = sizeOf(map.getContainer());
     // Wide view = the whole Gandoca–Limón stretch fits on this screen (capped at ENHANCE_WIDE_ZOOM).
     const regionFit = map.cameraForBounds(REGION.bounds)?.zoom ?? ENHANCE_WIDE_ZOOM;
     const wide = Math.min(z0, ENHANCE_WIDE_ZOOM, regionFit, z0 - zoomOutToFit(p.x - w / 2, p.y - h / 2, w, h));

@@ -37,7 +37,11 @@ export function tideDay(t0: number, hc: Harmonics = LIMON_HARMONICS, at: [number
 
 /** The next `n` high and low waters after `fromMs`. */
 export function nextTides(fromMs: number, n = 4, hc: Harmonics = LIMON_HARMONICS): Extremum[] {
-  return extrema(hc, fromMs, fromMs + 3 * DAY_MS).filter((e) => e.t > fromMs).slice(0, n);
+  // Four turns a day on most days here (mixed tide), two on the most diurnal: scan just far enough (PLAN 5.4).
+  for (let days = Math.max(1, Math.ceil(n / 3)); ; days++) {
+    const ex = extrema(hc, fromMs, fromMs + days * DAY_MS).filter((e) => e.t > fromMs);
+    if (ex.length >= n || days >= 4) return ex.slice(0, n);
+  }
 }
 
 /** Local clock time HH:MM (Costa Rica). */

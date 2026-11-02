@@ -9,12 +9,14 @@
  *    (coral/algae, seagrass, rock); the shading dims so the reef detail reads.
  */
 import type { ExpressionSpecification, FilterSpecification, Map } from 'maplibre-gl';
-import type { Feature, FeatureCollection, LineString } from 'geojson';
+import type { FeatureCollection } from 'geojson';
 import { SEAFLOOR, TIER_ZOOM } from '../region';
-import { cellAt, chaikin, clipLines, contour, gridBounds, type Grid } from '../physics/bathy';
 import type { Seafloor } from '../adapters/seafloor';
 import { byTier, firstSymbolId } from '../map';
-import { renderShade, type ShadeOptions } from './seafloor-shade';
+import { bake, type BakeInput } from './seafloor-bake';
+import type { BakedShade, BakeOut } from './seafloor-worker';
+
+export { contourLines } from './seafloor-bake';
 
 const { COAST, SPOT } = TIER_ZOOM;
 /**
@@ -35,33 +37,43 @@ function rgbOf(hex: string): [number, number, number] {
   return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [57, 255, 122];
 }
 
-/** Smoothed depth contours as GeoJSON lines with { d, major }. */
-export function contourLines(g: Grid, depths: readonly number[], grid: 'macro' | 'coast', land?: Grid): Feature<LineString>[] {
-  const major = new Set<number>(SEAFLOOR.majorContours);
-  const out: Feature<LineString>[] = [];
-  for (const d of depths)
-    for (const raw of contour(g, -d)) {
-      if (raw.length < 4) continue; // single-cell blips
-      // The depth grid's cells are ~460 m, so its shallow contours can cross a headland: cut them at the OSM coastline.
-      const smooth = chaikin(raw, 2);
-      const pieces = land ? clipLines([smooth], (p) => cellAt(land, p[0], p[1]) !== 1, land.dlon) : [smooth];
-      for (const line of pieces) {
-        const coordinates = line.map(([x, y]) => [Math.round(x * 1e5) / 1e5, Math.round(y * 1e5) / 1e5]);
-        out.push({ type: 'Feature', properties: { d, major: major.has(d), grid }, geometry: { type: 'LineString', coordinates } });
-      }
-    }
-  return out;
+/** Image source from a baked raster: the worker's PNG, or the pixels encoded here via a canvas. */
+async function shadeSource(img: BakedShade) {
+  let blob: Blob;
+  if ('png' in img) blob = img.png;
+  else {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    canvas.getContext('2d')!.putImageData(new ImageData(img.data as Uint8ClampedArray<ArrayBuffer>, img.width, img.height), 0, 0);
+    blob = await new Promise<Blob>((ok, fail) => canvas.toBlob((b) => (b ? ok(b) : fail(new Error('seafloor: toBlob failed'))), 'image/png'));
+  }
+  return { type: 'image' as const, url: URL.createObjectURL(blob), coordinates: img.coordinates };
 }
 
-/** Image source from a shading raster, via an offscreen canvas. */
-async function shadeSource(g: Grid, opts: Omit<ShadeOptions, 'edges' | 'alphas'>) {
-  const img = renderShade(g, { ...opts, edges: SEAFLOOR.bands, alphas: SEAFLOOR.bandAlphas });
-  const canvas = document.createElement('canvas');
-  canvas.width = img.width;
-  canvas.height = img.height;
-  canvas.getContext('2d')!.putImageData(new ImageData(img.data as Uint8ClampedArray<ArrayBuffer>, img.width, img.height), 0, 0);
-  const blob = await new Promise<Blob>((ok, fail) => canvas.toBlob((b) => (b ? ok(b) : fail(new Error('seafloor: toBlob failed'))), 'image/png'));
-  return { type: 'image' as const, url: URL.createObjectURL(blob), coordinates: img.coordinates };
+/** Shading and contours, baked in a worker (PLAN 5.4); in-thread where workers are missing or fail. */
+function bakeSeafloor(inp: BakeInput): Promise<{ macro: BakedShade; region: BakedShade; contours: FeatureCollection }> {
+  if (typeof Worker === 'undefined') return Promise.resolve(bake(inp));
+  return new Promise((resolve) => {
+    let w: Worker;
+    const inThread = (why: unknown) => {
+      console.warn('seafloor: baking in-thread', why);
+      w?.terminate();
+      resolve(bake(inp));
+    };
+    try {
+      w = new Worker(new URL('./seafloor-worker.ts', import.meta.url), { type: 'module' });
+    } catch (err) {
+      return inThread(err);
+    }
+    w.onmessage = (e: MessageEvent<BakeOut>) => {
+      w.terminate();
+      if (e.data.ok) resolve(e.data);
+      else inThread(e.data.message);
+    };
+    w.onerror = (e) => inThread(e.message);
+    w.postMessage(inp);
+  });
 }
 
 const HUD_NAME: Record<string, string> = { reef: 'REEF', wreck: 'WRECK', light: 'LT', harbour: '', hazard: 'HAZARD', buoy: 'BUOY' };
@@ -80,16 +92,10 @@ export async function mountSeafloor(map: Map, sf: Seafloor) {
   const green = cssColour('--green', '#39ff7a');
   const red = cssColour('--red', '#ff3b2f');
 
-  // Heavy work first, before touching the style.
-  const [macroShade, regionShade] = await Promise.all([
-    shadeSource(sf.macro, { width: 1400, rgb: rgbOf(green), hole: gridBounds(sf.region), relief: 12 }),
-    // ~45 m pixels, so the land mask keeps the shading off the beach down to the spot tier.
-    shadeSource(sf.region, { width: 2000, rgb: rgbOf(green), land: sf.land, relief: 6 }),
-  ]);
-  const contours: FeatureCollection = {
-    type: 'FeatureCollection',
-    features: [...contourLines(sf.macro, SEAFLOOR.macroContours, 'macro'), ...contourLines(sf.region, SEAFLOOR.coastContours, 'coast', sf.land)],
-  };
+  // Heavy work first, off the main thread, before touching the style.
+  const baked = await bakeSeafloor({ macro: sf.macro, region: sf.region, land: sf.land, rgb: rgbOf(green) });
+  const [macroShade, regionShade] = await Promise.all([shadeSource(baked.macro), shadeSource(baked.region)]);
+  const contours = baked.contours;
   const marks: FeatureCollection = {
     ...sf.marks,
     features: sf.marks.features.map((f) => ({ ...f, properties: { ...f.properties, label: markLabel((f.properties ?? {}) as Record<string, string>) } })),

@@ -17,12 +17,13 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import { tierForZoom, type Tier } from './region';
 import { CELL_SPAN, LOCK_STEPS, RESOLVE_CELL_PX, cellBlockAt, nextTier, zoomBlock } from './zoom';
 import { cameraAltitudeM, toDDM } from './geo';
-import { hemispheres, t as tr } from './i18n'; // 't' is the resolve progress below
+import { hemispheres, t as tr } from './i18n';
+import { sizeOf } from './layout-size'; // 't' is the resolve progress below
 
 /** Camera altitude for the map's current view, m. */
 export function mapAltitudeM(map: MapLibreMap): number {
   const c = map.getCenter();
-  return cameraAltitudeM(c.lat, map.getZoom(), map.getContainer().clientHeight, map.getVerticalFieldOfView(), map.getPitch());
+  return cameraAltitudeM(c.lat, map.getZoom(), sizeOf(map.getContainer()).h, map.getVerticalFieldOfView(), map.getPitch());
 }
 
 export function formatAltitude(m: number): string {
@@ -223,8 +224,9 @@ export function createLockFx(map: MapLibreMap, before: HTMLElement): LockFx {
     if (!boxSpec) return;
     const p = map.project(boxSpec.at);
     const k = 2 ** (map.getZoom() - boxSpec.zoom);
-    const w = map.getContainer().clientWidth * k;
-    const h = map.getContainer().clientHeight * k;
+    const size = sizeOf(map.getContainer());
+    const w = size.w * k;
+    const h = size.h * k;
     boxEl.style.transform = `translate(${(p.x - w / 2).toFixed(1)}px, ${(p.y - h / 2).toFixed(1)}px)`;
     boxEl.style.width = `${w.toFixed(1)}px`;
     boxEl.style.height = `${h.toFixed(1)}px`;
