@@ -407,4 +407,23 @@ export const es: Dict = {
   'shelter.exposed': 'EXPUESTO',
   'shelter.fetch': '{km} KM DE FETCH DEL {dir}',
   'place.advice': 'NO ES UNA CARTA NÁUTICA. LA PROFUNDIDAD, EL FONDEO Y LAS REGLAS DEL PUERTO CAMBIAN Y ESTAS FUENTES SON VIEJAS. EL ABRIGO SE CALCULA CON LA COSTA Y EL VIENTO PRONOSTICADO, NO CON CONOCIMIENTO LOCAL. NO USAR PARA NAVEGAR.',
+
+  // Sol, luna y solunar (PLAN 7.7). Horas de Costa Rica, calculadas en el dispositivo.
+  'astro.title': 'SOL Y LUNA',
+  'astro.sun': 'SALE / PONE',
+  'astro.goldAm': 'HORA DORADA AM',
+  'astro.goldPm': 'HORA DORADA PM',
+  'astro.moon': 'LUNA SALE / PONE',
+  'astro.major': 'SOLUNAR MAYOR',
+  'astro.minor': 'SOLUNAR MENOR',
+  'astro.rating': 'DÍA SOLUNAR',
+  'astro.note': 'HORA CR (UTC-6). SOL Y LUNA SON ASTRONOMÍA; LAS VENTANAS SOLUNARES SON SABER DE PESCADORES',
+  'astro.moon.0': 'LUNA NUEVA',
+  'astro.moon.1': 'LUNA CRECIENTE',
+  'astro.moon.2': 'CUARTO CRECIENTE',
+  'astro.moon.3': 'GIBOSA CRECIENTE',
+  'astro.moon.4': 'LUNA LLENA',
+  'astro.moon.5': 'GIBOSA MENGUANTE',
+  'astro.moon.6': 'CUARTO MENGUANTE',
+  'astro.moon.7': 'LUNA MENGUANTE',
 };
