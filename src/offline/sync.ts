@@ -11,7 +11,7 @@
  *    `cachedFetch` cache (adapters/cache.ts) with its fetch time, the same copy DATA AGE reads
  *    offline. The forecast grids run 16 days, so the 7 days the design asks for are inside.
  * 3. Check: the seafloor grids, zones, climatology and fishing records are precached by the
- *    service worker with the app itself; this confirms they are there.
+ *    service worker with the app itself; this confirms they are there (STATIC_FILES).
  *
  * Fishing and rip scores are not stored: they are computed on the phone from the synced
  * inputs (tide, waves, wind, seafloor, habitat), so they stay right as the time slider moves.
@@ -229,15 +229,31 @@ export async function syncForTrip(opts: SyncOptions): Promise<SyncSummary> {
   return { at: d.now(), tiles: tiles.length, failed, bytes, feedsFailed, feeds: jobs.length, staticOk, persisted };
 }
 
-/** True when the seafloor grids and reef files are in the precache (matched without workbox's revision query). */
+/** Static files outside the seafloor manifest that the app needs offline (all precached with the app). */
+export const STATIC_FILES = [
+  'data/zones/zones.geojson',
+  'data/fishing/occurrences.json',
+  'data/fishing/mouths.geojson',
+  'data/climatology/wind-clim.json',
+  'data/climatology/waves-clim.json',
+];
+
+/**
+ * True when the seafloor grids and reef files (from its manifest) and STATIC_FILES are in the
+ * precache, matched without workbox's revision query.
+ */
 async function staticPrecached(base: string, d: SyncDeps): Promise<boolean | null> {
   if (!(await d.swReady?.().catch(() => false))) return null;
-  const dir = `${base}data/seafloor/`;
+  const dir = 'data/seafloor/';
   try {
-    const m = (await (await d.fetch(`${dir}manifest.json`)).json()) as { grids: Record<string, { file: string }>; reefs: string; marks: string };
-    const files = ['manifest.json', ...Object.values(m.grids).map((g) => g.file), m.reefs, m.marks];
+    const m = (await (await d.fetch(`${base}${dir}manifest.json`)).json()) as { grids: Record<string, { file: string }>; reefs: string; marks: string };
+    const files = [...['manifest.json', ...Object.values(m.grids).map((g) => g.file), m.reefs, m.marks].map((f) => dir + f), ...STATIC_FILES];
     const origin = typeof location !== 'undefined' ? location.href : 'http://localhost/';
-    for (const f of files) if (!(await d.caches.match(new URL(dir + f, origin).href, { ignoreSearch: true }))) return false;
+    for (const f of files) {
+      if (await d.caches.match(new URL(base + f, origin).href, { ignoreSearch: true })) continue;
+      console.warn('sync: not precached', f);
+      return false;
+    }
     return true;
   } catch {
     return false;

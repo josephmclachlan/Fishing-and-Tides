@@ -69,6 +69,28 @@ The result (`{ at, tiles, failed, bytes, feeds, feedsFailed, staticOk, persisted
 
 Fishing and rip scores are not stored: they are computed on the phone from the synced inputs (tide, waves, wind, seafloor, habitat model), so they stay right for any time on the slider.
 
+### Every layer, its data, offline and verify (PLAN 7.9)
+
+`src/offline/jobs.test.ts` fails if a feed in the verify list (`src/verify/registry.ts`) has no sync job or precache entry, so a new feed can't be checked daily but missed by the sync.
+
+| Layer (LAYERS panel) | Data | Offline | Verify feeds |
+|---|---|---|---|
+| WAVES/SWELL | `waves` forecast, waves climatology | sync job `waves`; climatology precached | waves |
+| CURRENTS | `currents`, `currents-coast` | sync `currents` | currents |
+| WIND | `wind` forecast, wind climatology | sync `wind`; climatology precached | wind, wind-clim |
+| WATER TEMP | satellite SST | sync `sst` | sst, sst-coast |
+| CLARITY | satellite chlorophyll and Kd490, catchment rain, waves, seafloor | sync `sst`, `rain`, `waves`; seafloor precached | sst, rain |
+| WEATHER | Open-Meteo weather, NHC storms | sync `weather`, `storms` | weather, storms |
+| LIGHTNING | GLM flashes (collector branch) | sync `lightning` (live site only) | lightning |
+| LIVE OBS | gauge, airport METAR, satellite passes | sync `gauge`, `metar`, `passes` | gauge, metar, sst-pass, chl-pass |
+| RIP RISK, SURF BREAKS | waves, wind, tide (on device), seafloor | from the synced inputs | through waves and wind |
+| DEPTH, REEFS, SEAMARKS | seafloor grids, reefs, OSM marks | precached | (static build) |
+| FISHING | OBIS/GBIF records, river mouths, plus tide, sun and moon on device | precached | occurrences, obis, gbif |
+| PROTECTED, ANCHORAGES | zones GeoJSON, harbours in `region.ts` | precached / built in | (static build) |
+| Basemap | OpenFreeMap style, fonts, tiles | sync map step (`trip-v1`) | none |
+
+Sargassum (PLAN 7.1) is not built yet: its adapter adds a verify check, and the test above then asks for its sync job.
+
 Checked in the built app (Chromium, `vite preview`): after a sync with the browse cache emptied and the network off, the region map loads at z9 and at z14.5 over Cahuita with no failed map requests, wind and the gauge line draw from the stored copies, and DATA AGE shows OFFLINE.
 
 ## Feeds
