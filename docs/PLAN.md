@@ -49,8 +49,8 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 
 ## Phase 5: Offline and polish
 - [ ] 5.1 "Sync for trip": tiles, bathymetry, 7-day forecasts, scores to IndexedDB (**O**)
-- [ ] 5.2 Offline fallback paths and DATA AGE colour states (**S**)
-- [ ] 5.3 Mobile layout and sunlight-readability pass (**S**)
+- [x] 5.2 Offline fallback paths and DATA AGE colour states (**S**)
+- [x] 5.3 Mobile layout and sunlight-readability pass (**S**)
 - [ ] 5.4 Performance pass (**O**)
 - [ ] 5.5 Optional UI sounds (**S**)
 - [x] 5.6 EN/ESP language toggle: full Spanish in `src/i18n/es.ts` using local Costa Rican marine and fishing terms, a toggle in the HUD with small UK and Costa Rica flag graphics in the HUD style, choice persisted on the device and the browser language used as the first-run default; units, dates and number formats follow the language where they differ (**S**, needs 1.10, and all UI text in place)
@@ -59,10 +59,10 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [ ] 6.1 Water clarity: Kd490 and chlorophyll from ERDDAP/Copernicus, plus a rain-plume estimate from river-mouth rainfall, as the CLARITY layer (**S**, builds on 2.4)
 - [ ] 6.2 Dive surge: bottom orbital velocity per spot from the shoaling solver, shown as a calm/surgy/dangerous band (**O**, needs 3.2)
 - [ ] 6.3 Surf break model: per-break orientation, swell window and offshore-wind angle give a quality score; seed the SURF BREAKS layer (**O**, needs 3.3, 3.4)
-- [ ] 6.4 Surf break catalog: curated Caribbean breaks (type, orientation, hazards), verified against map tiles (**S**)
+- [x] 6.4 Surf break catalog: curated Caribbean breaks (type, orientation, hazards), verified against map tiles (**S**)
 - [ ] 6.5 Marine wind detail: gusts, CAPE squall flag, NHC tropical alerts into the alert strip (**S**, needs 2.3)
 - [ ] 6.6 Sea state comfort index from wind-wave and swell partitions (**S**, needs 2.2)
-- [ ] 6.7 Anchorages and harbours layer: OSM seamarks, NGA World Port Index, shelter from wind direction (**S**)
+- [x] 6.7 Anchorages and harbours layer: OSM seamarks, NGA World Port Index, shelter from wind direction (**S**). Curated OSM places + coastline-fetch shelter; WPI unreachable, see docs/HARBOURS.md
 - [x] 6.8 Spearfishing and protected-area rules: SINAC/INCOPESCA zones, closed seasons, rules card per zone (**S**, extends 4.3)
 - [ ] 6.9 Register wind, currents and waves with the layer store when the particle layer lands (**S**, needs 1.4). Wind and currents done in 1.4; waves waits for a swell field (2.2)
 

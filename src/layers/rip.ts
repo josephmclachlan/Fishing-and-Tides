@@ -46,7 +46,7 @@ export function ripFeatures(states: readonly SpotState[]): FeatureCollection {
     const label = [
       `${t('rip.short')} ${t(`rip.${level}` as Key)}`,
       level === 'LOW' ? null : `${t(`rip.str.${r.rip.strength}` as Key)} ${r.rip.speedMs.toFixed(1)} ${t('unit.ms')} · ${Math.round(r.rip.lengthM / 10) * 10} ${t('unit.m')}`,
-      `${t('surf.brk')} ${r.waves.breaker.Hb.toFixed(1)} ${t('unit.m')}${r.waves.breaker.type ? ' ' + t(`surf.type.${r.waves.breaker.type}` as Key) : ''}`,
+      `${t('sz.brk')} ${r.waves.breaker.Hb.toFixed(1)} ${t('unit.m')}${r.waves.breaker.type ? ' ' + t(`sz.type.${r.waves.breaker.type}` as Key) : ''}`,
     ].filter(Boolean).join('\n');
     let labelAt = offset(s.pin, normalDeg, xb + 150);
     if (level !== 'LOW') {

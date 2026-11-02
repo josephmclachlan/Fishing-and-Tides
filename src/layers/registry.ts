@@ -29,13 +29,13 @@ export const LAYERS: readonly LayerDef[] = [
   { id: 'sst', group: 'OCEAN' },
   { id: 'clarity', group: 'OCEAN' },
   { id: 'rip', group: 'SURF ZONE', mapPrefixes: ['rp-'] },
-  { id: 'surf', group: 'SURF ZONE' },
+  { id: 'surf', group: 'SURF ZONE', mapPrefixes: ['sb-'] },
   { id: 'depth', group: 'SEAFLOOR', mapPrefixes: ['sf-shade', 'sf-contour'] },
   { id: 'reefs', group: 'SEAFLOOR', mapPrefixes: ['sf-reef', 'sf-zone', 'sf-bottom'] },
   { id: 'seamarks', group: 'SEAFLOOR', mapPrefixes: ['sf-marks'] },
   { id: 'fishing', group: 'USE', mapPrefixes: ['fh-', 'bt-'] },
   { id: 'zones', group: 'USE', mapPrefixes: ['pz-'] },
-  { id: 'anchorages', group: 'USE' },
+  { id: 'anchorages', group: 'USE', mapPrefixes: ['an-'] },
 ];
 
 export type ActivityId = 'all' | 'fishing' | 'dive' | 'surf' | 'sail';

@@ -8,7 +8,7 @@
 import type { Map } from 'maplibre-gl';
 import { t } from './i18n';
 
-export type SheetId = 'find' | 'cond' | 'time' | 'layers' | 'boat';
+export type SheetId = 'find' | 'cond' | 'time' | 'layers' | 'boat' | 'settings';
 
 export interface Sheets {
   current(): SheetId | null;
@@ -19,7 +19,8 @@ export interface Sheets {
   subscribe(fn: () => void): () => void;
 }
 
-export const PHONE_QUERY = '(max-width: 600px)';
+/** A phone: narrow, or a phone held sideways (short and touch). Keep in step with the media queries in style.css. */
+export const PHONE_QUERY = '(max-width: 600px), (max-height: 500px) and (pointer: coarse)';
 
 /** `initial`: the sheet open at start (the LAYERS drawer on wide screens, none on a phone). */
 export function createSheets(initial: SheetId | null = null): Sheets {

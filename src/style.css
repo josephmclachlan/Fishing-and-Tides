@@ -87,7 +87,7 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--amber)
 /* A forecast hour is on screen: tint the clock so it is never mistaken for live data. */
 body.forecast #clock { color: var(--green); }
 
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
   .timebar { gap: 8px 10px; }
   .t-track { flex-basis: 100%; order: 3; }
   .t-btns { order: 4; width: 100%; }
@@ -197,14 +197,14 @@ body[data-enhance='off'] .from-spot > * { animation: tier-in 0.9s ease-out both;
 }
 .tab.on { color: var(--green); border-color: var(--green); text-shadow: 0 0 6px var(--green); }
 
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
   .seek-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 }
 
 /* Seafloor readouts (PLAN 2.6): text values in the segmented style, smaller to fit */
 .seg.sm { font-size: 13px; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .side .wide-only { display: contents; }
-@media (max-width: 600px) { .side .wide-only { display: none; } }
+@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) { .side .wide-only { display: none; } }
 
 /* Layers drawer (PLAN 1.8) */
 .layers { right: 8px; bottom: 150px; width: 330px; max-height: calc(100% - 400px); overflow-y: auto; display: none; gap: 6px; }
@@ -218,7 +218,7 @@ body[data-enhance='off'] .from-spot > * { animation: tier-in 0.9s ease-out both;
 .layers .tab.lay .soon { display: none; font-style: normal; font-size: 9px; letter-spacing: 1px; margin-left: 6px; color: var(--amber); opacity: 0.7; }
 .layers .tab.lay.pending .soon { display: inline; }
 .lay-open { white-space: nowrap; pointer-events: auto; }
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
   .layers .tab { min-height: 44px; }
   .lay-open { font-size: 12px; padding: 5px 8px; }
   .lay-mode { display: none; }
@@ -234,20 +234,15 @@ body[data-enhance='off'] .from-spot > * { animation: tier-in 0.9s ease-out both;
 .alert { top: calc(var(--top-h, 56px) + 8px); }
 
 /* Phone: top bar and bottom strip stay; everything else is a drawer opened from a tab, one at a time. */
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
   .mob-only, .dock-bar, .sheet-x { display: inline-flex; align-items: center; justify-content: center; }
   .top { gap: 4px 12px; padding: 6px 10px; }
   .title { font-size: 13px; letter-spacing: 1px; }
   .top .lbl { min-width: 0; }
   .tier-lbl { display: none; }
   .top .seg { font-size: 16px; }
-  .top-tabs { display: flex; flex-wrap: wrap; flex: 1 1 100%; gap: 4px 6px; }
-  .top-tabs .tab { flex: 1 1 0; min-height: 36px; padding: 6px 2px; text-align: center; font-size: 11px; justify-content: center; }
-  /* Two rows: the views (LAYERS FIND COND BOAT) first, then the settings (ENHANCE, language flags). */
-  .top-tabs > .tab { order: 1; }
-  .top-tabs::after { content: ''; order: 2; flex: 1 1 100%; height: 0; }
-  .top-tabs > .enh-toggle { order: 3; flex: 1 1 0; min-height: 30px; }
-  .top-tabs > .lang { order: 3; }
+  .top-tabs { display: flex; flex: 1 1 100%; gap: 6px; }
+  .top-tabs .tab { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 6px 2px; text-align: center; font-size: 12px; justify-content: center; }
 
   .side, .seek, .layers { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgba(5, 8, 5, 0.97); overflow-y: auto; }
   .ph { min-height: 34px; }
@@ -261,7 +256,11 @@ body[data-enhance='off'] .from-spot > * { animation: tier-in 0.9s ease-out both;
   body .maplibregl-ctrl-bottom-left, body .maplibregl-ctrl-bottom-right { bottom: var(--dock-h, 64px); }
   .maplibregl-ctrl-attrib { font-size: 10px; }
   .dock-bar { width: 100%; min-height: 48px; padding: 6px 36px 6px 12px; flex-wrap: wrap; justify-content: flex-start; gap: 0 14px; position: relative; font: inherit; color: inherit; text-shadow: inherit; text-align: left; background: none; border: 0; cursor: pointer; }
-  .dock-bar .d-time { flex-basis: 100%; gap: 10px; }
+  /* Row 1: hour and (when it matters) OFFLINE / DATA AGE; row 2: readouts. */
+  .dock-bar .d-time { order: 0; gap: 10px; }
+  .dock-bar .d-status { order: 1; }
+  .dock-bar::after { content: ''; order: 2; flex: 1 1 100%; height: 0; }
+  .dock-bar > .ro:not(.d-time):not(.d-status) { order: 3; }
   .dock-bar .seg { font-size: 15px; }
   .dock-bar .lbl { min-width: 0; font-size: 9px; }
   .dock-chev { position: absolute; right: 14px; top: 50%; width: 0; height: 0; margin-top: -4px; border: 6px solid transparent; border-bottom: 8px solid var(--amber); border-top: 0; filter: drop-shadow(0 0 4px var(--amber)); }
@@ -309,7 +308,7 @@ body[data-band='outlook'] #t-valid, body[data-band='outlook'] #t-off { color: va
 .boat-pins li { display: flex; gap: 4px; }
 .boat-pins .pin-go { flex: 1; text-align: left; }
 .boat-pins .pin-x { width: 34px; }
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
   .boat { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgba(5, 8, 5, 0.94); }
   .boat.open { display: grid; top: calc(var(--top-h, 100px) + 8px); bottom: auto; max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
 }
@@ -319,12 +318,66 @@ body[data-band='outlook'] #t-valid, body[data-band='outlook'] #t-off { color: va
 .tab.flag { display: inline-flex; align-items: center; justify-content: center; padding: 4px 5px; min-height: 34px; }
 .tab.flag:not(.on) { opacity: 0.55; }
 .tab.flag svg { display: block; }
-@media (max-width: 600px) {
-  .lang { flex: 0 0 auto; }
-  .top-tabs .tab.flag { flex: 0 0 auto; min-height: 30px; padding: 2px 8px; }
-  .top-tabs .tab { min-width: 0; overflow: hidden; }
-}
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
   /* The rules card opens below the top bar so the tabs stay reachable. */
   .rules-card { top: calc(var(--top-h, 100px) + 8px); max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
+}
+
+/* Connectivity (PLAN 5.2): the title dot goes amber when offline or running on stored data; tags sit by DATA AGE and on the phone strip. */
+body[data-net='offline'] .title .blink, body[data-net='cached'] .title .blink { color: var(--amber); animation: none; }
+.tag#age-net, .tag#d-net { margin-left: 6px; font-size: 10px; letter-spacing: 1px; }
+.dock-bar .d-status { gap: 6px; margin-left: auto; margin-right: 6px; }
+.dock-bar .d-status[hidden] { display: none; }
+
+/* SET drawer (PLAN 5.3): settings controls on a phone. */
+.settings { display: none; }
+.settings-body { display: grid; gap: 8px; }
+@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+  body[data-sheet='settings'] .settings { display: grid; z-index: 5; left: 8px; right: 8px; width: auto; top: calc(var(--top-h, 100px) + 8px); background: rgba(5, 8, 5, 0.97); gap: 6px; max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); overflow-y: auto; }
+  .settings-body .tab { min-height: 48px; font-size: 13px; text-align: center; }
+  .settings-body .lang { gap: 8px; }
+  .settings-body .lang .tab.flag { flex: 1; min-height: 48px; }
+  .settings-body .tab.flag svg { width: 42px; height: 21px; }
+}
+
+/* Readability on a phone in daylight (PLAN 5.3): bigger small print and thumb-sized targets. */
+@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+  .lbl, .unit { font-size: 11px; }
+  .t-bands { font-size: 10px; }
+  .seg.sm { font-size: 14px; }
+  .tab { min-height: 40px; }
+  .seek-tabs .tab { min-height: 44px; }
+  .fish-pick .tab { min-height: 40px; min-width: 40px; }
+  .sheet-x { width: 44px; height: 44px; }
+  .dock-bar { min-height: 56px; }
+  .top { left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); }
+  .bottom { left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); }
+}
+
+/* Sunlight mode (SUN, PLAN 5.3): glare washes out glow and thin dim lines, so drop scanlines, vignette, glow and
+   dimming, and make panels and borders solid. Also what the OS high-contrast setting turns on by default. */
+body[data-contrast='high'] {
+  --amber-dim: rgba(255, 176, 0, 0.85);
+}
+body[data-contrast='high'] .crt { display: none; }
+body[data-contrast='high'] .panel,
+body[data-contrast='high'] .seg,
+body[data-contrast='high'] .tab,
+body[data-contrast='high'] .fx-tag,
+body[data-contrast='high'] .fx-coords { text-shadow: none; }
+body[data-contrast='high'] .panel { background: rgba(0, 0, 0, 0.94); border-width: 2px; }
+body[data-contrast='high'] .lbl,
+body[data-contrast='high'] .unit,
+body[data-contrast='high'] .dim { opacity: 1; }
+body[data-contrast='high'] .tab { border-color: var(--amber); }
+body[data-contrast='high'] .tab.on { border-color: var(--green); border-width: 2px; }
+body[data-contrast='high'] .tab:disabled { opacity: 0.5; }
+body[data-contrast='high'] .layers .tab.lay { opacity: 0.75; }
+body[data-contrast='high'] .tab.flag:not(.on) { opacity: 0.8; }
+body[data-contrast='high'] .gauge-bar { border-color: var(--amber); }
+body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important; }
+
+/* Motion off (OS setting): no flicker or blinking. */
+@media (prefers-reduced-motion: reduce) {
+  .crt, .blink, .red, .alert, .fx-box, .fx.locked .fx-state { animation: none; }
 }

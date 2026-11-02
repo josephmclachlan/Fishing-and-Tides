@@ -8,12 +8,18 @@ import { createLockFx, mountZoomTiers } from './zoom-fx';
 import { createEnhancer } from './enhance';
 import { mountSeek } from './seek';
 import { createSettings, safeSession, safeStorage, takeView } from './settings';
+import { mountSurfBreaks } from './layers/surf-breaks';
+import { mountSurfHud } from './surf-hud';
+import { mountHarbours } from './layers/harbours';
+import { mountHarboursHud } from './harbours-hud';
+import type { Grid } from './physics/bathy';
 import { createBoatStore } from './boat/store';
 import { mountBoatPanel } from './boat-panel';
 import { dictFor, setDict } from './i18n';
 import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
 import { mountSettingsUi } from './settings-ui';
+import { mountSettingsPanel } from './settings-panel';
 import { fetchSeafloor } from './adapters/seafloor';
 import { mountSeafloor } from './layers/seafloor';
 import { mountSeafloorHud } from './seafloor-hud';
@@ -33,17 +39,18 @@ import { mountTimeSlider } from './time-slider';
 import { KT_PER_MS, sampleField, fromDeg } from './physics/flow';
 import { MOCK_FLOW, REGION, SPOTS } from './region';
 import { fetchWind, windAt, type WindData } from './adapters/wind';
-import { dataAge } from './adapters/data-age';
+import { dataAge, describeAge } from './adapters/data-age';
+import { createNet } from './net';
 import { createPhysicsClient } from './physics/client';
 import { nearest } from './geo';
 import { createSpotPhysics, type SpotPhysics } from './spot-physics';
 import { mountRip } from './layers/rip';
-import { mountSurfHud } from './surf-hud';
+import { mountSurfZoneHud } from './surf-zone-hud';
 
 registerSW({ immediate: true });
 
 // Language first: every panel builds its text once, from the active dictionary.
-const settings = createSettings(safeStorage(), navigator.languages ?? [navigator.language]);
+const settings = createSettings(safeStorage(), navigator.languages ?? [navigator.language], window.matchMedia('(prefers-contrast: more)').matches);
 setDict(dictFor(settings.lang()));
 document.documentElement.lang = settings.lang();
 const map = createMap('map', takeView(safeSession()));
@@ -76,15 +83,15 @@ const conditionsAt = () => {
 };
 const baseConditions = () => {
   const c = mockConditions(Date.now(), time.validMs(), climatological());
-  // DATA AGE: the oldest live feed once any has loaded (src/adapters/data-age.ts).
-  c.fetchedAt = dataAge.oldest()?.fetchedAt ?? c.fetchedAt;
   if (sampleField(flowSources.wind.field, ...MOCK_FLOW.windRef, windAtRef)) {
     c.windKt = Math.hypot(...windAtRef) * KT_PER_MS;
     c.windDirDeg = fromDeg(...windAtRef);
   }
   return c;
 };
-mountHud(hud, map, conditionsAt);
+// DATA AGE and connectivity for the HUD (PLAN 5.2).
+const net = createNet();
+mountHud(hud, map, conditionsAt, { age: () => describeAge(dataAge.oldest(), Date.now()), online: net.online });
 mountTimeSlider(hud, time);
 // The lock-on effect plays only for a picked target, never on scroll/pinch zoom.
 const enhancer = createEnhancer(map, createLockFx(map, hud), settings.enhance);
@@ -97,9 +104,17 @@ mountSettingsUi(hud, settings);
 mountLayersPanel(hud, layers, sheets);
 mountLangUi(hud, settings, map);
 mountSheets(hud, map, sheets);
+// Surf break catalog (PLAN 6.4): markers and BREAK rows.
+mountSurfBreaks(map);
+mountSurfHud(hud, map);
+mountHarbours(map);
+let landGrid: Grid | null = null;
+const harboursHud = mountHarboursHud(hud, map, { windFromDeg: () => conditionsAt().windDirDeg, land: () => landGrid });
 // Boat mode: GPS track and pin log, kept on the device. Depth at a pin comes from the seafloor grid once it loads.
 let depthAt: ((lng: number, lat: number) => number | undefined) | null = null;
 mountBoatPanel(hud, map, createBoatStore(safeStorage()), sheets, () => depthAt);
+// Last, so SET is the last tab and the settings controls (ENHANCE, SUN, language) are all mounted to be moved into it.
+mountSettingsPanel(hud, sheets);
 
 const flow = mountFlow(map, flowSources);
 if (flow) {
@@ -123,14 +138,31 @@ time.subscribe(() => {
   });
 });
 
-fetchWind()
-  .then((d) => {
-    if (!d.forecast && !d.climatology) return console.warn('wind: no forecast or climatology published; using mock');
-    wind = d;
-    flowSources.wind = { ...flowSources.wind, field: windField() };
-    flow?.setSource('wind', flowSources.wind);
-  })
-  .catch((err) => console.warn('wind unavailable', err));
+// Wind: load at start, and again when the network returns or the app comes back to the front after a while,
+// so a phone that was offline picks up fresh data without a reload. Offline, the cached copy loads; with nothing
+// cached the mock field stays (DATA AGE then reads SIM).
+let windLoading = false;
+const loadWind = () => {
+  if (windLoading) return;
+  windLoading = true;
+  fetchWind()
+    .then((d) => {
+      if (!d.forecast && !d.climatology) return console.warn('wind: no forecast or climatology published; using mock');
+      wind = d;
+      flowSources.wind = { ...flowSources.wind, field: windField() };
+      flow?.setSource('wind', flowSources.wind);
+    })
+    .catch((err) => console.warn('wind unavailable', err))
+    .finally(() => (windLoading = false));
+};
+const REFRESH_AFTER_MS = 3 * 3.6e6;
+const refreshIfStale = () => {
+  const o = dataAge.oldest();
+  if (net.online() && (!o || o.fromCache || Date.now() - o.fetchedAt > REFRESH_AFTER_MS)) loadWind();
+};
+loadWind();
+net.subscribe(refreshIfStale);
+document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && refreshIfStale());
 
 // Protected areas: static outlines, precached for offline use.
 fetchZones()
@@ -160,9 +192,11 @@ setInterval(queueSpotPhysics, 60_000);
 fetchSeafloor()
   .then(({ data }) => {
     mountSeafloorHud(hud, map, data);
+    landGrid = data.land;
+    harboursHud?.refresh();
     spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land }), baseConditions, () => time.validMs());
     spotPhysics.subscribe(() => ripLayer.update(spotPhysics!.all()));
-    mountSurfHud(hud, map, spotPhysics);
+    mountSurfZoneHud(hud, map, spotPhysics);
     spotPhysics.update();
     depthAt = (lng, lat) => {
       const z = sample(data.region, lng, lat);
