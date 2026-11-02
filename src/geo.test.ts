@@ -88,3 +88,10 @@ describe('pointInPolygon', () => {
     expect(pointInPolygon([0.2, 1], [square, hole])).toBe(true);
   });
 });
+
+describe('toDDM with letters', () => {
+  it('takes the compass letters for the active language', () => {
+    expect(toDDM(-82.75, 'lng')).toBe("082°45.000'W");
+    expect(toDDM(-82.75, 'lng', { N: 'N', S: 'S', E: 'E', W: 'O' })).toBe("082°45.000'O");
+  });
+});

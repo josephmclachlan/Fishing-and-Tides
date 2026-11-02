@@ -45,7 +45,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [ ] 4.4 Species habitat model framework and scoring (**O**)
 - [x] 4.5 Fishing layer: shore/kayak mode (**S**)
 - [x] 4.6 Fishing layer: boat mode, GPS track, drop-pin log (**S**)
-- [ ] 4.7 OBIS/GBIF and Global Fishing Watch data folded into scores (**S**)
+- [x] 4.7 OBIS/GBIF and Global Fishing Watch data folded into scores (**S**)
 
 ## Phase 5: Offline and polish
 - [ ] 5.1 "Sync for trip": tiles, bathymetry, 7-day forecasts, scores to IndexedDB (**O**)
@@ -53,7 +53,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [ ] 5.3 Mobile layout and sunlight-readability pass (**S**)
 - [ ] 5.4 Performance pass (**O**)
 - [ ] 5.5 Optional UI sounds (**S**)
-- [ ] 5.6 EN/ESP language toggle: full Spanish in `src/i18n/es.ts` using local Costa Rican marine and fishing terms, a toggle in the HUD with small UK and Costa Rica flag graphics in the HUD style, choice persisted on the device and the browser language used as the first-run default; units, dates and number formats follow the language where they differ (**S**, needs 1.10, and all UI text in place)
+- [x] 5.6 EN/ESP language toggle: full Spanish in `src/i18n/es.ts` using local Costa Rican marine and fishing terms, a toggle in the HUD with small UK and Costa Rica flag graphics in the HUD style, choice persisted on the device and the browser language used as the first-run default; units, dates and number formats follow the language where they differ (**S**, needs 1.10, and all UI text in place)
 
 ## Phase 6: Activity data (see DESIGN.md section 6)
 - [ ] 6.1 Water clarity: Kd490 and chlorophyll from ERDDAP/Copernicus, plus a rain-plume estimate from river-mouth rainfall, as the CLARITY layer (**S**, builds on 2.4)

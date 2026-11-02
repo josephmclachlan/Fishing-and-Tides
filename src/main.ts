@@ -7,9 +7,11 @@ import { mockConditions, mockCurrentField, mockWindField } from './mock';
 import { createLockFx, mountZoomTiers } from './zoom-fx';
 import { createEnhancer } from './enhance';
 import { mountSeek } from './seek';
-import { createSettings, safeStorage } from './settings';
+import { createSettings, safeSession, safeStorage, takeView } from './settings';
 import { createBoatStore } from './boat/store';
 import { mountBoatPanel } from './boat-panel';
+import { dictFor, setDict } from './i18n';
+import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
 import { mountSettingsUi } from './settings-ui';
 import { fetchSeafloor } from './adapters/seafloor';
@@ -17,7 +19,7 @@ import { mountSeafloor } from './layers/seafloor';
 import { mountSeafloorHud } from './seafloor-hud';
 import { fetchZones, mountZones } from './layers/zones';
 import { mountZonesHud } from './zones-hud';
-import { fetchMouths, mountFishing } from './layers/fishing';
+import { fetchMouths, fetchOccurrences, mountFishing } from './layers/fishing';
 import { loadSpecies, mountFishingHud } from './fishing-hud';
 import { layers } from './layers/registry';
 import { bindMapLayers } from './layers/visibility';
@@ -40,7 +42,11 @@ import type { RipLevel } from './physics/rip';
 
 registerSW({ immediate: true });
 
-const map = createMap('map');
+// Language first: every panel builds its text once, from the active dictionary.
+const settings = createSettings(safeStorage(), navigator.languages ?? [navigator.language]);
+setDict(dictFor(settings.lang()));
+document.documentElement.lang = settings.lang();
+const map = createMap('map', takeView(safeSession()));
 const hud = document.getElementById('hud')!;
 // Tiers first: the HUD reads the tier they publish on each move.
 mountZoomTiers(map);
@@ -79,7 +85,6 @@ const baseConditions = () => {
 mountHud(hud, map, conditionsAt);
 mountTimeSlider(hud, time);
 // The lock-on effect plays only for a picked target, never on scroll/pinch zoom.
-const settings = createSettings(safeStorage());
 const enhancer = createEnhancer(map, createLockFx(map, hud), settings.enhance);
 // Phone: panels are drawers, closed until tapped; wide screens start with the LAYERS drawer open.
 const sheets = createSheets(window.matchMedia(PHONE_QUERY).matches ? null : 'layers');
@@ -88,6 +93,7 @@ mountSeek(hud, (t) => enhancer.go(t), settings, sheets);
 bindMapLayers(map, layers);
 mountSettingsUi(hud, settings);
 mountLayersPanel(hud, layers, sheets);
+mountLangUi(hud, settings, map);
 mountSheets(hud, map, sheets);
 // Boat mode: GPS track and pin log, kept on the device. Depth at a pin comes from the seafloor grid once it loads.
 let depthAt: ((lng: number, lat: number) => number | undefined) | null = null;
@@ -175,11 +181,11 @@ fetchSeafloor()
       return Number.isFinite(z) && z < 0 ? -z : undefined;
     };
     // Shore and kayak habitat score: built from the depth grid, reefs and river mouths.
-    fetchMouths()
-      .then(({ data: mouths }) => {
+    Promise.all([fetchMouths(), fetchOccurrences()])
+      .then(([{ data: mouths }, occurrences]) => {
         const species = loadSpecies();
         const month = new Date(time.validMs()).getUTCMonth();
-        const layer = mountFishing(map, { region: data.region, land: data.land, reefs: data.reefs, mouths, bounds: [REGION.bounds[0][0], REGION.bounds[0][1], REGION.bounds[1][0], REGION.bounds[1][1]] }, { species, month });
+        const layer = mountFishing(map, { region: data.region, land: data.land, reefs: data.reefs, mouths, bounds: [REGION.bounds[0][0], REGION.bounds[0][1], REGION.bounds[1][0], REGION.bounds[1][1]] }, { species, month }, occurrences);
         mountFishingHud(hud, map, layer, time, species);
       })
       .catch((err) => console.warn('fishing layer unavailable', err));
