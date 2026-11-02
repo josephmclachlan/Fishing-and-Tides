@@ -10,6 +10,7 @@ import { mountSeek } from './seek';
 import { createSettings, safeSession, safeStorage, takeView } from './settings';
 import { mountSurfBreaks } from './layers/surf-breaks';
 import { mountSurfHud } from './surf-hud';
+import { mountSeaStateHud } from './sea-state-hud';
 import { mountHarbours } from './layers/harbours';
 import { mountHarboursHud } from './harbours-hud';
 import type { Grid } from './physics/bathy';
@@ -105,6 +106,7 @@ mountSheets(hud, map, sheets);
 // Surf break catalog (PLAN 6.4): markers and BREAK rows.
 mountSurfBreaks(map);
 mountSurfHud(hud, map);
+mountSeaStateHud(hud, conditionsAt);
 mountHarbours(map);
 let landGrid: Grid | null = null;
 const harboursHud = mountHarboursHud(hud, map, { windFromDeg: () => conditionsAt().windDirDeg, land: () => landGrid });
