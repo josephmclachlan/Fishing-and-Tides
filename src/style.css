@@ -381,3 +381,32 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 @media (prefers-reduced-motion: reduce) {
   .crt, .blink, .red, .alert, .fx-box, .fx.locked .fx-state { animation: none; }
 }
+
+/* SYSTEM CHECK drawer (PLAN 2.9): one lamp per feed. Same placement rules as the BOAT drawer. */
+.check { right: 8px; bottom: 150px; width: 360px; max-height: calc(100% - 400px); overflow-y: auto; display: none; gap: 6px; pointer-events: auto; }
+.check.open { display: grid; }
+.ck-bar { display: flex; align-items: center; gap: 10px; }
+.ck-bar .tab:disabled { opacity: 0.4; cursor: default; }
+.ck-list { display: grid; gap: 6px; }
+.ck-feed { border: 1px solid var(--amber-dim); }
+.ck-feed.fail { border-color: var(--red); }
+.ck-feed summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; padding: 6px 8px; cursor: pointer; list-style: none; }
+.ck-feed summary::-webkit-details-marker { display: none; }
+.ck-lamp { font-size: 16px; line-height: 1; }
+.ck-name { letter-spacing: 2px; flex: 1; }
+.ck-st { font-size: 11px; letter-spacing: 2px; }
+.ck-worst { flex-basis: 100%; font-size: 11px; letter-spacing: 1px; word-break: break-word; }
+.ck-items { list-style: none; margin: 0; padding: 4px 8px 8px; display: grid; gap: 6px; border-top: 1px solid var(--amber-dim); }
+.ck-item { display: grid; grid-template-columns: 42px 62px 1fr; gap: 6px; font-size: 11px; letter-spacing: 1px; align-items: baseline; }
+.ck-kind { opacity: 0.7; }
+.tag.green { background: var(--green); }
+.tag.red { background: var(--red); }
+.check-open .lamp { display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; background: var(--amber); }
+.check-open .lamp.pass { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.check-open .lamp.fail { background: var(--red); box-shadow: 0 0 6px var(--red); }
+@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+  .check { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgba(5, 8, 5, 0.97); }
+  .check.open { display: grid; top: calc(var(--top-h, 100px) + 8px); bottom: auto; max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
+  .ck-feed summary { min-height: 44px; }
+}
+.check .red { animation: none; }
