@@ -8,7 +8,7 @@
  */
 
 export type LayerId =
-  | 'waves' | 'currents' | 'wind' | 'sst' | 'clarity' | 'weather'
+  | 'waves' | 'currents' | 'wind' | 'sst' | 'clarity' | 'weather' | 'lightning'
   | 'rip' | 'surf'
   | 'depth' | 'reefs' | 'seamarks'
   | 'fishing' | 'zones' | 'anchorages';
@@ -29,6 +29,7 @@ export const LAYERS: readonly LayerDef[] = [
   { id: 'sst', group: 'OCEAN' },
   { id: 'clarity', group: 'OCEAN' },
   { id: 'weather', group: 'OCEAN', mapPrefixes: ['st-'] },
+  { id: 'lightning', group: 'OCEAN', mapPrefixes: ['lt-'] },
   { id: 'rip', group: 'SURF ZONE', mapPrefixes: ['rp-'] },
   { id: 'surf', group: 'SURF ZONE', mapPrefixes: ['sb-'] },
   { id: 'depth', group: 'SEAFLOOR', mapPrefixes: ['sf-shade', 'sf-contour'] },
@@ -47,10 +48,10 @@ const ALL_IDS = LAYERS.map((l) => l.id);
 /** One-tap presets. `all` is every layer; the rest are what that activity needs to see. */
 export const ACTIVITIES: readonly Activity[] = [
   { id: 'all', layers: ALL_IDS },
-  { id: 'fishing', layers: ['fishing', 'sst', 'clarity', 'weather', 'currents', 'wind', 'depth', 'reefs', 'zones'] },
-  { id: 'dive', layers: ['clarity', 'waves', 'currents', 'rip', 'depth', 'reefs', 'zones', 'seamarks'] },
-  { id: 'surf', layers: ['waves', 'wind', 'rip', 'surf', 'depth', 'reefs'] },
-  { id: 'sail', layers: ['wind', 'weather', 'waves', 'currents', 'depth', 'seamarks', 'anchorages', 'reefs'] },
+  { id: 'fishing', layers: ['fishing', 'sst', 'clarity', 'weather', 'lightning', 'currents', 'wind', 'depth', 'reefs', 'zones'] },
+  { id: 'dive', layers: ['lightning', 'clarity', 'waves', 'currents', 'rip', 'depth', 'reefs', 'zones', 'seamarks'] },
+  { id: 'surf', layers: ['lightning', 'waves', 'wind', 'rip', 'surf', 'depth', 'reefs'] },
+  { id: 'sail', layers: ['wind', 'weather', 'lightning', 'waves', 'currents', 'depth', 'seamarks', 'anchorages', 'reefs'] },
 ];
 
 export interface LayerImpl {

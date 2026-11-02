@@ -12,6 +12,12 @@ export const REGION = {
 };
 
 /** Zoom tiers from DESIGN.md §5: MACRO below COAST, COAST from 8, SPOT from 12. */
+/** Box the lightning collector keeps flashes from: the region plus 3° (~330 km) so storms can be seen coming. [[west, south], [east, north]] */
+export const LIGHTNING_BOUNDS: [[number, number], [number, number]] = [
+  [REGION.bounds[0][0] - 3, REGION.bounds[0][1] - 3],
+  [REGION.bounds[1][0] + 3, REGION.bounds[1][1] + 3],
+];
+
 export type Tier = 'MACRO' | 'COAST' | 'SPOT';
 export const TIERS: readonly Tier[] = ['MACRO', 'COAST', 'SPOT'];
 export const TIER_ZOOM = { COAST: 8, SPOT: 12 } as const;
