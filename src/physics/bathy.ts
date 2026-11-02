@@ -22,8 +22,8 @@ export const NODATA = -32768;
 
 const RAD = Math.PI / 180;
 /** Metres per degree of latitude and (at the equator) longitude, WGS84 mean. */
-const M_PER_DEG_LAT = 110574;
-const M_PER_DEG_LNG = 111320;
+export const M_PER_DEG_LAT = 110574;
+export const M_PER_DEG_LNG = 111320;
 
 /** [west, south, east, north] covered by the grid's cells (centres ± half a cell). */
 export function gridBounds(g: Grid): [number, number, number, number] {
