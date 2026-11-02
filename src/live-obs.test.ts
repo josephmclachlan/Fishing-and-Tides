@@ -51,7 +51,7 @@ describe('obsRows', () => {
   const rows = obsRows({ gauge, metar, passes: { sst, chl: null, fetchedAt: now } }, now);
 
   it('has one row per source in a fixed order', () => {
-    expect(rows.map((r) => r.id)).toEqual(['gauge', 'metar', 'sst-pass', 'chl-pass']);
+    expect(rows.map((r) => r.id)).toEqual(['gauge', 'metar', 'sst-pass', 'chl-pass', 'scat-pass']);
   });
   it('reads the gauge, its departure from the tide and its age', () => {
     expect(rows[0].fresh).toBe('green');
@@ -76,5 +76,20 @@ describe('obsRows', () => {
     expect(valueText(rows[3])).toBe('--');
     expect(worstFresh(rows)).toBe('red');
     expect(worstFresh(rows.slice(0, 3))).toBe('green');
+  });
+  it('reads the satellite wind as the mean of the newest covering swath', () => {
+    const scat: GridSeries = {
+      meta: { feed: 'scat-pass', kind: 'observed', fetchedAt: '', grid, times: [now - 26 * H, now - 14 * H], vars: [{ name: 'u', unit: 'm/s', scale: 0.01, offset: 0 }, { name: 'v', unit: 'm/s', scale: 0.01, offset: 0 }], seaCells: 6, sources: [{ id: 'a', name: 'Metop-C ASCAT, evening pass', fromMs: now - 26 * H, toMs: now - 26 * H }, { id: 'b', name: 'Metop-B ASCAT, morning pass', fromMs: now - 14 * H, toMs: now - 14 * H }], licence: '', file: 'x' },
+      // The newer swath clipped one cell: 1 of 6 is 17%, over the 10% cut, so it is the one shown.
+      values: { u: [Float32Array.from([-6, -6, -6, NaN, NaN, NaN]), Float32Array.from([NaN, NaN, NaN, NaN, NaN, -5])], v: [Float32Array.from([0, 0, 0, NaN, NaN, NaN]), Float32Array.from([NaN, NaN, NaN, NaN, NaN, -5])] },
+    };
+    const r = obsRows({ gauge, metar, passes: { sst: null, chl: null, scat, fetchedAt: now } }, now)[4];
+    expect(r.obsMs).toBe(now - 14 * H);
+    expect(r.fresh).toBe('green');
+    // u −5, v −5 m/s: 7.07 m/s = 13.7 kt from the north-east.
+    expect(valueText(r)).toBe('045° 14 KT');
+    expect(detailText(r)).toBe('MORNING PASS · 17% COVERED');
+    expect(r.lngLat).toEqual([-82.8, 9.9]);
+    expect(freshness('scat-pass', 3 * D)).toBe('amber');
   });
 });

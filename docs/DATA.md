@@ -107,6 +107,7 @@ Checked in the built app (Chromium, `vite preview`): after a sync with the brows
 | `kd490` | same | Kd490, gap-filled VIIRS + OLCI, science quality 2 km, `noaacwNPPN20S3AkdSCIDINEOF2kmDaily`, about 10 days late | Native 2 km over Gandoca–Limón (61×49), last 7 daily maps | ~15 KB | Every 24 h |
 | `sst-pass` | same | ACSPO L3S SST afternoon and night passes (NOAA), not gap-filled | 0.02° over Gandoca–Limón (63×51), last 4 days, two passes a day, each stamped with its pass time; `seaCells` in the manifest so cloud can be told from land | ~6 KB | Every 6 h |
 | `chl-pass` | same | NOAA-20 VIIRS chlorophyll NRT 4 km, not gap-filled, stamped at the nominal 18:57 UTC overpass | 34×27 over Gandoca–Limón, last 7 days | ~1 KB | Every 12 h |
+| `scat-pass` | `scripts/forecast/satellite.ts` + `scripts/scat.py` | ASCAT wind on Metop-B and Metop-C, Copernicus Marine `WIND_GLO_PHY_L3_NRT_012_002` (L3 swaths, 0.125°), through the Copernicus Marine Python toolbox with the account in the `COPERNICUSMARINE_USERNAME` / `COPERNICUSMARINE_PASSWORD` Actions secrets | u, v over `SCAT_BOX` (20×18, the coast plus ~120 km of sea), last 4 days, up to four swaths a day, each stamped with its median measurement time | ~4 KB | Every 6 h |
 | `storms` | `scripts/forecast/storms.ts` | NHC CurrentStorms.json (no CORS, so relayed) | Plain JSON: active Atlantic storms with position, wind, pressure, motion, advisory link; empty list in a quiet season | tiny | Every build (advisories come every 6 h in season) |
 
 Bodies are gzipped (`.i16.gz`, `encoding: 'gzip'` in the manifest) because GitHub Pages doesn't compress binary files; `series.ts` unzips with `DecompressionStream` when it sees the gzip magic bytes.
@@ -123,11 +124,13 @@ ERDDAP sends no CORS headers, so these go through the data build. Verify checks 
 
 ## Satellite passes (PLAN 2.12)
 
-`src/adapters/passes.ts` reads `sst-pass` and `chl-pass`: `passList` gives each pass its time, the share of the sea it saw (cells with a value / the manifest's `seaCells`) and its mean, and `latestSeen` the newest pass that saw a point. These are what LIVE OBS (2.13) shows and what the bias correction (7.10) will learn from. Checks: newest pass age, a clear pass within 3 days for SST and 7 for chlorophyll (amber only: cloud is weather, not a fault), and the mean pass-minus-MUR SST over clear cells (amber past 0.8 °C). There is no scatterometer wind: see PLAN 2.14.
+`src/adapters/passes.ts` reads `sst-pass` and `chl-pass`: `passList` gives each pass its time, the share of the sea it saw (cells with a value / the manifest's `seaCells`) and its mean, and `latestSeen` the newest pass that saw a point. These are what LIVE OBS (2.13) shows and what the bias correction (7.10) will learn from. Checks: newest pass age, a clear pass within 3 days for SST and 7 for chlorophyll (amber only: cloud is weather, not a fault), and the mean pass-minus-MUR SST over clear cells (amber past 0.8 °C). 
+
+**Scatterometer wind (PLAN 2.14).** `scat-pass` holds every ASCAT swath that crossed `SCAT_BOX` in the last 4 days: Metop-B and Metop-C, each with a morning (descending, ~14:00–15:30 UTC) and an evening (ascending, ~02:00–03:30 UTC) pass. The Copernicus Marine toolbox is Python, so `scripts/scat.py` reads the four datasets (ARCO zarr, subset server-side) and writes JSON that `buildScatPass` packs; the workflow installs the toolbox from `scripts/requirements.txt` and hands the two secrets to the data build step only. ASCAT is radar, so its holes are swath gaps and the ~20 km band along the coast it cannot see, not cloud; "clear" in `passList` means covered. The files are interim daily, so the newest pass is usually 12 to 36 h old. Checks: relay age (a stale relay usually means the login failed), newest pass under 2 days, a covering pass in 3 days, speeds 0..50 m/s, and the newest covering pass against Open-Meteo best match (the model behind the wind feed) at the pass time on up to 12 cells: amber past 3.5 m/s RMS vector difference, red past 6.
 
 ## LIVE OBS (PLAN 2.13)
 
-`src/live-obs.ts` shows the newest real measurement from each source, with its age and a freshness lamp: the Limón tide gauge (level above MSL and departure from the predicted tide), the Limón airport METAR (wind, gust, air temperature), and the newest SST and chlorophyll passes that saw at least 10% of the sea (mean, clear share, afternoon or night). The limits follow each source's normal cadence:
+`src/live-obs.ts` shows the newest real measurement from each source, with its age and a freshness lamp: the Limón tide gauge (level above MSL and departure from the predicted tide), the Limón airport METAR (wind, gust, air temperature), the newest SST and chlorophyll passes that saw at least 10% of the sea (mean, clear share, afternoon or night), and the newest ASCAT swath that covered at least 10% of `SCAT_BOX` (vector-mean direction, mean speed in knots, coverage, morning or evening). The limits follow each source's normal cadence:
 
 | Source | Green up to | Amber up to |
 |---|---|---|
@@ -135,6 +138,7 @@ ERDDAP sends no CORS headers, so these go through the data build. Verify checks 
 | METAR | 90 min | 14 h (the airport is closed overnight) |
 | SST pass | 48 h | 4 days |
 | Chlorophyll pass | 4 days | 8 days |
+| Satellite wind pass | 36 h | 4 days |
 
 It is a drawer behind an OBS tab whose lamp shows the stalest source; on phones the tab sits in SET with SYSTEM CHECK. It also shows as map labels (catalog layer `obs`, style ids `ob-`) at the stations and at the centre of what each pass saw.
 

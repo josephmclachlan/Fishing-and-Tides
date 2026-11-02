@@ -1,7 +1,8 @@
 /**
  * LIVE OBS (PLAN 2.13): the latest real measurement from every source that observes this coast, as
  * opposed to a model: the Limón tide gauge (IOC, every minute), the Limón airport METAR (hourly by
- * day) and the newest satellite SST and chlorophyll passes (adapters/passes.ts). Each shows its age
+ * day), the newest satellite SST and chlorophyll passes and the newest ASCAT wind swath just offshore
+ * (adapters/passes.ts, PLAN 2.14). Each shows its age
  * with a green/amber/red freshness lamp, in a drawer (tab OBS) and as labels on the map (layer
  * 'obs', style ids `ob-`). The freshness limits follow each source's normal cadence: an airport
  * report 10 h old overnight is normal (amber), a gauge reading 10 h old is a fault (red).
@@ -11,13 +12,13 @@ import type { FeatureCollection } from 'geojson';
 import { METAR_STATION, TIDE_STATION } from './region';
 import type { GaugeReading } from './adapters/gauge';
 import type { MetarObs } from './adapters/metar-parse';
-import { CLOUDED_OUT, passList, type Pass, type PassData } from './adapters/passes';
+import { CLOUDED_OUT, passList, scatMean, type Pass, type PassData } from './adapters/passes';
 import type { GridSeries } from './adapters/pack';
 import { formatAge } from './adapters/data-age';
 import { t, type Key } from './i18n';
 import { closeButton, type Sheets } from './sheets';
 
-export type ObsId = 'gauge' | 'metar' | 'sst-pass' | 'chl-pass';
+export type ObsId = 'gauge' | 'metar' | 'sst-pass' | 'chl-pass' | 'scat-pass';
 export type Fresh = 'green' | 'amber' | 'red';
 
 const MIN = 60e3, HOUR = 3.6e6, DAY = 864e5;
@@ -31,6 +32,8 @@ export const OBS_FRESH: Record<ObsId, { green: number; amber: number }> = {
   'sst-pass': { green: 48 * HOUR, amber: 4 * DAY },
   // One pass a day, and the coast is usually under cloud at 13:30.
   'chl-pass': { green: 4 * DAY, amber: 8 * DAY },
+  // Up to four swaths a day, published as interim daily files, so usually 12 to 36 h old.
+  'scat-pass': { green: 36 * HOUR, amber: 4 * DAY },
 };
 
 export function freshness(id: ObsId, ageMs: number): Fresh {
@@ -48,6 +51,8 @@ export interface ObsRow {
   gauge?: { levelM: number; residualM: number };
   metar?: { windFromDeg: number | null; windKt: number | null; gustKt: number | null; tempC: number | null };
   pass?: { mean: number; clear: number; night: boolean };
+  /** Satellite wind: vector-mean direction, mean speed (m/s), share of the box covered, morning or evening pass. */
+  scat?: { fromDeg: number; speedMs: number; clear: number; evening: boolean };
 }
 
 export interface ObsInputs {
@@ -95,6 +100,14 @@ export function obsRows(d: ObsInputs, now = Date.now()): ObsRow[] {
       pass: p ? { mean: p.mean, clear: p.clear, night: /night/i.test(p.source) } : undefined,
     });
   }
+  const scat = d.passes?.scat ?? null;
+  const sp = bestPass(passList(scat, 'u'));
+  const sm = sp && scat ? scatMean(scat, scat.meta.times.indexOf(sp.obsMs)) : null;
+  rows.push({
+    id: 'scat-pass', obsMs: sp?.obsMs ?? null, fresh: freshness('scat-pass', sp ? now - sp.obsMs : NaN),
+    lngLat: sp && scat ? seenCentre(scat, 'u', sp.obsMs) : null,
+    scat: sp && sm ? { fromDeg: sm.fromDeg, speedMs: sm.speed, clear: sp.clear, evening: /evening/i.test(sp.source) } : undefined,
+  });
   return rows;
 }
 
@@ -102,6 +115,7 @@ const RANK: Record<Fresh, number> = { red: 0, amber: 1, green: 2 };
 export const worstFresh = (rows: readonly ObsRow[]): Fresh => rows.reduce<Fresh>((w, r) => (RANK[r.fresh] < RANK[w] ? r.fresh : w), 'green');
 
 const sign = (x: number, d = 2) => `${x >= 0 ? '+' : ''}${x.toFixed(d)}`;
+const KT_PER_MS = 3600 / 1852;
 const pad3 = (x: number) => String(Math.round(x) % 360).padStart(3, '0');
 
 /** The reading in one line, e.g. "+0.12 M", "070° 12 KT G18", "29.4 °C". */
@@ -113,6 +127,7 @@ export function valueText(r: ObsRow): string {
     if (m.windKt === 0) return t('obs.calm');
     return `${m.windFromDeg === null ? t('obs.vrb') : `${pad3(m.windFromDeg)}°`} ${Math.round(m.windKt)} ${t('unit.kt')}${m.gustKt ? ` G${Math.round(m.gustKt)}` : ''}`;
   }
+  if (r.scat) return `${pad3(r.scat.fromDeg)}° ${Math.round(r.scat.speedMs * KT_PER_MS)} ${t('unit.kt')}`;
   if (r.pass && Number.isFinite(r.pass.mean)) return r.id === 'sst-pass' ? `${r.pass.mean.toFixed(1)} ${t('unit.degC')}` : `${r.pass.mean.toFixed(2)} ${t('obs.mgm3')}`;
   return '--';
 }
@@ -121,6 +136,7 @@ export function valueText(r: ObsRow): string {
 export function detailText(r: ObsRow): string {
   if (r.gauge) return t('obs.vsTide', { d: sign(r.gauge.residualM) });
   if (r.metar) return r.metar.tempC === null ? '' : `${t('obs.air')} ${Math.round(r.metar.tempC)} ${t('unit.degC')}`;
+  if (r.scat) return `${t(r.scat.evening ? 'obs.evening' : 'obs.morning')} · ${t('obs.covered', { p: Math.round(100 * r.scat.clear) })}`;
   if (r.pass) return `${r.id === 'sst-pass' ? t(r.pass.night ? 'obs.night' : 'obs.day') + ' · ' : ''}${t('obs.clear', { p: Math.round(100 * r.pass.clear) })}`;
   return t('obs.none');
 }
