@@ -11,8 +11,9 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 1.6 Deploy to GitHub Pages on merge to main (**S**)
 - [x] 1.7 "Enhance" fly-to: pick a beach or coordinate (search box or spot tab) and, from a zoomed-out view, box the target, highlight it, zoom in, resolve block by block, then box again, repeating in 2 to 4 hops until on the beach or ocean point (**O**)
 - [x] 1.8 Layer registry, LAYERS drawer and activity presets (FISH, DIVE, SURF, SAIL, ALL) (**S**)
-- [x] 1.9 ENHANCE on/off toggle (settings, persisted on the device): off replaces the pull-back, box, pixel resolve and stepped zoom with one continuous eased fly-to that pans and zooms together, with finer data fading in as the zoom tiers are crossed; no pixelation, reticle flashes or discrete jumps (**S**, extends 1.3, 1.7)
+- [x] 1.9 ENHANCE on/off toggle (settings, persisted on the device): off keeps the zoom out, pan, zoom in route but as three smooth eased moves, with finer data fading in as the zoom tiers are crossed; no pixelation, reticle flashes or discrete jumps (see 1.11) (**S**, extends 1.3, 1.7)
 - [x] 1.10 i18n scaffold, do early: a small `t(key)` helper with `src/i18n/en.ts`, and move every existing UI string (labels, alerts, layer names, presets, panel text) into it, so all new UI text is translatable from the start; no hard-coded user-facing strings in new code (**S**)
+- [x] 1.11 Phone HUD as drawers (top bar tabs FIND / COND / LAYERS, bottom time strip), LAYERS drawer that always closes (tab, X, map tap, Esc), ENHANCE off keeps the zoom out, pan, zoom in route as smooth moves, map bounds widened past the analysed area (**S**, fixes 1.5, 1.8, 1.9)
 
 ## Phase 2: Data adapters
 - [x] 2.1 Adapter interface, cache layer, data-age tracking (**O**)
@@ -62,7 +63,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [ ] 6.5 Marine wind detail: gusts, CAPE squall flag, NHC tropical alerts into the alert strip (**S**, needs 2.3)
 - [ ] 6.6 Sea state comfort index from wind-wave and swell partitions (**S**, needs 2.2)
 - [ ] 6.7 Anchorages and harbours layer: OSM seamarks, NGA World Port Index, shelter from wind direction (**S**)
-- [ ] 6.8 Spearfishing and protected-area rules: SINAC/INCOPESCA zones, closed seasons, rules card per zone (**S**, extends 4.3)
+- [x] 6.8 Spearfishing and protected-area rules: SINAC/INCOPESCA zones, closed seasons, rules card per zone (**S**, extends 4.3)
 - [ ] 6.9 Register wind, currents and waves with the layer store when the particle layer lands (**S**, needs 1.4). Wind and currents done in 1.4; waves waits for a swell field (2.2)
 
 ## Phase 7: Final additions (see DESIGN.md sections 9 and 10)

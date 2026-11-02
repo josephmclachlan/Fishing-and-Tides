@@ -12,7 +12,7 @@ const STEP_BUTTON = 3; // band steps per press
 const stepLabel = (h: number) => { const b = bandFor(h); return b.stepH === 24 ? `${STEP_BUTTON}${t('time.dayUnit')}` : `${b.stepH * STEP_BUTTON}${t('time.hourUnit')}`; };
 
 export function mountTimeSlider(root: HTMLElement, time: TimeStore) {
-  const bottom = root.querySelector<HTMLElement>('.bottom');
+  const bottom = root.querySelector<HTMLElement>('.dock-body');
   if (!bottom) return;
   const el = document.createElement('div');
   el.className = 'timebar';
@@ -51,6 +51,11 @@ export function mountTimeSlider(root: HTMLElement, time: TimeStore) {
     $('t-back').textContent = '−' + stepLabel(h - 1);
     $('t-fwd').textContent = '+' + stepLabel(h);
     $('t-valid').textContent = validLabel(time.validMs());
+    // Same two values in the phone's bottom strip, so the chosen hour shows with the sheet closed.
+    const dOff = root.querySelector<HTMLElement>('#d-off');
+    const dValid = root.querySelector<HTMLElement>('#d-valid');
+    if (dOff) (dOff.textContent = offsetLabel(h)), (dOff.className = 'seg ' + (h > 0 ? '' : 'green'));
+    if (dValid) dValid.textContent = validLabel(time.validMs());
     $('t-back').toggleAttribute('disabled', h <= 0);
     $('t-now').toggleAttribute('disabled', h <= 0);
     $('t-fwd').toggleAttribute('disabled', h >= HORIZON_H);

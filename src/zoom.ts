@@ -98,11 +98,13 @@ export function steppedEase(n: number): (x: number) => number {
 }
 
 /**
- * Duration, ms, of the plain fly-to used when ENHANCE is off: one continuous eased move that
- * pans and zooms together. Longer for more distance and more zoom levels, clamped so a hop
- * across the room is not instant and a trip across the region is not a wait.
+ * Leg durations, ms, for the ENHANCE-off sequence: the same zoom out, pan, zoom in as ENHANCE on,
+ * but every leg is one smooth eased move. The pan is judged at the wide view, where it covers
+ * `distM` of ground; the zoom in grows with the number of zoom levels `dz` it crosses.
  */
-export function plainFlyMs(distM: number, dz: number): number {
-  const ms = 2000 + 350 * Math.abs(dz) + 250 * Math.sqrt(Math.max(0, distM) / 1000);
-  return Math.round(Math.min(6000, Math.max(2000, ms)));
+export function plainPanMs(distM: number): number {
+  return Math.round(Math.min(2800, Math.max(1000, 900 + 250 * Math.sqrt(Math.max(0, distM) / 1000))));
+}
+export function plainZoomMs(dz: number): number {
+  return Math.round(Math.min(4500, Math.max(1500, 1200 + 450 * Math.abs(dz))));
 }

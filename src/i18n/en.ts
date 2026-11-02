@@ -17,6 +17,10 @@ export const en = {
   'hud.syncTitle': 'Full offline download arrives in PLAN 5.1',
   'hud.syncSoon': 'SYNC: PHASE 5',
   'hud.alertRip': 'HIGH RIP CURRENT RISK',
+  'sheet.find': 'FIND',
+  'sheet.cond': 'COND',
+  'sheet.time': 'TIME',
+  'ui.close': 'Close',
 
   // Conditions panel
   'cond.title': 'CONDITIONS',
@@ -170,10 +174,31 @@ export const en = {
   'zone.label': 'ZONE',
   'zone.none': 'NONE',
   'zone.cahuita.name': 'CAHUITA NATIONAL PARK',
+  'zone.limoncito.name': 'LIMONCITO REFUGE',
   'zone.gandoca.name': 'GANDOCA-MANZANILLO REFUGE',
   'zone.status.closed': 'NO FISHING',
   'zone.status.restricted': 'RESTRICTED',
   'zone.alert': 'PROTECTED AREA: {name}: {status}',
+
+  // Rules card (PLAN 6.8). Each line says what a source says; check locally before relying on it.
+  'rules.open': 'RULES',
+  'rules.close': 'CLOSE',
+  'rules.title': 'FISHING RULES',
+  'rules.everywhere': 'EVERYWHERE IN COSTA RICA',
+  'rules.here': 'THIS AREA',
+  'rules.source': 'SOURCE',
+  'rules.official': 'OFFICIAL',
+  'rules.unconfirmed': 'CHECK',
+  'rules.advice': 'ADVISORY ONLY. WE REPORT WHAT THE SOURCES SAY AND LINK THEM. RULES AND CLOSED SEASONS CHANGE: CHECK WITH SINAC OR INCOPESCA BEFORE YOU FISH OR SPEAR.',
+  'rule.spear.method': 'SPEARFISHING: BREATH-HOLD ONLY. NO SCUBA TANKS OR COMPRESSORS (EXCEPT APPROVED LIONFISH TOURNAMENTS IN THE CARIBBEAN).',
+  'rule.spear.permit': 'SPEARFISHING NEEDS AN INCOPESCA PERMIT AND CARD, AND YOU MUST BE 18 OR OLDER.',
+  'rule.spear.limit': 'MAX 5 FISH PER DAY FOR YOUR OWN USE. ONLY FISH BIGGER THAN THE SIZE AT FIRST MATURITY.',
+  'rule.spear.zones': 'RESPECT CLOSED SEASONS AND CLOSED AREAS, AND NATIONAL PARKS AND OTHER PROTECTED AREAS.',
+  'rule.lobster': 'CARIBBEAN SPINY LOBSTER: CLOSED EVERY YEAR 1 MARCH TO 30 JUNE (REGIONAL CLOSURE; CONFIRM THE CURRENT YEAR).',
+  'rule.cahuita.spear': 'SPEAR GUNS AND TRAMMEL OR CAST NETS ARE NOT ALLOWED IN THE PARK.',
+  'rule.cahuita.fishing': 'LINE FISHING IN THE MARINE AREA: SOURCES DISAGREE (A BAN, OR HAND LINE ONLY). ASK THE PARK OFFICE, +506 2755-0302.',
+  'rule.gandoca.fishing': 'NO FISHING OR SPEARFISHING RULE FOUND FOR THE MARINE AREA. TRADITIONAL FISHING IS PART OF THE REFUGE. ASK SINAC OR INCOPESCA.',
+  'rule.limoncito.fishing': 'SMALL MIXED WILDLIFE REFUGE AT THE LIMONCITO RIVER MOUTH SOUTH OF LIMÓN. NO FISHING RULE FOUND. ASK SINAC.',
 
   // Shore and kayak fishing layer (PLAN 4.5)
   'fish.target': 'TARGET',
@@ -194,7 +219,7 @@ export const en = {
   'settings.enhance': 'ENHANCE',
   'settings.on': 'ON',
   'settings.off': 'OFF',
-  'settings.enhanceTitle': 'ENHANCE fly-to effect: on plays the satellite zoom, off flies smoothly',
+  'settings.enhanceTitle': 'ENHANCE fly-to effect: on plays the satellite zoom, off flies the same route with smooth moves only',
 } as const;
 
 export type Key = keyof typeof en;

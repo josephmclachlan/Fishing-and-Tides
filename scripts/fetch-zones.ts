@@ -5,7 +5,7 @@
  *
  * Source: OpenStreetMap boundary relations, which carry SINAC's 2019 boundaries
  * (tags source=SINAC, ref:CR:SINAC). WDPA is not used: its terms bar redistribution.
- * Both areas include their marine part. Needs Node 22.18+; no dependencies.
+ * Cahuita and Gandoca-Manzanillo include their marine parts; Limoncito is the small refuge at the Río Limoncito mouth. Needs Node 22.18+; no dependencies.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { stitchRings, type LngLat, type ZoneProps } from '../src/zones.ts';
@@ -14,10 +14,11 @@ import { stitchRings, type LngLat, type ZoneProps } from '../src/zones.ts';
 const MIRRORS = ['https://overpass-api.de/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
 const OUT = 'public/data/zones';
 
-/** The areas we draw: OSM relation → our id and what the rules mean for fishing (see docs/ZONES.md). */
+/** The areas we draw: OSM relation → our id and how the zone is drawn (rules are in src/rules.ts). */
 const AREAS = [
-  { rel: 12582073, id: 'cahuita', status: 'closed' },
+  { rel: 12582073, id: 'cahuita', status: 'restricted' },
   { rel: 11805965, id: 'gandoca', status: 'restricted' },
+  { rel: 11808241, id: 'limoncito', status: 'restricted' },
 ] as const;
 
 interface Member { type: string; role: string; geometry?: { lat: number; lon: number }[] }

@@ -3,8 +3,11 @@ export const REGION = {
   name: 'GANDOCA–LIMÓN',
   center: [-82.83, 9.79] as [number, number],
   bounds: [[-83.25, 9.45], [-82.4, 10.1]] as [[number, number], [number, number]],
-  // Macro view may pan out to the western Caribbean.
+  // Analysed area: the western Caribbean the mock fields and coordinate search cover.
   maxBounds: [[-86, 7.5], [-79, 13]] as [[number, number], [number, number]],
+  // How far the map may pan or pinch out: the analysed area plus a wide margin on every side, so
+  // zooming out never hits a wall (the camera only stops well beyond the analysed area).
+  viewBounds: [[-90, 4.5], [-75, 16]] as [[number, number], [number, number]],
   initialZoom: 9.3,
 };
 
