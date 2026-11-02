@@ -3,6 +3,7 @@
  * for the spot nearest the reticle, as CALM / SURGY / DANGEROUS with the speed and how far the
  * water swings each way.
  */
+import { condSlot } from './cond-groups';
 import type { Map } from 'maplibre-gl';
 import { nearest } from './geo';
 import { panelHeader } from './hud-kit';
@@ -12,7 +13,7 @@ import { SPOTS } from './region';
 import type { SpotPhysics } from './spot-physics';
 
 export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics) {
-  const side = root.querySelector<HTMLElement>('.side');
+  const side = condSlot(root, 'water', 40);
   if (!side) return;
   side.insertAdjacentHTML(
     'beforeend',

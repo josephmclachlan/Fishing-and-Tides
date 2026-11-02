@@ -2,6 +2,7 @@
  * SURF ZONE readouts in the side panel at the spot tier (PLAN 4.2): breaker height and type,
  * wave power, longshore drift and the rip band at the spot nearest the reticle.
  */
+import { condSlot } from './cond-groups';
 import type { Map } from 'maplibre-gl';
 import { nearest } from './geo';
 import { panelHeader, readout } from './hud-kit';
@@ -10,7 +11,7 @@ import { SPOTS } from './region';
 import type { SpotPhysics } from './spot-physics';
 
 export function mountSurfZoneHud(root: HTMLElement, map: Map, spots: SpotPhysics) {
-  const side = root.querySelector<HTMLElement>('.side');
+  const side = condSlot(root, 'waves', 40);
   if (!side) return;
   side.insertAdjacentHTML(
     'beforeend',

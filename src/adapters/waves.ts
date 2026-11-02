@@ -40,9 +40,14 @@ export interface SeaState {
   swellHs: number;
   swellT: number;
   swellDir: number;
+  /** Secondary swell partition (a second train); NaN where the data has none. */
+  swell2Hs: number;
+  swell2T: number;
+  swell2Dir: number;
   /** Local wind sea. */
   windSeaHs: number;
   windSeaT: number;
+  windSeaDir: number;
   kind: 'forecast' | 'climatology';
   /** Which model produced this hour (forecast only), e.g. "meteofrance_wave". */
   model?: string;
@@ -67,11 +72,44 @@ export function wavesAt(d: WavesData, band: Band, ms: number, lng: number, lat: 
     swellHs,
     swellT: has('swt') ? at('swt') : NaN,
     swellDir: has('swu') ? fromDeg(at('swu'), at('swv')) : NaN,
+    swell2Hs: has('s2h') ? at('s2h') : NaN,
+    swell2T: has('s2t') ? at('s2t') : NaN,
+    swell2Dir: has('s2u') ? fromDeg(at('s2u'), at('s2v')) : NaN,
     windSeaHs: has('wwh') ? at('wwh') : NaN,
     windSeaT: has('wwt') ? at('wwt') : NaN,
+    windSeaDir: has('wwu') ? fromDeg(at('wwu'), at('wwv')) : NaN,
     kind: pick.kind,
     model,
   };
+}
+
+export type WaveTrain = 'swell1' | 'swell2' | 'windSea';
+
+/** One wave train: what Surfline and Windy list as "swell 1, swell 2, wind waves". */
+export interface WavePart {
+  kind: WaveTrain;
+  /** Height of this train alone, m (the trains add by energy: Hs² = Σ Hᵢ²). */
+  hs: number;
+  /** Its period, s (NaN if the model gave none). */
+  t: number;
+  /** Degrees true it comes from (NaN if unknown). */
+  dir: number;
+}
+
+/** Below this a train is noise at the beach and not worth a row, m. */
+export const MIN_PART_HS = 0.1;
+
+/**
+ * The wave trains in a sea state, biggest first, leaving out the ones under `minHs`. Empty when
+ * the data has no partitions (the OUTLOOK climatology): then only the total is known.
+ */
+export function waveParts(s: SeaState, minHs = MIN_PART_HS): WavePart[] {
+  const parts: WavePart[] = [
+    { kind: 'swell1', hs: s.swellHs, t: s.swellT, dir: s.swellDir },
+    { kind: 'swell2', hs: s.swell2Hs, t: s.swell2T, dir: s.swell2Dir },
+    { kind: 'windSea', hs: s.windSeaHs, t: s.windSeaT, dir: s.windSeaDir },
+  ];
+  return parts.filter((p) => Number.isFinite(p.hs) && p.hs >= minHs).sort((a, b) => b.hs - a.hs);
 }
 
 /** Verify checks (DESIGN §10): Hs 0..8 m for this coast, periods 1..25 s, refreshed twice a day. */

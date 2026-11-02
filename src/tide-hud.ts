@@ -3,6 +3,7 @@
  * predicted at Limón, with the live gauge drawn over it, then the next high and low water.
  * Tap the chart to move the slider to that hour. `tideBlock` is shared with the spot page.
  */
+import { condSlot } from './cond-groups';
 import { t, type Key } from './i18n';
 import { localDayStart } from './physics/astro';
 import { REGION } from './region';
@@ -59,15 +60,15 @@ export function tideBlock(host: HTMLElement, time: TimeStore, observed: Observed
 }
 
 export function mountTideHud(root: HTMLElement, time: TimeStore, observed: Observed) {
-  const side = root.querySelector<HTMLElement>('.side');
-  const tideRow = side?.querySelector<HTMLElement>('#tide')?.closest<HTMLElement>('.from-coast');
-  if (!side || !tideRow) return null;
+  // The tide height stays in the conditions core; the chart and next high/low open the WATER group.
+  const side = condSlot(root, 'water', 5);
+  if (!side) return null;
   const box = document.createElement('div');
   box.className = 'from-coast tide-box';
   box.innerHTML = `<div class="tc-host"></div>
     <div class="ro"><span class="lbl">${t('tide.nextHigh')}</span><span class="seg sm" id="tc-hi">--</span></div>
     <div class="ro"><span class="lbl">${t('tide.nextLow')}</span><span class="seg sm" id="tc-lo">--</span></div>`;
-  tideRow.after(box);
+  side.appendChild(box);
   const chart = tideBlock(box.querySelector<HTMLElement>('.tc-host')!, time, observed, { width: 240, height: 84 });
   const refresh = () => {
     chart.render();

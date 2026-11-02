@@ -527,3 +527,33 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
   .spot-page.open { display: grid; top: calc(var(--top-h, 100px) + 8px); bottom: auto; max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
 }
 .side .ro:has(.sp-open) { flex-wrap: wrap; }
+
+/*
+ * CONDITIONS groups (src/cond-groups.ts): activity picker, the always-on core, then collapsible
+ * groups. Each group inherits the panel's columns (one on wide screens, two in the phone drawer).
+ */
+.cg-acts { grid-column: 1 / -1; display: flex; gap: 4px; }
+.cg-acts .tab { flex: 1 1 0; min-width: 0; padding: 4px 2px; font-size: 11px; letter-spacing: 1px; justify-content: center; text-align: center; }
+.cg { grid-column: 1 / -1; display: grid; grid-template-columns: inherit; gap: 4px; min-width: 0; }
+.cg[hidden] { display: none; }
+.cg-core { padding: 2px 0 6px; }
+.cg-core .ro-multi { grid-column: 1 / -1; flex-wrap: wrap; column-gap: 4px; }
+.cg-core .ro-multi .unit { margin-right: 6px; }
+.cg-h { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 4px 0; font: inherit; font-size: 12px; letter-spacing: 3px; color: var(--amber); text-shadow: inherit; text-align: left; background: none; border: 0; border-top: 1px solid var(--amber-dim); cursor: pointer; }
+.cg-chev { margin-left: auto; }
+.cg-chev::before { content: '▸'; }
+.cg.open .cg-chev::before { content: '▾'; }
+.cg:not(.open) .cg-h { opacity: 0.75; }
+.cg-alert, .cg.warn .cg-h { color: var(--red); }
+.cg-alert { font-size: 14px; }
+.cg-b { grid-column: 1 / -1; display: none; grid-template-columns: inherit; gap: 4px; min-width: 0; }
+.cg.open .cg-b { display: grid; }
+.cg-slot { display: contents; }
+.sw-row .lbl { min-width: 72px; }
+.side .ro[hidden] { display: none; }
+@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+  .cg-acts .tab { min-height: 40px; font-size: 12px; }
+  .cg-h { min-height: 44px; }
+  /* Swell rows carry three numbers: give them the drawer's full width. */
+  .side .sw-row { grid-column: 1 / -1; }
+}

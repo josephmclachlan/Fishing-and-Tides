@@ -59,7 +59,12 @@ export const isMode = (v: unknown): v is Mode => MODES.includes(v as Mode);
 
 const KEY = 'fishing-tides.glance';
 
-export function mountGlance(root: HTMLElement, store: { getItem(k: string): string | null; setItem(k: string, v: string): void } | undefined) {
+export function mountGlance(
+  root: HTMLElement,
+  store: { getItem(k: string): string | null; setItem(k: string, v: string): void } | undefined,
+  /** Called when the user cycles the mode here (the CONDITIONS panel follows it). */
+  onMode?: (m: Mode) => void,
+) {
   const bottom = root.querySelector<HTMLElement>('.bottom');
   if (!bottom) return;
   let mode: Mode = 'surf';
@@ -87,15 +92,21 @@ export function mountGlance(root: HTMLElement, store: { getItem(k: string): stri
         )
         .join('')}`;
     el.querySelector('.gl-mode')!.addEventListener('click', () => {
-      mode = nextMode(mode);
-      try {
-        store?.setItem(KEY, mode);
-      } catch {
-        /* not saved */
-      }
-      build();
-      refresh();
+      setMode(nextMode(mode));
+      onMode?.(mode);
     });
+  };
+
+  const setMode = (m: Mode) => {
+    if (m === mode) return;
+    mode = m;
+    try {
+      store?.setItem(KEY, mode);
+    } catch {
+      /* not saved */
+    }
+    build();
+    refresh();
   };
 
   const refresh = () => {
@@ -113,5 +124,5 @@ export function mountGlance(root: HTMLElement, store: { getItem(k: string): stri
   build();
   refresh();
   setInterval(refresh, 1000);
-  return { mode: () => mode, refresh };
+  return { mode: () => mode, setMode, refresh };
 }

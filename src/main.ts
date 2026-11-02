@@ -27,13 +27,15 @@ import { mountHarboursHud } from './harbours-hud';
 import type { Grid } from './physics/bathy';
 import { createBoatStore } from './boat/store';
 import { mountBoatPanel } from './boat-panel';
-import { dictFor, setDict } from './i18n';
+import { dictFor, setDict, t } from './i18n';
 import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
 import { mountSounds } from './sounds';
 import { mountSettingsUi } from './settings-ui';
 import { mountSettingsPanel } from './settings-panel';
 import { mountGlance } from './glance';
+import { activityForPreset, mountCondGroups } from './cond-groups';
+import { mountSwellHud } from './swell-hud';
 import { mountExplain } from './explain';
 import { mountSystemCheck } from './system-check';
 import { allChecks } from './verify/registry';
@@ -65,7 +67,8 @@ import { createNet } from './net';
 import { createPhysicsClient } from './physics/client';
 import { nearest } from './geo';
 import { createSpotPhysics, type SpotPhysics } from './spot-physics';
-import { mountRip } from './layers/rip';
+import { mountRip, ripSites } from './layers/rip';
+import { SURF_BREAKS } from './data/surf-breaks';
 import { mountSurfZoneHud } from './surf-zone-hud';
 import { mountDiveHud } from './dive-hud';
 import { fetchGauge, type GaugeReading } from './adapters/gauge';
@@ -116,8 +119,7 @@ const baseConditions = () => {
     c.windDirDeg = fromDeg(...windAtRef);
   }
   // Swell (PLAN 2.2): the primary swell partition at the map centre, or offshore of Cahuita when the centre is inland.
-  const ctr = map.getCenter();
-  const sea = seaStateAt(ctr.lng, ctr.lat) ?? seaStateAt(...MOCK_FLOW.windRef);
+  const sea = seaHere();
   if (sea) {
     const swell = Number.isFinite(sea.swellHs);
     c.swellHeightM = swell ? sea.swellHs : sea.hs;
@@ -141,6 +143,11 @@ fetchSatellite()
 // Real waves once loaded (forecast to day 16, then climatology); the mock swell until then.
 let waves: WavesData | null = null;
 const seaStateAt = (lng: number, lat: number): SeaState | null => (waves ? wavesAt(waves, time.band(), time.validMs(), lng, lat) : null);
+/** Sea state at the map centre, or offshore of Cahuita when the centre is inland. */
+const seaHere = () => {
+  const c = map.getCenter();
+  return seaStateAt(c.lng, c.lat) ?? seaStateAt(...MOCK_FLOW.windRef);
+};
 // Wave crest lines (PLAN 6.9): rebuilt for the slider's valid time, when waves load and when the coastline mask arrives.
 const wavesLayer = mountWavesLayer(map);
 let waterMask: ((lng: number, lat: number) => boolean) | undefined;
@@ -158,6 +165,9 @@ const net = createNet();
 let weatherHud: ReturnType<typeof mountWeatherHud> = null;
 let lightningHud: ReturnType<typeof mountLightningHud> = null;
 mountHud(hud, map, conditionsAt, { age: () => describeAge(dataAge.oldest(), Date.now()), online: net.online, alerts: () => [...(weatherHud?.alerts() ?? []), ...(lightningHud?.alerts() ?? [])] });
+// CONDITIONS groups: core always shown, the rest opened by activity (SURF, FISH, DIVE, BOAT) or by hand.
+const condGroups = mountCondGroups(hud, safeStorage());
+mountSwellHud(hud, seaHere);
 mountTimeSlider(hud, time);
 // Tide chart (PLAN 4.1): the slider's day at Limón, with the live gauge (PLAN 2.11) drawn over it.
 let gauge: GaugeReading[] = [];
@@ -181,7 +191,7 @@ mountSheets(hud, map, sheets);
 // Surf break catalog (PLAN 6.4): markers and BREAK rows.
 const surfBreaks = mountSurfBreaks(map);
 const surfHud = mountSurfHud(hud, map, (name) => spotPhysics?.byName(name)?.surf);
-mountSeaStateHud(hud, conditionsAt);
+mountSeaStateHud(hud, conditionsAt, seaHere);
 // Weather and active tropical storms (PLAN 7.3, 7.5): live feeds, rows stay -- until they load.
 weatherHud = mountWeatherHud(hud, { validMs: () => time.validMs() });
 time.subscribe(() => weatherHud?.refresh());
@@ -217,8 +227,18 @@ mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeSto
 // Last, so SET is the last tab and the settings controls (ENHANCE, SUN, language) are all mounted to be moved into it.
 mountSettingsPanel(hud, sheets);
 // Phone glance strip (the few values that matter per activity) and tap-a-label explainers.
-mountGlance(hud, safeStorage());
-mountExplain(hud);
+// The strip and the CONDITIONS panel share the activity: cycling one moves the other, and a LAYERS preset moves both.
+const glance = mountGlance(hud, safeStorage(), (m) => condGroups.setActivity(m));
+condGroups.subscribe((a) => a !== 'all' && glance?.setMode(a));
+let lastPreset = layers.activity();
+layers.subscribe(() => {
+  const p = layers.activity();
+  if (p === lastPreset) return;
+  lastPreset = p;
+  const a = activityForPreset(p);
+  if (a) condGroups.setActivity(a);
+});
+const explain = mountExplain(hud);
 
 const flow = mountFlow(map, flowSources);
 if (flow) {
@@ -291,6 +311,18 @@ fetchZones()
 // overlay, the SURF ZONE readouts and the RIP readout. Sea state from the waves adapter at each
 // spot (the mock swell until it loads); tide and wind are live.
 const ripLayer = mountRip(map);
+// Fixed rip sites: river mouths and the breaks whose guides list rips. Tap a site or the shaded shore to read what it means.
+fetchMouths()
+  .then(({ data }) => ripLayer.setSites(ripSites(data, SURF_BREAKS)))
+  .catch((err) => console.warn('rip sites unavailable', err));
+map.on('click', 'rp-site', (e) => {
+  const f = e.features?.[0]?.properties;
+  if (f) explain.show(`${f.name}`, f.site === 'mouth' ? 'ripMouth' : 'ripBreak', e.point);
+});
+map.on('click', 'rp-coast', (e) => {
+  // A site ring sits on the shaded shore: the ring's own explainer wins.
+  if (!map.queryRenderedFeatures(e.point, { layers: ['rp-site'] }).length) explain.show(t('layer.rip'), 'ripCoast', e.point);
+});
 /**
  * Offshore sea state for the physics at a shoreline pin. The models give mean, not peak,
  * periods; the swell's mean period stands in for Tp when swell dominates, as it does on this

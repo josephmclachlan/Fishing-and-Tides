@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { wavesAt, wavesChecks, type WavesData } from './waves';
+import { waveParts, wavesAt, wavesChecks, type SeaState, type WavesData } from './waves';
 import type { GridSeries } from './pack';
 import { runChecks } from '../verify/types';
 
@@ -41,5 +41,37 @@ describe('wavesChecks', () => {
   it('passes good data', async () => {
     const r = await runChecks(wavesChecks(async () => data));
     expect(r.map((x) => x.status)).toEqual(['pass', 'pass', 'pass', 'pass']);
+  });
+});
+
+describe('waveParts', () => {
+  const base: SeaState = {
+    hs: 1.4, tm: 7, dir: 50, swellHs: 1.1, swellT: 9, swellDir: 50, swell2Hs: 0.6, swell2T: 14, swell2Dir: 20,
+    windSeaHs: 0.5, windSeaT: 4, windSeaDir: 80, kind: 'forecast',
+  };
+  it('lists every train above the floor, biggest first', () => {
+    expect(waveParts(base).map((p) => p.kind)).toEqual(['swell1', 'swell2', 'windSea']);
+    expect(waveParts({ ...base, windSeaHs: 1.5 })[0]).toEqual({ kind: 'windSea', hs: 1.5, t: 4, dir: 80 });
+  });
+  it('drops trains that are absent or too small to matter', () => {
+    expect(waveParts({ ...base, swell2Hs: 0.02, windSeaHs: NaN }).map((p) => p.kind)).toEqual(['swell1']);
+  });
+  it('is empty when the data has no partitions (climatology)', () => {
+    expect(waveParts({ ...base, swellHs: NaN, swell2Hs: NaN, windSeaHs: NaN })).toEqual([]);
+  });
+  it('reads the secondary swell and wind-sea direction when the feed has them', () => {
+    const extra = ['s2h', 's2t', 's2u', 's2v', 'wwu', 'wwv'];
+    const v: Record<string, (i: number) => number> = { s2h: () => 0.4, s2t: () => 15, s2u: () => -1, s2v: () => 0, wwu: () => 0, wwv: () => 1 };
+    const f: GridSeries = {
+      meta: { ...forecast.meta, vars: [...forecast.meta.vars, ...extra.map((name) => ({ name, unit: '', scale: 0.01, offset: 0 }))] },
+      values: { ...forecast.values, ...Object.fromEntries(extra.map((n) => [n, fill(2, v[n])])) },
+    };
+    const w = wavesAt({ ...data, forecast: f }, 'forecast', t0, -82.9, 9.9)!;
+    expect(w.swell2Hs).toBeCloseTo(0.4);
+    expect(w.swell2T).toBeCloseTo(15);
+    // Travelling west means it comes from the east.
+    expect(w.swell2Dir).toBeCloseTo(90);
+    expect(w.windSeaDir).toBeCloseTo(180);
+    expect(wavesAt(data, 'forecast', t0, -82.9, 9.9)!.swell2Hs).toBeNaN();
   });
 });

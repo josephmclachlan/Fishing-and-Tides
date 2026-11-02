@@ -5,6 +5,7 @@
  * slider's day as a bar strip with the best windows, and BEST SPOTS nearby with the reasons. The
  * species and reach are remembered on the device.
  */
+import { condSlot } from './cond-groups';
 import type { Map } from 'maplibre-gl';
 import { t, type Key } from './i18n';
 import { REGION } from './region';
@@ -45,7 +46,7 @@ export type FishEnv = () => { windMs?: number | null; hsM?: number | null };
 const why = (rs: readonly BiteReason[]) => rs.map((r) => t(`bite.r.${r}` as Key)).join(' · ');
 
 export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer, time: TimeStore, initial: SpeciesId, env: FishEnv = () => ({})) {
-  const side = root.querySelector<HTMLElement>('.side');
+  const side = condSlot(root, 'fishing', 10);
   if (!side) return;
   side.insertAdjacentHTML(
     'beforeend',

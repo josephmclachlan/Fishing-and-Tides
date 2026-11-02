@@ -17,6 +17,7 @@ export const HELP_BY_ID: Readonly<Record<string, HelpId>> = {
   'dv-3': 'surge', 'dv-6': 'surge', 'dv-12': 'surge',
   'tc-hi': 'tide', 'tc-lo': 'tide', 'sp-hb': 'breaker', 'sp-rip': 'rip', 'sp-drift': 'drift', 'sp-surf': 'surfScore', 'sp-dive': 'surge',
   'sb-name': 'break', 'sb-q': 'surfScore', 'sb-type': 'breakType', 'sb-haz': 'hazard',
+  'sw-hs': 'totalHs', 'sw-0': 'swellTrains', 'sw-1': 'swellTrains', 'sw-2': 'swellTrains',
   'ss-comfort': 'seaState', 'ss-score': 'comfort', 'ss-detail': 'seaState',
   'an-name': 'harbour', 'an-dist': 'harbourRange', 'an-shelter': 'shelter', 'an-fetch': 'shelter',
   'wx-rain': 'rain', 'wx-rain24': 'rain24', 'wx-cloud': 'cloud', 'wx-uv': 'uv', 'wx-air': 'air', 'wx-storm': 'storm',
@@ -70,6 +71,23 @@ export function mountExplain(root: HTMLElement) {
     card.style.top = `${top}px`;
   };
 
+  const fill = (title: string, id: HelpId) => {
+    card.innerHTML = `<div class="ph"><span>${esc(title)}</span><button type="button" class="sheet-x help-x" aria-label="${t('help.close')}">✕</button></div><p class="help-text">${esc(t(helpKey(id)))}</p>`;
+    card.querySelector('.help-x')!.addEventListener('click', close);
+    card.hidden = false;
+  };
+
+  /** Explain something that isn't a panel row (a map feature), next to screen point `at`. */
+  const show = (title: string, id: HelpId, at?: { x: number; y: number }) => {
+    fill(title, id);
+    anchor = null;
+    if (phone.matches || !at) return card.style.removeProperty('top'), card.style.removeProperty('left');
+    const w = card.offsetWidth;
+    const h = card.offsetHeight;
+    card.style.left = `${Math.min(Math.max(8, at.x + 16), window.innerWidth - w - 8)}px`;
+    card.style.top = `${Math.min(Math.max(8, at.y - 16), window.innerHeight - h - 8)}px`;
+  };
+
   const open = (row: HTMLElement) => {
     if (anchor === row && !card.hidden) return close();
     const id = row.dataset.help!;
@@ -113,7 +131,7 @@ export function mountExplain(root: HTMLElement) {
   new MutationObserver((muts) => {
     for (const m of muts) m.addedNodes.forEach((n) => n instanceof Element && scan(n));
   }).observe(root, { childList: true, subtree: true });
-  return { close };
+  return { close, show };
 }
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);

@@ -3,6 +3,10 @@
  * about 9 days, then NOAA GFS-Wave (0.25°) out to 16 days. Sampled on the 0.25° macro grid at
  * sea points only, 3-hourly (waves change slowly; the app blends between frames).
  *
+ * Partitions: the primary swell, a secondary swell (a second train from another storm or
+ * direction) and the local wind sea, each with height, period and direction. Both models publish
+ * all three; a 0 m partition means that train is absent.
+ *
  * Directions are stored as unit vectors (the way the waves travel), so blending across north
  * (350° → 10°) works; the app turns them back into "from" degrees.
  */
@@ -19,7 +23,9 @@ const V = (name: string, unit: string, scale: number): VarMeta => ({ name, unit,
 export const WAVE_VARS: VarMeta[] = [
   V('hs', 'm', 0.01), V('tm', 's', 0.01), V('du', '1', 0.0001), V('dv', '1', 0.0001),
   V('swh', 'm', 0.01), V('swt', 's', 0.01), V('swu', '1', 0.0001), V('swv', '1', 0.0001),
-  V('wwh', 'm', 0.01), V('wwt', 's', 0.01),
+  V('wwh', 'm', 0.01), V('wwt', 's', 0.01), V('wwu', '1', 0.0001), V('wwv', '1', 0.0001),
+  // Secondary swell: a second, independent swell train (another storm, another direction).
+  V('s2h', 'm', 0.01), V('s2t', 's', 0.01), V('s2u', '1', 0.0001), V('s2v', '1', 0.0001),
 ];
 
 export async function buildWaves(dir: string): Promise<string> {
@@ -28,7 +34,12 @@ export async function buildWaves(dir: string): Promise<string> {
   const sea = seaMask(grid);
   const cells = all.map((_, i) => i).filter((i) => sea[i]);
   const fetchedAt = new Date().toISOString();
-  const vars = 'wave_height,wave_period,wave_direction,swell_wave_height,swell_wave_period,swell_wave_direction,wind_wave_height,wind_wave_period';
+  const vars = [
+    'wave_height,wave_period,wave_direction',
+    'swell_wave_height,swell_wave_period,swell_wave_direction',
+    'secondary_swell_wave_height,secondary_swell_wave_period,secondary_swell_wave_direction',
+    'wind_wave_height,wind_wave_period,wind_wave_direction',
+  ].join(',');
   const om = await openMeteoGrid(
     'https://marine-api.open-meteo.com/v1/marine',
     `hourly=${vars}&models=${MODELS.map((m) => m.id).join(',')}&forecast_days=16&cell_selection=sea`,
@@ -54,10 +65,13 @@ export async function buildWaves(dir: string): Promise<string> {
       span[m][1] = Math.max(span[m][1], allTimes[ti]);
       const [du, dv] = unitFrom(g('wave_direction'));
       const [su, sv] = unitFrom(g('swell_wave_direction'));
+      const [s2u, s2v] = unitFrom(g('secondary_swell_wave_direction'));
+      const [wwu, wwv] = unitFrom(g('wind_wave_direction'));
       const vals: Record<string, number> = {
         hs: g('wave_height'), tm: g('wave_period'), du, dv,
         swh: g('swell_wave_height'), swt: g('swell_wave_period'), swu: su, swv: sv,
-        wwh: g('wind_wave_height'), wwt: g('wind_wave_period'),
+        wwh: g('wind_wave_height'), wwt: g('wind_wave_period'), wwu, wwv,
+        s2h: g('secondary_swell_wave_height'), s2t: g('secondary_swell_wave_period'), s2u, s2v,
       };
       for (const v of WAVE_VARS) out[v.name][k][cell] = vals[v.name];
     });

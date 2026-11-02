@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { crestGrid, crestLine, dominantTrain } from './waves-lines';
 import type { SeaState } from './adapters/waves';
 
-const sea = (o: Partial<SeaState> = {}): SeaState => ({ hs: 1.5, tm: 8, dir: 90, swellHs: NaN, swellT: NaN, swellDir: NaN, windSeaHs: NaN, windSeaT: NaN, kind: 'forecast', ...o });
+const sea = (o: Partial<SeaState> = {}): SeaState => ({ hs: 1.5, tm: 8, dir: 90, swellHs: NaN, swellT: NaN, swellDir: NaN, swell2Hs: NaN, swell2T: NaN, swell2Dir: NaN, windSeaHs: NaN, windSeaT: NaN, windSeaDir: NaN, kind: 'forecast', ...o });
 
 describe('crest lines', () => {
   it('waves from the east have north-south crests', () => {

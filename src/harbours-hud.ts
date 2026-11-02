@@ -3,6 +3,7 @@
  * reticle with a CHECK tag when unverified, and how sheltered the reticle is from the current wind
  * (fetch over water upwind, from the land mask). INFO opens a card with sources and the advisory.
  */
+import { condSlot } from './cond-groups';
 import type { Map } from 'maplibre-gl';
 import { t, type Key } from './i18n';
 import { nearestPlace } from './harbours';
@@ -19,7 +20,7 @@ export interface HarboursDeps {
 }
 
 export function mountHarboursHud(root: HTMLElement, map: Map, deps: HarboursDeps) {
-  const side = root.querySelector<HTMLElement>('.side');
+  const side = condSlot(root, 'place', 20);
   if (!side) return;
   side.insertAdjacentHTML(
     'beforeend',

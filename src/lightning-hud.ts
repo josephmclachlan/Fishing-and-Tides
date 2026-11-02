@@ -4,6 +4,7 @@
  * the feed loads and NO DATA when it cannot (not on GitHub Pages, or offline with nothing cached). The
  * file's age is shown so a stalled collector is visible: a quiet map from a stale file is not "no storms".
  */
+import { condSlot } from './cond-groups';
 import type { Map } from 'maplibre-gl';
 import { t } from './i18n';
 import { countNear, nearestFlash, STRIKE_ALERT_KM, STRIKE_ALERT_MIN, type Flash } from './lightning';
@@ -11,7 +12,7 @@ import { countNear, nearestFlash, STRIKE_ALERT_KM, STRIKE_ALERT_MIN, type Flash 
 const STALE_MIN = 30;
 
 export function mountLightningHud(root: HTMLElement, map: Map) {
-  const side = root.querySelector<HTMLElement>('.side');
+  const side = condSlot(root, 'weather', 20);
   if (!side) return null;
   side.insertAdjacentHTML(
     'beforeend',

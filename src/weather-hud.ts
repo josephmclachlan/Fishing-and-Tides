@@ -4,6 +4,7 @@
  * and the nearest active tropical storm. `alerts()` feeds the alert strip. Rows show -- until the
  * forecast has loaded. There is no radar yet: it needs an observation source (see docs/WEATHER.md).
  */
+import { condSlot } from './cond-groups';
 import { t } from './i18n';
 import { readout } from './hud-kit';
 import type { WeatherData } from './adapters/weather';
@@ -17,7 +18,7 @@ export interface WeatherHudDeps {
 const fmt = (x: number, digits = 0) => (Number.isFinite(x) ? x.toFixed(digits) : '--');
 
 export function mountWeatherHud(root: HTMLElement, deps: WeatherHudDeps) {
-  const side = root.querySelector<HTMLElement>('.side');
+  const side = condSlot(root, 'weather', 10);
   if (!side) return null;
   side.insertAdjacentHTML(
     'beforeend',
