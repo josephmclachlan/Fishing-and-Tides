@@ -252,6 +252,27 @@ export const en = {
   'boat.trip': 'Trip',
   'unit.nm': 'NM',
 
+  // Surf breaks (PLAN 6.4)
+  'surf.title': 'BREAK',
+  'surf.none': 'NONE NEAR',
+  'surf.type': 'TYPE',
+  'surf.faces': 'FACES {dir}',
+  'surf.hazard': 'HAZARD',
+  'surf.check': 'CHECK',
+  'surf.type.reef': 'REEF',
+  'surf.type.beach': 'BEACH',
+  'surf.type.point': 'POINT',
+  'surf.shape.right': 'RIGHT',
+  'surf.shape.left': 'LEFT',
+  'surf.shape.peaks': 'PEAKS',
+  'surf.hazard.reef': 'SHALLOW REEF',
+  'surf.hazard.urchin': 'URCHINS',
+  'surf.hazard.rip': 'RIPS',
+  'surf.hazard.shorebreak': 'SHOREBREAK',
+  'surf.hazard.crowd': 'CROWDS',
+  'surf.advice': 'GUIDES DISAGREE AT TIMES AND BREAKS CHANGE WITH SAND, SWELL AND TIDE. CHECK WITH LOCAL SURFERS BEFORE PADDLING OUT. NOT SAFETY ADVICE.',
+  'surf.hazard.none': 'NONE LISTED',
+
   // Settings
   'settings.enhance': 'ENHANCE',
   'settings.on': 'ON',
