@@ -1,13 +1,10 @@
 import type { Map } from 'maplibre-gl';
 import { REGION, tierForZoom } from './region';
 import type { Conditions } from './mock';
+import { alertStrip, gauge, panelHeader, readout, setAlert, setGauge } from './hud-kit';
 
 const fmt = (n: number, d = 1) => n.toFixed(d);
 const pad3 = (n: number) => String(Math.round(n) % 360).padStart(3, '0');
-
-function readout(label: string, id: string, unit = '') {
-  return `<div class="ro"><span class="lbl">${label}</span><span class="seg" id="${id}">--</span><span class="unit">${unit}</span></div>`;
-}
 
 export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions) {
   root.innerHTML = `
@@ -17,7 +14,7 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions)
       <div class="ro"><span class="lbl">UTC</span><span class="seg" id="clock">--:--:--</span></div>
     </header>
     <aside class="panel side">
-      <div class="ph">CONDITIONS <span class="tag">MOCK</span></div>
+      ${panelHeader('CONDITIONS', 'MOCK')}
       ${readout('SWELL', 'swell', 'M')}
       ${readout('PERIOD', 'period', 'S')}
       ${readout('SWL DIR', 'sdir', '°')}
@@ -26,6 +23,7 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions)
       ${readout('SST', 'sst', '°C')}
       ${readout('TIDE', 'tide', 'M')}
       <div class="ro"><span class="lbl">RIP RISK</span><span class="seg" id="rip">--</span></div>
+      ${gauge('RIP', 'ripgauge')}
     </aside>
     <footer class="panel bottom">
       <div class="ro"><span class="lbl">LAT</span><span class="seg green" id="lat">--</span></div>
@@ -34,6 +32,7 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions)
       <div class="ro"><span class="lbl">DATA AGE</span><span class="seg" id="age">--</span></div>
       <button id="sync" class="btn" title="Full offline download arrives in PLAN 5.1">SYNC FOR TRIP</button>
     </footer>
+    ${alertStrip('alert')}
     <div class="reticle" aria-hidden="true"></div>`;
 
   const $ = (id: string) => root.querySelector<HTMLElement>('#' + id)!;
@@ -61,6 +60,8 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions)
     const rip = $('rip');
     rip.textContent = d.ripRisk;
     rip.className = 'seg ' + (d.ripRisk === 'HIGH' ? 'red' : d.ripRisk === 'MOD' ? '' : 'green');
+    setGauge($('ripgauge'), { LOW: 0.2, MOD: 0.55, HIGH: 1 }[d.ripRisk], d.ripRisk === 'HIGH' ? 'red' : d.ripRisk === 'MOD' ? '' : 'green');
+    setAlert($('alert'), d.ripRisk === 'HIGH' ? 'HIGH RIP CURRENT RISK' : null);
     const ageH = (Date.now() - d.fetchedAt) / 3.6e6;
     const age = $('age');
     age.textContent = `${String(Math.floor(ageH)).padStart(2, '0')}H${String(Math.floor((ageH % 1) * 60)).padStart(2, '0')}`;

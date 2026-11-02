@@ -4,7 +4,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 
 ## Phase 1: Skeleton and look
 - [x] 1.1 Vite + TS + MapLibre dark map centered on region, HUD frame with mock data, PWA shell (**S**)
-- [ ] 1.2 HUD component kit: panel, segmented readout, gauge, alert strip (**S**)
+- [x] 1.2 HUD component kit: panel, segmented readout, gauge, alert strip (**S**)
 - [ ] 1.3 Zoom tiers and the military-satellite zoom transition effect (**O**)
 - [ ] 1.4 WebGL particle layer for wind/currents on mock vector fields (**O**)
 - [ ] 1.5 Time slider and forecast-hour state store (**S**)
