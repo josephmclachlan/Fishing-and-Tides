@@ -17,7 +17,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [ ] 2.3 Open-Meteo wind adapter (GFS/ECMWF) (**S**)
 - [ ] 2.4 CoastWatch ERDDAP adapter: SST and chlorophyll (**S**)
 - [ ] 2.5 Copernicus/HYCOM currents adapter (**S**)
-- [ ] 2.6 GEBCO bathymetry clipped to region, packed as a tile/grid asset (**S**)
+- [x] 2.6 GEBCO bathymetry clipped to region, packed as a tile/grid asset, plus reefs, seamarks and a depth layer (**S**)
 - [ ] 2.7 UHSLC Limón gauge fetch for tide validation (**S**)
 
 ## Phase 3: Physics engine

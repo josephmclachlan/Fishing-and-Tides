@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bearingDeg, cameraAltitudeM, graticule, haversineM, metersPerPixel, nearest, toDDM } from './geo';
+import { bearingDeg, cameraAltitudeM, graticule, haversineM, metersPerPixel, nearest, toDDM, pointInPolygon } from './geo';
 
 describe('metersPerPixel', () => {
   it('is the whole equator over one 512 px tile at zoom 0', () => {
@@ -75,5 +75,16 @@ describe('graticule', () => {
     expect(ys[0]).toBe(9.5);
     expect(ys.at(-1)).toBe(10.1);
     expect(ys).toHaveLength(7);
+  });
+});
+
+describe('pointInPolygon', () => {
+  const square: [number, number][] = [[0, 0], [2, 0], [2, 2], [0, 2], [0, 0]];
+  const hole: [number, number][] = [[0.5, 0.5], [1.5, 0.5], [1.5, 1.5], [0.5, 1.5], [0.5, 0.5]];
+  it('finds points inside the outer ring but not in holes', () => {
+    expect(pointInPolygon([0.2, 0.2], [square])).toBe(true);
+    expect(pointInPolygon([3, 1], [square])).toBe(false);
+    expect(pointInPolygon([1, 1], [square, hole])).toBe(false);
+    expect(pointInPolygon([0.2, 1], [square, hole])).toBe(true);
   });
 });

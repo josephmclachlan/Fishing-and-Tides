@@ -1,0 +1,72 @@
+{
+  "grids": {
+    "region": {
+      "file": "gebco-region.i16",
+      "type": "i16",
+      "cols": 204,
+      "rows": 156,
+      "lon0": -83.2479167,
+      "lat0": 10.0979167,
+      "dlon": 0.004166667,
+      "dlat": 0.004166667
+    },
+    "regionTid": {
+      "file": "gebco-region-tid.u8",
+      "type": "u8",
+      "cols": 204,
+      "rows": 156,
+      "lon0": -83.2479167,
+      "lat0": 10.0979167,
+      "dlon": 0.004166667,
+      "dlat": 0.004166667
+    },
+    "macro": {
+      "file": "gebco-macro.i16",
+      "type": "i16",
+      "cols": 420,
+      "rows": 330,
+      "lon0": -85.9916667,
+      "lat0": 12.9916667,
+      "dlon": 0.016666667,
+      "dlat": 0.016666667
+    },
+    "land": {
+      "file": "land-mask.rle16",
+      "type": "rle16",
+      "cols": 2833,
+      "rows": 2167,
+      "lon0": -83.24985,
+      "lat0": 10.09985,
+      "dlon": 0.0003,
+      "dlat": 0.0003
+    }
+  },
+  "reefs": "reefs.geojson",
+  "marks": "marks.geojson",
+  "sources": [
+    {
+      "id": "gebco",
+      "name": "GEBCO 2026 Grid",
+      "detail": "15 arc-second (~460 m) elevation + TID",
+      "licence": "Public domain (GEBCO terms of use); not for navigation",
+      "url": "https://www.gebco.net/",
+      "fetchedAt": "2026-11-02T03:31:07.348Z"
+    },
+    {
+      "id": "aca",
+      "name": "Allen Coral Atlas",
+      "detail": "Geomorphic zones + benthic cover, 5 m pixels",
+      "licence": "CC BY 4.0",
+      "url": "https://allencoralatlas.org/",
+      "fetchedAt": "2026-11-02T03:31:13.582Z"
+    },
+    {
+      "id": "osm",
+      "name": "OpenStreetMap",
+      "detail": "natural=reef, seamark:* (wrecks, lights, harbours), coastline land mask",
+      "licence": "ODbL 1.0",
+      "url": "https://www.openstreetmap.org/copyright",
+      "fetchedAt": "2026-11-02T03:31:14.302Z"
+    }
+  ]
+}
