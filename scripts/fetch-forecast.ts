@@ -18,7 +18,7 @@ import { buildWaves } from './forecast/waves.ts';
 import { buildStorms } from './forecast/storms.ts';
 import { buildCurrents } from './forecast/currents.ts';
 import { buildMetar } from './forecast/metar.ts';
-import { buildChl, buildKd490, buildSst } from './forecast/satellite.ts';
+import { buildChl, buildChlPass, buildKd490, buildSst, buildSstPass } from './forecast/satellite.ts';
 
 const OUT = 'public/data/forecast';
 /**
@@ -38,6 +38,9 @@ const FEEDS: Record<string, { build: (dir: string) => Promise<string>; refreshH:
   sst: { build: buildSst, refreshH: 12, series: ['sst', 'sst-coast'] },
   chl: { build: buildChl, refreshH: 12 },
   kd490: { build: buildKd490, refreshH: 24 },
+  // Raw passes with their cloud holes (PLAN 2.12): two SST passes a day, one chlorophyll pass.
+  'sst-pass': { build: buildSstPass, refreshH: 6 },
+  'chl-pass': { build: buildChlPass, refreshH: 12 },
 };
 
 const wanted = process.argv.slice(2).filter((a) => !a.startsWith('-'));

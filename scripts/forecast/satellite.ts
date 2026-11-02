@@ -13,9 +13,9 @@
  * with their holes come with PLAN 2.12.
  */
 import { REGION } from '../../src/region.ts';
-import type { SourceSpan } from '../../src/adapters/pack.ts';
+import type { GridGeom, SourceSpan } from '../../src/adapters/pack.ts';
 import { erddapToGrid, type ErddapGrid } from '../../src/adapters/erddap-parse.ts';
-import { get, writeSeries } from './common.ts';
+import { get, seaMask, writeSeries } from './common.ts';
 
 const PFEG = 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/';
 const CW = 'https://coastwatch.noaa.gov/erddap/griddap/';
@@ -78,4 +78,58 @@ export async function buildKd490(dir: string): Promise<string> {
     sources: span(id, 'VIIRS + OLCI Kd490, gap-filled (DINEOF), science quality 2 km', g.times), licence: LICENCE,
   }, { kd490: g.frames });
   return `kd490: ${g.grid.cols}×${g.grid.rows}, ${day(g.times[0])}..${day(g.times[g.times.length - 1])}, ${kb(size)}`;
+}
+
+/**
+ * Raw satellite passes (PLAN 2.12), not gap-filled, so cloud shows as holes. Gandoca–Limón only.
+ *  - `sst-pass`: NOAA ACSPO super-collated L3S SST, 0.02°, the afternoon (PM day, ~19 UTC) and
+ *    night (PM night, ~07 UTC) passes of the last 4 days. Each frame is stamped with its real pass
+ *    time from the per-pixel `sst_dtime`.
+ *  - `chl-pass`: NOAA-20 VIIRS chlorophyll, NRT 4 km, last 7 days, stamped at NOAA-20's nominal
+ *    13:25 local solar overpass (about 18:57 UTC here; ERDDAP stamps the day at 12:00).
+ */
+const PASS_DAYS = 4;
+/** NOAA-20 crosses the equator northbound at 13:25 local solar time; at 82.9° W that is 18:57 UTC. */
+export const NOAA20_PASS_OFFSET_MS = (18 * 60 + 57 - 12 * 60) * 60e3;
+
+/** Sea cells of a pass grid from the GEBCO macro grid (cells deeper than 2 m), so cloud can be told from land. */
+const seaCount = (g: GridGeom) => seaMask(g, 0).reduce((a, b) => a + b, 0);
+
+function passQuery(id: string, vars: string[], days: number, opts: { altitude?: boolean } = {}) {
+  const [[w, s], [e, n]] = COAST_BOX;
+  const sel = vars.map((v) => `${v}[last-${days - 1}:1:last]${opts.altitude ? '[0]' : ''}[(${n}):1:(${s})][(${w}):1:(${e})]`).join(',');
+  return `${CW}${id}.json?${sel.replace(/\[/g, '%5B').replace(/\]/g, '%5D')}`;
+}
+
+export async function buildSstPass(dir: string): Promise<string> {
+  const ids = ['noaacwLEOACSPOSSTL3SnrtPMDay', 'noaacwLEOACSPOSSTL3SnrtPMNight'];
+  const parts: ErddapGrid[] = [];
+  for (const id of ids) {
+    const body = (await (await get(passQuery(id, ['sea_surface_temperature', 'sst_dtime'], PASS_DAYS), {}, 4)).json()) as { table: { columnNames: string[]; rows: unknown[][] } };
+    parts.push(erddapToGrid(body.table, -2, 40, { value: 'sea_surface_temperature', dtime: 'sst_dtime' }));
+  }
+  const grid = parts[0].grid;
+  if (parts.some((p) => p.grid.cols !== grid.cols || p.grid.rows !== grid.rows)) throw new Error('sst-pass: day and night grids differ');
+  const passes = parts.flatMap((p, k) => p.frames.map((f, i) => ({ f, ms: p.passMs[i], id: ids[k] }))).sort((a, b) => a.ms - b.ms);
+  const size = writeSeries(dir, {
+    feed: 'sst-pass', kind: 'observed', fetchedAt: new Date().toISOString(), grid, times: passes.map((p) => p.ms), seaCells: seaCount(grid),
+    vars: [{ name: 'sst', unit: '°C', scale: 0.01, offset: 0 }],
+    sources: passes.map((p) => ({ id: p.id, name: p.id.endsWith('Day') ? 'ACSPO L3S SST, afternoon pass' : 'ACSPO L3S SST, night pass', fromMs: p.ms, toMs: p.ms })),
+    licence: LICENCE,
+  }, { sst: passes.map((p) => p.f) });
+  const clear = passes.map((p) => p.f.filter(Number.isFinite).length);
+  return `sst-pass: ${grid.cols}×${grid.rows}, ${passes.length} passes, clear cells ${clear.join('/')}, ${kb(size)}`;
+}
+
+export async function buildChlPass(dir: string): Promise<string> {
+  const id = 'noaacwN20VIIRSchlaDaily';
+  const body = (await (await get(passQuery(id, ['chlor_a'], DAYS, { altitude: true }), {}, 4)).json()) as { table: { columnNames: string[]; rows: unknown[][] } };
+  const g = erddapToGrid(body.table, 0.001, 100);
+  const times = g.times.map((t) => t + NOAA20_PASS_OFFSET_MS);
+  const size = writeSeries(dir, {
+    feed: 'chl-pass', kind: 'observed', fetchedAt: new Date().toISOString(), grid: g.grid, times, seaCells: seaCount(g.grid),
+    vars: [{ name: 'chl', unit: 'mg/m³', scale: 0.002, offset: 0 }],
+    sources: span(id, 'NOAA-20 VIIRS chlorophyll-a, NRT 4 km (nominal 13:25 local pass)', times), licence: LICENCE,
+  }, { chl: g.frames });
+  return `chl-pass: ${g.grid.cols}×${g.grid.rows}, ${times.length} passes, clear cells ${g.frames.map((f) => f.filter(Number.isFinite).length).join('/')}, ${kb(size)}`;
 }
