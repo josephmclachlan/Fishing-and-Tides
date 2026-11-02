@@ -101,3 +101,16 @@ export const LIVE_GAUGE = { code: 'limon', sensor: 'rad', mslOnSensorM: 6.6 } as
 
 /** Limón International airport, the only weather station on the coast with a public feed (METAR, daytime only). */
 export const METAR_STATION = { icao: 'MRLM', name: 'LIMÓN AIRPORT', lngLat: [-83.026, 9.961] as [number, number] } as const;
+
+/**
+ * Rivers whose plumes muddy the coast after rain (PLAN 6.1, DESIGN §6 dive row). Mouths from the
+ * OSM waterways (data/fishing/mouths.geojson); `rainAt` is a point inside each catchment where the
+ * clarity layer samples rainfall. Catchment areas are approximate published basin figures
+ * (Sixaola is binational with Panama), good to about 20%: they only scale the plume size.
+ */
+export const PLUME_RIVERS: { name: string; mouth: [number, number]; catchmentKm2: number; rainAt: [number, number] }[] = [
+  { name: 'RÍO SIXAOLA', mouth: [-82.5649, 9.5724], catchmentKm2: 2890, rainAt: [-82.95, 9.45] },
+  { name: 'RÍO ESTRELLA', mouth: [-82.8922, 9.7927], catchmentKm2: 1000, rainAt: [-83.1, 9.68] },
+  { name: 'RÍO BANANO', mouth: [-82.9951, 9.9208], catchmentKm2: 210, rainAt: [-83.12, 9.88] },
+  { name: 'RÍO BANANITO', mouth: [-82.9573, 9.874], catchmentKm2: 110, rainAt: [-83.12, 9.88] },
+];
