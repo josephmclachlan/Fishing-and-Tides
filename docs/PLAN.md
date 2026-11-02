@@ -20,6 +20,8 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [ ] 2.5 Copernicus/HYCOM currents adapter (**S**)
 - [x] 2.6 GEBCO bathymetry clipped to region, packed as a tile/grid asset, plus reefs, seamarks and a depth layer (**S**)
 - [ ] 2.7 UHSLC Limón gauge fetch for tide validation (**S**)
+- [ ] 2.8 Verify tool, automatic: scheduled daily GitHub Action runs one check per adapter (reachability, freshness, schema, physical ranges, cross-source agreement) and opens or updates an issue on failure; checks live in `src/verify/`, shared with 2.9 (**O**, needs 2.1; grow it with each adapter)
+- [ ] 2.9 Verify tool, manual: SYSTEM CHECK HUD panel with a green/amber/red row per feed, the failing check and its age, and a re-run button (**S**, needs 2.8)
 
 ## Phase 3: Physics engine
 - [ ] 3.1 Tide harmonic predictor from TPXO/FES constituents, validated vs UHSLC (**O**)
@@ -55,3 +57,15 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [ ] 6.7 Anchorages and harbours layer: OSM seamarks, NGA World Port Index, shelter from wind direction (**S**)
 - [ ] 6.8 Spearfishing and protected-area rules: SINAC/INCOPESCA zones, closed seasons, rules card per zone (**S**, extends 4.3)
 - [ ] 6.9 Register wind, currents and waves with the layer store when the particle layer lands (**S**, needs 1.4)
+
+## Phase 7: Final additions (see DESIGN.md sections 9 and 10)
+Built last, once Phases 2 to 6 are in. Each reuses the adapters, the layer registry and the SYSTEM CHECK panel.
+- [ ] 7.1 Sargassum/seaweed layer: ingest satellite detections (USF SaWS AFAI, NOAA AOML Sargassum Inundation Report) and advect the mats with currents, Stokes drift and about 1 to 3% of wind, giving a 1 to 5 day beaching forecast per beach (**O**, needs 1.4, 2.5, 2.3)
+- [ ] 7.2 Water clarity predictions: forecast visibility a few days ahead from Kd490, chlorophyll and turbidity trends, river plume transport after rain (Sixaola, Estrella, Banano) and swell resuspension, with a confidence band (**O**, extends 6.1, needs 2.2)
+- [ ] 7.3 Weather adapters: GFS, ECMWF and ICON via Open-Meteo for rain, cloud, UV and temperature, plus the NHC feeds (active storms, forecast cone) (**S**, needs 2.1)
+- [ ] 7.4 Ensemble blend with local bias correction: weight the models per variable by their recent error against the Limón gauge, nearby stations and buoys, and report spread as a confidence value (**O**, needs 7.3)
+- [ ] 7.5 Weather tracker UI: rain radar and accumulation, cloud, sun/UV index, and hurricane tracks with cone and wind radii, as layers and an alert-strip feed (**S**, needs 7.3)
+- [ ] 7.6 Lightning alerts: GOES GLM strike layer plus a "strike within N km" warning in the alert strip (**S**, needs 2.1)
+- [ ] 7.7 Sun, moon and solunar: sunrise/sunset, golden hour, moon phase and rise/set, solunar windows, computed on device so they work offline (**O**, pure physics module with tests)
+- [ ] 7.8 Go/no-go verdict per activity (Fishing, Diving/Snorkel/Spear, Surfing, Sailing): combine the activity's inputs into GO, MARGINAL or NO-GO with the top reasons, shown on the HUD and in each preset (**O**, needs 3.5, 6.2, 6.3, 6.6, 7.2, 7.4, 7.6)
+- [ ] 7.9 Register the new layers (sargassum, weather, lightning) and offline-sync them; add their feeds to the verify checks (**S**, needs 5.1, 2.8)

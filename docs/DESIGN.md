@@ -110,3 +110,32 @@ Retrofuturistic HUD in the Evangelion / NASA mission-control vein:
 - Thin bordered panels with corner brackets, hazard stripes for alerts.
 - Animated wind and current particles (WebGL), subtle flicker on state changes.
 - Must stay readable in sunlight on a phone: high contrast, large hit targets.
+
+## 9. Final additions
+
+Built after the core app (PLAN Phase 7).
+
+- **Sargassum/seaweed.** Satellite detections (USF SaWS AFAI, NOAA AOML Sargassum Inundation Report) give where the mats are now; we move them forward with currents, Stokes drift and a small wind term (about 1 to 3%) to forecast beaching per beach over 1 to 5 days. Satellite gaps under cloud are shown as unknown, not clear.
+- **Water clarity predictions.** Extends the Phase 6 clarity layer from "now" to a few days ahead: Kd490, chlorophyll and turbidity trends, river plume transport after rain, and swell resuspension. Shown with a confidence band.
+- **Weather tracker.** Rain, cloud, sun/UV, temperature, and hurricanes from the NHC. We do not run our own weather model; we blend GFS, ECMWF and ICON (Open-Meteo) per variable, weighting each by its recent error against local stations, the Limón gauge and buoys, and show model spread as confidence.
+- **Lightning.** GOES GLM strikes drawn as a layer, with an alert-strip warning when a strike is within a set distance.
+- **Sun, moon, solunar.** Sunrise/sunset, golden hour, moon phase and rise/set, and solunar windows, computed on device so they work offline.
+- **Go/no-go verdict.** Per activity (Fishing, Diving/Snorkel/Spear, Surfing, Sailing), the inputs from section 6 are combined into GO, MARGINAL or NO-GO with the top two or three reasons ("surge high, visibility 3 m"). Advisory only, not for navigation or safety decisions.
+
+## 10. Verify tool (SYSTEM CHECK)
+
+Every feed can silently break (API change, outage, stale data, bad units), so each adapter ships with a check, built alongside the Phase 2 adapters. A check covers:
+
+1. **Reachability:** the source responds.
+2. **Freshness:** `fetchedAt` and the data's own timestamp are within the source's expected cadence.
+3. **Schema:** the response parses into the adapter's expected shape.
+4. **Physical ranges:** values are plausible for the region (for example Hs 0 to 8 m, SST 24 to 32 °C, tide amplitude under 1 m).
+5. **Cross-source agreement:** where two sources measure the same thing (Open-Meteo vs WaveWatch III waves, modelled tide vs UHSLC gauge, GFS vs ECMWF wind), flag disagreement beyond a tolerance.
+
+It runs two ways from the same code in `src/verify/`:
+
+- **Automatic:** a scheduled GitHub Action (daily) runs every check and opens, or updates, a GitHub issue naming the failing feed and check; it closes the issue when the feeds recover.
+- **Manual:** a SYSTEM CHECK HUD panel lists every feed with a green (pass), amber (degraded: stale or sources disagree) or red (failed) lamp, the failing check, and the data age, with a re-run button. Offline, it shows the last result and its age instead of failing.
+
+Each new adapter adds its checks; a PR that adds an adapter without them is incomplete.
+
