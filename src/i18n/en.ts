@@ -350,6 +350,15 @@ export const en = {
 
   // Harbours and anchorages (PLAN 6.7)
   'layer.weather': 'WEATHER',
+  'wx.gust': 'GUSTS',
+  'wx.cape': 'CAPE',
+  'wx.squall': 'SQUALL 6H',
+  'wx.squall.none': 'LOW',
+  'wx.squall.watch': 'WATCH',
+  'wx.squall.high': 'HIGH',
+  'wx.alertSquall': 'SQUALL WATCH: UNSTABLE AIR, GUSTS OR HEAVY RAIN LIKELY',
+  'wx.alertSquallHigh': 'SQUALL RISK HIGH: STRONG THUNDERSTORMS POSSIBLE',
+  'unit.jkg': 'J/KG',
   'wx.title': 'WEATHER',
   'wx.rain': 'RAIN NOW',
   'wx.rain24': 'RAIN 24H',

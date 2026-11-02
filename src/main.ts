@@ -14,6 +14,8 @@ import { mountSurfHud } from './surf-hud';
 import { mountLightningHud } from './lightning-hud';
 import { mountLightning } from './layers/lightning';
 import { fetchLightning } from './adapters/lightning';
+import { crestGrid } from './waves-lines';
+import { mountWavesLayer } from './layers/waves';
 import { mountWeatherHud } from './weather-hud';
 import { mountStorms } from './layers/storms';
 import { fetchWeather } from './adapters/weather';
@@ -122,10 +124,15 @@ const baseConditions = () => {
 // Real waves once loaded (forecast to day 16, then climatology); the mock swell until then.
 let waves: WavesData | null = null;
 const seaStateAt = (lng: number, lat: number): SeaState | null => (waves ? wavesAt(waves, time.band(), time.validMs(), lng, lat) : null);
+// Wave crest lines (PLAN 6.9): rebuilt for the slider's valid time, when waves load and when the coastline mask arrives.
+const wavesLayer = mountWavesLayer(map);
+let waterMask: ((lng: number, lat: number) => boolean) | undefined;
+const rebuildCrests = () => wavesLayer.setCrests(waves ? crestGrid(REGION.bounds, 0.04, seaStateAt, waterMask) : []);
 fetchWaves()
   .then((d) => {
     if (!d.forecast && !d.climatology) return console.warn('waves: no forecast or climatology published; using mock');
     waves = d;
+    rebuildCrests();
     queueSpotPhysics();
   })
   .catch((err) => console.warn('waves unavailable', err));
@@ -204,6 +211,7 @@ time.subscribe(() => {
     flow?.setSource('wind', flowSources.wind);
     flow?.setSource('current', flowSources.current);
     flowHud?.refresh();
+    rebuildCrests();
   });
 });
 
@@ -307,7 +315,9 @@ fetchSeafloor()
       })
       .catch((err) => console.warn('fishing layer unavailable', err));
     // Currents stay in the sea once the coastline mask is here.
-    const current = { ...flowSources.current, water: (lng: number, lat: number) => isWater(data.land, data.macro, lng, lat) };
+    waterMask = (lng, lat) => isWater(data.land, data.macro, lng, lat);
+    rebuildCrests();
+    const current = { ...flowSources.current, water: waterMask };
     flowSources.current = current;
     flow?.setSource('current', current);
     flowHud?.refresh();
