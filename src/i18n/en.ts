@@ -17,6 +17,10 @@ export const en = {
   'hud.syncTitle': 'Full offline download arrives in PLAN 5.1',
   'hud.syncSoon': 'SYNC: PHASE 5',
   'hud.alertRip': 'HIGH RIP CURRENT RISK',
+  'sheet.find': 'FIND',
+  'sheet.cond': 'COND',
+  'sheet.time': 'TIME',
+  'ui.close': 'Close',
 
   // Conditions panel
   'cond.title': 'CONDITIONS',
@@ -215,7 +219,7 @@ export const en = {
   'settings.enhance': 'ENHANCE',
   'settings.on': 'ON',
   'settings.off': 'OFF',
-  'settings.enhanceTitle': 'ENHANCE fly-to effect: on plays the satellite zoom, off flies smoothly',
+  'settings.enhanceTitle': 'ENHANCE fly-to effect: on plays the satellite zoom, off flies the same route with smooth moves only',
 } as const;
 
 export type Key = keyof typeof en;

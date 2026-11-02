@@ -7,7 +7,7 @@ export function mountSettingsUi(root: HTMLElement, settings: Settings) {
   btn.type = 'button';
   btn.className = 'tab enh-toggle';
   btn.title = t('settings.enhanceTitle');
-  root.querySelector('.top')?.appendChild(btn);
+  root.querySelector('.top-tabs')?.appendChild(btn);
 
   const render = () => {
     const on = settings.enhance();

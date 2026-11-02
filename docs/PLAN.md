@@ -11,11 +11,12 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 1.6 Deploy to GitHub Pages on merge to main (**S**)
 - [x] 1.7 "Enhance" fly-to: pick a beach or coordinate (search box or spot tab) and, from a zoomed-out view, box the target, highlight it, zoom in, resolve block by block, then box again, repeating in 2 to 4 hops until on the beach or ocean point (**O**)
 - [x] 1.8 Layer registry, LAYERS drawer and activity presets (FISH, DIVE, SURF, SAIL, ALL) (**S**)
-- [x] 1.9 ENHANCE on/off toggle (settings, persisted on the device): off replaces the pull-back, box, pixel resolve and stepped zoom with one continuous eased fly-to that pans and zooms together, with finer data fading in as the zoom tiers are crossed; no pixelation, reticle flashes or discrete jumps (**S**, extends 1.3, 1.7)
+- [x] 1.9 ENHANCE on/off toggle (settings, persisted on the device): off keeps the zoom out, pan, zoom in route but as three smooth eased moves, with finer data fading in as the zoom tiers are crossed; no pixelation, reticle flashes or discrete jumps (see 1.11) (**S**, extends 1.3, 1.7)
 - [x] 1.10 i18n scaffold, do early: a small `t(key)` helper with `src/i18n/en.ts`, and move every existing UI string (labels, alerts, layer names, presets, panel text) into it, so all new UI text is translatable from the start; no hard-coded user-facing strings in new code (**S**)
+- [x] 1.11 Phone HUD as drawers (top bar tabs FIND / COND / LAYERS, bottom time strip), LAYERS drawer that always closes (tab, X, map tap, Esc), ENHANCE off keeps the zoom out, pan, zoom in route as smooth moves, map bounds widened past the analysed area (**S**, fixes 1.5, 1.8, 1.9)
 
 ## Phase 2: Data adapters
-- [ ] 2.1 Adapter interface, cache layer, data-age tracking (**O**)
+- [x] 2.1 Adapter interface, cache layer, data-age tracking (**O**)
 - [ ] 2.2 Open-Meteo Marine adapter (waves, swell) (**S**)
 - [ ] 2.3 Open-Meteo wind adapter (GFS/ECMWF) (**S**)
 - [ ] 2.4 CoastWatch ERDDAP adapter: SST and chlorophyll (**S**)
@@ -31,7 +32,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 
 ## Phase 3: Physics engine
 - [x] 3.1 Tide harmonic predictor, validated vs UHSLC (**O**). Constants fitted to the Limón gauge itself; see `docs/TIDES.md`
-- [ ] 3.2 Dispersion solver and shoaling (**O**)
+- [x] 3.2 Dispersion solver and shoaling (**O**). `src/physics/waves.ts`
 - [ ] 3.3 Refraction ray tracing over bathymetry (**O**)
 - [ ] 3.4 Breaking height, breaker type, wave energy and force (**O**)
 - [ ] 3.5 Rip risk score with length/strength band (**O**)

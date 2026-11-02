@@ -23,7 +23,7 @@ Tides here are small (microtidal, under about 0.5 m), so tide *timing* matters m
 | Species | OBIS, GBIF | Occurrence records to fit habitat models |
 | Fishing pressure | Global Fishing Watch | Vessel activity, offshore corridors |
 
-All network calls go through one adapter module per source, behind a small cache (edge function or static prebuilt JSON) so the client never hammers upstream APIs.
+All network calls go through one adapter module per source, behind a small cache so the client never hammers upstream APIs: gridded forecasts are fetched by a scheduled data build and published as static packed files, and live point readings use an offline-first fetch helper. See `docs/DATA.md`.
 
 ## 3. Physics
 
@@ -57,13 +57,28 @@ Scrolling or pinching across a tier only reveals or hides detail (grids, coastli
 
 The **military-satellite zoom effect** (scanline sweep, pixelation that sharpens as it "locks on" with square cells resolving one by one in random order, targeting reticle, live lat/lon/altitude readouts) plays only when a target is picked, as part of the enhance fly-to below. It runs slowly on purpose so it reads as a sensor working rather than the page breaking, and motion follows one rule: smooth moves cover ground already known (the pull-back and the pan that centres the target), stepped moves (discrete jumps, like old tracking optics) mean new detail is loading (every zoom in). The map stays north-up and top-down (rotate and tilt are off). Touching the map cancels it.
 
-**ENHANCE toggle.** A setting (on by default, remembered on the device) turns the whole enhance system off. When off, picking a beach or coordinate flies there in one continuous, eased move that pans and zooms together at a comfortable pace, with no pixelation, reticle boxes or stepped zooms. Finer detail (grids, coastline glow, labels, spot data) fades in smoothly as the zoom crosses each tier, so the trip still feels alive and the detail still builds as you get closer.
+**ENHANCE toggle.** A setting (on by default, remembered on the device) turns the whole enhance effect off. When off, picking a beach or coordinate still makes the same journey as ENHANCE on: a smooth zoom out to the wide view, a smooth pan to centre the target, then a smooth zoom in. Each leg is one eased move. What is dropped is the effect: no scanline sweep or reticle overlay, no flashing box, no pixelation and no stepped zoom. Finer detail (grids, coastline glow, labels, spot data) fades in smoothly as the zoom crosses each tier, so the trip still feels alive and the detail still builds as you get closer.
+
+**Map limits.** The camera may pan and pinch out well past the analysed area (`REGION.viewBounds`, several degrees beyond `REGION.maxBounds` on every side), so zooming out never hits a wall at Panama or Nicaragua; it only stops at a wide view of the whole western Caribbean.
 
 **Enhance fly-to** (80s action-movie "enhance"): searching or tapping a beach or coordinate (spot tabs, or a search box taking a beach name, decimal degrees or degrees + decimal minutes) first pulls smoothly all the way back to the wide view (the whole region on screen) without panning, then flashes a box over the target where it sits, smoothly pans to centre it under the crosshair, and steps into the box, and the picture breaks into pixels in proportion to the zoom: sharp when the hop starts, blocks growing as it zooms (anchored on the target so the coastline outline stays readable), coarsest on arrival, then resolving piece by piece. Once clear, a smaller box is drawn and the sequence repeats, about one hop per zoom tier (2 to 4 hops), until it lands on the beach or ocean point.
 
+## 5b. Phone layout
+
+On a phone the map comes first. Only two HUD pieces stay on screen: the top bar (title, tier, UTC clock and a row of tabs: ENHANCE, LAYERS, FIND, COND) and a bottom strip (the chosen forecast hour plus swell, wind and tide). Everything else is a **drawer** that stays closed until its tab is tapped:
+
+| Tab | Drawer |
+|---|---|
+| FIND | Beach and coordinate search with the spot tabs; closes itself when a target is picked so the fly-to is in full view |
+| COND | Conditions, seafloor, target and zone readouts |
+| LAYERS | Activity presets and layer toggles |
+| Bottom strip (tap, chevron points up) | Forecast time slider, step and play buttons, lat/lon/altitude, data age, SYNC FOR TRIP |
+
+One drawer is open at a time. A drawer closes from its own tab or strip (tap again), its X, a tap on the map (a drag or pinch leaves it open, so the readouts can be watched while panning), or Esc. Drawers sit between the top bar and the bottom strip, so a tab is never covered. Wide screens keep the full layout with the LAYERS drawer open and the same close controls. Code: `src/sheets.ts`.
+
 ## 6. Layers and activity modes
 
-Everything is a **layer** you can switch on or off from the LAYERS drawer (top bar on phones, right side on wider screens): waves/swell, currents, wind, water temp, clarity, rip risk, surf breaks, depth, reefs, seamarks, fishing, protected zones, anchorages. The default is ALL. One tap on an **activity** preset (FISH, DIVE, SURF, SAIL) switches on just the layers that activity needs; tapping the active preset again, or ALL, brings everything back. Toggling a single layer by hand leaves the preset (the header reads CUSTOM) and returns to the preset's name if the set matches again. Choices persist on the device. Layers whose data isn't built yet show SOON.
+Everything is a **layer** you can switch on or off from the LAYERS drawer (a tab in the top bar on phones, right side on wider screens): waves/swell, currents, wind, water temp, clarity, rip risk, surf breaks, depth, reefs, seamarks, fishing, protected zones, anchorages. The default is ALL. One tap on an **activity** preset (FISH, DIVE, SURF, SAIL) switches on just the layers that activity needs; tapping the active preset again, or ALL, brings everything back. Toggling a single layer by hand leaves the preset (the header reads CUSTOM) and returns to the preset's name if the set matches again. Choices persist on the device. Layers whose data isn't built yet show SOON.
 
 | Preset | Layers on |
 |---|---|

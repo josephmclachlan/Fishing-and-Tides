@@ -15,11 +15,12 @@ const pad3 = (n: number) => String(Math.round(n) % 360).padStart(3, '0');
 export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions) {
   root.innerHTML = `
     <header class="panel top">
-      <div class="title"><span class="blink">◉</span> FISHING&amp;TIDES <span class="dim">// ${REGION.name}</span></div>
+      <div class="title"><span class="blink">◉</span> FISHING&amp;TIDES <span class="dim wide-only">// ${REGION.name}</span></div>
       <div class="ro"><span class="lbl">${t('hud.tier')}</span><span class="seg green" id="tier">--</span></div>
       <div class="ro"><span class="lbl">${t('hud.utc')}</span><span class="seg" id="clock">--:--:--</span></div>
+      <div class="top-tabs"></div>
     </header>
-    <aside class="panel side">
+    <aside class="panel side" id="cond-panel">
       ${panelHeader(t('cond.title'), t('cond.mock'))}
       ${readout(t('cond.swell'), 'swell', t('unit.m'))}
       ${readout(t('cond.period'), 'period', t('unit.s'))}
@@ -39,12 +40,21 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions)
       )}
     </aside>
     <footer class="panel bottom">
+      <button type="button" class="dock-bar" id="dock-bar" aria-controls="dock-body" aria-expanded="false" title="${t('sheet.time')}">
+        <span class="dock-chev" aria-hidden="true"></span>
+        <span class="ro d-time"><span class="seg" id="d-off">--</span><span class="seg green" id="d-valid">--</span></span>
+        <span class="ro"><span class="lbl">${t('cond.swell')}</span><span class="seg" id="d-swell">--</span></span>
+        <span class="ro"><span class="lbl">${t('cond.wind')}</span><span class="seg" id="d-wind">--</span></span>
+        <span class="ro"><span class="lbl">${t('cond.tide')}</span><span class="seg" id="d-tide">--</span></span>
+      </button>
+      <div class="dock-body" id="dock-body">
       <div class="ro"><span class="lbl">${t('hud.lat')}</span><span class="seg green" id="lat">--</span></div>
       <div class="ro"><span class="lbl">${t('hud.lon')}</span><span class="seg green" id="lon">--</span></div>
       <div class="ro wide-only"><span class="lbl">${t('hud.zoom')}</span><span class="seg green" id="zoom">--</span></div>
       <div class="ro"><span class="lbl">${t('hud.alt')}</span><span class="seg green" id="alt">--</span></div>
       <div class="ro"><span class="lbl">${t('hud.dataAge')}</span><span class="seg" id="age">--</span></div>
       <button id="sync" class="btn" title="${t('hud.syncTitle')}">${t('hud.sync')}</button>
+      </div>
     </footer>
     ${alertStrip('alert')}
     <div class="reticle" aria-hidden="true"></div>`;
@@ -71,13 +81,13 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions)
   const tick = () => {
     const d = getData();
     $('clock').textContent = new Date().toISOString().slice(11, 19);
-    $('swell').textContent = fmt(d.swellHeightM);
+    $('swell').textContent = $('d-swell').textContent = fmt(d.swellHeightM);
     $('period').textContent = fmt(d.swellPeriodS, 0);
     $('sdir').textContent = pad3(d.swellDirDeg);
-    $('wind').textContent = fmt(d.windKt, 0);
+    $('wind').textContent = $('d-wind').textContent = fmt(d.windKt, 0);
     $('wdir').textContent = pad3(d.windDirDeg);
     $('sst').textContent = fmt(d.waterTempC);
-    $('tide').textContent = (d.tideM >= 0 ? '+' : '') + fmt(d.tideM, 2) + (d.tideRising ? '▲' : '▼');
+    $('tide').textContent = $('d-tide').textContent = (d.tideM >= 0 ? '+' : '') + fmt(d.tideM, 2) + (d.tideRising ? '▲' : '▼');
     const rip = $('rip');
     rip.textContent = t(`rip.${d.ripRisk}` as Key);
     rip.className = 'seg ' + (d.ripRisk === 'HIGH' ? 'red' : d.ripRisk === 'MOD' ? '' : 'green');

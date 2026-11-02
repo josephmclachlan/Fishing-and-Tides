@@ -20,6 +20,8 @@ export default defineConfig({
       workbox: {
         // Seafloor grids and reef/seamark GeoJSON (public/data/seafloor) are precached so depth works offline.
         globPatterns: ['**/*.{js,mjs,css,html,svg,woff,woff2,json,geojson,i16,u8,rle16}'],
+        // Forecast grids change every few hours; src/adapters/cache.ts keeps their offline copy (docs/DATA.md).
+        globIgnores: ['**/data/forecast/**'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         // Map tiles/styles cached as you browse; full region pre-download comes with "Sync for trip" (PLAN 5.1).
         runtimeCaching: [

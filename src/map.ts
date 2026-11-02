@@ -51,7 +51,7 @@ function addTierLayers(map: Map) {
     });
     map.addLayer({ id, type: 'line', source: id, minzoom, maxzoom, paint: { 'line-color': '#ffb000', 'line-width': 0.6, 'line-opacity': opacity } }, firstSymbolId(map));
   };
-  grid('grat-macro', REGION.maxBounds, GRATICULE_STEP.MACRO, byTier(0.3, 0, 0), 0, COAST + 0.5);
+  grid('grat-macro', REGION.viewBounds, GRATICULE_STEP.MACRO, byTier(0.3, 0, 0), 0, COAST + 0.5);
   grid('grat-coast', REGION.maxBounds, GRATICULE_STEP.COAST, byTier(0, 0.16, 0), COAST - 0.5, SPOT + 0.5);
   grid('grat-spot', REGION.bounds, GRATICULE_STEP.SPOT, byTier(0, 0, 0.2), SPOT - 0.5);
 
@@ -124,7 +124,7 @@ export function createMap(container: string): Map {
     style: STYLE_URL,
     center: REGION.center,
     zoom: REGION.initialZoom,
-    maxBounds: REGION.maxBounds,
+    maxBounds: REGION.viewBounds,
     attributionControl: { compact: true },
     // North-up, top-down only: a satellite sensor view. Also keeps an accidental two-finger
     // twist from skewing the grid and the enhance box.

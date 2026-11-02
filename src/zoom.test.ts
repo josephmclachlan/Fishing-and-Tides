@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LOCK_STEPS, plainFlyMs, MAX_BLOCK, RESOLVE_CELL_PX, cellBlockAt, nextTier, pixelBlockAt, planHops, tierDirection, steppedEase, zoomBlock, zoomOutToFit } from './zoom';
+import { LOCK_STEPS, plainPanMs, plainZoomMs, MAX_BLOCK, RESOLVE_CELL_PX, cellBlockAt, nextTier, pixelBlockAt, planHops, tierDirection, steppedEase, zoomBlock, zoomOutToFit } from './zoom';
 
 describe('nextTier', () => {
   it('switches tiers once zoom clears the edge by the hysteresis band', () => {
@@ -113,11 +113,16 @@ describe('steppedEase', () => {
   });
 });
 
-describe('plainFlyMs', () => {
-  it('grows with distance and zoom change, within clamps', () => {
-    expect(plainFlyMs(0, 0)).toBe(2000);
-    expect(plainFlyMs(10_000, 2)).toBeGreaterThan(plainFlyMs(10_000, 0));
-    expect(plainFlyMs(60_000, 3)).toBeGreaterThan(plainFlyMs(1_000, 3));
-    expect(plainFlyMs(1e9, 20)).toBe(6000);
+describe('plain leg durations (ENHANCE off)', () => {
+  it('pan time grows with distance, within bounds', () => {
+    expect(plainPanMs(0)).toBe(1000);
+    expect(plainPanMs(60_000)).toBeGreaterThan(plainPanMs(1_000));
+    expect(plainPanMs(1e9)).toBe(2800);
+  });
+  it('zoom time grows with zoom levels crossed, within bounds', () => {
+    expect(plainZoomMs(0)).toBe(1500);
+    expect(plainZoomMs(5)).toBeGreaterThan(plainZoomMs(2));
+    expect(plainZoomMs(-5)).toBe(plainZoomMs(5));
+    expect(plainZoomMs(50)).toBe(4500);
   });
 });
