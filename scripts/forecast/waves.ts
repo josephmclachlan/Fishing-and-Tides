@@ -44,7 +44,12 @@ export async function buildWaves(dir: string): Promise<string> {
     keep.forEach((ti, k) => {
       const m = MODELS.findIndex((mm) => p.hourly[`wave_height_${mm.id}`]?.[ti] != null);
       if (m < 0) return;
-      const g = (v: string) => p.hourly[`${v}_${MODELS[m].id}`]?.[ti] ?? NaN;
+      // Models report a 0 s period where there are no waves of that kind (sheltered cells, no wind
+      // sea); that is "no period", not a period of zero.
+      const g = (v: string) => {
+        const x = p.hourly[`${v}_${MODELS[m].id}`]?.[ti] ?? NaN;
+        return v.endsWith('_period') && !(x > 0) ? NaN : x;
+      };
       span[m][0] = Math.min(span[m][0], allTimes[ti]);
       span[m][1] = Math.max(span[m][1], allTimes[ti]);
       const [du, dv] = unitFrom(g('wave_direction'));

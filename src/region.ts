@@ -9,9 +9,17 @@ export const REGION = {
   // zooming out never hits a wall (the camera only stops well beyond the analysed area).
   viewBounds: [[-90, 4.5], [-75, 16]] as [[number, number], [number, number]],
   initialZoom: 9.3,
+  /** Costa Rica is UTC-6 all year (no daylight saving). Used for local sun, moon and solunar days. */
+  tzOffsetH: -6,
 };
 
 /** Zoom tiers from DESIGN.md §5: MACRO below COAST, COAST from 8, SPOT from 12. */
+/** Box the lightning collector keeps flashes from: the region plus 3° (~330 km) so storms can be seen coming. [[west, south], [east, north]] */
+export const LIGHTNING_BOUNDS: [[number, number], [number, number]] = [
+  [REGION.bounds[0][0] - 3, REGION.bounds[0][1] - 3],
+  [REGION.bounds[1][0] + 3, REGION.bounds[1][1] + 3],
+];
+
 export type Tier = 'MACRO' | 'COAST' | 'SPOT';
 export const TIERS: readonly Tier[] = ['MACRO', 'COAST', 'SPOT'];
 export const TIER_ZOOM = { COAST: 8, SPOT: 12 } as const;
@@ -82,3 +90,14 @@ export const MOCK_FLOW = {
  * Its harmonics (src/data/tides-limon.ts) are used for the whole Gandoca–Limón stretch; see docs/TIDES.md.
  */
 export const TIDE_STATION = { name: 'LIMÓN', uhslc: 268, lngLat: [-83.02038, 9.9887] as [number, number] } as const;
+
+/**
+ * The same gauge live on IOC Sea Level Monitoring (PLAN 2.11, docs/OBSERVATIONS.md): code `limon`,
+ * radar sensor `rad`, 1-minute samples. Its radar zero sits 5.990 m below UHSLC's (fitted
+ * 2026-09-20..30, r = 0.999), and UHSLC's mean sea level was 0.61 m in 2025–26 (fit trend
+ * included), so mean sea level reads 6.60 m on the radar. Verify flags drift from that.
+ */
+export const LIVE_GAUGE = { code: 'limon', sensor: 'rad', mslOnSensorM: 6.6 } as const;
+
+/** Limón International airport, the only weather station on the coast with a public feed (METAR, daytime only). */
+export const METAR_STATION = { icao: 'MRLM', name: 'LIMÓN AIRPORT', lngLat: [-83.026, 9.961] as [number, number] } as const;

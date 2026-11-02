@@ -10,11 +10,15 @@ import { mountSeek } from './seek';
 import { createSettings, safeSession, safeStorage, takeView } from './settings';
 import { mountSurfBreaks } from './layers/surf-breaks';
 import { mountSurfHud } from './surf-hud';
+import { mountLightningHud } from './lightning-hud';
+import { mountLightning } from './layers/lightning';
+import { fetchLightning } from './adapters/lightning';
 import { mountWeatherHud } from './weather-hud';
 import { mountStorms } from './layers/storms';
 import { fetchWeather } from './adapters/weather';
 import { fetchStorms } from './adapters/storms';
 import { mountSeaStateHud } from './sea-state-hud';
+import { mountAstroHud } from './astro-hud';
 import { mountHarbours } from './layers/harbours';
 import { mountHarboursHud } from './harbours-hud';
 import type { Grid } from './physics/bathy';
@@ -126,7 +130,8 @@ fetchWaves()
 // DATA AGE and connectivity for the HUD (PLAN 5.2).
 const net = createNet();
 let weatherHud: ReturnType<typeof mountWeatherHud> = null;
-mountHud(hud, map, conditionsAt, { age: () => describeAge(dataAge.oldest(), Date.now()), online: net.online, alerts: () => weatherHud?.alerts() ?? [] });
+let lightningHud: ReturnType<typeof mountLightningHud> = null;
+mountHud(hud, map, conditionsAt, { age: () => describeAge(dataAge.oldest(), Date.now()), online: net.online, alerts: () => [...(weatherHud?.alerts() ?? []), ...(lightningHud?.alerts() ?? [])] });
 mountTimeSlider(hud, time);
 // The lock-on effect plays only for a picked target, never on scroll/pinch zoom.
 const enhancer = createEnhancer(map, createLockFx(map, hud), settings.enhance);
@@ -148,8 +153,22 @@ mountSeaStateHud(hud, conditionsAt);
 weatherHud = mountWeatherHud(hud, { validMs: () => time.validMs() });
 time.subscribe(() => weatherHud?.refresh());
 const stormLayer = mountStorms(map);
+// Lightning (PLAN 7.6): GOES GLM flashes from the collector workflow, refreshed every 5 minutes.
+lightningHud = mountLightningHud(hud, map);
+const lightningLayer = mountLightning(map);
+const loadLightning = () =>
+  fetchLightning()
+    .then((d) => {
+      if (!d) return lightningHud?.setFailed();
+      lightningLayer.setFlashes(d.flashes);
+      lightningHud?.setFlashes(d.flashes, d.fetchedAt);
+    })
+    .catch((err) => (console.warn('lightning unavailable', err), lightningHud?.setFailed()));
+loadLightning();
+setInterval(loadLightning, 5 * 60000);
 fetchWeather().then((d) => weatherHud?.setWeather(d)).catch((err) => console.warn('weather unavailable', err));
 fetchStorms().then((d) => (stormLayer.setStorms(d.storms), weatherHud?.setStorms(d.storms))).catch((err) => console.warn('storms unavailable', err));
+mountAstroHud(hud, map, time);
 mountHarbours(map);
 let landGrid: Grid | null = null;
 const harboursHud = mountHarboursHud(hud, map, { windFromDeg: () => conditionsAt().windDirDeg, land: () => landGrid });
