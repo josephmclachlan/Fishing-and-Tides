@@ -101,3 +101,23 @@ export function pickSeries(band: Band, ms: number, forecast?: GridSeries | null,
   if (covers(climatology)) return { series: climatology, kind: 'climatology' };
   return null;
 }
+
+/**
+ * Re-stamp a monthly climatology (12 frames, one per calendar month, any year) onto real
+ * dates around `ms`: the months of the previous, current and next year, so a 30-day outlook
+ * that crosses New Year still brackets. Frames are shared, not copied.
+ */
+export function projectMonthly(s: GridSeries, ms: number): GridSeries {
+  if (s.meta.times.length !== 12) throw new Error(`${s.meta.feed}: monthly climatology needs 12 frames, has ${s.meta.times.length}`);
+  const y = new Date(ms).getUTCFullYear();
+  const times: number[] = [];
+  const idx: number[] = [];
+  for (let yy = y - 1; yy <= y + 1; yy++)
+    for (let m = 0; m < 12; m++) {
+      times.push(Date.UTC(yy, m, 15, 12));
+      idx.push(m);
+    }
+  const values: Record<string, Float32Array[]> = {};
+  for (const k in s.values) values[k] = idx.map((m) => s.values[k][m]);
+  return { meta: { ...s.meta, times }, values };
+}

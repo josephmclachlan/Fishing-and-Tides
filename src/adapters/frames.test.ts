@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bracket, pickSeries, scalarAt, vectorAt } from './frames';
+import { bracket, pickSeries, projectMonthly, scalarAt, vectorAt } from './frames';
 import type { GridSeries } from './pack';
 
 const H = 3.6e6;
@@ -60,5 +60,18 @@ describe('pickSeries', () => {
   it('returns null when nothing covers the time', () => {
     expect(pickSeries('forecast', 2 * H, null, null)).toBeNull();
     expect(pickSeries('outlook', 2 * H, fc, null)).toBeNull();
+  });
+});
+
+describe('projectMonthly', () => {
+  it('re-stamps 12 months around the date and brackets across New Year', () => {
+    const months = series([...Array(12)].map((_, m) => Date.UTC(2000, m, 15, 12)), 'climatology');
+    const p = projectMonthly(months, Date.UTC(2026, 11, 20));
+    expect(p.meta.times).toHaveLength(36);
+    const b = bracket(p.meta.times, Date.UTC(2027, 0, 1))!;
+    // Between Dec (u = 11) and Jan (u = 0).
+    expect(p.values.u[b.i0][0]).toBe(11);
+    expect(p.values.u[b.i1][0]).toBe(0);
+    expect(p.values.u[b.i0]).toBe(months.values.u[11]);
   });
 });

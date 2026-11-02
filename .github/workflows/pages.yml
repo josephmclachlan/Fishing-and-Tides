@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Refresh the forecast grids (scripts/fetch-forecast.ts) after each model cycle lands.
+  schedule:
+    - cron: '17 */6 * * *'
 
 permissions:
   contents: read
@@ -24,9 +27,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run build
+      # Scheduled runs have no github.event.repository, so take the name from GITHUB_REPOSITORY.
+      - run: echo "BASE_PATH=/${GITHUB_REPOSITORY#*/}/" >> "$GITHUB_ENV"
+      # Fetch every forecast grid once for all users (docs/DATA.md). A failed feed keeps the
+      # previously published files, so the site still deploys and DATA AGE shows the age.
+      - run: npm run data:forecast
         env:
-          BASE_PATH: /${{ github.event.repository.name }}/
+          FALLBACK_URL: https://${{ github.repository_owner }}.github.io${{ env.BASE_PATH }}data/forecast/
+      - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
