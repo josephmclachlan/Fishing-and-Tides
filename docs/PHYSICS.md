@@ -60,3 +60,9 @@ A transparent score built on the drivers that the NWS rip current guidance, the 
 - **Length:** about 1.5 surf-zone widths offshore (surf zone = breaking depth / slope), 30 to 600 m. SHORT below 75 m, MEDIUM to 200 m, LONG above.
 
 Known rip channels per spot aren't in the data yet; `knownChannel` is ready for them when the surf break catalogue (6.4) adds local knowledge. The score is a guide, not a lifeguard: the HUD should always say so.
+
+## 3.6 Physics worker (`worker.ts`, `client.ts`, `spot-model.ts`)
+
+Spot refraction (70 to 300 ms) runs in a Web Worker. The main thread posts the seafloor grids once, then asks for a spot (pin, sea state, tide level, wind). `spot-model.ts` caches the spot geometry per pin and the refraction per period (0.5 s), direction (5°) and spread, so a change in height, tide or wind, or scrubbing the slider through hours with the same swell, only re-runs the breaker and rip formulas (well under a millisecond). The client keeps one request in flight and lets the newest waiting request replace older ones, so a fast scrub never builds a backlog. Without Worker support it runs the same model in-thread.
+
+The HUD's RIP readout now comes from this for the spot nearest the map centre, using the live tide and wind and, until the waves adapter (2.2) lands, the mock swell.
