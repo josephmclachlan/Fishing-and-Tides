@@ -23,6 +23,8 @@ export interface SpotState {
   name: string;
   pin: [number, number];
   result: SpotResult | null;
+  /** Offshore sea state the result was computed for. */
+  sea: { Hs: number; Tp: number; fromDeg: number };
   /** Surf quality (PLAN 6.3), for catalog breaks. */
   surf?: SurfQuality;
 }
@@ -63,7 +65,7 @@ export function createSpotPhysics(
           const surf = s.brk && r
             ? surfQuality({ brk: s.brk, Hb: r.waves.breaker.Hb, Tp: seas[i].Tp, swellFromDeg: seas[i].fromDeg, windMs: wind.speedMs, windFromDeg: wind.fromDeg })
             : undefined;
-          return { name: s.name, pin: s.lngLat, result: r, surf };
+          return { name: s.name, pin: s.lngLat, result: r, sea: seas[i], surf };
         });
         subs.forEach((fn) => fn());
       })
