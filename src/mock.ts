@@ -15,14 +15,21 @@ export interface Conditions {
   ripRisk: 'LOW' | 'MOD' | 'HIGH';
 }
 
-export function mockConditions(now = Date.now()): Conditions {
+/**
+ * `now` stamps the data age; `at` is the time being viewed (the PLAN 1.5 slider), default now.
+ * Wind and swell drift slowly with `at` so scrubbing the slider changes the readouts.
+ * `climatology` (the slider's OUTLOOK band) drops that drift: only the tide, which is
+ * harmonic, still varies, because nothing else is predictable that far out.
+ */
+export function mockConditions(now = Date.now(), at = now, climatology = false): Conditions {
   // Fake semidiurnal-ish tide so the readout moves.
-  const t = now / 3.6e6;
+  const t = at / 3.6e6;
+  const swell = 1.4 + (climatology ? 0 : 0.35) * Math.sin((2 * Math.PI * (t - now / 3.6e6)) / 40);
   const tide = 0.18 * Math.sin((2 * Math.PI * t) / 12.42) + 0.06 * Math.sin((2 * Math.PI * t) / 24);
   const tideNext = 0.18 * Math.sin((2 * Math.PI * (t + 0.1)) / 12.42) + 0.06 * Math.sin((2 * Math.PI * (t + 0.1)) / 24);
   return {
     fetchedAt: now - 3 * 3.6e6,
-    swellHeightM: 1.4,
+    swellHeightM: swell,
     swellPeriodS: 11,
     swellDirDeg: 40,
     windKt: 12,
@@ -43,26 +50,28 @@ const smoothstep = (a: number, b: number, x: number) => {
  * Mock wind field over the macro view (PLAN 1.4) until the wind adapter (PLAN 2.3).
  * North-east trades that strengthen toward the Caribbean low-level jet (north-east of the
  * view), ease toward the Pacific side, and meander a little; scaled so the field at
- * MOCK_FLOW.windRef matches the HUD's mock wind reading. `hour` shifts the pattern so the
- * time slider (PLAN 1.5) has something to scrub.
+ * MOCK_FLOW.windRef matches the HUD's mock wind reading at hour 0. `hour` (hours after NOW)
+ * shifts the pattern so the time slider (PLAN 1.5) has something to scrub.
  */
 export function mockWindField(hour = 0): VectorField {
   const [rx, ry] = MOCK_FLOW.windRef;
-  const raw = (lng: number, lat: number): [number, number] => [
-    Math.max(1, 6.2 + 1.2 * (lat - ry) + 0.6 * (lng - rx) + 0.9 * Math.sin(lng * 3.1 + lat * 2.3 + hour * 0.13) + 0.6 * Math.sin(lat * 5.3 - lng * 4.1 - hour * 0.21)),
-    14 * Math.sin(lng * 1.3 + lat * 0.9 + hour * 0.05) + 8 * Math.sin(lat * 2.1 - lng * 0.7 - hour * 0.08),
+  const raw = (lng: number, lat: number, h: number): [number, number] => [
+    Math.max(1, 6.2 + 1.2 * (lat - ry) + 0.6 * (lng - rx) + 0.9 * Math.sin(lng * 3.1 + lat * 2.3 + h * 0.13) + 0.6 * Math.sin(lat * 5.3 - lng * 4.1 - h * 0.21)),
+    14 * Math.sin(lng * 1.3 + lat * 0.9 + h * 0.05) + 8 * Math.sin(lat * 2.1 - lng * 0.7 - h * 0.08),
   ];
+  // Normalised at hour 0, so the reference point reads the HUD's mock wind at NOW and drifts after.
   const ref = mockConditions(0);
-  const [s0, d0] = raw(rx, ry);
+  const [s0, d0] = raw(rx, ry, 0);
   const scale = ref.windKt / KT_PER_MS / s0;
   return gridField(REGION.maxBounds, 0.1, (lng, lat) => {
-    const [s, d] = raw(lng, lat);
+    const [s, d] = raw(lng, lat, hour);
     return fromSpeedDir(s * scale, ref.windDirDeg + d - d0);
   });
 }
 
 /**
- * Mock surface current field (PLAN 1.4) until the currents adapter (PLAN 2.5). Not masked
+ * Mock surface current field (PLAN 1.4). `hour` is hours since the epoch, so the coastal jet's
+ * tide phase matches `mockConditions`' tide at the same instant (PLAN 1.5) until the currents adapter (PLAN 2.5). Not masked
  * to the sea: particles test the coastline themselves at full resolution.
  *  - Caribbean Current: westward across the north of the view, turning north-west near Nicaragua.
  *  - Panama–Colombia Gyre: anticlockwise, so near this coast the flow runs south-east.
