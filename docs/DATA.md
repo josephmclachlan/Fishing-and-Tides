@@ -61,9 +61,14 @@ A `Check` is `{ feed, kind, label, run() → { status, detail } }`, with `kind` 
 | `wind-clim` | `scripts/fetch-climatology.ts` | NOAA NCEI Blended Sea Surface Winds v2, monthly means 2015–2024 (ERDDAP) | Same grid, 12 months | ~20 KB | Static, committed, precached |
 | `waves` | `scripts/forecast/waves.ts` | Météo-France MFWAM (to ~day 9), then NOAA GFS-Wave 0.25° (to day 16), via Open-Meteo Marine | 0.25° grid, 518 sea points (land skipped using the GEBCO grid); 3-hourly; Hs, mean period, direction, primary swell (height, period, direction), wind sea (height, period) | ~520 KB | Every 12 h (MFWAM updates twice a day) |
 | `waves-clim` | `scripts/fetch-climatology.ts` | ERA5 ocean waves via Open-Meteo, days 8–21 of each month 2020–2024 | 1° grid at sea points, 12 months; Hs, mean period, direction only (no swell partitions in ERA5 there) | small | Static, committed, precached |
+| `storms` | `scripts/forecast/storms.ts` | NHC CurrentStorms.json (no CORS, so relayed) | Plain JSON: active Atlantic storms with position, wind, pressure, motion, advisory link; empty list in a quiet season | tiny | Every build (advisories come every 6 h in season) |
 
 Bodies are gzipped (`.i16.gz`, `encoding: 'gzip'` in the manifest) because GitHub Pages doesn't compress binary files; `series.ts` unzips with `DecompressionStream` when it sees the gzip magic bytes.
 
 **Call budget.** The workflow runs every 6 h, but each feed has a `refreshH` (wind 6, waves 12): a feed whose published copy is younger is copied forward from the live site instead of refetched. That keeps the build around 7,000 Open-Meteo calls a day, under the 10,000 limit. Directions are stored as unit vectors so blending frames across north works.
 
 Local development: `npm run data:forecast` fills `public/data/forecast/` (gitignored); without it the app uses the mock fields. `npm run data:climatology` rebuilds the committed climatology.
+
+## Weather (PLAN 7.3)
+
+`src/adapters/weather.ts` fetches rain, cloud, UV and air temperature live from Open-Meteo's multi-model endpoint (GFS, ECMWF IFS, ICON) for one point at the region centre, through the offline cache, and keeps the models separate for the ensemble blend (PLAN 7.4). Models reach different horizons and ECMWF has no UV, so missing hours are NaN. A point is enough for HUD readouts; a gridded radar and cloud layer comes with PLAN 7.5. Storms are relayed by the data build (table above) because NHC sends no CORS headers; the forecast cone needs NHC's GIS files and is left to 7.5. Both feeds have verify checks.
