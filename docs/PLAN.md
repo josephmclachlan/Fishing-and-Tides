@@ -39,13 +39,14 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 3.6 Move heavy physics to a Web Worker (**S**). HUD rip readout now computed in it
 
 ## Phase 4: Forecast and fishing UI
-- [ ] 4.1 Tide chart panel and spot pages (**S**)
+- [x] 4.1 Tide chart panel and spot pages (**S**). `src/tide-chart.ts`, `src/spot-page.ts`, see `docs/TIDES.md`
 - [x] 4.2 Rip risk overlay and spot-tier breaker readouts (**S**). `src/layers/rip.ts`, `src/surf-hud.ts`
 - [x] 4.3 Protected-zone overlays: Gandoca-Manzanillo, Cahuita (**S**)
 - [x] 4.4 Species habitat model framework and scoring (**O**). Weights fitted to OBIS/GBIF records with the 4.5 rules as prior; `src/fishing/fit.ts`, see `docs/FISHING.md`
 - [x] 4.5 Fishing layer: shore/kayak mode (**S**)
 - [x] 4.6 Fishing layer: boat mode, GPS track, drop-pin log (**S**)
 - [x] 4.7 OBIS/GBIF and Global Fishing Watch data folded into scores (**S**)
+- [x] 4.8 Fishing readability and BITE score: amber-only heat, SHORE/BOAT reach highlight, BEST SPOTS list, BITE score and BEST TIMES strip from tide, light, solunar, wind and waves (**O**). `src/fishing/bite.ts`, `src/fishing-hud.ts`. SST and clarity wait on 2.4, 2.12, 6.1 (see 7.11)
 
 ## Phase 5: Offline and polish
 - [ ] 5.1 "Sync for trip": tiles, bathymetry, 7-day forecasts, scores to IndexedDB (**O**)
@@ -60,11 +61,11 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 6.2 Dive surge: bottom orbital velocity per spot from the shoaling solver, shown as a calm/surgy/dangerous band (**O**, needs 3.2). `src/physics/surge.ts`, `src/dive-hud.ts`
 - [x] 6.3 Surf break model: per-break orientation, swell window and offshore-wind angle give a quality score; seed the SURF BREAKS layer (**O**, needs 3.3, 3.4). `src/surf-quality.ts`, see `docs/SURF.md`
 - [x] 6.4 Surf break catalog: curated Caribbean breaks (type, orientation, hazards), verified against map tiles (**S**)
-- [ ] 6.5 Marine wind detail: gusts, CAPE squall flag, NHC tropical alerts into the alert strip (**S**, needs 2.3)
+- [x] 6.5 Marine wind detail: gusts, CAPE squall flag, NHC tropical alerts into the alert strip (**S**, needs 2.3). Gusts and CAPE from the 7.3 weather adapter (mean of GFS, ECMWF, ICON); NHC alert came with 7.5
 - [x] 6.6 Sea state comfort index from wind-wave and swell partitions (**S**, needs 2.2). Pure index in physics/sea-state.ts; HUD uses SIM partitions until 2.2 lands
 - [x] 6.7 Anchorages and harbours layer: OSM seamarks, NGA World Port Index, shelter from wind direction (**S**). Curated OSM places + coastline-fetch shelter; WPI unreachable, see docs/HARBOURS.md
 - [x] 6.8 Spearfishing and protected-area rules: SINAC/INCOPESCA zones, closed seasons, rules card per zone (**S**, extends 4.3)
-- [ ] 6.9 Register wind, currents and waves with the layer store when the particle layer lands (**S**, needs 1.4). Wind and currents done in 1.4. The swell field now exists (2.2: `wavesAt` and the `waves` series, swell direction as unit vectors `swu`/`swv`), so this is ready: draw waves as a third flow kind or as crest lines, and register `waves`
+- [x] 6.9 Register wind, currents and waves with the layer store when the particle layer lands (**S**, needs 1.4). Waves done as crest lines (`src/layers/waves.ts`, `wv-` ids), not particles: static, cheap, direction and height readable at a glance. Wind and currents done in 1.4. The swell field now exists (2.2: `wavesAt` and the `waves` series, swell direction as unit vectors `swu`/`swv`), so this is ready: draw waves as a third flow kind or as crest lines, and register `waves`
 
 ## Phase 7: Final additions (see DESIGN.md sections 9 and 10)
 Built last, once Phases 2 to 6 are in. Each reuses the adapters, the layer registry and the SYSTEM CHECK panel.
@@ -78,3 +79,4 @@ Built last, once Phases 2 to 6 are in. Each reuses the adapters, the layer regis
 - [x] 7.7 Sun, moon and solunar: sunrise/sunset, golden hour, moon phase and rise/set, solunar windows, computed on device so they work offline (**O**, pure physics module with tests)
 - [ ] 7.8 Go/no-go verdict per activity (Fishing, Diving/Snorkel/Spear, Surfing, Sailing): combine the activity's inputs into GO, MARGINAL or NO-GO with the top reasons, shown on the HUD and in each preset (**O**, needs 3.5, 6.2, 6.3, 6.6, 7.2, 7.4, 7.6)
 - [ ] 7.9 Register the new layers (sargassum, weather, lightning) and offline-sync them; add their feeds to the verify checks (**S**, needs 5.1, 2.8)
+- [ ] 7.11 Cross-feature sync pass: whenever a data source or model lands after a feature was first built, go back and wire it into the older features. First cases: weather, ocean (SST, clarity, currents, waves, tide) and sun/moon into the fishing score (BITE score covers tide, light, solunar, wind and swell; SST and clarity wait on 2.4, 2.12, 6.1), then the same sweep for dive, surf and sail verdicts (7.8). Keep a table of feature x input in docs so gaps are visible (**O**, rolling)

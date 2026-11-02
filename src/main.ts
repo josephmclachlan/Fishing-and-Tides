@@ -14,6 +14,8 @@ import { mountSurfHud } from './surf-hud';
 import { mountLightningHud } from './lightning-hud';
 import { mountLightning } from './layers/lightning';
 import { fetchLightning } from './adapters/lightning';
+import { crestGrid } from './waves-lines';
+import { mountWavesLayer } from './layers/waves';
 import { mountWeatherHud } from './weather-hud';
 import { mountStorms } from './layers/storms';
 import { fetchWeather } from './adapters/weather';
@@ -67,6 +69,9 @@ import { mountRip, ripSites } from './layers/rip';
 import { SURF_BREAKS } from './data/surf-breaks';
 import { mountSurfZoneHud } from './surf-zone-hud';
 import { mountDiveHud } from './dive-hud';
+import { fetchGauge, type GaugeReading } from './adapters/gauge';
+import { mountTideHud } from './tide-hud';
+import { mountSpotPage } from './spot-page';
 
 registerSW({ immediate: true });
 
@@ -129,10 +134,15 @@ const seaHere = () => {
   const c = map.getCenter();
   return seaStateAt(c.lng, c.lat) ?? seaStateAt(...MOCK_FLOW.windRef);
 };
+// Wave crest lines (PLAN 6.9): rebuilt for the slider's valid time, when waves load and when the coastline mask arrives.
+const wavesLayer = mountWavesLayer(map);
+let waterMask: ((lng: number, lat: number) => boolean) | undefined;
+const rebuildCrests = () => wavesLayer.setCrests(waves ? crestGrid(REGION.bounds, 0.04, seaStateAt, waterMask) : []);
 fetchWaves()
   .then((d) => {
     if (!d.forecast && !d.climatology) return console.warn('waves: no forecast or climatology published; using mock');
     waves = d;
+    rebuildCrests();
     queueSpotPhysics();
   })
   .catch((err) => console.warn('waves unavailable', err));
@@ -145,6 +155,13 @@ mountHud(hud, map, conditionsAt, { age: () => describeAge(dataAge.oldest(), Date
 const condGroups = mountCondGroups(hud, safeStorage());
 mountSwellHud(hud, seaHere);
 mountTimeSlider(hud, time);
+// Tide chart (PLAN 4.1): the slider's day at Limón, with the live gauge (PLAN 2.11) drawn over it.
+let gauge: GaugeReading[] = [];
+const tideHud = mountTideHud(hud, time, () => gauge);
+const loadGauge = () =>
+  fetchGauge({ hours: 30 })
+    .then((d) => ((gauge = d.readings), tideHud?.refresh(), spotPage.refresh()))
+    .catch((err) => console.warn('tide gauge unavailable', err));
 // The lock-on effect plays only for a picked target, never on scroll/pinch zoom.
 const enhancer = createEnhancer(map, createLockFx(map, hud), settings.enhance);
 // Phone: panels are drawers, closed until tapped; wide screens start with the LAYERS drawer open.
@@ -186,6 +203,10 @@ let landGrid: Grid | null = null;
 const harboursHud = mountHarboursHud(hud, map, { windFromDeg: () => conditionsAt().windDirDeg, land: () => landGrid });
 // Boat mode: GPS track and pin log, kept on the device. Depth at a pin comes from the seafloor grid once it loads.
 let depthAt: ((lng: number, lat: number) => number | undefined) | null = null;
+// Spot pages (PLAN 4.1): tide, sky and the spot's physics on one sheet; its tab sits before BOAT.
+const spotPage = mountSpotPage(hud, map, { time, sheets, physics: () => spotPhysics, observed: () => gauge, go: (t) => enhancer.go(t) });
+loadGauge();
+setInterval(loadGauge, 10 * 60_000);
 mountBoatPanel(hud, map, createBoatStore(safeStorage()), sheets, () => depthAt);
 // SYSTEM CHECK: its tab joins the settings controls on a phone.
 mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeStorage() });
@@ -224,6 +245,7 @@ time.subscribe(() => {
     flow?.setSource('wind', flowSources.wind);
     flow?.setSource('current', flowSources.current);
     flowHud?.refresh();
+    rebuildCrests();
   });
 });
 
@@ -321,6 +343,7 @@ fetchSeafloor()
       ripLayer.update(spotPhysics!.all(), data.land);
       surfBreaks.update((name) => spotPhysics!.byName(name)?.surf);
       surfHud.refresh();
+      spotPage.refresh();
     });
     mountSurfZoneHud(hud, map, spotPhysics);
     mountDiveHud(hud, map, spotPhysics);
@@ -335,11 +358,19 @@ fetchSeafloor()
         const species = loadSpecies();
         const month = new Date(time.validMs()).getUTCMonth();
         const layer = mountFishing(map, { region: data.region, land: data.land, reefs: data.reefs, mouths, bounds: [REGION.bounds[0][0], REGION.bounds[0][1], REGION.bounds[1][0], REGION.bounds[1][1]] }, { species, month }, occurrences);
-        mountFishingHud(hud, map, layer, time, species);
+        const windOut: [number, number] = [0, 0];
+        const fishEnv = () => {
+          const c = map.getCenter();
+          const w = sampleField(flowSources.wind.field, c.lng, c.lat, windOut) ? Math.hypot(...windOut) : null;
+          return { windMs: w, hsM: seaStateAt(c.lng, c.lat)?.hs ?? null };
+        };
+        mountFishingHud(hud, map, layer, time, species, fishEnv);
       })
       .catch((err) => console.warn('fishing layer unavailable', err));
     // Currents stay in the sea once the coastline mask is here.
-    const current = { ...flowSources.current, water: (lng: number, lat: number) => isWater(data.land, data.macro, lng, lat) };
+    waterMask = (lng, lat) => isWater(data.land, data.macro, lng, lat);
+    rebuildCrests();
+    const current = { ...flowSources.current, water: waterMask };
     flowSources.current = current;
     flow?.setSource('current', current);
     flowHud?.refresh();

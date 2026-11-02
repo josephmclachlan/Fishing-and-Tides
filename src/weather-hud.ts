@@ -9,7 +9,7 @@ import { t } from './i18n';
 import { readout } from './hud-kit';
 import type { WeatherData } from './adapters/weather';
 import type { Storm } from './adapters/storms';
-import { heavyRainSoon, nearestStorm, summarise, STORM_ALERT_KM } from './weather';
+import { heavyRainSoon, nearestStorm, squallSoon, summarise, STORM_ALERT_KM } from './weather';
 
 export interface WeatherHudDeps {
   validMs: () => number;
@@ -28,6 +28,9 @@ export function mountWeatherHud(root: HTMLElement, deps: WeatherHudDeps) {
       ${readout(t('wx.cloud'), 'wx-cloud', t('unit.pct'))}
       ${readout(t('wx.uv'), 'wx-uv', '')}
       ${readout(t('wx.air'), 'wx-air', t('unit.degC'))}
+      ${readout(t('wx.gust'), 'wx-gust', t('unit.kt'))}
+      ${readout(t('wx.cape'), 'wx-cape', t('unit.jkg'))}
+      <div class="ro"><span class="lbl">${t('wx.squall')}</span><span class="seg sm" id="wx-squall">--</span></div>
       <div class="ro"><span class="seg sm" id="wx-note">--</span></div>
       <div class="ro"><span class="lbl">${t('wx.storm')}</span><span class="seg sm" id="wx-storm">--</span></div>
     </div>`,
@@ -43,6 +46,12 @@ export function mountWeatherHud(root: HTMLElement, deps: WeatherHudDeps) {
     $('wx-cloud').textContent = s ? fmt(s.cloudPct) : '--';
     $('wx-uv').textContent = s ? fmt(s.uv, 1) : '--';
     $('wx-air').textContent = s ? fmt(s.tempC, 1) : '--';
+    $('wx-gust').textContent = s ? fmt(s.gustKt) : '--';
+    $('wx-cape').textContent = s ? fmt(s.capeJkg) : '--';
+    const sq = wx ? squallSoon(wx, deps.validMs()) : null;
+    const sqEl = $('wx-squall');
+    sqEl.textContent = sq ? t(`wx.squall.${sq}`) : '--';
+    sqEl.className = 'seg sm ' + (sq === 'high' ? 'red' : sq === 'watch' ? '' : 'green');
     $('wx-note').textContent = !s ? t('wx.none') : s.models > 1 && s.rainSpreadMmH >= 2 ? t('wx.spread') : t('wx.models', { n: s.models });
     const n = storms ? nearestStorm(storms) : null;
     const el = $('wx-storm');
@@ -67,6 +76,8 @@ export function mountWeatherHud(root: HTMLElement, deps: WeatherHudDeps) {
       const n = storms ? nearestStorm(storms) : null;
       if (n && n.km <= STORM_ALERT_KM) out.push(t('wx.alertStorm', { name: n.storm.name, km: Math.round(n.km) }));
       if (wx && heavyRainSoon(wx, Date.now())) out.push(t('wx.alertRain'));
+      const sq = wx ? squallSoon(wx, Date.now()) : 'none';
+      if (sq !== 'none') out.push(t(sq === 'high' ? 'wx.alertSquallHigh' : 'wx.alertSquall'));
       return out;
     },
   };

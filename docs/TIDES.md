@@ -25,3 +25,18 @@ Timing bias is within ±6 minutes. The 4 cm left over is weather, not tide: wind
 ## Along the coast
 
 The Limón gauge is the only tide gauge between Bocas del Toro and Nicaragua, so its constants are used for the whole Gandoca to Limón stretch (about 50 km). This coast sits far from any amphidromic point and the tide arrives along the shelf as one wave, so the difference in timing over 50 km is expected to be a few minutes and in range a centimetre or two, well inside the weather noise above. If a second source turns up (a TPXO extract, or a temporary gauge at Puerto Viejo), add its constants as another station and interpolate along the coast.
+
+## Tide chart and spot pages (PLAN 4.1)
+
+**Side panel** (from the coast tier, under TIDE): the local day (Costa Rica time) of the time on the slider. It shows the predicted curve, the highs and lows with their times, night shaded from the sun times (`src/physics/astro.ts`), and a green cursor at the slider time. Tap the chart to move the slider to that hour. The past can't be picked, so a tap before now goes to NOW. NEXT HIGH and NEXT LOW follow the slider.
+
+The height axis is fixed to the station's astronomical range (LAT −0.29 m to HAT +0.30 m), so a small-tide day looks small. The live Limón gauge (PLAN 2.11, `src/adapters/gauge.ts`) is drawn over the curve as a dotted green line in 10-minute means wherever the day has readings. The gap between the dotted line and the curve is the weather's share. The axis widens if the gauge goes past the range.
+
+**Spot pages** come from the SPOT tab or the PAGE button on the TARGET row. They open on the spot nearest the map centre, and ‹ › steps through the spots. Each page has:
+
+- the same chart, with the next four highs and lows;
+- sunrise and sunset, and the moon phase;
+- the spot's own physics at the slider time: breaker height and type, rip level and strength, longshore drift, surf quality (catalog breaks only, PLAN 6.3) and surge at 6 m (PLAN 6.2);
+- a SHOW ON MAP button that runs the fly-to.
+
+The page is a sheet (`src/sheets.ts`), so on a phone it is a drawer. The code is `src/tide-chart.ts` (pure, tested), `src/tide-hud.ts` and `src/spot-page.ts`.

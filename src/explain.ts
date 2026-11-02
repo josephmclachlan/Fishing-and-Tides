@@ -15,12 +15,13 @@ export const HELP_BY_ID: Readonly<Record<string, HelpId>> = {
   rip: 'rip', ripgauge: 'rip', curr: 'current', cset: 'set', tgt: 'target', tgtrng: 'range', tgtbrg: 'bearing',
   'sz-hb': 'breaker', 'sz-type': 'wavetype', 'sz-pow': 'power', 'sz-drift': 'drift', 'sz-rips': 'ripStrength', 'sz-ripl': 'ripReach',
   'dv-3': 'surge', 'dv-6': 'surge', 'dv-12': 'surge',
+  'tc-hi': 'tide', 'tc-lo': 'tide', 'sp-hb': 'breaker', 'sp-rip': 'rip', 'sp-drift': 'drift', 'sp-surf': 'surfScore', 'sp-dive': 'surge',
   'sb-name': 'break', 'sb-q': 'surfScore', 'sb-type': 'breakType', 'sb-haz': 'hazard',
   'sw-hs': 'totalHs', 'sw-0': 'swellTrains', 'sw-1': 'swellTrains', 'sw-2': 'swellTrains',
   'ss-comfort': 'seaState', 'ss-score': 'comfort', 'ss-detail': 'seaState',
   'an-name': 'harbour', 'an-dist': 'harbourRange', 'an-shelter': 'shelter', 'an-fetch': 'shelter',
   'wx-rain': 'rain', 'wx-rain24': 'rain24', 'wx-cloud': 'cloud', 'wx-uv': 'uv', 'wx-air': 'air', 'wx-storm': 'storm',
-  depth: 'depth', dsrc: 'depthSource', dzone: 'reef', dbottom: 'bottom', zone: 'zone', 'fish-score': 'habitat',
+  depth: 'depth', dsrc: 'depthSource', dzone: 'reef', dbottom: 'bottom', zone: 'zone', 'fish-score': 'habitat', 'fish-bite': 'bite', 'fish-reach': 'reach', 'fish-times': 'times',
   't-off': 'fcst', 't-valid': 'valid', 't-band': 'band', lat: 'lat', lon: 'lon', alt: 'alt', age: 'dataAge', tier: 'tier',
 };
 
