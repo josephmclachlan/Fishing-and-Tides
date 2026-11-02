@@ -96,3 +96,13 @@ export function zoomOutToFit(dx: number, dy: number, w: number, h: number, margi
 export function steppedEase(n: number): (x: number) => number {
   return (x) => (x >= 1 ? 1 : Math.floor(Math.max(0, x) * n) / n);
 }
+
+/**
+ * Duration, ms, of the plain fly-to used when ENHANCE is off: one continuous eased move that
+ * pans and zooms together. Longer for more distance and more zoom levels, clamped so a hop
+ * across the room is not instant and a trip across the region is not a wait.
+ */
+export function plainFlyMs(distM: number, dz: number): number {
+  const ms = 2000 + 350 * Math.abs(dz) + 250 * Math.sqrt(Math.max(0, distM) / 1000);
+  return Math.round(Math.min(6000, Math.max(2000, ms)));
+}

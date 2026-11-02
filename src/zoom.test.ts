@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LOCK_STEPS, MAX_BLOCK, RESOLVE_CELL_PX, cellBlockAt, nextTier, pixelBlockAt, planHops, tierDirection, steppedEase, zoomBlock, zoomOutToFit } from './zoom';
+import { LOCK_STEPS, plainFlyMs, MAX_BLOCK, RESOLVE_CELL_PX, cellBlockAt, nextTier, pixelBlockAt, planHops, tierDirection, steppedEase, zoomBlock, zoomOutToFit } from './zoom';
 
 describe('nextTier', () => {
   it('switches tiers once zoom clears the edge by the hysteresis band', () => {
@@ -110,5 +110,14 @@ describe('steppedEase', () => {
   it('moves in n held steps and lands on 1', () => {
     const e = steppedEase(4);
     expect([0, 0.1, 0.25, 0.49, 0.5, 0.99, 1].map(e)).toEqual([0, 0, 0.25, 0.25, 0.5, 0.75, 1]);
+  });
+});
+
+describe('plainFlyMs', () => {
+  it('grows with distance and zoom change, within clamps', () => {
+    expect(plainFlyMs(0, 0)).toBe(2000);
+    expect(plainFlyMs(10_000, 2)).toBeGreaterThan(plainFlyMs(10_000, 0));
+    expect(plainFlyMs(60_000, 3)).toBeGreaterThan(plainFlyMs(1_000, 3));
+    expect(plainFlyMs(1e9, 20)).toBe(6000);
   });
 });

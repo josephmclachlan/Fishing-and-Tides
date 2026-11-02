@@ -1,7 +1,7 @@
 /**
  * Layer registry and activity presets (PLAN 1.8). Pure: no DOM, no MapLibre.
  *
- * The catalog below is the single list of toggleable layers. A layer is "live" once something
+ * The catalog below is the single list of toggleable layers (display text: i18n `layer.<id>`, `activity.<id>`). A layer is "live" once something
  * registers an implementation for its id (see `register`), otherwise the panel shows it as SOON.
  * Layers that are plain MapLibre layers can instead declare `mapPrefixes`; `bindMapLayers`
  * (layers/visibility.ts) then shows/hides every style layer whose id starts with one of them.
@@ -17,40 +17,39 @@ export type LayerGroup = 'OCEAN' | 'SURF ZONE' | 'SEAFLOOR' | 'USE';
 
 export interface LayerDef {
   id: LayerId;
-  label: string;
   group: LayerGroup;
   /** MapLibre style-layer id prefixes this layer controls; the map binding registers them. */
   mapPrefixes?: string[];
 }
 
 export const LAYERS: readonly LayerDef[] = [
-  { id: 'waves', label: 'WAVES/SWELL', group: 'OCEAN' },
-  { id: 'currents', label: 'CURRENTS', group: 'OCEAN' },
-  { id: 'wind', label: 'WIND', group: 'OCEAN' },
-  { id: 'sst', label: 'WATER TEMP', group: 'OCEAN' },
-  { id: 'clarity', label: 'CLARITY', group: 'OCEAN' },
-  { id: 'rip', label: 'RIP RISK', group: 'SURF ZONE' },
-  { id: 'surf', label: 'SURF BREAKS', group: 'SURF ZONE' },
-  { id: 'depth', label: 'DEPTH', group: 'SEAFLOOR', mapPrefixes: ['sf-shade', 'sf-contour'] },
-  { id: 'reefs', label: 'REEFS', group: 'SEAFLOOR', mapPrefixes: ['sf-reef', 'sf-zone', 'sf-bottom'] },
-  { id: 'seamarks', label: 'SEAMARKS', group: 'SEAFLOOR', mapPrefixes: ['sf-marks'] },
-  { id: 'fishing', label: 'FISHING', group: 'USE' },
-  { id: 'zones', label: 'PROTECTED', group: 'USE' },
-  { id: 'anchorages', label: 'ANCHORAGES', group: 'USE' },
+  { id: 'waves', group: 'OCEAN' },
+  { id: 'currents', group: 'OCEAN' },
+  { id: 'wind', group: 'OCEAN' },
+  { id: 'sst', group: 'OCEAN' },
+  { id: 'clarity', group: 'OCEAN' },
+  { id: 'rip', group: 'SURF ZONE' },
+  { id: 'surf', group: 'SURF ZONE' },
+  { id: 'depth', group: 'SEAFLOOR', mapPrefixes: ['sf-shade', 'sf-contour'] },
+  { id: 'reefs', group: 'SEAFLOOR', mapPrefixes: ['sf-reef', 'sf-zone', 'sf-bottom'] },
+  { id: 'seamarks', group: 'SEAFLOOR', mapPrefixes: ['sf-marks'] },
+  { id: 'fishing', group: 'USE' },
+  { id: 'zones', group: 'USE' },
+  { id: 'anchorages', group: 'USE' },
 ];
 
 export type ActivityId = 'all' | 'fishing' | 'dive' | 'surf' | 'sail';
-export interface Activity { id: ActivityId; label: string; layers: readonly LayerId[] }
+export interface Activity { id: ActivityId; layers: readonly LayerId[] }
 
 const ALL_IDS = LAYERS.map((l) => l.id);
 
 /** One-tap presets. `all` is every layer; the rest are what that activity needs to see. */
 export const ACTIVITIES: readonly Activity[] = [
-  { id: 'all', label: 'ALL', layers: ALL_IDS },
-  { id: 'fishing', label: 'FISH', layers: ['fishing', 'sst', 'clarity', 'currents', 'wind', 'depth', 'reefs', 'zones'] },
-  { id: 'dive', label: 'DIVE', layers: ['clarity', 'waves', 'currents', 'rip', 'depth', 'reefs', 'zones', 'seamarks'] },
-  { id: 'surf', label: 'SURF', layers: ['waves', 'wind', 'rip', 'surf', 'depth', 'reefs'] },
-  { id: 'sail', label: 'SAIL', layers: ['wind', 'waves', 'currents', 'depth', 'seamarks', 'anchorages', 'reefs'] },
+  { id: 'all', layers: ALL_IDS },
+  { id: 'fishing', layers: ['fishing', 'sst', 'clarity', 'currents', 'wind', 'depth', 'reefs', 'zones'] },
+  { id: 'dive', layers: ['clarity', 'waves', 'currents', 'rip', 'depth', 'reefs', 'zones', 'seamarks'] },
+  { id: 'surf', layers: ['waves', 'wind', 'rip', 'surf', 'depth', 'reefs'] },
+  { id: 'sail', layers: ['wind', 'waves', 'currents', 'depth', 'seamarks', 'anchorages', 'reefs'] },
 ];
 
 export interface LayerImpl {

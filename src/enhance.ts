@@ -17,7 +17,9 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { LockFx } from './zoom-fx';
 import type { Target } from './target';
 import { REGION } from './region';
-import { ENHANCE_WIDE_ZOOM, ENHANCE_ZOOM, planHops, steppedEase, zoomOutToFit } from './zoom';
+import { t } from './i18n';
+import { ENHANCE_WIDE_ZOOM, ENHANCE_ZOOM, planHops, plainFlyMs, steppedEase, zoomOutToFit } from './zoom';
+import { haversineM } from './geo';
 
 /** Step timings, ms. Slow on purpose so it reads as a sensor working, not a glitch. */
 const T = { wide: 1600, designate: 1300, center: 1200, zoom: 2200, tiles: 3000, resolve: 2600, settle: 700, hold: 2500 };
@@ -28,7 +30,8 @@ const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const once = (map: MapLibreMap, ev: 'moveend' | 'idle') => new Promise<void>((r) => map.once(ev, () => r()));
 
-export function createEnhancer(map: MapLibreMap, fx: LockFx) {
+/** `enabled` is the ENHANCE setting (src/settings.ts); off means the plain fly-to. */
+export function createEnhancer(map: MapLibreMap, fx: LockFx, enabled: () => boolean = () => true) {
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   let run = 0;
   let active = false;
@@ -57,6 +60,18 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx) {
       await done;
     };
 
+    if (!enabled()) {
+      // ENHANCE off: one continuous eased move, pan and zoom together, no pixels, boxes or steps.
+      // Detail fades in as the zoom tiers are crossed (map paint easing and CSS in style.css).
+      const c = map.getCenter();
+      const ms = plainFlyMs(haversineM([c.lng, c.lat], target.lngLat), ENHANCE_ZOOM - map.getZoom());
+      const done = once(map, 'moveend');
+      map.flyTo({ center: target.lngLat, zoom: ENHANCE_ZOOM, duration: ms * k, curve: 1.3, easing: easeInOut, essential: true });
+      await done;
+      if (alive()) active = false;
+      return;
+    }
+
     fx.start(target.name);
 
     // 1. Smooth pull-back to the wide view, never panning; further if the target is still off screen.
@@ -67,7 +82,7 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx) {
     const regionFit = map.cameraForBounds(REGION.bounds)?.zoom ?? ENHANCE_WIDE_ZOOM;
     const wide = Math.min(z0, ENHANCE_WIDE_ZOOM, regionFit, z0 - zoomOutToFit(p.x - w / 2, p.y - h / 2, w, h));
     if (z0 - wide > 0.05) {
-      fx.state('WIDE SCAN');
+      fx.state(t('fx.wideScan'));
       await moveTo({ zoom: wide, duration: T.wide * k, easing: easeInOut });
     }
 
@@ -75,20 +90,20 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx) {
     const hops = planHops(map.getZoom(), ENHANCE_ZOOM);
     for (let i = 0; i < hops.length; i++) {
       if (!alive()) return;
-      fx.box({ at: target.lngLat, zoom: hops[i] }, `SECTOR ${i + 1}/${hops.length}`);
-      fx.state('TARGET DESIGNATED');
+      fx.box({ at: target.lngLat, zoom: hops[i] }, t('fx.sector', { n: i + 1, total: hops.length }));
+      fx.state(t('fx.designated'));
       await wait(T.designate * k);
       if (!alive()) return;
 
       // Smooth pan so the crosshair sits on the target (known ground, so no stepping).
       const c = map.project(target.lngLat);
       if (Math.hypot(c.x - w / 2, c.y - h / 2) > 2) {
-        fx.state('SLEWING');
+        fx.state(t('fx.slewing'));
         await moveTo({ center: target.lngLat, duration: T.center * k, easing: easeInOut });
         if (!alive()) return;
       }
 
-      fx.state('ENHANCE');
+      fx.state(t('fx.enhance'));
       if (!reduceMotion.matches) fx.magnify(map.getZoom(), hops[i], target.lngLat);
       await moveTo({ center: target.lngLat, zoom: hops[i], duration: T.zoom * k, easing: steppedEase(ZOOM_STEPS) });
       if (!alive()) return;
@@ -96,9 +111,9 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx) {
       if (!map.areTilesLoaded()) await Promise.race([once(map, 'idle'), wait(T.tiles)]);
       if (!alive()) return;
 
-      fx.state('RESOLVING');
+      fx.state(t('fx.resolving'));
       if (!(await fx.resolve(T.resolve))) return;
-      fx.lock(i === hops.length - 1 ? 'LOCKED' : 'SECTOR CLEAR');
+      fx.lock(i === hops.length - 1 ? t('fx.locked') : t('fx.sectorClear'));
       await wait(T.settle * k);
     }
     if (!alive()) return;

@@ -121,6 +121,11 @@ body[data-tier='MACRO'] .from-coast,
 body[data-tier='MACRO'] .from-spot,
 body[data-tier='COAST'] .from-spot { display: none; }
 .from-coast, .from-spot { display: contents; }
+/* ENHANCE off (PLAN 1.9): HUD detail fades in as each zoom tier is crossed (the map layers already ease with the zoom). */
+body[data-enhance='off'] .from-coast > *,
+body[data-enhance='off'] .from-spot > * { animation: tier-in 0.9s ease-out both; }
+@keyframes tier-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { body[data-enhance='off'] .from-coast > *, body[data-enhance='off'] .from-spot > * { animation: none; } }
 
 /* Satellite lock-on transition */
 .fx-pixels {
