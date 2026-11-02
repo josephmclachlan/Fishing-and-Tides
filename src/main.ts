@@ -19,6 +19,7 @@ import { mountBoatPanel } from './boat-panel';
 import { dictFor, setDict } from './i18n';
 import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
+import { mountSounds } from './sounds';
 import { mountSettingsUi } from './settings-ui';
 import { mountSettingsPanel } from './settings-panel';
 import { mountSystemCheck } from './system-check';
@@ -104,6 +105,7 @@ mountSeek(hud, (t) => enhancer.go(t), settings, sheets);
 // Layer toggles and activity presets; other layers register into `layers` (src/layers/registry.ts).
 bindMapLayers(map, layers);
 mountSettingsUi(hud, settings);
+mountSounds(document, settings.sound);
 mountLayersPanel(hud, layers, sheets);
 mountLangUi(hud, settings, map);
 mountSheets(hud, map, sheets);

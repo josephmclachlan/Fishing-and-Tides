@@ -310,6 +310,8 @@ export const es: Dict = {
   'boat.trip': 'Viaje',
 
   // Settings
+  'settings.sound': 'SONIDO',
+  'settings.soundTitle': 'Sonidos de interfaz: pitidos cortos sintetizados al tocar y en alertas',
   'settings.enhance': 'MEJORAR',
   'settings.on': 'SÍ',
   'settings.off': 'NO',
