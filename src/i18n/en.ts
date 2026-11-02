@@ -398,6 +398,25 @@ export const en = {
   'settings.on': 'ON',
   'settings.off': 'OFF',
   'settings.enhanceTitle': 'ENHANCE fly-to effect: on plays the satellite zoom, off flies the same route with smooth moves only',
+
+  // Sun, moon and solunar (PLAN 7.7). Times are Costa Rica local time, computed on the device.
+  'astro.title': 'SUN & MOON',
+  'astro.sun': 'RISE / SET',
+  'astro.goldAm': 'GOLDEN AM',
+  'astro.goldPm': 'GOLDEN PM',
+  'astro.moon': 'MOON RISE / SET',
+  'astro.major': 'SOLUNAR MAJOR',
+  'astro.minor': 'SOLUNAR MINOR',
+  'astro.rating': 'SOLUNAR DAY',
+  'astro.note': 'CR TIME (UTC-6). SUN AND MOON ARE ASTRONOMY; SOLUNAR WINDOWS ARE ANGLERS\' LORE',
+  'astro.moon.0': 'NEW MOON',
+  'astro.moon.1': 'WAXING CRESCENT',
+  'astro.moon.2': 'FIRST QUARTER',
+  'astro.moon.3': 'WAXING GIBBOUS',
+  'astro.moon.4': 'FULL MOON',
+  'astro.moon.5': 'WANING GIBBOUS',
+  'astro.moon.6': 'LAST QUARTER',
+  'astro.moon.7': 'WANING CRESCENT',
 } as const;
 
 export type Key = keyof typeof en;
