@@ -259,8 +259,6 @@ body[data-enhance='off'] .from-spot > * { animation: tier-in 0.9s ease-out both;
   /* Row 1: hour and (when it matters) OFFLINE / DATA AGE; row 2: readouts. */
   .dock-bar .d-time { order: 0; gap: 10px; }
   .dock-bar .d-status { order: 1; }
-  .dock-bar::after { content: ''; order: 2; flex: 1 1 100%; height: 0; }
-  .dock-bar > .ro:not(.d-time):not(.d-status) { order: 3; }
   .dock-bar .seg { font-size: 15px; }
   .dock-bar .lbl { min-width: 0; font-size: 9px; }
   .dock-chev { position: absolute; right: 14px; top: 50%; width: 0; height: 0; margin-top: -4px; border: 6px solid transparent; border-bottom: 8px solid var(--amber); border-top: 0; filter: drop-shadow(0 0 4px var(--amber)); }
@@ -410,6 +408,29 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
   .ck-feed summary { min-height: 44px; }
 }
 .check .red { animation: none; }
+
+/* Explainers (src/explain.ts): labels you can tap are underlined with a dotted line and a hint cursor. */
+.has-help { cursor: help; text-decoration: underline dotted var(--amber-dim); text-underline-offset: 3px; pointer-events: auto; }
+.has-help:hover, .has-help:focus-visible { opacity: 1; color: var(--green); outline: none; }
+.help-card { position: fixed; z-index: 40; width: min(320px, calc(100% - 16px)); max-height: 60vh; overflow-y: auto; background: rgba(5, 8, 5, 0.96); box-shadow: 0 0 18px var(--amber-dim); }
+.help-card[hidden] { display: none; }
+.help-card .ph { color: var(--green); text-shadow: 0 0 6px var(--green); }
+.help-card .ph .sheet-x { display: inline-flex; align-items: center; justify-content: center; margin-left: auto; width: 34px; height: 34px; }
+.help-text { margin: 0; font-size: 13px; line-height: 1.4; letter-spacing: 0.3px; }
+
+/* Glance strip: phone only. */
+.glance { display: none; }
+@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+  .glance { display: flex; align-items: stretch; gap: 6px; padding: 6px 10px 4px; border-bottom: 1px solid var(--amber-dim); }
+  .gl-mode { flex: 0 0 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 44px; font: inherit; color: var(--green); background: transparent; border: 1px solid var(--green); text-shadow: 0 0 6px var(--green); cursor: pointer; padding: 2px; }
+  .gl-name { font-size: 13px; letter-spacing: 2px; }
+  .gl-dots { font-size: 8px; letter-spacing: 3px; opacity: 0.8; }
+  .gl-cell { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; cursor: pointer; }
+  .gl-cell .lbl { min-width: 0; font-size: 9px; letter-spacing: 1px; text-decoration: underline dotted var(--amber-dim); text-underline-offset: 2px; }
+  .gl-cell .seg { font-size: 19px; letter-spacing: 1px; line-height: 1.15; white-space: nowrap; }
+  .gl-cell .unit { display: none; }
+  .help-card { left: 8px !important; right: 8px; top: auto !important; bottom: calc(var(--dock-h, 90px) + 8px); width: auto; max-height: 45vh; }
+}
 
 /* SUN & MOON rows (PLAN 7.7): a collapsed block at the foot of the COND panel. */
 .astro { grid-column: 1 / -1; min-width: 0; display: grid; gap: 4px; border-top: 1px solid var(--amber-dim); padding-top: 6px; }

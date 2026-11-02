@@ -156,7 +156,7 @@ export async function mountSeafloor(map: Map, sf: Seafloor) {
     // Marks: reefs, lights and harbours from the coast tier; wrecks and hazards closer in.
     const kind = ['get', 'kind'] as ExpressionSpecification;
     const markColour: ExpressionSpecification = ['match', kind, ['wreck', 'hazard'], red, 'harbour', green, amber];
-    const marksLayer = (id: string, kinds: string[], minzoom: number) => {
+    const marksLayer = (id: string, kinds: string[], minzoom: number, opt: { labelZoomOffset?: number; allowOverlap?: boolean; textSize?: number } = {}) => {
       const filter: FilterSpecification = ['all', ['==', ['geometry-type'], 'Point'], ['in', kind, ['literal', kinds]]];
       map.addLayer({
         id, type: 'circle', source: 'sf-marks', minzoom, filter,
@@ -169,16 +169,19 @@ export async function mountSeafloor(map: Map, sf: Seafloor) {
         },
       });
       map.addLayer({
-        id: `${id}-label`, type: 'symbol', source: 'sf-marks', minzoom: minzoom + 0.5, filter,
+        id: `${id}-label`, type: 'symbol', source: 'sf-marks', minzoom: minzoom + (opt.labelZoomOffset ?? 0.5), filter,
         layout: {
-          'text-field': ['get', 'label'], 'text-font': FONT, 'text-size': ['match', kind, 'reef', 11, 10],
+          'text-field': ['get', 'label'], 'text-font': FONT, 'text-size': opt.textSize ?? ['match', kind, 'reef', 11, 10], ...(opt.allowOverlap ? { 'text-allow-overlap': true, 'text-ignore-placement': true } : {}),
           'text-anchor': 'left', 'text-offset': [0.9, 0], 'text-justify': 'left', 'text-letter-spacing': 0.08,
         },
-        paint: { 'text-color': markColour, 'text-halo-color': '#000', 'text-halo-width': 1.5 },
+        paint: { 'text-color': markColour, 'text-halo-color': '#000', 'text-halo-width': opt.allowOverlap ? 2 : 1.5 },
       });
     };
     marksLayer('sf-marks', ['reef', 'light', 'harbour'], 9);
-    marksLayer('sf-marks-near', ['wreck', 'hazard', 'buoy'], 11);
+    marksLayer('sf-marks-near', ['hazard', 'buoy'], 11);
+    // Wrecks are few and are what you look for: label them from the coast tier, never let other labels
+    // (contours, reefs) hide them, and keep the text legible on a phone in sunlight.
+    marksLayer('sf-marks-wreck', ['wreck'], 10, { labelZoomOffset: 0, allowOverlap: true, textSize: 12 });
   };
   if (map.getLayer('grat-macro') || map.isStyleLoaded()) add();
   else map.once('style.load', add);
