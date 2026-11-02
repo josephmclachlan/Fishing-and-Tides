@@ -190,7 +190,7 @@ The HUD runs in English or Spanish, switched with two small flag buttons in the 
 
 ## 12. Live local observations
 
-The coast has few live sensors, so the app uses every real reading it can get for Gandoca to Limón and is honest about what is missing. Confirmed in `docs/OBSERVATIONS.md` (PLAN 2.10): the Limón tide gauge (live from IOC every minute, quality-controlled hourly from UHSLC), the Limón airport METAR **MRLM** (daytime only), and satellite SST, chlorophyll/Kd490 and blended scatterometer wind from NOAA CoastWatch. IMN publishes no usable feed. There is **no wave or met buoy** within about 800 km, so waves stay model-only and the app says so.
+The coast has few live sensors, so the app uses every real reading it can get for Gandoca to Limón and is honest about what is missing. Confirmed in `docs/OBSERVATIONS.md` (PLAN 2.10): the Limón tide gauge (live from IOC every minute, quality-controlled hourly from UHSLC), the Limón airport METAR **MRLM** (daytime only), satellite SST and chlorophyll/Kd490 from NOAA CoastWatch, and ASCAT scatterometer wind passes from Copernicus Marine. IMN publishes no usable feed. There is **no wave or met buoy** within about 800 km, so waves stay model-only and the app says so.
 
 - **LIVE OBS layer and panel:** each reading with its age and a freshness colour, on the map and in a HUD panel.
 - **Local bias correction:** the model-minus-observed error at these stations is learned and removed from the forecast (wind, tides, SST; extends the weather blend in section 9), shown with a confidence value.

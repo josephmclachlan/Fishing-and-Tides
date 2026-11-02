@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { CLOUDED_OUT, latestSeen, passBias, passChecks, passList, type PassData } from './passes';
+import { CLOUDED_OUT, latestSeen, modelWindAt, passBias, passChecks, passList, scatMean, scatModelUrl, scatSamples, scatVsModel, type PassData } from './passes';
+import { scatFrames, type ScatJson } from './scat-parse';
 import type { GridGeom, GridSeries } from './pack';
 import type { SatelliteData } from './satellite';
 import { erddapToGrid } from './erddap-parse';
@@ -65,11 +66,79 @@ describe('passBias', () => {
   });
 });
 
+/** ASCAT: two swaths over the 4×4 box, the older covering the east half with a 10 m/s easterly (from 090°), the newer all of it. */
+const scatJson: ScatJson = {
+  grid,
+  passes: [
+    { id: 'b-des', sat: 'Metop-B ASCAT', dir: 'des', ms: now - 20 * H, u: Array.from({ length: N }, () => -8), v: Array.from({ length: N }, () => -2) },
+    { id: 'c-asc', sat: 'Metop-C ASCAT', dir: 'asc', ms: now - 30 * H, u: Array.from({ length: N }, (_, i) => (i % 4 < 2 ? null : -10)), v: Array.from({ length: N }, (_, i) => (i % 4 < 2 ? null : 0)) },
+  ],
+};
+const scatSeries = (): GridSeries => {
+  const f = scatFrames(scatJson);
+  return {
+    meta: { feed: 'scat-pass', kind: 'observed', fetchedAt: new Date(now - H).toISOString(), grid, times: f.times, seaCells: 16, vars: [{ name: 'u', unit: 'm/s', scale: 0.01, offset: 0 }, { name: 'v', unit: 'm/s', scale: 0.01, offset: 0 }], sources: f.sources, licence: '', file: 'x' },
+    values: { u: f.u, v: f.v },
+  };
+};
+/** Open-Meteo answer for `n` points: hourly from 2 days back, wind `speed` m/s from `dir`. */
+const om = (n: number, speed: number, dir: number) => {
+  const t0 = Math.floor((now - 48 * H) / H) * 3600;
+  const time = Array.from({ length: 72 }, (_, i) => t0 + i * 3600);
+  return Array.from({ length: n }, () => ({ hourly: { time, wind_speed_10m: time.map(() => speed), wind_direction_10m: time.map(() => dir) } }));
+};
+
+describe('scatterometer passes', () => {
+  it('parses the fetcher JSON oldest first, with NaN outside the swath and the pass named', () => {
+    const f = scatFrames(scatJson);
+    expect(f.times).toEqual([now - 30 * H, now - 20 * H]);
+    expect(Number.isNaN(f.u[0][0])).toBe(true);
+    expect(f.u[0][3]).toBe(-10);
+    expect(f.sources.map((x) => x.name)).toEqual(['Metop-C ASCAT, evening pass', 'Metop-B ASCAT, morning pass']);
+    expect(() => scatFrames({ ...scatJson, passes: [{ ...scatJson.passes[0], u: [1] }] })).toThrow();
+    expect(() => scatFrames({ ...scatJson, passes: [] })).toThrow();
+  });
+  it('gives the coverage, mean wind and the direction it comes from', () => {
+    const s = scatSeries();
+    expect(passList(s, 'u').map((p) => p.clear)).toEqual([0.5, 1]);
+    const m = scatMean(s, 0)!;
+    expect(m.fromDeg).toBeCloseTo(90);
+    expect(m.speed).toBeCloseTo(10);
+    expect(m.n).toBe(8);
+    // u −8, v −2: blowing to the south-west, so from about 076°.
+    expect(scatMean(s, 1)!.fromDeg).toBeCloseTo(75.96, 1);
+  });
+  it('samples seen cells evenly and compares them with the model at the pass time', () => {
+    const s = scatSeries();
+    const pts = scatSamples(s, 0, 4);
+    expect(pts).toHaveLength(4);
+    expect(pts.every((p) => p[0] >= -82.8 - 1e-9)).toBe(true); // only the east half was seen
+    expect(scatModelUrl(pts, now - 30 * H, now)).toContain('past_days=3');
+    const model = modelWindAt(om(4, 10, 90), now - 30 * H);
+    expect(model[0][0]).toBeCloseTo(-10);
+    expect(model[0][1]).toBeCloseTo(0);
+    const d = scatVsModel(pts, model);
+    expect(d.n).toBe(4);
+    expect(d.rms).toBeCloseTo(0);
+    expect(d.speedBias).toBeCloseTo(0);
+    expect(Number.isNaN(modelWindAt(om(1, 10, 90), now + 48 * H)[0][0])).toBe(true);
+  });
+});
+
 describe('passChecks', () => {
-  const data: PassData = { sst: pass(16), chl: { ...pass(16), meta: { ...pass(16).meta, feed: 'chl-pass', vars: [{ name: 'chl', unit: '', scale: 0.002, offset: 0 }] }, values: { chl: frames.map((f) => f.map((x) => x - 28)) } }, fetchedAt: now };
+  const data: PassData = { sst: pass(16), chl: { ...pass(16), meta: { ...pass(16).meta, feed: 'chl-pass', vars: [{ name: 'chl', unit: '', scale: 0.002, offset: 0 }] }, values: { chl: frames.map((f) => f.map((x) => x - 28)) } }, scat: scatSeries(), fetchedAt: now };
+  // u −8, v −2 is 8.2 m/s from 076°.
+  const agreeing = async () => om(12, Math.hypot(8, 2), 75.96);
   it('passes a normal week', async () => {
-    const r = await runChecks(passChecks(async () => data));
+    const r = await runChecks(passChecks(async () => data, undefined, agreeing));
     expect(r.filter((x) => x.status !== 'pass')).toEqual([]);
+    expect(r.filter((x) => x.feed === 'scat-pass')).toHaveLength(6);
+  });
+  it('flags satellite wind far from the model', async () => {
+    const r = await runChecks(passChecks(async () => data, undefined, async () => om(12, 2, 270)));
+    const agree = r.find((x) => x.feed === 'scat-pass' && x.kind === 'agree')!;
+    expect(agree.status).toBe('fail');
+    expect(agree.detail).toContain('RMS');
   });
   it('warns, not fails, on a week of cloud', async () => {
     const cloudy = { ...data, sst: { ...pass(16), values: { sst: frames.map(() => new Float32Array(N).fill(NaN)) } } };

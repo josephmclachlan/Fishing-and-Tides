@@ -103,6 +103,13 @@ export const LIVE_GAUGE = { code: 'limon', sensor: 'rad', mslOnSensorM: 6.6 } as
 export const METAR_STATION = { icao: 'MRLM', name: 'LIMÓN AIRPORT', lngLat: [-83.026, 9.961] as [number, number] } as const;
 
 /**
+ * Box the scatterometer wind passes cover (PLAN 2.14): the coast plus about 120 km of open sea, on
+ * ASCAT's 0.125° grid. ASCAT sees no closer than ~20 km to land, so this is the wind just offshore.
+ * [[west, south], [east, north]]
+ */
+export const SCAT_BOX: [[number, number], [number, number]] = [[-84, 8.75], [-81.5, 11]];
+
+/**
  * Rivers whose plumes muddy the coast after rain (PLAN 6.1, DESIGN §6 dive row). Mouths from the
  * OSM waterways (data/fishing/mouths.geojson); `rainAt` is a point inside each catchment where the
  * clarity layer samples rainfall. Catchment areas are approximate published basin figures

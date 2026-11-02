@@ -1,0 +1,3 @@
+# Python packages for the data build (.github/workflows/pages.yml).
+# copernicusmarine: the Copernicus Marine toolbox, for the ASCAT wind passes (scripts/scat.py, PLAN 2.14).
+copernicusmarine==2.5.0

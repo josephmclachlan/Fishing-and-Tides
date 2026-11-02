@@ -12,9 +12,14 @@
  * Gap-filled products are used because cloud hides this coast most afternoons; the raw passes
  * with their holes come with PLAN 2.12.
  */
-import { REGION } from '../../src/region.ts';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { REGION, SCAT_BOX } from '../../src/region.ts';
 import type { GridGeom, SourceSpan } from '../../src/adapters/pack.ts';
 import { erddapToGrid, type ErddapGrid } from '../../src/adapters/erddap-parse.ts';
+import { scatFrames, type ScatJson } from '../../src/adapters/scat-parse.ts';
 import { get, seaMask, writeSeries } from './common.ts';
 
 const PFEG = 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/';
@@ -132,4 +137,33 @@ export async function buildChlPass(dir: string): Promise<string> {
     sources: span(id, 'NOAA-20 VIIRS chlorophyll-a, NRT 4 km (nominal 13:25 local pass)', times), licence: LICENCE,
   }, { chl: g.frames });
   return `chl-pass: ${g.grid.cols}×${g.grid.rows}, ${times.length} passes, clear cells ${g.frames.map((f) => f.filter(Number.isFinite).length).join('/')}, ${kb(size)}`;
+}
+
+/**
+ * Scatterometer wind passes (PLAN 2.14): ASCAT on Metop-B and Metop-C from Copernicus Marine
+ * (WIND_GLO_PHY_L3_NRT_012_002, 0.125°), over SCAT_BOX, last 4 days, each frame stamped with its
+ * median measurement time. The toolbox is Python, so scripts/scat.py fetches and this packs. It needs
+ * COPERNICUSMARINE_USERNAME and COPERNICUSMARINE_PASSWORD (Actions secrets) and `pip install
+ * copernicusmarine`; without them the feed fails and the previous files are kept.
+ */
+export async function buildScatPass(dir: string): Promise<string> {
+  if (!process.env.COPERNICUSMARINE_USERNAME || !process.env.COPERNICUSMARINE_PASSWORD) throw new Error('no Copernicus Marine login (COPERNICUSMARINE_USERNAME, COPERNICUSMARINE_PASSWORD)');
+  const tmp = mkdtempSync(join(tmpdir(), 'scat-'));
+  try {
+    const out = join(tmp, 'scat.json');
+    const [[w, s], [e, n]] = SCAT_BOX;
+    const r = spawnSync('python3', ['-I', 'scripts/scat.py', `--box=${w},${s},${e},${n}`, '--days', String(PASS_DAYS), '--out', out], { encoding: 'utf8', timeout: 10 * 60e3 });
+    if (r.status !== 0) throw new Error(`scat.py ${r.error ? r.error.message : `exit ${r.status}`}: ${(r.stderr || '').trim().split('\n').slice(-3).join(' | ').slice(0, 400)}`);
+    if (r.stderr.trim()) console.warn(r.stderr.trim());
+    const f = scatFrames(JSON.parse(readFileSync(out, 'utf8')) as ScatJson);
+    const size = writeSeries(dir, {
+      feed: 'scat-pass', kind: 'observed', fetchedAt: new Date().toISOString(), grid: f.grid, times: f.times, seaCells: seaCount(f.grid),
+      vars: [{ name: 'u', unit: 'm/s', scale: 0.01, offset: 0 }, { name: 'v', unit: 'm/s', scale: 0.01, offset: 0 }],
+      sources: f.sources,
+      licence: 'E.U. Copernicus Marine Service Information (WIND_GLO_PHY_L3_NRT_012_002); EUMETSAT OSI SAF / KNMI ASCAT',
+    }, { u: f.u, v: f.v });
+    return `scat-pass: ${f.grid.cols}×${f.grid.rows}, ${f.times.length} passes, cells ${f.u.map((x) => x.filter(Number.isFinite).length).join('/')}, ${kb(size)}`;
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
 }
