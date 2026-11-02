@@ -4,12 +4,14 @@
  * checks is incomplete (DESIGN.md §10).
  */
 import { fetchWind, windChecks } from '../adapters/wind';
+import { fetchWaves, wavesChecks } from '../adapters/waves';
 import { occurrenceChecks } from '../fishing/checks';
 import type { Check } from './types';
 
 export function allChecks(base: string = import.meta.env.BASE_URL): Check[] {
   return [
     ...windChecks(() => fetchWind({ base })),
+    ...wavesChecks(() => fetchWaves({ base })),
     ...occurrenceChecks(base),
   ];
 }

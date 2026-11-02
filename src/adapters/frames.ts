@@ -121,3 +121,66 @@ export function projectMonthly(s: GridSeries, ms: number): GridSeries {
   for (const k in s.values) values[k] = idx.map((m) => s.values[k][m]);
   return { meta: { ...s.meta, times }, values };
 }
+
+/**
+ * A stand-in climatology when no real one exists: the mean of every frame of a forecast,
+ * valid at all times. Used for currents, whose model stops at day 9 (docs/OBSERVATIONS.md).
+ */
+export function meanSeries(s: GridSeries): GridSeries {
+  const values: Record<string, Float32Array[]> = {};
+  for (const k in s.values) {
+    const frames = s.values[k];
+    const n = frames[0].length;
+    const sum = new Float64Array(n);
+    const cnt = new Uint16Array(n);
+    for (const f of frames) for (let i = 0; i < n; i++) if (Number.isFinite(f[i])) (sum[i] += f[i]), cnt[i]++;
+    const m = Float32Array.from(sum, (x, i) => (cnt[i] ? x / cnt[i] : NaN));
+    values[k] = [m, m];
+  }
+  return { meta: { ...s.meta, kind: 'climatology', times: [-8.64e15, 8.64e15] }, values };
+}
+
+/**
+ * Lay a fine field over a coarse one: the result is on the fine spacing across the coarse
+ * extent, taking the fine value where it has one and the coarse value elsewhere. Lets a
+ * 1/12° coastal nest sharpen a 0.25° regional field without a second particle layer.
+ */
+export function overlayFields(fine: VectorField, coarse: VectorField): VectorField {
+  const dlon = fine.dlon, dlat = fine.dlat;
+  const cols = Math.round(((coarse.cols - 1) * coarse.dlon) / dlon) + 1;
+  const rows = Math.round(((coarse.rows - 1) * coarse.dlat) / dlat) + 1;
+  const u = new Float32Array(cols * rows);
+  const v = new Float32Array(cols * rows);
+  const tmp: [number, number] = [0, 0];
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      const lng = coarse.lon0 + c * dlon, lat = coarse.lat0 - r * dlat;
+      const i = r * cols + c;
+      if (sampleNaNAware(fine, lng, lat, tmp) || sampleNaNAware(coarse, lng, lat, tmp)) (u[i] = tmp[0]), (v[i] = tmp[1]);
+      else (u[i] = NaN), (v[i] = NaN);
+    }
+  return { cols, rows, lon0: coarse.lon0, lat0: coarse.lat0, dlon, dlat, u, v };
+}
+
+/** Bilinear vector that skips no-data corners (renormalising the rest); false if none. */
+function sampleNaNAware(f: VectorField, lng: number, lat: number, out: [number, number]): boolean {
+  const fx = (lng - f.lon0) / f.dlon;
+  const fy = (f.lat0 - lat) / f.dlat;
+  if (!(fx >= -1e-9 && fx <= f.cols - 1 + 1e-9 && fy >= -1e-9 && fy <= f.rows - 1 + 1e-9)) return false;
+  const c = Math.max(0, Math.min(Math.floor(fx), f.cols - 2));
+  const r = Math.max(0, Math.min(Math.floor(fy), f.rows - 2));
+  const tx = fx - c, ty = fy - r;
+  const i = r * f.cols + c, j = i + f.cols;
+  const idx = [i, i + 1, j, j + 1];
+  const w = [(1 - tx) * (1 - ty), tx * (1 - ty), (1 - tx) * ty, tx * ty];
+  let su = 0, sv = 0, sw = 0;
+  for (let k = 0; k < 4; k++) {
+    const a = f.u[idx[k]], b = f.v[idx[k]];
+    if (w[k] > 1e-6 && Number.isFinite(a) && Number.isFinite(b)) (su += a * w[k]), (sv += b * w[k]), (sw += w[k]);
+  }
+  // Need most of the weight: a lone sea corner shouldn't paint currents onto land.
+  if (sw < 0.5) return false;
+  out[0] = su / sw;
+  out[1] = sv / sw;
+  return true;
+}

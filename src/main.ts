@@ -42,6 +42,7 @@ import { mountTimeSlider } from './time-slider';
 import { KT_PER_MS, sampleField, fromDeg } from './physics/flow';
 import { MOCK_FLOW, REGION, SPOTS } from './region';
 import { fetchWind, windAt, type WindData } from './adapters/wind';
+import { fetchWaves, wavesAt, type SeaState, type WavesData } from './adapters/waves';
 import { dataAge, describeAge } from './adapters/data-age';
 import { createNet } from './net';
 import { createPhysicsClient } from './physics/client';
@@ -90,8 +91,27 @@ const baseConditions = () => {
     c.windKt = Math.hypot(...windAtRef) * KT_PER_MS;
     c.windDirDeg = fromDeg(...windAtRef);
   }
+  // Swell (PLAN 2.2): the primary swell partition at the map centre, or offshore of Cahuita when the centre is inland.
+  const ctr = map.getCenter();
+  const sea = seaStateAt(ctr.lng, ctr.lat) ?? seaStateAt(...MOCK_FLOW.windRef);
+  if (sea) {
+    const swell = Number.isFinite(sea.swellHs);
+    c.swellHeightM = swell ? sea.swellHs : sea.hs;
+    c.swellPeriodS = swell ? sea.swellT : sea.tm;
+    c.swellDirDeg = swell ? sea.swellDir : sea.dir;
+  }
   return c;
 };
+// Real waves once loaded (forecast to day 16, then climatology); the mock swell until then.
+let waves: WavesData | null = null;
+const seaStateAt = (lng: number, lat: number): SeaState | null => (waves ? wavesAt(waves, time.band(), time.validMs(), lng, lat) : null);
+fetchWaves()
+  .then((d) => {
+    if (!d.forecast && !d.climatology) return console.warn('waves: no forecast or climatology published; using mock');
+    waves = d;
+    queueSpotPhysics();
+  })
+  .catch((err) => console.warn('waves unavailable', err));
 // DATA AGE and connectivity for the HUD (PLAN 5.2).
 const net = createNet();
 mountHud(hud, map, conditionsAt, { age: () => describeAge(dataAge.oldest(), Date.now()), online: net.online });
@@ -179,9 +199,20 @@ fetchZones()
   .catch((err) => console.warn('protected zones unavailable', err));
 
 // Spot physics off the main thread (refraction, breaking, rip risk) for every named spot: the rip
-// overlay, the SURF ZONE readouts and the RIP readout. Swell is the mock reading until the waves
-// adapter (PLAN 2.2); tide and wind are live.
+// overlay, the SURF ZONE readouts and the RIP readout. Sea state from the waves adapter at each
+// spot (the mock swell until it loads); tide and wind are live.
 const ripLayer = mountRip(map);
+/**
+ * Offshore sea state for the physics at a shoreline pin. The models give mean, not peak,
+ * periods; the swell's mean period stands in for Tp when swell dominates, as it does on this
+ * coast most of the year.
+ */
+const spotSea = (pin: [number, number]) => {
+  const w = seaStateAt(...pin);
+  if (!w || !Number.isFinite(w.tm)) return null;
+  const swellLeads = Number.isFinite(w.swellHs) && Number.isFinite(w.swellT) && w.swellHs >= (Number.isFinite(w.windSeaHs) ? w.windSeaHs : 0);
+  return { Hs: w.hs, Tp: swellLeads ? w.swellT : w.tm, fromDeg: swellLeads ? w.swellDir : w.dir };
+};
 let physicsQueued = false;
 const queueSpotPhysics = () => {
   if (physicsQueued || !spotPhysics) return;
@@ -200,7 +231,7 @@ fetchSeafloor()
     mountSeafloorHud(hud, map, data);
     landGrid = data.land;
     harboursHud?.refresh();
-    spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land }), baseConditions, () => time.validMs());
+    spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land }), baseConditions, () => time.validMs(), spotSea);
     spotPhysics.subscribe(() => ripLayer.update(spotPhysics!.all()));
     mountSurfZoneHud(hud, map, spotPhysics);
     spotPhysics.update();

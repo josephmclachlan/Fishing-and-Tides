@@ -36,9 +36,19 @@ export async function loadSeries(name: string, opts: LoadOptions = {}): Promise<
   const problems = validateMeta(meta);
   if (problems.length) throw new Error(`${name}: ${problems.join('; ')}`);
   const bin = await cachedFetch(url(meta.file), { deps });
-  const series = decodeSeries(meta, new Int16Array(await bin.response.arrayBuffer()));
+  const series = decodeSeries(meta, new Int16Array(await gunzipIfNeeded(await bin.response.arrayBuffer())));
   // The age that matters is how old the model data is, not when this phone downloaded it.
   const fetchedAt = Date.parse(meta.fetchedAt);
   if (report) dataAge.report(meta.feed, fetchedAt, m.fromCache);
   return { series, fetchedAt, fromCache: m.fromCache };
+}
+
+/**
+ * Bodies are gzipped by the data build (`encoding: 'gzip'`). Check the magic bytes rather than
+ * trusting the manifest, since a server that adds Content-Encoding has already unzipped it.
+ */
+export async function gunzipIfNeeded(buf: ArrayBuffer): Promise<ArrayBuffer> {
+  const b = new Uint8Array(buf, 0, Math.min(2, buf.byteLength));
+  if (b[0] !== 0x1f || b[1] !== 0x8b) return buf;
+  return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
 }
