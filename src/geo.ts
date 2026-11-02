@@ -56,8 +56,8 @@ export function nearest<T extends { lngLat: [number, number] }>(from: [number, n
 }
 
 /** Degrees and decimal minutes as a GPS shows them, e.g. `09°47.400'N`. */
-export function toDDM(deg: number, axis: 'lat' | 'lng'): string {
-  const hemi = axis === 'lat' ? (deg < 0 ? 'S' : 'N') : deg < 0 ? 'W' : 'E';
+export function toDDM(deg: number, axis: 'lat' | 'lng', letters: Record<'N' | 'S' | 'E' | 'W', string> = { N: 'N', S: 'S', E: 'E', W: 'W' }): string {
+  const hemi = letters[axis === 'lat' ? (deg < 0 ? 'S' : 'N') : deg < 0 ? 'W' : 'E'];
   const abs = Math.abs(deg);
   let d = Math.floor(abs);
   let m = Number(((abs - d) * 60).toFixed(3));

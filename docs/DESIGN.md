@@ -65,7 +65,7 @@ The **military-satellite zoom effect** (scanline sweep, pixelation that sharpens
 
 ## 5b. Phone layout
 
-On a phone the map comes first. Only two HUD pieces stay on screen: the top bar (title, tier, UTC clock and a row of tabs: ENHANCE, LAYERS, FIND, COND) and a bottom strip (the chosen forecast hour plus swell, wind and tide). Everything else is a **drawer** that stays closed until its tab is tapped:
+On a phone the map comes first. Only two HUD pieces stay on screen: the top bar (title, tier, UTC clock and two rows of tabs: the views LAYERS, FIND, COND, BOAT, then the settings row with the ENHANCE toggle and the EN/ESP flags) and a bottom strip (the chosen forecast hour plus swell, wind and tide). Everything else is a **drawer** that stays closed until its tab is tapped:
 
 | Tab | Drawer |
 |---|---|
@@ -172,7 +172,13 @@ Each new adapter adds its checks; a PR that adds an adapter without them is inco
 
 ## 11. Language (EN/ESP)
 
-A planned EN/ESP toggle with a full Spanish translation, shown in the HUD as a small UK flag (EN) and Costa Rica flag (ESP) drawn in the HUD style (amber/green line art, no photos). The work is mostly string extraction, so it starts early (PLAN 1.10): every user-facing string goes through a `t(key)` helper from the beginning, which makes the later translation (PLAN 5.6) a matter of filling in `es.ts`. The Spanish uses local Costa Rican marine and fishing terms, not generic or Castilian ones, and is checked by a local speaker where possible. The choice is remembered on the device, and the first run follows the browser language.
+The HUD runs in English or Spanish, switched with two small flag buttons in the top bar: a UK flag (EN) and a Costa Rica flag (ESP), drawn in the HUD style (amber/green line art, no photos), the active one lit. Every user-facing string goes through `t(key)` (PLAN 1.10); `src/i18n/en.ts` defines the keys and `src/i18n/es.ts` must provide all of them (the `Dict` type and a test enforce it, including `{placeholders}`).
+
+- **First run** follows the browser language (any `es` tag, such as es-CR or es-419, gives Spanish; anything else English). **The choice is remembered** on the device once the user taps a flag, and then wins over the browser.
+- **Switching** saves the choice and reloads the page, because every panel builds its text once at start-up. The map camera is carried across the reload (sessionStorage), so the user stays where they were.
+- **Vocabulary** is Costa Rican Caribbean: SÁBALO (tarpon), ROBALO (snook), JUREL (jack), PARGO (snapper), RESACA (rip current), OLEAJE (swell), ROMPIENTES (surf breaks), FONDEADEROS (anchorages), PESCA PROHIBIDA for no-fishing zones. Nautical terms are DEMORA (bearing) and RUMBO (current set). The Spanish was written by Claude and still needs a check by a local speaker.
+- **Formats:** GPS letters follow the language (O for west in Spanish; the coordinate search accepts both W and O); day names are translated; numbers keep the decimal point and UTC times stay 24-hour in both languages, matching GPS and chart conventions on the water; units (M, KM, KT, °C) are the same.
+- Place names, protected-area names (translated: PARQUE NACIONAL CAHUITA), and map labels from the base map stay as published.
 
 ## 12. Live local observations
 

@@ -18,10 +18,10 @@ export function matchSpots(query: string, spots: readonly Target[] = SPOTS): Tar
 
 /**
  * One coordinate in decimal degrees from text such as `9.65`, `-82.75`, `9.65N`, `82.75 W`,
- * `09°39.000'N` (degrees + decimal minutes) or `9 39 0 N` (degrees, minutes, seconds).
+ * `09°39.000'N` (degrees + decimal minutes; O, Spanish for west, works like W) or `9 39 0 N` (degrees, minutes, seconds).
  */
 function parseAxis(text: string): { value: number; hemi: string | null } | null {
-  const m = text.trim().match(/^([NSEW])?\s*(-?\d+(?:\.\d+)?)(?:[°\s]+(\d+(?:\.\d+)?)['′]?)?(?:\s*(\d+(?:\.\d+)?)["″]?)?\s*([NSEW])?$/i);
+  const m = text.trim().match(/^([NSEWO])?\s*(-?\d+(?:\.\d+)?)(?:[°\s]+(\d+(?:\.\d+)?)['′]?)?(?:\s*(\d+(?:\.\d+)?)["″]?)?\s*([NSEWO])?$/i);
   if (!m) return null;
   const hemi = (m[1] ?? m[5] ?? '').toUpperCase() || null;
   const deg = Number(m[2]);
@@ -29,7 +29,7 @@ function parseAxis(text: string): { value: number; hemi: string | null } | null 
   const sec = m[4] ? Number(m[4]) : 0;
   if (min >= 60 || sec >= 60) return null;
   let value = Math.abs(deg) + min / 60 + sec / 3600;
-  if (deg < 0 || hemi === 'S' || hemi === 'W') value = -value;
+  if (deg < 0 || hemi === 'S' || hemi === 'W' || hemi === 'O') value = -value;
   return { value, hemi };
 }
 
@@ -37,7 +37,7 @@ function parseAxis(text: string): { value: number; hemi: string | null } | null 
 function splitPair(text: string): string[] {
   if (text.includes(',')) return text.split(',');
   const t = text.trim();
-  const hemi = t.match(/^(\d.*?[NSEW])\s*(\S.*)$/i);
+  const hemi = t.match(/^(\d.*?[NSEWO])\s*(\S.*)$/i);
   if (hemi) return [hemi[1], hemi[2]];
   return t.split(/\s+/);
 }
@@ -52,7 +52,7 @@ export function parseCoordinate(text: string): [number, number] | null {
   const a = parseAxis(parts[0]);
   const b = parseAxis(parts[1]);
   if (!a || !b) return null;
-  const aIsLng = a.hemi === 'E' || a.hemi === 'W' || b.hemi === 'N' || b.hemi === 'S';
+  const aIsLng = a.hemi === 'E' || a.hemi === 'W' || a.hemi === 'O' || b.hemi === 'N' || b.hemi === 'S';
   const [lat, lng] = aIsLng ? [b.value, a.value] : [a.value, b.value];
   const [[w, s], [e, n]] = REGION.maxBounds;
   if (lng < w || lng > e || lat < s || lat > n) return null;

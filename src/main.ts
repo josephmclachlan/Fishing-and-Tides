@@ -7,11 +7,13 @@ import { mockConditions, mockCurrentField, mockWindField } from './mock';
 import { createLockFx, mountZoomTiers } from './zoom-fx';
 import { createEnhancer } from './enhance';
 import { mountSeek } from './seek';
-import { createSettings, safeStorage } from './settings';
+import { createSettings, safeSession, safeStorage, takeView } from './settings';
 import { mountSurfBreaks } from './layers/surf-breaks';
 import { mountSurfHud } from './surf-hud';
 import { createBoatStore } from './boat/store';
 import { mountBoatPanel } from './boat-panel';
+import { dictFor, setDict } from './i18n';
+import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
 import { mountSettingsUi } from './settings-ui';
 import { fetchSeafloor } from './adapters/seafloor';
@@ -31,13 +33,22 @@ import { isWater, sample } from './physics/bathy';
 import { createTimeStore } from './time';
 import { mountTimeSlider } from './time-slider';
 import { KT_PER_MS, sampleField, fromDeg } from './physics/flow';
-import { MOCK_FLOW, REGION } from './region';
+import { MOCK_FLOW, REGION, SPOTS } from './region';
 import { fetchWind, windAt, type WindData } from './adapters/wind';
 import { dataAge } from './adapters/data-age';
+import { createPhysicsClient, type PhysicsClient } from './physics/client';
+import { tideState } from './physics/tide';
+import { LIMON_HARMONICS } from './data/tides-limon';
+import { nearest } from './geo';
+import type { RipLevel } from './physics/rip';
 
 registerSW({ immediate: true });
 
-const map = createMap('map');
+// Language first: every panel builds its text once, from the active dictionary.
+const settings = createSettings(safeStorage(), navigator.languages ?? [navigator.language]);
+setDict(dictFor(settings.lang()));
+document.documentElement.lang = settings.lang();
+const map = createMap('map', takeView(safeSession()));
 const hud = document.getElementById('hud')!;
 // Tiers first: the HUD reads the tier they publish on each move.
 mountZoomTiers(map);
@@ -56,7 +67,14 @@ const flowSources: { wind: FlowSource; current: FlowSource } = {
 };
 // The wind reading comes from the wind field at its reference point, so HUD and particles agree at every hour.
 const windAtRef: [number, number] = [0, 0];
+// Rip risk at the spot nearest the map centre, from the physics worker (PLAN 3.6) once the seafloor loads.
+let spotRip: RipLevel | null = null;
 const conditionsAt = () => {
+  const c = baseConditions();
+  if (spotRip) c.ripRisk = spotRip;
+  return c;
+};
+const baseConditions = () => {
   const c = mockConditions(Date.now(), time.validMs(), climatological());
   // DATA AGE: the oldest live feed once any has loaded (src/adapters/data-age.ts).
   c.fetchedAt = dataAge.oldest()?.fetchedAt ?? c.fetchedAt;
@@ -69,7 +87,6 @@ const conditionsAt = () => {
 mountHud(hud, map, conditionsAt);
 mountTimeSlider(hud, time);
 // The lock-on effect plays only for a picked target, never on scroll/pinch zoom.
-const settings = createSettings(safeStorage());
 const enhancer = createEnhancer(map, createLockFx(map, hud), settings.enhance);
 // Phone: panels are drawers, closed until tapped; wide screens start with the LAYERS drawer open.
 const sheets = createSheets(window.matchMedia(PHONE_QUERY).matches ? null : 'layers');
@@ -78,6 +95,7 @@ mountSeek(hud, (t) => enhancer.go(t), settings, sheets);
 bindMapLayers(map, layers);
 mountSettingsUi(hud, settings);
 mountLayersPanel(hud, layers, sheets);
+mountLangUi(hud, settings, map);
 mountSheets(hud, map, sheets);
 // Surf break catalog (PLAN 6.4): markers and BREAK rows.
 mountSurfBreaks(map);
@@ -125,10 +143,44 @@ fetchZones()
   })
   .catch((err) => console.warn('protected zones unavailable', err));
 
+// Spot physics off the main thread: refraction, breaking and rip risk for the nearest spot.
+// Swell is the mock reading until the waves adapter (PLAN 2.2); tide and wind are live.
+let physics: PhysicsClient | null = null;
+const updateSpotPhysics = () => {
+  if (!physics) return;
+  const c = baseConditions();
+  const ms = time.validMs();
+  const centre = map.getCenter();
+  const pin = nearest([centre.lng, centre.lat], SPOTS)!.point.lngLat;
+  physics
+    .latest({
+      pin,
+      sea: { Hs: c.swellHeightM, Tp: c.swellPeriodS, fromDeg: c.swellDirDeg },
+      tideLevel: tideState(LIMON_HARMONICS, ms).level,
+      wind: { speedMs: c.windKt / KT_PER_MS, fromDeg: c.windDirDeg },
+    })
+    .then((r) => (spotRip = r ? r.rip.level : null))
+    .catch((err) => console.warn('spot physics failed', err));
+};
+let physicsQueued = false;
+const queueSpotPhysics = () => {
+  if (physicsQueued) return;
+  physicsQueued = true;
+  requestAnimationFrame(() => {
+    physicsQueued = false;
+    updateSpotPhysics();
+  });
+};
+time.subscribe(queueSpotPhysics);
+map.on('moveend', queueSpotPhysics);
+setInterval(updateSpotPhysics, 60_000);
+
 // Depth, reefs and seamarks: static assets, precached for offline use.
 fetchSeafloor()
   .then(({ data }) => {
     mountSeafloorHud(hud, map, data);
+    physics = createPhysicsClient({ region: data.region, macro: data.macro, land: data.land });
+    updateSpotPhysics();
     depthAt = (lng, lat) => {
       const z = sample(data.region, lng, lat);
       return Number.isFinite(z) && z < 0 ? -z : undefined;

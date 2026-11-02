@@ -36,7 +36,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [x] 3.3 Refraction ray tracing over bathymetry (**O**). `src/physics/refraction.ts`, see `docs/PHYSICS.md`
 - [x] 3.4 Breaking height, breaker type, wave energy and force (**O**). `src/physics/breaking.ts`, `surf-zone.ts`
 - [x] 3.5 Rip risk score with length/strength band (**O**). `src/physics/rip.ts`
-- [ ] 3.6 Move heavy physics to a Web Worker (**S**)
+- [x] 3.6 Move heavy physics to a Web Worker (**S**). HUD rip readout now computed in it
 
 ## Phase 4: Forecast and fishing UI
 - [ ] 4.1 Tide chart panel and spot pages (**S**)
@@ -53,7 +53,7 @@ Each task is one small PR. **S** = Sonnet medium, **O** = Opus high. Start on So
 - [ ] 5.3 Mobile layout and sunlight-readability pass (**S**)
 - [ ] 5.4 Performance pass (**O**)
 - [ ] 5.5 Optional UI sounds (**S**)
-- [ ] 5.6 EN/ESP language toggle: full Spanish in `src/i18n/es.ts` using local Costa Rican marine and fishing terms, a toggle in the HUD with small UK and Costa Rica flag graphics in the HUD style, choice persisted on the device and the browser language used as the first-run default; units, dates and number formats follow the language where they differ (**S**, needs 1.10, and all UI text in place)
+- [x] 5.6 EN/ESP language toggle: full Spanish in `src/i18n/es.ts` using local Costa Rican marine and fishing terms, a toggle in the HUD with small UK and Costa Rica flag graphics in the HUD style, choice persisted on the device and the browser language used as the first-run default; units, dates and number formats follow the language where they differ (**S**, needs 1.10, and all UI text in place)
 
 ## Phase 6: Activity data (see DESIGN.md section 6)
 - [ ] 6.1 Water clarity: Kd490 and chlorophyll from ERDDAP/Copernicus, plus a rain-plume estimate from river-mouth rainfall, as the CLARITY layer (**S**, builds on 2.4)
