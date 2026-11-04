@@ -71,7 +71,7 @@ Ranked by value for effort.
 
 - **Surf:** no rain, lightning or sargassum in the verdict; no tide in the break quality.
 - **Dive and snorkel outing score:** rain, squall and lightning now cap it (PLAN 7.11, shared `physics/safety.ts`). Surface current now scores too (drift off the reef; PLAN 7.11). Water temperature (cold term plus a suit hint) and the sargassum outlook at the nearest beach now score too; WATCH has a WATER TEMP metric. Still missing: tropical storm alerts.
-- **BOAT verdict and sea state:** verdict with squall, lightning, storm and rain cap added (PLAN 7.23 item 1). Still missing: currents, tide, daylight, debris, shoals (items 2 to 8).
+- **BOAT verdict and sea state:** verdict with squall, lightning, storm and rain cap added (PLAN 7.23 item 1). Still missing: tide, bars, daylight, debris, shoals (items 2 to 8).
 - **WATCH tracker:** no water temperature or chlorophyll metric; BITE there ignores habitat and rain.
 
 ## Sailing / BOAT (audit of 2026-11-04, PLAN 7.23)
@@ -79,17 +79,17 @@ Ranked by value for effort.
 | Input | Verdict | Sea comfort | BEST TODAY / WATCH |
 |---|---|---|---|
 | Wind speed | ✓ | ✓ (wind sea) | ✓ |
-| Wind direction | – | ✓ (cross sea) | ✗ |
+| Wind direction | – | ✓ (cross sea) | ✓ (WIND FROM, WATCH only) |
 | Gusts | ✓ | – | ✓ |
-| Wind sea / swell, period | ✓ via comfort and height | ✓ | height only |
-| Squall (CAPE + gusts) | ✓ | – | ✗ |
+| Wind sea / swell, period | ✓ via comfort and height | ✓ | ✓ (SEA COMFORT) |
+| Squall (CAPE + gusts) | ✓ | – | ✓ |
 | Lightning | ✓ | – | ✗ |
 | Tropical storm range | ✓ | – | ✗ |
 | Heavy rain | ✓ | – | ✓ |
-| Currents | ✗ | ✗ | ✗ |
+| Currents | ✗ | ✓ (against / with waves) | ✓ (CURRENT, and inside SEA COMFORT) |
 | Tide, gauge | ✗ | – | ✗ |
-| River flow (debris) | ✗ | – | ✗ |
-| Sunset, moon, pressure trend | ✗ | – | ✗ |
+| River flow (debris) | ✓ (LIKELY = MARGINAL) | – | ✗ |
+| Sunset, moon, pressure trend | ✓ (rows under SEA STATE) | – | ✗ |
 | Depth, reefs, seamarks | ✗ (map only) | – | – |
 
 Vessel (SET): SMALL BOAT is MARGINAL at 15 kt / 20 kt gusts / 1.2 m seas and NO-GO at 20 / 27 / 2.0; YACHT is MARGINAL at 20 / 27 / 2.0 and NO-GO at 28 / 37 / 3.0. Thresholds are rules of thumb in `src/boat/verdict.ts`.

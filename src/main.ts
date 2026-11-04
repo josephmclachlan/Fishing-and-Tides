@@ -25,6 +25,8 @@ import { mountStorms } from './layers/storms';
 import { fetchWeather, weatherAt, type WeatherData } from './adapters/weather';
 import { LIMON_HARMONICS } from './data/tides-limon';
 import { mountWatchPanel } from './watch-panel';
+import { mountBoatWindowHud } from './boat-window-hud';
+import { debrisAt } from './boat/debris';
 import { fetchStorms, type Storm } from './adapters/storms';
 import { mountSeaStateHud, type VerdictSafety } from './sea-state-hud';
 import { mountAstroHud } from './astro-hud';
@@ -73,7 +75,7 @@ import { mountFlowHud } from './flow-hud';
 import { isWater, sample } from './physics/bathy';
 import { bandFor, createTimeStore } from './time';
 import { mountTimeSlider } from './time-slider';
-import { KT_PER_MS, sampleField, fromDeg } from './physics/flow';
+import { KT_PER_MS, sampleField, fromDeg, type VectorField } from './physics/flow';
 import { MOCK_FLOW, PLUME_RIVERS, REGION, SPOTS } from './region';
 import { fetchWind, windAt, type WindData } from './adapters/wind';
 import { currentsAt, fetchCurrents, type CurrentsData } from './adapters/currents';
@@ -251,7 +253,7 @@ const surfBreaks = mountSurfBreaks(map);
 const surfHud = mountSurfHud(hud, map, (name) => spotPhysics?.byName(name)?.surf);
 // BOAT verdict inputs besides wind and sea (PLAN 7.23); filled in once weather, storms and lightning are declared below.
 let boatSafety: () => VerdictSafety = () => ({});
-mountSeaStateHud(hud, conditionsAt, seaHere, { vessel: settings.vessel, safety: () => boatSafety() });
+mountSeaStateHud(hud, conditionsAt, seaHere, { vessel: settings.vessel, safety: () => boatSafety(), current: () => { const c = map.getCenter(); return currentVecAt(c.lng, c.lat, time.validMs()); } });
 // Weather and active tropical storms (PLAN 7.3, 7.5): live feeds, rows stay -- until they load.
 weatherHud = mountWeatherHud(hud, { validMs: () => time.validMs() });
 time.subscribe(() => weatherHud?.refresh());
@@ -287,6 +289,7 @@ boatSafety = () => {
     lightning: !!near && near.km <= STRIKE_ALERT_KM,
     stormKm: nearestStorm(stormList)?.km ?? null,
     rainMmH: w && Number.isFinite(w.rainMmH) ? w.rainMmH : undefined,
+    debris: riverFlow ? debrisAt(riverFlow, c.lng, c.lat, time.validMs())?.level : undefined,
   };
 };
 fetchStorms().then((d) => ((stormList = d.storms), stormLayer.setStorms(d.storms), weatherHud?.setStorms(d.storms))).catch((err) => console.warn('storms unavailable', err));
@@ -361,6 +364,18 @@ const windMsAt = (lng: number, lat: number, ms: number): number | null => {
   const v = windVecAt(lng, lat, ms);
   return v ? Math.hypot(...v) : null;
 };
+const hourCurr = new globalThis.Map<number, VectorField | null>();
+let hourCurrFor: CurrentsData | null = null;
+/** Forecast surface current vector, m/s, at any place and hour (one field per hour, cached). */
+const currentVecAt = (lng: number, lat: number, ms: number): [number, number] | null => {
+  if (!currents) return null;
+  if (hourCurrFor !== currents) (hourCurr.clear(), (hourCurrFor = currents));
+  const h = Math.floor(ms / 3.6e6);
+  if (!hourCurr.has(h)) hourCurr.set(h, currentsAt(currents, bandAt(ms), ms)?.field ?? null);
+  const f = hourCurr.get(h);
+  const out: [number, number] = [0, 0];
+  return f && sampleField(f, lng, lat, out) ? out : null;
+};
 /** The nearest water point within ~1.8 km of a shore pin (cached per spot): clarity and sea temperature are sea values. */
 const watchWater = (lng: number, lat: number, c: ClarityContext): [number, number] | null => {
   const key = `${lng},${lat}`;
@@ -381,6 +396,15 @@ const watchWater = (lng: number, lat: number, c: ClarityContext): [number, numbe
 };
 const metricEnv = (): MetricEnv => ({
   windMs: windMsAt,
+  windDirDeg: (lng, lat, ms) => {
+    const v = windVecAt(lng, lat, ms);
+    return v ? fromDeg(...v) : null;
+  },
+  currentVec: currentVecAt,
+  currentMs: (lng, lat, ms) => {
+    const v = currentVecAt(lng, lat, ms);
+    return v ? Math.hypot(...v) : null;
+  },
   sea: (lng, lat, ms) => (waves ? wavesAt(waves, bandAt(ms), ms, lng, lat) : null),
   weather: (ms) => (weatherData ? weatherAt(weatherData, ms) : []),
   // Clarity is a sea value and the spot pins sit on the shore: read it at the nearest water within ~1.8 km (cached per spot).
@@ -477,6 +501,8 @@ let riverFlow: RiverFlow | null = null;
 fetchRiverFlow()
   .then((d) => (riverFlow = d))
   .catch((err) => console.warn('river flow unavailable', err));
+// BOAT daylight, pressure, next GO window and flood debris (PLAN 7.23 items 4, 5).
+mountBoatWindowHud(hud, map, { env: metricEnv, vessel: settings.vessel, validMs: () => time.validMs(), riverFlow: () => riverFlow });
 fetchCatchmentRain()
   .then((d) => ((catchmentRain = d), refreshClarity()))
   .catch((err) => console.warn('catchment rain unavailable', err));
