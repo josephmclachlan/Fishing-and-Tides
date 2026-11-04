@@ -39,23 +39,45 @@ export interface CoralData {
   licence: string;
 }
 
-/** Alert levels as CRW names them, 0..4. */
-export type AlertLevel = 0 | 1 | 2 | 3 | 4;
-export const ALERT_KEYS = ['none', 'watch', 'warning', 'alert1', 'alert2'] as const;
+/**
+ * Alert levels as CRW names them, 0..7: none, watch, warning, alert 1 to alert 5. CRW added Alert Levels 3, 4 and 5
+ * (DHW 12, 16 and 20) in December 2023 because heat stress now runs far past the old top level.
+ */
+export type AlertLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export const ALERT_KEYS = ['none', 'watch', 'warning', 'alert1', 'alert2', 'alert3', 'alert4', 'alert5'] as const;
+export const MAX_ALERT = 7;
 
-/** DHW thresholds, °C-weeks. */
+/** DHW thresholds, °C-weeks: alert 1 (bleaching likely), alert 2 (severe bleaching and mortality), then 3, 4 and 5. */
 export const DHW_BLEACHING = 4;
 export const DHW_SEVERE = 8;
+export const DHW_ALERT3 = 12;
+export const DHW_ALERT4 = 16;
+export const DHW_ALERT5 = 20;
+
+/** Alert level for a DHW once HotSpot is at least 1 °C: 2 (warning) under 4 °C-weeks, up to 7 (alert 5) from 20. */
+export function alertForDhw(dhw: number): AlertLevel {
+  return dhw >= DHW_ALERT5 ? 7 : dhw >= DHW_ALERT4 ? 6 : dhw >= DHW_ALERT3 ? 5 : dhw >= DHW_SEVERE ? 4 : dhw >= DHW_BLEACHING ? 3 : 2;
+}
 
 /**
  * One day's CRW alert level from that day's HotSpot and DHW (CRW v3.1 definitions):
  * HotSpot ≤ 0 none; 0 < HotSpot < 1 watch; HotSpot ≥ 1 and DHW < 4 warning, 4 ≤ DHW < 8 alert 1,
- * DHW ≥ 8 alert 2. The published BAA is the 7-day maximum of this.
+ * 8 to 12 alert 2, 12 to 16 alert 3, 16 to 20 alert 4, 20 and over alert 5. The published BAA is the 7-day maximum of this.
  */
 export function alertLevel(hotspot: number, dhw: number): AlertLevel {
   if (!(hotspot > 0)) return 0;
   if (hotspot < 1) return 1;
-  return dhw >= DHW_SEVERE ? 4 : dhw >= DHW_BLEACHING ? 3 : 2;
+  return alertForDhw(dhw);
+}
+
+/**
+ * The 7-day alert to show: CRW's published BAA (0..7), lifted by the newest DHW when the product still tops out at
+ * alert 2 (4): a BAA of 4 means HotSpot ≥ 1 with DHW ≥ 8 that week, so DHW 12, 16 and 20 make it alert 3, 4 and 5.
+ */
+export function shownAlert(baa: number, dhw: number): AlertLevel | null {
+  if (!Number.isFinite(baa)) return null;
+  const level = Math.max(0, Math.min(MAX_ALERT, Math.round(baa)));
+  return (level >= 4 && Number.isFinite(dhw) ? Math.max(level, alertForDhw(dhw)) : level) as AlertLevel;
 }
 
 export interface ErddapTable {
@@ -167,7 +189,7 @@ export function coralNow(d: CoralData, reef: CoralReef): CoralNow {
   const peak = reef.dhw.reduce<number>((m, x) => (x !== null && x > m ? x : m), -Infinity);
   return {
     reef, dhw: dh.v, dhwDay: dh.day, hotspot: at(reef.hotspot).v, sstAnomaly: at(reef.sstAnomaly).v, sst: at(reef.sst).v,
-    alert: Number.isFinite(b.v) ? (Math.max(0, Math.min(4, Math.round(b.v))) as AlertLevel) : null, alertDay: b.day,
+    alert: shownAlert(b.v, dh.v), alertDay: b.day,
     peakDhw: Number.isFinite(peak) ? peak : NaN,
   };
 }
