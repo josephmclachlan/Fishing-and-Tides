@@ -36,7 +36,7 @@ export interface MetricRow {
   unit: string;
   decimals: number;
   days: DayCell[];
-  /** Hourly values at the best spot of the first day with data, for a sparkline (every hour of the window, null for gaps). */
+  /** Hourly values over the window (null for gaps), each day at that day's best spot, for the sparkline and the best-time search. */
   hourly: (number | null)[];
 }
 
@@ -47,7 +47,12 @@ export interface WatchForecast {
   rows: MetricRow[];
   /** Index of the best day by tone score across the rows, or null if there is no data. */
   bestDay: number | null;
+  /** The best two local hours of that day, or null when no metric has hourly values. */
+  bestTime: { startMs: number; endMs: number } | null;
 }
+
+/** Local hours searched for the best time (a window starts at 5 and ends by 19), and its length. */
+export const BEST_FROM_H = 5, BEST_TO_H = 19, BEST_LEN_H = 2;
 
 const hoursFor = (m: Metric): readonly number[] => m.hours ?? (m.agg === 'sum' ? Array.from({ length: 24 }, (_, h) => h) : Array.from({ length: 12 }, (_, h) => h + 6));
 
@@ -77,7 +82,7 @@ export function buildForecast(env: MetricEnv, ids: readonly string[], spots: rea
   const rows: MetricRow[] = metrics.map((m) => {
     const hrs = hoursFor(m);
     const cells: DayCell[] = [];
-    let hourly: (number | null)[] = [];
+    const hourly: (number | null)[] = new Array(days * 24).fill(null);
     for (let d = 0; d < days; d++) {
       const dayMs = start + d * DAY;
       let best: { v: number; spot: Spot } | null = null;
@@ -94,15 +99,14 @@ export function buildForecast(env: MetricEnv, ids: readonly string[], spots: rea
         if (!best || (m.better === 'high' && p.v > best.v) || (m.better === 'low' && p.v < best.v)) best = { v: p.v, spot: p.s };
       }
       cells.push({ dayMs, value: best?.v ?? null, tone: best ? m.tone(best.v) : 'none', spot: best?.spot.name ?? null });
-    }
-    const firstWith = cells.find((c) => c.spot);
-    if (firstWith) {
-      const s = spots.find((x) => x.name === firstWith.spot)!;
-      hourly = Array.from({ length: days * 24 }, (_, i) => {
-        const ms = start + i * HOUR;
-        if (m.hours && !m.hours.includes(i % 24)) return null;
-        return m.at({ env, spot: s.name, lng: s.lngLat[0], lat: s.lngLat[1], ms, sky: sky(start + Math.floor(i / 24) * DAY, s) });
-      });
+      if (best) {
+        const s = best.spot;
+        for (let h = 0; h < 24; h++) {
+          if (m.hours && !m.hours.includes(h)) continue;
+          const v = m.at({ env, spot: s.name, lng: s.lngLat[0], lat: s.lngLat[1], ms: dayMs + h * HOUR, sky: sky(dayMs, s) });
+          hourly[d * 24 + h] = v !== null && Number.isFinite(v) ? v : null;
+        }
+      }
     }
     return { id: m.id, unit: m.unit, decimals: m.decimals, days: cells, hourly };
   });
@@ -114,5 +118,39 @@ export function buildForecast(env: MetricEnv, ids: readonly string[], spots: rea
     const score = scored.reduce((a, r) => a + TONE_SCORE[r.days[d].tone], 0) / scored.length;
     if (score > top) (top = score), (bestDay = d);
   }
-  return { startMs: start, days, spots: spots.map((s) => s.name), rows, bestDay };
+  return { startMs: start, days, spots: spots.map((s) => s.name), rows, bestDay, bestTime: bestDay === null ? null : bestTime(rows, metrics, bestDay, start) };
+}
+
+/**
+ * The best BEST_LEN_H consecutive local hours of day `d`: each hour is scored by the tone of every
+ * metric that has a value then (green +1, red -1), plus up to half a point for how far the value
+ * sits toward the better end of that day's range, which breaks ties. Metrics with no better end
+ * (period, tide) and daily-only metrics (visibility, sargassum) do not vote.
+ */
+export function bestTime(rows: readonly MetricRow[], metrics: readonly Metric[], d: number, startMs: number): { startMs: number; endMs: number } | null {
+  const voters = rows.map((r, i) => ({ r, m: metrics[i] })).filter(({ m }) => m.better !== null && !m.hours);
+  if (!voters.length) return null;
+  const score = (h: number) => {
+    let sum = 0, n = 0;
+    for (const { r, m } of voters) {
+      const v = r.hourly[d * 24 + h];
+      if (v === null) continue;
+      const day = r.hourly.slice(d * 24 + BEST_FROM_H, d * 24 + BEST_TO_H).filter((x): x is number => x !== null);
+      const lo = Math.min(...day), hi = Math.max(...day);
+      const pos = hi > lo ? (v - lo) / (hi - lo) : 0.5;
+      sum += TONE_SCORE[m.tone(v)] + 0.5 * (m.better === 'high' ? pos : 1 - pos);
+      n++;
+    }
+    return n ? sum / n : null;
+  };
+  let best: { h: number; v: number } | null = null;
+  for (let h = BEST_FROM_H; h + BEST_LEN_H <= BEST_TO_H; h++) {
+    const parts = Array.from({ length: BEST_LEN_H }, (_, k) => score(h + k));
+    if (parts.some((p) => p === null)) continue;
+    const v = (parts as number[]).reduce((a, b) => a + b, 0) / BEST_LEN_H;
+    if (!best || v > best.v + 1e-9) best = { h, v };
+  }
+  if (!best) return null;
+  const from = startMs + d * DAY + best.h * HOUR;
+  return { startMs: from, endMs: from + BEST_LEN_H * HOUR };
 }

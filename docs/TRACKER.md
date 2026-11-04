@@ -31,3 +31,4 @@ Alerts when a watched metric crosses a threshold, multiple saved watchlists, com
 - Layout: shown as two mockups (table A, cards B) for him to pick; see PR #72.
 - Place: the user selects a **region** (click-highlight an area on the map), and the forecast lists the **best spots per metric** inside it, not one fixed spot. Registry `sample` runs for every named spot in the region and the popup ranks them per metric.
 - SHARE as an image is in the first version.
+- Best time (Joseph, 2026-11-04): the forecast names the best two local hours of the best day, not just the day. Each hour is scored by the tone of every hourly metric with a better end (swell, wind, gusts, rain, UV, BITE ...), plus a small bonus for sitting toward the better end of that day's range; window 05:00 to 19:00 (`bestTime` in `src/metrics/forecast.ts`). Daily-only metrics (visibility, sargassum) and metrics with no better end (period, tide) do not vote.
