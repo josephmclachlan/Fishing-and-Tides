@@ -43,21 +43,28 @@ export interface SeaState {
 
 /**
  * Wave-current interaction (PLAN 7.23 item 3). A current running against the waves shortens and steepens them,
- * a following current stretches and flattens them. To first order (Longuet-Higgins and Stewart 1961, wave action
- * conserved, deep water) the height changes by
+ * a following current stretches and flattens them. For deep water and a current U along the direction the waves
+ * travel (positive = following), wave action is conserved and the absolute frequency is fixed (Longuet-Higgins and
+ * Stewart 1961; Phillips 1977, eq. 3.6.17), which gives the exact amplification
  *
- *   H / H0 ≈ 1 − 2 U / cg0,    cg0 = g T / 4π,
+ *   c  = (c0 / 2) · (1 + √(1 + 4U / c0)),   c0 = g T / 2π   (phase speed relative to the water)
+ *   H / H0 = c0 / √(c · (c + 2U))
  *
- * with U the current component along the direction the waves travel (positive = following), clamped to 0.7 to 1.6
- * because the formula is only good while |U| is well under cg0 (waves stop at U = −cg0/2 in deep water).
- * Applied to each train on its own heading. A heuristic for planning, not a wave model.
+ * For small U this is 1 − 2U/c0 = 1 − U/cg0 (cg0 = c0 / 2). Waves are blocked at U = −c0/4, where they break, so
+ * the factor is clamped to 0.7 to 1.6 (and 1.6 past blocking). Applied to each train on its own heading. A planning
+ * estimate for open water, not a wave model: refraction by current shear and shallow water are left out.
  */
 export function currentFactor(periodS: number, dirFromDeg: number | undefined, current: { u: number; v: number }): number {
   if (!(periodS > 0) || dirFromDeg === undefined) return 1;
   const heading = ((dirFromDeg + 180) * Math.PI) / 180; // degrees true the waves travel TOWARD
-  const along = current.u * Math.sin(heading) + current.v * Math.cos(heading);
-  const cg0 = (G * periodS) / (4 * Math.PI);
-  return Math.min(1.6, Math.max(0.7, 1 - (2 * along) / cg0));
+  const U = current.u * Math.sin(heading) + current.v * Math.cos(heading);
+  if (!Number.isFinite(U) || U === 0) return 1;
+  const c0 = (G * periodS) / (2 * Math.PI);
+  const disc = 1 + (4 * U) / c0;
+  if (!(disc > 0)) return 1.6; // blocked: the waves pile up and break
+  const c = (c0 / 2) * (1 + Math.sqrt(disc));
+  const a = c0 / Math.sqrt(c * (c + 2 * U));
+  return Math.min(1.6, Math.max(0.7, a));
 }
 
 /** The two trains after the current has acted on them. */
