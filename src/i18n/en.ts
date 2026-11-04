@@ -526,6 +526,7 @@ export const en = {
   'fish.reach.shore': 'SHORE',
   'fish.reach.boat': 'BOAT',
   'fish.bite': 'BITE',
+  'fish.biteWhy': 'WHY',
   'fish.times': 'BEST TIMES',
   'fish.spots': 'BEST SPOTS',
   'fish.nospots': 'NONE NEARBY FOR THIS REACH',

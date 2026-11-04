@@ -88,7 +88,7 @@ export const helpEs: Record<keyof typeof helpEn, string> = {
   'glance.rip': 'RESACA',
   'glance.sst': 'TEMP',
   'glance.curr': 'CORR',
-  'glance.set': 'HACIA',
+  'glance.set': 'CORR. HACIA',
   'glance.surge': 'FONDO A 6M',
   'glance.vis': 'VISIB.',
   'glance.sea': 'MAR',

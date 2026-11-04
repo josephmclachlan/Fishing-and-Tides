@@ -505,6 +505,7 @@ export const es: Dict = {
   'fish.reach.shore': 'ORILLA',
   'fish.reach.boat': 'BOTE',
   'fish.bite': 'PICADA',
+  'fish.biteWhy': 'POR QUÉ',
   'fish.times': 'MEJORES HORAS',
   'fish.spots': 'MEJORES PUNTOS',
   'fish.nospots': 'NINGUNO CERCA PARA ESTE ALCANCE',

@@ -77,6 +77,7 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
       <div class="ro fish-reach"><span class="lbl">${t('fish.reach')}</span><span class="seg sm" id="fish-reach">${REACHES.map((r) => `<button type="button" class="tab" data-reach="${r}">${t(`fish.reach.${r}` as Key)}</button>`).join('')}</span></div>
       <div class="ro"><span class="lbl">${t('fish.score')}</span><span class="seg sm green" id="fish-score">--</span></div>
       <div class="ro"><span class="lbl">${t('fish.bite')}</span><span class="seg sm green" id="fish-bite">--</span></div>
+      <div class="ro fish-bite-why" hidden><span class="lbl">${t('fish.biteWhy')}</span><span class="seg sm" id="fish-bite-why"></span></div>
       <div class="ro"><span class="lbl">${t('fish.times')}</span><span class="seg sm" id="fish-times">--</span></div>
       <div class="bite-strip" id="fish-strip" aria-hidden="true"></div>
       <div class="bite-wins" id="fish-wins"></div>
@@ -110,7 +111,11 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     const water = waterTerm(sp, env.water(c.lng, c.lat, time.validMs()));
     const base = { lat: c.lat, lng: c.lng, tide: LIMON_HARMONICS, tzOffsetH: REGION.tzOffsetH, water };
     const now = bite({ ...base, ...env.at(c.lng, c.lat, time.validMs()), tMs: time.validMs(), habitat: score });
-    $('fish-bite').textContent = `${now.bite} ${why(now.reasons)}`.trim();
+    // The score out of 100 on its own, its reasons on the next line (persona review J7).
+    $('fish-bite').textContent = `${now.bite}/100`;
+    const reasons = why(now.reasons);
+    $('fish-bite-why').textContent = reasons;
+    $('fish-bite-why').parentElement!.hidden = !reasons;
     $('fish-bite').className = 'seg sm ' + (now.bite >= 60 ? 'green' : '');
 
     // The day's strip and best windows: timing plus each hour's forecast wind, waves, rain, cloud and squalls.
