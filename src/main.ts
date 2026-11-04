@@ -17,7 +17,7 @@ import { mountLightningHud } from './lightning-hud';
 import { mountLightning } from './layers/lightning';
 import { fetchLightning } from './adapters/lightning';
 import { nearestFlash, STRIKE_ALERT_KM, type Flash } from './lightning';
-import { biteWeather, pressureTrend } from './weather';
+import { biteWeather, nearestStorm, pressureTrend, squallLevel, summarise } from './weather';
 import { crestGrid } from './waves-lines';
 import { mountWavesLayer } from './layers/waves';
 import { mountWeatherHud } from './weather-hud';
@@ -25,8 +25,8 @@ import { mountStorms } from './layers/storms';
 import { fetchWeather, weatherAt, type WeatherData } from './adapters/weather';
 import { LIMON_HARMONICS } from './data/tides-limon';
 import { mountWatchPanel } from './watch-panel';
-import { fetchStorms } from './adapters/storms';
-import { mountSeaStateHud } from './sea-state-hud';
+import { fetchStorms, type Storm } from './adapters/storms';
+import { mountSeaStateHud, type VerdictSafety } from './sea-state-hud';
 import { mountAstroHud } from './astro-hud';
 import { mountHarbours } from './layers/harbours';
 import { mountHarboursHud } from './harbours-hud';
@@ -233,7 +233,9 @@ mountSheets(hud, map, sheets);
 // Surf break catalog (PLAN 6.4): markers and BREAK rows.
 const surfBreaks = mountSurfBreaks(map);
 const surfHud = mountSurfHud(hud, map, (name) => spotPhysics?.byName(name)?.surf);
-mountSeaStateHud(hud, conditionsAt, seaHere);
+// BOAT verdict inputs besides wind and sea (PLAN 7.23); filled in once weather, storms and lightning are declared below.
+let boatSafety: () => VerdictSafety = () => ({});
+mountSeaStateHud(hud, conditionsAt, seaHere, { vessel: settings.vessel, safety: () => boatSafety() });
 // Weather and active tropical storms (PLAN 7.3, 7.5): live feeds, rows stay -- until they load.
 weatherHud = mountWeatherHud(hud, { validMs: () => time.validMs() });
 time.subscribe(() => weatherHud?.refresh());
@@ -257,7 +259,20 @@ loadLightning();
 setInterval(loadLightning, 5 * 60000);
 let weatherData: WeatherData | null = null;
 fetchWeather().then((d) => ((weatherData = d), weatherHud?.setWeather(d))).catch((err) => console.warn('weather unavailable', err));
-fetchStorms().then((d) => (stormLayer.setStorms(d.storms), weatherHud?.setStorms(d.storms))).catch((err) => console.warn('storms unavailable', err));
+let stormList: readonly Storm[] = [];
+boatSafety = () => {
+  const c = map.getCenter();
+  const w = weatherData ? summarise(weatherData, time.validMs()) : null;
+  const near = nearestFlash(flashes, c.lng, c.lat, Date.now());
+  return {
+    gustKt: w && Number.isFinite(w.gustKt) ? w.gustKt : undefined,
+    squall: w ? squallLevel(w) : undefined,
+    lightning: !!near && near.km <= STRIKE_ALERT_KM,
+    stormKm: nearestStorm(stormList)?.km ?? null,
+    rainMmH: w && Number.isFinite(w.rainMmH) ? w.rainMmH : undefined,
+  };
+};
+fetchStorms().then((d) => ((stormList = d.storms), stormLayer.setStorms(d.storms), weatherHud?.setStorms(d.storms))).catch((err) => console.warn('storms unavailable', err));
 mountAstroHud(hud, map, time);
 mountHarbours(map);
 let landGrid: Grid | null = null;
