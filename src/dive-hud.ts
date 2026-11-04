@@ -82,6 +82,7 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
       <div class="ro"><span class="lbl">${t('dive.sst')}</span><span class="seg sm" id="dv-sst">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.uv')}</span><span class="seg sm" id="dv-uv">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.coral')}</span><span class="seg sm" id="dv-coral">--</span></div>
+      <div class="ro"><span class="lbl">${t('dive.entry')}</span><span class="seg sm" id="dv-entry">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.score')}</span><span class="seg sm" id="dv-score">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.time')}</span><span class="seg sm" id="dv-time">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.day')}</span><span class="seg sm" id="dv-day">--</span></div>
@@ -130,6 +131,9 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     const heat = env.coralAt(c.lng, c.lat);
     $('coral').textContent = heat && Number.isFinite(heat.dhw) ? `${heat.dhw.toFixed(1)} ${t('dive.coral.unit')} · ${t(`dive.coral.a${heat.alert ?? 0}` as Key)} · ${heat.name}` : '--';
     $('coral').className = 'seg sm ' + (!heat || heat.alert === null ? '' : heat.alert >= 3 ? 'red' : heat.alert >= 1 ? '' : 'green');
+    const hb = r?.waves.breaker.Hb;
+    $('entry').textContent = r && Number.isFinite(hb) ? `${(hb as number).toFixed(1)} ${t('unit.m')} · ${t('dive.rip')} ${t(`dive.rip.${r.rip.level}` as Key)}` : '--';
+    $('entry').className = 'seg sm ' + (!r || !Number.isFinite(hb) ? '' : (hb as number) >= 1.2 || r.rip.level === 'HIGH' ? 'red' : (hb as number) >= 0.5 || r.rip.level === 'MOD' ? '' : 'green');
     heavy();
   };
 
@@ -147,7 +151,11 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     // Open water or unknown depth: use the activity depth so only a real reef flat can read as too shallow.
     const waterM = chart === undefined || chart > depth ? depth : chart + tideM(ms);
     const runoff = env.runoffAt(c.lng, c.lat, ms);
-    return outingScore({ surgeMs: u, visM: vis ?? NaN, windMs: wind, waterM, localHour, sunAltDeg: sunAltitude(ms, c.lat, c.lng), currentMs: env.currentAt(c.lng, c.lat, ms)?.ms, ...(runoff === null ? {} : { runoff }), ...waterTerms(env.waterAt(c.lng, c.lat, ms)), ...env.wxAt(c.lng, c.lat, ms) });
+    // Surf at the entry: the spot model's breaker height, scaled to this hour's swell; the rip level only for the hour it was computed for.
+    const ratio = sea.hs > 0 && st && st.sea.Hs > 0 ? sea.hs / st.sea.Hs : 1;
+    const breakerM = r.waves.breaker.Hb * ratio;
+    const rip = Math.abs(ms - time.validMs()) < 0.5 * 3.6e6 ? r.rip.level : undefined;
+    return outingScore({ surgeMs: u, visM: vis ?? NaN, windMs: wind, waterM, localHour, sunAltDeg: sunAltitude(ms, c.lat, c.lng), currentMs: env.currentAt(c.lng, c.lat, ms)?.ms, breakerM, ...(rip ? { rip } : {}), ...(runoff === null ? {} : { runoff }), ...waterTerms(env.waterAt(c.lng, c.lat, ms)), ...env.wxAt(c.lng, c.lat, ms) });
   };
 
   let heavyKey = '';

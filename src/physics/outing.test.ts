@@ -159,3 +159,31 @@ describe('river runoff', () => {
     expect(outingScore({ ...good, runoff: false }).score).toBe(outingScore(good).score);
   });
 });
+
+describe('surf and rip at the entry', () => {
+  it('small surf costs nothing, big surf closes the entry', () => {
+    expect(outingScore({ ...good, breakerM: 0.3 }).score).toBe(outingScore(good).score);
+    const big = outingScore({ ...good, breakerM: 1.6 });
+    expect(big.score).toBeLessThan(30);
+    expect(big.reasons[0]).toBe('entry');
+  });
+  it('a high rip risk lowers the score, a low one does not', () => {
+    expect(outingScore({ ...good, rip: 'LOW' }).score).toBe(outingScore(good).score);
+    expect(outingScore({ ...good, rip: 'HIGH' }).score).toBeLessThan(outingScore({ ...good, rip: 'MOD' }).score);
+    expect(outingScore({ ...good, rip: 'HIGH' }).reasons).toContain('rip');
+  });
+});
+
+describe('surf and rip at the entry', () => {
+  it('small surf costs nothing, big surf closes the entry', () => {
+    expect(outingScore({ ...good, breakerM: 0.3 }).score).toBe(outingScore(good).score);
+    const big = outingScore({ ...good, breakerM: 1.6 });
+    expect(big.score).toBeLessThan(30);
+    expect(big.reasons[0]).toBe('entry');
+  });
+  it('a high rip risk lowers the score, a low one does not', () => {
+    expect(outingScore({ ...good, rip: 'LOW' }).score).toBe(outingScore(good).score);
+    expect(outingScore({ ...good, rip: 'HIGH' }).score).toBeLessThan(outingScore({ ...good, rip: 'MOD' }).score);
+    expect(outingScore({ ...good, rip: 'HIGH' }).reasons).toContain('rip');
+  });
+});
