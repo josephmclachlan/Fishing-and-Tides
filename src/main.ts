@@ -78,6 +78,7 @@ import { mountFronts, satelliteFronts } from './layers/fronts';
 import { nearestFront, type FrontCell } from './physics/fronts';
 import { OFFSHORE, offshoreScore } from './fishing/offshore';
 import { sargassumSeeds } from './adapters/sargassum';
+import { fetchMld, mldAt, type MldData } from './adapters/mld';
 import { mountSst } from './layers/sst';
 import { clarityAt, mountClarity, mountClarityHud, type ClarityContext } from './layers/clarity';
 import { fetchCatchmentRain, type CatchmentRain } from './adapters/catchment-rain';
@@ -169,6 +170,9 @@ fetchSatellite()
     refreshClarity();
   })
   .catch((err) => console.warn('satellite unavailable', err));
+// Mixed-layer depth (PLAN 7.18) for the offshore read; optional, the score renormalises without it.
+let mld: MldData | null = null;
+fetchMld().then((d) => (mld = d.series ? d : null)).catch((err) => console.warn('mld unavailable', err));
 // Real waves once loaded (forecast to day 16, then climatology); the mock swell until then.
 let waves: WavesData | null = null;
 const seaStateAt = (lng: number, lat: number): SeaState | null => (waves ? wavesAt(waves, time.band(), time.validMs(), lng, lat) : null);
@@ -279,9 +283,10 @@ const offshoreRead: OffshoreRead = (lng, lat) => {
     chl: satellite ? (chlAt(satellite, lng, lat, ms)?.value ?? null) : null,
     frontKm: front?.km ?? null,
     weedKm: weed ? weed.distanceM / 1000 : null,
+    mldM: mldAt(mld, lng, lat, ms),
   };
   const scores = OFFSHORE.map((s) => ({ id: s.id, score: offshoreScore(s, inputs) ?? 0 })).sort((a, b) => b.score - a.score);
-  return { front: front && { km: front.km, bearingDeg: front.bearingDeg, kind: front.front.kind }, scores };
+  return { front: front && { km: front.km, bearingDeg: front.bearingDeg, kind: front.front.kind }, mldM: inputs.mldM, scores };
 };
 mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch, () => (offshoreDepth ? offshoreRead : null));
 // WATCH (PLAN 7.13): the metric tracker reads the same wind, wave, weather and tide data as the HUD, at any hour of the next days.

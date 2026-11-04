@@ -62,6 +62,8 @@ The BOAT tab opens a drawer (a sheet on phones, see `src/sheets.ts`). It works w
   - front closeness: exp(-(km/5)²)
   - floating sargassum closeness: exp(-(km/3)²), for mahi only
   - ledge: slope / 40 m per km
+  - mixed layer (PLAN 7.18): 1 at 25 m or shallower, falling linearly to 0.4 at 80 m. Pelagics sit near the base of the warm surface layer, so a shallow layer keeps them and their bait at trolling depth. Weight 0.1 to 0.2 for mahi, tuna, wahoo and kingfish; silk snapper ignores it.
+- **BOAT › MIXED LAYER** shows the depth there from the Copernicus Marine global model (daily, 1/12°, about 10 days ahead, `src/adapters/mld.ts`), read as FISH UP HIGH under 30 m, FISH MID-WATER to 60 m, FISH SPREAD DEEP beyond. Like the other offshore terms, it is a rule of thumb, not fitted.
 - Per-species depth ranges: mahi beyond 150 m, tuna beyond 300 m, wahoo 100 to 1000 m (ledges), kingfish 20 to 60 m, silk snapper (pargo seda, a bottom fish caught by hand line) 100 to 250 m on ledges.
 - FAD positions are still not in. No open data source was found.
 

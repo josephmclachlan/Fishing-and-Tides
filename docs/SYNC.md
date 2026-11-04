@@ -29,6 +29,7 @@ Features were built in phases, so older ones can miss data that landed later. Th
 | Pressure tendency (weather, 3 models) | – | – | ✓ | ✓ | ✓ |
 | Moonlight at night (astro) | – | – | ✓ | ✓ | ✓ |
 | River flow at the mouths (GloFAS) | ✗ | ✓ | ✓ | ✓ (slider time) | ✗ |
+| Mixed-layer depth (Copernicus) | – (BOAT › OFFSHORE FISH only) | – | – | – | – |
 | Your own CATCH pins (BOAT mode) | ✓ (fit and nudge) | ✓ | – | – | – |
 
 Before this pass fishing was built from the static seafloor plus tide, sun, moon, wind and waves; rain was an input nobody fed, and BEST TIMES ignored the hourly forecast. Steps 1 (weather and safety) and 2 (water) below are in. Currents do not reach fishing yet, and the amber heat stays structure and season only. Storms act through their wind and waves.
@@ -64,7 +65,7 @@ Ranked by value for effort.
 | Sea level from the live gauge | IOC Limón gauge, already loaded | Real water level over flats and reef includes surge the harmonics miss | Low |
 | Moon light at night | Astro, already computed | Bright nights change snook and jack night feeding | Very low |
 | Fishing pressure | Global Fishing Watch | Where boats work offshore | Needs the free `GFW_TOKEN` |
-| Mixed-layer depth | Copernicus Marine (account exists) | How deep offshore fish sit | Medium |
+| Mixed-layer depth (done, PLAN 7.18) | Copernicus Marine (account exists) | How deep offshore fish sit; feeds BOAT › OFFSHORE FISH | Medium |
 
 ## Other features that miss newer data (for later)
 

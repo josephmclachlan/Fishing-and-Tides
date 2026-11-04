@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OFFSHORE, offshoreScore, termFits } from './offshore';
+import { OFFSHORE, mixFit, offshoreScore, termFits } from './offshore';
 
 const sp = (id: string) => OFFSHORE.find((s) => s.id === id)!;
 
@@ -26,5 +26,17 @@ describe('offshore scoring (PLAN 7.17)', () => {
     expect(f.temp).toBeCloseTo(0.3);
     expect(f.front).toBe(1);
     expect(f.chl).toBeUndefined();
+  });
+});
+
+describe('offshore scoring: mixed layer (PLAN 7.18)', () => {
+  it('a shallow mixed layer holds pelagics up; silk snapper ignores it', () => {
+    expect(mixFit(10)).toBe(1);
+    expect(mixFit(80)).toBeCloseTo(0.4);
+    expect(mixFit(52.5)).toBeCloseTo(0.7);
+    const blue = { depthM: 800, sstC: 28, chl: 0.2, frontKm: 5 };
+    expect(offshoreScore(sp('tuna'), { ...blue, mldM: 20 })!).toBeGreaterThan(offshoreScore(sp('tuna'), { ...blue, mldM: 90 })!);
+    expect(sp('silksnapper').w.mix).toBeUndefined();
+    expect(offshoreScore(sp('silksnapper'), { depthM: 150, slopeMPerKm: 60, mldM: 90 })).toBeCloseTo(1);
   });
 });

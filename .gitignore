@@ -4,3 +4,4 @@ dev-dist
 *.local
 public/data/forecast/
 verify-report.*
+__pycache__/

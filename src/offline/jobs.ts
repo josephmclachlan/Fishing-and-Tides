@@ -9,6 +9,7 @@ import { fetchCurrents } from '../adapters/currents';
 import { fetchGauge } from '../adapters/gauge';
 import { fetchLightning } from '../adapters/lightning';
 import { fetchMetar } from '../adapters/metar';
+import { fetchMld } from '../adapters/mld';
 import { fetchPasses } from '../adapters/passes';
 import { fetchRiverFlow } from '../adapters/river-flow';
 import { fetchSargassum } from '../adapters/sargassum';
@@ -42,6 +43,7 @@ export const JOB_FEEDS: Record<string, readonly string[]> = {
   metar: ['metar'],
   lightning: ['lightning'],
   sargassum: ['sargassum'],
+  mld: ['mld'],
 };
 
 /** Verify feeds that are precached with the app rather than synced (checked in the sync's last step). */
@@ -63,6 +65,7 @@ export function tripJobs(base: string = import.meta.env.BASE_URL): SyncJob[] {
     { name: 'passes', run: async () => { const d = await fetchPasses({ base }); need(d.sst || d.chl || d.scat, 'no satellite passes'); } },
     // Published only from the live site (null in dev and preview): nothing to sync there.
     { name: 'sargassum', run: async () => need((await fetchSargassum({ base })).series, 'no sargassum detections') },
+    { name: 'mld', run: async () => need((await fetchMld({ base })).series, 'no mixed-layer depth') },
     { name: 'lightning', run: async () => { const d = await fetchLightning(); if (d) live(d, 'lightning'); } },
   ];
 }

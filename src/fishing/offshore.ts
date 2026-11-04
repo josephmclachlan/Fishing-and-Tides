@@ -12,6 +12,9 @@
  *   front  exp(−(km / 5)²) to the nearest SST or chlorophyll front
  *   weed   exp(−(km / 3)²) to the nearest sargassum mat seen in the last 5 days (mahi live under weed lines)
  *   drop   bottom slope / 40 m per km, capped at 1 (wahoo and silk snapper hold on ledges)
+ *   mix    mixed-layer depth (PLAN 7.18): 1 at 25 m or shallower, falling linearly to 0.4 at 80 m.
+ *          Pelagics sit near the layer's base, so a shallow layer holds them and their bait at
+ *          trolling depth; a deep one lets them spread down out of reach
  *
  * Silk snapper (pargo seda) is a bottom fish caught by hand line at 100 to 250 m: only depth and
  * the drop term count for it.
@@ -21,7 +24,7 @@ import { softFit } from './water';
 
 export type OffshoreId = 'mahi' | 'tuna' | 'wahoo' | 'kingfish' | 'silksnapper';
 type Range = readonly [number, number, number, number];
-type Term = 'temp' | 'chl' | 'front' | 'weed' | 'drop';
+type Term = 'temp' | 'chl' | 'front' | 'weed' | 'drop' | 'mix';
 
 export interface OffshoreSpecies {
   id: OffshoreId;
@@ -33,10 +36,10 @@ export interface OffshoreSpecies {
 }
 
 export const OFFSHORE: readonly OffshoreSpecies[] = [
-  { id: 'mahi', depthM: [30, 150, 5000, 8000], sstC: [21, 24, 29, 31], chl: [0.03, 0.1, 0.6, 2], w: { front: 0.35, weed: 0.3, temp: 0.2, chl: 0.15 } },
-  { id: 'tuna', depthM: [80, 300, 5000, 8000], sstC: [22, 24, 29, 31], chl: [0.03, 0.1, 0.6, 2], w: { front: 0.45, temp: 0.3, chl: 0.25 } },
-  { id: 'wahoo', depthM: [40, 100, 1000, 3000], sstC: [22, 24, 28, 30], chl: [0.03, 0.1, 0.6, 2], w: { front: 0.35, drop: 0.3, temp: 0.2, chl: 0.15 } },
-  { id: 'kingfish', depthM: [8, 20, 60, 120], sstC: [21, 23, 28, 30], chl: [0.1, 0.3, 3, 8], w: { front: 0.35, temp: 0.3, chl: 0.2, drop: 0.15 } },
+  { id: 'mahi', depthM: [30, 150, 5000, 8000], sstC: [21, 24, 29, 31], chl: [0.03, 0.1, 0.6, 2], w: { front: 0.35, weed: 0.3, temp: 0.2, chl: 0.15, mix: 0.15 } },
+  { id: 'tuna', depthM: [80, 300, 5000, 8000], sstC: [22, 24, 29, 31], chl: [0.03, 0.1, 0.6, 2], w: { front: 0.45, temp: 0.3, chl: 0.25, mix: 0.2 } },
+  { id: 'wahoo', depthM: [40, 100, 1000, 3000], sstC: [22, 24, 28, 30], chl: [0.03, 0.1, 0.6, 2], w: { front: 0.35, drop: 0.3, temp: 0.2, chl: 0.15, mix: 0.15 } },
+  { id: 'kingfish', depthM: [8, 20, 60, 120], sstC: [21, 23, 28, 30], chl: [0.1, 0.3, 3, 8], w: { front: 0.35, temp: 0.3, chl: 0.2, drop: 0.15, mix: 0.1 } },
   { id: 'silksnapper', depthM: [60, 100, 250, 350], sstC: [0, 0, 99, 99], chl: [0, 0, 99, 99], w: { drop: 1 } },
 ];
 
@@ -47,9 +50,14 @@ export interface OffshoreInputs {
   frontKm?: number | null;
   weedKm?: number | null;
   slopeMPerKm?: number | null;
+  /** Mixed-layer depth, m (adapters/mld.ts). */
+  mldM?: number | null;
 }
 
 const ok = (x: number | null | undefined): x is number => typeof x === 'number' && Number.isFinite(x);
+
+/** 1 at 25 m or shallower, 0.4 at 80 m or deeper, linear between. */
+export const mixFit = (m: number) => 1 - 0.6 * Math.min(Math.max((m - 25) / 55, 0), 1);
 
 export function termFits(sp: OffshoreSpecies, i: OffshoreInputs): Partial<Record<Term, number>> {
   const f: Partial<Record<Term, number>> = {};
@@ -58,6 +66,7 @@ export function termFits(sp: OffshoreSpecies, i: OffshoreInputs): Partial<Record
   if (ok(i.frontKm)) f.front = Math.exp(-((i.frontKm / 5) ** 2));
   if (ok(i.weedKm)) f.weed = Math.exp(-((i.weedKm / 3) ** 2));
   if (ok(i.slopeMPerKm)) f.drop = Math.min(1, i.slopeMPerKm / 40);
+  if (ok(i.mldM)) f.mix = mixFit(i.mldM);
   return f;
 }
 
