@@ -3,7 +3,11 @@
   --amber: #ffb000;
   --green: #39ff7a;
   --red: #ff3b2f;
-  --amber-dim: rgba(255, 176, 0, 0.35);
+  --amber-rgb: 255 176 0;
+  --amber-dim: rgb(var(--amber-rgb) / 0.35);
+  --panel-rgb: 5 8 5;
+  --map-bg: #070a06; --map-water: #03120b; --map-land: #0c0d07; --map-water-edge: #1d6b3a; --map-land-edge: #2a2410;
+  --map-water-line: #2fbf66; --map-land-line: #5a4510; --map-text: #c98a00;
   --font: 'Share Tech Mono', ui-monospace, monospace;
 }
 * { box-sizing: border-box; }
@@ -25,7 +29,7 @@ body { touch-action: pan-x pan-y; }
 @keyframes flicker { 0%, 97% { opacity: 1; } 98% { opacity: 0.85; } }
 
 .panel {
-  position: absolute; background: rgba(5, 8, 5, 0.78);
+  position: absolute; background: rgb(var(--panel-rgb) / 0.78);
   border: 1px solid var(--amber-dim); padding: 8px 12px;
   text-shadow: 0 0 6px currentColor;
 }
@@ -251,14 +255,14 @@ body[data-enhance='off'] .from-spot > * { animation: tier-in 0.9s ease-out both;
   .top-tabs { display: flex; flex: 1 1 100%; gap: 6px; }
   .top-tabs .tab { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 6px 2px; text-align: center; font-size: 12px; justify-content: center; }
 
-  .side, .seek, .layers { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgba(5, 8, 5, 0.97); overflow-y: auto; }
+  .side, .seek, .layers { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgb(var(--panel-rgb) / 0.97); overflow-y: auto; }
   .ph { min-height: 34px; }
   body[data-sheet='cond'] .side { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); top: auto; bottom: calc(var(--dock-h, 64px) + 8px); max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
   body[data-sheet='find'] .seek { display: grid; top: calc(var(--top-h, 100px) + 8px); }
   .layers.open { display: grid; top: calc(var(--top-h, 100px) + 8px); bottom: auto; max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
 
   /* Bottom strip: chosen hour and key readouts always visible; tap to open the forecast and trip controls. */
-  .bottom { display: block; padding: 0; z-index: 6; background: rgba(5, 8, 5, 0.92); }
+  .bottom { display: block; padding: 0; z-index: 6; background: rgb(var(--panel-rgb) / 0.92); }
   /* Map credits sit just above the strip, not under it. */
   body .maplibregl-ctrl-bottom-left, body .maplibregl-ctrl-bottom-right { bottom: var(--dock-h, 64px); }
   .maplibregl-ctrl-attrib { font-size: 10px; }
@@ -315,7 +319,7 @@ body[data-band='outlook'] #t-valid, body[data-band='outlook'] #t-off { color: va
 @media (max-width: 700px) { .fish-spots .spot { min-height: 40px; align-items: center; } }
 
 /* Fishing rules card (PLAN 6.8) */
-.rules-card { position: absolute; z-index: 30; top: 70px; left: 50%; transform: translateX(-50%); width: min(560px, calc(100% - 16px)); max-height: calc(100% - 140px); overflow-y: auto; pointer-events: auto; background: rgba(5, 8, 5, 0.94); }
+.rules-card { position: absolute; z-index: 30; top: 70px; left: 50%; transform: translateX(-50%); width: min(560px, calc(100% - 16px)); max-height: calc(100% - 140px); overflow-y: auto; pointer-events: auto; background: rgb(var(--panel-rgb) / 0.94); }
 .rules-card[hidden] { display: none; }
 .rules-list { list-style: none; margin: 4px 0 10px; padding: 0; display: grid; gap: 8px; font-size: 12px; letter-spacing: 1px; line-height: 1.45; }
 .rule-tag { display: inline-block; margin-right: 8px; padding: 0 6px; border: 1px solid currentColor; font-size: 10px; letter-spacing: 2px; }
@@ -343,7 +347,7 @@ body[data-band='outlook'] #t-valid, body[data-band='outlook'] #t-off { color: va
 .boat-pins .pin-go { flex: 1; text-align: left; }
 .boat-pins .pin-x { width: 34px; }
 @media (max-width: 1100px), (max-height: 700px) {
-  .boat { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgba(5, 8, 5, 0.94); }
+  .boat { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgb(var(--panel-rgb) / 0.94); }
   .boat.open { display: grid; top: calc(var(--top-h, 100px) + 8px); bottom: auto; max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
 }
 
@@ -367,7 +371,7 @@ body[data-net='offline'] .title .blink, body[data-net='cached'] .title .blink { 
 .settings { display: none; }
 .settings-body { display: grid; gap: 8px; }
 @media (max-width: 1100px), (max-height: 700px) {
-  body[data-sheet='settings'] .settings { display: grid; z-index: 5; left: 8px; right: 8px; width: auto; top: calc(var(--top-h, 100px) + 8px); background: rgba(5, 8, 5, 0.97); gap: 6px; max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); overflow-y: auto; }
+  body[data-sheet='settings'] .settings { display: grid; z-index: 5; left: 8px; right: 8px; width: auto; top: calc(var(--top-h, 100px) + 8px); background: rgb(var(--panel-rgb) / 0.97); gap: 6px; max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); overflow-y: auto; }
   .settings-body .tab { min-height: 48px; font-size: 13px; text-align: center; }
   /* What each setting does, in words, under its name (the desktop shows it as a tooltip). */
   .settings-body .tab[title]::after { content: attr(title); display: block; margin-top: 4px; font-size: 11px; letter-spacing: 0; text-transform: none; opacity: 0.75; line-height: 1.3; }
@@ -393,7 +397,7 @@ body[data-net='offline'] .title .blink, body[data-net='cached'] .title .blink { 
 /* Sunlight mode (SUN, PLAN 5.3): glare washes out glow and thin dim lines, so drop scanlines, vignette, glow and
    dimming, and make panels and borders solid. Also what the OS high-contrast setting turns on by default. */
 body[data-contrast='high'] {
-  --amber-dim: rgba(255, 176, 0, 0.85);
+  --amber-dim: rgb(var(--amber-rgb) / 0.85);
 }
 body[data-contrast='high'] .crt { display: none; }
 body[data-contrast='high'] .panel,
@@ -444,7 +448,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .check-open .lamp.pass { background: var(--green); box-shadow: 0 0 6px var(--green); }
 .check-open .lamp.fail { background: var(--red); box-shadow: 0 0 6px var(--red); }
 @media (max-width: 1100px), (max-height: 700px) {
-  .check { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgba(5, 8, 5, 0.97); }
+  .check { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgb(var(--panel-rgb) / 0.97); }
   .check.open { display: grid; top: calc(var(--top-h, 100px) + 8px); bottom: auto; max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
   .ck-feed summary { min-height: 44px; }
 }
@@ -453,7 +457,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 /* Explainers (src/explain.ts): labels you can tap are underlined with a dotted line and a hint cursor. */
 .has-help { cursor: help; text-decoration: underline dotted var(--amber-dim); text-underline-offset: 3px; pointer-events: auto; }
 .has-help:hover, .has-help:focus-visible { opacity: 1; color: var(--green); outline: none; }
-.help-card { position: fixed; z-index: 40; width: min(320px, calc(100% - 16px)); max-height: 60vh; overflow-y: auto; background: rgba(5, 8, 5, 0.96); box-shadow: 0 0 18px var(--amber-dim); }
+.help-card { position: fixed; z-index: 40; width: min(320px, calc(100% - 16px)); max-height: 60vh; overflow-y: auto; background: rgb(var(--panel-rgb) / 0.96); box-shadow: 0 0 18px var(--amber-dim); }
 .help-card[hidden] { display: none; }
 .help-card .ph { color: var(--green); text-shadow: 0 0 6px var(--green); }
 .help-card .ph .sheet-x { display: inline-flex; align-items: center; justify-content: center; margin-left: auto; width: 34px; height: 34px; }
@@ -547,7 +551,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .sp-go { min-height: 40px; margin-top: 6px; }
 .sp-open { margin-left: auto; font-size: 11px; padding: 2px 8px; }
 @media (max-width: 1100px), (max-height: 700px) {
-  .spot-page { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgba(5, 8, 5, 0.97); }
+  .spot-page { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgb(var(--panel-rgb) / 0.97); }
   .spot-page.open { display: grid; top: calc(var(--top-h, 100px) + 8px); bottom: auto; max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
 }
 .side .ro:has(.sp-open) { flex-wrap: wrap; }
@@ -599,7 +603,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .wt-go { text-align: center; justify-content: center; }
 .wt-go:disabled, .wt-row .tab:disabled { opacity: 0.55; }
 .wt-count { text-transform: uppercase; opacity: 0.8; }
-.watch-pop { position: fixed; z-index: 8; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(760px, calc(100vw - 16px)); max-height: calc(100vh - 24px); overflow-y: auto; background: rgba(5, 8, 5, 0.97); pointer-events: auto; display: grid; gap: 8px; }
+.watch-pop { position: fixed; z-index: 8; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(760px, calc(100vw - 16px)); max-height: calc(100vh - 24px); overflow-y: auto; background: rgb(var(--panel-rgb) / 0.97); pointer-events: auto; display: grid; gap: 8px; }
 .watch-pop[hidden] { display: none; }
 .watch-pop .ph { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .wt-tabs { margin-left: auto; flex-wrap: nowrap; }
@@ -666,7 +670,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .lnote[hidden] { display: none; }
 
 /* First-run intro (PLAN 7.12, src/intro.ts). */
-.intro { position: fixed; z-index: 50; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(520px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow-y: auto; background: rgba(5, 8, 5, 0.98); box-shadow: 0 0 24px var(--amber-dim); pointer-events: auto; display: grid; gap: 10px; }
+.intro { position: fixed; z-index: 50; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(520px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow-y: auto; background: rgb(var(--panel-rgb) / 0.98); box-shadow: 0 0 24px var(--amber-dim); pointer-events: auto; display: grid; gap: 10px; }
 .intro[hidden] { display: none; }
 .intro .ph { display: flex; align-items: center; gap: 8px; color: var(--green); text-shadow: 0 0 6px var(--green); }
 .intro .ph .sheet-x { display: inline-flex; margin-left: auto; }
@@ -810,3 +814,91 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .cf-viewer input:focus { outline: 2px solid var(--green); }
 .cf-viewer .tab:disabled { opacity: 0.4; }
 .cf-big { width: 100%; height: 100%; min-height: 200px; max-height: 70vh; object-fit: contain; }
+
+/* ---- Colour themes (src/theme.ts). RETRO is the :root default above. The variable NAMES are roles, not hues:
+   --amber = main ink and lines, --green = good / selected, --red = danger, --bg = darkest. Never hard-code colours. ---- */
+
+/* NAVAL: blue-lit instrument panels of a submarine or ship's bridge: navy glass, cyan-white ink, red for alarms. */
+:root[data-theme='naval'] {
+  --bg: #020a14; --amber: #6cc4ff; --green: #5dffc4; --red: #ff4d4d;
+  --amber-rgb: 108 196 255; --panel-rgb: 3 14 28;
+  --map-bg: #030b16; --map-water: #05203a; --map-land: #0b1626; --map-water-edge: #1d5f9c; --map-land-edge: #14284a;
+  --map-water-line: #3f9de6; --map-land-line: #24477a; --map-text: #8cc2f0;
+}
+:root[data-theme='naval'] .crt {
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(0,6,16,0.7) 100%);
+  animation: none;
+}
+:root[data-theme='naval'] .panel { background: linear-gradient(180deg, rgb(var(--panel-rgb) / 0.82), rgb(2 8 18 / 0.9)); }
+:root[data-theme='naval'] .btn { background-image: repeating-linear-gradient(-45deg, transparent 0 8px, rgba(0,12,30,0.25) 8px 16px); }
+
+/* MODERN: a tactical status board. Solid slate panels, sans-serif type, big touch targets, no glow or scanlines,
+   a green rail on every panel. Still uppercase mil-spec labels and a strict green / amber / red code. */
+:root[data-theme='modern'] {
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --bg: #0b0f14; --amber: #e3ebd9; --green: #6df08a; --red: #ff6153;
+  --amber-rgb: 227 235 217; --panel-rgb: 17 23 30;
+  --map-bg: #0a0e13; --map-water: #0e2a3b; --map-land: #1a211b; --map-water-edge: #2d7194; --map-land-edge: #2b352b;
+  --map-water-line: #4aa0c8; --map-land-line: #4b5b47; --map-text: #c5d2bb;
+}
+:root[data-theme='modern'] body { font-size: 15px; line-height: 1.35; }
+:root[data-theme='modern'] .crt { display: none; }
+:root[data-theme='modern'] * { text-shadow: none !important; }
+:root[data-theme='modern'] .panel {
+  background: rgb(var(--panel-rgb) / 0.94); border: 1px solid rgb(var(--amber-rgb) / 0.22);
+  border-left: 3px solid var(--green); border-radius: 8px; padding: 10px 14px;
+  backdrop-filter: blur(6px); box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+}
+:root[data-theme='modern'] .panel::before, :root[data-theme='modern'] .panel::after { display: none; }
+:root[data-theme='modern'] .title { font-weight: 700; letter-spacing: 3px; font-size: 16px; }
+:root[data-theme='modern'] .ph { font-weight: 700; font-size: 13px; letter-spacing: 1.5px; border-bottom-color: rgb(var(--amber-rgb) / 0.22); padding-bottom: 6px; margin-bottom: 8px; }
+:root[data-theme='modern'] .lbl { font-size: 12px; letter-spacing: 1px; opacity: 0.8; font-weight: 600; }
+:root[data-theme='modern'] .unit { font-size: 12px; opacity: 0.8; }
+:root[data-theme='modern'] .dim { opacity: 0.78; }
+:root[data-theme='modern'] .seg { font-size: 20px; font-weight: 700; letter-spacing: 0; }
+:root[data-theme='modern'] .tag { border-radius: 3px; padding: 1px 6px; font-weight: 700; }
+:root[data-theme='modern'] .tab {
+  min-height: 38px; border-radius: 6px; font-weight: 600; letter-spacing: 1px;
+  border-color: rgb(var(--amber-rgb) / 0.35); background: rgb(255 255 255 / 0.04);
+}
+:root[data-theme='modern'] .tab.on { background: rgb(109 240 138 / 0.16); color: var(--green); border-color: var(--green); border-width: 2px; }
+:root[data-theme='modern'] .mkey { top: calc(var(--top-h, 92px) + 8px); border-radius: 6px; }
+@media (pointer: coarse) { :root[data-theme='modern'] .tab, :root[data-theme='modern'] .btn { min-height: 44px; } }
+:root[data-theme='modern'] .tab:focus-visible, :root[data-theme='modern'] button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+:root[data-theme='modern'] .btn { border-radius: 6px; min-height: 44px; font-weight: 700; letter-spacing: 1.5px; background-image: none; box-shadow: none; background: var(--green); }
+:root[data-theme='modern'] .alert { border-radius: 6px; background-image: none; font-weight: 700; letter-spacing: 2px; animation: none; color: #0b0f14; }
+:root[data-theme='modern'] .gauge-bar { height: 10px; border-radius: 5px; overflow: hidden; border-color: rgb(var(--amber-rgb) / 0.3); }
+:root[data-theme='modern'] .gauge-bar i, :root[data-theme='modern'] .gauge.green .gauge-bar i, :root[data-theme='modern'] .gauge.red .gauge-bar i { box-shadow: none; }
+:root[data-theme='modern'] .timebar .range::-webkit-slider-runnable-track { height: 12px; border-radius: 6px; }
+:root[data-theme='modern'] .timebar .range::-moz-range-track { height: 12px; border-radius: 6px; }
+:root[data-theme='modern'] .timebar .range::-webkit-slider-thumb { width: 22px; height: 34px; margin-top: -12px; border-radius: 6px; background: var(--green); border-color: var(--bg); box-shadow: none; }
+:root[data-theme='modern'] .timebar .range::-moz-range-thumb { width: 18px; height: 30px; border-radius: 6px; background: var(--green); border-color: var(--bg); box-shadow: none; }
+:root[data-theme='modern'] .red { animation: none; font-weight: 700; }
+:root[data-theme='modern'] .blink { animation: none; }
+:root[data-theme='modern'] .help-card, :root[data-theme='modern'] .intro { box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6); }
+:root[data-theme='modern'] .vd-chips { grid-auto-columns: minmax(0, 1fr); }
+:root[data-theme='modern'] .vd-chip { min-width: 0; overflow: hidden; }
+:root[data-theme='modern'] .vd-chip .seg { font-size: 15px; }
+@media (min-width: 1101px) and (min-height: 701px) { :root[data-theme='modern'] .tab { padding: 6px 7px; letter-spacing: 0.5px; } }
+@media (max-width: 1100px), (max-height: 700px) {
+  :root[data-theme='modern'] .top-tabs .tab { padding: 6px 1px; font-size: 11px; letter-spacing: 0; }
+  :root[data-theme='modern'] .seg { font-size: 17px; }
+  :root[data-theme='modern'] .vd-chip .seg { font-size: 10px; }
+  :root[data-theme='modern'] .vd-chip { padding: 3px 0; }
+}
+:root[data-theme='modern'] .panel { overflow-wrap: break-word; }
+/* NAVAL: dim blue on navy needs a little more weight to stay readable. */
+:root[data-theme='naval'] .lbl, :root[data-theme='naval'] .unit { opacity: 0.88; }
+:root[data-theme='naval'] .dim { opacity: 0.8; }
+@media (min-width: 1101px) and (min-height: 701px) { :root[data-theme='modern'] .side { width: 300px; } }
+:root[data-theme='modern'] .vd-chip .seg { font-size: 13px; letter-spacing: 0; }
+:root[data-theme='modern'] .seek-in { min-width: 0; flex: 1; border-radius: 6px; }
+:root[data-theme='modern'] .seek, :root[data-theme='modern'] .layers { overflow-x: hidden; }
+@media (min-width: 1101px) and (min-height: 701px) {
+  :root[data-theme='modern'] .layers { bottom: calc(var(--dock-h, 150px) + 8px); max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 150px) - 220px); }
+}
+:root[data-theme='modern'] .seek { grid-template-columns: minmax(0, 1fr); }
+:root[data-theme='modern'] .seek-go { flex: none; padding: 8px 12px; }
+:root[data-theme='modern'] .side .seg { font-size: 17px; }
+/* Phone CONDITIONS drawer is two columns; the go / no-go chips need the full width to stay readable (found in the theme clarity tests). */
+@media (max-width: 1100px), (max-height: 700px) { .side .vd { grid-column: 1 / -1; } }
