@@ -78,6 +78,11 @@ import { layers } from './layers/registry';
 import { bindMapLayers } from './layers/visibility';
 import { createCoralMode } from './coral-mode';
 import { mountCoral } from './layers/coral';
+import type { CoralData } from './adapters/coral';
+import { mountCoralHeat } from './coral-heat-ui';
+import type { CoralHistory } from './coral/history';
+import { worstSarg } from './coral/risks';
+import { predictSeries } from './physics/tide';
 import { mountLayersPanel } from './layers-panel';
 import { FLOW_STYLE, mountFlow } from './layers/flow';
 import type { FlowSource } from './layers/flow-sim';
@@ -292,8 +297,11 @@ mountLayersPanel(hud, layers, sheets, coralMode);
 const coralLayer = mountCoral(map, CORAL_REEFS);
 coralLayer.setVisible(coralMode.isOn());
 coralMode.subscribe((on) => coralLayer.setVisible(on));
+let coralHeat: CoralData | null = null;
+let coralHistory: CoralHistory | null = null;
+let coralHeatUi: { refresh(): void } | null = null;
 fetchCoral()
-  .then((d) => coralLayer.setHeat(d))
+  .then((d) => ((coralHeat = d), coralLayer.setHeat(d), coralHeatUi?.refresh()))
   .catch((err) => console.warn('coral heat stress unavailable', err));
 mountLangUi(hud, settings, map);
 mountSheets(hud, map, sheets);
@@ -415,6 +423,37 @@ mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch, () 
 const coralStore = createCoralStore(safeStorage());
 mountCoralPanel(hud, map, coralStore, sheets, () => depthAt);
 mountCoralLogLayer(map, coralStore);
+// Reef heat, history since 1985 and today's stresses at the top of the CORAL drawer (PLAN 7.32), for the reef nearest the map centre.
+fetch(`${import.meta.env.BASE_URL}data/climatology/coral-history.json`)
+  .then((r) => (r.ok ? (r.json() as Promise<CoralHistory>) : null))
+  .then((h) => ((coralHistory = h), coralHeatUi?.refresh()))
+  .catch((err) => console.warn('coral history unavailable', err));
+const coralPanelEl = document.getElementById('coral-panel');
+if (coralPanelEl) {
+  coralHeatUi = mountCoralHeat(coralPanelEl, {
+    heat: () => coralHeat,
+    history: () => coralHistory,
+    reef: () => {
+      const c = map.getCenter();
+      return coralHeat ? nearestReef(coralHeat, [c.lng, c.lat]) : null;
+    },
+    risks: (id) => {
+      const reef = CORAL_REEFS.find((r) => r.id === id)!;
+      const now = Date.now();
+      const beach = nearest(reef.lngLat, SPOTS)?.point.name;
+      const lows = predictSeries(LIMON_HARMONICS, now, now + 24 * 3.6e6, 10 * 60e3).h;
+      return {
+        flowRatio: riverFlow ? flowRatio(riverFlow, reef.river, now) : null,
+        rainMm: catchmentRain ? (riverRain(catchmentRain, now, undefined, riverFlow).find((r) => r.name === reef.river)?.rainMm ?? null) : null,
+        sargassum: sargForecast && beach ? worstSarg([0, 1, 2].map((k) => beachDay(sargForecast!, beach, now + k * 864e5)?.level ?? null)) : null,
+        hsM: waves ? (wavesAt(waves, time.band(), now, ...reef.lngLat)?.hs ?? null) : null,
+        lowTideM: lows.length ? Math.min(...lows) : null,
+      };
+    },
+  });
+  map.on('moveend', () => coralHeatUi?.refresh());
+  sheets.subscribe(() => sheets.is('coral') && coralHeatUi?.refresh());
+}
 // WATCH (PLAN 7.13): the metric tracker reads the same wind, wave, weather and tide data as the HUD, at any hour of the next days.
 const watchSea = new globalThis.Map<string, [number, number] | null>();
 const hourWind = new globalThis.Map<number, ReturnType<typeof windAt>>();

@@ -202,6 +202,10 @@ The 5 km pixels are coarse against these fringing reefs, and CRW masks pixels th
 
 Reef points are public reef areas only. Restoration nurseries and outplant sites are never put in `region.ts`, since the app is public.
 
+**History** (PLAN 7.32): `npm run data:coral-history` writes `public/data/climatology/coral-history.json` (committed, precached): each reef's peak DHW per year since 1985 from weekly samples, one ERDDAP request per year (~10 s each). It reads the reef pixels from the live `coral.json`, so run `npm run data:forecast -- coral` first. Re-run once a year; the app tops up the current year from the live 84-day window.
+
+**Risk rows** in the CORAL drawer (`src/coral/risks.ts`) reuse feeds already loaded: river flow against its median (GloFAS) and catchment rain for the reef's river (`CORAL_REEFS[].river`), the sargassum beach outlook, wave height at the reef, and the lowest Limón tide in 24 h. The thresholds are rules of thumb listed in that file.
+
 The DIVE panel heat card uses this feed too: `fetchCoral()`, then `nearestReef(d, lngLat)` and `coralNow(d, reef)` from `src/adapters/coral.ts`.
 
 ## Weather (PLAN 7.3)

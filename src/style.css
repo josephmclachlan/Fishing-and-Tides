@@ -698,3 +698,16 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .vd-why { margin-top: 4px; font-size: 11px; letter-spacing: 1px; line-height: 1.35; color: var(--amber); cursor: help; }
 .vd-why.is-nogo { color: var(--red); text-shadow: 0 0 6px var(--red); }
 .gl-vd { font-size: 10px; letter-spacing: 1px; }
+
+/* CORAL drawer heat and risks (PLAN 7.32) */
+.coral-heat { display: grid; gap: 4px; margin-bottom: 8px; border-bottom: 1px solid var(--amber); padding-bottom: 8px; }
+.coral-heat .coral-chart { display: block; }
+.cr-green { color: var(--green); }
+.cr-amber { color: var(--amber); }
+.cr-red { color: var(--red); }
+.cr-dim { color: var(--amber); opacity: 0.5; }
+.cr-lvl { font-family: inherit; letter-spacing: 2px; font-size: 12px; text-shadow: 0 0 6px currentColor; }
+.cr-note { font-size: 11px; letter-spacing: 1px; color: var(--red); min-height: 0; }
+.cr-risks { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.cr-risks li { display: grid; grid-template-columns: 1fr auto 5em; gap: 8px; align-items: baseline; }
+.cr-risks .seg.sm { text-align: right; }
