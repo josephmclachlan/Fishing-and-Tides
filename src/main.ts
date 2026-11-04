@@ -21,6 +21,8 @@ import { biteWeather, nearestStorm, pressureTrend, squallLevel, summarise } from
 import { crestGrid } from './waves-lines';
 import { mountWavesLayer } from './layers/waves';
 import { mountWeatherHud } from './weather-hud';
+import { mountTownRainHud } from './town-rain-hud';
+import { fetchTownRain } from './adapters/town-rain';
 import { mountStorms } from './layers/storms';
 import { fetchWeather, weatherAt, type WeatherData } from './adapters/weather';
 import { LIMON_HARMONICS } from './data/tides-limon';
@@ -276,6 +278,10 @@ mountSeaStateHud(hud, conditionsAt, seaHere, { vessel: settings.vessel, safety: 
 // Weather and active tropical storms (PLAN 7.3, 7.5): live feeds, rows stay -- until they load.
 weatherHud = mountWeatherHud(hud, { validMs: () => time.validMs() });
 time.subscribe(() => weatherHud?.refresh());
+// RAIN BY TOWN (PLAN 7.24): the four towns from the sharpest models, next 3 h from the slider.
+const townRainHud = mountTownRainHud(hud, { validMs: () => time.validMs() });
+time.subscribe(() => townRainHud?.refresh());
+fetchTownRain().then((d) => townRainHud?.set(d)).catch((err) => console.warn('town rain unavailable', err));
 const stormLayer = mountStorms(map);
 // Lightning (PLAN 7.6): GOES GLM flashes from the collector workflow, refreshed every 5 minutes.
 lightningHud = mountLightningHud(hud, map);

@@ -18,6 +18,7 @@ import { fetchSatellite } from '../adapters/satellite';
 import { fetchStorms } from '../adapters/storms';
 import { fetchWaves } from '../adapters/waves';
 import { fetchWeather } from '../adapters/weather';
+import { fetchTownRain } from '../adapters/town-rain';
 import { fetchHindcast } from '../adapters/weather-skill';
 import { fetchWind } from '../adapters/wind';
 import type { SyncJob } from './sync';
@@ -39,6 +40,7 @@ export const JOB_FEEDS: Record<string, readonly string[]> = {
   passes: ['sst-pass', 'chl-pass', 'scat-pass'],
   weather: ['weather'],
   rain: ['rain'],
+  townrain: ['townrain'],
   river: ['river'],
   storms: ['storms'],
   gauge: ['gauge'],
@@ -61,6 +63,7 @@ export function tripJobs(base: string = import.meta.env.BASE_URL): SyncJob[] {
     // The airport hindcast that scores the models (PLAN 7.4) rides with the forecast; without it the blend uses equal weights.
     { name: 'weather', run: async () => { live(await fetchWeather(), 'weather'); await fetchHindcast().catch(() => null); } },
     { name: 'rain', run: async () => live(await fetchCatchmentRain(), 'rain') },
+    { name: 'townrain', run: async () => live(await fetchTownRain(), 'townrain') },
     { name: 'river', run: async () => live(await fetchRiverFlow(), 'river') },
     { name: 'storms', run: async () => live(await fetchStorms({ base }), 'storms') },
     { name: 'gauge', run: async () => live(await fetchGauge({ hours: 30 }), 'gauge') },
