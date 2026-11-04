@@ -49,6 +49,8 @@ jobs:
           # without them those feeds fail and keep their previous files.
           COPERNICUSMARINE_USERNAME: ${{ secrets.COPERNICUSMARINE_USERNAME }}
           COPERNICUSMARINE_PASSWORD: ${{ secrets.COPERNICUSMARINE_PASSWORD }}
+          # Free Global Fishing Watch API token for the fishing effort map (effort, PLAN 7.19).
+          GFW_TOKEN: ${{ secrets.GFW_TOKEN }}
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:

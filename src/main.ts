@@ -79,6 +79,8 @@ import { nearestFront, type FrontCell } from './physics/fronts';
 import { OFFSHORE, offshoreScore } from './fishing/offshore';
 import { sargassumSeeds } from './adapters/sargassum';
 import { fetchMld, mldAt, type MldData } from './adapters/mld';
+import { effortCells, fetchEffort } from './adapters/effort';
+import { mountEffort } from './layers/effort';
 import { mountSst } from './layers/sst';
 import { clarityAt, mountClarity, mountClarityHud, type ClarityContext } from './layers/clarity';
 import { fetchCatchmentRain, type CatchmentRain } from './adapters/catchment-rain';
@@ -173,6 +175,9 @@ fetchSatellite()
 // Mixed-layer depth (PLAN 7.18) for the offshore read; optional, the score renormalises without it.
 let mld: MldData | null = null;
 fetchMld().then((d) => (mld = d.series ? d : null)).catch((err) => console.warn('mld unavailable', err));
+// FISHING BOATS (PLAN 7.19): a year of Global Fishing Watch effort; published only once the GFW_TOKEN secret is set.
+const effortLayer = mountEffort(map);
+fetchEffort().then((d) => d.series && effortLayer.setCells(effortCells(d.series), d.series.meta.grid.dlon)).catch((err) => console.warn('effort unavailable', err));
 // Real waves once loaded (forecast to day 16, then climatology); the mock swell until then.
 let waves: WavesData | null = null;
 const seaStateAt = (lng: number, lat: number): SeaState | null => (waves ? wavesAt(waves, time.band(), time.validMs(), lng, lat) : null);

@@ -116,6 +116,12 @@ export const SCAT_BOX: [[number, number], [number, number]] = [[-84, 8.75], [-81
 export const MLD_BOX: [[number, number], [number, number]] = SCAT_BOX;
 
 /**
+ * Box the fishing-effort map covers (PLAN 7.19): the coast plus ~120 km of sea, on Global Fishing
+ * Watch's 0.1° grid (edges on whole tenths so cells line up). [[west, south], [east, north]]
+ */
+export const EFFORT_BOX: [[number, number], [number, number]] = [[-84, 8.7], [-81.5, 11]];
+
+/**
  * Box the sargassum detections cover (PLAN 7.1): far enough offshore that a mat seen there can
  * drift onto the coast within the 5-day forecast (~0.3 m/s for 5 days is ~130 km), on the AFAI
  * grid. [[west, south], [east, north]]
