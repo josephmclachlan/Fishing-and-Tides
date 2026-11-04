@@ -717,3 +717,16 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .cr-spawn { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .cr-spawn i.lbl { font-style: italic; text-transform: none; }
 .cr-spawn .cr-now { border-left: 2px solid var(--green); padding-left: 6px; }
+
+/* CORAL drawer species guide and disease cards (PLAN 7.34) */
+.coral-guide { display: grid; gap: 6px; margin-bottom: 8px; border-bottom: 1px solid var(--amber); padding-bottom: 8px; }
+.cr-fold summary { cursor: pointer; list-style: none; }
+.cr-fold summary::-webkit-details-marker { display: none; }
+.cr-fold summary::before { content: '▸ '; color: var(--amber); }
+.cr-fold[open] summary::before { content: '▾ '; }
+.cr-guide { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 10px; }
+.cr-guide p { margin: 2px 0 0; font-size: 12px; line-height: 1.4; text-transform: none; }
+.cr-guide i.lbl { font-style: italic; text-transform: none; }
+.cr-name { color: var(--amber); letter-spacing: 1px; }
+.cr-tags { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.cr-tags .cr-lvl { font-size: 10px; }
