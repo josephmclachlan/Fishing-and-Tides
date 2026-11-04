@@ -699,4 +699,8 @@ export const es: Dict = {
   'legend.anchorages.2': 'Más tenue: sin verificar',
   'legend.info': '¿Qué es esta capa?',
   'legend.close': 'Ocultar',
+  'legend.currents.1': 'Rayas verdes: la corriente (más brillantes y rápidas, más fuerte)',
+  'legend.currents.2': 'Rojo: 1.5 nudos o más, demasiado fuerte para nadar contra ella',
+  'legend.wind.1': 'Rayas ámbar: el viento (más brillantes y rápidas, más fuerte)',
+  'legend.wind.2': 'Rojo: 25 nudos o más, viento para embarcaciones pequeñas',
 };

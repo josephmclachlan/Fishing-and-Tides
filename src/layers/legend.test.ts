@@ -24,6 +24,6 @@ describe('layer legends', () => {
     expect(h).toContain('lg-what');
     expect(h).toContain('sw-fill sw-green');
     expect(h).toContain('&lt;8 m');
-    expect(legendHtml('currents', () => 'x')).not.toContain('lg-list');
+    expect(legendHtml('seamarks', () => 'x')).not.toContain('lg-list');
   });
 });

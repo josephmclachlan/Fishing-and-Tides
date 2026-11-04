@@ -14,8 +14,8 @@ export interface LegendItem { sw: Swatch; tone: SwatchTone }
 /** Items per layer, in the order of their text keys `legend.<layer>.1`, `.2` ... */
 export const LEGEND: Readonly<Record<LayerId, readonly LegendItem[]>> = {
   waves: [{ sw: 'line', tone: 'amber' }, { sw: 'line', tone: 'red' }],
-  currents: [],
-  wind: [],
+  currents: [{ sw: 'line', tone: 'green' }, { sw: 'line', tone: 'red' }],
+  wind: [{ sw: 'line', tone: 'amber' }, { sw: 'line', tone: 'red' }],
   sst: [{ sw: 'line', tone: 'amber' }, { sw: 'none', tone: 'amber' }],
   clarity: [{ sw: 'fill', tone: 'green' }, { sw: 'fill', tone: 'amber' }, { sw: 'fill', tone: 'red' }],
   sargassum: [{ sw: 'fill', tone: 'amber' }, { sw: 'hatch', tone: 'dim' }, { sw: 'dot', tone: 'amber' }, { sw: 'ring', tone: 'amber' }],
