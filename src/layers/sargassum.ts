@@ -14,6 +14,7 @@ import { currentsAt, type CurrentsData } from '../adapters/currents';
 import { windAt, type WindData } from '../adapters/wind';
 import type { GridSeries } from '../adapters/pack';
 import { nearest } from '../geo';
+import { paintSea, rgbaWord, type CoastTest } from './sea-image';
 import { readout } from '../hud-kit';
 import { t, type Key } from '../i18n';
 
@@ -122,37 +123,43 @@ export interface SargassumLayer {
 }
 
 /** Map layers: detection image (`sg-cells`), tracks (`sg-track`), mats at the slider time (`sg-mat`) and beach outlook labels (`sg-beach`). */
-export function mountSargassum(map: Map): SargassumLayer {
-  const SCALE = 4;
+/** Detection image pixel, degrees (~220 m): fine enough to cut the 0.06° cells at the coastline. */
+const SARG_PIXEL_DEG = 0.002;
+/** Unknown cells are hatched: a diagonal stripe HATCH_ON pixels wide every HATCH_EVERY (about 0.09°, as before). */
+const HATCH_EVERY = 45, HATCH_ON = 7;
+
+/**
+ * Map layers: detection image (`sg-cells`), tracks (`sg-track`), mats at the slider time (`sg-mat`) and beach outlook labels (`sg-beach`).
+ * `coast` is where the sea is (sea-image.ts): the 6.6 km cells are cut at the coastline, so a shore cell doesn't paint the beach.
+ */
+export function mountSargassum(map: Map, coast: () => CoastTest | null = () => null): SargassumLayer {
   const canvas = document.createElement('canvas');
   let drawnFor: GridSeries | null = null;
   let drawnAt = -1;
+  let drawnCoast: CoastTest | null = null;
   const ready = () => map.isStyleLoaded() || !!map.getLayer('grat-macro');
 
   const drawCells = (f: SargForecast) => {
     const s = f.series, g = s.meta.grid;
     const [r0, g0, b0] = rgb(css('--amber', '#ffb000'));
     const st = latestCover(s, f.fromMs);
-    canvas.width = g.cols * SCALE;
-    canvas.height = g.rows * SCALE;
-    const img = new ImageData(canvas.width, canvas.height);
-    for (let i = 0; i < st.length; i++) {
-      const c = st[i];
-      const col = i % g.cols, row = Math.floor(i / g.cols);
-      for (let y = 0; y < SCALE; y++)
-        for (let x = 0; x < SCALE; x++) {
-          const px = col * SCALE + x, py = row * SCALE + y;
-          let a = 0;
-          // Unknown: faint diagonal hatching. Mats: amber, stronger with more cover.
-          if (c.cover === null) a = f.sea[i] && (px + py) % 6 === 0 ? 0.12 : 0;
-          else if (c.cover > 0) a = Math.min(0.85, 0.35 + 25 * c.cover);
-          if (a) img.data.set([r0, g0, b0, Math.round(255 * a)], (py * canvas.width + px) * 4);
-        }
-    }
-    canvas.getContext('2d')!.putImageData(img, 0, 0);
+    const hatch = rgbaWord(r0, g0, b0, Math.round(255 * 0.12));
     const h = g.dlon / 2, v = g.dlat / 2;
-    const w = g.lon0 - h, n = g.lat0 + v, e = g.lon0 + (g.cols - 1) * g.dlon + h, so = g.lat0 - (g.rows - 1) * g.dlat - v;
-    const coordinates: [[number, number], [number, number], [number, number], [number, number]] = [[w, n], [e, n], [e, so], [w, so]];
+    const box = [g.lon0 - h, g.lat0 - (g.rows - 1) * g.dlat - v, g.lon0 + (g.cols - 1) * g.dlon + h, g.lat0 + v] as const;
+    drawnCoast = coast();
+    const img = paintSea(box, SARG_PIXEL_DEG, drawnCoast, (lng, lat, i, j) => {
+      const col = Math.round((lng - g.lon0) / g.dlon), row = Math.round((g.lat0 - lat) / g.dlat);
+      if (col < 0 || row < 0 || col >= g.cols || row >= g.rows) return 0;
+      const k = row * g.cols + col;
+      const c = st[k];
+      // Unknown: faint diagonal hatching. Mats: amber, stronger with more cover.
+      if (c.cover === null) return f.sea[k] && (i + j) % HATCH_EVERY < HATCH_ON ? hatch : 0;
+      return c.cover > 0 ? rgbaWord(r0, g0, b0, Math.round(255 * Math.min(0.85, 0.35 + 25 * c.cover))) : 0;
+    });
+    canvas.width = img.width;
+    canvas.height = img.height;
+    canvas.getContext('2d')!.putImageData(new ImageData(img.data as Uint8ClampedArray<ArrayBuffer>, img.width, img.height), 0, 0);
+    const coordinates = img.coordinates;
     const url = canvas.toDataURL('image/png');
     const src = map.getSource('sg') as { updateImage?: (o: { url: string; coordinates: typeof coordinates }) => void } | undefined;
     if (src?.updateImage) src.updateImage({ url, coordinates });
@@ -204,7 +211,7 @@ export function mountSargassum(map: Map): SargassumLayer {
   const render = () => {
     queued = false;
     if (!last || !ready()) return;
-    if (drawnFor !== last.f.series || drawnAt !== last.f.fromMs) {
+    if (drawnFor !== last.f.series || drawnAt !== last.f.fromMs || drawnCoast !== coast()) {
       drawCells(last.f);
       drawnFor = last.f.series;
       drawnAt = last.f.fromMs;

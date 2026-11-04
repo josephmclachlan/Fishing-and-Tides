@@ -1,6 +1,6 @@
 /**
  * Limón airport METAR relay (PLAN 2.11). aviationweather.gov sends no CORS headers, so the data
- * build fetches the last 36 h of MRLM reports and publishes them as data/forecast/metar.json.
+ * build fetches the last 96 h of MRLM reports (the ensemble blend, PLAN 7.4, scores the models on them) and publishes them as data/forecast/metar.json.
  */
 import { writeFileSync } from 'node:fs';
 import { parseMetars, type MetarFile } from '../../src/adapters/metar-parse.ts';
@@ -8,7 +8,7 @@ import { METAR_STATION } from '../../src/region.ts';
 import { get } from './common.ts';
 
 export async function buildMetar(dir: string): Promise<string> {
-  const rows = await (await get(`https://aviationweather.gov/api/data/metar?ids=${METAR_STATION.icao}&format=json&hours=36`)).json();
+  const rows = await (await get(`https://aviationweather.gov/api/data/metar?ids=${METAR_STATION.icao}&format=json&hours=96`)).json();
   const out: MetarFile = { station: METAR_STATION.icao, fetchedAt: new Date().toISOString(), obs: parseMetars(rows) };
   writeFileSync(`${dir}/metar.json`, JSON.stringify(out));
   const last = out.obs[0];

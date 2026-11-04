@@ -122,3 +122,23 @@ describe('water temperature and sargassum', () => {
     expect([29, 26, 23, 19].map(suitFor)).toEqual(['lycra', 'shorty', 'wet3', 'wet5']);
   });
 });
+
+describe('real daylight', () => {
+  it('a high sun with clear sky is full light', () => {
+    expect(outingScore({ ...good, sunAltDeg: 60, cloudPct: 0 }).score).toBe(outingScore(good).score);
+  });
+  it('a low sun or night cuts the score', () => {
+    expect(outingScore({ ...good, sunAltDeg: 3 }).score).toBeLessThan(25);
+    expect(outingScore({ ...good, sunAltDeg: 15 }).score).toBeLessThan(outingScore(good).score);
+    expect(outingScore({ ...good, sunAltDeg: 15 }).reasons).toContain('light');
+  });
+  it('overcast dulls the light but never below 70% of it', () => {
+    const clear = outingScore({ ...good, sunAltDeg: 60, cloudPct: 0 }).score;
+    const dull = outingScore({ ...good, sunAltDeg: 60, cloudPct: 100 }).score;
+    expect(dull).toBeLessThan(clear);
+    expect(dull).toBeGreaterThan(clear * 0.6);
+  });
+  it('ignores the clock once a sun height is given', () => {
+    expect(outingScore({ ...good, localHour: 3, sunAltDeg: 60 }).score).toBe(outingScore(good).score);
+  });
+});
