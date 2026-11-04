@@ -9,6 +9,9 @@ import { t, type Key } from './i18n';
 import { REGION } from './region';
 import { daySky, localDayStart } from './physics/astro';
 import { daylight, hourlyVerdicts, nextWindow, pressureWord, pressureTrend3h } from './boat/window';
+import { barAdvisory, nearestBar } from './boat/bar';
+import { flowRatio } from './adapters/river-flow';
+import { predict } from './physics/tide';
 import { debrisAt } from './boat/debris';
 import type { RiverFlow } from './adapters/river-flow';
 import type { MetricEnv } from './metrics/registry';
@@ -27,7 +30,7 @@ export function mountBoatWindowHud(root: HTMLElement, map: Map, deps: BoatWindow
   const side = condSlot(root, 'waves', 21);
   if (!side) return;
   const row = (label: Key, id: string) => `<div class="ro"><span class="lbl">${t(label)}</span><span class="seg sm" id="${id}">--</span></div>`;
-  side.insertAdjacentHTML('beforeend', `<div class="from-coast">${row('bw.light', 'bw-light')}${row('bw.moon', 'bw-moon')}${row('bw.press', 'bw-press')}${row('bw.window', 'bw-window')}${row('bw.debris', 'bw-debris')}</div>`);
+  side.insertAdjacentHTML('beforeend', `<div class="from-coast">${row('bw.light', 'bw-light')}${row('bw.moon', 'bw-moon')}${row('bw.press', 'bw-press')}${row('bw.window', 'bw-window')}${row('bw.debris', 'bw-debris')}${row('bw.bar', 'bw-bar')}</div>`);
   const $ = (id: string) => side.querySelector<HTMLElement>('#' + id)!;
 
   const tick = () => {
@@ -54,6 +57,20 @@ export function mountBoatWindowHud(root: HTMLElement, map: Map, deps: BoatWindow
     const db = flow ? debrisAt(flow, c.lng, c.lat, now) : null;
     $('bw-debris').textContent = !flow ? '--' : !db ? t('bw.debris.far') : db.level === 'none' ? t('bw.debris.none') : t(`bw.debris.${db.level}` as Key, { river: db.river, km: Math.round(db.km) });
     $('bw-debris').className = `seg sm ${db?.level === 'likely' ? 'red' : db?.level === 'possible' ? '' : db ? 'green' : ''}`;
+    // Bar and inlet advisory (PLAN 7.23 item 6): the nearest river mouth or the Moín entrance within 10 km.
+    const nb = nearestBar(c.lng, c.lat);
+    const sea = nb ? env.sea(nb.bar.lngLat[0], nb.bar.lngLat[1], now) : null;
+    const hs = sea && Number.isFinite(sea.swellHs) ? sea.swellHs : sea?.hs;
+    $('bw-bar').className = 'seg sm';
+    if (!nb) $('bw-bar').textContent = t('bw.bar.none');
+    else if (hs === undefined || !sea) $('bw-bar').textContent = '--';
+    else {
+      const ratio = nb.bar.river && flow ? flowRatio(flow, nb.bar.river, now) : null;
+      const ebb = predict(env.tide, now + 18e5) < predict(env.tide, now - 18e5);
+      const a = barAdvisory({ hsM: hs, tpS: Number.isFinite(sea.swellT) ? sea.swellT : sea.tm, ebb, flowRatio: ratio });
+      $('bw-bar').textContent = `${nb.bar.name} ${Math.round(nb.km)} ${t('unit.km')} · ${t(`bw.bar.${a.level}` as Key)}${a.reasons.length ? ' · ' + a.reasons.map((r) => t(`bw.bar.r.${r}` as Key)).join(', ') : ''} · ${t('place.check')}`;
+      $('bw-bar').className = `seg sm ${a.level === 'high' ? 'red' : a.level === 'low' ? 'green' : ''}`;
+    }
   };
   tick();
   setInterval(tick, 5000);
