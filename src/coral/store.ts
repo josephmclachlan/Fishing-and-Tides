@@ -72,6 +72,8 @@ export interface Conditions {
   /** Lowest predicted tide in the next 24 h, m. */
   lowTideM?: number;
   sargassum?: 'NONE' | 'LOW' | 'MODERATE' | 'HIGH';
+  /** MUD WEEKS at the site's depth (src/physics/mud.ts). */
+  mudWeeks?: number;
 }
 
 export interface Visit extends Measurements {
@@ -191,7 +193,7 @@ function cleanConditions(c: unknown): Conditions | undefined {
   if (!x || typeof x !== 'object' || !fin(x.at)) return undefined;
   const out: Conditions = { at: x.at };
   if (typeof x.reefId === 'string') out.reefId = x.reefId;
-  for (const k of ['dhw', 'alert', 'sstC', 'sstAnomalyC', 'flowRatio', 'rainMm', 'hsM', 'lowTideM'] as const) if (fin(x[k])) out[k] = x[k] as number;
+  for (const k of ['dhw', 'alert', 'sstC', 'sstAnomalyC', 'flowRatio', 'rainMm', 'hsM', 'lowTideM', 'mudWeeks'] as const) if (fin(x[k])) out[k] = x[k] as number;
   if (SARG.includes(x.sargassum as (typeof SARG)[number])) out.sargassum = x.sargassum as Conditions['sargassum'];
   return out;
 }

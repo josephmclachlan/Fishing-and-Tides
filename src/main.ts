@@ -91,6 +91,8 @@ import { mountCoralConduct } from './coral-conduct-ui';
 import type { CoralHistory } from './coral/history';
 import { worstSarg, type RiskInputs } from './coral/risks';
 import { buildConditions } from './coral/conditions';
+import { fetchMud, mudNow, type MudData, type MudHistory } from './adapters/mud';
+import { REEF_DEPTH_M } from './physics/mud';
 import { predictSeries } from './physics/tide';
 import { mountLayersPanel } from './layers-panel';
 import { FLOW_STYLE, mountFlow } from './layers/flow';
@@ -327,6 +329,16 @@ let coralHeatUi: { refresh(): void } | null = null;
 fetchCoral()
   .then((d) => ((coralHeat = d), coralLayer.setHeat(d), coralHeatUi?.refresh()))
   .catch((err) => console.warn('coral heat stress unavailable', err));
+// MUD WEEKS (PLAN 7.39): daily Kd490 at each reef and the record's baselines and yearly peaks.
+let mudData: MudData | null = null;
+let mudHistory: MudHistory | null = null;
+fetchMud()
+  .then((d) => ((mudData = d), coralHeatUi?.refresh()))
+  .catch((err) => console.warn('mud weeks unavailable', err));
+fetch(`${import.meta.env.BASE_URL}data/climatology/mud-history.json`)
+  .then((r) => (r.ok ? (r.json() as Promise<MudHistory>) : null))
+  .then((h) => ((mudHistory = h), coralHeatUi?.refresh()))
+  .catch((err) => console.warn('mud history unavailable', err));
 mountLangUi(hud, settings, map);
 mountSheets(hud, map, sheets);
 // Surf break catalog (PLAN 6.4): markers and BREAK rows.
@@ -468,9 +480,12 @@ const reefRisks = (id: string): Omit<RiskInputs, 'alert'> => {
     lowTideM: lows.length ? Math.min(...lows) : null,
   };
 };
-const coralConditions = (lng: number, lat: number) => {
+/** Conditions at a logged site: the nearest reef's heat and stresses, and MUD WEEKS at the site's depth when known. */
+const coralConditions = (lng: number, lat: number, depthM?: number) => {
   const reef = coralHeat ? nearestReef(coralHeat, [lng, lat]) : null;
-  return buildConditions(Date.now(), coralHeat && reef ? coralNow(coralHeat, reef) : null, reef ? reefRisks(reef.id) : null);
+  const mudReef = CORAL_REEFS.reduce((b, r) => (Math.hypot(r.lngLat[0] - lng, r.lngLat[1] - lat) < Math.hypot(b.lngLat[0] - lng, b.lngLat[1] - lat) ? r : b));
+  const mud = mudData ? mudNow(mudData, mudHistory, mudReef.id, depthM ?? REEF_DEPTH_M) : null;
+  return buildConditions(Date.now(), coralHeat && reef ? coralNow(coralHeat, reef) : null, reef ? reefRisks(reef.id) : null, mud && Number.isFinite(mud.mw) ? mud.mw : null);
 };
 mountCoralPanel(hud, map, coralStore, sheets, () => depthAt, coralConditions);
 mountCoralLogLayer(map, coralStore);
@@ -489,6 +504,8 @@ if (coralPanelEl) {
       return coralHeat ? nearestReef(coralHeat, [c.lng, c.lat]) : null;
     },
     risks: reefRisks,
+    mud: (id) => (mudData ? mudNow(mudData, mudHistory, id) : null),
+    mudHistory: () => mudHistory,
     // Best day this week in the water at the reef (persona review J9): snorkel windows at the nearest spot, ranked with the reef's visibility.
     visit: (reef) => {
       const spot = nearest(reef.lngLat, SPOTS)?.point;

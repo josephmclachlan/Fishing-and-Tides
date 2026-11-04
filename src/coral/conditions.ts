@@ -1,6 +1,6 @@
 /**
  * The conditions snapshot saved with each coral visit (PLAN 7.36): heat at the nearest Coral Reef
- * Watch reef plus the same inputs as the CORAL drawer's risk rows, frozen at the moment of logging
+ * Watch reef, MUD WEEKS (PLAN 7.39) plus the same inputs as the CORAL drawer's risk rows, frozen at the moment of logging
  * so the site's history keeps them after the live feeds move on. Pure: the caller reads the feeds.
  */
 import type { CoralNow } from '../adapters/coral-parse';
@@ -11,7 +11,7 @@ const fin = (x: number | null | undefined): x is number => typeof x === 'number'
 const r = (x: number, d: number) => Math.round(x * 10 ** d) / 10 ** d;
 
 /** A snapshot from whatever is loaded; missing or non-finite readings are left out. */
-export function buildConditions(at: number, heat: CoralNow | null, risks: Omit<RiskInputs, 'alert'> | null): Conditions {
+export function buildConditions(at: number, heat: CoralNow | null, risks: Omit<RiskInputs, 'alert'> | null, mudWeeks: number | null = null): Conditions {
   const c: Conditions = { at };
   if (heat) {
     c.reefId = heat.reef.id;
@@ -27,5 +27,6 @@ export function buildConditions(at: number, heat: CoralNow | null, risks: Omit<R
     if (fin(risks.lowTideM)) c.lowTideM = r(risks.lowTideM, 2);
     if (risks.sargassum) c.sargassum = risks.sargassum;
   }
+  if (fin(mudWeeks)) c.mudWeeks = r(mudWeeks, 2);
   return c;
 }

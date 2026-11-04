@@ -27,7 +27,7 @@ const rowsHtml = (rows: Row[]) => rows.map(([k, v]) => `<div class="ro"><span cl
 const kmBetween = (lng1: number, lat1: number, lng2: number, lat2: number) => haversineM([lng1, lat1], [lng2, lat2]) / 1000;
 const statusTone = (s: CoralStatus | undefined) => (s === 'healthy' ? 'green' : s && s !== 'unknown' ? 'red' : '');
 
-export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, sheets: Sheets, depthAt: () => ((lng: number, lat: number) => number | undefined) | null, conditionsAt: (lng: number, lat: number) => Conditions | null = () => null) {
+export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, sheets: Sheets, depthAt: () => ((lng: number, lat: number) => number | undefined) | null, conditionsAt: (lng: number, lat: number, depthM?: number) => Conditions | null = () => null) {
   const el = document.createElement('section');
   el.className = 'panel boat coral';
   el.id = 'coral-panel';
@@ -111,7 +111,7 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
   function overviewHtml(s: CoralSite) {
     const last = lastVisit(s);
     const next = nextMission(s, Date.now());
-    const now = conditionsAt(s.lng, s.lat);
+    const now = conditionsAt(s.lng, s.lat, s.depthM);
     const loc = s.locSource === 'gps' && s.gpsAccuracyM !== undefined ? `GPS ±${Math.round(s.gpsAccuracyM)} ${t('unit.m')}` : s.locSource ? t(`coral.loc.${s.locSource}` as Key) : '--';
     return `
       <div class="ro"><span class="lbl">${t('coral.depth')}</span><span class="seg sm">${s.depthM !== undefined ? `${Math.round(s.depthM)} ${t('unit.m')}` : '--'}</span></div>
@@ -520,7 +520,7 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     } else if (hit('#c-visit')) {
       const raw: Record<string, number> = {};
       for (const inp of detail.querySelectorAll<HTMLInputElement>('[data-m]')) if (inp.value.trim() !== '') raw[inp.dataset.m!] = parseFloat(inp.value);
-      const conditions = conditionsAt(s.lng, s.lat) ?? undefined;
+      const conditions = conditionsAt(s.lng, s.lat, s.depthM) ?? undefined;
       const team = detail.querySelector<HTMLInputElement>('#c-team')!.value.trim();
       const v = {
         t: Date.now(), status: vStatus, notes: detail.querySelector<HTMLTextAreaElement>('#c-vnotes')!.value.trim(), actions: [...vActions],
