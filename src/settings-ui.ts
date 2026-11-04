@@ -2,8 +2,8 @@
  * ENHANCE (PLAN 1.9) and SUN (PLAN 5.3) toggles: HUD buttons in the top bar on wide screens, in the
  * SET drawer on phones (src/settings-panel.ts); the choices are remembered (src/settings.ts).
  */
-import { t } from './i18n';
-import type { Settings } from './settings';
+import { t, type Key } from './i18n';
+import { VESSELS, type Settings } from './settings';
 
 export function mountSettingsUi(root: HTMLElement, settings: Settings) {
   const btn = document.createElement('button');
@@ -63,9 +63,9 @@ export function mountSettingsUi(root: HTMLElement, settings: Settings) {
   vsl.title = t('settings.vesselTitle');
   root.querySelector('.top-tabs')?.appendChild(vsl);
   const renderVsl = () => {
-    vsl.textContent = `${t('settings.vessel')}: ${t(settings.vessel() === 'yacht' ? 'settings.vessel.yacht' : 'settings.vessel.small')}`;
+    vsl.textContent = `${t('settings.vessel')}: ${t(`settings.vessel.${settings.vessel()}` as Key)}`;
   };
-  vsl.addEventListener('click', () => settings.setVessel(settings.vessel() === 'yacht' ? 'small' : 'yacht'));
+  vsl.addEventListener('click', () => settings.setVessel(VESSELS[(VESSELS.indexOf(settings.vessel()) + 1) % VESSELS.length]!));
   settings.subscribe(renderVsl);
   renderVsl();
 }

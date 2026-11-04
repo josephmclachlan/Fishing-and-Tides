@@ -13,7 +13,7 @@ import type { Verdict } from './verdict';
 
 export const M_PER_NM = 1852;
 /** Default cruising speed, kn, per vessel. */
-export const DEFAULT_SPEED_KT: Readonly<Record<Vessel, number>> = { small: 15, yacht: 5 };
+export const DEFAULT_SPEED_KT: Readonly<Record<Vessel, number>> = { small: 15, yacht: 5, dinghy: 4 };
 export const SPEED_STEP_KT = 1;
 export const MIN_SPEED_KT = 2;
 export const MAX_SPEED_KT = 30;

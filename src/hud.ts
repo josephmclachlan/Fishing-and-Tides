@@ -39,7 +39,7 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions,
       ${panelHeader(t('cond.title'), t('cond.mock'))}
       ${groupsHtml(`
         <div class="ro ro-multi"><span class="lbl">${t('cond.swell')}</span><span class="seg" id="swell">--</span><span class="unit">${t('unit.m')}</span><span class="seg" id="period">--</span><span class="unit">${t('unit.s')}</span><span class="seg" id="sdir">--</span><span class="unit">${t('unit.deg')}</span></div>
-        <div class="ro ro-multi"><span class="lbl">${t('cond.wind')}</span><span class="seg" id="wind">--</span><span class="unit">${t('unit.kt')}</span><span class="seg" id="wdir">--</span><span class="unit" id="wdir-unit">${t('unit.deg')}</span></div>
+        <div class="ro ro-multi"><span class="lbl">${t('cond.wind')}</span><span class="seg" id="wind">--</span><span class="unit">${t('unit.kt')}</span><span class="seg" id="wdir">--</span><span class="unit" id="wdir-unit">${t('unit.deg')}</span><span class="seg sm" id="wside"></span></div>
         ${from('coast', readout(t('cond.tide'), 'tide', t('unit.m')))}
         ${from('coast', `<div class="ro"><span class="lbl">${t('cond.rip')}</span><span class="seg" id="rip">--</span></div>`)}
         ${from('coast', gauge(t('cond.ripGauge'), 'ripgauge'))}`)}

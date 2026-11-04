@@ -1,7 +1,8 @@
 /**
  * BOAT go / no-go verdict (PLAN 7.8, 7.23). Pure, no DOM. Judgement thresholds, not a safety system:
  * the wind, gust and sea limits below are rule-of-thumb figures for a small open boat and for a
- * sailing yacht (a yacht carries more sea and wind, and gusts run about 1.35 times the mean wind).
+ * sailing yacht (a yacht carries more sea and wind, and gusts run about 1.35 times the mean wind), and for a
+ * sailing dinghy or kayak off the beach, which also needs enough wind to sail and must not be blown out to sea.
  *
  *   NO-GO     any one of: lightning close, a storm near, a squall likely, wind / gust / seas / comfort past the NO-GO line
  *   MARGINAL  any one past the MARGINAL line, a squall watch, heavy rain, or a storm within range
@@ -14,15 +15,23 @@
  */
 import { SMALL_BOAT_HS_M, SMALL_BOAT_WIND_KT, STORM_MARGINAL_KM, STORM_NOGO_KM, safetyTerm, type SquallLevel } from '../physics/safety';
 import type { Vessel } from '../settings';
+import type { WindSide } from '../physics/fetch';
 
 export type Verdict = 'go' | 'marginal' | 'nogo';
-export type VerdictReason = 'debris' | 'lightning' | 'storm' | 'squallHigh' | 'squall' | 'wind' | 'gust' | 'sea' | 'comfort' | 'rain';
+export type VerdictReason = 'debris' | 'lightning' | 'storm' | 'squallHigh' | 'squall' | 'wind' | 'gust' | 'sea' | 'comfort' | 'rain' | 'light' | 'offshore';
 
 /** [MARGINAL at or above, NO-GO at or above] per vessel. Comfort is a score, so it is [MARGINAL below, NO-GO below]. */
 export const LIMITS: Readonly<Record<Vessel, { windKt: readonly [number, number]; gustKt: readonly [number, number]; hsM: readonly [number, number]; comfort: readonly [number, number] }>> = {
   small: { windKt: SMALL_BOAT_WIND_KT, gustKt: [20, 27], hsM: SMALL_BOAT_HS_M, comfort: [50, 25] },
   yacht: { windKt: [20, 28], gustKt: [27, 37], hsM: [2, 3], comfort: [35, 15] },
+  // A sailing dinghy or sea kayak off the beach: capsizes and tires early, so tighter wind and sea limits.
+  dinghy: { windKt: [14, 20], gustKt: [18, 25], hsM: [0.8, 1.5], comfort: [50, 25] },
 };
+
+/** Dinghy / kayak only: under DINGHY_MIN_KT there is too little wind to sail (MARGINAL, "TOO LIGHT"). */
+export const DINGHY_MIN_KT = 5;
+/** Dinghy / kayak only: an offshore wind at or past these speeds [MARGINAL, NO-GO] can carry a capsized boat out to sea. */
+export const DINGHY_OFFSHORE_KT: readonly [number, number] = [6, 12];
 
 /** A storm closer than STORM_NOGO_KM is NO-GO, within STORM_MARGINAL_KM MARGINAL: the same limits as every activity (physics/safety.ts). */
 export { STORM_MARGINAL_KM, STORM_NOGO_KM };
@@ -46,6 +55,8 @@ export interface VerdictInputs {
   rainMmH?: number;
   /** Flood debris near a river mouth (debris.ts); LIKELY makes the verdict at least MARGINAL. */
   debris?: 'none' | 'possible' | 'likely';
+  /** Wind relative to the nearby coast (physics/fetch.ts windSide); OFFSHORE matters for a dinghy or kayak. */
+  windSide?: WindSide | null;
 }
 
 export interface BoatVerdict {
@@ -81,6 +92,10 @@ export function boatVerdict(i: VerdictInputs): BoatVerdict {
   }
   if (finite(i.rainMmH) && i.rainMmH >= HEAVY_RAIN_MM_H) reasons.push({ id: 'rain', level: 'marginal', value: i.rainMmH });
   if (i.debris === 'likely') reasons.push({ id: 'debris', level: 'marginal' });
+  if (i.vessel === 'dinghy' && finite(i.windKt)) {
+    if (i.windSide === 'offshore') up('offshore', i.windKt, DINGHY_OFFSHORE_KT);
+    if (i.windKt < DINGHY_MIN_KT) reasons.push({ id: 'light', level: 'marginal', value: i.windKt });
+  }
   reasons.sort((a, b) => (a.level === b.level ? 0 : a.level === 'nogo' ? -1 : 1));
   const verdict: Verdict = reasons.some((r) => r.level === 'nogo') ? 'nogo' : reasons.length ? 'marginal' : 'go';
   return { verdict, reasons };

@@ -47,3 +47,20 @@ describe('boatVerdict', () => {
     expect(boatVerdict({ vessel: 'yacht', ...calm, debris: 'possible' }).verdict).toBe('go');
   });
 });
+
+describe('boatVerdict for a dinghy or kayak', () => {
+  it('reads TOO LIGHT when there is not enough wind to sail', () => {
+    const v = boatVerdict({ vessel: 'dinghy', windKt: 2, hsM: 0.3 });
+    expect(v.verdict).toBe('marginal');
+    expect(v.reasons[0]).toMatchObject({ id: 'light' });
+    expect(boatVerdict({ vessel: 'small', windKt: 2, hsM: 0.3 }).verdict).toBe('go');
+  });
+  it('warns of an offshore wind and stops a strong one', () => {
+    expect(boatVerdict({ vessel: 'dinghy', windKt: 8, hsM: 0.3, windSide: 'offshore' }).reasons[0]).toMatchObject({ id: 'offshore', level: 'marginal' });
+    expect(boatVerdict({ vessel: 'dinghy', windKt: 13, hsM: 0.3, windSide: 'offshore' }).verdict).toBe('nogo');
+    expect(boatVerdict({ vessel: 'dinghy', windKt: 8, hsM: 0.3, windSide: 'onshore' }).verdict).toBe('go');
+  });
+  it('is stricter on wind than a small motor boat', () => {
+    expect(boatVerdict({ vessel: 'dinghy', windKt: 15, hsM: 0.3 }).verdict).toBe('marginal');
+  });
+});
