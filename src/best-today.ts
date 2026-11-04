@@ -9,7 +9,7 @@ import { REGION, SPOTS } from './region';
 import { t, type Key } from './i18n';
 import type { TimeStore } from './time';
 import type { MetricEnv } from './metrics/registry';
-import { bestToday, spotNear, type Activity, type BestToday } from './metrics/best-today';
+import { bestToday, spotNear, todayOver, type Activity, type BestToday } from './metrics/best-today';
 
 
 const HOUR = 3.6e6;
@@ -57,14 +57,16 @@ export function mountBestToday(
     const act = getActivity();
     win = spot ? bestToday(getEnv(), act, spot, Date.now()) : null;
     const name = t(`cg.act.${act}` as Key);
+    // After the day's last window: none left; earlier, an empty answer means a feed is missing.
+    const none = t(todayOver(getEnv().tzOffsetH, Date.now()) ? 'bt.noneLeft' : 'bt.noData');
     const body = win
       ? `<span class="seg sm green">${hhmm(win.startMs)}–${hhmm(win.endMs)}</span><span class="bt-at">${esc(win.spot)}</span>`
-      : `<span class="seg sm">--</span><span class="bt-at">${t('bt.none')}</span>`;
+      : `<span class="seg sm">--</span><span class="bt-at">${none}</span>`;
     const html = `<span class="lbl">${t('bt.label', { name })}</span>${body}<span class="bt-go" aria-hidden="true">▸</span>`;
     for (const r of rows) {
       r.innerHTML = html;
       r.disabled = !win;
-      r.setAttribute('aria-label', win ? t('bt.aria', { name, time: `${hhmm(win.startMs)}–${hhmm(win.endMs)}`, spot: win.spot }) : t('bt.none'));
+      r.setAttribute('aria-label', win ? t('bt.aria', { name, time: `${hhmm(win.startMs)}–${hhmm(win.endMs)}`, spot: win.spot }) : none);
     }
   };
 

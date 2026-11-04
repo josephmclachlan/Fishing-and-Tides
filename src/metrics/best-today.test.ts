@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LIMON_HARMONICS } from '../data/tides-limon';
-import { bestToday, hourlyScores, spotNear } from './best-today';
+import { bestToday, hourlyScores, spotNear, todayOver } from './best-today';
 import type { MetricEnv } from './registry';
 import type { SeaState } from '../adapters/waves';
 
@@ -71,5 +71,14 @@ describe('hourlyScores', () => {
     expect(Math.min(...ok)).toBeGreaterThanOrEqual(0);
     expect(Math.max(...ok)).toBeLessThanOrEqual(1);
     expect(r[8].score!).toBeGreaterThan(r[12].score!);
+  });
+});
+
+describe('todayOver (clarity CL10)', () => {
+  it('turns true when the last window of the local day has started', () => {
+    // Costa Rica, UTC-6: 17:30 local is 23:30 UTC; 18:00 local is 00:00 UTC the next day.
+    expect(todayOver(-6, Date.UTC(2026, 10, 4, 23, 30))).toBe(false);
+    expect(todayOver(-6, Date.UTC(2026, 10, 5, 0, 0))).toBe(true);
+    expect(todayOver(-6, Date.UTC(2026, 10, 4, 12, 0))).toBe(false);
   });
 });
