@@ -5,6 +5,7 @@
  * the side panel and the spot page share it and it is testable. Colours come from CSS classes
  * (`.tc-*` in style.css), which use the theme variables.
  */
+import { tideFixNow } from './corrections';
 import { LIMON_DATUMS, LIMON_HARMONICS } from './data/tides-limon';
 import { extrema, predictSeries, type Extremum, type Harmonics } from './physics/tide';
 import { sunTimes } from './physics/astro';
@@ -26,21 +27,24 @@ export interface TideDay {
 }
 
 /** Predicted tide and daylight for the local day starting at `t0` (see `localDayStart` in physics/astro.ts). */
-export function tideDay(t0: number, hc: Harmonics = LIMON_HARMONICS, at: [number, number] = TIDE_STATION.lngLat): TideDay {
+export function tideDay(t0: number, hc: Harmonics = LIMON_HARMONICS, at: [number, number] = TIDE_STATION.lngLat, fix: (ms: number) => number = tideFixNow): TideDay {
   const t1 = t0 + DAY_MS;
   const sun = sunTimes(t0, at[1], at[0]);
   const night: [number, number][] = [];
   if (sun.sunrise !== null) night.push([t0, sun.sunrise]);
   if (sun.sunset !== null) night.push([sun.sunset, t1]);
-  return { t0, t1, series: predictSeries(hc, t0, t1, 10 * 60_000), extrema: extrema(hc, t0, t1), night };
+  const s = predictSeries(hc, t0, t1, 10 * 60_000);
+  // The gauge correction (PLAN 7.10) lifts the whole curve; it changes too slowly to move the turning times.
+  const series = { t: s.t, h: s.h.map((h, i) => h + fix(s.t[i])) };
+  return { t0, t1, series, extrema: extrema(hc, t0, t1).map((e) => ({ ...e, h: e.h + fix(e.t) })), night };
 }
 
 /** The next `n` high and low waters after `fromMs`. */
-export function nextTides(fromMs: number, n = 4, hc: Harmonics = LIMON_HARMONICS): Extremum[] {
+export function nextTides(fromMs: number, n = 4, hc: Harmonics = LIMON_HARMONICS, fix: (ms: number) => number = tideFixNow): Extremum[] {
   // Four turns a day on most days here (mixed tide), two on the most diurnal: scan just far enough (PLAN 5.4).
   for (let days = Math.max(1, Math.ceil(n / 3)); ; days++) {
     const ex = extrema(hc, fromMs, fromMs + days * DAY_MS).filter((e) => e.t > fromMs);
-    if (ex.length >= n || days >= 4) return ex.slice(0, n);
+    if (ex.length >= n || days >= 4) return ex.slice(0, n).map((e) => ({ ...e, h: e.h + fix(e.t) }));
   }
 }
 

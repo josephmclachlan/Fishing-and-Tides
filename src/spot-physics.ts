@@ -4,6 +4,7 @@
  * overlay and the SURF ZONE readouts. Swell comes from the waves adapter per spot, else the conditions feed.
  */
 import { LIMON_HARMONICS } from './data/tides-limon';
+import { tideFixNow } from './corrections';
 import type { Conditions } from './mock';
 import type { PhysicsClient } from './physics/client';
 import { KT_PER_MS } from './physics/flow';
@@ -69,7 +70,7 @@ export function createSpotPhysics(
     const c = conditions();
     const ms = validMs();
     const ts = tideState(LIMON_HARMONICS, ms);
-    const tideLevel = ts.level;
+    const tideLevel = ts.level + tideFixNow(ms);
     const sea: Sea = { Hs: c.swellHeightM, Tp: c.swellPeriodS, fromDeg: c.swellDirDeg };
     const wind = { speedMs: c.windKt / KT_PER_MS, fromDeg: c.windDirDeg };
         const seasX = PLACES.map((p) => seaAt(p.lngLat));

@@ -27,10 +27,18 @@ export interface EffortGrid {
 /** All rows in a 4Wings JSON report, whatever the nesting. */
 export function effortRows(json: unknown): EffortRow[] {
   const out: EffortRow[] = [];
-  const isRow = (x: unknown): x is EffortRow => typeof x === 'object' && x !== null && ['lat', 'lon', 'hours'].every((k) => typeof (x as Record<string, unknown>)[k] === 'number');
+  // Numbers may come as numeric strings; `hours` may be named `value` in some report versions.
+  const num = (v: unknown) => (typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN);
+  const asRow = (x: unknown): EffortRow | null => {
+    if (typeof x !== 'object' || x === null || Array.isArray(x)) return null;
+    const o = x as Record<string, unknown>;
+    const lat = num(o.lat), lon = num(o.lon), hours = num(o.hours ?? o.value);
+    return Number.isFinite(lat) && Number.isFinite(lon) && Number.isFinite(hours) ? { lat, lon, hours, ...(typeof o.flag === 'string' ? { flag: o.flag } : {}) } : null;
+  };
   const walk = (x: unknown) => {
+    const row = asRow(x);
     if (Array.isArray(x)) x.forEach(walk);
-    else if (isRow(x)) out.push(x);
+    else if (row) out.push(row);
     else if (typeof x === 'object' && x !== null) Object.values(x).forEach(walk);
   };
   walk((json as { entries?: unknown })?.entries ?? []);

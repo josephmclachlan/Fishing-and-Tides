@@ -34,12 +34,16 @@ export async function buildEffort(dir: string): Promise<string> {
     body: JSON.stringify({ geojson: polygon }),
   }, 3);
   const text = new TextDecoder().decode(await unzipFirst(new Uint8Array(await res.arrayBuffer())));
-  const g = effortGrid(JSON.parse(text), EFFORT_BOX);
+  const json = JSON.parse(text);
+  const g = effortGrid(json, EFFORT_BOX);
+  // No rows is possible (little AIS fishing here) but also what a changed response shape looks like: log the shape, never the token.
+  if (!g.rows) console.warn(`effort: no rows; response ${text.length} B, keys ${Object.keys(json ?? {}).join(',')}, total ${json?.total}, start ${text.slice(0, 300)}`);
+  const cellsWithFishing = g.hours.filter((h) => h > 0).length;
   const mid = Math.round((start + end) / 2);
   const size = writeSeries(dir, {
     feed: 'effort', kind: 'observed', fetchedAt: new Date().toISOString(), grid: g.grid, times: [mid],
     vars: [{ name: 'hours', unit: 'h', scale: 0.1, offset: 0 }],
-    sources: [{ id: DATASET, name: `Global Fishing Watch AIS fishing effort, ${day(start)} to ${day(end)}`, fromMs: start, toMs: end }],
+    sources: [{ id: DATASET, name: `Global Fishing Watch AIS fishing effort, ${day(start)} to ${day(end)}, ${cellsWithFishing} cells with fishing`, fromMs: start, toMs: end }],
     licence: 'Global Fishing Watch, CC BY-NC 4.0 (globalfishingwatch.org), non-commercial use',
   }, { hours: [g.hours.map((h) => Math.min(h, 3000))] });
   const total = g.hours.reduce((a, b) => a + b, 0);
