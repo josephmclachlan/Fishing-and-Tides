@@ -70,7 +70,7 @@ import { mountFlowHud } from './flow-hud';
 import { isWater, sample } from './physics/bathy';
 import { bandFor, createTimeStore } from './time';
 import { mountTimeSlider } from './time-slider';
-import { KT_PER_MS, sampleField, fromDeg } from './physics/flow';
+import { KT_PER_MS, sampleField, fromDeg, type VectorField } from './physics/flow';
 import { MOCK_FLOW, PLUME_RIVERS, REGION, SPOTS } from './region';
 import { fetchWind, windAt, type WindData } from './adapters/wind';
 import { currentsAt, fetchCurrents, type CurrentsData } from './adapters/currents';
@@ -342,8 +342,28 @@ const windMsAt = (lng: number, lat: number, ms: number): number | null => {
   const v = windVecAt(lng, lat, ms);
   return v ? Math.hypot(...v) : null;
 };
+const hourCurr = new globalThis.Map<number, VectorField | null>();
+let hourCurrFor: CurrentsData | null = null;
+/** Forecast surface current vector, m/s, at any place and hour (one field per hour, cached). */
+const currentVecAt = (lng: number, lat: number, ms: number): [number, number] | null => {
+  if (!currents) return null;
+  if (hourCurrFor !== currents) (hourCurr.clear(), (hourCurrFor = currents));
+  const h = Math.floor(ms / 3.6e6);
+  if (!hourCurr.has(h)) hourCurr.set(h, currentsAt(currents, bandAt(ms), ms)?.field ?? null);
+  const f = hourCurr.get(h);
+  const out: [number, number] = [0, 0];
+  return f && sampleField(f, lng, lat, out) ? out : null;
+};
 const metricEnv = (): MetricEnv => ({
   windMs: windMsAt,
+  windDirDeg: (lng, lat, ms) => {
+    const v = windVecAt(lng, lat, ms);
+    return v ? fromDeg(...v) : null;
+  },
+  currentMs: (lng, lat, ms) => {
+    const v = currentVecAt(lng, lat, ms);
+    return v ? Math.hypot(...v) : null;
+  },
   sea: (lng, lat, ms) => (waves ? wavesAt(waves, bandAt(ms), ms, lng, lat) : null),
   weather: (ms) => (weatherData ? weatherAt(weatherData, ms) : []),
   // Clarity is a sea value and the spot pins sit on the shore: read it at the nearest water within ~1.8 km (cached per spot).

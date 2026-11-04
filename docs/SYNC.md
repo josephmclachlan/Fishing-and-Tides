@@ -79,14 +79,14 @@ Ranked by value for effort.
 | Input | Verdict | Sea comfort | BEST TODAY / WATCH |
 |---|---|---|---|
 | Wind speed | ✓ | ✓ (wind sea) | ✓ |
-| Wind direction | – | ✓ (cross sea) | ✗ |
+| Wind direction | – | ✓ (cross sea) | ✓ (WIND FROM, WATCH only) |
 | Gusts | ✓ | – | ✓ |
-| Wind sea / swell, period | ✓ via comfort and height | ✓ | height only |
-| Squall (CAPE + gusts) | ✓ | – | ✗ |
+| Wind sea / swell, period | ✓ via comfort and height | ✓ | ✓ (SEA COMFORT) |
+| Squall (CAPE + gusts) | ✓ | – | ✓ |
 | Lightning | ✓ | – | ✗ |
 | Tropical storm range | ✓ | – | ✗ |
 | Heavy rain | ✓ | – | ✓ |
-| Currents | ✗ | ✗ | ✗ |
+| Currents | ✗ | ✗ | ✓ (WATCH only) |
 | Tide, gauge | ✗ | – | ✗ |
 | River flow (debris) | ✗ | – | ✗ |
 | Sunset, moon, pressure trend | ✗ | – | ✗ |
