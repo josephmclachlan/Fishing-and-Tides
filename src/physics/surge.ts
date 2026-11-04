@@ -53,3 +53,8 @@ export const DIVE_DEPTHS = [3, 6, 12] as const;
 export function surgeProfile(Hs: number, T: number, K: number, readDepth: number, depths: readonly number[] = DIVE_DEPTHS): Surge[] {
   return depths.map((h) => surgeAt(Hs * K, readDepth, T, h));
 }
+
+/** Snorkel depths shown at a spot, m: the surface layer over the reef crest and flats. */
+export const SNORKEL_DEPTHS = [1, 2] as const;
+/** Every depth the DIVE & SNORKEL panel lists, shallowest first. */
+export const OUTING_DEPTHS = [...SNORKEL_DEPTHS, ...DIVE_DEPTHS] as const;

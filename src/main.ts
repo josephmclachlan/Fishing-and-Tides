@@ -68,7 +68,7 @@ import { currentsAt, fetchCurrents, type CurrentsData } from './adapters/current
 import { fetchWaves, wavesAt, type SeaState, type WavesData } from './adapters/waves';
 import { fetchSatellite, sstAt, type SatelliteData } from './adapters/satellite';
 import { mountSst } from './layers/sst';
-import { mountClarity, mountClarityHud, type ClarityContext } from './layers/clarity';
+import { clarityAt, mountClarity, mountClarityHud, type ClarityContext } from './layers/clarity';
 import { fetchCatchmentRain, type CatchmentRain } from './adapters/catchment-rain';
 import { dataAge, describeAge } from './adapters/data-age';
 import { createNet } from './net';
@@ -293,10 +293,13 @@ const clarityCtx = (): ClarityContext | null =>
     },
   };
 const clarityHud = mountClarityHud(hud, map, clarityCtx);
+let diveHud: { refresh: () => void } | null = null;
+const diveWind: [number, number] = [0, 0];
 const refreshClarity = () => {
   const c = clarityCtx();
   if (c) clarityLayer.update(c);
   clarityHud?.refresh();
+  diveHud?.refresh();
 };
 time.subscribe(refreshClarity);
 fetchCatchmentRain()
@@ -364,6 +367,7 @@ fetchWind()
       runSargassum();
       flowSources.wind = { ...flowSources.wind, field: windField() };
       flow?.setSource('wind', flowSources.wind);
+      diveHud?.refresh();
     })
     .catch((err) => console.warn('wind unavailable', err))
     .finally(() => (windLoading = false));
@@ -447,7 +451,23 @@ fetchSeafloor()
       spotPage.refresh();
     });
     mountSurfZoneHud(hud, map, spotPhysics);
-    mountDiveHud(hud, map, spotPhysics);
+    diveHud = mountDiveHud(hud, map, spotPhysics, time, {
+      seaAt: (lng, lat, ms) => {
+        const s = waves && wavesAt(waves, bandAt(ms), ms, lng, lat);
+        if (!s) return null;
+        const swell = Number.isFinite(s.swellHs) && Number.isFinite(s.swellT);
+        return { hs: s.hs, tp: swell ? s.swellT : s.tm };
+      },
+      windMsAt: (lng, lat, ms) => {
+        const f = wind && windAt(wind, bandAt(ms), ms)?.field;
+        return f && sampleField(f, lng, lat, diveWind) ? Math.hypot(...diveWind) : null;
+      },
+      visAt: (lng, lat, ms) => {
+        const c = clarityCtx();
+        return c ? (clarityAt({ ...c, ms }, lng, lat)?.visM ?? null) : null;
+      },
+      depthAt: (lng, lat) => depthAt?.(lng, lat),
+    }) ?? null;
     spotPhysics.update();
     depthAt = (lng, lat) => {
       const z = sample(data.region, lng, lat);
