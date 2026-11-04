@@ -47,7 +47,8 @@ export const CELLS: Record<Mode, Cell[]> = {
     { src: 'swell', label: 'glance.swell', help: 'swell', unit: 'unit.m' },
     { src: 'curr', label: 'glance.curr', help: 'current', unit: 'unit.kt', fmt: sea0 },
     { src: 'dv-6', label: 'glance.surge', help: 'surge', fmt: first },
-    { src: 'sst', label: 'glance.sst', help: 'sst', unit: 'unit.degC' },
+    // How far you can see underwater: the number a snorkeler picks a day by (persona review J6).
+    { src: 'vis', label: 'glance.vis', help: 'vis', unit: 'unit.m' },
   ],
   boat: [
     { src: 'wind', label: 'glance.wind', help: 'wind', unit: 'unit.kt' },

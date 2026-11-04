@@ -192,7 +192,7 @@ export const en = {
   'cg.act.all': 'ALL',
   'cg.act.surf': 'SURF',
   'cg.act.fish': 'FISH',
-  'cg.act.dive': 'DIVE',
+  'cg.act.dive': 'SNORKEL / DIVE',
   'cg.act.boat': 'BOAT',
   'bt.label': 'BEST {when} · {name}',
   'bt.today': 'TODAY',
