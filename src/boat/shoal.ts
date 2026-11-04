@@ -7,7 +7,7 @@
  *   CAUTION  less than draft + 2 m, or a reef is within 250 m
  *   CLEAR    otherwise
  *
- * Draft is a rule of thumb per vessel type: 0.5 m for a small boat (motor trimmed up), 2 m for a sailing yacht.
+ * Draft is a rule of thumb per vessel type: 0.5 m for a small boat (motor trimmed up), 2 m for a sailing yacht, 0.3 m for a dinghy or kayak (centreboard up).
  * The depths are a gridded model (GEBCO and survey blends, tens of metres to hundreds of metres per cell), not a chart:
  * an estimate only. Never navigate by it.
  */
@@ -15,7 +15,7 @@ import { pointInPolygon } from '../geo';
 import type { Vessel } from '../settings';
 import type { Feature, FeatureCollection, MultiPolygon, Polygon } from 'geojson';
 
-export const DRAFT_M: Readonly<Record<Vessel, number>> = { small: 0.5, yacht: 2 };
+export const DRAFT_M: Readonly<Record<Vessel, number>> = { small: 0.5, yacht: 2, dinghy: 0.3 };
 export const DANGER_MARGIN_M = 0.5;
 export const CAUTION_MARGIN_M = 2;
 export const LOOK_M: readonly number[] = [100, 250];

@@ -11,6 +11,7 @@ import { createLockFx, mountZoomTiers } from './zoom-fx';
 import { createEnhancer } from './enhance';
 import { mountSeek } from './seek';
 import { createSettings, safeSession, safeStorage, takeView } from './settings';
+import { windFetchM, windSide, type WindSide } from './physics/fetch';
 import { mountSurfBreaks } from './layers/surf-breaks';
 import { mountSurfHud } from './surf-hud';
 import { mountLightningHud } from './lightning-hud';
@@ -325,7 +326,9 @@ const surfHud = mountSurfHud(hud, map, (name) => spotPhysics?.byName(name)?.surf
 let boatSafety: () => VerdictSafety = () => ({});
 // The current reading is wired below, once currentVecAt exists: the HUD ticks as soon as it mounts.
 let seaCurrent: () => readonly [number, number] | null = () => null;
-mountSeaStateHud(hud, conditionsAt, seaHere, { vessel: settings.vessel, safety: () => boatSafety(), current: () => seaCurrent() });
+// Onshore / offshore at the reticle, from the land mask (filled in further down once it loads).
+let windSideHere: () => WindSide | null = () => null;
+mountSeaStateHud(hud, conditionsAt, seaHere, { vessel: settings.vessel, safety: () => boatSafety(), current: () => seaCurrent(), windSide: () => windSideHere() });
 // Weather and active tropical storms (PLAN 7.3, 7.5): live feeds, rows stay -- until they load.
 weatherHud = mountWeatherHud(hud, { validMs: () => time.validMs() });
 time.subscribe(() => weatherHud?.refresh());
@@ -383,6 +386,12 @@ fetchStorms().then((d) => ((stormList = d.storms), stormLayer.setStorms(d.storms
 mountAstroHud(hud, map, time);
 mountHarbours(map);
 let landGrid: Grid | null = null;
+windSideHere = () => {
+  if (!landGrid) return null;
+  const c = map.getCenter();
+  const land = landGrid;
+  return windSide((deg) => windFetchM(land, c.lng, c.lat, deg, 10_000, 250), conditionsAt().windDirDeg);
+};
 const harboursHud = mountHarboursHud(hud, map, { windFromDeg: () => conditionsAt().windDirDeg, land: () => landGrid });
 // Boat mode: GPS track and pin log, kept on the device. Depth at a pin comes from the seafloor grid once it loads.
 let depthAt: ((lng: number, lat: number) => number | undefined) | null = null;

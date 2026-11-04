@@ -14,7 +14,9 @@ const VIEW_KEY = 'ft.view';
 const VESSEL_KEY = 'ft.vessel';
 
 /** The kind of boat the BOAT verdict is judged for (PLAN 7.23). */
-export type Vessel = 'small' | 'yacht';
+export type Vessel = 'small' | 'dinghy' | 'yacht';
+/** The order the VESSEL setting steps through. */
+export const VESSELS: readonly Vessel[] = ['small', 'dinghy', 'yacht'];
 
 export interface Settings {
   /** ENHANCE fly-to effect (satellite zoom). Default on. */
@@ -29,7 +31,7 @@ export interface Settings {
   /** UI sounds (PLAN 5.5). Default off: nothing plays until the user turns it on. */
   sound(): boolean;
   setSound(on: boolean): void;
-  /** Vessel for the BOAT verdict: a small open boat (default, stricter) or a sailing yacht. */
+  /** Vessel for the BOAT verdict: a small open boat (default), a sailing dinghy or kayak off the beach, or a sailing yacht. */
   vessel(): Vessel;
   setVessel(v: Vessel): void;
   subscribe(fn: () => void): () => void;
@@ -46,7 +48,8 @@ export function createSettings(storage?: Storage, browserLangs: readonly string[
     stored = storage?.getItem(LANG_KEY) ?? null;
     storedSun = storage?.getItem(SUN_KEY) ?? null;
     sound = storage?.getItem(SOUND_KEY) === 'on';
-    vessel = storage?.getItem(VESSEL_KEY) === 'yacht' ? 'yacht' : 'small';
+    const v = storage?.getItem(VESSEL_KEY);
+    vessel = v === 'yacht' || v === 'dinghy' ? v : 'small';
   } catch {
     /* storage blocked: defaults */
   }
@@ -91,7 +94,7 @@ export function createSettings(storage?: Storage, browserLangs: readonly string[
     },
     vessel: () => vessel,
     setVessel(v) {
-      if (v === vessel || (v !== 'small' && v !== 'yacht')) return;
+      if (v === vessel || !VESSELS.includes(v)) return;
       vessel = v;
       save(VESSEL_KEY, v);
       subs.forEach((fn) => fn());
