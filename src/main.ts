@@ -71,6 +71,9 @@ import { fetchMouths, fetchOccurrences, mountFishing } from './layers/fishing';
 import { loadSpecies, mountFishingHud } from './fishing-hud';
 import { layers } from './layers/registry';
 import { bindMapLayers } from './layers/visibility';
+import { createCoralMode } from './coral-mode';
+import { mountCoral } from './layers/coral';
+import { fetchCoral } from './adapters/coral';
 import { mountLayersPanel } from './layers-panel';
 import { FLOW_STYLE, mountFlow } from './layers/flow';
 import type { FlowSource } from './layers/flow-sim';
@@ -79,7 +82,7 @@ import { isWater, sample } from './physics/bathy';
 import { bandFor, createTimeStore } from './time';
 import { mountTimeSlider } from './time-slider';
 import { KT_PER_MS, sampleField, fromDeg, type VectorField } from './physics/flow';
-import { MOCK_FLOW, PLUME_RIVERS, REGION, SPOTS } from './region';
+import { CORAL_REEFS, MOCK_FLOW, PLUME_RIVERS, REGION, SPOTS } from './region';
 import { fetchWind, windAt, type WindData } from './adapters/wind';
 import { currentsAt, fetchCurrents, type CurrentsData } from './adapters/currents';
 import { fetchWaves, wavesAt, type SeaState, type WavesData } from './adapters/waves';
@@ -264,7 +267,15 @@ bindMapLayers(map, layers);
 mountSettingsUi(hud, settings);
 mountIntro(hud, safeStorage());
 mountSounds(document, settings.sound);
-mountLayersPanel(hud, layers, sheets);
+// CORAL overlay (PLAN 7.31): its own switch in LAYERS, apart from the activities; reef heat stress marks.
+const coralMode = createCoralMode(layers, safeStorage());
+mountLayersPanel(hud, layers, sheets, coralMode);
+const coralLayer = mountCoral(map, CORAL_REEFS);
+coralLayer.setVisible(coralMode.isOn());
+coralMode.subscribe((on) => coralLayer.setVisible(on));
+fetchCoral()
+  .then((d) => coralLayer.setHeat(d))
+  .catch((err) => console.warn('coral heat stress unavailable', err));
 mountLangUi(hud, settings, map);
 mountSheets(hud, map, sheets);
 // Surf break catalog (PLAN 6.4): markers and BREAK rows.
@@ -826,6 +837,7 @@ fetchSeafloor()
     flowSources.current = current;
     flow?.setSource('current', current);
     flowHud?.refresh();
+    coralLayer.setReefPolygons([data.marks, data.reefs]);
     return mountSeafloor(map, data);
   })
   .catch((err) => console.warn('seafloor layer unavailable', err));

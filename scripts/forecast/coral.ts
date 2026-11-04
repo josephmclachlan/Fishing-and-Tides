@@ -1,5 +1,5 @@
 /**
- * Coral bleaching heat stress (PLAN 7.23) from NOAA Coral Reef Watch v3.1 daily 5 km, CoastWatch ERDDAP
+ * Coral bleaching heat stress (PLAN 7.30) from NOAA Coral Reef Watch v3.1 daily 5 km, CoastWatch ERDDAP
  * (no CORS, so relayed). Five products over CORAL_BOX for the last 84 days (the DHW window, so the
  * panel can draw the 12-week build-up), then one pixel per reef in CORAL_REEFS. Plain JSON,
  * data/forecast/coral.json, parsed by src/adapters/coral-parse.ts. Products are about 2 to 5 days late.
