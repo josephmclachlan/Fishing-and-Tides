@@ -48,6 +48,7 @@ export function createSpotPhysics(
   client: PhysicsClient,
   conditions: () => Conditions,
   validMs: () => number,
+  windExtras: (ms: number) => { gustMs: number | null; ahead: { speedMs: number; fromDeg: number } | null } = () => ({ gustMs: null, ahead: null }),
   seaAt: (pin: [number, number]) => (Sea & { swellHs?: number | null; swell2?: Train | null; windSeaHs?: number | null }) | null = () => null,
 ): SpotPhysics {
   let states: SpotState[] = [];
@@ -55,9 +56,11 @@ export function createSpotPhysics(
   const update = () => {
     const c = conditions();
     const ms = validMs();
-    const tideLevel = tideState(LIMON_HARMONICS, ms).level;
+    const ts = tideState(LIMON_HARMONICS, ms);
+    const tideLevel = ts.level;
     const sea: Sea = { Hs: c.swellHeightM, Tp: c.swellPeriodS, fromDeg: c.swellDirDeg };
     const wind = { speedMs: c.windKt / KT_PER_MS, fromDeg: c.windDirDeg };
+    const wx = windExtras(ms);
     const seasX = PLACES.map((p) => seaAt(p.lngLat));
     const seas: Sea[] = seasX.map((x) => (x ? { Hs: x.Hs, Tp: x.Tp, fromDeg: x.fromDeg } : sea));
     client
@@ -66,7 +69,7 @@ export function createSpotPhysics(
         states = PLACES.map((s, i) => {
           const r = rs[i];
           const surf = s.brk && r
-            ? surfQuality({ brk: s.brk, Hb: r.waves.breaker.Hb, Tp: seas[i].Tp, swellFromDeg: seas[i].fromDeg, windMs: wind.speedMs, windFromDeg: wind.fromDeg, swellHs: seasX[i]?.swellHs, swell2: seasX[i]?.swell2, windSeaHs: seasX[i]?.windSeaHs })
+            ? surfQuality({ brk: s.brk, Hb: r.waves.breaker.Hb, Tp: seas[i].Tp, swellFromDeg: seas[i].fromDeg, windMs: wind.speedMs, windFromDeg: wind.fromDeg, swellHs: seasX[i]?.swellHs, swell2: seasX[i]?.swell2, windSeaHs: seasX[i]?.windSeaHs, tide: { level: ts.level, rising: ts.rising }, gustMs: wx.gustMs, windAhead: wx.ahead })
             : undefined;
           return { name: s.name, pin: s.lngLat, result: r, sea: seas[i], surf };
         });

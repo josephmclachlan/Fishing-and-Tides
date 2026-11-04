@@ -12,6 +12,7 @@ const env = (): MetricEnv => ({
   sea: (lng) => sea(lng < -83 ? 2 : 1),
   weather: () => [{ model: 'gfs_seamless', rainMmH: 0.1, cloudPct: 50, uv: 8, tempC: 28, gustKt: 15, capeJkg: 0, pressureHpa: 1012, windKt: 10 }],
   clarityM: (lng) => (lng < -83 ? 4 : 12),
+  sstC: () => 28,
   sargassumKm2: (spot, ms) => (spot === 'WEST' ? 0.8 : ms > NOON + 864e5 ? 0.05 : 0),
   tide: LIMON_HARMONICS,
   tzOffsetH: -6,
