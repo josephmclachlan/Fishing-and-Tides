@@ -70,7 +70,7 @@ Ranked by value for effort.
 ## Other features that miss newer data (for later)
 
 - **Surf:** done in PLAN 7.23 to 7.26: second swell and wind-sea, gusts and wind trend, soft tide nudge, lightning and squall cap, rain and sargassum all enter the break score (`docs/SURF.md`).
-- **Dive and snorkel outing score:** rain, squall and lightning now cap it (PLAN 7.11, shared `physics/safety.ts`). Surface current now scores too (drift off the reef; PLAN 7.11). Water temperature (cold term plus a suit hint) and the sargassum outlook at the nearest beach now score too; WATCH has a WATER TEMP metric. The light term now follows the real sun height and cloud cover (not a fixed clock), and the panel shows UV with a cover-up hint. Still missing: tropical storm alerts.
+- **Dive and snorkel outing score:** rain, squall and lightning now cap it (PLAN 7.11, shared `physics/safety.ts`). Surface current now scores too (drift off the reef; PLAN 7.11). Water temperature (cold term plus a suit hint) and the sargassum outlook at the nearest beach now score too; WATCH has a WATER TEMP metric. The light term now follows the real sun height and cloud cover (not a fixed clock), and the panel shows UV with a cover-up hint. Measured river flow (GloFAS) now feeds the clarity plume (the larger of it and the rain proxy), and a rule-of-thumb RIVER RUNOFF flag near mouths lowers the score. Still missing: tropical storm alerts.
 - **BOAT verdict and sea state:** verdict with squall, lightning, storm, rain and flood-debris cap, currents in the sea state, daylight window, bar advisory, shoal alert and route tool added (PLAN 7.23). Still missing: tide in the verdict.
 - **WATCH tracker:** no water temperature or chlorophyll metric; BITE there ignores habitat and rain.
 

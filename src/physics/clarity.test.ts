@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clarity, clarityLevel, effectiveRain, kdFromChl, plumeKd, resuspensionKd, secchiFromKd, KD_PLUME, PLUME_DECAY_S } from './clarity';
+import { clarity, clarityLevel, effectiveRain, kdFromChl, plumeKd, resuspensionKd, secchiFromKd, KD_PLUME, PLUME_DECAY_S, PLUME_SATURATION_MM, flowPlumeMm } from './clarity';
 import { clarityAt, clarityGrid, riverRain, type ClarityContext } from '../layers/clarity';
 import { PLUME_RIVERS, REGION } from '../region';
 import { parseCatchmentRain, rainPoints, catchmentRainChecks } from '../adapters/catchment-rain';
@@ -142,5 +142,30 @@ describe('catchment rain', () => {
   it('has passing checks on good data', async () => {
     const r = await runChecks(catchmentRainChecks(async () => parseCatchmentRain(body.map((b) => ({ hourly: { ...b.hourly, precipitation: [1, 2] } })), 0)));
     expect(r.map((x) => x.status)).toEqual(['pass', 'pass']);
+  });
+});
+
+describe('measured river flow in the plume', () => {
+  const sixaola = PLUME_RIVERS.find((r) => r.name === 'RÍO SIXAOLA')!;
+  const flow = (ratio: number) => ({
+    times: [t0 - 864e5, t0, t0 + 864e5],
+    byRiver: Object.fromEntries(PLUME_RIVERS.map((r) => [r.name, { q: [ratio * 100, ratio * 100, ratio * 100], median: [100, 100, 100] }])),
+    fetchedAt: t0,
+    fromCache: false,
+  });
+  const at: [number, number] = [sixaola.mouth[0] + 0.01, sixaola.mouth[1] + 0.01];
+  it('flowPlumeMm: none at the median, saturated at ten times', () => {
+    expect(flowPlumeMm(1)).toBe(0);
+    expect(flowPlumeMm(0.4)).toBe(0);
+    expect(flowPlumeMm(10)).toBe(PLUME_SATURATION_MM);
+    expect(flowPlumeMm(50)).toBe(PLUME_SATURATION_MM);
+  });
+  it('a river in spate muddies the water even when the rain proxy missed the storm', () => {
+    expect(clarityAt(ctx(0), ...at)!.level).toBe('GOOD');
+    expect(clarityAt({ ...ctx(0), flow: flow(10) }, ...at)!.level).toBe('POOR');
+  });
+  it('a calm river changes nothing, and never clears a rain-made plume', () => {
+    expect(clarityAt({ ...ctx(0), flow: flow(1) }, ...at)!.visM).toBe(clarityAt(ctx(0), ...at)!.visM);
+    expect(clarityAt({ ...ctx(80), flow: flow(0.5) }, ...at)!.visM).toBe(clarityAt(ctx(80), ...at)!.visM);
   });
 });

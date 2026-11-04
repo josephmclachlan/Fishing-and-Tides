@@ -34,6 +34,8 @@ export interface DiveEnv {
   visAt: (lng: number, lat: number, ms: number) => number | null;
   /** Satellite sea temperature, °C, and the sargassum outlook at the nearest beach, for the hour. */
   waterAt: (lng: number, lat: number, ms: number) => { sstC?: number | null; sarg?: SargLevel | null };
+  /** Heavy-runoff flag at the point (outing.ts runoffRisk), or null when no flow or rain data. */
+  runoffAt: (lng: number, lat: number, ms: number) => boolean | null;
   /** Surface current: speed m/s and the bearing it flows TOWARD. */
   currentAt: (lng: number, lat: number, ms: number) => { ms: number; toDeg: number } | null;
   /** Weather safety and rain for the hour: mean rain, squall flag and a close lightning strike. Empty when no forecast covers it. */
@@ -83,6 +85,7 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
       <div class="ro"><span class="lbl">${t('dive.week')}</span><span class="seg sm" id="dv-week">--</span></div>
       <div class="ro"><span class="lbl">${t('snk.spot')}</span><span class="seg sm" id="dv-spot">--</span></div>
       <div class="ro"><span class="lbl">${t('snk.rating')}</span><span class="seg sm" id="dv-rate">--</span></div>
+      <div class="ro"><span class="lbl">${t('dive.runoff')}</span><span class="seg sm" id="dv-runoff">--</span></div>
       <div class="ro"><span class="lbl">${t('snk.stingers')}</span><span class="seg sm" id="dv-sting">--</span></div>
       <div class="lbl note" id="dv-note"></div>
     </div>`,
@@ -137,7 +140,8 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     const chart = env.depthAt(c.lng, c.lat);
     // Open water or unknown depth: use the activity depth so only a real reef flat can read as too shallow.
     const waterM = chart === undefined || chart > depth ? depth : chart + tideM(ms);
-    return outingScore({ surgeMs: u, visM: vis ?? NaN, windMs: wind, waterM, localHour, sunAltDeg: sunAltitude(ms, c.lat, c.lng), currentMs: env.currentAt(c.lng, c.lat, ms)?.ms, ...waterTerms(env.waterAt(c.lng, c.lat, ms)), ...env.wxAt(c.lng, c.lat, ms) });
+    const runoff = env.runoffAt(c.lng, c.lat, ms);
+    return outingScore({ surgeMs: u, visM: vis ?? NaN, windMs: wind, waterM, localHour, sunAltDeg: sunAltitude(ms, c.lat, c.lng), currentMs: env.currentAt(c.lng, c.lat, ms)?.ms, ...(runoff === null ? {} : { runoff }), ...waterTerms(env.waterAt(c.lng, c.lat, ms)), ...env.wxAt(c.lng, c.lat, ms) });
   };
 
   let heavyKey = '';
@@ -186,6 +190,9 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     const rate = s ? ratingFor(s.score) : null;
     $('rate').textContent = rate ? `${t(`snk.rating.${rate}` as Key)} ${s!.score}` : '--';
     $('rate').className = 'seg sm ' + (rate === 'GO' ? 'green' : rate === 'AVOID' ? 'red' : '');
+    const ro = env.runoffAt(c.lng, c.lat, ms);
+    $('runoff').textContent = ro === null ? '--' : ro ? t('dive.runoff.yes') : t('dive.runoff.no');
+    $('runoff').className = 'seg sm ' + (ro ? 'red' : '');
     const w = near ? env.windAt(sp.lngLat[0], sp.lngLat[1], ms) : null;
     const sting = w ? stingerGuess(w.ms, w.fromDeg, sp.facing) : null;
     $('sting').textContent = sting === null ? '--' : sting ? t('snk.stingers.maybe') : t('snk.stingers.low');
