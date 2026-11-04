@@ -14,7 +14,7 @@ import { pressureChange } from '../weather';
 import type { MetricEnv } from '../metrics/registry';
 import type { DaySky } from '../physics/astro';
 import type { Vessel } from '../settings';
-import { boatVerdict, type Verdict } from './verdict';
+import { boatVerdict, type BoatVerdict, type Verdict } from './verdict';
 
 const H = 3.6e6;
 const KT = 1.94384;
@@ -26,39 +26,34 @@ export interface HourVerdict {
   verdict: Verdict | null;
 }
 
+/** The forecast verdict for one place and hour, with the numbers behind it; null where there is no wind or wave data. */
+export function verdictAt(env: MetricEnv, vessel: Vessel, lng: number, lat: number, tMs: number): { verdict: Verdict; windKt: number | null; hsM: number | null; reasons: BoatVerdict['reasons'] } | null {
+  const w = env.windMs(lng, lat, tMs);
+  const sea = env.sea(lng, lat, tMs);
+  if (w === null && !sea) return null;
+  const wx = env.weather(tMs);
+  const p = feedPartitions(sea);
+  const c = env.currentVec?.(lng, lat, tMs);
+  const s = p ? seaState(c ? withCurrent(p, { u: c[0], v: c[1] }) : p) : null;
+  const cape = mean(wx.map((x) => x.capeJkg).filter(finite));
+  const gust = mean(wx.map((x) => x.gustKt).filter(finite));
+  const rain = mean(wx.map((x) => x.rainMmH).filter(finite));
+  const v = boatVerdict({
+    vessel,
+    windKt: w === null ? undefined : w * KT,
+    gustKt: finite(gust) ? gust : undefined,
+    hsM: s?.totalHm ?? sea?.hs,
+    comfort: s?.score,
+    squall: finite(cape) ? squallFromMeans(cape, gust, rain) : undefined,
+    rainMmH: finite(rain) ? rain : undefined,
+  });
+  return { verdict: v.verdict, windKt: w === null ? null : w * KT, hsM: s?.totalHm ?? sea?.hs ?? null, reasons: v.reasons };
+}
+
 /** The forecast verdict hour by hour from `fromMs` (rounded down to the hour); null where there is no wind or wave data. */
 export function hourlyVerdicts(env: MetricEnv, vessel: Vessel, lng: number, lat: number, fromMs: number, hours = 48): HourVerdict[] {
   const start = Math.floor(fromMs / H) * H;
-  const out: HourVerdict[] = [];
-  for (let h = 0; h < hours; h++) {
-    const tMs = start + h * H;
-    const w = env.windMs(lng, lat, tMs);
-    const sea = env.sea(lng, lat, tMs);
-    const wx = env.weather(tMs);
-    if (w === null && !sea) {
-      out.push({ tMs, verdict: null });
-      continue;
-    }
-    const p = feedPartitions(sea);
-    const c = env.currentVec?.(lng, lat, tMs);
-    const s = p ? seaState(c ? withCurrent(p, { u: c[0], v: c[1] }) : p) : null;
-    const cape = mean(wx.map((x) => x.capeJkg).filter(finite));
-    const gust = mean(wx.map((x) => x.gustKt).filter(finite));
-    const rain = mean(wx.map((x) => x.rainMmH).filter(finite));
-    out.push({
-      tMs,
-      verdict: boatVerdict({
-        vessel,
-        windKt: w === null ? undefined : w * KT,
-        gustKt: finite(gust) ? gust : undefined,
-        hsM: s?.totalHm ?? sea?.hs,
-        comfort: s?.score,
-        squall: finite(cape) ? squallFromMeans(cape, gust, rain) : undefined,
-        rainMmH: finite(rain) ? rain : undefined,
-      }).verdict,
-    });
-  }
-  return out;
+  return Array.from({ length: hours }, (_, h) => ({ tMs: start + h * H, verdict: verdictAt(env, vessel, lng, lat, start + h * H)?.verdict ?? null }));
 }
 
 // Same gates as weather.ts squallLevel (CAPE 1000 / 2500 with gusts >= 25 kt or rain >= 5 mm/h).

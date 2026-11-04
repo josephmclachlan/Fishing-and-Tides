@@ -113,6 +113,7 @@ Checked in the built app (Chromium, `vite preview`): after a sync with the brows
 | `effort` | `scripts/forecast/effort.ts` | Global Fishing Watch 4Wings report, `public-global-fishing-effort:latest` (AIS apparent fishing effort), POST with the box as GeoJSON, token in the `GFW_TOKEN` Actions secret; about 4 days late | Fishing hours per 0.1° cell over `EFFORT_BOX` (25×23), summed over the last 365 days and all flags, one frame, kind `observed` | ~1 KB | Every 24 h |
 | `mld` | `scripts/forecast/satellite.ts` + `scripts/mld.py` | Mixed-layer depth (`mlotst`), Copernicus Marine global ocean model `GLOBAL_ANALYSISFORECAST_PHY_001_024`, daily means `cmems_mod_glo_phy_anfc_0.083deg_P1D-m`, same toolbox and account as `scat-pass` | Metres over `MLD_BOX` (= `SCAT_BOX`) at 1/12°, yesterday to 10 days ahead, kind `forecast` | ~5 KB | Every 24 h |
 | `storms` | `scripts/forecast/storms.ts` | NHC CurrentStorms.json (no CORS, so relayed) | Plain JSON: active Atlantic storms with position, wind, pressure, motion, advisory link; empty list in a quiet season | tiny | Every build (advisories come every 6 h in season) |
+| `coral` | `scripts/forecast/coral.ts` | NOAA Coral Reef Watch v3.1 daily 5 km via CoastWatch ERDDAP (`noaacrwdhwDaily`, `noaacrwhotspotDaily`, `noaacrwsstanomalyDaily`, `noaacrwsstDaily`, `noaacrwbaa7dDaily`), about 2 to 5 days late | Plain JSON: one CRW pixel per reef in `CORAL_REEFS` (nearest sea pixel; Punta Uva and Manzanillo share one), last 84 days of DHW, HotSpot, SST anomaly, SST and the 7-day bleaching alert level. Parsed by `src/adapters/coral-parse.ts` | ~15 KB | Every 12 h |
 
 Bodies are gzipped (`.i16.gz`, `encoding: 'gzip'` in the manifest) because GitHub Pages doesn't compress binary files; `series.ts` unzips with `DecompressionStream` when it sees the gzip magic bytes.
 
@@ -146,6 +147,22 @@ ERDDAP sends no CORS headers, so these go through the data build. Verify checks 
 
 It is a drawer behind an OBS tab whose lamp shows the stalest source; on phones the tab sits in SET with SYSTEM CHECK. It also shows as map labels (catalog layer `obs`, style ids `ob-`) at the stations and at the centre of what each pass saw.
 
+## Corrections from observations (PLAN 7.10)
+
+Two corrections are learnt on the phone each time their data loads, held in `src/corrections.ts`, and shown with their confidence under MODEL CORRECTIONS in the LIVE OBS drawer.
+
+**Wind map vs satellite** (`src/adapters/wind-fix.ts`). For every ASCAT pass in the last 4 days, the wind feed's model (Open-Meteo best match, read at up to 20 cells seen by two or more passes, one multi-point call with `past_days`) is compared with the satellite at the pass time. The fit is a speed scale k = Σ|obs||model| / Σ|model|², shrunk toward 1 by P/(P+2) for P passes and clamped to 0.8..1.25. The forecast wind's u and v are multiplied by k when they load, so the particles, readouts, BITE, surf and sargassum drift all see the same corrected wind. The climatology (OUTLOOK band) is not touched. A scale is used rather than an offset because model wind errors over the sea grow with the wind. Passes, not cells, set the confidence, since the cells of one pass share the same weather: HIGH with 4 or more passes and ≤2.5 m/s RMS left, MEDIUM up to 4 m/s, LOW beyond. A LOW fit is shown but not applied: that much error left means the model has the pattern wrong, not just the strength. ASCAT reports equivalent-neutral wind, about 0.2 m/s above the true 10 m wind in warm seas, which is left in. The fix is for the open sea; ASCAT sees nothing within ~20 km of land, so the land and sea breezes at the coast are not corrected by it.
+
+**Tide vs gauge** (`src/physics/tide-fix.ts`). The IOC Limón gauge minus the harmonic prediction, as hourly means over the last 24 h. Their mean is the offset (spikes over 0.5 m are dropped, and an offset over 0.3 m is not applied because it more likely means a gauge or datum fault). It is added to the predicted tide in full up to the newest reading, then fades as exp(−Δt / 2 days), on the TIDE readout, the tide chart, next high and low, spot pages, surf-break physics and dive depth. The 24 h mean averages out the harmonics running slightly early or late, which swings the residual both ways within a day. The fade is persistence: sea-level anomalies from pressure, wind set-up, river outflow and seasonal warming last days here, but not a month. Confidence: HIGH with 20+ hours and a spread of 6 cm or less, MEDIUM up to 12 cm. LIVE OBS still shows the raw gauge reading against the uncorrected tide.
+
+**Sea temperature** needs no correction: the app shows the satellite analysis itself (MUR, with the passes as a cross-check); there is no SST model forecast to correct.
+
+**Air temperature and gusts** are the PLAN 7.4 blend (docs/WEATHER.md), scored against the airport.
+
+Checks (amber only): the wind scale with its pass count and RMS before and after (amber at the clamp or with fewer than two passes), and the 24 h gauge offset within ±0.15 m.
+
+The windows are short on purpose: 24 h of gauge and 4 days of passes are what the app has without a history store. Longer windows belong with the history archive being planned in its own thread, not a separate store here.
+
 ## Water clarity (PLAN 6.1)
 
 `src/physics/clarity.ts` turns everything into a diffuse attenuation coefficient and adds the causes, since attenuation from separate causes adds: Kd = Kd490 (satellite; chlorophyll through Morel and Maritorena 2001 where the map has none; 0.11/m background with neither) + river plume + swell resuspension. Visibility is the Secchi depth 1.7 / Kd. Green 8 m or more, amber 3 to 8 m, red under 3 m.
@@ -175,6 +192,16 @@ In the HUD, VIS shows the estimate, then the range and the cause (`5 M 3–9 PLA
 **Display.** Amber cells where weed was last seen (stronger with more), faint hatching over sea not seen in 5 days (unknown, not clear), dim dashed tracks of the 2% member with a dot at the slider's time, and beach labels when a landing is forecast. The SARG readout under VIS gives the level at the spot nearest the cross-hair for the slider's day and the first arrival day, or ASHORE; it says CLOUD instead of NONE when under a fifth of the sea was seen. On 2026-11-02 the mats seen off Limón and Tortuguero all drift south-east toward Bocas del Toro and Colón with the coastal current, so no beach here gets a landing.
 
 Checks: manifest, relay age (12 h cadence), newest map under 3 days (red past 6), a fifth of the sea seen in 5 days (amber only: cloud is weather), cover within 0..1.
+
+## Coral heat stress (PLAN 7.23)
+
+NOAA Coral Reef Watch (CRW) is the standard bleaching warning. DHW (degree heating weeks) adds up how far the sea has sat at least 1 °C above its warmest normal month over the last 12 weeks: 4 °C-weeks means significant bleaching is likely, 8 means severe bleaching and deaths. The alert level (0 none, 1 watch, 2 warning, 3 alert 1, 4 alert 2) is CRW's own 7-day maximum. `alertLevel(hotspot, dhw)` gives the same level for a single day.
+
+The 5 km pixels are coarse against these fringing reefs, and CRW masks pixels that touch land, so each reef reads the nearest sea pixel (within ~10 km). Read it as the water just off the reef. The ERDDAP history goes back daily to 25 March 1985 (peaks at the Cahuita pixel: 16.6 in Nov 2023, 15.4 in Jul 2024). Query with index ranges (`last-83:1:last`); date ranges over a box time out upstream.
+
+Reef points are public reef areas only. Restoration nurseries and outplant sites are never put in `region.ts`, since the app is public.
+
+The DIVE panel heat card uses this feed too: `fetchCoral()`, then `nearestReef(d, lngLat)` and `coralNow(d, reef)` from `src/adapters/coral.ts`.
 
 ## Weather (PLAN 7.3)
 

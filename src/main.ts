@@ -27,6 +27,8 @@ import { LIMON_HARMONICS } from './data/tides-limon';
 import { mountWatchPanel } from './watch-panel';
 import { mountBoatWindowHud } from './boat-window-hud';
 import { debrisAt } from './boat/debris';
+import { makeReefLookup, shoalAlert, type ReefAt } from './boat/shoal';
+import { REEFISH } from './fishing/cells';
 import { fetchStorms, type Storm } from './adapters/storms';
 import { mountSeaStateHud, type VerdictSafety } from './sea-state-hud';
 import { mountAstroHud } from './astro-hud';
@@ -37,7 +39,7 @@ import { createBoatStore } from './boat/store';
 import { createCoralStore } from './coral/store';
 import { mountCoralPanel } from './coral-panel';
 import { mountCoralLogLayer } from './layers/coral-log';
-import { mountBoatPanel, type CatchScorer, type OffshoreRead } from './boat-panel';
+import { mountBoatPanel, type CatchScorer, type OffshoreRead, type ShoalRead } from './boat-panel';
 import { dictFor, setDict, t } from './i18n';
 import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
@@ -79,6 +81,9 @@ import { mountTimeSlider } from './time-slider';
 import { KT_PER_MS, sampleField, fromDeg, type VectorField } from './physics/flow';
 import { MOCK_FLOW, PLUME_RIVERS, REGION, SPOTS } from './region';
 import { fetchWind, windAt, type WindData } from './adapters/wind';
+import { appliedScale, fetchWindFix, scaleWind } from './adapters/wind-fix';
+import { corrections } from './corrections';
+import { tideFix } from './physics/tide-fix';
 import { currentsAt, fetchCurrents, type CurrentsData } from './adapters/currents';
 import { fetchWaves, wavesAt, type SeaState, type WavesData } from './adapters/waves';
 import { chlAt, fetchSatellite, sstAt, type SatelliteData } from './adapters/satellite';
@@ -250,7 +255,8 @@ let gauge: GaugeReading[] = [];
 const tideHud = mountTideHud(hud, time, () => gauge);
 const loadGauge = () =>
   fetchGauge({ hours: 30 })
-    .then((d) => ((gauge = d.readings), tideHud?.refresh(), spotPage.refresh(), liveObs?.refresh()))
+    // The gauge also corrects the predicted tide (PLAN 7.10): its last 24 h minus the prediction, fading over the days ahead.
+    .then((d) => ((gauge = d.readings), corrections.setTide(tideFix(d.readings, Date.now())), tideHud?.refresh(), spotPage.refresh(), liveObs?.refresh()))
     .catch((err) => console.warn('tide gauge unavailable', err));
 // The lock-on effect plays only for a picked target, never on scroll/pinch zoom.
 const enhancer = createEnhancer(map, createLockFx(map, hud), settings.enhance);
@@ -360,7 +366,9 @@ const offshoreRead: OffshoreRead = (lng, lat) => {
   const scores = OFFSHORE.map((s) => ({ id: s.id, score: offshoreScore(s, inputs) ?? 0 })).sort((a, b) => b.score - a.score);
   return { front: front && { km: front.km, bearingDeg: front.bearingDeg, kind: front.front.kind }, mldM: inputs.mldM, scores };
 };
-mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch, () => (offshoreDepth ? offshoreRead : null));
+let reefLookup: ReefAt | null = null;
+const shoalRead: ShoalRead = (lng, lat) => (depthAt ? shoalAlert((x, y) => depthAt?.(x, y), reefLookup, lng, lat, settings.vessel()) : null);
+mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch, () => (offshoreDepth ? offshoreRead : null), () => shoalRead, () => ({ env: metricEnv(), vessel: settings.vessel(), validMs: time.validMs() }));
 const coralStore = createCoralStore(safeStorage());
 mountCoralPanel(hud, map, coralStore, sheets, () => depthAt);
 mountCoralLogLayer(map, coralStore);
@@ -447,7 +455,7 @@ mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeSto
 // LIVE OBS (PLAN 2.13): the newest real reading from the gauge, the airport and the satellite passes, with ages.
 let metarObs: MetarObs[] = [];
 let passes: PassData | null = null;
-const liveObs = mountLiveObs(hud, map, sheets, () => ({ gauge, metar: metarObs, passes }));
+const liveObs = mountLiveObs(hud, map, sheets, () => ({ gauge, metar: metarObs, passes, fixes: { tide: corrections.tide(), wind: corrections.wind() } }));
 const metarLoad = fetchMetar();
 metarLoad.then((d) => ((metarObs = d.obs), liveObs.refresh())).catch((err) => console.warn('metar unavailable', err));
 // Ensemble blend (PLAN 7.4): score the weather models against the airport, then re-show the weather blended by that skill.
@@ -455,8 +463,13 @@ Promise.all([weatherLoad, metarLoad, fetchHindcast()])
   .then(([w, m, h]) => ((weatherData = { ...w, skill: scoreWeather(h, m.obs, Date.now()) }), weatherHud?.setWeather(weatherData), diveHud?.refresh()))
   .catch((err) => console.warn('weather scoring unavailable, equal model weights', err));
 fetchPasses()
-  .then((d) => ((passes = d), liveObs.refresh()))
-  .catch((err) => console.warn('satellite passes unavailable', err));
+  .then((d) => {
+    passes = d;
+    liveObs.refresh();
+    // Fit the wind map's speed to the satellite passes (PLAN 7.10), then reshow the wind scaled.
+    return fetchWindFix(d.scat).then((f) => (corrections.setWind(f), applyWind(), liveObs.refresh()));
+  })
+  .catch((err) => console.warn('satellite passes or wind correction unavailable', err));
 // Last, so SET is the last tab and the settings controls (ENHANCE, SUN, language) are all mounted to be moved into it.
 mountSettingsPanel(hud, sheets);
 // Phone glance strip (the few values that matter per activity) and tap-a-label explainers.
@@ -571,6 +584,17 @@ time.subscribe(() => {
 // so a phone that was offline picks up fresh data without a reload. Offline, the cached copy loads; with nothing
 // cached the mock field stays (DATA AGE then reads SIM).
 let windLoading = false;
+// The wind as published, and as shown: scaled by the satellite correction (PLAN 7.10) once it is fitted.
+let rawWind: WindData | null = null;
+const applyWind = () => {
+  if (!rawWind) return;
+  wind = scaleWind(rawWind, appliedScale(corrections.wind()));
+  runSargassum();
+  flowSources.wind = { ...flowSources.wind, field: windField() };
+  flow?.setSource('wind', flowSources.wind);
+  flowHud?.refresh();
+  diveHud?.refresh();
+};
 const loadWind = () => {
   if (windLoading) return;
   windLoading = true;
@@ -589,11 +613,8 @@ const loadWind = () => {
 fetchWind()
     .then((d) => {
       if (!d.forecast && !d.climatology) return console.warn('wind: no forecast or climatology published; using mock');
-      wind = d;
-      runSargassum();
-      flowSources.wind = { ...flowSources.wind, field: windField() };
-      flow?.setSource('wind', flowSources.wind);
-      diveHud?.refresh();
+      rawWind = d;
+      applyWind();
     })
     .catch((err) => console.warn('wind unavailable', err))
     .finally(() => (windLoading = false));
@@ -745,6 +766,7 @@ fetchSeafloor()
       depthAt: (lng, lat) => depthAt?.(lng, lat),
     }) ?? null;
     spotPhysics.update();
+    reefLookup = makeReefLookup(data.reefs, REEFISH);
     depthAt = (lng, lat) => {
       const z = sample(data.region, lng, lat);
       return Number.isFinite(z) && z < 0 ? -z : undefined;
