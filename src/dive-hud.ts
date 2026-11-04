@@ -13,7 +13,8 @@ import { panelHeader } from './hud-kit';
 import { t, type Key } from './i18n';
 import { LIMON_HARMONICS } from './data/tides-limon';
 import { localDayStart } from './physics/astro';
-import { outingScore, outlook, type OutingReason, type OutingScore } from './physics/outing';
+import { outingScore, outlook, ratingFor, stingerGuess, type OutingReason, type OutingScore } from './physics/outing';
+import { SNORKEL_SPOTS } from './data/snorkel-spots';
 import { OUTING_DEPTHS, surgeAt, surgeProfile } from './physics/surge';
 import { tideState } from './physics/tide';
 import { REGION, SPOTS } from './region';
@@ -24,8 +25,8 @@ import type { TimeStore } from './time';
 export interface DiveEnv {
   /** Offshore sea state at a point and time. */
   seaAt: (lng: number, lat: number, ms: number) => { hs: number; tp: number } | null;
-  /** 10 m wind speed, m/s. */
-  windMsAt: (lng: number, lat: number, ms: number) => number | null;
+  /** 10 m wind: speed m/s and the bearing it blows from. */
+  windAt: (lng: number, lat: number, ms: number) => { ms: number; fromDeg: number } | null;
   /** Visibility, m. */
   visAt: (lng: number, lat: number, ms: number) => number | null;
   /** Chart depth, m (positive down), or undefined on land or before the depth grid loads. */
@@ -37,6 +38,8 @@ const MODES: readonly Mode[] = ['snorkel', 'dive'];
 const MODE_DEPTH: Record<Mode, number> = { snorkel: 2, dive: 6 };
 const KEY = 'dive.mode';
 const DAYS = 7;
+/** How close the reticle must be to a catalog spot to show its card, km. */
+const SPOT_KM = 4;
 const NOON = 12 * 3.6e6;
 
 const weekday = (ms: number) => new Intl.DateTimeFormat(document.documentElement.lang || 'en', { weekday: 'short', timeZone: 'UTC' }).format(new Date(ms + REGION.tzOffsetH * 3.6e6)).toUpperCase().replace('.', '');
@@ -63,6 +66,10 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
       <div class="ro"><span class="lbl">${t('dive.time')}</span><span class="seg sm" id="dv-time">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.day')}</span><span class="seg sm" id="dv-day">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.week')}</span><span class="seg sm" id="dv-week">--</span></div>
+      <div class="ro"><span class="lbl">${t('snk.spot')}</span><span class="seg sm" id="dv-spot">--</span></div>
+      <div class="ro"><span class="lbl">${t('snk.rating')}</span><span class="seg sm" id="dv-rate">--</span></div>
+      <div class="ro"><span class="lbl">${t('snk.stingers')}</span><span class="seg sm" id="dv-sting">--</span></div>
+      <div class="lbl note" id="dv-note"></div>
     </div>`,
   );
   const $ = (id: string) => side.querySelector<HTMLElement>(`#dv-${id}`)!;
@@ -94,11 +101,12 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
   };
 
   /** Score for one hour at the reticle's spot; null when the sea or wind forecast has nothing for it. */
-  const scoreAt = (ms: number, localHour: number, vis: number | null): OutingScore | null => {
-    const { c, st } = spotAt();
+  const scoreAt = (ms: number, localHour: number, vis: number | null, at?: [number, number]): OutingScore | null => {
+    const { c, st } = at ? { c: { lng: at[0], lat: at[1] }, st: spots.byName(nearest(at, SPOTS)!.point.name) } : spotAt();
     const r = st?.result;
     const sea = env.seaAt(st?.pin[0] ?? c.lng, st?.pin[1] ?? c.lat, ms);
-    const wind = env.windMsAt(c.lng, c.lat, ms);
+    const w = env.windAt(c.lng, c.lat, ms);
+    const wind = w ? w.ms : null;
     if (!r || !sea || wind === null) return null;
     const depth = MODE_DEPTH[mode];
     const u = surgeAt(sea.hs * r.waves.refraction.K, r.waves.refraction.depth, sea.tp, depth).uMs;
@@ -140,7 +148,26 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     $('score').className = 'seg sm ' + (s && s.score >= 70 ? 'green' : s && s.score < 40 ? 'red' : '');
   };
 
-  const refresh = () => (update(), nowScore());
+  /** The catalog spot within SPOT_KM of the reticle: access, live rating, stinger guess and the guides' note. */
+  const spotCard = () => {
+    const c = map.getCenter();
+    const hit = nearest([c.lng, c.lat], SNORKEL_SPOTS.map((s) => ({ name: s.id, lngLat: s.lngLat })))!;
+    const sp = SNORKEL_SPOTS.find((s) => s.id === hit.point.name)!;
+    const near = hit.distanceM / 1000 <= SPOT_KM;
+    $('spot').textContent = near ? `${sp.id.toUpperCase().replace('-', ' ')} · ${t(`snk.access.${sp.access}` as Key)}${sp.confidence === 'check' ? ` · ${t('snk.check')}` : ''}` : '--';
+    $('note').textContent = near ? t(`snk.${sp.id}.note` as Key) : '';
+    const ms = time.validMs();
+    const h = (((ms + REGION.tzOffsetH * 3.6e6) % 864e5) + 864e5) % 864e5 / 3.6e6;
+    const s = near ? scoreAt(ms, h, env.visAt(sp.lngLat[0], sp.lngLat[1], ms), sp.lngLat) : null;
+    const rate = s ? ratingFor(s.score) : null;
+    $('rate').textContent = rate ? `${t(`snk.rating.${rate}` as Key)} ${s!.score}` : '--';
+    $('rate').className = 'seg sm ' + (rate === 'GO' ? 'green' : rate === 'AVOID' ? 'red' : '');
+    const w = near ? env.windAt(sp.lngLat[0], sp.lngLat[1], ms) : null;
+    const sting = w ? stingerGuess(w.ms, w.fromDeg, sp.facing) : null;
+    $('sting').textContent = sting === null ? '--' : sting ? t('snk.stingers.maybe') : t('snk.stingers.low');
+    $('sting').className = 'seg sm ' + (sting ? 'red' : '');
+  };
+  const refresh = () => (update(), nowScore(), spotCard());
   const apply = () => {
     tabs.forEach((b) => b.classList.toggle('on', b.dataset.mode === mode));
     heavyKey = '';

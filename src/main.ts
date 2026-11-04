@@ -501,9 +501,9 @@ fetchSeafloor()
         const swell = Number.isFinite(s.swellHs) && Number.isFinite(s.swellT);
         return { hs: s.hs, tp: swell ? s.swellT : s.tm };
       },
-      windMsAt: (lng, lat, ms) => {
+      windAt: (lng, lat, ms) => {
         const f = wind && windAt(wind, bandAt(ms), ms)?.field;
-        return f && sampleField(f, lng, lat, diveWind) ? Math.hypot(...diveWind) : null;
+        return f && sampleField(f, lng, lat, diveWind) ? { ms: Math.hypot(...diveWind), fromDeg: fromDeg(...diveWind) } : null;
       },
       visAt: (lng, lat, ms) => {
         const c = clarityCtx();

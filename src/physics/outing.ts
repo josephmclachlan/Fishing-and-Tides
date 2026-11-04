@@ -84,3 +84,18 @@ export function outlook(at: (ms: number, localHour: number) => OutingScore, firs
   out.forEach((d, k) => d.best && d.best.peak > peak && ((peak = d.best.peak), (bestDay = k)));
   return { days: out, bestDay };
 }
+
+export type Rating = 'GO' | 'CAUTION' | 'AVOID';
+/** Plain rating for a spot from its outing score: 70 and up GO, 40 to 69 CAUTION, below 40 AVOID. */
+export const ratingFor = (score: number): Rating => (score >= 70 ? 'GO' : score >= 40 ? 'CAUTION' : 'AVOID');
+
+/**
+ * Stinger (jellyfish, sea lice, man-of-war) guess: on-shore wind pushes them to the beach, so flag
+ * wind of at least 5 m/s from within 60° of the way the shore faces. A rule of thumb, not data: no
+ * free stinger feed exists.
+ */
+export function stingerGuess(windMs: number, windFromDeg: number, facingDeg: number): boolean {
+  if (!(windMs >= 5)) return false;
+  const d = Math.abs(((windFromDeg - facingDeg + 540) % 360) - 180);
+  return d <= 60;
+}
