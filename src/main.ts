@@ -27,6 +27,8 @@ import { LIMON_HARMONICS } from './data/tides-limon';
 import { mountWatchPanel } from './watch-panel';
 import { mountBoatWindowHud } from './boat-window-hud';
 import { debrisAt } from './boat/debris';
+import { makeReefLookup, shoalAlert, type ReefAt } from './boat/shoal';
+import { REEFISH } from './fishing/cells';
 import { fetchStorms, type Storm } from './adapters/storms';
 import { mountSeaStateHud, type VerdictSafety } from './sea-state-hud';
 import { mountAstroHud } from './astro-hud';
@@ -37,7 +39,7 @@ import { createBoatStore } from './boat/store';
 import { createCoralStore } from './coral/store';
 import { mountCoralPanel } from './coral-panel';
 import { mountCoralLogLayer } from './layers/coral-log';
-import { mountBoatPanel, type CatchScorer, type OffshoreRead } from './boat-panel';
+import { mountBoatPanel, type CatchScorer, type OffshoreRead, type ShoalRead } from './boat-panel';
 import { dictFor, setDict, t } from './i18n';
 import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
@@ -360,7 +362,9 @@ const offshoreRead: OffshoreRead = (lng, lat) => {
   const scores = OFFSHORE.map((s) => ({ id: s.id, score: offshoreScore(s, inputs) ?? 0 })).sort((a, b) => b.score - a.score);
   return { front: front && { km: front.km, bearingDeg: front.bearingDeg, kind: front.front.kind }, mldM: inputs.mldM, scores };
 };
-mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch, () => (offshoreDepth ? offshoreRead : null));
+let reefLookup: ReefAt | null = null;
+const shoalRead: ShoalRead = (lng, lat) => (depthAt ? shoalAlert((x, y) => depthAt?.(x, y), reefLookup, lng, lat, settings.vessel()) : null);
+mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch, () => (offshoreDepth ? offshoreRead : null), () => shoalRead);
 const coralStore = createCoralStore(safeStorage());
 mountCoralPanel(hud, map, coralStore, sheets, () => depthAt);
 mountCoralLogLayer(map, coralStore);
@@ -745,6 +749,7 @@ fetchSeafloor()
       depthAt: (lng, lat) => depthAt?.(lng, lat),
     }) ?? null;
     spotPhysics.update();
+    reefLookup = makeReefLookup(data.reefs, REEFISH);
     depthAt = (lng, lat) => {
       const z = sample(data.region, lng, lat);
       return Number.isFinite(z) && z < 0 ? -z : undefined;

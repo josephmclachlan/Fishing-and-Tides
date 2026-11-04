@@ -13,6 +13,7 @@ import { createGps, type GpsState } from './boat/gps';
 import type { BoatStore } from './boat/store';
 import { M_PER_NM, recentSpeedKt, toGPX, trackStats } from './boat/track';
 import { mountBoatLayer } from './layers/boat';
+import type { Shoal } from './boat/shoal';
 
 const hhmm = (ms: number) => {
   const m = Math.floor(ms / 60_000);
@@ -25,9 +26,12 @@ export type CatchScorer = (lng: number, lat: number, ms: number, species: string
 /** Offshore read at a place (PLAN 7.17): nearest front and the boat species' scores, best first. */
 export type OffshoreRead = (lng: number, lat: number) => { front: { km: number; bearingDeg: number; kind: 'sst' | 'chl' } | null; mldM: number | null; scores: { id: string; score: number }[] } | null;
 
+/** Shoal read at a place (PLAN 7.23 item 7). */
+export type ShoalRead = (lng: number, lat: number) => Shoal | null;
+
 const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
 
-export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sheets: Sheets, depthAt: () => ((lng: number, lat: number) => number | undefined) | null, scoreCatch: () => CatchScorer | null = () => null, offshore: () => OffshoreRead | null = () => null) {
+export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sheets: Sheets, depthAt: () => ((lng: number, lat: number) => number | undefined) | null, scoreCatch: () => CatchScorer | null = () => null, offshore: () => OffshoreRead | null = () => null, shoal: () => ShoalRead | null = () => null) {
   const gps = createGps(
     (p) => {
       store.addFix(p);
@@ -50,6 +54,7 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     <div class="ro"><span class="lbl">${t('boat.time')}</span><span class="seg" id="b-time">00:00</span></div>
     <div class="ro"><span class="lbl">${t('boat.speed')}</span><span class="seg" id="b-spd">--</span><span class="unit">${t('unit.kt')}</span></div>
     <div class="ro"><span class="lbl">${t('boat.pins')}</span><span class="seg" id="b-pins">0</span></div>
+    <div class="ro"><span class="lbl">${t('boat.depth')}</span><span class="seg sm" id="b-depth">--</span></div>
     <div class="ro"><span class="lbl">${t('boat.front')}</span><span class="seg sm" id="b-front">--</span></div>
     <div class="ro"><span class="lbl">${t('boat.mld')}</span><span class="seg sm" id="b-mld">--</span></div>
     <div class="ro"><span class="lbl">${t('boat.offshore')}</span><span class="seg sm" id="b-off">--</span></div>
@@ -115,6 +120,9 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     // Offshore read at the boat, or at the map centre with no fix (PLAN 7.17).
     const at = gps.state() === 'ok' ? gps.last() : null;
     const c = at ?? map.getCenter();
+    const sh = shoal()?.(c.lng, c.lat);
+    $('b-depth').textContent = !sh ? '--' : `${sh.depthM === null ? '--' : Math.round(sh.depthM * 10) / 10} ${t('unit.m')} · ${t(`boat.shoal.${sh.level}` as Key)}${sh.level !== 'clear' && sh.minM !== null && sh.minBearingDeg !== null ? ` · ${Math.round(sh.minM * 10) / 10} ${t('unit.m')} ${COMPASS[Math.round(sh.minBearingDeg / 45) % 8]}` : ''}${sh.reef ? ` · ${t('boat.shoal.reef')}` : ''}`;
+    $('b-depth').className = 'seg sm ' + (sh?.level === 'danger' ? 'red' : sh?.level === 'clear' ? 'green' : '');
     const o = offshore()?.(c.lng, c.lat);
     $('b-front').textContent = !o ? '--' : o.front ? `${o.front.km.toFixed(1)} ${t('unit.km')} ${COMPASS[Math.round(o.front.bearingDeg / 45) % 8]} · ${t(`boat.front.${o.front.kind}` as Key)}` : t('boat.front.none');
     $('b-mld').textContent = !o || o.mldM === null ? '--' : `${Math.round(o.mldM)} ${t('unit.m')} · ${t(`boat.mld.${mldLevel(o.mldM)}` as Key)}`;

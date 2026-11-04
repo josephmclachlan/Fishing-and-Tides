@@ -90,6 +90,7 @@ Ranked by value for effort.
 | Tide (ebb at bars) | ✗ | – | ✗ (BAR row only) |
 | River flow (debris) | ✓ (LIKELY = MARGINAL) | – | ✗ |
 | Sunset, moon, pressure trend | ✓ (rows under SEA STATE) | – | ✗ |
-| Depth, reefs, seamarks | ✗ (map only) | – | – |
+| Depth, reefs | ✓ (BOAT drawer shoal alert; not in the verdict) | – | – |
+| Seamarks | ✗ (map only) | – | – |
 
 Vessel (SET): SMALL BOAT is MARGINAL at 15 kt / 20 kt gusts / 1.2 m seas and NO-GO at 20 / 27 / 2.0; YACHT is MARGINAL at 20 / 27 / 2.0 and NO-GO at 28 / 37 / 3.0. Thresholds are rules of thumb in `src/boat/verdict.ts`.
