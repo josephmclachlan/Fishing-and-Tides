@@ -635,3 +635,15 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .intro-steps li::marker { color: var(--green); }
 .intro-colours { margin: 0; font-size: 13px; opacity: 0.85; }
 .intro-ok { min-height: 44px; justify-content: center; text-align: center; }
+
+/* BEST TIME TODAY row (CONDITIONS panel and above the phone glance strip) */
+.best-today { display: flex; align-items: baseline; gap: 8px; width: 100%; min-height: 44px; padding: 4px 10px; font: inherit; color: var(--amber); background: transparent; border: 1px solid var(--green); cursor: pointer; text-align: left; }
+.best-today:disabled { border-color: var(--amber-dim); cursor: default; }
+.best-today .lbl { font-size: 11px; letter-spacing: 1px; }
+.best-today .bt-at { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; letter-spacing: 1px; color: var(--amber); }
+.best-today .bt-go { color: var(--green); text-shadow: 0 0 6px var(--green); }
+.bt-glance { display: none; }
+@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+  .bt-glance { display: flex; width: auto; margin: 4px 10px 0; min-height: 36px; }
+  .bt-cond { display: none; }
+}

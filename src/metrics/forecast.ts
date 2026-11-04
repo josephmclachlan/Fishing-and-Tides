@@ -125,12 +125,13 @@ export function buildForecast(env: MetricEnv, ids: readonly string[], spots: rea
  * The best BEST_LEN_H consecutive local hours of day `d`: each hour is scored by the tone of every
  * metric that has a value then (green +1, red -1), plus up to half a point for how far the value
  * sits toward the better end of that day's range, which breaks ties. Metrics with no better end
- * (period, tide) and daily-only metrics (visibility, sargassum) do not vote.
+ * (period, tide) and daily-only metrics (visibility, sargassum) do not vote. `notBeforeMs` skips windows that
+ * began before the hour containing it (so "best time left today" never points into the past).
  */
-export function bestTime(rows: readonly MetricRow[], metrics: readonly Metric[], d: number, startMs: number): { startMs: number; endMs: number } | null {
+export function hourScores(rows: readonly MetricRow[], metrics: readonly Metric[], d: number): (number | null)[] | null {
   const voters = rows.map((r, i) => ({ r, m: metrics[i] })).filter(({ m }) => m.better !== null && !m.hours);
   if (!voters.length) return null;
-  const score = (h: number) => {
+  return Array.from({ length: 24 }, (_, h) => {
     let sum = 0, n = 0;
     for (const { r, m } of voters) {
       const v = r.hourly[d * 24 + h];
@@ -142,9 +143,17 @@ export function bestTime(rows: readonly MetricRow[], metrics: readonly Metric[],
       n++;
     }
     return n ? sum / n : null;
-  };
+  });
+}
+
+export function bestTime(rows: readonly MetricRow[], metrics: readonly Metric[], d: number, startMs: number, notBeforeMs = -Infinity): { startMs: number; endMs: number } | null {
+  const scores = hourScores(rows, metrics, d);
+  if (!scores) return null;
+  const score = (h: number) => scores[h];
   let best: { h: number; v: number } | null = null;
   for (let h = BEST_FROM_H; h + BEST_LEN_H <= BEST_TO_H; h++) {
+    // Windows already over (or whose first hour is past) are not offered when asking for the rest of today.
+    if (startMs + d * DAY + (h + 1) * HOUR <= notBeforeMs) continue;
     const parts = Array.from({ length: BEST_LEN_H }, (_, k) => score(h + k));
     if (parts.some((p) => p === null)) continue;
     const v = (parts as number[]).reduce((a, b) => a + b, 0) / BEST_LEN_H;
