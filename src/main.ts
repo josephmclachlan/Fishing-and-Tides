@@ -837,7 +837,8 @@ fetchSeafloor()
             const c = clarityCtx();
             const beach = sargForecast ? nearest([lng, lat], SPOTS) : null;
             return {
-              visM: c ? (clarityAt({ ...c, ms }, lng, lat)?.visM ?? null) : null,
+              // Clarity without the river-flow plume: fishing counts the river's flow once, in its own `river` term below (physics/clarity flowPlumeMm).
+              visM: c ? (clarityAt({ ...c, ms, flow: null }, lng, lat)?.visM ?? null) : null,
               sstC: satellite ? (sstAt(satellite, lng, lat, ms)?.value ?? null) : null,
               chl: satellite ? (chlAt(satellite, lng, lat, ms)?.value ?? null) : null,
               river: riverAt(lng, lat, ms),
