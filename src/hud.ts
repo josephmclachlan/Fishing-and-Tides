@@ -122,7 +122,9 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions,
 
   const tick = () => {
     const d = getData();
-    $('clock').textContent = new Date().toISOString().slice(11, 19);
+    const now = new Date();
+    $('clock').textContent = new Date(now.getTime() + REGION.tzOffsetH * 3_600_000).toISOString().slice(11, 19);
+    $('clock').title = `UTC ${now.toISOString().slice(11, 19)}`;
     $('swell').textContent = fmt(d.swellHeightM);
     $('period').textContent = fmt(d.swellPeriodS, 0);
     $('sdir').textContent = pad3(d.swellDirDeg);
