@@ -27,7 +27,7 @@ Let a user pick exactly which metrics they care about, for a place they care abo
 ## Not in the first version
 Alerts when a watched metric crosses a threshold, multiple saved watchlists, comparing places side by side. Each is a small extension of the same registry.
 
-## Questions for Joseph
-1. Is the popup (table of days x metrics with sparklines) the right shape, or do you picture cards per metric?
-2. Per spot only, or should a watchlist cover the whole coast (best spot per metric)?
-3. Is SHARE as an image wanted in v1?
+## Decisions (Joseph, 2026-11-04)
+- Layout: shown as two mockups (table A, cards B) for him to pick; see PR #72.
+- Place: the user selects a **region** (click-highlight an area on the map), and the forecast lists the **best spots per metric** inside it, not one fixed spot. Registry `sample` runs for every named spot in the region and the popup ranks them per metric.
+- SHARE as an image is in the first version.
