@@ -18,7 +18,7 @@ export const HELP_BY_ID: Readonly<Record<string, HelpId>> = {
   'tc-hi': 'tide', 'tc-lo': 'tide', 'sp-hb': 'breaker', 'sp-rip': 'rip', 'sp-drift': 'drift', 'sp-surf': 'surfScore', 'sp-dive': 'surge',
   'sb-name': 'break', 'sb-q': 'surfScore', 'sb-type': 'breakType', 'sb-haz': 'hazard',
   'sw-hs': 'totalHs', 'sw-0': 'swellTrains', 'sw-1': 'swellTrains', 'sw-2': 'swellTrains',
-  'ss-comfort': 'seaState', 'ss-score': 'comfort', 'ss-detail': 'seaState', 'bv-verdict': 'verdict', 'ss-curr': 'seaCurrent', 'bv-why': 'verdict',
+  'ss-comfort': 'seaState', 'ss-score': 'comfort', 'ss-detail': 'seaState', 'bv-verdict': 'verdict', 'ss-curr': 'seaCurrent', 'bw-light': 'bwLight', 'bw-moon': 'bwMoon', 'bw-press': 'bwPress', 'bw-window': 'bwWindow', 'bv-why': 'verdict',
   'an-name': 'harbour', 'an-dist': 'harbourRange', 'an-shelter': 'shelter', 'an-fetch': 'shelter',
   'wx-rain': 'rain', 'wx-rain24': 'rain24', 'wx-cloud': 'cloud', 'wx-uv': 'uv', 'wx-air': 'air', 'wx-storm': 'storm',
   depth: 'depth', dsrc: 'depthSource', dzone: 'reef', dbottom: 'bottom', zone: 'zone', 'fish-score': 'habitat', 'fish-bite': 'bite', 'fish-reach': 'reach', 'fish-times': 'times',

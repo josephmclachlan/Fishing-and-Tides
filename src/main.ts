@@ -25,6 +25,7 @@ import { mountStorms } from './layers/storms';
 import { fetchWeather, weatherAt, type WeatherData } from './adapters/weather';
 import { LIMON_HARMONICS } from './data/tides-limon';
 import { mountWatchPanel } from './watch-panel';
+import { mountBoatWindowHud } from './boat-window-hud';
 import { fetchStorms, type Storm } from './adapters/storms';
 import { mountSeaStateHud, type VerdictSafety } from './sea-state-hud';
 import { mountAstroHud } from './astro-hud';
@@ -392,6 +393,8 @@ const metricEnv = (): MetricEnv => ({
   tzOffsetH: REGION.tzOffsetH,
 });
 mountWatchPanel(hud, map, sheets, safeStorage(), metricEnv);
+// BOAT daylight, pressure and next GO window (PLAN 7.23 item 4).
+mountBoatWindowHud(hud, map, { env: metricEnv, vessel: settings.vessel, validMs: () => time.validMs() });
 // SYSTEM CHECK: its tab joins the settings controls on a phone.
 mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeStorage() });
 // LIVE OBS (PLAN 2.13): the newest real reading from the gauge, the airport and the satellite passes, with ages.
