@@ -680,3 +680,15 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .sc-rose-sw1-t, .sc-rose-sw2-t { fill: var(--green); }
 .sc-rose-ws-t, .sc-rose-shore-t { fill: var(--amber); }
 .sc-rose-wind-t { fill: var(--red); }
+
+/* Go / no-go (PLAN 7.8): five activity chips at the top of CONDITIONS, reasons under them. */
+.vd { margin: 0 0 6px; }
+.vd-chips { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; }
+.vd-chip[hidden] { display: none; }
+.vd-chip { display: flex; flex-direction: column; align-items: center; gap: 1px; min-height: 40px; padding: 3px 2px; font: inherit; color: var(--amber); background: transparent; border: 1px solid var(--amber-dim); cursor: pointer; }
+.vd-chip.on { border-color: var(--amber); box-shadow: 0 0 8px var(--amber-dim); }
+.vd-chip .lbl { min-width: 0; font-size: 10px; }
+.vd-chip .seg.sm { font-size: 12px; letter-spacing: 1px; white-space: nowrap; }
+.vd-why { margin-top: 4px; font-size: 11px; letter-spacing: 1px; line-height: 1.35; color: var(--amber); cursor: help; }
+.vd-why.is-nogo { color: var(--red); text-shadow: 0 0 6px var(--red); }
+.gl-vd { font-size: 10px; letter-spacing: 1px; }
