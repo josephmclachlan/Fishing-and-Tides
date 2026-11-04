@@ -36,7 +36,7 @@ export interface FishingInput {
 export interface Cell { lng: number; lat: number; f: CellFeatures; /** Distance to the shore, m. */ coastM: number }
 
 /** Allen Atlas classes that hold fish: reef structure and hard or living bottom. */
-const REEFISH = new Set(['REEF CREST', 'OUTER REEF FLAT', 'INNER REEF FLAT', 'TERRESTRIAL REEF FLAT', 'BACK REEF SLOPE', 'REEF SLOPE', 'SHELTERED REEF SLOPE', 'PLATEAU', 'CORAL/ALGAE', 'ROCK']);
+export const REEFISH = new Set(['REEF CREST', 'OUTER REEF FLAT', 'INNER REEF FLAT', 'TERRESTRIAL REEF FLAT', 'BACK REEF SLOPE', 'REEF SLOPE', 'SHELTERED REEF SLOPE', 'PLATEAU', 'CORAL/ALGAE', 'ROCK']);
 
 export interface Lattice { lon0: number; lat0: number; cols: number; rows: number }
 export const latticeFor = ([w, s, e, n]: FishingInput['bounds']): Lattice => ({ lon0: w, lat0: n, cols: Math.ceil((e - w) / STEP), rows: Math.ceil((n - s) / STEP) });
@@ -130,6 +130,56 @@ export function buildCells(input: FishingInput): { lattice: Lattice; cells: Cell
 export function cellIndexAt(l: Lattice, index: Int32Array, lng: number, lat: number): number {
   const c = Math.floor((lng - l.lon0) / STEP), r = Math.floor((l.lat0 - lat) / STEP);
   return c < 0 || r < 0 || c >= l.cols || r >= l.rows ? -1 : index[r * l.cols + c];
+}
+
+/**
+ * A cell's shape on the map, cut at the coastline: the whole square in open water, or, where the
+ * coastline mask (1 = land) crosses it, only its water, as rectangles on a sub-grid about as fine as
+ * the mask. A cell is kept by its centre, so without this a shore cell paints up to half a cell
+ * (~110 m) of beach or headland.
+ */
+export function cellGeometry(land: Grid | null | undefined, lng: number, lat: number): Polygon | MultiPolygon {
+  const square: Polygon = { type: 'Polygon', coordinates: [cellRing(lng, lat)] };
+  if (!land) return square;
+  const n = Math.max(1, Math.ceil(STEP / Math.min(land.dlon, land.dlat)));
+  const d = STEP / n;
+  const w = lng - STEP / 2, north = lat + STEP / 2;
+  const wet: boolean[] = [];
+  let dry = 0;
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c < n; c++) {
+      const isWet = cellAt(land, w + (c + 0.5) * d, north - (r + 0.5) * d) !== 1;
+      wet.push(isWet);
+      if (!isWet) dry++;
+    }
+  if (!dry) return square;
+  // Runs of water along each row, then stacked rows with the same run joined into one rectangle.
+  const rects: { c0: number; c1: number; r0: number; r1: number }[] = [];
+  let open: typeof rects = [];
+  for (let r = 0; r < n; r++) {
+    const runs: [number, number][] = [];
+    for (let c = 0; c < n; c++) {
+      if (!wet[r * n + c]) continue;
+      if (runs.length && runs[runs.length - 1][1] === c) runs[runs.length - 1][1] = c + 1;
+      else runs.push([c, c + 1]);
+    }
+    const next: typeof rects = [];
+    for (const [c0, c1] of runs) {
+      const above = open.find((o) => o.c0 === c0 && o.c1 === c1);
+      if (above) (above.r1 = r + 1), next.push(above);
+      else {
+        const rect = { c0, c1, r0: r, r1: r + 1 };
+        rects.push(rect);
+        next.push(rect);
+      }
+    }
+    open = next;
+  }
+  const ring = (o: (typeof rects)[number]): [number, number][] => {
+    const x0 = w + o.c0 * d, x1 = w + o.c1 * d, y0 = north - o.r1 * d, y1 = north - o.r0 * d;
+    return [[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]];
+  };
+  return { type: 'MultiPolygon', coordinates: rects.map((o) => [ring(o)]) };
 }
 
 /** Square polygon of a cell for the map. */

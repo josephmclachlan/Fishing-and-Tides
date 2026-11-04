@@ -9,11 +9,13 @@ import { condSlot } from './cond-groups';
 import type { Map } from 'maplibre-gl';
 import { clock } from './astro-hud';
 import { nearest } from './geo';
+import { compassName } from './spot-charts';
 import { panelHeader } from './hud-kit';
 import { t, type Key } from './i18n';
 import { LIMON_HARMONICS } from './data/tides-limon';
-import { localDayStart } from './physics/astro';
-import { outingScore, outlook, ratingFor, stingerGuess, type OutingReason, type OutingScore } from './physics/outing';
+import { localDayStart, sunAltitude } from './physics/astro';
+import type { SquallLevel } from './physics/safety';
+import { suitFor, type SargLevel, outingScore, outlook, ratingFor, stingerGuess, type OutingReason, type OutingScore } from './physics/outing';
 import { SNORKEL_SPOTS } from './data/snorkel-spots';
 import { OUTING_DEPTHS, surgeAt, surgeProfile } from './physics/surge';
 import { tideState } from './physics/tide';
@@ -29,9 +31,18 @@ export interface DiveEnv {
   windAt: (lng: number, lat: number, ms: number) => { ms: number; fromDeg: number } | null;
   /** Visibility, m. */
   visAt: (lng: number, lat: number, ms: number) => number | null;
+  /** Satellite sea temperature, °C, and the sargassum outlook at the nearest beach, for the hour. */
+  waterAt: (lng: number, lat: number, ms: number) => { sstC?: number | null; sarg?: SargLevel | null };
+  /** Surface current: speed m/s and the bearing it flows TOWARD. */
+  currentAt: (lng: number, lat: number, ms: number) => { ms: number; toDeg: number } | null;
+  /** Weather safety and rain for the hour: mean rain, squall flag and a close lightning strike. Empty when no forecast covers it. */
+  wxAt: (lng: number, lat: number, ms: number) => { rainMmH?: number; cloudPct?: number; uv?: number; squall?: SquallLevel; lightning?: boolean };
   /** Chart depth, m (positive down), or undefined on land or before the depth grid loads. */
   depthAt: (lng: number, lat: number) => number | undefined;
 }
+
+/** The water inputs the score takes, leaving out what is unknown. */
+const waterTerms = (w: { sstC?: number | null; sarg?: SargLevel | null }) => ({ ...(typeof w.sstC === 'number' ? { sstC: w.sstC } : {}), ...(w.sarg ? { sarg: w.sarg } : {}) });
 
 type Mode = 'snorkel' | 'dive';
 const MODES: readonly Mode[] = ['snorkel', 'dive'];
@@ -62,6 +73,9 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
       <div class="ro"><span class="lbl">${t('dive.mode')}</span><span class="seg sm" id="dv-mode">${MODES.map((m) => `<button type="button" class="tab" data-mode="${m}">${t(`dive.mode.${m}` as Key)}</button>`).join('')}</span></div>
       ${OUTING_DEPTHS.map((d) => `<div class="ro"><span class="lbl">${t('dive.at', { d })}</span><span class="seg sm" id="dv-${d}">--</span></div>`).join('')}
       <div class="ro"><span class="lbl">${t('dive.water')}</span><span class="seg sm" id="dv-water">--</span></div>
+      <div class="ro"><span class="lbl">${t('dive.current')}</span><span class="seg sm" id="dv-current">--</span></div>
+      <div class="ro"><span class="lbl">${t('dive.sst')}</span><span class="seg sm" id="dv-sst">--</span></div>
+      <div class="ro"><span class="lbl">${t('dive.uv')}</span><span class="seg sm" id="dv-uv">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.score')}</span><span class="seg sm" id="dv-score">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.time')}</span><span class="seg sm" id="dv-time">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.day')}</span><span class="seg sm" id="dv-day">--</span></div>
@@ -97,23 +111,32 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     const water = chart === undefined ? null : chart + tideM(time.validMs());
     $('water').textContent = water === null ? '--' : `${water.toFixed(1)} ${t('unit.m')}`;
     $('water').className = 'seg sm ' + (water === null ? '' : water < 0.5 ? 'red' : water < 1.5 ? '' : 'green');
+    const cur = env.currentAt(c.lng, c.lat, time.validMs());
+    $('current').textContent = cur ? `${cur.ms.toFixed(2)} ${t('unit.ms')} → ${compassName(cur.toDeg)}` : '--';
+    $('current').className = 'seg sm ' + (!cur ? '' : cur.ms >= 0.45 ? 'red' : cur.ms >= 0.15 ? '' : 'green');
+    const sst = env.waterAt(c.lng, c.lat, time.validMs()).sstC;
+    $('sst').textContent = typeof sst === 'number' ? `${sst.toFixed(1)} ${t('unit.degC')} · ${t(`dive.suit.${suitFor(sst)}` as Key)}` : '--';
+    $('sst').className = 'seg sm ' + (typeof sst !== 'number' ? '' : sst >= 26 ? 'green' : sst >= 22 ? '' : 'red');
+    const uv = env.wxAt(c.lng, c.lat, time.validMs()).uv;
+    $('uv').textContent = typeof uv === 'number' ? `${uv.toFixed(0)} · ${uv >= 8 ? t('dive.uv.cover') : uv >= 6 ? t('dive.uv.high') : t('dive.uv.ok')}` : '--';
+    $('uv').className = 'seg sm ' + (typeof uv !== 'number' ? '' : uv >= 8 ? 'red' : uv >= 6 ? '' : 'green');
     heavy();
   };
 
   /** Score for one hour at the reticle's spot; null when the sea or wind forecast has nothing for it. */
-  const scoreAt = (ms: number, localHour: number, vis: number | null, at?: [number, number]): OutingScore | null => {
+  const scoreAt = (ms: number, localHour: number, vis: number | null, at?: [number, number], m: Mode = mode): OutingScore | null => {
     const { c, st } = at ? { c: { lng: at[0], lat: at[1] }, st: spots.byName(nearest(at, SPOTS)!.point.name) } : spotAt();
     const r = st?.result;
     const sea = env.seaAt(st?.pin[0] ?? c.lng, st?.pin[1] ?? c.lat, ms);
     const w = env.windAt(c.lng, c.lat, ms);
     const wind = w ? w.ms : null;
     if (!r || !sea || wind === null) return null;
-    const depth = MODE_DEPTH[mode];
+    const depth = MODE_DEPTH[m];
     const u = surgeAt(sea.hs * r.waves.refraction.K, r.waves.refraction.depth, sea.tp, depth).uMs;
     const chart = env.depthAt(c.lng, c.lat);
     // Open water or unknown depth: use the activity depth so only a real reef flat can read as too shallow.
     const waterM = chart === undefined || chart > depth ? depth : chart + tideM(ms);
-    return outingScore({ surgeMs: u, visM: vis ?? NaN, windMs: wind, waterM, localHour });
+    return outingScore({ surgeMs: u, visM: vis ?? NaN, windMs: wind, waterM, localHour, sunAltDeg: sunAltitude(ms, c.lat, c.lng), currentMs: env.currentAt(c.lng, c.lat, ms)?.ms, ...waterTerms(env.waterAt(c.lng, c.lat, ms)), ...env.wxAt(c.lng, c.lat, ms) });
   };
 
   let heavyKey = '';
@@ -187,5 +210,11 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
   });
   apply();
   // Forecast feeds arrive after the first draw; recheck when they have.
-  return { refresh: () => ((heavyKey = ''), refresh()) };
+  // The verdict chips (verdict-hud.ts, PLAN 7.8) read the score for the slider hour, and set the mode.
+  const now = (m: Mode): OutingScore | null => {
+    const ms = time.validMs();
+    const c = map.getCenter();
+    return scoreAt(ms, (((ms + REGION.tzOffsetH * 3.6e6) % 864e5) + 864e5) % 864e5 / 3.6e6, env.visAt(c.lng, c.lat, ms), undefined, m);
+  };
+  return { refresh: () => ((heavyKey = ''), refresh()), now, mode: () => mode, setMode: (m: Mode) => ((mode = m), apply()) };
 }

@@ -17,14 +17,18 @@ Four curated breaks, drawn as amber rings (names from the coast tier, type and s
 
 Each break is run through the same physics as the spots (refraction over GEBCO, then Komar and Gaughan breaking; `docs/PHYSICS.md`), then scored in `src/surf-quality.ts`:
 
-`Q = 10 × size × period × window × wind` (0 to 10)
+`Q = 10 × size × period × window × clean × wind` (0 to 10)
 
 | Factor | Rule |
 |---|---|
 | Size | Breaker height against the break type's working range: beach 0.4 → 0.8 to 1.8 → 2.8 m (closes out above), reef 0.6 → 1.0 to 2.5 → 3.5 m, point 0.5 → 0.9 to 2.5 → 3.5 m |
 | Period | 0.35 at 6 s rising to 1 at 13 s |
 | Swell window | 1 inside the guides' window (or ±60° of the facing), easing to 0.4 at 30° outside |
-| Wind | Offshore (from the land) keeps faces clean; onshore takes up to 65% off by 8 m/s, cross-shore up to 15%, very strong offshore up to 20% |
+| Clean (7.23) | Wave trains by energy share (Hs² adds): wind-sea over ~15% takes up to 45% off; a second swell more than 30° off the main one carrying 10–50% takes up to 30% off; aligned trains cost nothing. The SURFACE row shows CLEAN, MIXED SEAS or CHOPPY / CROSSED |
+| Tide (7.25) | A soft nudge of at most 12%: the shallow reef (Salsa Brava) wants high water, steep shorebreaks (Playa Cocles) want the middle of the tide, others have no preference. These preferences are generic reasoning (no guide agrees), so treat them as CHECK. The tide here is small, about 0.6 m, so the effect is small. The TIDE FIT row shows where the tide stands |
+| Safety (7.26) | Shared cap (`physics/safety.ts`): a lightning strike within 25 km in the last 15 min x0.1, squall HIGH x0.25, WATCH x0.7. The CAUTION row says STORM, DIRTY WATER or STRONG RIP |
+| Water (7.26) | Heavy rain (3 to 12 mm/h) takes up to 15% (runoff); sargassum at the beach takes 12% (MODERATE) or 20% (HIGH). Rip level is shown as a caution, not scored |
+| Wind (7.23 B) | Gusts over the mean by 3 to 8 m/s take up to 20% off. A WIND +3H row says TURNS ONSHORE or CLEANING UP when the onshore part changes by 3 m/s within 3 hours. Offshore (from the land) keeps faces clean; onshore takes up to 65% off by 8 m/s, cross-shore up to 15%, very strong offshore up to 20% |
 
 Bands: FLAT (breaker under 0.3 m), POOR under 3, FAIR to 5.5, GOOD to 8.5, EPIC above. Rings on the map turn green for GOOD and EPIC, amber for FAIR, red for POOR and dim when FLAT. The spot-tier label and the SURF row show the band, the score and the wind (OFFSHORE, CROSS, ONSHORE or GLASSY).
 

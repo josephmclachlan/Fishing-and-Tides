@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sizeFactor, surfBand, surfQuality, windFactor, windowFactor, type SurfInput } from './surf-quality';
+import { waterFactor, tideFactor, cleanFactor, windTrend, sizeFactor, surfBand, surfQuality, windFactor, windowFactor, type SurfInput } from './surf-quality';
 
 const reef: SurfInput['brk'] = { type: 'reef', facing: 350, swellFrom: [45, 135] };
 const base: SurfInput = { brk: reef, Hb: 1.8, Tp: 13, swellFromDeg: 60, windMs: 3, windFromDeg: 170 };
@@ -48,5 +48,53 @@ describe('surf quality', () => {
 
   it('bands', () => {
     expect([surfBand(2, 1), surfBand(4, 1), surfBand(8, 1), surfBand(9, 1)]).toEqual(['POOR', 'FAIR', 'GOOD', 'EPIC']);
+  });
+
+  it('wind-sea and a crossing second swell take points off; an aligned one does not', () => {
+    const main = { Hs: 1.5, Tp: 12, fromDeg: 60 };
+    expect(cleanFactor(main)).toBe(1);
+    expect(cleanFactor(main, null, 1.5)).toBeLessThan(0.7);
+    expect(cleanFactor(main, { Hs: 1.2, Tp: 8, fromDeg: 150 })).toBeLessThan(0.85);
+    expect(cleanFactor(main, { Hs: 1.2, Tp: 8, fromDeg: 65 })).toBeCloseTo(1, 5);
+    const q = surfQuality({ ...base, swellHs: 1.5, windSeaHs: 1.5 });
+    expect(q.factors.clean).toBeLessThan(0.7);
+    expect(q.score).toBeLessThan(surfQuality(base).score);
+  });
+
+  it('gusts over the mean cost points, calm air ignores them', () => {
+    expect(windFactor(350, 5, 170, 12).f).toBeLessThan(windFactor(350, 5, 170, 6).f);
+    expect(windFactor(350, 1, 170, 12).f).toBe(1);
+  });
+
+  it('wind trend: offshore turning onshore, and onshore easing off', () => {
+    const off = { speedMs: 4, fromDeg: 170 };
+    const on = { speedMs: 7, fromDeg: 350 };
+    expect(windTrend(350, off, on)).toBe('turnsOnshore');
+    expect(windTrend(350, on, off)).toBe('cleaning');
+    expect(windTrend(350, off, off)).toBe('steady');
+    expect(windTrend(350, off, null)).toBe('steady');
+  });
+
+  it('tide is a soft nudge: reefs want high water, beaches the middle, and no preference means no effect', () => {
+    expect(tideFactor('high', 0)).toBeCloseTo(0.88, 5);
+    expect(tideFactor('high', 0.8)).toBe(1);
+    expect(tideFactor('mid', 0.5)).toBe(1);
+    expect(tideFactor('mid', 0)).toBeCloseTo(0.88, 5);
+    expect(tideFactor('mid', 1)).toBeCloseTo(0.88, 5);
+    expect(tideFactor('any', 0)).toBe(1);
+    expect(tideFactor(undefined, 0)).toBe(1);
+    const lo = surfQuality({ ...base, brk: { ...reef, tidePref: 'high' }, tide: { level: 0, rising: true } });
+    expect(lo.tideKind).toBe('low');
+    expect(lo.score).toBeLessThan(surfQuality(base).score);
+  });
+
+  it('storms cap the score; heavy rain and sargassum take points off', () => {
+    const ok = surfQuality(base).score;
+    expect(surfQuality({ ...base, lightning: true }).score).toBeCloseTo(ok * 0.1, 5);
+    expect(surfQuality({ ...base, squall: 'high' }).score).toBeCloseTo(ok * 0.25, 5);
+    expect(waterFactor(0, 'LOW')).toBe(1);
+    expect(waterFactor(12, 'NONE')).toBeCloseTo(0.85, 5);
+    expect(waterFactor(12, 'HIGH')).toBeCloseTo(0.65, 5);
+    expect(surfQuality({ ...base, sarg: 'HIGH' }).score).toBeLessThan(ok);
   });
 });

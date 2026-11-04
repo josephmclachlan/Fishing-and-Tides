@@ -17,7 +17,7 @@ import { mountLightningHud } from './lightning-hud';
 import { mountLightning } from './layers/lightning';
 import { fetchLightning } from './adapters/lightning';
 import { nearestFlash, STRIKE_ALERT_KM, type Flash } from './lightning';
-import { biteWeather, pressureTrend } from './weather';
+import { biteWeather, nearestStorm, pressureTrend, squallLevel, summarise } from './weather';
 import { crestGrid } from './waves-lines';
 import { mountWavesLayer } from './layers/waves';
 import { mountWeatherHud } from './weather-hud';
@@ -25,14 +25,21 @@ import { mountStorms } from './layers/storms';
 import { fetchWeather, weatherAt, type WeatherData } from './adapters/weather';
 import { LIMON_HARMONICS } from './data/tides-limon';
 import { mountWatchPanel } from './watch-panel';
-import { fetchStorms } from './adapters/storms';
-import { mountSeaStateHud } from './sea-state-hud';
+import { mountBoatWindowHud } from './boat-window-hud';
+import { debrisAt } from './boat/debris';
+import { makeReefLookup, shoalAlert, type ReefAt } from './boat/shoal';
+import { REEFISH } from './fishing/cells';
+import { fetchStorms, type Storm } from './adapters/storms';
+import { mountSeaStateHud, type VerdictSafety } from './sea-state-hud';
 import { mountAstroHud } from './astro-hud';
 import { mountHarbours } from './layers/harbours';
 import { mountHarboursHud } from './harbours-hud';
 import type { Grid } from './physics/bathy';
 import { createBoatStore } from './boat/store';
-import { mountBoatPanel, type CatchScorer, type OffshoreRead } from './boat-panel';
+import { createCoralStore } from './coral/store';
+import { mountCoralPanel } from './coral-panel';
+import { mountCoralLogLayer } from './layers/coral-log';
+import { mountBoatPanel, type CatchScorer, type OffshoreRead, type ShoalRead } from './boat-panel';
 import { dictFor, setDict, t } from './i18n';
 import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
@@ -51,6 +58,7 @@ import { mountExplain } from './explain';
 import { mountSystemCheck } from './system-check';
 import { mountLiveObs } from './live-obs';
 import { fetchMetar } from './adapters/metar';
+import { fetchHindcast, scoreWeather } from './adapters/weather-skill';
 import type { MetarObs } from './adapters/metar-parse';
 import { fetchPasses, type PassData } from './adapters/passes';
 import { allChecks } from './verify/registry';
@@ -70,7 +78,7 @@ import { mountFlowHud } from './flow-hud';
 import { isWater, sample } from './physics/bathy';
 import { bandFor, createTimeStore } from './time';
 import { mountTimeSlider } from './time-slider';
-import { KT_PER_MS, sampleField, fromDeg } from './physics/flow';
+import { KT_PER_MS, sampleField, fromDeg, type VectorField } from './physics/flow';
 import { MOCK_FLOW, PLUME_RIVERS, REGION, SPOTS } from './region';
 import { fetchWind, windAt, type WindData } from './adapters/wind';
 import { currentsAt, fetchCurrents, type CurrentsData } from './adapters/currents';
@@ -83,7 +91,8 @@ import { sargassumSeeds } from './adapters/sargassum';
 import { fetchMld, mldAt, type MldData } from './adapters/mld';
 import { effortCells, fetchEffort } from './adapters/effort';
 import { mountEffort } from './layers/effort';
-import { mountSst } from './layers/sst';
+import { mountSst, type SstCoast } from './layers/sst';
+import { coastTest, type CoastTest } from './layers/sea-image';
 import { clarityAt, mountClarity, mountClarityHud, type ClarityContext } from './layers/clarity';
 import { fetchCatchmentRain, type CatchmentRain } from './adapters/catchment-rain';
 import { fetchRiverFlow, flowRatio, type RiverFlow } from './adapters/river-flow';
@@ -91,6 +100,11 @@ import { dataAge, describeAge } from './adapters/data-age';
 import { createNet } from './net';
 import { createPhysicsClient } from './physics/client';
 import { nearest } from './geo';
+import { mountVerdictHud } from './verdict-hud';
+import type { VerdictInputs } from './verdict';
+import { heavyRainSoon, STORM_ALERT_KM } from './weather';
+import { seaState as seaComfort } from './physics/sea-state';
+import { feedPartitions } from './sea-state-hud';
 import { createSpotPhysics, type SpotPhysics } from './spot-physics';
 import { mountRip, ripSites } from './layers/rip';
 import { SURF_BREAKS } from './data/surf-breaks';
@@ -132,6 +146,23 @@ const flowSources: { wind: FlowSource; current: FlowSource } = {
 const windAtRef: [number, number] = [0, 0];
 // Rip risk at the spot nearest the map centre, from the physics worker (PLAN 3.6, 4.2) once the seafloor loads.
 let spotPhysics: SpotPhysics | null = null;
+/** Gusts (weather feed, model mean) now and the wind three hours on, for the surf score (PLAN 7.23 B). */
+const windExtras = (ms: number, pin: [number, number], name: string) => {
+  const g = weatherData ? weatherAt(weatherData, ms).map((w) => w.gustKt).filter(Number.isFinite) : [];
+  const f = wind ? windAt(wind, time.band(), ms + 3 * 3.6e6)?.field : null;
+  const v: [number, number] = [0, 0];
+  const ahead = f && sampleField(f, ...MOCK_FLOW.windRef, v) ? { speedMs: Math.hypot(...v), fromDeg: fromDeg(...v) } : null;
+  const near = Math.abs(ms - Date.now()) < 3.6e6 && nearestFlash(flashes, pin[0], pin[1], Date.now());
+  const wx = weatherData ? biteWeather(weatherAt(weatherData, ms)) : {};
+  return {
+    gustMs: g.length ? g.reduce((a, b) => a + b, 0) / g.length / KT_PER_MS : null,
+    ahead,
+    lightning: !!near && near.km <= STRIKE_ALERT_KM,
+    squall: wx.squall,
+    rainMmH: wx.rainMmH ?? null,
+    sarg: sargForecast ? beachDay(sargForecast, name, ms)?.level ?? null : null,
+  };
+};
 const conditionsAt = () => {
   const c = baseConditions();
   const centre = map.getCenter();
@@ -161,16 +192,22 @@ const baseConditions = () => {
 };
 // Satellite SST and ocean colour (PLAN 2.4): HUD sea temperature and the WATER TEMP isotherms.
 let satellite: SatelliteData | null = null;
+let sstLayer: ReturnType<typeof mountSst> | null = null;
+let sstCoast: SstCoast | null = null;
+/** Where the sea is (the coastline mask, then the 1′ depth grid), once the seafloor data loads: sea-only overlays cut at it. */
+let seaCoast: CoastTest | null = null;
+const seaFronts = () => (waterMask ? fronts.filter((c) => waterMask!(c.lng, c.lat)) : fronts);
 const frontsLayer = mountFronts(map);
 let fronts: FrontCell[] = [];
 fetchSatellite()
   .then((d) => {
     if (!d.sst && !d.sstCoast) return console.warn('sst: nothing published; using mock');
     satellite = d;
-    mountSst(map, d);
+    // Cut at the coastline if its mask is already here; otherwise the seafloor load re-cuts them.
+    sstLayer = mountSst(map, d, sstCoast ?? undefined);
     // Fronts (PLAN 7.17): from the newest SST and chlorophyll maps.
     fronts = satelliteFronts(d);
-    frontsLayer.setFronts(fronts);
+    frontsLayer.setFronts(seaFronts());
     refreshClarity();
   })
   .catch((err) => console.warn('satellite unavailable', err));
@@ -178,7 +215,7 @@ fetchSatellite()
 let mld: MldData | null = null;
 fetchMld().then((d) => (mld = d.series ? d : null)).catch((err) => console.warn('mld unavailable', err));
 // FISHING BOATS (PLAN 7.19): a year of Global Fishing Watch effort; published only once the GFW_TOKEN secret is set.
-const effortLayer = mountEffort(map);
+const effortLayer = mountEffort(map, () => seaCoast);
 fetchEffort().then((d) => d.series && effortLayer.setCells(effortCells(d.series), d.series.meta.grid.dlon)).catch((err) => console.warn('effort unavailable', err));
 // Real waves once loaded (forecast to day 16, then climatology); the mock swell until then.
 let waves: WavesData | null = null;
@@ -233,7 +270,9 @@ mountSheets(hud, map, sheets);
 // Surf break catalog (PLAN 6.4): markers and BREAK rows.
 const surfBreaks = mountSurfBreaks(map);
 const surfHud = mountSurfHud(hud, map, (name) => spotPhysics?.byName(name)?.surf);
-mountSeaStateHud(hud, conditionsAt, seaHere);
+// BOAT verdict inputs besides wind and sea (PLAN 7.23); filled in once weather, storms and lightning are declared below.
+let boatSafety: () => VerdictSafety = () => ({});
+mountSeaStateHud(hud, conditionsAt, seaHere, { vessel: settings.vessel, safety: () => boatSafety(), current: () => { const c = map.getCenter(); return currentVecAt(c.lng, c.lat, time.validMs()); } });
 // Weather and active tropical storms (PLAN 7.3, 7.5): live feeds, rows stay -- until they load.
 weatherHud = mountWeatherHud(hud, { validMs: () => time.validMs() });
 time.subscribe(() => weatherHud?.refresh());
@@ -251,13 +290,29 @@ const loadLightning = () =>
       flashesAt = d.fetchedAt;
       lightningLayer.setFlashes(d.flashes);
       lightningHud?.setFlashes(d.flashes, d.fetchedAt);
+      diveHud?.refresh();
     })
     .catch((err) => (console.warn('lightning unavailable', err), lightningHud?.setFailed()));
 loadLightning();
 setInterval(loadLightning, 5 * 60000);
 let weatherData: WeatherData | null = null;
-fetchWeather().then((d) => ((weatherData = d), weatherHud?.setWeather(d))).catch((err) => console.warn('weather unavailable', err));
-fetchStorms().then((d) => (stormLayer.setStorms(d.storms), weatherHud?.setStorms(d.storms))).catch((err) => console.warn('storms unavailable', err));
+const weatherLoad = fetchWeather();
+weatherLoad.then((d) => ((weatherData = d), weatherHud?.setWeather(d), diveHud?.refresh())).catch((err) => console.warn('weather unavailable', err));
+let stormList: readonly Storm[] = [];
+boatSafety = () => {
+  const c = map.getCenter();
+  const w = weatherData ? summarise(weatherData, time.validMs()) : null;
+  const near = nearestFlash(flashes, c.lng, c.lat, Date.now());
+  return {
+    gustKt: w && Number.isFinite(w.gustKt) ? w.gustKt : undefined,
+    squall: w ? squallLevel(w) : undefined,
+    lightning: !!near && near.km <= STRIKE_ALERT_KM,
+    stormKm: nearestStorm(stormList)?.km ?? null,
+    rainMmH: w && Number.isFinite(w.rainMmH) ? w.rainMmH : undefined,
+    debris: riverFlow ? debrisAt(riverFlow, c.lng, c.lat, time.validMs())?.level : undefined,
+  };
+};
+fetchStorms().then((d) => ((stormList = d.storms), stormLayer.setStorms(d.storms), weatherHud?.setStorms(d.storms))).catch((err) => console.warn('storms unavailable', err));
 mountAstroHud(hud, map, time);
 mountHarbours(map);
 let landGrid: Grid | null = null;
@@ -307,7 +362,12 @@ const offshoreRead: OffshoreRead = (lng, lat) => {
   const scores = OFFSHORE.map((s) => ({ id: s.id, score: offshoreScore(s, inputs) ?? 0 })).sort((a, b) => b.score - a.score);
   return { front: front && { km: front.km, bearingDeg: front.bearingDeg, kind: front.front.kind }, mldM: inputs.mldM, scores };
 };
-mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch, () => (offshoreDepth ? offshoreRead : null));
+let reefLookup: ReefAt | null = null;
+const shoalRead: ShoalRead = (lng, lat) => (depthAt ? shoalAlert((x, y) => depthAt?.(x, y), reefLookup, lng, lat, settings.vessel()) : null);
+mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch, () => (offshoreDepth ? offshoreRead : null), () => shoalRead, () => ({ env: metricEnv(), vessel: settings.vessel(), validMs: time.validMs() }));
+const coralStore = createCoralStore(safeStorage());
+mountCoralPanel(hud, map, coralStore, sheets, () => depthAt);
+mountCoralLogLayer(map, coralStore);
 // WATCH (PLAN 7.13): the metric tracker reads the same wind, wave, weather and tide data as the HUD, at any hour of the next days.
 const watchSea = new globalThis.Map<string, [number, number] | null>();
 const hourWind = new globalThis.Map<number, ReturnType<typeof windAt>>();
@@ -326,29 +386,60 @@ const windMsAt = (lng: number, lat: number, ms: number): number | null => {
   const v = windVecAt(lng, lat, ms);
   return v ? Math.hypot(...v) : null;
 };
+const hourCurr = new globalThis.Map<number, VectorField | null>();
+let hourCurrFor: CurrentsData | null = null;
+/** Forecast surface current vector, m/s, at any place and hour (one field per hour, cached). */
+const currentVecAt = (lng: number, lat: number, ms: number): [number, number] | null => {
+  if (!currents) return null;
+  if (hourCurrFor !== currents) (hourCurr.clear(), (hourCurrFor = currents));
+  const h = Math.floor(ms / 3.6e6);
+  if (!hourCurr.has(h)) hourCurr.set(h, currentsAt(currents, bandAt(ms), ms)?.field ?? null);
+  const f = hourCurr.get(h);
+  const out: [number, number] = [0, 0];
+  return f && sampleField(f, lng, lat, out) ? out : null;
+};
+/** The nearest water point within ~1.8 km of a shore pin (cached per spot): clarity and sea temperature are sea values. */
+const watchWater = (lng: number, lat: number, c: ClarityContext): [number, number] | null => {
+  const key = `${lng},${lat}`;
+  let at = watchSea.get(key);
+  if (at === undefined) {
+    at = null;
+    search: for (const r of [0.004, 0.008, 0.016])
+      for (let k = 0; k < 8; k++) {
+        const p: [number, number] = [lng + r * Math.cos((k * Math.PI) / 4), lat + r * Math.sin((k * Math.PI) / 4)];
+        if (clarityAt(c, p[0], p[1])) {
+          at = p;
+          break search;
+        }
+      }
+    watchSea.set(key, at);
+  }
+  return at;
+};
 const metricEnv = (): MetricEnv => ({
   windMs: windMsAt,
+  windDirDeg: (lng, lat, ms) => {
+    const v = windVecAt(lng, lat, ms);
+    return v ? fromDeg(...v) : null;
+  },
+  currentVec: currentVecAt,
+  currentMs: (lng, lat, ms) => {
+    const v = currentVecAt(lng, lat, ms);
+    return v ? Math.hypot(...v) : null;
+  },
   sea: (lng, lat, ms) => (waves ? wavesAt(waves, bandAt(ms), ms, lng, lat) : null),
   weather: (ms) => (weatherData ? weatherAt(weatherData, ms) : []),
+  weatherSkill: () => weatherData?.skill,
   // Clarity is a sea value and the spot pins sit on the shore: read it at the nearest water within ~1.8 km (cached per spot).
   clarityM: (lng, lat, ms) => {
     const c = clarityCtx();
-    if (!c) return null;
-    const key = `${lng},${lat}`;
-    let at = watchSea.get(key);
-    if (at === undefined) {
-      at = null;
-      search: for (const r of [0.004, 0.008, 0.016])
-        for (let k = 0; k < 8; k++) {
-          const p: [number, number] = [lng + r * Math.cos((k * Math.PI) / 4), lat + r * Math.sin((k * Math.PI) / 4)];
-          if (clarityAt(c, p[0], p[1])) {
-            at = p;
-            break search;
-          }
-        }
-      watchSea.set(key, at);
-    }
+    const at = c && watchWater(lng, lat, c);
     return at ? clarityAt({ ...c, ms }, at[0], at[1])?.visM ?? null : null;
+  },
+  sstC: (lng, lat, ms) => {
+    const c = clarityCtx();
+    const at = c && satellite && watchWater(lng, lat, c);
+    return at && satellite ? sstAt(satellite, at[0], at[1], ms)?.value ?? null : null;
   },
   sargassumKm2: (spot, ms) => (sargForecast ? beachDay(sargForecast, spot, ms)?.km2 ?? null : null),
   tide: LIMON_HARMONICS,
@@ -361,9 +452,12 @@ mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeSto
 let metarObs: MetarObs[] = [];
 let passes: PassData | null = null;
 const liveObs = mountLiveObs(hud, map, sheets, () => ({ gauge, metar: metarObs, passes }));
-fetchMetar()
-  .then((d) => ((metarObs = d.obs), liveObs.refresh()))
-  .catch((err) => console.warn('metar unavailable', err));
+const metarLoad = fetchMetar();
+metarLoad.then((d) => ((metarObs = d.obs), liveObs.refresh())).catch((err) => console.warn('metar unavailable', err));
+// Ensemble blend (PLAN 7.4): score the weather models against the airport, then re-show the weather blended by that skill.
+Promise.all([weatherLoad, metarLoad, fetchHindcast()])
+  .then(([w, m, h]) => ((weatherData = { ...w, skill: scoreWeather(h, m.obs, Date.now()) }), weatherHud?.setWeather(weatherData), diveHud?.refresh()))
+  .catch((err) => console.warn('weather scoring unavailable, equal model weights', err));
 fetchPasses()
   .then((d) => ((passes = d), liveObs.refresh()))
   .catch((err) => console.warn('satellite passes unavailable', err));
@@ -401,12 +495,13 @@ const flowHud = mountFlowHud(hud, map, () => flowSources.current);
 // (or the hour asked for: the VIS DAYS row). Needs the depth grid, so it starts once that loads.
 let catchmentRain: CatchmentRain | null = null;
 let clarityElevation: Grid | null = null;
+let clarityLand: Grid | null = null;
 const clarityLayer = mountClarity(map);
 const bandAt = (ms: number) => bandFor((ms - time.baseMs()) / 3.6e6).id;
 const currentOut: [number, number] = [0, 0];
 const clarityCtx = (): ClarityContext | null =>
   clarityElevation && {
-    satellite, rain: catchmentRain, elevation: clarityElevation, ms: time.validMs(),
+    satellite, rain: catchmentRain, elevation: clarityElevation, land: clarityLand, ms: time.validMs(),
     currentAt: (lng, lat, ms) => {
       const f = currents && currentsAt(currents, bandAt(ms), ms)?.field;
       return f && sampleField(f, lng, lat, currentOut) ? [currentOut[0], currentOut[1]] : null;
@@ -419,7 +514,7 @@ const clarityCtx = (): ClarityContext | null =>
     },
   };
 const clarityHud = mountClarityHud(hud, map, clarityCtx);
-let diveHud: { refresh: () => void } | null = null;
+let diveHud: NonNullable<ReturnType<typeof mountDiveHud>> | null = null;
 const diveWind: [number, number] = [0, 0];
 const refreshClarity = () => {
   const c = clarityCtx();
@@ -433,6 +528,8 @@ let riverFlow: RiverFlow | null = null;
 fetchRiverFlow()
   .then((d) => (riverFlow = d))
   .catch((err) => console.warn('river flow unavailable', err));
+// BOAT daylight, pressure, next GO window and flood debris (PLAN 7.23 items 4, 5).
+mountBoatWindowHud(hud, map, { env: metricEnv, vessel: settings.vessel, validMs: () => time.validMs(), riverFlow: () => riverFlow });
 fetchCatchmentRain()
   .then((d) => ((catchmentRain = d), refreshClarity()))
   .catch((err) => console.warn('catchment rain unavailable', err));
@@ -441,7 +538,7 @@ fetchCatchmentRain()
 // 5-day landing outlook per beach. Needs the detections, the current forecast and the coastline; rerun as each loads.
 let sargassum: SargassumData | null = null;
 let sargForecast: SargForecast | null = null;
-const sargLayer = mountSargassum(map);
+const sargLayer = mountSargassum(map, () => seaCoast);
 const sargHud = mountSargassumHud(hud, map, () => ({ f: sargForecast, ms: time.validMs() }));
 const showSargassum = () => {
   if (sargForecast) sargLayer.update(sargForecast, time.validMs());
@@ -451,6 +548,7 @@ const runSargassum = () => {
   if (!sargassum?.series || !currents?.forecast || !waterMask) return;
   sargForecast = sargassumForecast({ data: sargassum, currents, wind, isWater: waterMask, now: Date.now() });
   showSargassum();
+  diveHud?.refresh();
 };
 time.subscribe(showSargassum);
 fetchSargassum()
@@ -485,6 +583,7 @@ const loadWind = () => {
     if (!d.forecast) return console.warn('currents: no forecast published; using mock');
     currents = d;
     runSargassum();
+    diveHud?.refresh();
     flowSources.current = { ...flowSources.current, field: currentField() };
     flow?.setSource('current', flowSources.current);
     flowHud?.refresh();
@@ -571,7 +670,15 @@ const spotSea = (pin: [number, number]) => {
   const w = seaStateAt(...pin);
   if (!w || !Number.isFinite(w.tm)) return null;
   const swellLeads = Number.isFinite(w.swellHs) && Number.isFinite(w.swellT) && w.swellHs >= (Number.isFinite(w.windSeaHs) ? w.windSeaHs : 0);
-  return { Hs: w.hs, Tp: swellLeads ? w.swellT : w.tm, fromDeg: swellLeads ? w.swellDir : w.dir };
+  const part = (hs: number, T: number, dir: number) => (Number.isFinite(hs) && Number.isFinite(T) && Number.isFinite(dir) && hs >= 0.1 ? { Hs: hs, Tp: T, fromDeg: dir } : null);
+  return {
+    Hs: w.hs,
+    Tp: swellLeads ? w.swellT : w.tm,
+    fromDeg: swellLeads ? w.swellDir : w.dir,
+    swellHs: swellLeads ? w.swellHs : w.hs,
+    swell2: part(w.swell2Hs, w.swell2T, w.swell2Dir),
+    windSeaHs: Number.isFinite(w.windSeaHs) ? w.windSeaHs : null,
+  };
 };
 let physicsQueued = false;
 const queueSpotPhysics = () => {
@@ -592,8 +699,10 @@ fetchSeafloor()
     landGrid = data.land;
     harboursHud?.refresh();
     clarityElevation = data.region;
+    clarityLand = data.land;
     refreshClarity();
-    spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land }), baseConditions, () => time.validMs(), spotSea);
+    spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land }), baseConditions, () => time.validMs(), windExtras, spotSea);
+    spotPhysics.subscribe(() => queueVerdict());
     spotPhysics.subscribe(() => {
       ripLayer.update(spotPhysics!.all(), data.land);
       surfBreaks.update((name) => spotPhysics!.byName(name)?.surf);
@@ -612,13 +721,35 @@ fetchSeafloor()
         const f = wind && windAt(wind, bandAt(ms), ms)?.field;
         return f && sampleField(f, lng, lat, diveWind) ? { ms: Math.hypot(...diveWind), fromDeg: fromDeg(...diveWind) } : null;
       },
+      // Sea temperature and the sargassum outlook at the nearest beach (same reads as fishing).
+      waterAt: (lng, lat, ms) => {
+        const beach = sargForecast ? nearest([lng, lat], SPOTS) : null;
+        return {
+          sstC: satellite ? (sstAt(satellite, lng, lat, ms)?.value ?? null) : null,
+          sarg: sargForecast && beach && beach.distanceM <= BEACH_RADIUS_M ? (beachDay(sargForecast, beach.point.name, ms)?.level ?? null) : null,
+        };
+      },
+      currentAt: (lng, lat, ms) => {
+        const f = currents && currentsAt(currents, bandAt(ms), ms)?.field;
+        if (!f || !sampleField(f, lng, lat, currentOut)) return null;
+        return { ms: Math.hypot(currentOut[0], currentOut[1]), toDeg: (fromDeg(currentOut[0], currentOut[1]) + 180) % 360 };
+      },
       visAt: (lng, lat, ms) => {
         const c = clarityCtx();
         return c ? (clarityAt({ ...c, ms }, lng, lat)?.visM ?? null) : null;
       },
+      // Rain, squall and live lightning for the hour, the same cap fishing uses (physics/safety.ts).
+      wxAt: (lng, lat, ms) => {
+        const near = Math.abs(ms - Date.now()) < 3.6e6 && nearestFlash(flashes, lng, lat, Date.now());
+        const now = weatherData ? weatherAt(weatherData, ms) : [];
+        const w = biteWeather(now, weatherData?.skill);
+        const uvs = now.map((x) => x.uv).filter((x) => Number.isFinite(x));
+        return { rainMmH: w.rainMmH, cloudPct: w.cloudPct, uv: uvs.length ? uvs.reduce((a, b) => a + b, 0) / uvs.length : undefined, squall: w.squall, lightning: !!near && near.km <= STRIKE_ALERT_KM };
+      },
       depthAt: (lng, lat) => depthAt?.(lng, lat),
     }) ?? null;
     spotPhysics.update();
+    reefLookup = makeReefLookup(data.reefs, REEFISH);
     depthAt = (lng, lat) => {
       const z = sample(data.region, lng, lat);
       return Number.isFinite(z) && z < 0 ? -z : undefined;
@@ -654,7 +785,7 @@ fetchSeafloor()
             return {
               windMs: windMsAt(lng, lat, ms),
               hsM: (waves && wavesAt(waves, bandAt(ms), ms, lng, lat)?.hs) ?? null,
-              ...(weatherData ? biteWeather(weatherAt(weatherData, ms)) : {}),
+              ...(weatherData ? biteWeather(weatherAt(weatherData, ms), weatherData.skill) : {}),
               lightning: !!near && near.km <= STRIKE_ALERT_KM,
               pressureTrend: weatherData ? pressureTrend(weatherData, ms) : null,
               surgeM: surgeNear(ms),
@@ -682,10 +813,15 @@ fetchSeafloor()
         boatStore.subscribe(() => (layer.setCatches(pins()), fishHud?.refresh()));
       })
       .catch((err) => console.warn('fishing layer unavailable', err));
-    // Currents stay in the sea once the coastline mask is here.
+    // Currents, wave crests and isotherms stay in the sea once the coastline mask is here.
     waterMask = (lng, lat) => isWater(data.land, data.macro, lng, lat);
     runSargassum();
     rebuildCrests();
+    seaCoast = coastTest(data.land, data.macro);
+    sstCoast = { water: waterMask, coast: seaCoast };
+    sstLayer?.setCoast(sstCoast);
+    frontsLayer.setFronts(seaFronts());
+    effortLayer.refresh();
     const current = { ...flowSources.current, water: waterMask };
     flowSources.current = current;
     flow?.setSource('current', current);
@@ -693,3 +829,46 @@ fetchSeafloor()
     return mountSeafloor(map, data);
   })
   .catch((err) => console.warn('seafloor layer unavailable', err));
+
+// GO / NO-GO per activity (PLAN 7.8): the inputs at the cross-hair for the slider's hour, judged in verdict.ts.
+// Where a panel already judges something (the dive score, the BITE number, the boat verdict) it is read, not redone.
+const verdictInputs = (): VerdictInputs => {
+  const c = map.getCenter();
+  const ms = time.validMs();
+  const now = Date.now();
+  const cond = conditionsAt();
+  const parts = feedPartitions(seaHere());
+  const brk = spotPhysics?.byName(nearest([c.lng, c.lat], SURF_BREAKS)!.point.name);
+  const wx = weatherData ? biteWeather(weatherAt(weatherData, ms)) : null;
+  const storm = nearestStorm(stormList);
+  const flash = flashes.length ? nearestFlash(flashes, c.lng, c.lat, now) : null;
+  const biteNum = parseInt(hud.querySelector('#fish-bite')?.textContent ?? '', 10);
+  return {
+    lightningKm: flash && flash.km <= STRIKE_ALERT_KM ? flash.km : null,
+    squall: wx?.squall ?? null,
+    heavyRain: weatherData ? heavyRainSoon(weatherData, ms) : null,
+    stormKm: storm && storm.km <= STORM_ALERT_KM ? storm.km : null,
+    windKt: cond.windKt,
+    hsM: seaHere()?.hs ?? cond.swellHeightM,
+    comfort: parts ? seaComfort(parts).comfort : null,
+    bite: Number.isFinite(biteNum) ? biteNum : null,
+    rip: cond.ripRisk,
+    surf: brk?.surf?.band ?? null,
+    breakerM: brk?.result?.waves.breaker.Hb ?? null,
+    outing: { snorkel: diveHud?.now('snorkel') ?? null, dive: diveHud?.now('dive') ?? null },
+    band: time.band(),
+    leadH: (ms - now) / 3.6e6,
+  };
+};
+const verdictHud = mountVerdictHud(hud, verdictInputs, condGroups, () => diveHud);
+let vdQueued = false;
+/** Re-judge once per frame at most: on the slider, a map move, new spot physics (subscribed where it is built) and every 30 s. */
+function queueVerdict() {
+  if (vdQueued || !verdictHud) return;
+  vdQueued = true;
+  requestAnimationFrame(() => ((vdQueued = false), verdictHud.refresh()));
+}
+time.subscribe(queueVerdict);
+map.on('moveend', queueVerdict);
+setInterval(queueVerdict, 30_000);
+queueVerdict();

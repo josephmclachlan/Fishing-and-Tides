@@ -33,10 +33,10 @@ describe('sstImage', () => {
   it('colours sea cells, leaves land clear and puts the corners half a cell out', () => {
     const img = sstImage(series([28, NaN, 30, 26], 2, 2), { green: [0, 255, 0], amber: [255, 176, 0], red: [255, 0, 0] });
     expect([img.width, img.height]).toEqual([2, 2]);
-    expect([...img.px.slice(0, 3)]).toEqual([255, 176, 0]);
-    expect(img.px[7]).toBe(0);
-    expect([...img.px.slice(8, 11)]).toEqual([255, 0, 0]);
-    expect([...img.px.slice(12, 15)]).toEqual([0, 255, 0]);
+    expect([...img.data.slice(0, 3)]).toEqual([255, 176, 0]);
+    expect(img.data[7]).toBe(0);
+    expect([...img.data.slice(8, 11)]).toEqual([255, 0, 0]);
+    expect([...img.data.slice(12, 15)]).toEqual([0, 255, 0]);
     expect(img.coordinates[0][0]).toBeCloseTo(-83.005);
     expect(img.coordinates[0][1]).toBeCloseTo(10.005);
     expect(img.coordinates[2][0]).toBeCloseTo(-82.985);
@@ -45,9 +45,9 @@ describe('sstImage', () => {
   it('leaves cells inside the hole clear', () => {
     const c = { green: [0, 255, 0], amber: [255, 176, 0], red: [255, 0, 0] } as const;
     const img = sstImage(series([28, 28, 28, 28], 2, 2), c, [[-83.005, 10.005], [-82.995, 10.005], [-82.995, 9.995], [-83.005, 9.995]]);
-    expect(img.px[3]).toBe(0);
-    expect(img.px[7]).toBeGreaterThan(0);
-    expect(img.px[15]).toBeGreaterThan(0);
+    expect(img.data[3]).toBe(0);
+    expect(img.data[7]).toBeGreaterThan(0);
+    expect(img.data[15]).toBeGreaterThan(0);
   });
 });
 

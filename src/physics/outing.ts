@@ -10,9 +10,24 @@
  *   vis     0 at 1 m, 1 at 10 m (linear)
  *   chop    1 at 4 m/s wind, 0 at 10 m/s (a snorkeller loses the bottom in whitecaps)
  *   depth   0 below 0.5 m of water over the reef (you touch coral), 1 from 1.5 m
- *   light   0 at 07:00, 1 from 09:00 until 15:00, 0 at 17:00 (local clock; no sun model needed here)
+ *   light   from the sun's real height when given (sunAltDeg): 0 at 5° and below, 1 from 30° up (about 08:00 to 16:00 here),
+ *           times (1 − 0.3 × cloud share), because overcast dulls the colour and the bottom; without it a fixed clock:
+ *           0 at 07:00, 1 from 09:00 until 15:00, 0 at 17:00
+ *   current 1 up to 0.15 m/s, 0 at 0.60 m/s (a snorkeller swims about 0.5 m/s and cannot make headway, so the
+ *           drift sweeps you off the reef; optional, left out when unknown; surface current forecast, tide streams not included)
+ *   cold    1 from 26 °C, 0.4 at 20 °C and below (needs a suit, you tire and cut the outing short; this coast is 27 to 30 °C
+ *           most of the year, so it rarely bites; optional)
+ *   sargassum  1 for NONE or LOW at the nearest beach, 0.6 MODERATE, 0.3 HIGH (mats foul the entry and hide the bottom; optional)
+ *   rain    1 up to 2 mm/h, 0.3 at 10 mm/h and above (optional input; left out when unknown)
+ *
+ * Weather safety caps the whole score afterwards: score × safetyTerm (physics/safety.ts, shared with fishing).
+ * Lightning within 25 km leaves at most 10, a squall HIGH 25%, a squall WATCH 70%.
  */
-export type OutingReason = 'surge' | 'vis' | 'chop' | 'shallow' | 'light';
+import { safetyTerm, type SquallLevel } from './safety';
+
+export type SargLevel = 'NONE' | 'LOW' | 'MODERATE' | 'HIGH';
+
+export type OutingReason = 'storm' | 'surge' | 'vis' | 'chop' | 'shallow' | 'light' | 'rain' | 'current' | 'cold' | 'sargassum';
 
 export interface OutingInputs {
   /** Peak bed velocity at the activity's depth, m/s. */
@@ -23,8 +38,24 @@ export interface OutingInputs {
   windMs: number;
   /** Water over the reef at the activity's spot: chart depth plus tide, m. */
   waterM: number;
-  /** Local hour of day, 0..24. */
+  /** Local hour of day, 0..24. Used for the light term only when `sunAltDeg` is not given. */
   localHour: number;
+  /** Sun height above the horizon, degrees (physics/astro.ts sunAltitude). */
+  sunAltDeg?: number;
+  /** Cloud cover, percent (mean over the models). */
+  cloudPct?: number;
+  /** Surface current speed, m/s. Left out when no forecast covers the spot. */
+  currentMs?: number;
+  /** Sea surface temperature, °C. Left out when unknown. */
+  sstC?: number;
+  /** Sargassum outlook at the nearest beach for the day. Left out when unknown. */
+  sarg?: SargLevel;
+  /** Rain, mm/h (mean over the models). Left out when no forecast covers the hour. */
+  rainMmH?: number;
+  /** Squall flag for the hour (weather.ts squallLevel). */
+  squall?: SquallLevel;
+  /** A lightning strike within the alert distance in the last 15 min. */
+  lightning?: boolean;
 }
 
 export interface OutingScore {
@@ -40,19 +71,32 @@ export function lightTerm(h: number): number {
   return Math.min(ramp(h, 7, 9), 1 - ramp(h, 15, 17));
 }
 
+/** Light term from the sun's height and the cloud, or from the clock when no sun height is given. */
+function sunLight(i: Pick<OutingInputs, 'localHour' | 'sunAltDeg' | 'cloudPct'>): number {
+  if (i.sunAltDeg === undefined || !Number.isFinite(i.sunAltDeg)) return lightTerm(i.localHour);
+  const cloud = Number.isFinite(i.cloudPct) ? Math.min(1, Math.max(0, (i.cloudPct as number) / 100)) : 0;
+  return ramp(i.sunAltDeg, 5, 30) * (1 - 0.3 * cloud);
+}
+
 export function outingScore(i: OutingInputs): OutingScore {
   const terms: [OutingReason, number][] = [
     ['surge', 1 - ramp(i.surgeMs, 0.1, 0.6)],
     ['vis', ramp(i.visM, 1, 10)],
     ['chop', 1 - ramp(i.windMs, 4, 10)],
     ['shallow', ramp(i.waterM, 0.5, 1.5)],
-    ['light', lightTerm(i.localHour)],
+    ['light', sunLight(i)],
   ].map(([r, v]) => [r, Number.isFinite(v as number) ? (v as number) : 0.5] as [OutingReason, number]);
+  if (i.sstC !== undefined && Number.isFinite(i.sstC)) terms.push(['cold', 1 - 0.6 * ramp(26 - i.sstC, 0, 6)]);
+  if (i.sarg) terms.push(['sargassum', i.sarg === 'HIGH' ? 0.3 : i.sarg === 'MODERATE' ? 0.6 : 1]);
+  if (i.currentMs !== undefined && Number.isFinite(i.currentMs)) terms.push(['current', 1 - ramp(i.currentMs, 0.15, 0.6)]);
+  if (i.rainMmH !== undefined && Number.isFinite(i.rainMmH)) terms.push(['rain', 1 - 0.7 * ramp(i.rainMmH, 2, 10)]);
   const min = Math.min(...terms.map((x) => x[1]));
   const mean = terms.reduce((a, x) => a + x[1], 0) / terms.length;
+  const safety = safetyTerm(i.lightning, i.squall);
+  const reasons = terms.filter((x) => x[1] < 0.6).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
   return {
-    score: Math.round(100 * (0.75 * min + 0.25 * mean)),
-    reasons: terms.filter((x) => x[1] < 0.6).sort((a, b) => a[1] - b[1]).map((x) => x[0]),
+    score: Math.round(100 * (0.75 * min + 0.25 * mean) * safety),
+    reasons: safety < 1 ? ['storm', ...reasons] : reasons,
   };
 }
 
@@ -99,3 +143,7 @@ export function stingerGuess(windMs: number, windFromDeg: number, facingDeg: num
   const d = Math.abs(((windFromDeg - facingDeg + 540) % 360) - 180);
   return d <= 60;
 }
+
+export type Suit = 'lycra' | 'shorty' | 'wet3' | 'wet5';
+/** What most dive shops suggest for the water temperature: 28 °C and up a lycra skin, 25 to 28 a shorty, 21 to 25 a 3 mm suit, colder a 5 mm. A rule of thumb, not a standard. */
+export const suitFor = (sstC: number): Suit => (sstC >= 28 ? 'lycra' : sstC >= 25 ? 'shorty' : sstC >= 21 ? 'wet3' : 'wet5');

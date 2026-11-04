@@ -21,6 +21,10 @@ export function mountSurfHud(root: HTMLElement, map: Map, quality: (name: string
     `<div class="from-coast">
       <div class="ro"><span class="lbl">${t('surf.title')}</span><span class="seg sm green" id="sb-name">--</span></div>
       <div class="ro"><span class="lbl">${t('surf.q')}</span><span class="seg sm" id="sb-q">--</span></div>
+      <div class="ro"><span class="lbl">${t('surf.surface')}</span><span class="seg sm" id="sb-surf">--</span></div>
+      <div class="ro"><span class="lbl">${t('surf.trend')}</span><span class="seg sm" id="sb-trend">--</span></div>
+      <div class="ro"><span class="lbl">${t('surf.tide')}</span><span class="seg sm" id="sb-tide">--</span></div>
+      <div class="ro"><span class="lbl">${t('surf.warn')}</span><span class="seg sm" id="sb-warn">--</span></div>
       <div class="ro"><span class="lbl">${t('surf.type')}</span><span class="seg sm" id="sb-type">--</span></div>
       <div class="ro"><span class="lbl">${t('surf.hazard')}</span><span class="seg sm" id="sb-haz">--</span></div>
       <div class="ro"><button type="button" class="tab" id="sb-info" hidden>${t('rules.source')}</button></div>
@@ -59,6 +63,21 @@ export function mountSurfHud(root: HTMLElement, map: Map, quality: (name: string
     const q = hit ? quality(hit.name) : undefined;
     const qEl = $('sb-q');
     qEl.textContent = q ? `${t(`surf.band.${q.band}` as Key)} ${q.score.toFixed(1)} · ${t(`surf.wind.${q.windKind}` as Key)}` : '--';
+    const cl = q?.factors.clean;
+    const sEl = $('sb-surf');
+    sEl.textContent = cl === undefined ? '--' : t(cl >= 0.9 ? 'surf.clean.ok' : cl >= 0.7 ? 'surf.clean.mixed' : 'surf.clean.messy');
+    const tr = q?.windTrend;
+    $('sb-trend').textContent = !tr || tr === 'steady' ? '--' : t(`surf.trend.${tr}` as Key);
+    $('sb-trend').className = 'seg sm ' + (tr === 'turnsOnshore' ? 'red' : tr === 'cleaning' ? 'green' : '');
+    const tk = q?.tideKind;
+    const rise = q && tk && tk !== 'none';
+    $('sb-tide').textContent = rise ? `${t(`surf.tide.${tk}` as Key)}${hit?.tidePref === 'high' ? ` · ${t('surf.tide.wantsHigh')}` : ` · ${t('surf.tide.wantsMid')}`}` : '--';
+    $('sb-tide').className = 'seg sm ' + (!q || tk === 'none' ? '' : q.factors.tide >= 0.97 ? 'green' : q.factors.tide < 0.92 ? 'red' : '');
+    const sf = q?.factors;
+    const warn = !q ? '' : sf!.safety < 1 ? t('surf.warn.storm') : sf!.water < 0.9 ? t('surf.warn.water') : q.ripLevel === 'HIGH' ? t('surf.warn.rip') : '';
+    $('sb-warn').textContent = warn || '--';
+    $('sb-warn').className = 'seg sm ' + (warn ? 'red' : '');
+    sEl.className = 'seg sm ' + (cl === undefined ? '' : cl >= 0.9 ? 'green' : cl < 0.7 ? 'red' : '');
     qEl.className = 'seg sm ' + (!q ? '' : q.band === 'GOOD' || q.band === 'EPIC' ? 'green' : q.band === 'POOR' ? 'red' : '');
   };
   map.on('move', () => {
