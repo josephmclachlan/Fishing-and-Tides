@@ -1,8 +1,8 @@
 /**
  * Fishing rows in the side panel (PLAN 4.5, extended): the target species (arrows), the REACH
  * highlight (ALL / SHORE / BOAT), the habitat score at the reticle, the BITE score for the slider time
- * (habitat x timing: tide, light, solunar, wind and waves; src/fishing/bite.ts), BEST TIMES for the
- * slider's day as a bar strip with the best windows, and BEST SPOTS nearby with the reasons. The
+ * (habitat x timing: tide, light, solunar, wind, waves, rain, cloud, squalls and lightning;
+ * src/fishing/bite.ts), BEST TIMES for the slider's day from the hourly forecast as a bar strip with the best windows, and BEST SPOTS nearby with the reasons. The
  * species and reach are remembered on the device.
  */
 import { condSlot } from './cond-groups';
@@ -12,7 +12,7 @@ import { REGION } from './region';
 import type { FishingLayer, Reach } from './layers/fishing';
 import type { TimeStore } from './time';
 import { SPECIES, seasonOf, type SpeciesId } from './fishing/species';
-import { bestWindows, bite, type BiteReason } from './fishing/bite';
+import { bestWindows, bite, type BiteReason, type BiteWx } from './fishing/bite';
 import { LIMON_HARMONICS } from './data/tides-limon';
 import { localDayStart } from './physics/astro';
 import { clock } from './astro-hud';
@@ -40,12 +40,17 @@ export function loadReach(): Reach {
   }
 }
 
-/** Wind (m/s) and waves (m) at the reticle for the slider time, when known. */
-export type FishEnv = () => { windMs?: number | null; hsM?: number | null };
+/** The forecast and live hazards at a place and moment (wind, waves, rain, cloud, squall, lightning), as far as they are known. */
+export interface FishEnv {
+  at(lng: number, lat: number, ms: number): BiteWx;
+  /** Changes whenever a feed behind `at` loads or refreshes, so the day's strip is rebuilt. */
+  version(): string;
+}
+const NO_ENV: FishEnv = { at: () => ({}), version: () => '' };
 
 const why = (rs: readonly BiteReason[]) => rs.map((r) => t(`bite.r.${r}` as Key)).join(' · ');
 
-export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer, time: TimeStore, initial: SpeciesId, env: FishEnv = () => ({})) {
+export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer, time: TimeStore, initial: SpeciesId, env: FishEnv = NO_ENV) {
   const side = condSlot(root, 'fishing', 10);
   if (!side) return;
   side.insertAdjacentHTML(
@@ -84,18 +89,24 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     $('fish-score').textContent = score === null ? `-- ${season}` : `${Math.round(score * 100)}% ${season}`;
     $('fish-score').className = 'seg sm ' + (score !== null && score >= 0.5 ? 'green' : '');
 
-    const e = env();
     const base = { lat: c.lat, lng: c.lng, tide: LIMON_HARMONICS, tzOffsetH: REGION.tzOffsetH };
-    const now = bite({ ...base, tMs: time.validMs(), windMs: e.windMs, hsM: e.hsM, habitat: score });
+    const now = bite({ ...base, ...env.at(c.lng, c.lat, time.validMs()), tMs: time.validMs(), habitat: score });
     $('fish-bite').textContent = `${now.bite} ${why(now.reasons)}`.trim();
     $('fish-bite').className = 'seg sm ' + (now.bite >= 60 ? 'green' : '');
 
-    // The day's strip and best windows: timing only (the forecast wind and waves are for the slider hour, not the day).
+    // The day's strip and best windows: timing plus each hour's forecast wind, waves, rain, cloud and squalls.
     const day = localDayStart(time.validMs(), REGION.tzOffsetH);
-    const key = `${day}|${Math.round(c.lat * 10)}|${Math.round(c.lng * 10)}|${score === null ? 'n' : Math.round(score * 10)}`;
+    const key = `${day}|${Math.round(c.lat * 10)}|${Math.round(c.lng * 10)}|${score === null ? 'n' : Math.round(score * 10)}|${env.version()}`;
     if (key !== heavyKey) {
       heavyKey = key;
-      const { series, windows } = bestWindows({ ...base, habitat: score }, day, 3);
+      const hours = new globalThis.Map<number, BiteWx>();
+      const wxAt = (ms: number) => {
+        const h = Math.floor(ms / 3.6e6);
+        let w = hours.get(h);
+        if (!w) hours.set(h, (w = env.at(c.lng, c.lat, h * 3.6e6 + 1.8e6)));
+        return w;
+      };
+      const { series, windows } = bestWindows({ ...base, habitat: score }, day, 3, 0.8, wxAt);
       const inWin = (tt: number) => windows.some((w) => tt >= w.start && tt < w.end);
       const top = Math.max(1, ...series.map((s) => s.bite));
       $('fish-strip').innerHTML = series.map((s) => `<i class="${inWin(s.t) ? 'win' : ''}" style="height:${Math.max(6, Math.round((s.bite / top) * 100))}%"></i>`).join('') + '<b class="bite-now"></b>';
@@ -152,5 +163,7 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     $('fish-score').textContent = s === null ? `-- ${t(`season.${seasonOf(SPECIES[i], month())}` as Key)}` : `${Math.round(s * 100)}% ${t(`season.${seasonOf(SPECIES[i], month())}` as Key)}`;
   });
   time.subscribe(() => (layer.setMonth(month()), queue()));
+  // Feeds load after the panel and lightning refreshes every few minutes: pick them up.
+  setInterval(queue, 60_000);
   apply();
 }

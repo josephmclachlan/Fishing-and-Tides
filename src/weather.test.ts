@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseWeather } from './adapters/weather';
-import { heavyRainSoon, nearestStorm, squallLevel, squallSoon, summarise } from './weather';
+import { biteWeather, heavyRainSoon, nearestStorm, squallLevel, squallSoon, summarise } from './weather';
 import { parseStorms } from './adapters/storms-parse';
 
 const T0 = 1_000_000_000;
@@ -65,5 +65,17 @@ describe('weather summary', () => {
     } }, t0);
     expect(squallSoon(w, t0)).toBe('high');
     expect(squallSoon(w, t0 + 6 * 3.6e6)).toBe('none');
+  });
+});
+
+describe('biteWeather', () => {
+  const w = (rainMmH: number, cloudPct: number, capeJkg = 0, gustKt = 0) => ({ model: 'gfs_seamless' as const, rainMmH, cloudPct, uv: 0, tempC: 27, gustKt, capeJkg });
+  it('averages the models and flags squalls', () => {
+    expect(biteWeather([])).toEqual({});
+    const b = biteWeather([w(4, 80), w(8, 100)]);
+    expect(b.rainMmH).toBe(6);
+    expect(b.cloudPct).toBe(90);
+    expect(b.squall).toBe('none');
+    expect(biteWeather([w(6, 100, 3000, 30)]).squall).toBe('high');
   });
 });

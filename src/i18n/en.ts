@@ -427,6 +427,9 @@ export const en = {
   'bite.r.rough': 'ROUGH SEA',
   'bite.r.wind': 'STRONG WIND',
   'bite.r.rain': 'HEAVY RAIN',
+  'bite.r.overcast': 'OVERCAST',
+  'bite.r.squall': 'SQUALL RISK',
+  'bite.r.lightning': 'LIGHTNING NEAR',
 
   // Boat mode (PLAN 4.6)
   'boat.tab': 'BOAT',

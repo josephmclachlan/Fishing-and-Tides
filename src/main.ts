@@ -16,6 +16,8 @@ import { mountSurfHud } from './surf-hud';
 import { mountLightningHud } from './lightning-hud';
 import { mountLightning } from './layers/lightning';
 import { fetchLightning } from './adapters/lightning';
+import { nearestFlash, STRIKE_ALERT_KM, type Flash } from './lightning';
+import { biteWeather } from './weather';
 import { crestGrid } from './waves-lines';
 import { mountWavesLayer } from './layers/waves';
 import { mountWeatherHud } from './weather-hud';
@@ -218,10 +220,14 @@ const stormLayer = mountStorms(map);
 // Lightning (PLAN 7.6): GOES GLM flashes from the collector workflow, refreshed every 5 minutes.
 lightningHud = mountLightningHud(hud, map);
 const lightningLayer = mountLightning(map);
+let flashes: readonly Flash[] = [];
+let flashesAt = 0;
 const loadLightning = () =>
   fetchLightning()
     .then((d) => {
       if (!d) return lightningHud?.setFailed();
+      flashes = d.flashes;
+      flashesAt = d.fetchedAt;
       lightningLayer.setFlashes(d.flashes);
       lightningHud?.setFlashes(d.flashes, d.fetchedAt);
     })
@@ -244,18 +250,20 @@ setInterval(loadGauge, 10 * 60_000);
 mountBoatPanel(hud, map, createBoatStore(safeStorage()), sheets, () => depthAt);
 // WATCH (PLAN 7.13): the metric tracker reads the same wind, wave, weather and tide data as the HUD, at any hour of the next days.
 const watchSea = new globalThis.Map<string, [number, number] | null>();
-const watchWind = new globalThis.Map<number, ReturnType<typeof windAt>>();
-let watchWindFor: WindData | null = null;
+const hourWind = new globalThis.Map<number, ReturnType<typeof windAt>>();
+let hourWindFor: WindData | null = null;
+/** Forecast wind speed, m/s, at any place and hour (one wind frame per hour, cached); shared by WATCH and fishing. */
+const windMsAt = (lng: number, lat: number, ms: number): number | null => {
+  if (!wind) return null;
+  if (hourWindFor !== wind) (hourWind.clear(), (hourWindFor = wind));
+  const h = Math.floor(ms / 3.6e6);
+  if (!hourWind.has(h)) hourWind.set(h, windAt(wind, bandAt(ms), ms));
+  const f = hourWind.get(h);
+  const out: [number, number] = [0, 0];
+  return f && sampleField(f.field, lng, lat, out) ? Math.hypot(...out) : null;
+};
 mountWatchPanel(hud, map, sheets, safeStorage(), () => ({
-  windMs: (lng, lat, ms) => {
-    if (!wind) return null;
-    if (watchWindFor !== wind) (watchWind.clear(), (watchWindFor = wind));
-    const h = Math.floor(ms / 3.6e6);
-    if (!watchWind.has(h)) watchWind.set(h, windAt(wind, bandAt(ms), ms));
-    const f = watchWind.get(h);
-    const out: [number, number] = [0, 0];
-    return f && sampleField(f.field, lng, lat, out) ? Math.hypot(...out) : null;
-  },
+  windMs: windMsAt,
   sea: (lng, lat, ms) => (waves ? wavesAt(waves, bandAt(ms), ms, lng, lat) : null),
   weather: (ms) => (weatherData ? weatherAt(weatherData, ms) : []),
   // Clarity is a sea value and the spot pins sit on the shore: read it at the nearest water within ~1.8 km (cached per spot).
@@ -545,11 +553,18 @@ fetchSeafloor()
         const species = loadSpecies();
         const month = new Date(time.validMs()).getUTCMonth();
         const layer = mountFishing(map, { region: data.region, land: data.land, reefs: data.reefs, mouths, bounds: [REGION.bounds[0][0], REGION.bounds[0][1], REGION.bounds[1][0], REGION.bounds[1][1]] }, { species, month }, occurrences);
-        const windOut: [number, number] = [0, 0];
-        const fishEnv = () => {
-          const c = map.getCenter();
-          const w = sampleField(flowSources.wind.field, c.lng, c.lat, windOut) ? Math.hypot(...windOut) : null;
-          return { windMs: w, hsM: seaStateAt(c.lng, c.lat)?.hs ?? null };
+        // BITE reads the hourly forecast (wind, waves, rain, cloud, squalls) at any hour of the day, and live lightning for the hour around now.
+        const fishEnv = {
+          at: (lng: number, lat: number, ms: number) => {
+            const near = Math.abs(ms - Date.now()) < 3.6e6 && nearestFlash(flashes, lng, lat, Date.now());
+            return {
+              windMs: windMsAt(lng, lat, ms),
+              hsM: (waves && wavesAt(waves, bandAt(ms), ms, lng, lat)?.hs) ?? null,
+              ...(weatherData ? biteWeather(weatherAt(weatherData, ms)) : {}),
+              lightning: !!near && near.km <= STRIKE_ALERT_KM,
+            };
+          },
+          version: () => `${wind ? 1 : 0}${waves ? 1 : 0}${weatherData ? 1 : 0}|${flashesAt}`,
         };
         mountFishingHud(hud, map, layer, time, species, fishEnv);
       })

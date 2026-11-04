@@ -3,7 +3,7 @@
  * the numbers the panel shows: a simple mean across the models that cover the hour, and the spread between
  * them as a rough confidence cue (the weighted blend with local bias correction is PLAN 7.4).
  */
-import { weatherAt, rainAccumMm, WEATHER_MODELS, type WeatherData } from './adapters/weather';
+import { weatherAt, rainAccumMm, WEATHER_MODELS, type WeatherData, type WeatherNow } from './adapters/weather';
 import { stormCategory, type Storm } from './adapters/storms';
 import { REGION } from './region';
 import { haversineM } from './geo';
@@ -89,4 +89,17 @@ export function nearestStorm(storms: readonly Storm[]): { storm: Storm; km: numb
     if (!best || km < best.km) best = { storm, km, category: stormCategory(storm.windKt) };
   }
   return best;
+}
+
+/** The weather the BITE score reads for one hour (fishing/bite.ts): mean rain and cloud over the models, and the squall flag. Empty when no model covers the hour. */
+export function biteWeather(now: readonly WeatherNow[]): { rainMmH?: number; cloudPct?: number; squall?: Squall } {
+  if (!now.length) return {};
+  const rainMmH = mean(finite(now.map((w) => w.rainMmH)));
+  const cloudPct = mean(finite(now.map((w) => w.cloudPct)));
+  const s = { rainMmH, capeJkg: mean(finite(now.map((w) => w.capeJkg))), gustKt: mean(finite(now.map((w) => w.gustKt))) };
+  return {
+    rainMmH: Number.isFinite(rainMmH) ? rainMmH : undefined,
+    cloudPct: Number.isFinite(cloudPct) ? cloudPct : undefined,
+    squall: squallLevel(s),
+  };
 }
