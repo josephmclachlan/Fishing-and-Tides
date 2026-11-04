@@ -33,6 +33,8 @@ export interface MetricEnv {
   weather(ms: number): WeatherNow[];
   /** Water visibility, m, off the spot at `ms` (the CLARITY forecast), or null before its data loads. */
   clarityM(lng: number, lat: number, ms: number): number | null;
+  /** Satellite sea surface temperature, °C, off the spot at `ms`, or null. Optional so older environments keep working. */
+  sstC?(lng: number, lat: number, ms: number): number | null;
   /** Sargassum expected to reach the named beach on the day containing `ms`, km² (the SARGASSUM outlook), or null. */
   sargassumKm2(spot: string, ms: number): number | null;
   tide: Harmonics;
@@ -101,6 +103,7 @@ export const METRICS: readonly Metric[] = [
   { id: 'uv', group: 'weather', unit: '', decimals: 0, better: 'low', agg: 'max', at: (a) => meanOf(a.env.weather(a.ms).map((w) => w.uv).filter(finite)), tone: band(6, 9) },
   { id: 'tide', group: 'water', unit: 'm', decimals: 1, better: null, agg: 'max', at: (a) => predict(a.env.tide, a.ms), tone: () => 'none' },
   { id: 'clarity', group: 'water', unit: 'm', decimals: 0, better: 'high', agg: 'mean', hours: [12], at: (a) => a.env.clarityM(a.lng, a.lat, a.ms), tone: (v) => ({ GOOD: 'green', FAIR: 'amber', POOR: 'red' } as const)[clarityLevel(v)] },
+  { id: 'sst', group: 'water', unit: '°C', decimals: 1, better: 'high', agg: 'mean', hours: [12], at: (a) => a.env.sstC?.(a.lng, a.lat, a.ms) ?? null, tone: (v) => (v >= 26 ? 'green' : v >= 22 ? 'amber' : 'red') },
   { id: 'sargassum', group: 'water', unit: 'km²', decimals: 2, better: 'low', agg: 'max', hours: [12], at: (a) => a.env.sargassumKm2(a.spot, a.ms), tone: (v) => (v < SARG_LOW_KM2 ? 'green' : v < SARG_HIGH_KM2 ? 'amber' : 'red') },
   {
     id: 'bite', group: 'fishing', unit: '/100', decimals: 0, better: 'high', agg: 'max',
@@ -122,7 +125,7 @@ export const MAX_TRACKED = 8;
 export const METRIC_PRESETS: Readonly<Record<'surf' | 'fish' | 'dive' | 'boat', readonly string[]>> = {
   surf: ['swell', 'period', 'wind', 'tide', 'sargassum'],
   fish: ['bite', 'wind', 'swell', 'rain', 'clarity'],
-  dive: ['swell', 'wind', 'rain', 'clarity', 'sargassum'],
+  dive: ['swell', 'wind', 'rain', 'clarity', 'sst', 'sargassum'],
   boat: ['comfort', 'wind', 'wdir', 'gust', 'squall', 'current', 'rain'],
 };
 
