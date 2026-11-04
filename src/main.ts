@@ -42,8 +42,10 @@ import { mountHarbours } from './layers/harbours';
 import { mountHarboursHud } from './harbours-hud';
 import type { Grid } from './physics/bathy';
 import { createBoatStore } from './boat/store';
-import { createCoralStore } from './coral/store';
-import { mountCoralPanel } from './coral-panel';
+import { createCoralStore, type CoralSite } from './coral/store';
+import { mountCoralPanel, type SiteHistory } from './coral-panel';
+import type { Series } from './coral/timeline';
+import { peakFor } from './coral/history';
 import { mountCoralLogLayer } from './layers/coral-log';
 import { mountBoatPanel, type CatchScorer, type OffshoreRead, type RouteDeps, type ShoalRead } from './boat-panel';
 import { dictFor, setDict, t, type Key } from './i18n';
@@ -92,7 +94,7 @@ import type { CoralHistory } from './coral/history';
 import { worstSarg, type RiskInputs } from './coral/risks';
 import { buildConditions } from './coral/conditions';
 import { fetchMud, mudNow, type MudData, type MudHistory } from './adapters/mud';
-import { REEF_DEPTH_M } from './physics/mud';
+import { MUD_HIGH, MUD_WATCH, MUD_WINDOW_D, REEF_DEPTH_M } from './physics/mud';
 import { predictSeries } from './physics/tide';
 import { mountLayersPanel } from './layers-panel';
 import { FLOW_STYLE, mountFlow } from './layers/flow';
@@ -117,7 +119,7 @@ import { sargassumSeeds } from './adapters/sargassum';
 import { fetchMld, mldAt, type MldData } from './adapters/mld';
 import { mountSst, type SstCoast } from './layers/sst';
 import { coastTest, type CoastTest } from './layers/sea-image';
-import { coralNow, fetchCoral, nearestReef, type CoralLoaded } from './adapters/coral';
+import { coralNow, DHW_BLEACHING, DHW_SEVERE, fetchCoral, nearestReef, type CoralLoaded } from './adapters/coral';
 import { runoffRisk } from './physics/outing';
 import { clarityAt, mountClarity, mountClarityHud, riverRain, type ClarityContext } from './layers/clarity';
 import { fetchCatchmentRain, type CatchmentRain } from './adapters/catchment-rain';
@@ -125,7 +127,7 @@ import { fetchRiverFlow, flowRatio, type RiverFlow } from './adapters/river-flow
 import { dataAge, describeAge } from './adapters/data-age';
 import { createNet } from './net';
 import { createPhysicsClient } from './physics/client';
-import { nearest } from './geo';
+import { haversineM, nearest } from './geo';
 import { mountVerdictHud } from './verdict-hud';
 import type { VerdictInputs } from './verdict';
 import { heavyRainSoon, STORM_ALERT_KM } from './weather';
@@ -480,14 +482,57 @@ const reefRisks = (id: string): Omit<RiskInputs, 'alert'> => {
     lowTideM: lows.length ? Math.min(...lows) : null,
   };
 };
+/** The tracked reef nearest a point (flat distance is fine over this coast). */
+const nearestCoralReef = (lng: number, lat: number) => CORAL_REEFS.reduce((b, r) => (Math.hypot(r.lngLat[0] - lng, r.lngLat[1] - lat) < Math.hypot(b.lngLat[0] - lng, b.lngLat[1] - lat) ? r : b));
 /** Conditions at a logged site: the nearest reef's heat and stresses, and MUD WEEKS at the site's depth when known. */
 const coralConditions = (lng: number, lat: number, depthM?: number) => {
   const reef = coralHeat ? nearestReef(coralHeat, [lng, lat]) : null;
-  const mudReef = CORAL_REEFS.reduce((b, r) => (Math.hypot(r.lngLat[0] - lng, r.lngLat[1] - lat) < Math.hypot(b.lngLat[0] - lng, b.lngLat[1] - lat) ? r : b));
+  const mudReef = nearestCoralReef(lng, lat);
   const mud = mudData ? mudNow(mudData, mudHistory, mudReef.id, depthM ?? REEF_DEPTH_M) : null;
   return buildConditions(Date.now(), coralHeat && reef ? coralNow(coralHeat, reef) : null, reef ? reefRisks(reef.id) : null, mud && Number.isFinite(mud.mw) ? mud.mw : null);
 };
-mountCoralPanel(hud, map, coralStore, sheets, () => depthAt, coralConditions);
+/** A site's CONDITIONS tab (PLAN 7.40): the nearest reef's last 12 weeks of DHW and MUD WEEKS (at the site's depth) and each year's peaks. */
+const coralSiteHistory = (s: CoralSite): SiteHistory | null => {
+  const reefId = nearestCoralReef(s.lng, s.lat).id;
+  const heatReef = coralHeat ? (coralHeat.reefs.find((r) => r.id === reefId) ?? nearestReef(coralHeat, [s.lng, s.lat])) : null;
+  const mud = mudData ? mudNow(mudData, mudHistory, reefId, s.depthM ?? REEF_DEPTH_M) : null;
+  const series: Series[] = [];
+  if (coralHeat && heatReef) series.push({ days: coralHeat.days, values: heatReef.dhw, watch: DHW_BLEACHING, high: DHW_SEVERE, label: 'DHW' });
+  if (mudData && mud?.trend.length) series.push({ days: mudData.days, values: mud.trend, watch: MUD_WATCH, high: MUD_HIGH, label: t('coral.mud') });
+  if (!series.length) return null;
+  const to = Date.now();
+  const year = new Date(to).getUTCFullYear();
+  const liveHeat = coralHeat && heatReef ? coralNow(coralHeat, heatReef).peakDhw : NaN;
+  const liveMud = Math.max(-Infinity, ...(mud?.trend ?? []).filter((v): v is number => v !== null));
+  const mh = mudHistory?.reefs.find((r) => r.id === reefId);
+  // Back to the start of the Kd490 record (2018), or to the first visit if that is earlier.
+  const firstVisit = s.visits.length ? new Date(Math.min(...s.visits.map((v) => v.t))).getUTCFullYear() : year;
+  const yearFrom = Math.min(mudHistory?.years[0] ?? year - 4, firstVisit);
+  return {
+    reefName: CORAL_REEFS.find((r) => r.id === reefId)?.name ?? reefId,
+    series,
+    from: to - MUD_WINDOW_D * 864e5,
+    to,
+    yearFrom,
+    yearTo: year,
+    heatPeak: (y) => (heatReef ? peakFor(coralHistory, heatReef.id, y, { peak: liveHeat, year }) : null),
+    mudPeak: (y) => {
+      const i = mudHistory ? mudHistory.years.indexOf(y) : -1;
+      const stored = mh && i >= 0 ? mh.peak[i] : null;
+      // The stored peaks are at the reef depth; this year's live peak is at the site's.
+      return y === year && Number.isFinite(liveMud) ? Math.max(stored ?? -Infinity, liveMud) : stored;
+    },
+  };
+};
+const coralPanel = mountCoralPanel(hud, map, coralStore, sheets, () => depthAt, coralConditions, coralSiteHistory);
+/** Logged sites within `km` of a point, nearest first (they live only on this device). */
+const coralSitesNear = (lng: number, lat: number, km: number) =>
+  coralStore
+    .list()
+    .map((s) => ({ s, d: haversineM([lng, lat], [s.lng, s.lat]) }))
+    .filter((x) => x.d <= km * 1000)
+    .sort((a, b) => a.d - b.d)
+    .map((x) => x.s);
 mountCoralLogLayer(map, coralStore);
 // Reef heat, history since 1985 and today's stresses at the top of the CORAL drawer (PLAN 7.32), for the reef nearest the map centre.
 fetch(`${import.meta.env.BASE_URL}data/climatology/coral-history.json`)
@@ -506,6 +551,9 @@ if (coralPanelEl) {
     risks: reefRisks,
     mud: (id) => (mudData ? mudNow(mudData, mudHistory, id) : null),
     mudHistory: () => mudHistory,
+    // The user's own sites whose nearest reef is this one, opened at their CONDITIONS tab (PLAN 7.40).
+    sitesFor: (id) => coralStore.list().filter((s) => nearestCoralReef(s.lng, s.lat).id === id).map((s) => ({ id: s.id, name: s.name })),
+    openSite: (id) => coralPanel.openSite(id, 'conditions'),
     // Best day this week in the water at the reef (persona review J9): snorkel windows at the nearest spot, ranked with the reef's visibility.
     visit: (reef) => {
       const spot = nearest(reef.lngLat, SPOTS)?.point;
@@ -811,7 +859,14 @@ fetchMouths()
   .then(({ data }) => ripLayer.setSites(ripSites(data, SURF_BREAKS)))
   .catch((err) => console.warn('rip sites unavailable', err));
 // Tap a lightning flash, storm, observation or wave crest for what it is (registered first so the rip and sargassum cards below win where marks overlap).
-mountMapExplain(map, (title, id, at) => explain.show(title, id, at));
+/** Logged coral sites within 1 km of a tap: open their folder from the card the tap opened (PLAN 7.40). */
+const siteLinks = (at?: { x: number; y: number }) => {
+  if (!at) return;
+  const ll = map.unproject([at.x, at.y]);
+  const near = coralSitesNear(ll.lng, ll.lat, 1).slice(0, 3);
+  explain.appendActions(near.map((s) => ({ label: `${t('coral.openFolder')} ${s.name || t('coral.unnamed')}`, run: () => coralPanel.openSite(s.id) })));
+};
+mountMapExplain(map, (title, id, at) => (explain.show(title, id, at), siteLinks(at)));
 // Bare map: a "what's here" card with the sea, wind, depth and visibility at the tap, for the slider's hour.
 mountHere(map, (lng, lat) => {
   const ms = time.validMs();
@@ -828,13 +883,13 @@ mountHere(map, (lng, lat) => {
     wind: w,
     visM: c ? (clarityAt(c, lng, lat)?.visM ?? null) : null,
   };
-}, (title, rows, at) => explain.showRows(title, rows, at));
+}, (title, rows, at) => (explain.showRows(title, rows, at), siteLinks(at)));
 map.on('click', 'rp-site', (e) => {
   const f = e.features?.[0]?.properties;
   if (f) explain.show(`${f.name}`, f.site === 'mouth' ? 'ripMouth' : 'ripBreak', e.point);
 });
-map.on('click', 'sg-mat', (e) => explain.show(t('sarg.short'), 'sargMat', e.point));
-map.on('click', 'sg-beach', (e) => explain.show(t('sarg.short'), 'sargBeach', e.point));
+map.on('click', 'sg-mat', (e) => (explain.show(t('sarg.short'), 'sargMat', e.point), siteLinks(e.point)));
+map.on('click', 'sg-beach', (e) => (explain.show(t('sarg.short'), 'sargBeach', e.point), siteLinks(e.point)));
 map.on('click', 'rp-coast', (e) => {
   // A site ring sits on the shaded shore: the ring's own explainer wins.
   if (!map.queryRenderedFeatures(e.point, { layers: ['rp-site'] }).length) explain.show(t('layer.rip'), 'ripCoast', e.point);

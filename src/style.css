@@ -778,11 +778,20 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .cf { display: grid; gap: 6px; }
 .cf:empty { display: none; }
 .cf-head { color: var(--green); letter-spacing: 2px; border-top: 1px solid var(--amber); padding-top: 8px; }
-.cf-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.cf-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 4px; }
 .cf-tabs .tab { min-height: 40px; padding: 4px 2px; font-size: 11px; letter-spacing: 1px; text-align: center; }
 .cf-tabs .tab.on { background: var(--amber); color: var(--bg); }
 .cf-body { display: grid; gap: 6px; }
 .cf-sub { margin-top: 6px; color: var(--green); }
+/* CONDITIONS tab (PLAN 7.40): the 12-week timeline and the tables, which scroll sideways on a narrow phone. */
+.cf-tl { display: block; margin: 2px 0 4px; }
+.cf-tl-lbl { fill: var(--amber); font-size: 8px; font-family: inherit; letter-spacing: 1px; }
+.cf-scroll { overflow-x: auto; max-width: 100%; }
+.cf-table { border-collapse: collapse; font-size: 12px; width: 100%; white-space: nowrap; }
+.cf-table th { color: var(--green); font-weight: normal; text-align: left; padding: 3px 6px 3px 0; letter-spacing: 1px; font-size: 11px; }
+.cf-table td { padding: 3px 6px 3px 0; border-top: 1px solid color-mix(in srgb, var(--amber) 25%, transparent); }
+.help-actions { display: grid; gap: 4px; margin-top: 8px; }
+.help-actions .tab { min-height: 40px; text-align: left; }
 .cf-acts { display: flex; flex-wrap: wrap; gap: 4px; }
 .cf-acts .tab { min-height: 36px; font-size: 11px; padding: 4px 8px; }
 .cf-acts .tab.on { background: var(--green); color: var(--bg); border-color: var(--green); }

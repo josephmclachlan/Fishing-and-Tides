@@ -105,6 +105,22 @@ export function mountExplain(root: HTMLElement) {
     card.style.top = `${Math.min(Math.max(8, at.y - 16), window.innerHeight - h - 8)}px`;
   };
 
+  /** Add buttons to the card that is open now (a logged coral site's folder from the "what's here" card, PLAN 7.40). */
+  const appendActions = (actions: readonly { label: string; run: () => void }[]) => {
+    if (card.hidden || !actions.length) return;
+    const box = document.createElement('div');
+    box.className = 'help-actions';
+    for (const a of actions) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tab';
+      b.textContent = a.label;
+      b.addEventListener('click', () => (close(), a.run()));
+      box.appendChild(b);
+    }
+    card.appendChild(box);
+  };
+
   const open = (row: HTMLElement) => {
     if (anchor === row && !card.hidden) return close();
     const id = row.dataset.help!;
@@ -148,7 +164,7 @@ export function mountExplain(root: HTMLElement) {
   new MutationObserver((muts) => {
     for (const m of muts) m.addedNodes.forEach((n) => n instanceof Element && scan(n));
   }).observe(root, { childList: true, subtree: true });
-  return { close, show, showRows };
+  return { close, show, showRows, appendActions };
 }
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
