@@ -35,6 +35,8 @@ export interface CoralSite {
   /** Free text, e.g. "Acropora cervicornis, Orbicella". */
   species: string;
   notes: string;
+  /** Ids of photos in the on-device photo store (src/coral/photos.ts). */
+  photoIds: string[];
   /** Only 'private' exists: these locations never leave the device (or, later, the allowlisted devices). */
   privacy: 'private';
   createdAt: number;
@@ -47,7 +49,7 @@ export type NewSite = Pick<CoralSite, 'kind' | 'name' | 'lng' | 'lat'> & Partial
 export interface CoralStore {
   list(): readonly CoralSite[];
   add(s: NewSite, now?: number): CoralSite;
-  update(id: string, patch: Partial<Pick<CoralSite, 'kind' | 'name' | 'depthM' | 'species' | 'notes'>>, now?: number): void;
+  update(id: string, patch: Partial<Pick<CoralSite, 'kind' | 'name' | 'lng' | 'lat' | 'depthM' | 'species' | 'notes' | 'photoIds'>>, now?: number): void;
   remove(id: string): void;
   addVisit(siteId: string, v: Omit<Visit, 'id'>, now?: number): void;
   removeVisit(siteId: string, visitId: string): void;
@@ -66,7 +68,7 @@ export function createCoralStore(storage?: Storage): CoralStore {
   let sites: CoralSite[] = [];
   try {
     const raw = JSON.parse(storage?.getItem(KEY) ?? 'null');
-    if (raw && Array.isArray(raw.sites)) sites = raw.sites.filter(valid);
+    if (raw && Array.isArray(raw.sites)) sites = raw.sites.filter(valid).map((x: CoralSite) => ({ ...x, photoIds: Array.isArray(x.photoIds) ? x.photoIds : [] }));
   } catch {
     /* blocked or corrupt: start empty */
   }
@@ -87,7 +89,7 @@ export function createCoralStore(storage?: Storage): CoralStore {
   return {
     list: () => sites,
     add(n, now = Date.now()) {
-      const site: CoralSite = { id: newId(), schemaVersion: SCHEMA_VERSION, species: '', notes: '', ...n, privacy: 'private', createdAt: now, updatedAt: now, visits: [] };
+      const site: CoralSite = { id: newId(), schemaVersion: SCHEMA_VERSION, species: '', notes: '', photoIds: [], ...n, privacy: 'private', createdAt: now, updatedAt: now, visits: [] };
       commit([...sites, site]);
       return site;
     },
