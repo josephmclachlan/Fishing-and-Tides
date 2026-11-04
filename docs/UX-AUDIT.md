@@ -58,3 +58,4 @@ Findings CL1 to CL23 are in the audit doc; fixes ship one PR each.
 
 - [x] CL1 Half-width window: the drawer layout now takes over below 1100 px wide or 700 px tall (`PHONE_QUERY` in `src/sheets.ts` and the matching queries in `style.css`), so a 1000 px window or a short laptop screen gets the full map instead of a 40% strip.
 - [x] CL2 Map credits: MapLibre reopens the compact credits when the first source adds its credits, after the map's 'load', so they covered a third of a phone's map. They now stay folded to the (i) button until the user taps it (`src/map.ts`).
+- [x] CL3 False rip alarm: the rip row, the HIGH RIP banner and the rip zones on the map wait for the spot model to run on the real sea; before that the row reads -- with no alarm. CL4: the CONDITIONS tag reads LIVE once the waves feed is in, MOCK only before it.

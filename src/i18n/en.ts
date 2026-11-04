@@ -157,6 +157,7 @@ export const en = {
   // Conditions panel
   'cond.title': 'CONDITIONS',
   'cond.mock': 'MOCK',
+  'cond.live': 'LIVE',
   'cond.swell': 'SWELL',
   'cond.period': 'PERIOD',
   'cond.swellDir': 'SWL DIR',

@@ -155,6 +155,7 @@ export const es: Dict = {
   // Conditions panel
   'cond.title': 'CONDICIONES',
   'cond.mock': 'SIMUL.',
+  'cond.live': 'EN VIVO',
   'cond.swell': 'OLEAJE',
   'cond.period': 'PERÍODO',
   'cond.swellDir': 'DIR OLE',

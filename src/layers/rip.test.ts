@@ -45,6 +45,9 @@ describe('rip overlay geometry', () => {
     const label = fc.features.find((f) => f.properties!.kind === 'label')!;
     expect(String(label.properties!.label)).toContain(`${spots[0].name} · RIP HIGH`);
     expect(ripFeatures([{ name: 'X', pin: [0, 0], sea: small, result: null }], stations).features).toHaveLength(0);
+    // On the mock swell (waves feed not in yet) nothing lights up: no false alarm on first open.
+    const mock = ripFeatures(big.map((b) => ({ ...b, liveSea: false })), stations, sites);
+    expect([...kinds(mock)]).toEqual(['site']);
   }, 30_000);
 
   it('puts coast stations on open water just off the beach, never in rivers or on land', () => {

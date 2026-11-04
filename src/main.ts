@@ -196,8 +196,9 @@ const windExtras = (ms: number, pin: [number, number], name: string) => {
 const conditionsAt = () => {
   const c = baseConditions();
   const centre = map.getCenter();
-  const r = spotPhysics?.byName(nearest([centre.lng, centre.lat], SPOTS)!.point.name)?.result;
-  if (r) c.ripRisk = r.rip.level;
+  // Rip only from the real sea: on the mock swell it raised a false HIGH RIP alarm before the waves loaded.
+  const st = spotPhysics?.byName(nearest([centre.lng, centre.lat], SPOTS)!.point.name);
+  if (st?.result && st.liveSea) (c.ripRisk = st.result.rip.level), (c.ripKnown = true);
   return c;
 };
 const baseConditions = () => {
@@ -211,6 +212,7 @@ const baseConditions = () => {
   // Swell (PLAN 2.2): the primary swell partition at the map centre, or offshore of Cahuita when the centre is inland.
   const sea = seaHere();
   if (sea) {
+    c.seaLive = true;
     const swell = Number.isFinite(sea.swellHs);
     c.swellHeightM = swell ? sea.swellHs : sea.hs;
     c.swellPeriodS = swell ? sea.swellT : sea.tm;
@@ -989,7 +991,7 @@ const verdictInputs = (): VerdictInputs => {
     hsM: seaHere()?.hs ?? cond.swellHeightM,
     comfort: parts ? seaComfort(parts).comfort : null,
     bite: Number.isFinite(biteNum) ? biteNum : null,
-    rip: cond.ripRisk,
+    rip: cond.ripKnown ? cond.ripRisk : null,
     surf: brk?.surf?.band ?? null,
     breakerM: brk?.result?.waves.breaker.Hb ?? null,
     outing: { snorkel: diveHud?.now('snorkel') ?? null, dive: diveHud?.now('dive') ?? null },
