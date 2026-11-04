@@ -11,8 +11,14 @@
  *   chop    1 at 4 m/s wind, 0 at 10 m/s (a snorkeller loses the bottom in whitecaps)
  *   depth   0 below 0.5 m of water over the reef (you touch coral), 1 from 1.5 m
  *   light   0 at 07:00, 1 from 09:00 until 15:00, 0 at 17:00 (local clock; no sun model needed here)
+ *   rain    1 up to 2 mm/h, 0.3 at 10 mm/h and above (optional input; left out when unknown)
+ *
+ * Weather safety caps the whole score afterwards: score × safetyTerm (physics/safety.ts, shared with fishing).
+ * Lightning within 25 km leaves at most 10, a squall HIGH 25%, a squall WATCH 70%.
  */
-export type OutingReason = 'surge' | 'vis' | 'chop' | 'shallow' | 'light';
+import { safetyTerm, type SquallLevel } from './safety';
+
+export type OutingReason = 'storm' | 'surge' | 'vis' | 'chop' | 'shallow' | 'light' | 'rain';
 
 export interface OutingInputs {
   /** Peak bed velocity at the activity's depth, m/s. */
@@ -25,6 +31,12 @@ export interface OutingInputs {
   waterM: number;
   /** Local hour of day, 0..24. */
   localHour: number;
+  /** Rain, mm/h (mean over the models). Left out when no forecast covers the hour. */
+  rainMmH?: number;
+  /** Squall flag for the hour (weather.ts squallLevel). */
+  squall?: SquallLevel;
+  /** A lightning strike within the alert distance in the last 15 min. */
+  lightning?: boolean;
 }
 
 export interface OutingScore {
@@ -48,11 +60,14 @@ export function outingScore(i: OutingInputs): OutingScore {
     ['shallow', ramp(i.waterM, 0.5, 1.5)],
     ['light', lightTerm(i.localHour)],
   ].map(([r, v]) => [r, Number.isFinite(v as number) ? (v as number) : 0.5] as [OutingReason, number]);
+  if (i.rainMmH !== undefined && Number.isFinite(i.rainMmH)) terms.push(['rain', 1 - 0.7 * ramp(i.rainMmH, 2, 10)]);
   const min = Math.min(...terms.map((x) => x[1]));
   const mean = terms.reduce((a, x) => a + x[1], 0) / terms.length;
+  const safety = safetyTerm(i.lightning, i.squall);
+  const reasons = terms.filter((x) => x[1] < 0.6).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
   return {
-    score: Math.round(100 * (0.75 * min + 0.25 * mean)),
-    reasons: terms.filter((x) => x[1] < 0.6).sort((a, b) => a[1] - b[1]).map((x) => x[0]),
+    score: Math.round(100 * (0.75 * min + 0.25 * mean) * safety),
+    reasons: safety < 1 ? ['storm', ...reasons] : reasons,
   };
 }
 

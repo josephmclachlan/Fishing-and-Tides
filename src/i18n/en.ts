@@ -179,6 +179,8 @@ export const en = {
   'dive.r.chop': 'CHOP',
   'dive.r.shallow': 'TOO SHALLOW',
   'dive.r.light': 'LOW LIGHT',
+  'dive.r.storm': 'STORM RISK',
+  'dive.r.rain': 'RAIN',
   'snk.spot': 'SNORKEL SPOT',
   'snk.rating': 'RATING NOW',
   'snk.stingers': 'STINGERS',
