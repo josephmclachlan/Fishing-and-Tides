@@ -50,6 +50,11 @@ export interface RipInput {
   slope: number | null;
   /** Position in the tide cycle, 0 = low water, 1 = high water (3.1 `tideState().level`). */
   tideLevel: number;
+  /**
+   * Size of this tide against a big one, 0..1 (range / LIMON_BIG_TIDE.rangeM). The low-water boost and high-water
+   * cut scale with it, since a small tide barely changes the depth over the bars. Default 1 (full swing).
+   */
+  tideSize?: number;
   /** Onshore wind component, m/s (negative = offshore). Default 0. */
   onshoreWindMs?: number;
   /** A known rip channel (reef gap, river mouth, jetty) at this spot. Default false. */
@@ -81,8 +86,8 @@ export function ripFactors(inp: RipInput): RipFactors {
     height: smoothstep(0.3, 1.8, inp.Hb),
     period: 0.6 + 0.4 * smoothstep(6, 13, inp.Tp),
     angle: 0.4 + 0.6 * Math.cos(a) ** 2,
-    // Low water 1.2, high water 0.8.
-    tide: 1.2 - 0.4 * level,
+    // Low water 1.2, high water 0.8 on a big tide; the swing shrinks with the tide's size (audit H).
+    tide: 1 + 0.2 * Math.min(1, Math.max(0, inp.tideSize ?? 1)) * (1 - 2 * level),
     wind: 1 + 0.15 * smoothstep(3, 8, inp.onshoreWindMs ?? 0),
     channel: inp.knownChannel ? 1.3 : 1,
   };

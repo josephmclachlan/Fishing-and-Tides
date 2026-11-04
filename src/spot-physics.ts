@@ -3,7 +3,7 @@
  * tide change (PLAN 4.2). Runs the physics worker (3.6) and publishes results to the rip
  * overlay and the SURF ZONE readouts. Swell comes from the waves adapter per spot, else the conditions feed.
  */
-import { LIMON_HARMONICS } from './data/tides-limon';
+import { LIMON_BIG_TIDE, LIMON_HARMONICS } from './data/tides-limon';
 import type { Conditions } from './mock';
 import type { PhysicsClient } from './physics/client';
 import { KT_PER_MS } from './physics/flow';
@@ -93,6 +93,7 @@ export function createSpotPhysics(
     // Position in the cycle (0 low water, 1 high). The gauge correction (metres) lifts the whole curve, highs and
     // lows alike, so it does not move the position; adding it here mixed metres into a 0..1 share.
     const tideLevel = ts.level;
+    const tideSize = Math.min(1, ts.range / LIMON_BIG_TIDE.rangeM);
     const sea: Sea = { Hs: c.swellHeightM, Tp: c.swellPeriodS, fromDeg: c.swellDirDeg };
     const wind0 = { speedMs: c.windKt / KT_PER_MS, fromDeg: c.windDirDeg };
     const wxs = PLACES.map((p) => windExtras(ms, p.lngLat, p.name));
@@ -100,7 +101,7 @@ export function createSpotPhysics(
     const seasX = PLACES.map((p) => seaAt(p.lngLat));
     const seas: Sea[] = seasX.map((x) => (x ? { Hs: x.Hs, Tp: x.Tp, fromDeg: x.fromDeg, total: x.total ?? x.Hs } : sea));
     client
-      .latestMany(PLACES.map((p, i) => ({ pin: p.lngLat, sea: { Hs: seas[i].Hs, Tp: seas[i].Tp, fromDeg: seas[i].fromDeg }, others: seasX[i]?.others, tideLevel, wind: winds[i], knownChannel: KNOWN_CHANNEL[i] })))
+      .latestMany(PLACES.map((p, i) => ({ pin: p.lngLat, sea: { Hs: seas[i].Hs, Tp: seas[i].Tp, fromDeg: seas[i].fromDeg }, others: seasX[i]?.others, tideLevel, tideSize, wind: winds[i], knownChannel: KNOWN_CHANNEL[i] })))
       .then((rs) => {
         states = PLACES.map((s, i) => {
           const r = rs[i];

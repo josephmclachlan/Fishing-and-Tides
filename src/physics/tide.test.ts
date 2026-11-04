@@ -102,6 +102,8 @@ describe('high and low water', () => {
     // At a low water the level is 0, at a high water 1.
     const lo = extrema(m2, t, t + 13 * HOUR).find((e) => e.type === 'low')!;
     expect(tideState(m2, lo.t + 60_000).level).toBeLessThan(0.01);
+    // The range is the height between the bracketing low and high: 2H for a pure M2.
+    expect(s.range).toBeCloseTo(2 * m2.constituents.M2!.H, 1); // within the nodal factor
   });
 });
 

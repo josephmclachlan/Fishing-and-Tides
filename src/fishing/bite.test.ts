@@ -1,10 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { LIMON_HARMONICS } from '../data/tides-limon';
-import { bestWindows, bite, extrasTerm, lightTerm, nightTerm, overcastLift, rainShare, safetyTerm, weatherTerms, solunarTerm } from './bite';
+import { bestWindows, bite, tideTerm, extrasTerm, lightTerm, nightTerm, overcastLift, rainShare, safetyTerm, weatherTerms, solunarTerm } from './bite';
 import { daySky, localDayStart } from '../physics/astro';
 
 const base = { lat: 9.99, lng: -83.03, tide: LIMON_HARMONICS, tzOffsetH: -6 };
 const day = localDayStart(Date.UTC(2026, 10, 2, 18), -6);
+
+describe('bite: tide size (audit H)', () => {
+  const k1 = (H: number) => ({ z0: 0, constituents: { K1: { H, g: 0 } } });
+  // K1's peak flow is H·ω (ω = 0.26 rad/h): 0.4 m runs at 0.105 m/h, past a big tide; 0.12 m at 0.03 m/h.
+  const peak = (H: number) => { let best = { t: 0, term: 0 }; for (let k = 0; k < 24 * 6; k++) { const t = Date.UTC(2026, 0, 1) + k * 6e5; const r = tideTerm(k1(H), t); if (r.term > best.term) best = { t, term: r.term }; } return best; };
+  it('a small tide at full flow scores less than a big one', () => {
+    const big = peak(0.4), small = peak(0.12);
+    expect(big.term).toBeCloseTo(1, 2);
+    expect(small.term).toBeLessThan(0.85);
+    expect(small.term).toBeGreaterThan(0.3);
+    expect(tideTerm(k1(0.12), small.t).moving).toBe(true);
+  });
+});
 
 describe('bite', () => {
   it('light: dawn beats midday', () => {

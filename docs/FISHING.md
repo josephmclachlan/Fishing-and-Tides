@@ -83,7 +83,7 @@ The BOAT tab opens a drawer (a sheet on phones, see `src/sheets.ts`). It works w
 
 `timing = 0.40 tide + 0.35 light + 0.15 solunar + 0.10 calm`, `bite = timing x weather x safety x water x (0.4 + 0.6 x habitat)`
 
-- tide: current flow relative to the fastest within 13 h either side (floor 0.3 at slack). Fish feed on moving water.
+- tide: current flow as a share of a big tide's fastest flow (0.095 m/h, the 90th percentile day at Limón), or of the day's own peak when that is faster; floor 0.3 at slack. Fish feed on moving water, and a small tide moves less water: its peak flow scores about 0.68, a big tide's 1. The TIDE reason still marks the hours the water runs fastest that day.
 - light: sun -6 to +6 degrees (dawn, dusk) 1.0; to 20 degrees 0.8; night 0.65; midday 0.45. In daylight, cloud above 40% lifts it toward 1 by up to 0.4 of the gap (full at 90% cloud): overcast stretches the low-light bite.
 - solunar: major window 1.0, minor 0.8, else 0.5, tilted by the day rating. Folklore, so the smallest weight.
 - calm and weather: wind above 5 m/s and waves above 1 m pull both down; rain takes up to 0.2 more, starting at 2 mm/h and in full from 10 mm/h (mean of the three weather models).

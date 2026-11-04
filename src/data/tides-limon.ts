@@ -36,6 +36,13 @@ export const LIMON_HARMONICS: Harmonics = {
 /** Tidal datums relative to MSL over one 18.61-year nodal cycle, metres. */
 export const LIMON_DATUMS = { lat: -0.289, hat: 0.304 } as const;
 
+/**
+ * A big tide at Limón, the 90th percentile of daily values over 2026-2029 from these harmonics: the day's range
+ * (highest minus lowest water) and fastest flow, m/h. The median day is 0.35 m and 0.075 m/h, a small (10th
+ * percentile) day 0.23 m and 0.052 m/h. BITE and the rip score scale their tide terms by these (audit H).
+ */
+export const LIMON_BIG_TIDE = { rangeM: 0.45, rateMh: 0.095 } as const;
+
 /** Held-out validation against the gauge (see docs/TIDES.md). */
 export const LIMON_VALIDATION = [
   {

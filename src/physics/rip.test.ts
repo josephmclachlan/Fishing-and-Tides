@@ -4,6 +4,16 @@ import { onshoreWind, ripLengthBand, ripLevel, ripRisk, ripStrength, type RipInp
 const base: RipInput = { Hb: 1, hb: 1.2, Tp: 10, angleDeg: 0, slope: 0.02, tideLevel: 0.5 };
 
 describe('rip risk score', () => {
+  it('scales the tide swing by the size of the tide (audit H)', () => {
+    const at = (tideLevel: number, tideSize?: number) => ripRisk({ ...base, tideLevel, tideSize }).factors.tide;
+    expect([at(0), at(1), at(0.5)]).toEqual([1.2, 0.8, 1]);
+    expect(at(0, 1)).toBeCloseTo(1.2, 12);
+    expect(at(0, 0.5)).toBeCloseTo(1.1, 12);
+    expect(at(1, 0.5)).toBeCloseTo(0.9, 12);
+    expect(at(0, 0)).toBe(1);
+    expect(at(0, 3)).toBeCloseTo(1.2, 12);
+  });
+
   it('is calibrated to NWS practice', () => {
     expect(ripRisk({ ...base, Hb: 0.4 }).level).toBe('LOW');
     expect(ripRisk(base).level).toBe('MOD');

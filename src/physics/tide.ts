@@ -253,6 +253,8 @@ export interface TideState {
    * water. Used by the rip score (3.5): low tide over bars is the worst.
    */
   level: number;
+  /** Height between the bracketing low and high water, m (the size of this tide). */
+  range: number;
 }
 
 /** Height, trend and position in the current tide cycle at t. */
@@ -271,7 +273,7 @@ export function tideState(hc: Harmonics, tMs: number): TideState {
   const lo = Math.min(prev.h, next.h);
   const hi = Math.max(prev.h, next.h);
   const level = hi - lo > 1e-6 ? Math.min(1, Math.max(0, (h - lo) / (hi - lo))) : 0.5;
-  return { h, rate, rising: rate > 0, prev, next, level };
+  return { h, rate, rising: rate > 0, prev, next, level, range: hi - lo };
 }
 
 /**

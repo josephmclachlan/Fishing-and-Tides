@@ -6,7 +6,7 @@
  *   timing = 0.40 tide + 0.35 light + 0.15 solunar + 0.10 calm      (each term 0..1)
  *   bite   = timing × weather × safety × water × (0.4 + 0.6 × habitat)
  *
- * tide    fish feed on moving water: |dh/dt| as a share of the day's fastest flow, floor 0.3 at slack.
+ * tide    fish feed on moving water: |dh/dt| as a share of a big tide's fastest flow, floor 0.3 at slack.
  * light   dawn and dusk best, golden hour next, night fair (snook and jack feed in the dark), midday weakest.
  *         Overcast stretches the low-light bite into the day: in daylight, cloud above 40% lifts the
  *         term toward 1 by up to 0.4 of the gap (full at 90% cloud).
@@ -25,6 +25,7 @@
  */
 import { safetyTerm } from '../physics/safety';
 import { predict, type Harmonics } from '../physics/tide';
+import { LIMON_BIG_TIDE } from '../data/tides-limon';
 import type { WaterReason, WaterTerm } from './water';
 import { daySky, localDayStart, moonAltitude, moonPhase, sunAltitude, type DaySky } from '../physics/astro';
 
@@ -83,14 +84,21 @@ export interface BiteTerms {
 
 export type BiteReason = 'tide' | 'dawn' | 'dusk' | 'golden' | 'night' | 'major' | 'minor' | 'rough' | 'wind' | 'rain' | 'slack' | 'midday' | 'overcast' | 'squall' | 'lightning' | 'brightmoon' | 'darknight' | 'falling' | 'rising' | 'highwater' | 'lowwater' | WaterReason;
 
-/** Tide term: current flow relative to the fastest in ±13 h, with a floor so slack is weak, not zero. */
-export function tideTerm(h: Harmonics, tMs: number): { term: number; moving: boolean } {
+/**
+ * Tide term: current flow as a share of a big tide's fastest flow (or of this day's, if faster), with a floor so slack
+ * is weak, not zero. A small tide's peak flow scores about 0.68, a big tide's 1 (audit H: the term used to be relative
+ * to the day only, so a 0.2 m neap scored like a 0.5 m spring). `moving` stays relative to the day: it marks the hours
+ * the water is running, whatever the tide's size.
+ */
+export function tideTerm(h: Harmonics, tMs: number, bigRateMh: number = LIMON_BIG_TIDE.rateMh): { term: number; moving: boolean } {
   const dt = 5 * 60_000;
   const rate = (t: number) => Math.abs(predict(h, t + dt) - predict(h, t - dt)) / (2 * dt);
   let max = 0;
   for (let k = -13; k <= 13; k++) max = Math.max(max, rate(tMs + k * HOUR));
   const rel = max > 0 ? rate(tMs) / max : 0.5;
-  return { term: 0.3 + 0.7 * clamp01(rel), moving: rel >= 0.6 };
+  const ref = Math.max(max, bigRateMh / HOUR);
+  const share = max > 0 ? rate(tMs) / ref : 0.5;
+  return { term: 0.3 + 0.7 * clamp01(share), moving: rel >= 0.6 };
 }
 
 /** Light term from the sun's height: dawn and dusk (sun -6° to +6°) best. */
