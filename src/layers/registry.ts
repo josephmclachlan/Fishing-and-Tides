@@ -87,13 +87,20 @@ export interface LayerStore {
 
 type Storage = Pick<globalThis.Storage, 'getItem' | 'setItem'>;
 const KEY = 'ft.layers.off';
+/**
+ * Off on the very first open (nothing saved yet): wind particles drawn over the wave crests and the currents made
+ * three crossing streak fields, in two of the same colours, that a newcomer could not tell apart. The WIND row and
+ * the wind arrows in CONDITIONS still show the wind; one tap in LAYERS brings the particles back.
+ */
+export const FIRST_OPEN_OFF: readonly LayerId[] = ['wind'];
 
 /** State is stored as the layers switched OFF, so layers added later default to on. */
 export function createLayerStore(storage?: Storage): LayerStore {
   const known = new Set<string>(ALL_IDS);
   let off = new Set<LayerId>();
   try {
-    const saved = JSON.parse(storage?.getItem(KEY) ?? '[]');
+    const raw = storage?.getItem(KEY);
+    const saved = raw == null && storage ? [...FIRST_OPEN_OFF] : JSON.parse(raw ?? '[]');
     if (Array.isArray(saved)) off = new Set(saved.filter((s): s is LayerId => known.has(s)));
   } catch {
     /* storage blocked or corrupt: start with everything on */
