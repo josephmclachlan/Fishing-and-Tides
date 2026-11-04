@@ -730,3 +730,5 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .cr-name { color: var(--amber); letter-spacing: 1px; }
 .cr-tags { display: flex; flex-wrap: wrap; gap: 4px 10px; }
 .cr-tags .cr-lvl { font-size: 10px; }
+.coral-conduct .rules-list { margin-top: 6px; }
+.coral-conduct .cr-guide a { color: var(--green); }
