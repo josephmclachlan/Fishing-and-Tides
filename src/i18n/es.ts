@@ -883,6 +883,7 @@ export const es: Dict = {
   'metric.air': 'AIRE',
   'metric.uv': 'UV',
   'metric.tide': 'MAREA ALTA',
+  'metric.surfq': 'CALIDAD OLAS',
   'metric.bite': 'PICADA',
   'metric.clarity': 'VISIBILIDAD',
   'metric.sargassum': 'SARGAZO',

@@ -5,21 +5,28 @@
  */
 import { nearest } from '../geo';
 import { buildForecast, bestTime, hourScores, type Spot } from './forecast';
+import { breakFor } from './surf-estimate';
 import { METRIC_BY_ID, type MetricEnv } from './registry';
 
 export type Activity = 'surf' | 'fish' | 'dive' | 'boat';
 
 /**
  * What counts toward "best" for each activity. Only metrics with a better end vote. SURF is judged
- * on wind (glassy, offshore) and rain, not swell size: a bigger swell is better for surfers but
- * worse for the others, so it stays out of the vote.
+ * on the break score (`surfq`: swell trains, period, direction, wind, tide, storms, rain, sargassum) at a spot that has
+ * a surf break; elsewhere on wind (glassy, offshore) and rain, since swell size alone has no better end.
  */
 export const BEST_METRICS: Readonly<Record<Activity, readonly string[]>> = {
-  surf: ['wind', 'rain'],
+  surf: ['surfq', 'wind', 'rain'],
   fish: ['bite', 'wind', 'rain'],
   dive: ['swell', 'wind', 'rain'],
   boat: ['comfort', 'wind', 'gust', 'squall', 'rain'],
 };
+
+/** The metrics that vote for `activity` at `spot`: at a surf break the break score already contains wind and rain. */
+export function votersFor(activity: Activity, spot: Spot): readonly string[] {
+  const ids = BEST_METRICS[activity];
+  return activity === 'surf' && breakFor(spot.name, spot.lngLat) ? ids.filter((id) => id === 'surfq') : ids.filter((id) => id !== 'surfq');
+}
 
 export interface BestToday {
   spot: string;
@@ -33,7 +40,7 @@ export const spotNear = (at: [number, number], spots: readonly Spot[]): Spot | n
 
 /** Best window left today for `activity` at `spot`, or null when the day is over or there is no data. */
 export function bestToday(env: MetricEnv, activity: Activity, spot: Spot, nowMs: number): BestToday | null {
-  const ids = BEST_METRICS[activity];
+  const ids = votersFor(activity, spot);
   const f = buildForecast(env, ids, [spot], nowMs, 1);
   const metrics = ids.map((id) => METRIC_BY_ID.get(id)!);
   if (f.rows.length !== metrics.length) return null;
@@ -46,7 +53,7 @@ export function bestToday(env: MetricEnv, activity: Activity, spot: Spot, nowMs:
  * scaled to 0..1 (null where nothing votes). For ribbons and strips; one scorer, so they agree with the button.
  */
 export function hourlyScores(env: MetricEnv, activity: Activity, spot: Spot, dayStartMs: number): { t: number; score: number | null }[] | null {
-  const ids = BEST_METRICS[activity];
+  const ids = votersFor(activity, spot);
   const f = buildForecast(env, ids, [spot], dayStartMs, 1);
   const metrics = ids.map((id) => METRIC_BY_ID.get(id)!);
   if (f.rows.length !== metrics.length) return null;
