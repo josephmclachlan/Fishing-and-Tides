@@ -7,7 +7,7 @@ import { DEFAULT_SPEED_KT, leg, passageMs, readRoute, windAngle } from './route'
 const H = 3.6e6;
 const T0 = Date.UTC(2026, 10, 4, 12);
 const sea = (): SeaState => ({ hs: 0.6, tm: 7, dir: 60, swellHs: 0.6, swellT: 9, swellDir: 60, swell2Hs: NaN, swell2T: NaN, swell2Dir: NaN, windSeaHs: 0.1, windSeaT: 3, windSeaDir: 60, kind: 'forecast' });
-const wx = [{ model: 'gfs_seamless' as const, rainMmH: 0, cloudPct: 20, uv: 5, tempC: 28, gustKt: 14, capeJkg: 0, pressureHpa: 1012 }];
+const wx = [{ model: 'gfs_seamless' as const, rainMmH: 0, cloudPct: 20, uv: 5, tempC: 28, gustKt: 14, capeJkg: 0, pressureHpa: 1012, windKt: 10 }];
 // Calm until 14:00 UTC, then 25 kt.
 const env = (): MetricEnv => ({ windMs: (_a, _b, ms) => (ms >= T0 + 2 * H ? 13 : 5), windDirDeg: () => 70, sea, weather: () => wx, clarityM: () => 10, sargassumKm2: () => 0, tide: LIMON_HARMONICS, tzOffsetH: -6 });
 const A: [number, number] = [-83.0, 9.8];
