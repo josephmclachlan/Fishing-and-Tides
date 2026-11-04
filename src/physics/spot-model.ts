@@ -16,6 +16,8 @@ export interface SpotRequest {
   sea: SeaState;
   /** 0 = low water, 1 = high water (3.1 tideState().level). */
   tideLevel: number;
+  /** Size of this tide, 0..1 (see RipInput.tideSize). */
+  tideSize?: number;
   /** Wind speed (m/s) and direction it blows FROM, if known. */
   wind?: { speedMs: number; fromDeg: number };
   knownChannel?: boolean;
@@ -72,6 +74,7 @@ export function createSpotModel(depth: DepthFn, opts: { fanStepDeg?: number; max
         angleDeg: waves.breakAngleDeg,
         slope: waves.slope,
         tideLevel: req.tideLevel,
+        tideSize: req.tideSize,
         onshoreWindMs: req.wind ? onshoreWind(req.wind.speedMs, req.wind.fromDeg, geom.normalDeg) : 0,
         knownChannel: req.knownChannel,
       });

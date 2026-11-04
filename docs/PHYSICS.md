@@ -52,7 +52,7 @@ A transparent score built on the drivers that the NWS rip current guidance, the 
 | Breaker height | 0 to 1 | smoothstep from 0.3 m to 1.8 m |
 | Period | 0.6 to 1 | smoothstep from 6 s to 13 s |
 | Approach angle | 0.4 to 1 | 0.4 + 0.6 cos² of the angle to the shore normal (oblique waves feed longshore currents instead) |
-| Tide | 0.8 to 1.2 | 1.2 at low water, 0.8 at high (3.1 tide state) |
+| Tide | 0.8 to 1.2 | 1.2 at low water, 0.8 at high (3.1 tide state) on a big tide (0.45 m range, the 90th percentile day); the swing shrinks in proportion on smaller tides, so a 0.23 m day runs 0.9 to 1.1 |
 | Onshore wind | 1 to 1.15 | smoothstep from 3 to 8 m/s onshore |
 | Known channel | 1 or 1.3 | reef gap, river mouth or structure |
 
