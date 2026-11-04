@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { alertLevel, coralChecks, coralFromTables, coralNow, nearestReef, type CoralLoaded, type ErddapTable } from './coral';
+import { ALERT_KEYS, MAX_ALERT, alertLevel, shownAlert, coralChecks, coralFromTables, coralNow, nearestReef, type CoralLoaded, type ErddapTable } from './coral';
 
 const T0 = Date.UTC(2026, 9, 30, 12), D = 864e5;
 const iso = (ms: number) => new Date(ms).toISOString().replace('.000', '');
@@ -61,5 +61,22 @@ describe('coral heat stress (CRW)', () => {
     const shifted = { ...d, days: d.days.map((t) => t - T0 + now - 3 * D), fromCache: false } as CoralLoaded;
     const out = await Promise.all(coralChecks(async () => shifted).map((c) => c.run()));
     expect(out.map((o) => o.status)).toEqual(['pass', 'pass', 'pass', 'pass', 'pass', 'pass']);
+  });
+});
+
+describe('CRW alert levels 3 to 5 (added December 2023)', () => {
+  it('maps DHW to the alert ladder once HotSpot is 1 °C or more', () => {
+    expect([0, 1, 4, 8, 12, 16, 20].map((d) => alertLevel(1.2, d))).toEqual([2, 2, 3, 4, 5, 6, 7]);
+    expect(alertLevel(0.5, 20)).toBe(1);
+    expect(alertLevel(0, 20)).toBe(0);
+  });
+  it('lifts a published alert 2 by the newest DHW, and keeps published levels up to 7', () => {
+    expect(shownAlert(4, 16.6)).toBe(6); // Cahuita, November 2023
+    expect(shownAlert(4, 9)).toBe(4);
+    expect(shownAlert(3, 16)).toBe(3); // not at alert 2 that week: leave it
+    expect(shownAlert(7, 22)).toBe(7);
+    expect(shownAlert(9, 22)).toBe(7);
+    expect(shownAlert(NaN, 22)).toBeNull();
+    expect(ALERT_KEYS).toHaveLength(MAX_ALERT + 1);
   });
 });

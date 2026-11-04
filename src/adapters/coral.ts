@@ -11,7 +11,7 @@ import { cachedFetch, type CacheDeps } from './cache';
 import { dataAge } from './data-age';
 import { FORECAST_DIR } from './series';
 import { freshness, inRange, type Check } from '../verify/types';
-import { coralNow, lastIndex, type CoralData } from './coral-parse';
+import { MAX_ALERT, coralNow, lastIndex, type CoralData } from './coral-parse';
 
 export * from './coral-parse';
 
@@ -55,7 +55,7 @@ export function coralChecks(load: () => Promise<CoralLoaded>): Check[] {
       const d = await data();
       const missing = d.reefs.filter((r) => lastIndex(r.baa) < 0).map((r) => r.id);
       if (missing.length) return { status: 'warn', detail: `no alert level at ${missing.join(', ')}` };
-      return inRange(await all('baa'), 0, 4, '');
+      return inRange(await all('baa'), 0, MAX_ALERT, '');
     } },
   ];
 }

@@ -194,7 +194,7 @@ Checks: manifest, relay age (12 h cadence), newest map under 3 days (red past 6)
 
 ## Coral heat stress (PLAN 7.30)
 
-NOAA Coral Reef Watch (CRW) is the standard bleaching warning. DHW (degree heating weeks) adds up how far the sea has sat at least 1 °C above its warmest normal month over the last 12 weeks: 4 °C-weeks means significant bleaching is likely, 8 means severe bleaching and deaths. The alert level (0 none, 1 watch, 2 warning, 3 alert 1, 4 alert 2) is CRW's own 7-day maximum. `alertLevel(hotspot, dhw)` gives the same level for a single day.
+NOAA Coral Reef Watch (CRW) is the standard bleaching warning. DHW (degree heating weeks) adds up how far the sea has sat at least 1 °C above its warmest normal month over the last 12 weeks: 4 °C-weeks means significant bleaching is likely, 8 means severe bleaching and deaths. The alert level (0 none, 1 watch, 2 warning, 3 to 7 alert 1 to alert 5) is CRW's own 7-day maximum; CRW added alert 3, 4 and 5 (DHW 12, 16 and 20: multi-species mortality, over 50% and over 80% of corals) in December 2023. `alertLevel(hotspot, dhw)` gives the same level for a single day, and `shownAlert` lifts a published alert 2 by the newest DHW in case the ERDDAP product still stops at 4.
 
 The 5 km pixels are coarse against these fringing reefs, and CRW masks pixels that touch land, so each reef reads the nearest sea pixel (within ~10 km). Read it as the water just off the reef. The ERDDAP history goes back daily to 25 March 1985 (peaks at the Cahuita pixel: 16.6 in Nov 2023, 15.4 in Jul 2024). Query with index ranges (`last-83:1:last`); date ranges over a box time out upstream.
 
