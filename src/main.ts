@@ -235,7 +235,7 @@ const surfBreaks = mountSurfBreaks(map);
 const surfHud = mountSurfHud(hud, map, (name) => spotPhysics?.byName(name)?.surf);
 // BOAT verdict inputs besides wind and sea (PLAN 7.23); filled in once weather, storms and lightning are declared below.
 let boatSafety: () => VerdictSafety = () => ({});
-mountSeaStateHud(hud, conditionsAt, seaHere, { vessel: settings.vessel, safety: () => boatSafety() });
+mountSeaStateHud(hud, conditionsAt, seaHere, { vessel: settings.vessel, safety: () => boatSafety(), current: () => { const c = map.getCenter(); return currentVecAt(c.lng, c.lat, time.validMs()); } });
 // Weather and active tropical storms (PLAN 7.3, 7.5): live feeds, rows stay -- until they load.
 weatherHud = mountWeatherHud(hud, { validMs: () => time.validMs() });
 time.subscribe(() => weatherHud?.refresh());
@@ -360,6 +360,7 @@ const metricEnv = (): MetricEnv => ({
     const v = windVecAt(lng, lat, ms);
     return v ? fromDeg(...v) : null;
   },
+  currentVec: currentVecAt,
   currentMs: (lng, lat, ms) => {
     const v = currentVecAt(lng, lat, ms);
     return v ? Math.hypot(...v) : null;

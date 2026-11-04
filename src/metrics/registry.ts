@@ -12,7 +12,7 @@ import { predict, type Harmonics } from '../physics/tide';
 import type { WeatherNow } from '../adapters/weather';
 import { biteWeather, pressureChange } from '../weather';
 import type { SeaState } from '../adapters/waves';
-import { seaState } from '../physics/sea-state';
+import { seaState, withCurrent } from '../physics/sea-state';
 import { feedPartitions } from '../sea-partitions';
 import { squallLevel } from '../weather';
 
@@ -26,6 +26,8 @@ export interface MetricEnv {
   windDirDeg?(lng: number, lat: number, ms: number): number | null;
   /** Surface current speed, m/s, from the currents feed (optional). */
   currentMs?(lng: number, lat: number, ms: number): number | null;
+  /** Surface current [east, north] m/s; with it SEA COMFORT includes wind against current (optional). */
+  currentVec?(lng: number, lat: number, ms: number): readonly [number, number] | null;
   sea(lng: number, lat: number, ms: number): SeaState | null;
   /** Every weather model's reading for the hour containing `ms`. */
   weather(ms: number): WeatherNow[];
@@ -78,7 +80,7 @@ const weatherSummary = (now: WeatherNow[]) => ({
 
 export const METRICS: readonly Metric[] = [
   // Sea comfort for a boat (PLAN 6.6): wind sea + swells, 0 worst to 100 flat. Null where the forecast has no wave split.
-  { id: 'comfort', group: 'waves', unit: '/100', decimals: 0, better: 'high', agg: 'mean', at: (a) => { const p = feedPartitions(a.env.sea(a.lng, a.lat, a.ms)); return p ? seaState(p).score : null; }, tone: (v) => (v >= 75 ? 'green' : v >= 50 ? 'amber' : 'red') },
+  { id: 'comfort', group: 'waves', unit: '/100', decimals: 0, better: 'high', agg: 'mean', at: (a) => { const p = feedPartitions(a.env.sea(a.lng, a.lat, a.ms)); if (!p) return null; const c = a.env.currentVec?.(a.lng, a.lat, a.ms); return seaState(c ? withCurrent(p, { u: c[0], v: c[1] }) : p).score; }, tone: (v) => (v >= 75 ? 'green' : v >= 50 ? 'amber' : 'red') },
   // Squall level of the hour: 0 none, 1 watch, 2 likely (CAPE with gusts or heavy rain, weather.ts squallLevel).
   { id: 'squall', group: 'weather', unit: '0-2', decimals: 0, better: 'low', agg: 'max', at: (a) => { const now = a.env.weather(a.ms); return now.length ? SQUALL_LEVEL[squallLevel(weatherSummary(now))] : null; }, tone: (v) => (v >= 2 ? 'red' : v >= 1 ? 'amber' : 'green') },
   { id: 'wdir', group: 'weather', unit: '°', decimals: 0, better: null, agg: 'mean', at: (a) => a.env.windDirDeg?.(a.lng, a.lat, a.ms) ?? null, tone: () => 'none' },
