@@ -14,6 +14,7 @@ function cssColour(name: string, fallback: string) {
 }
 
 export function mountBoatLayer(map: Map, store: BoatStore, position: () => [number, number] | null) {
+  let routeLine: [number, number][] = [];
   const amber = cssColour('--amber', '#ffb000');
   const green = cssColour('--green', '#39ff7a');
   const empty: FeatureCollection = { type: 'FeatureCollection', features: [] };
@@ -40,6 +41,7 @@ export function mountBoatLayer(map: Map, store: BoatStore, position: () => [numb
     (map.getSource('bt-track') as GeoJSONSource | undefined)?.setData(d.track);
     (map.getSource('bt-pins') as GeoJSONSource | undefined)?.setData(d.pins);
     (map.getSource('bt-pos') as GeoJSONSource | undefined)?.setData(d.pos);
+    (map.getSource('bt-route') as GeoJSONSource | undefined)?.setData({ type: 'FeatureCollection', features: routeLine.length > 1 ? [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: routeLine } }] : [] });
   };
   const add = () => {
     if (map.getSource('bt-track')) return;
@@ -47,6 +49,8 @@ export function mountBoatLayer(map: Map, store: BoatStore, position: () => [numb
     map.addSource('bt-track', { type: 'geojson', data: empty });
     map.addSource('bt-pins', { type: 'geojson', data: empty });
     map.addSource('bt-pos', { type: 'geojson', data: empty });
+    map.addSource('bt-route', { type: 'geojson', data: empty });
+    map.addLayer({ id: 'bt-route', type: 'line', source: 'bt-route', paint: { 'line-color': green, 'line-width': 2, 'line-dasharray': [3, 2], 'line-opacity': 0.9 } });
     map.addLayer({ id: 'bt-track', type: 'line', source: 'bt-track', paint: { 'line-color': amber, 'line-width': 2.5, 'line-opacity': 0.95 }, layout: { 'line-join': 'round' } });
     map.addLayer({ id: 'bt-pins', type: 'circle', source: 'bt-pins', paint: { 'circle-radius': 6, 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': ['match', ['get', 'kind'], 'catch', green, amber], 'circle-stroke-width': 2 } });
     map.addLayer({
@@ -65,5 +69,12 @@ export function mountBoatLayer(map: Map, store: BoatStore, position: () => [numb
     if (!queued) (queued = true), requestAnimationFrame(refresh);
   };
   store.subscribe(schedule);
-  return { refresh: schedule };
+  return {
+    refresh: schedule,
+    /** The planned route line (PLAN 7.23 item 8); an empty list clears it. */
+    setRoute(points: [number, number][]) {
+      routeLine = points;
+      schedule();
+    },
+  };
 }
