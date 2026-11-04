@@ -18,7 +18,7 @@ The four weights sum to 1. They start from hand-written rules and are fitted to 
 
 Species: tarpon, snook, jack, snapper, barracuda (`src/fishing/species.ts`).
 
-**What this is not.** The depth ranges, mouth reach and seasons are angling rules of thumb written by hand, and the weights are those rules updated by a few dozen records (below), not checked with local guides. Rips, water clarity and temperature are not in the score yet (tide, light, solunar and weather are in the BITE score below). The score is not a catch forecast. Treat it as a way to pick where to look, and check closed seasons and protected areas (PROTECTED layer, PLAN 6.8) before fishing.
+**What this is not.** The depth ranges, mouth reach and seasons are angling rules of thumb written by hand, and the weights are those rules updated by a few dozen records (below), not checked with local guides. Rips are not in the score. Tide, light, solunar, weather, clarity, temperature, chlorophyll and sargassum are in the BITE score and BEST SPOTS below, not in the heat. The score is not a catch forecast. Treat it as a way to pick where to look, and check closed seasons and protected areas (PROTECTED layer, PLAN 6.8) before fishing.
 
 ## Fitted habitat weights (PLAN 4.4)
 
@@ -63,7 +63,7 @@ Not in yet: offshore fronts and FAD positions (no open data source found; fronts
 
 **BITE** (`src/fishing/bite.ts`) says how good the timing is at the reticle for the slider time:
 
-`timing = 0.40 tide + 0.35 light + 0.15 solunar + 0.10 calm`, `bite = timing x weather x safety x (0.4 + 0.6 x habitat)`
+`timing = 0.40 tide + 0.35 light + 0.15 solunar + 0.10 calm`, `bite = timing x weather x safety x water x (0.4 + 0.6 x habitat)`
 
 - tide: current flow relative to the fastest within 13 h either side (floor 0.3 at slack). Fish feed on moving water.
 - light: sun -6 to +6 degrees (dawn, dusk) 1.0; to 20 degrees 0.8; night 0.65; midday 0.45. In daylight, cloud above 40% lifts it toward 1 by up to 0.4 of the gap (full at 90% cloud): overcast stretches the low-light bite.
@@ -71,4 +71,13 @@ Not in yet: offshore fronts and FAD positions (no open data source found; fronts
 - calm and weather: wind above 5 m/s and waves above 1 m pull both down; rain takes up to 0.2 more, starting at 2 mm/h and in full from 10 mm/h (mean of the three weather models).
 - safety: lightning within 25 km in the last 15 minutes (only for the hour around now) x 0.1; squall HIGH x 0.25, squall WATCH x 0.7 (`src/weather.ts` squallLevel).
 
-All weights are hand-written rules of thumb, not checked against catches. BEST TIMES is the same score across the day in 10-minute steps, with each hour's forecast wind, waves, rain, cloud and squall risk, and the three best runs listed. The WATCH tracker's BITE metric uses the same weather. Water temperature, clarity and chlorophyll are not in yet; the feature x input table and plan are in `docs/SYNC.md` (PLAN 7.11).
+All weights are hand-written rules of thumb, not checked against catches. BEST TIMES is the same score across the day in 10-minute steps, with each hour's forecast wind, waves, rain, cloud and squall risk, and the three best runs listed. The WATCH tracker's BITE metric uses the same weather. The feature x input table is in `docs/SYNC.md` (PLAN 7.11).
+
+**Water** (`src/fishing/water.ts`, per species in `species.ts`): does the water suit the target fish?
+
+- visibility from the CLARITY forecast, fit to the species' range with a floor of 0.3 outside it. Snook (0.5 to 2.5 m) and tarpon (0.5 to 3 m) hunt stained river-mouth water; jack 1 to 6 m; snapper (3 to 15 m) and barracuda (4 to 20 m) want it clear.
+- sea temperature from the satellite map, floor 0.5: best 24 to 30 °C (tarpon 26 to 30, snapper 24 to 29). This coast sits at 27 to 30 °C most of the year, so it rarely moves the score inshore.
+- chlorophyll as a bait sign: 0.7 in clear blue water (0.1 mg/m³ or less), 1 from 0.3 to 3, easing to 0.85 by 10.
+- `water = 0.6 vis + 0.2 temp + 0.2 chl` over the terms that are known; `factor = (0.6 + 0.4 x water) x sargassum`, where sargassum is 0.85 MODERATE and 0.6 HIGH at the nearest beach within 8 km. Unknown water counts as 1.
+
+The water is read once at the slider time and holds for the BEST TIMES day (it changes over days, not hours). **BEST SPOTS** takes the 15 best habitat cells near the reticle and re-ranks them by habitat x water there, so the list can change from day to day; the reasons add the water's (TOO MURKY, TOO CLEAR, WATER TEMP OFF, SARGASSUM). The amber heat stays habitat only (structure and season). The WATCH tracker's BITE metric has no species, so it has no water term.

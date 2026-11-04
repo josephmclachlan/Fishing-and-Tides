@@ -390,7 +390,7 @@ export const es: Dict = {
   'fish.spots': 'MEJORES PUNTOS',
   'fish.nospots': 'NINGUNO CERCA PARA ESTE ALCANCE',
   'fish.spot.line': '{score}% · {depth} M · {km} KM',
-  'fish.note': 'REGLA PRÁCTICA, NO UN PRONÓSTICO DE CAPTURA. LO SOLUNAR ES FOLCLOR. TEMP. DEL AGUA Y CLARIDAD AÚN NO',
+  'fish.note': 'REGLA PRÁCTICA, NO UN PRONÓSTICO DE CAPTURA. LO SOLUNAR ES FOLCLOR',
   'fish.why.mouth': 'DESEMBOCADURA',
   'fish.why.reef': 'ARRECIFE',
   'fish.why.drop': 'DECLIVE',
@@ -409,6 +409,11 @@ export const es: Dict = {
   'bite.r.overcast': 'NUBLADO',
   'bite.r.squall': 'RIESGO DE TURBONADA',
   'bite.r.lightning': 'RAYOS CERCA',
+  'bite.r.murky': 'MUY TURBIA',
+  'bite.r.clearwater': 'MUY CLARA',
+  'bite.r.temp': 'TEMP. DEL AGUA MAL',
+  'bite.r.sargassum': 'SARGAZO',
+  'bite.r.goodwater': 'BUEN AGUA',
 
   // Fishing rules card (PLAN 6.8). Advisory text: SINAC and INCOPESCA are the authorities.
   'rules.open': 'REGLAS',

@@ -4,7 +4,7 @@
  * the fishing effect of the moon is angler folklore, so solunar carries the smallest weight.
  *
  *   timing = 0.40 tide + 0.35 light + 0.15 solunar + 0.10 calm      (each term 0..1)
- *   bite   = timing × weather × safety × (0.4 + 0.6 × habitat)
+ *   bite   = timing × weather × safety × water × (0.4 + 0.6 × habitat)
  *
  * tide    fish feed on moving water: |dh/dt| as a share of the day's fastest flow, floor 0.3 at slack.
  * light   dawn and dusk best, golden hour next, night fair (snook and tarpon feed in the dark), midday weakest.
@@ -16,9 +16,10 @@
  *         counts from 2 mm/h and in full from 10 mm/h (weather.ts HEAVY_RAIN_MM_H).
  * safety  1, or a cap for conditions nobody should fish in: lightning within 25 km in the last
  *         15 min × 0.1, squall HIGH × 0.25, squall WATCH × 0.7 (weather.ts squallLevel).
- * Water temperature, clarity and chlorophyll are not in yet (PLAN 7.11, docs/SYNC.md).
+ * water   the species' water factor (fishing/water.ts): clarity, temperature, chlorophyll and sargassum, 0.36..1; 1 if unknown.
  */
 import { predict, type Harmonics } from '../physics/tide';
+import type { WaterReason, WaterTerm } from './water';
 import { daySky, localDayStart, sunAltitude, type DaySky } from '../physics/astro';
 
 const HOUR = 3.6e6;
@@ -44,6 +45,8 @@ export interface BiteInputs {
   squall?: 'none' | 'watch' | 'high';
   /** A lightning strike close by right now (lightning.ts alert distance and age). */
   lightning?: boolean;
+  /** The species' water factor at the place (fishing/water.ts waterTerm); omit when unknown. */
+  water?: WaterTerm | null;
   /** Habitat score 0..1 at the place; omit for pure timing. */
   habitat?: number | null;
   /** Costa Rica offset, h, to find the local day. */
@@ -68,7 +71,7 @@ export interface BiteTerms {
   reasons: BiteReason[];
 }
 
-export type BiteReason = 'tide' | 'dawn' | 'dusk' | 'golden' | 'night' | 'major' | 'minor' | 'rough' | 'wind' | 'rain' | 'slack' | 'midday' | 'overcast' | 'squall' | 'lightning';
+export type BiteReason = 'tide' | 'dawn' | 'dusk' | 'golden' | 'night' | 'major' | 'minor' | 'rough' | 'wind' | 'rain' | 'slack' | 'midday' | 'overcast' | 'squall' | 'lightning' | WaterReason;
 
 /** Tide term: current flow relative to the fastest in ±13 h, with a floor so slack is weak, not zero. */
 export function tideTerm(h: Harmonics, tMs: number): { term: number; moving: boolean } {
@@ -137,17 +140,19 @@ export function bite(i: BiteInputs): BiteTerms {
   const safety = safetyTerm(i.lightning, i.squall);
   const timing = 0.4 * tide.term + 0.35 * lightT + 0.15 * sol.term + 0.1 * wx.calm;
   const hab = i.habitat == null ? 1 : clamp01(i.habitat);
-  const score = timing * wx.weather * safety * (0.4 + 0.6 * hab);
+  const score = timing * wx.weather * safety * (i.water?.factor ?? 1) * (0.4 + 0.6 * hab);
   const reasons: BiteReason[] = [];
   if (i.lightning) reasons.push('lightning');
   else if (i.squall && i.squall !== 'none') reasons.push('squall');
   if (wx.rough) reasons.push('rough');
   if (wx.wind) reasons.push('wind');
   if (rain >= 0.5) reasons.push('rain');
+  for (const w of i.water?.reasons ?? []) if (w !== 'goodwater') reasons.push(w);
   if (light.why === 'dawn' || light.why === 'dusk' || light.why === 'golden') reasons.push(light.why);
   if (lift >= 0.15) reasons.push('overcast');
   if (tide.moving) reasons.push('tide');
   else if (tide.term < 0.5) reasons.push('slack');
+  if (i.water?.reasons.includes('goodwater')) reasons.push('goodwater');
   if (sol.kind) reasons.push(sol.kind);
   if ((light.why === 'midday' && lift < 0.15) || light.why === 'night') reasons.push(light.why);
   return { tide: tide.term, light: lightT, solunar: sol.term, calm: wx.calm, weather: wx.weather, safety, timing, bite: Math.round(clamp01(score) * 100), reasons: reasons.slice(0, 3) };
