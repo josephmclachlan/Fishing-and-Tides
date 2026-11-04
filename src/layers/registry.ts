@@ -58,11 +58,12 @@ export const ACTIVITIES: readonly Activity[] = [
 ];
 
 /**
- * What the CORAL overlay (PLAN 7.31) switches on: reef zones, the sediment plume (clarity), sargassum,
- * sea temperature, depth, protected zones and the weather warnings. CORAL is not an activity: it is
- * a separate switch that saves the current layers and puts them back when it is turned off.
+ * What the CORAL overlay (PLAN 7.31) switches on: the reefs, the protected zones and lightning (dots only in a storm), nothing else, so the reef
+ * outlines read clearly (persona review J10: six more layers turned the map into overlapping tints). Clarity,
+ * sargassum and sea temperature stay one tap away in LAYERS. CORAL is not an activity: it is a separate switch
+ * that saves the current layers and puts them back when it is turned off.
  */
-export const CORAL_VIEW: readonly LayerId[] = ['reefs', 'clarity', 'sargassum', 'sst', 'depth', 'zones', 'lightning', 'weather'];
+export const CORAL_VIEW: readonly LayerId[] = ['reefs', 'zones', 'lightning'];
 
 export interface LayerImpl {
   /** Called with the current state on register and again on every change. */

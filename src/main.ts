@@ -51,7 +51,7 @@ import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
 import { mountSounds } from './sounds';
 import { mountSettingsUi } from './settings-ui';
-import { mountIntro } from './intro';
+import { introSeen, mountIntro } from './intro';
 import { mountMapExplain } from './map-explain';
 import { mountHere } from './here-card';
 import { mountSettingsPanel } from './settings-panel';
@@ -294,7 +294,15 @@ const loadGauge = () =>
     .then((d) => ((gauge = d.readings), corrections.setTide(tideFix(d.readings, Date.now())), tideHud?.refresh(), spotPage.refresh(), liveObs?.refresh()))
     .catch((err) => console.warn('tide gauge unavailable', err));
 // The lock-on effect plays only for a picked target, never on scroll/pinch zoom.
-const enhancer = createEnhancer(map, createLockFx(map, hud), settings.enhance);
+// On a first visit the fly-to is the plain smooth journey: the ENHANCE pixel effect read as a glitch to newcomers
+// (persona review J10). It plays from the next visit on, or as soon as the user sets ENHANCE themselves.
+let firstVisit = !introSeen(safeStorage());
+let enhanceWas = settings.enhance();
+settings.subscribe(() => {
+  if (settings.enhance() !== enhanceWas) firstVisit = false;
+  enhanceWas = settings.enhance();
+});
+const enhancer = createEnhancer(map, createLockFx(map, hud), () => settings.enhance() && !firstVisit);
 // Phone: panels are drawers, closed until tapped; wide screens start with the LAYERS drawer open.
 const sheets = createSheets(window.matchMedia(PHONE_QUERY).matches ? null : 'layers');
 mountSeek(hud, (t) => enhancer.go(t), settings, sheets);
@@ -305,7 +313,7 @@ mountLayerNotes(hud, map, layers, () => (satellite ? baseConditions().waterTempC
 mountSettingsUi(hud, settings);
 mountIntro(hud, safeStorage());
 // Which moving lines are which, while two or more are on (clarity review CL5).
-mountMotionKey(hud, layers, () => sheets.open('layers'));
+mountMotionKey(hud, layers, () => sheets.open('layers'), map);
 mountSounds(document, settings.sound);
 // CORAL overlay (PLAN 7.31): its own switch in LAYERS, apart from the activities; reef heat stress marks.
 const coralMode = createCoralMode(layers, safeStorage());
