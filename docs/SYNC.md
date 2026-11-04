@@ -64,7 +64,7 @@ Ranked by value for effort.
 | Temperature and chlorophyll fronts (done, PLAN 7.17) | Gradients of the SST and chl we already load | Bait and pelagics (mahi, wahoo, sailfish) gather on fronts; unlocks offshore boat scoring | Medium |
 | Sea level from the live gauge | IOC Limón gauge, already loaded | Real water level over flats and reef includes surge the harmonics miss | Low |
 | Moon light at night | Astro, already computed | Bright nights change snook and jack night feeding | Very low |
-| Fishing pressure (done, PLAN 7.19) | Global Fishing Watch | Where boats work offshore; FISHING BOATS layer | Free `GFW_TOKEN` secret (set) |
+| Fishing pressure (removed, PLAN 7.19) | Global Fishing Watch | Returned no AIS fishing in the region for a year, so the layer was taken out | — |
 | Mixed-layer depth (done, PLAN 7.18) | Copernicus Marine (account exists) | How deep offshore fish sit; feeds BOAT › OFFSHORE FISH | Medium |
 
 ## Other features that miss newer data (for later)

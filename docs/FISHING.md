@@ -73,7 +73,7 @@ The BOAT tab opens a drawer (a sheet on phones, see `src/sheets.ts`). It works w
 
 **Verify checks** (`src/fishing/checks.ts`): OBIS and GBIF reachable, record file fresh (a 90-day cadence), schema, and records inside the box with believable years. They are exported for the daily Action (PLAN 2.8) and SYSTEM CHECK (2.9) to pick up.
 
-**Global Fishing Watch** (PLAN 7.19). The data build fetches a year of apparent fishing hours at 0.1° over `EFFORT_BOX` from the 4Wings report API, with the token in the `GFW_TOKEN` repo secret (non-commercial use, CC BY-NC 4.0). The **FISHING BOATS** layer (USE group, on in the FISH preset) shades each cell amber, firmer for the busiest third. Only boats with AIS show, so this is the industrial offshore fleet (longliners, seiners), not the local pangas. It is shown, not scored: busy water means fish, but also boats competing for them.
+**Global Fishing Watch** (PLAN 7.19, removed). A FISHING BOATS layer from GFW's AIS fishing effort was built, but GFW logged no AIS fishing over the region for the past year (little industrial fishing here, and pangas carry no AIS), so the layer and its feed were taken out.
 
 ## Reading the map and the BITE score (PLAN 4.8)
 

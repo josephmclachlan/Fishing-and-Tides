@@ -18,7 +18,6 @@ import { buildWaves } from './forecast/waves.ts';
 import { buildStorms } from './forecast/storms.ts';
 import { buildCurrents } from './forecast/currents.ts';
 import { buildMetar } from './forecast/metar.ts';
-import { buildEffort } from './forecast/effort.ts';
 import { buildCoral } from './forecast/coral.ts';
 import { buildChl, buildChlPass, buildKd490, buildMld, buildSargassum, buildScatPass, buildSst, buildSstPass } from './forecast/satellite.ts';
 
@@ -48,9 +47,6 @@ const FEEDS: Record<string, { build: (dir: string) => Promise<string>; refreshH:
   'scat-pass': { build: buildScatPass, refreshH: 6 },
   // Mixed-layer depth (PLAN 7.18), Copernicus Marine global model, daily; same account and toolbox.
   mld: { build: buildMld, refreshH: 24 },
-  // Fishing effort (PLAN 7.19), Global Fishing Watch, last year; needs the GFW_TOKEN secret. Slow-moving, so daily.
-  // An empty copy (no fishing found, or an unread response) is retried every run rather than kept for a day.
-  effort: { build: buildEffort, refreshH: 24, stale: (prev) => !/ [1-9]\d* cells with fishing/.test(prev.sources?.[0]?.name ?? '') },
   // Sargassum detections from the daily USF AFAI map (PLAN 7.1), NOAA AOML ERDDAP (no CORS, so relayed).
   sargassum: { build: buildSargassum, refreshH: 12 },
   // Coral bleaching heat stress (PLAN 7.23), NOAA Coral Reef Watch daily 5 km via CoastWatch ERDDAP (no CORS, so relayed).
