@@ -152,7 +152,10 @@ export function clarityGrid(c: ClarityContext): ClarityGrid {
   return { cols, rows, lon0: w, lat0: n, step: CLARITY_STEP, vis };
 }
 
-/** Fill opacity per level: muddier water shows stronger. */
+/**
+ * Fill opacity per level: muddier water shows stronger. The whole layer fades to about half from zoom 11 to 13: at a beach
+ * the cell covers the whole screen, and a full-strength red wash hid the reef and the shore (clarity review CL18).
+ */
 const ALPHA: Record<ClarityLevel, number> = { GOOD: 0.07, FAIR: 0.26, POOR: 0.42 };
 
 /**
@@ -204,7 +207,7 @@ export function mountClarity(map: Map): ClarityLayer {
       map.addSource('cl', { type: 'image', url, coordinates: coords });
       // Under the contours and labels, like the other area fills.
       const below = map.getLayer('sf-contour-deep') ? 'sf-contour-deep' : map.getLayer('grat-macro') ? 'grat-macro' : undefined;
-      map.addLayer({ id: 'cl-fill', type: 'raster', source: 'cl', minzoom: 7, paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0, 8, 1], 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, below);
+      map.addLayer({ id: 'cl-fill', type: 'raster', source: 'cl', minzoom: 7, paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0, 8, 1, 11, 1, 13, 0.45], 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, below);
     }
   };
   // A redraw costs a few tens of ms (the fine coastline cut and the PNG), so while the slider is
