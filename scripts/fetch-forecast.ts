@@ -19,6 +19,7 @@ import { buildStorms } from './forecast/storms.ts';
 import { buildCurrents } from './forecast/currents.ts';
 import { buildMetar } from './forecast/metar.ts';
 import { buildEffort } from './forecast/effort.ts';
+import { buildCoral } from './forecast/coral.ts';
 import { buildChl, buildChlPass, buildKd490, buildMld, buildSargassum, buildScatPass, buildSst, buildSstPass } from './forecast/satellite.ts';
 
 const OUT = 'public/data/forecast';
@@ -27,7 +28,8 @@ const OUT = 'public/data/forecast';
  * a feed whose published copy is younger than this is copied forward instead of refetched,
  * which keeps the build well under Open-Meteo's daily call limit (docs/DATA.md).
  */
-const FEEDS: Record<string, { build: (dir: string) => Promise<string>; refreshH: number; series?: string[] }> = {
+/** `stale`: also refetch a published copy younger than refreshH when this says its content is unusable. */
+const FEEDS: Record<string, { build: (dir: string) => Promise<string>; refreshH: number; series?: string[]; stale?: (prev: { sources?: { name?: string }[] }) => boolean }> = {
   wind: { build: buildWind, refreshH: 6 },
   waves: { build: buildWaves, refreshH: 12 },
   // NHC advisories come every 6 h in season and it sends no CORS headers, so the build relays them.
@@ -47,9 +49,12 @@ const FEEDS: Record<string, { build: (dir: string) => Promise<string>; refreshH:
   // Mixed-layer depth (PLAN 7.18), Copernicus Marine global model, daily; same account and toolbox.
   mld: { build: buildMld, refreshH: 24 },
   // Fishing effort (PLAN 7.19), Global Fishing Watch, last year; needs the GFW_TOKEN secret. Slow-moving, so daily.
-  effort: { build: buildEffort, refreshH: 24 },
+  // An empty copy (no fishing found, or an unread response) is retried every run rather than kept for a day.
+  effort: { build: buildEffort, refreshH: 24, stale: (prev) => !/ [1-9]\d* cells with fishing/.test(prev.sources?.[0]?.name ?? '') },
   // Sargassum detections from the daily USF AFAI map (PLAN 7.1), NOAA AOML ERDDAP (no CORS, so relayed).
   sargassum: { build: buildSargassum, refreshH: 12 },
+  // Coral bleaching heat stress (PLAN 7.23), NOAA Coral Reef Watch daily 5 km via CoastWatch ERDDAP (no CORS, so relayed).
+  coral: { build: buildCoral, refreshH: 12 },
 };
 
 const wanted = process.argv.slice(2).filter((a) => !a.startsWith('-'));
@@ -80,7 +85,7 @@ for (const name of names) {
     try {
       const prev = await (await get(`${fallback}${name}.json`, {}, 1)).json();
       const ageH = (Date.now() - Date.parse(prev.fetchedAt)) / 3.6e6;
-      if (ageH < feed.refreshH - 0.5) {
+      if (ageH < feed.refreshH - 0.5 && !feed.stale?.(prev)) {
         console.log(`${name}: published copy is ${ageH.toFixed(1)} h old, under ${feed.refreshH} h; kept ${await keepPrevious(name)}`);
         continue;
       }
