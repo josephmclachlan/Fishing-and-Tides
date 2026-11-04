@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sizeFactor, surfBand, surfQuality, windFactor, windowFactor, type SurfInput } from './surf-quality';
+import { cleanFactor, sizeFactor, surfBand, surfQuality, windFactor, windowFactor, type SurfInput } from './surf-quality';
 
 const reef: SurfInput['brk'] = { type: 'reef', facing: 350, swellFrom: [45, 135] };
 const base: SurfInput = { brk: reef, Hb: 1.8, Tp: 13, swellFromDeg: 60, windMs: 3, windFromDeg: 170 };
@@ -48,5 +48,16 @@ describe('surf quality', () => {
 
   it('bands', () => {
     expect([surfBand(2, 1), surfBand(4, 1), surfBand(8, 1), surfBand(9, 1)]).toEqual(['POOR', 'FAIR', 'GOOD', 'EPIC']);
+  });
+
+  it('wind-sea and a crossing second swell take points off; an aligned one does not', () => {
+    const main = { Hs: 1.5, Tp: 12, fromDeg: 60 };
+    expect(cleanFactor(main)).toBe(1);
+    expect(cleanFactor(main, null, 1.5)).toBeLessThan(0.7);
+    expect(cleanFactor(main, { Hs: 1.2, Tp: 8, fromDeg: 150 })).toBeLessThan(0.85);
+    expect(cleanFactor(main, { Hs: 1.2, Tp: 8, fromDeg: 65 })).toBeCloseTo(1, 5);
+    const q = surfQuality({ ...base, swellHs: 1.5, windSeaHs: 1.5 });
+    expect(q.factors.clean).toBeLessThan(0.7);
+    expect(q.score).toBeLessThan(surfQuality(base).score);
   });
 });

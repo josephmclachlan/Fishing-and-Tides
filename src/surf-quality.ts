@@ -2,7 +2,7 @@
  * Surf break quality (PLAN 6.3). Pure. Scores a catalog break (6.4) against the forecast,
  * using our own refraction and breaking (3.3, 3.4) at the break:
  *
- *   Q = 10 · size · period · window · wind        (0 … 10)
+ *   Q = 10 · size · period · window · clean · wind       (0 … 10)
  *
  *   size    breaker height Hb against the break type's working range (trapezoid):
  *           beach  0.4 → 0.8 … 1.8 → 2.8 m   (closes out above)
@@ -10,6 +10,8 @@
  *           point  0.5 → 0.9 … 2.5 → 3.5 m
  *   period  0.35 at 6 s → 1 at 13 s (groundswell lines up and holds shape)
  *   window  1 inside the guides' swell window (or ±60° of the facing), easing to 0.4 at 30° outside
+ *   clean   how tidy the surface is (PLAN 7.23): wind-sea and a crossing second swell share the energy
+ *           with the main swell and put chop or a second set angle on its faces (see `cleanFactor`)
  *   wind    the angle between the wind and the shore: offshore (blowing from land to sea) holds
  *           faces up; onshore chops them. 1 − 0.65·onshore(1.5→8 m/s) − 0.15·cross(4→10 m/s);
  *           strong offshore (> 10 m/s) costs a little (hard to paddle in)
@@ -37,6 +39,9 @@ export const SIZE_RANGE: Record<BreakType, [number, number, number, number]> = {
 
 export type SurfBand = 'FLAT' | 'POOR' | 'FAIR' | 'GOOD' | 'EPIC';
 
+/** A secondary wave train at the break's offshore point (waves feed partitions). */
+export interface Train { Hs: number; Tp: number; fromDeg: number }
+
 export interface SurfInput {
   brk: Pick<SurfBreak, 'type' | 'facing' | 'swellFrom'>;
   /** Breaker height at the break, m (3.4). */
@@ -48,9 +53,15 @@ export interface SurfInput {
   /** Wind speed m/s and direction FROM, compass degrees. */
   windMs: number;
   windFromDeg: number;
+  /** Second swell train, when the feed has one. */
+  swell2?: Train | null;
+  /** Local wind-sea height, m, when the feed has it. */
+  windSeaHs?: number | null;
+  /** Main swell height, m (energy share base); defaults to Hs of the breaker's offshore sea. */
+  swellHs?: number | null;
 }
 
-export interface SurfFactors { size: number; period: number; window: number; wind: number }
+export interface SurfFactors { size: number; period: number; window: number; clean: number; wind: number }
 
 export interface SurfQuality {
   score: number;
@@ -90,6 +101,22 @@ export function windFactor(facing: number, windMs: number, windFromDeg: number):
   return { f: Math.max(0.1, f), kind };
 }
 
+/**
+ * Surface tidiness from the wave trains, by energy share (Hs² adds). Wind-sea above ~15% of the energy
+ * costs up to 45% (it is the chop on the faces); a second swell more than 30° off the main one costs up
+ * to 30% when it carries 10–50% of the energy (crossed sets, closeouts), nothing when it lines up.
+ * No partition data (outlook, old feed) gives 1.
+ */
+export function cleanFactor(main: Train & { Hs: number }, swell2?: Train | null, windSeaHs?: number | null): number {
+  const e1 = main.Hs * main.Hs;
+  const e2 = swell2 && swell2.Hs > 0 ? swell2.Hs * swell2.Hs : 0;
+  const ew = windSeaHs && windSeaHs > 0 ? windSeaHs * windSeaHs : 0;
+  const tot = e1 + e2 + ew;
+  if (!(tot > 0)) return 1;
+  const cross = swell2 ? smoothstep(30, 90, Math.abs(wrap(swell2.fromDeg - main.fromDeg))) : 0;
+  return 1 - 0.45 * smoothstep(0.15, 0.6, ew / tot) - 0.3 * smoothstep(0.1, 0.5, e2 / tot) * cross;
+}
+
 export function surfBand(score: number, Hb: number): SurfBand {
   if (Hb < 0.3) return 'FLAT';
   if (score < 3) return 'POOR';
@@ -104,8 +131,9 @@ export function surfQuality(inp: SurfInput): SurfQuality {
     size: sizeFactor(inp.brk.type, inp.Hb),
     period: 0.35 + 0.65 * smoothstep(6, 13, inp.Tp),
     window: windowFactor(inp.brk, inp.swellFromDeg),
+    clean: cleanFactor({ Hs: inp.swellHs ?? inp.Hb, Tp: inp.Tp, fromDeg: inp.swellFromDeg }, inp.swell2, inp.windSeaHs),
     wind: w.f,
   };
-  const score = 10 * factors.size * factors.period * factors.window * factors.wind;
+  const score = 10 * factors.size * factors.period * factors.window * factors.clean * factors.wind;
   return { score, band: surfBand(score, inp.Hb), factors, windKind: w.kind };
 }

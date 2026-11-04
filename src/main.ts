@@ -572,7 +572,15 @@ const spotSea = (pin: [number, number]) => {
   const w = seaStateAt(...pin);
   if (!w || !Number.isFinite(w.tm)) return null;
   const swellLeads = Number.isFinite(w.swellHs) && Number.isFinite(w.swellT) && w.swellHs >= (Number.isFinite(w.windSeaHs) ? w.windSeaHs : 0);
-  return { Hs: w.hs, Tp: swellLeads ? w.swellT : w.tm, fromDeg: swellLeads ? w.swellDir : w.dir };
+  const part = (hs: number, T: number, dir: number) => (Number.isFinite(hs) && Number.isFinite(T) && Number.isFinite(dir) && hs >= 0.1 ? { Hs: hs, Tp: T, fromDeg: dir } : null);
+  return {
+    Hs: w.hs,
+    Tp: swellLeads ? w.swellT : w.tm,
+    fromDeg: swellLeads ? w.swellDir : w.dir,
+    swellHs: swellLeads ? w.swellHs : w.hs,
+    swell2: part(w.swell2Hs, w.swell2T, w.swell2Dir),
+    windSeaHs: Number.isFinite(w.windSeaHs) ? w.windSeaHs : null,
+  };
 };
 let physicsQueued = false;
 const queueSpotPhysics = () => {
