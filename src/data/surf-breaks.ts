@@ -84,6 +84,17 @@ export const SURF_BREAKS: readonly SurfBreak[] = [
     sources: [{ name: 'Costa Rica Journeys', url: 'https://costaricajourneys.com/?p=4812' }],
   },
   {
+    id: 'playa-grande',
+    name: 'PLAYA GRANDE',
+    lngLat: [-82.6698, 9.6326], // snapped to the land-mask shoreline 2026-11-04; OSM has no node for this beach
+    type: 'beach',
+    shape: 'peaks',
+    facing: 15,
+    hazards: ['rip', 'shorebreak'],
+    confidence: 'check', // one guide (Mondo Surf: rips and undertow, alternative when Cocles is too big); no second source, no tide or season data
+    sources: [{ name: 'Mondo Surf', url: 'https://www.mondo.surf/surf-spot/playa-grande-2/guide/11908' }],
+  },
+  {
     id: 'playa-bonita',
     name: 'PLAYA BONITA',
     lngLat: [-83.0634, 10.0099],

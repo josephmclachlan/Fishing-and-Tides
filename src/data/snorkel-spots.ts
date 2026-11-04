@@ -37,6 +37,15 @@ export const SNORKEL_SPOTS: readonly SnorkelSpot[] = [
     ],
   },
   {
+    id: 'playa-chiquita',
+    spot: 'PLAYA CHIQUITA',
+    lngLat: [-82.711, 9.6413],
+    access: 'shore',
+    facing: 20,
+    confidence: 'check', // reef pools and coves described as calm, but no guide gives depth or best tide; unconfirmed
+    sources: [{ name: 'Only Beaches', url: 'https://onlybeaches.com/costa-rica/limon/puerto-viejo-de-talamanca/playa-chiquita-puerto-viejo-de-talamanca' }],
+  },
+  {
     id: 'punta-uva',
     spot: 'PUNTA UVA',
     lngLat: [-82.6871, 9.6432],
