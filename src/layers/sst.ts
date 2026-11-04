@@ -5,17 +5,26 @@
  * 0.01° coast nest at the coast tier. Style layer ids start with `ss-`, which the catalog's
  * 'sst' layer binds to (layers/registry.ts).
  */
-import type { Map } from 'maplibre-gl';
+import type { GeoJSONSource, Map } from 'maplibre-gl';
 import type { Feature, FeatureCollection, LineString } from 'geojson';
 import { TIER_ZOOM } from '../region';
-import { chaikin, contour } from '../physics/bathy';
+import { chaikin, clipLines, contour } from '../physics/bathy';
 import type { GridSeries } from '../adapters/pack';
 import type { SatelliteData } from '../adapters/satellite';
 
 const FONT = ['Noto Sans Regular'];
 
-/** Isotherms of the newest frame every `step` °C, smoothed, as GeoJSON lines with { c, grid }. */
-export function isotherms(s: GridSeries, step: number, grid: 'macro' | 'coast'): Feature<LineString>[] {
+/** Sea or land at a point (true = sea), e.g. the coastline mask. */
+export type WaterTest = (lng: number, lat: number) => boolean;
+/** How finely isotherms are tested against the coastline, degrees: about the fine mask's cell, and a third of the macro depth grid's. */
+const CLIP_STEP: Record<'macro' | 'coast', number> = { macro: 0.005, coast: 0.0004 };
+
+/**
+ * Isotherms of the newest frame every `step` °C, smoothed, as GeoJSON lines with { c, grid }. The
+ * satellite grid's land cells are 1 to 5 km wide and smoothing rounds corners, so a line can cut
+ * across a headland or run up the beach: with `water`, lines are cut where they cross land.
+ */
+export function isotherms(s: GridSeries, step: number, grid: 'macro' | 'coast', water?: WaterTest): Feature<LineString>[] {
   const z = s.values.sst?.[s.values.sst.length - 1];
   if (!z) return [];
   let lo = Infinity, hi = -Infinity;
@@ -27,8 +36,13 @@ export function isotherms(s: GridSeries, step: number, grid: 'macro' | 'coast'):
     const c = Math.round(k * step * 100) / 100;
     for (const raw of contour(g, c)) {
       if (raw.length < 4) continue; // single-cell blips
-      const coordinates = chaikin(raw, 2).map(([x, y]) => [Math.round(x * 1e4) / 1e4, Math.round(y * 1e4) / 1e4]);
-      out.push({ type: 'Feature', properties: { c, label: `${c.toFixed(step < 0.5 ? 2 : 1)}°`, grid }, geometry: { type: 'LineString', coordinates } });
+      const smooth = chaikin(raw, 2);
+      for (const piece of water ? clipLines([smooth], (p) => water(p[0], p[1]), CLIP_STEP[grid]) : [smooth]) {
+        if (piece.length < 2) continue;
+        // 1e-5° (~1 m): coarser rounding could nudge a clipped end back over the shore.
+        const coordinates = piece.map(([x, y]) => [Math.round(x * 1e5) / 1e5, Math.round(y * 1e5) / 1e5]);
+        out.push({ type: 'Feature', properties: { c, label: `${c.toFixed(step < 0.5 ? 2 : 1)}°`, grid }, geometry: { type: 'LineString', coordinates } });
+      }
     }
   }
   return out;
@@ -38,11 +52,14 @@ function cssColour(name: string, fallback: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
 
-export function mountSst(map: Map, d: SatelliteData) {
-  const data: FeatureCollection = {
-    type: 'FeatureCollection',
-    features: [...(d.sst ? isotherms(d.sst, 0.5, 'macro') : []), ...(d.sstCoast ? isotherms(d.sstCoast, 0.25, 'coast') : [])],
-  };
+const features = (d: SatelliteData, water?: WaterTest): FeatureCollection => ({
+  type: 'FeatureCollection',
+  features: [...(d.sst ? isotherms(d.sst, 0.5, 'macro', water) : []), ...(d.sstCoast ? isotherms(d.sstCoast, 0.25, 'coast', water) : [])],
+});
+
+/** Mounts the isotherms; `water` cuts them at the coastline, and `setWater` re-cuts them once the coastline mask loads. */
+export function mountSst(map: Map, d: SatelliteData, water?: WaterTest) {
+  let data = features(d, water);
   const amber = cssColour('--amber', '#ffb000');
   const COAST = TIER_ZOOM.COAST;
   const isGrid = (g: string) => ['==', ['get', 'grid'], g] as ['==', ['get', string], string];
@@ -61,4 +78,10 @@ export function mountSst(map: Map, d: SatelliteData) {
   };
   if (map.getLayer('grat-macro') || map.isStyleLoaded()) add();
   else map.once('style.load', add);
+  return {
+    setWater(next: WaterTest) {
+      data = features(d, next);
+      (map.getSource('ss') as GeoJSONSource | undefined)?.setData(data);
+    },
+  };
 }

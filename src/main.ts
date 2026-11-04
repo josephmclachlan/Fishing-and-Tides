@@ -142,11 +142,13 @@ const baseConditions = () => {
 };
 // Satellite SST and ocean colour (PLAN 2.4): HUD sea temperature and the WATER TEMP isotherms.
 let satellite: SatelliteData | null = null;
+let sstLayer: ReturnType<typeof mountSst> | null = null;
 fetchSatellite()
   .then((d) => {
     if (!d.sst && !d.sstCoast) return console.warn('sst: nothing published; using mock');
     satellite = d;
-    mountSst(map, d);
+    // Cut at the coastline if its mask is already here; otherwise the seafloor load re-cuts them.
+    sstLayer = mountSst(map, d, waterMask);
     refreshClarity();
   })
   .catch((err) => console.warn('satellite unavailable', err));
@@ -272,10 +274,11 @@ const flowHud = mountFlowHud(hud, map, () => flowSources.current);
 // the bottom, both from the forecast at the slider's hour. Needs the depth grid, so it starts once that loads.
 let catchmentRain: CatchmentRain | null = null;
 let clarityElevation: Grid | null = null;
+let clarityLand: Grid | null = null;
 const clarityLayer = mountClarity(map);
 const clarityCtx = (): ClarityContext | null =>
   clarityElevation && {
-    satellite, rain: catchmentRain, elevation: clarityElevation, ms: time.validMs(),
+    satellite, rain: catchmentRain, elevation: clarityElevation, land: clarityLand, ms: time.validMs(),
     seaAt: (lng, lat) => {
       const s = seaStateAt(lng, lat);
       if (!s) return null;
@@ -405,6 +408,7 @@ fetchSeafloor()
     landGrid = data.land;
     harboursHud?.refresh();
     clarityElevation = data.region;
+    clarityLand = data.land;
     refreshClarity();
     spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land }), baseConditions, () => time.validMs(), spotSea);
     spotPhysics.subscribe(() => {
@@ -435,9 +439,10 @@ fetchSeafloor()
         mountFishingHud(hud, map, layer, time, species, fishEnv);
       })
       .catch((err) => console.warn('fishing layer unavailable', err));
-    // Currents stay in the sea once the coastline mask is here.
+    // Currents, wave crests and isotherms stay in the sea once the coastline mask is here.
     waterMask = (lng, lat) => isWater(data.land, data.macro, lng, lat);
     rebuildCrests();
+    sstLayer?.setWater(waterMask);
     const current = { ...flowSources.current, water: waterMask };
     flowSources.current = current;
     flow?.setSource('current', current);

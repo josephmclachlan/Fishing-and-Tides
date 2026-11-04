@@ -10,7 +10,7 @@ import type { FeatureCollection } from 'geojson';
 import { TIER_ZOOM } from '../region';
 import { firstSymbolId } from '../map';
 import { CONTOURS_FROM } from './seafloor';
-import { buildCells, cellIndexAt, cellRing, type FishingInput, type Mouth } from '../fishing/cells';
+import { buildCells, cellGeometry, cellIndexAt, type FishingInput, type Mouth } from '../fishing/cells';
 import { baseScore, habitatScore, seasonFactor } from '../fishing/habitat';
 import { fitWeights, recordCells, type HabitatFit } from '../fishing/fit';
 import { SPECIES, speciesById, type SpeciesId } from '../fishing/species';
@@ -87,7 +87,8 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
       const properties: Record<string, number> = {};
       for (const s of SPECIES) properties[s.id] = Math.round(withEvidence(baseScore(s, c.f, fits[s.id].weights), boostAt(s.id, c.lng, c.lat)) * 100) / 100; // season applied in the paint
       properties.coast = Math.round(c.coastM);
-      return { type: 'Feature' as const, properties, geometry: { type: 'Polygon' as const, coordinates: [cellRing(c.lng, c.lat)] } };
+      // Cut at the coastline, so shore cells don't paint the beach.
+      return { type: 'Feature' as const, properties, geometry: cellGeometry(input.land, c.lng, c.lat) };
     }),
   };
   const paint = () => {
