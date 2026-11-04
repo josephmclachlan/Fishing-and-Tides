@@ -96,6 +96,11 @@ import { dataAge, describeAge } from './adapters/data-age';
 import { createNet } from './net';
 import { createPhysicsClient } from './physics/client';
 import { nearest } from './geo';
+import { mountVerdictHud } from './verdict-hud';
+import type { VerdictInputs } from './verdict';
+import { heavyRainSoon, STORM_ALERT_KM } from './weather';
+import { seaState as seaComfort } from './physics/sea-state';
+import { feedPartitions } from './sea-state-hud';
 import { createSpotPhysics, type SpotPhysics } from './spot-physics';
 import { mountRip, ripSites } from './layers/rip';
 import { SURF_BREAKS } from './data/surf-breaks';
@@ -482,7 +487,7 @@ const clarityCtx = (): ClarityContext | null =>
     },
   };
 const clarityHud = mountClarityHud(hud, map, clarityCtx);
-let diveHud: { refresh: () => void } | null = null;
+let diveHud: NonNullable<ReturnType<typeof mountDiveHud>> | null = null;
 const diveWind: [number, number] = [0, 0];
 const refreshClarity = () => {
   const c = clarityCtx();
@@ -669,6 +674,7 @@ fetchSeafloor()
     clarityElevation = data.region;
     refreshClarity();
     spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land }), baseConditions, () => time.validMs(), windExtras, spotSea);
+    spotPhysics.subscribe(() => queueVerdict());
     spotPhysics.subscribe(() => {
       ripLayer.update(spotPhysics!.all(), data.land);
       surfBreaks.update((name) => spotPhysics!.byName(name)?.surf);
@@ -787,3 +793,46 @@ fetchSeafloor()
     return mountSeafloor(map, data);
   })
   .catch((err) => console.warn('seafloor layer unavailable', err));
+
+// GO / NO-GO per activity (PLAN 7.8): the inputs at the cross-hair for the slider's hour, judged in verdict.ts.
+// Where a panel already judges something (the dive score, the BITE number, the boat verdict) it is read, not redone.
+const verdictInputs = (): VerdictInputs => {
+  const c = map.getCenter();
+  const ms = time.validMs();
+  const now = Date.now();
+  const cond = conditionsAt();
+  const parts = feedPartitions(seaHere());
+  const brk = spotPhysics?.byName(nearest([c.lng, c.lat], SURF_BREAKS)!.point.name);
+  const wx = weatherData ? biteWeather(weatherAt(weatherData, ms)) : null;
+  const storm = nearestStorm(stormList);
+  const flash = flashes.length ? nearestFlash(flashes, c.lng, c.lat, now) : null;
+  const biteNum = parseInt(hud.querySelector('#fish-bite')?.textContent ?? '', 10);
+  return {
+    lightningKm: flash && flash.km <= STRIKE_ALERT_KM ? flash.km : null,
+    squall: wx?.squall ?? null,
+    heavyRain: weatherData ? heavyRainSoon(weatherData, ms) : null,
+    stormKm: storm && storm.km <= STORM_ALERT_KM ? storm.km : null,
+    windKt: cond.windKt,
+    hsM: seaHere()?.hs ?? cond.swellHeightM,
+    comfort: parts ? seaComfort(parts).comfort : null,
+    bite: Number.isFinite(biteNum) ? biteNum : null,
+    rip: cond.ripRisk,
+    surf: brk?.surf?.band ?? null,
+    breakerM: brk?.result?.waves.breaker.Hb ?? null,
+    outing: { snorkel: diveHud?.now('snorkel') ?? null, dive: diveHud?.now('dive') ?? null },
+    band: time.band(),
+    leadH: (ms - now) / 3.6e6,
+  };
+};
+const verdictHud = mountVerdictHud(hud, verdictInputs, condGroups, () => diveHud);
+let vdQueued = false;
+/** Re-judge once per frame at most: on the slider, a map move, new spot physics (subscribed where it is built) and every 30 s. */
+function queueVerdict() {
+  if (vdQueued || !verdictHud) return;
+  vdQueued = true;
+  requestAnimationFrame(() => ((vdQueued = false), verdictHud.refresh()));
+}
+time.subscribe(queueVerdict);
+map.on('moveend', queueVerdict);
+setInterval(queueVerdict, 30_000);
+queueVerdict();
