@@ -9,7 +9,10 @@
 import { condSlot } from './cond-groups';
 import type { Map } from 'maplibre-gl';
 import { t, type Key } from './i18n';
-import { REGION } from './region';
+import { PLUME_RIVERS, RAIN_TOWNS, REGION, SPOTS } from './region';
+import { SURF_BREAKS } from './data/surf-breaks';
+import { PLACES as HARBOURS } from './data/harbours';
+import { nearestName, uniqueMarks } from './fishing/near-name';
 import type { FishingLayer, Reach } from './layers/fishing';
 import type { TimeStore } from './time';
 import { SPECIES, seasonOf, type SpeciesId } from './fishing/species';
@@ -21,6 +24,7 @@ import { LIMON_HARMONICS } from './data/tides-limon';
 import { localDayStart } from './physics/astro';
 import { clock } from './astro-hud';
 
+const esc = (x: string) => x.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]!);
 const KEY = 'ft.fishing.species';
 const REACH_KEY = 'ft.fishing.reach';
 const REACHES: readonly Reach[] = ['all', 'shore', 'boat'];
@@ -73,6 +77,7 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
       <div class="ro fish-reach"><span class="lbl">${t('fish.reach')}</span><span class="seg sm" id="fish-reach">${REACHES.map((r) => `<button type="button" class="tab" data-reach="${r}">${t(`fish.reach.${r}` as Key)}</button>`).join('')}</span></div>
       <div class="ro"><span class="lbl">${t('fish.score')}</span><span class="seg sm green" id="fish-score">--</span></div>
       <div class="ro"><span class="lbl">${t('fish.bite')}</span><span class="seg sm green" id="fish-bite">--</span></div>
+      <div class="ro fish-bite-why" hidden><span class="lbl">${t('fish.biteWhy')}</span><span class="seg sm" id="fish-bite-why"></span></div>
       <div class="ro"><span class="lbl">${t('fish.times')}</span><span class="seg sm" id="fish-times">--</span></div>
       <div class="bite-strip" id="fish-strip" aria-hidden="true"></div>
       <div class="bite-wins" id="fish-wins"></div>
@@ -106,7 +111,11 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     const water = waterTerm(sp, env.water(c.lng, c.lat, time.validMs()));
     const base = { lat: c.lat, lng: c.lng, tide: LIMON_HARMONICS, tzOffsetH: REGION.tzOffsetH, water };
     const now = bite({ ...base, ...env.at(c.lng, c.lat, time.validMs()), tMs: time.validMs(), habitat: score });
-    $('fish-bite').textContent = `${now.bite} ${why(now.reasons)}`.trim();
+    // The score out of 100 on its own, its reasons on the next line (persona review J7).
+    $('fish-bite').textContent = `${now.bite}/100`;
+    const reasons = why(now.reasons);
+    $('fish-bite-why').textContent = reasons;
+    $('fish-bite-why').parentElement!.hidden = !reasons;
     $('fish-bite').className = 'seg sm ' + (now.bite >= 60 ? 'green' : '');
 
     // The day's strip and best windows: timing plus each hour's forecast wind, waves, rain, cloud and squalls.
@@ -140,12 +149,17 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     $('fish-yours').textContent = !st ? t('fish.yours.none') : st.n < MIN_CATCHES ? t('fish.yours.few', { n: st.n }) : t('fish.yours.line', { n: st.n, bite: Math.round(st.bite), day: Math.round(st.day) });
     $('fish-yours').className = 'seg sm ' + (st && st.n >= MIN_CATCHES && st.bite > st.day ? 'green' : '');
   };
+  // Names for the unnamed spots: the nearest beach, town, break, river mouth or harbour (J5).
+  const marks = uniqueMarks(SPOTS, RAIN_TOWNS, SURF_BREAKS, PLUME_RIVERS.map((r) => ({ name: r.name, lngLat: r.mouth })), HARBOURS.filter((h) => !/APPROX/.test(h.name)));
+  // While the map flies to a tapped spot the list keeps its order and distances from where the user was.
+  let frozen: { lng: number; lat: number; n: number } | null = null;
+  let lastList: (ReturnType<FishingLayer["bestSpots"]>[number] & { water: string[] })[] | null = null;
   const spotsHtml = () => {
-    const c = map.getCenter();
+    const c = frozen ?? map.getCenter();
     // Habitat picks the candidates; the water there today (clarity, temperature, chlorophyll, sargassum) re-ranks them.
     const sp = SPECIES[i];
     const ms = time.validMs();
-    const spots = layer
+    const spots = frozen && lastList ? lastList : layer
       .bestSpots(SPOT_CANDIDATES, { lng: c.lng, lat: c.lat }, SPOT_RADIUS_KM)
       .map((s) => {
         const w = waterTerm(sp, env.water(s.lng, s.lat, ms));
@@ -153,13 +167,17 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
       })
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
+    lastList = spots;
     if (!spots.length) return `<div class="lbl note">${t('fish.nospots')}</div>`;
     return spots
       .map((s, n) => {
         const km = Math.hypot((s.lng - c.lng) * Math.cos((c.lat * Math.PI) / 180), s.lat - c.lat) * 111.32;
+        const near = nearestName(s.lng, s.lat, marks);
+        const place = near ? t(near.at ? 'fish.spot.at' : 'fish.spot.near', { name: near.name, km: near.km.toFixed(1) }) : '';
         const line = t('fish.spot.line', { score: Math.round(s.score * 100), depth: s.depthM.toFixed(0), km: km.toFixed(1) });
         const why = [...s.why.map((w) => t(`fish.why.${w}` as Key)), ...s.water.map((w) => t(`bite.r.${w}` as Key))].join(' · ');
-        return `<button type="button" class="spot" data-n="${n}" data-lng="${s.lng}" data-lat="${s.lat}"><span class="seg sm green">${n + 1}</span> <span class="lbl">${line}</span> <span class="lbl note">${why}</span></button>`;
+        const on = frozen?.n === n ? ' on' : '';
+        return `<button type="button" class="spot${on}" data-n="${n}" data-lng="${s.lng}" data-lat="${s.lat}"><span class="seg sm green">${n + 1}</span> <span class="spot-name">${esc(place)}</span> <span class="lbl">${line}</span> <span class="lbl note">${why}</span></button>`;
       })
       .join('');
   };
@@ -186,8 +204,16 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
   tabs.forEach((b) => b.addEventListener('click', () => ((reach = b.dataset.reach as Reach), apply())));
   $('fish-spots').addEventListener('click', (ev) => {
     const b = (ev.target as HTMLElement).closest<HTMLElement>('.spot');
-    if (b) map.flyTo({ center: [Number(b.dataset.lng), Number(b.dataset.lat)], zoom: Math.max(map.getZoom(), 12.5), duration: 1200 });
+    if (!b) return;
+    const c = frozen ?? map.getCenter();
+    frozen = { lng: c.lng, lat: c.lat, n: Number(b.dataset.n) };
+    map.flyTo({ center: [Number(b.dataset.lng), Number(b.dataset.lat)], zoom: Math.max(map.getZoom(), 12.5), duration: 1200 });
   });
+  // A drag, pinch or search by the user lets the list follow the map again.
+  map.on('movestart', (e) => {
+    if ((e as { originalEvent?: unknown }).originalEvent) frozen = null;
+  });
+  map.on('dragstart', () => (frozen = null));
   map.on('moveend', queue);
   map.on('move', () => {
     // Cheap rows follow the reticle while panning; the list and strip wait for moveend.
@@ -195,7 +221,7 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     const s = layer.scoreAt(c.lng, c.lat);
     $('fish-score').textContent = s === null ? `-- ${t(`season.${seasonOf(SPECIES[i], month())}` as Key)}` : `${Math.round(s * 100)}% ${t(`season.${seasonOf(SPECIES[i], month())}` as Key)}`;
   });
-  time.subscribe(() => (layer.setMonth(month()), queue()));
+  time.subscribe(() => ((frozen = null), layer.setMonth(month()), queue()));
   // Feeds load after the panel and lightning refreshes every few minutes: pick them up.
   setInterval(queue, 60_000);
   apply();

@@ -25,6 +25,12 @@ export interface FlowSource {
   minBright?: number;
   /** Slowest on-screen pace, px/s (default none): light flow still visibly moves. Brightness still shows the speed. */
   minPxS?: number;
+  /**
+   * Calm, m/s (default none): the pace and brightness floors fade out below this, so near-zero flow
+   * moves at its true (slow) pace and dims away instead of being lifted to look like a breeze.
+   * Fully off at half this speed, fully on at it (calmLift).
+   */
+  calmMs?: number;
 }
 
 /** The map view: centre in world units, world size and viewport in CSS px (north-up, no tilt). */
@@ -46,6 +52,15 @@ const LIFE_SPAN_S = 2.6;
 const RESEED_RATIO = 1.3;
 
 const smooth01 = (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
+
+/**
+ * How much of the light-flow floors applies at speed `s`, 0..1: 1 without a calm speed or at or above
+ * it, 0 at or below half of it, smooth in between. In calm, a model's direction is noise that changes
+ * from cell to cell; lifted to a breeze's pace, the interpolation between those cells draws swirls.
+ */
+export function calmLift(s: number, calmMs?: number): number {
+  return calmMs ? smooth01((s / calmMs - 0.5) * 2) : 1;
+}
 
 export class FlowSim {
   readonly n: number;
@@ -119,8 +134,10 @@ export class FlowSim {
         this.spawn(i, view, src);
         continue;
       }
-      const pace = Math.hypot(this.v[0], this.v[1]) * src.pxPerMs;
-      const k = src.minPxS && pace > 1e-6 && pace < src.minPxS ? src.minPxS / pace : 1;
+      const s = Math.hypot(this.v[0], this.v[1]);
+      const pace = s * src.pxPerMs;
+      const floor = (src.minPxS ?? 0) * calmLift(s, src.calmMs);
+      const k = pace > 1e-6 && pace < floor ? floor / pace : 1;
       advect(this.x[i], this.y[i], this.v[0] * k, this.v[1] * k, dt, src.pxPerMs, view.world, this.p);
       const [x, y] = this.p;
       if (Math.abs(x - view.x) > hw || Math.abs(y - view.y) > hh || (src.water && !src.water(lngOfX(x), latOfY(y)))) {
@@ -152,7 +169,7 @@ export class FlowSim {
       out[o] = this.x[i] - ox;
       out[o + 1] = this.y[i] - oy;
       const s = this.speed[i];
-      const floor = src.minBright ?? 0;
+      const floor = (src.minBright ?? 0) * calmLift(s, src.calmMs);
       out[o + 2] = floor + (1 - floor) * smooth01(s / src.fullMs) + (s >= src.strongMs ? 2 : 0);
       out[o + 3] = this.alive[i] ? this.serial[i] + 0.99 * this.lifeAlpha(i) : -1;
     }
