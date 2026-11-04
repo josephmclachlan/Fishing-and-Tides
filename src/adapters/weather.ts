@@ -2,24 +2,28 @@
  * Weather adapter (PLAN 7.3): rain, cloud, UV and air temperature from GFS, ECMWF IFS and ICON through
  * Open-Meteo's multi-model endpoint, for one point at the region centre (the region is ~90 km wide, well
  * inside one 0.25° model cell pair, so a point is honest for the HUD; a grid comes with the radar layer).
- * Models keep separate series so the ensemble blend (PLAN 7.4) can weight them. Missing hours are NaN:
- * each model reaches a different horizon and ECMWF has no UV.
+ * Models keep separate series so the ensemble blend (PLAN 7.4, src/blend.ts) can weight them; the
+ * weights come from scoring the models at the airport (adapters/weather-skill.ts) and ride along as
+ * `skill`. Missing hours are NaN: each model reaches a different horizon and ECMWF has no UV.
  */
 import { REGION } from '../region';
 import { cachedFetch, type CacheDeps } from './cache';
 import { dataAge } from './data-age';
 import { freshness, inRange, type Check } from '../verify/types';
+import type { WeatherSkill } from './weather-skill';
 
 export const WEATHER_MODELS = ['gfs_seamless', 'ecmwf_ifs025', 'icon_seamless'] as const;
 export type WeatherModel = (typeof WEATHER_MODELS)[number];
-export const WEATHER_VARS = ['precipitation', 'cloud_cover', 'uv_index', 'temperature_2m', 'wind_gusts_10m', 'cape', 'pressure_msl'] as const;
+export const WEATHER_VARS = ['precipitation', 'cloud_cover', 'uv_index', 'temperature_2m', 'wind_gusts_10m', 'cape', 'pressure_msl', 'wind_speed_10m'] as const;
 export type WeatherVar = (typeof WEATHER_VARS)[number];
 
 export interface WeatherData {
   /** Hour starts, epoch ms. */
   times: number[];
-  /** model → variable → hourly values (NaN where the model has none). Rain mm per hour, cloud %, UV index, °C, gusts kt, CAPE J/kg, sea-level pressure hPa. */
+  /** model → variable → hourly values (NaN where the model has none). Rain mm per hour, cloud %, UV index, °C, gusts kt, CAPE J/kg, sea-level pressure hPa, mean wind kt. */
   models: Partial<Record<WeatherModel, Record<WeatherVar, number[]>>>;
+  /** How each model did against the Limón airport lately (PLAN 7.4); absent until scored, and the blend falls back to equal weights. */
+  skill?: WeatherSkill;
   /** When the bytes were fetched, epoch ms. */
   fetchedAt: number;
   fromCache: boolean;
@@ -28,23 +32,28 @@ export interface WeatherData {
 export const weatherUrl = (point: readonly [number, number] = REGION.center, days = 16) =>
   `https://api.open-meteo.com/v1/forecast?latitude=${point[1]}&longitude=${point[0]}&hourly=${WEATHER_VARS.join(',')}&models=${WEATHER_MODELS.join(',')}&forecast_days=${days}&timeformat=unixtime&wind_speed_unit=kn`;
 
-/** Turn Open-Meteo's `hourly` block (unixtime, keys like `precipitation_gfs_seamless`) into WeatherData. */
-export function parseWeather(json: unknown, fetchedAt: number, fromCache = false): WeatherData {
+/** Open-Meteo's multi-model `hourly` block (unixtime, keys like `precipitation_gfs_seamless`) as model → variable → series. Models with no value at all are left out. */
+export function parseModelColumns<V extends string>(json: unknown, vars: readonly V[]): { times: number[]; models: Partial<Record<WeatherModel, Record<V, number[]>>> } {
   const h = (json as { hourly?: Record<string, (number | null)[]> } | null)?.hourly;
   if (!h || !Array.isArray(h.time)) throw new Error('weather: no hourly block');
   const times = (h.time as number[]).map((s) => s * 1000);
-  const models: WeatherData['models'] = {};
+  const models: Partial<Record<WeatherModel, Record<V, number[]>>> = {};
   for (const m of WEATHER_MODELS) {
-    const vars = {} as Record<WeatherVar, number[]>;
+    const out = {} as Record<V, number[]>;
     let any = false;
-    for (const v of WEATHER_VARS) {
+    for (const v of vars) {
       const col = h[`${v}_${m}`];
-      vars[v] = times.map((_, i) => (col && typeof col[i] === 'number' ? (col[i] as number) : NaN));
+      out[v] = times.map((_, i) => (col && typeof col[i] === 'number' ? (col[i] as number) : NaN));
       any ||= !!col && col.some((x) => typeof x === 'number');
     }
-    if (any) models[m] = vars;
+    if (any) models[m] = out;
   }
-  return { times, models, fetchedAt, fromCache };
+  return { times, models };
+}
+
+/** Turn Open-Meteo's `hourly` block into WeatherData. */
+export function parseWeather(json: unknown, fetchedAt: number, fromCache = false): WeatherData {
+  return { ...parseModelColumns(json, WEATHER_VARS), fetchedAt, fromCache };
 }
 
 export async function fetchWeather(opts: { deps?: Partial<CacheDeps>; point?: readonly [number, number] } = {}): Promise<WeatherData> {
@@ -64,6 +73,8 @@ export interface WeatherNow {
   capeJkg: number;
   /** Mean sea-level pressure, hPa (NaN where the model has none). */
   pressureHpa: number;
+  /** Mean 10 m wind, kt (NaN where the model has none). */
+  windKt: number;
 }
 
 /** Index of the hour containing `ms`, or -1 outside the series. */
@@ -81,7 +92,7 @@ export function weatherAt(d: WeatherData, ms: number): WeatherNow[] {
   for (const m of WEATHER_MODELS) {
     const v = d.models[m];
     if (!v || Number.isNaN(v.precipitation[i])) continue;
-    out.push({ model: m, rainMmH: v.precipitation[i], cloudPct: v.cloud_cover[i], uv: v.uv_index[i], tempC: v.temperature_2m[i], gustKt: v.wind_gusts_10m[i], capeJkg: v.cape[i], pressureHpa: v.pressure_msl[i] });
+    out.push({ model: m, rainMmH: v.precipitation[i], cloudPct: v.cloud_cover[i], uv: v.uv_index[i], tempC: v.temperature_2m[i], gustKt: v.wind_gusts_10m[i], capeJkg: v.cape[i], pressureHpa: v.pressure_msl[i], windKt: v.wind_speed_10m[i] });
   }
   return out;
 }

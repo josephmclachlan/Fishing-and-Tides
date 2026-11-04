@@ -21,6 +21,7 @@ import type { ExpressionSpecification, GeoJSONSource, Map } from 'maplibre-gl';
 import type { Feature, FeatureCollection } from 'geojson';
 import { t, type Key } from '../i18n';
 import { firstSymbolId } from '../map';
+import { REGION } from '../region';
 import { cellAt, M_PER_DEG_LAT, M_PER_DEG_LNG, type Grid } from '../physics/bathy';
 import type { SpotState } from '../spot-physics';
 import { ripLevel } from '../physics/rip';
@@ -65,15 +66,33 @@ export function maskNormal(land: Grid, pin: [number, number], radiusM = 300): nu
 /** Surf-zone width from breaking depth and slope (unknown slope: an intermediate beach, 0.03), m. */
 export const surfZoneWidth = (hb: number, slope: number | null) => Math.min(800, Math.max(20, hb / (slope && slope > 0 ? slope : 0.03)));
 
-/** A shoreline station: a point just seaward of the waterline, and the way the shore faces. */
+/** A shoreline station: a point in the surf zone, the way the shore faces, and its clear water. */
 export interface Station {
   p: [number, number];
   normalDeg: number;
+  /** Distance to the nearest land (the coastline mask), m, capped at CLEAR_MAX_M: the glow's radius, so it never reaches the beach. */
+  clearM: number;
 }
 
-/** Along-shore spacing of the coast stations, m, and how far seaward of the waterline they sit. */
-const STATION_STEP_M = 120;
-const STATION_SEAWARD_M = 40;
+/** Along-shore spacing of the coast stations, m, and how far seaward of the waterline they may sit (furthest first). */
+const STATION_STEP_M = 60;
+const STATION_SEAWARD_M = [110, 80, 55, 35];
+/** Largest glow radius, m: the station's own offset, so the glow spans the surf zone from the waterline out. */
+const CLEAR_MAX_M = 110;
+const CLEAR_STEP_M = 5;
+const CLEAR_BEARINGS = 32;
+
+/** Distance from `p` to the nearest land cell along 32 bearings, m, up to `maxM` (returned when none is closer). */
+export function clearanceM(land: Grid, p: [number, number], maxM = CLEAR_MAX_M): number {
+  let best = maxM;
+  for (let k = 0; k < CLEAR_BEARINGS; k++)
+    for (let m = CLEAR_STEP_M; m < best; m += CLEAR_STEP_M)
+      if (isLand(land, offset(p, (k * 360) / CLEAR_BEARINGS, m))) {
+        best = m - CLEAR_STEP_M / 2;
+        break;
+      }
+  return Math.max(0, best);
+}
 /** A station must see open water this far out along its normal (rivers, lagoons and harbours don't). */
 const EXPOSURE_M = 900;
 
@@ -107,11 +126,20 @@ export function coastStations(land: Grid, stepM = STATION_STEP_M): Station[] {
       let open = true;
       for (let m = 60; m <= EXPOSURE_M && open; m += 30) if (isLand(land, offset(at, n, m))) open = false;
       if (!open) continue;
-      // A jagged rocky shore can put the first step back on land: step out until it's water.
-      const p = [STATION_SEAWARD_M, 2 * STATION_SEAWARD_M].map((m) => offset(at, n, m)).find((q) => !isLand(land, q));
-      if (!p) continue;
+      // The spot along the normal with the most clear water around it (a rocky shore or a reef can
+      // put a step back on land), so its glow can be widest without reaching the beach.
+      let p: [number, number] | null = null;
+      let clearM = 0;
+      for (const m of STATION_SEAWARD_M) {
+        const q = offset(at, n, m);
+        if (isLand(land, q)) continue;
+        const cl = clearanceM(land, q);
+        if (cl > clearM) (p = q), (clearM = cl);
+        if (cl >= CLEAR_MAX_M) break;
+      }
+      if (!p || clearM < 15) continue;
       seen.add(bin);
-      out.push({ p, normalDeg: n });
+      out.push({ p, normalDeg: n, clearM });
     }
   return out;
 }
@@ -177,7 +205,7 @@ export function ripFeatures(states: readonly SpotState[], stations: readonly Sta
     if (!r) continue;
     const level = ripLevel(r.score);
     if (level === 'LOW') continue;
-    features.push({ type: 'Feature', properties: { kind: 'coast', level, conf: Math.round(r.conf * 100) / 100 }, geometry: { type: 'Point', coordinates: st.p } });
+    features.push({ type: 'Feature', properties: { kind: 'coast', level, conf: Math.round(r.conf * 100) / 100, r: Math.round(st.clearM) }, geometry: { type: 'Point', coordinates: st.p } });
   }
   for (const site of sites) {
     const r = riskAt(site.at, states);
@@ -202,6 +230,20 @@ function cssColour(name: string, fallback: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
 
+/** Map metres per pixel at zoom 0 at the region's latitude (512 px tiles). */
+const M_PER_PX_Z0 = (40075016.686 * Math.cos(REGION.center[1] * RAD)) / 512;
+/** Below this zoom the glow keeps a minimum size, px, so the shore still reads as a band when zoomed out. */
+const GLOW_FLOOR_PX = 1.5;
+
+/**
+ * Each shore dot's radius: its clear water `r` (m) at true map scale, so the glow fills the surf zone
+ * and stops short of the beach. Zoomed out it would shrink below a pixel, so it keeps a floor there.
+ */
+export function glowRadius(): ExpressionSpecification {
+  const at = (z: number): ExpressionSpecification => ['max', z >= 12 ? 0 : GLOW_FLOOR_PX, ['*', ['get', 'r'], 2 ** z / M_PER_PX_Z0]];
+  return ['interpolate', ['exponential', 2], ['zoom'], 9, at(9), 12, at(12), 16, at(16), 20, at(20)];
+}
+
 export interface RipLayer {
   update(states: readonly SpotState[], land?: Grid | null): void;
   setSites(sites: readonly RipSite[]): void;
@@ -224,7 +266,7 @@ export function mountRip(map: Map): RipLayer {
       id: 'rp-coast', type: 'circle', source: 'rp', minzoom: 9, filter: ['==', ['get', 'kind'], 'coast'],
       paint: {
         'circle-color': colour,
-        'circle-radius': ['interpolate', ['exponential', 2], ['zoom'], 9, 3, 12, 8, 15, 40],
+        'circle-radius': glowRadius(),
         'circle-blur': 0.6,
         'circle-opacity': ['interpolate', ['linear'], ['zoom'], 9, ['*', 0.75, ['get', 'conf']], 14, ['*', 0.45, ['get', 'conf']]],
       },

@@ -6,8 +6,9 @@
 import { cellAt, gridBounds, hillshade, sample, type Grid } from '../physics/bathy';
 
 const RAD = Math.PI / 180;
-const mercY = (lat: number) => Math.log(Math.tan(Math.PI / 4 + (lat * RAD) / 2));
-const latOf = (y: number) => (2 * Math.atan(Math.exp(y)) - Math.PI / 2) / RAD;
+/** Web Mercator y (radians) of a latitude, and back. Image rows spaced evenly in y pin to four corners without stretching. */
+export const mercY = (lat: number) => Math.log(Math.tan(Math.PI / 4 + (lat * RAD) / 2));
+export const latOfMercY = (y: number) => (2 * Math.atan(Math.exp(y)) - Math.PI / 2) / RAD;
 
 /** Index of the depth band `depthM` falls in: 0 above edges[0], edges.length beyond the last. */
 export function depthBand(depthM: number, edges: readonly number[]): number {
@@ -58,7 +59,7 @@ export function renderShade(g: Grid, o: ShadeOptions): ShadeImage {
   const fade = o.shoreFadeM ?? 3;
   const data = new Uint8ClampedArray(width * height * 4);
   for (let j = 0; j < height; j++) {
-    const lat = latOf(yN - ((j + 0.5) / height) * (yN - yS));
+    const lat = latOfMercY(yN - ((j + 0.5) / height) * (yN - yS));
     for (let i = 0; i < width; i++) {
       const lng = w + ((i + 0.5) / width) * (e - w);
       if (o.hole && lng >= o.hole[0] && lng <= o.hole[2] && lat >= o.hole[1] && lat <= o.hole[3]) continue;

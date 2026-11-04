@@ -7,10 +7,11 @@
  */
 import type { Map } from 'maplibre-gl';
 import { PLUME_RIVERS, REGION } from '../region';
-import { M_PER_DEG_LAT, M_PER_DEG_LNG, sample, type Grid } from '../physics/bathy';
-import { clarity, clarityLevel, effectiveRain, kdFromChl, resuspensionKd, type Clarity, type ClarityLevel } from '../physics/clarity';
+import { cellAt, M_PER_DEG_LAT, M_PER_DEG_LNG, sample, type Grid } from '../physics/bathy';
+import { CLARITY_BANDS, clarity, effectiveRain, kdFromChl, resuspensionKd, type Clarity, type ClarityLevel } from '../physics/clarity';
 import { clarityBand, driftedPlumeKd, plumeAge, plumeDrift, satKdAt, satState, waveSpread, type ClarityBand, type SatState } from '../physics/clarity-forecast';
 import { observedAt, type SatelliteData } from '../adapters/satellite';
+import { coastTest, rgbaWord, seaImage, type SeaImage } from './sea-image';
 import type { CatchmentRain } from '../adapters/catchment-rain';
 import { readout } from '../hud-kit';
 import { t, type Key } from '../i18n';
@@ -18,12 +19,24 @@ import { t, type Key } from '../i18n';
 const RAD = Math.PI / 180;
 /** Layer grid: REGION.bounds every 0.004° (~440 m), about 210 × 160 cells. */
 export const CLARITY_STEP = 0.004;
+/**
+ * Map image pixel, degrees (~66 m, twice the coastline mask's cell). The physics grid above is too
+ * coarse to draw a coastline with, so the image is drawn finer and cut at the coastline mask.
+ */
+export const CLARITY_PIXEL_DEG = 0.0006;
+/** Water by the coastline mask but dry in the ~460 m depth grid is the surf zone: this deep, m (as the depth shading does). */
+const SHORE_DEPTH_M = 2;
 
 export interface ClarityContext {
   satellite: SatelliteData | null;
   rain: CatchmentRain | null;
-  /** Elevation (m, positive up) for depth and the land mask. */
+  /** Elevation (m, positive up) for depth, and the land mask where `land` doesn't reach. */
   elevation: Grid;
+  /**
+   * Coastline mask (1 = land, ~33 m cells) from the seafloor data. It decides sea or land wherever it
+   * covers: the ~460 m depth grid alone puts the sea over Cahuita, Limón and every headland.
+   */
+  land?: Grid | null;
   /** Sea state at a point and the slider's time, or null. Sampled on a 0.05° lattice. */
   seaAt: (lng: number, lat: number, ms?: number) => { hs: number; tp: number } | null;
   /** Surface current (m/s east, north) at a point and time, for plume drift (PLAN 7.2). */
@@ -54,6 +67,15 @@ export const riverRain = (rain: CatchmentRain | null, ms: number, currentAt?: Cl
     return { ...r, rainMm, drift };
   });
 
+/** Water depth at a sea point, m; null on land. The coastline mask decides where it covers. */
+export function seaDepthAt(c: Pick<ClarityContext, 'elevation' | 'land'>, lng: number, lat: number): number | null {
+  const z = sample(c.elevation, lng, lat);
+  const m = c.land ? cellAt(c.land, lng, lat) : NaN;
+  if (m === 1) return null;
+  if (m === 0) return Number.isFinite(z) && z < -SHORE_DEPTH_M ? -z : SHORE_DEPTH_M;
+  return z < 0 ? -z : null;
+}
+
 /** Ocean-colour history per point, worked out once per satellite load (the grid asks for every cell). */
 const satMemo = new WeakMap<SatelliteData, globalThis.Map<string, SatState | null>>();
 
@@ -77,14 +99,14 @@ export type ClarityAt = Clarity & ClarityBand;
 
 /** Clarity at one sea point, with its band; null on land. */
 export function clarityAt(c: ClarityContext, lng: number, lat: number, rivers = riverRain(c.rain, c.ms, c.currentAt), sea = c.seaAt(lng, lat, c.ms)): ClarityAt | null {
-  const z = sample(c.elevation, lng, lat);
-  if (!(z < 0)) return null;
+  const depthM = seaDepthAt(c, lng, lat);
+  if (depthM === null) return null;
   const mx = M_PER_DEG_LNG * Math.cos(lat * RAD);
   let plume = 0;
   for (const r of rivers) if (r.rainMm > 0) plume += driftedPlumeKd(r.catchmentKm2, r.rainMm, (lng - r.mouth[0]) * mx, (lat - r.mouth[1]) * M_PER_DEG_LAT, r.drift);
   const sat = satKdAt(c.satellite ? satHistory(c.satellite, lng, lat) : null, c.ms);
   const leadDays = Math.max(0, (c.ms - (c.nowMs ?? Date.now())) / 864e5);
-  const hs = sea?.hs ?? NaN, tp = sea?.tp ?? NaN, depthM = -z;
+  const hs = sea?.hs ?? NaN, tp = sea?.tp ?? NaN;
   const w = waveSpread(leadDays);
   const mid = clarity({ kd490: sat.kd, chl: NaN, plumeKd: plume, hs, tp, depthM });
   const band = clarityBand({
@@ -129,6 +151,23 @@ export function clarityGrid(c: ClarityContext): ClarityGrid {
 /** Fill opacity per level: muddier water shows stronger. */
 const ALPHA: Record<ClarityLevel, number> = { GOOD: 0.07, FAIR: 0.26, POOR: 0.42 };
 
+/**
+ * The visibility grid as an RGBA image cut at the coastline (sea-image.ts): pixels the mask calls land
+ * stay empty however the coarse grid reads there, and sea pixels up to the beach take the nearest sea
+ * value. Pure (no DOM); `colours` are 0..255 RGB per level.
+ */
+export function clarityImage(g: ClarityGrid, land: Grid | null | undefined, colours: Record<ClarityLevel, readonly [number, number, number]>, pixelDeg = CLARITY_PIXEL_DEG): SeaImage {
+  const word = (l: ClarityLevel) => rgbaWord(...colours[l], Math.round(255 * ALPHA[l]));
+  const [good, fair, poor] = [word('GOOD'), word('FAIR'), word('POOR')];
+  const { good: goodM, fair: fairM } = CLARITY_BANDS;
+  return seaImage(
+    { cols: g.cols, rows: g.rows, lon0: g.lon0, lat0: g.lat0, dlon: g.step, dlat: g.step },
+    g.vis,
+    (v) => (v >= goodM ? good : v >= fairM ? fair : poor), // clarityLevel, inlined: this runs per pixel
+    { pixelDeg, coast: land ? coastTest(land) : null, extend: 2 },
+  );
+}
+
 function cssColour(name: string, fallback: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
@@ -148,22 +187,12 @@ export function mountClarity(map: Map): ClarityLayer {
     POOR: rgb(cssColour('--red', '#ff3b2f')),
   };
   const canvas = document.createElement('canvas');
-  let coords: [[number, number], [number, number], [number, number], [number, number]] | null = null;
-  const draw = (g: ClarityGrid) => {
-    canvas.width = g.cols;
-    canvas.height = g.rows;
-    const img = new ImageData(g.cols, g.rows);
-    for (let i = 0; i < g.vis.length; i++) {
-      const v = g.vis[i];
-      if (!Number.isFinite(v)) continue;
-      const lvl = clarityLevel(v);
-      const [r, gg, b] = colours[lvl];
-      img.data.set([r, gg, b, Math.round(255 * ALPHA[lvl])], i * 4);
-    }
-    canvas.getContext('2d')!.putImageData(img, 0, 0);
-    const h = g.step / 2;
-    const w = g.lon0 - h, n = g.lat0 + h, e = g.lon0 + (g.cols - 1) * g.step + h, s = g.lat0 - (g.rows - 1) * g.step - h;
-    coords = [[w, n], [e, n], [e, s], [w, s]];
+  const draw = (g: ClarityGrid, land: Grid | null | undefined) => {
+    const img = clarityImage(g, land, colours);
+    canvas.width = img.width;
+    canvas.height = img.height;
+    canvas.getContext('2d')!.putImageData(new ImageData(img.data as Uint8ClampedArray<ArrayBuffer>, img.width, img.height), 0, 0);
+    const coords = img.coordinates;
     const url = canvas.toDataURL('image/png');
     const src = map.getSource('cl') as { updateImage?: (o: { url: string; coordinates: typeof coords }) => void } | undefined;
     if (src?.updateImage) src.updateImage({ url, coordinates: coords });
@@ -174,17 +203,27 @@ export function mountClarity(map: Map): ClarityLayer {
       map.addLayer({ id: 'cl-fill', type: 'raster', source: 'cl', minzoom: 7, paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0, 8, 1], 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, below);
     }
   };
+  // A redraw costs a few tens of ms (the fine coastline cut and the PNG), so while the slider is
+  // dragged it runs at most every MIN_GAP_MS, always ending on the latest hour.
+  const MIN_GAP_MS = 150;
   let pending: ClarityContext | null = null;
+  let scheduled = false;
+  let last = -Infinity;
+  const run = () => {
+    scheduled = false;
+    const ctx = pending;
+    if (!ctx) return;
+    pending = null;
+    last = performance.now();
+    draw(clarityGrid(ctx), ctx.land);
+  };
   return {
     update(c) {
-      const first = pending === null;
       pending = c;
-      if (!first) return;
-      requestAnimationFrame(() => {
-        const ctx = pending!;
-        pending = null;
-        draw(clarityGrid(ctx));
-      });
+      if (scheduled) return;
+      scheduled = true;
+      const wait = Math.max(0, last + MIN_GAP_MS - performance.now());
+      setTimeout(() => requestAnimationFrame(run), wait);
     },
   };
 }

@@ -70,8 +70,8 @@ Ranked by value for effort.
 ## Other features that miss newer data (for later)
 
 - **Surf:** no rain, lightning or sargassum in the verdict; no tide in the break quality.
-- **Dive and snorkel outing score:** rain, squall and lightning now cap it (PLAN 7.11, shared `physics/safety.ts`). Still missing: tropical storm alerts, no currents, no sargassum, no water temperature (shown on GLANCE but not scored).
-- **BOAT verdict and sea state:** verdict with squall, lightning, storm and rain cap added (PLAN 7.23 item 1). Still missing: tide in the verdict, daylight, debris, shoals (items 2 to 8).
+- **Dive and snorkel outing score:** rain, squall and lightning now cap it (PLAN 7.11, shared `physics/safety.ts`). Surface current now scores too (drift off the reef; PLAN 7.11). Water temperature (cold term plus a suit hint) and the sargassum outlook at the nearest beach now score too; WATCH has a WATER TEMP metric. Still missing: tropical storm alerts.
+- **BOAT verdict and sea state:** verdict with squall, lightning, storm, rain and flood-debris cap, currents in the sea state, daylight window, bar advisory, shoal alert and route tool added (PLAN 7.23). Still missing: tide in the verdict.
 - **WATCH tracker:** no water temperature or chlorophyll metric; BITE there ignores habitat and rain.
 
 ## Sailing / BOAT (audit of 2026-11-04, PLAN 7.23)
