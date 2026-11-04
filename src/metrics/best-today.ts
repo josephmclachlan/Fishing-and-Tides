@@ -4,7 +4,8 @@
  * whose hours score best (green +1, red -1, plus where the value sits in the day's range). Pure.
  */
 import { nearest } from '../geo';
-import { buildForecast, bestTime, hourScores, type Spot } from './forecast';
+import { BEST_LEN_H, BEST_TO_H, buildForecast, bestTime, hourScores, type Spot } from './forecast';
+import { localDayStart } from '../physics/astro';
 import { breakFor } from './surf-estimate';
 import { METRIC_BY_ID, type MetricEnv } from './registry';
 
@@ -37,6 +38,11 @@ export interface BestToday {
 
 /** The spot nearest `at` (lng, lat). */
 export const spotNear = (at: [number, number], spots: readonly Spot[]): Spot | null => nearest(at, spots)?.point ?? null;
+
+/** True once the last window of the local day (BEST_TO_H) has started: an empty BEST TODAY then means none left, not missing data. */
+export function todayOver(tzOffsetH: number, nowMs: number): boolean {
+  return nowMs >= localDayStart(nowMs, tzOffsetH) + (BEST_TO_H - BEST_LEN_H + 1) * 3.6e6;
+}
 
 /** Best window left today for `activity` at `spot`, or null when the day is over or there is no data. */
 export function bestToday(env: MetricEnv, activity: Activity, spot: Spot, nowMs: number): BestToday | null {

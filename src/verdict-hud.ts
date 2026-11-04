@@ -91,6 +91,8 @@ export function mountVerdictHud(root: HTMLElement, inputs: () => VerdictInputs, 
       const g = GROUP[m] !== 'dive' || m === diveMode ? GROUP[m] : '';
       if (g) el.dataset.glanceVd = g;
       else delete el.dataset.glanceVd;
+      // The top reason, for the phone glance strip (it has no room for the CONDITIONS reasons line).
+      el.dataset.why = v?.level && v.level !== 'GO' ? v.text : '';
     }
     // Reasons for the picked chip, or under ALL for the worst one.
     const act = groups.activity();
