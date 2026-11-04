@@ -46,7 +46,7 @@ describe('Spanish', () => {
   it('translates a few HUD words and uses O for west', () => {
     setDict(dictFor('es'));
     expect(t('time.now')).toBe('AHORA');
-    expect(t('fish.tarpon')).toBe('SÁBALO');
+    expect(t('fish.snook')).toBe('ROBALO');
     expect(hemispheres()).toEqual({ N: 'N', S: 'S', E: 'E', W: 'O' });
     setDict(en);
     expect(hemispheres().W).toBe('W');

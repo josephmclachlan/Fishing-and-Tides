@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { FULL_DROP_M_PER_KM, habitatScore, seasonFactor, trapezoid } from './habitat';
 import { SPECIES, speciesById } from './species';
 
-const tarpon = speciesById('tarpon');
+const snook = speciesById('snook');
 const snapper = speciesById('snapper');
 const base = { depthM: 3, mouthKm: 0, reef: 0, slopeMPerKm: 0 };
 
@@ -17,9 +17,9 @@ describe('trapezoid', () => {
 });
 
 describe('habitatScore', () => {
-  it('is highest at a river mouth for tarpon and falls with distance', () => {
-    const at = habitatScore(tarpon, base, 2);
-    const away = habitatScore(tarpon, { ...base, mouthKm: 2 }, 2);
+  it('is highest at a river mouth for snook and falls with distance', () => {
+    const at = habitatScore(snook, base, 8);
+    const away = habitatScore(snook, { ...base, mouthKm: 2 }, 8);
     expect(at).toBeGreaterThan(0.7);
     expect(away).toBeLessThan(at / 4);
   });
@@ -30,7 +30,7 @@ describe('habitatScore', () => {
     expect(sand).toBeLessThan(0.1); // open bottom keeps a small prior share
   });
   it('is zero outside the depth range', () => {
-    expect(habitatScore(tarpon, { ...base, depthM: 60 }, 0)).toBe(0);
+    expect(habitatScore(snook, { ...base, depthM: 60 }, 0)).toBe(0);
     expect(habitatScore(snapper, { depthM: 1, mouthKm: 0, reef: 1, slopeMPerKm: 99 }, 0)).toBe(0);
   });
   it('stays within 0..1 and the season only nudges it', () => {
@@ -43,7 +43,7 @@ describe('habitatScore', () => {
       }
   });
   it('wraps months', () => {
-    expect(seasonFactor(tarpon, 12)).toBe(seasonFactor(tarpon, 0));
-    expect(seasonFactor(tarpon, -1)).toBe(seasonFactor(tarpon, 11));
+    expect(seasonFactor(snook, 12)).toBe(seasonFactor(snook, 0));
+    expect(seasonFactor(snook, -1)).toBe(seasonFactor(snook, 11));
   });
 });

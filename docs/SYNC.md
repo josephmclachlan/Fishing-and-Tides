@@ -40,11 +40,13 @@ Before this pass fishing was built from the static seafloor plus tide, sun, moon
 
    | Species | Visibility it likes | Water temperature, best | Notes |
    |---|---|---|---|
-   | Tarpon | 0.5 to 3 m (stained) | 26 to 30 °C | Happy in river-mouth colour |
    | Snook | 0.5 to 2.5 m (stained) | 24 to 30 °C | Ambushes in colour lines at mouths |
    | Jack | 1 to 6 m | 24 to 30 °C | Broad tolerance |
    | Snapper | 3 to 15 m | 24 to 29 °C | Reef fish, wants clearer water |
    | Barracuda | 4 to 20 m (clear) | 24 to 30 °C | Sight hunter |
+   | Spanish mackerel | 3 to 15 m | 25 to 30 °C | Reef edges and drop-offs |
+   | Grouper (small reef) | 4 to 20 m | 24 to 30 °C | Reef and rock |
+   | Lionfish | 6 to 25 m | 24 to 31 °C | Speared, so you need to see it |
 
    Chlorophyll of about 0.3 to 3 mg/m³ marks productive water with bait; above that it is usually a muddy plume, which clarity already catches. This coast's water is 27 to 30 °C most of the year, so temperature will rarely move the score inshore; it matters more offshore.
 3. **Currents.** Moving ocean current at a spot adds to the tide term for jack, barracuda and snapper; strong current is a minus for kayaks.
@@ -56,11 +58,11 @@ Ranked by value for effort.
 | Metric | Source | Why | Cost |
 |---|---|---|---|
 | Your own catches | BOAT mode CATCH pins already store species, place and time | The only way to check the model against real fish on this coast; with a few dozen catches the weights can be fitted the way OBIS records are | Low: data is already on the phone |
-| River discharge | Open-Meteo flood API (GloFAS), free, no key | Snook and tarpon stack at mouths when rivers run after rain; better than the catchment-rain proxy | Low |
+| River discharge | Open-Meteo flood API (GloFAS), free, no key | Snook and jack stack at mouths when rivers run after rain; better than the catchment-rain proxy | Low |
 | Barometric pressure trend | Open-Meteo `pressure_msl`, same call as weather | Falling pressure before a front is a classic feeding trigger (angler lore, weak evidence, so small weight) | Very low |
 | Temperature and chlorophyll fronts | Gradients of the SST and chl we already load | Bait and pelagics (mahi, wahoo, sailfish) gather on fronts; unlocks offshore boat scoring | Medium |
 | Sea level from the live gauge | IOC Limón gauge, already loaded | Real water level over flats and reef includes surge the harmonics miss | Low |
-| Moon light at night | Astro, already computed | Bright nights change snook and tarpon night feeding | Very low |
+| Moon light at night | Astro, already computed | Bright nights change snook and jack night feeding | Very low |
 | Fishing pressure | Global Fishing Watch | Where boats work offshore | Needs the free `GFW_TOKEN` |
 | Mixed-layer depth | Copernicus Marine (account exists) | How deep offshore fish sit | Medium |
 

@@ -1,6 +1,6 @@
 /**
  * Spanish UI text (PLAN 5.6), in the Costa Rican Caribbean fishing and marine vocabulary:
- * sábalo (tarpon), robalo (snook), pargo, jurel, resaca (rip current), oleaje, rompientes.
+ * robalo (snook), macarela (Spanish mackerel), mero (grouper), pez león (lionfish), pargo, jurel, resaca (rip current), oleaje, rompientes.
  * Same keys as en.ts (the Dict type enforces it). Labels stay short caps to fit the HUD.
  * Written by Claude, not yet checked by a local speaker: wording fixes are welcome.
  */
@@ -374,11 +374,14 @@ export const es: Dict = {
   'fish.none': 'FUERA DE ALCANCE',
   'fish.prev': 'Especie anterior',
   'fish.next': 'Especie siguiente',
-  'fish.tarpon': 'SÁBALO',
   'fish.snook': 'ROBALO',
   'fish.jack': 'JUREL',
   'fish.snapper': 'PARGO',
+  'fish.mackerel': 'MACARELA',
+  'fish.grouper': 'MERO',
   'fish.barracuda': 'BARRACUDA',
+  'fish.lionfish': 'PEZ LEÓN',
+  'fish.ciguatera': 'RIESGO DE CIGUATERA: QUÉDESE CON LOS PEQUEÑOS, NUNCA COMA CABEZA NI HÍGADO',
   'season.peak': 'ALTA',
   'season.good': 'BUENA',
   'season.off': 'BAJA',
@@ -391,7 +394,7 @@ export const es: Dict = {
   'fish.spots': 'MEJORES PUNTOS',
   'fish.nospots': 'NINGUNO CERCA PARA ESTE ALCANCE',
   'fish.spot.line': '{score}% · {depth} M · {km} KM',
-  'fish.note': 'REGLA PRÁCTICA, NO UN PRONÓSTICO DE CAPTURA. LO SOLUNAR ES FOLCLOR',
+  'fish.note': 'SOLO PECES PARA COMER. REGLA PRÁCTICA, NO UN PRONÓSTICO DE CAPTURA. LO SOLUNAR ES FOLCLOR. REVISE TALLAS Y VEDAS',
   'fish.why.mouth': 'DESEMBOCADURA',
   'fish.why.reef': 'ARRECIFE',
   'fish.why.drop': 'DECLIVE',
