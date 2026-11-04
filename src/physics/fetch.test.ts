@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Grid } from './bathy';
-import { shelterClass, windFetchM } from './fetch';
+import { shelterClass, windFetchM, windSide } from './fetch';
 
 /** 0.2° square world, 0.0003° cells: land for lng < 0.05 (a coast facing east), sea elsewhere. */
 const n = 667;
@@ -29,5 +29,23 @@ describe('shelterClass', () => {
     expect(shelterClass(500)).toBe('sheltered');
     expect(shelterClass(5000)).toBe('partial');
     expect(shelterClass(20_000)).toBe('exposed');
+  });
+});
+
+describe('windSide', () => {
+  // A straight coast with land to the south-west and sea to the north-east (like this coast): land 1 km away toward 225°.
+  const coast = (deg: number) => {
+    const d = (((deg % 360) + 360) % 360) * (Math.PI / 180);
+    const towardLand = Math.cos(d - 225 * (Math.PI / 180));
+    return towardLand > 0.05 ? Math.min(30_000, 1000 / towardLand) : 30_000;
+  };
+  it('calls a wind off the land offshore and one off the sea onshore', () => {
+    expect(windSide(coast, 225)).toBe('offshore');
+    expect(windSide(coast, 45)).toBe('onshore');
+  });
+  it('calls a wind along the beach cross-shore', () => expect(windSide(coast, 135)).toBe('cross'));
+  it('has no answer on land or out at sea', () => {
+    expect(windSide(() => 0, 90)).toBeNull();
+    expect(windSide(() => 30_000, 90)).toBeNull();
   });
 });

@@ -1,5 +1,5 @@
 /**
- * Your logged coral sites (reef / nursery / garden) as labelled rings. Style ids start with `cl-`.
+ * Your logged coral sites (reef / nursery / garden) as labelled rings. Style ids start with `cs-`; tapping a ring opens the site's folder (coral-panel.ts).
  * Reads the private on-device store only; makes no requests.
  */
 import type { GeoJSONSource, Map } from 'maplibre-gl';
@@ -17,7 +17,7 @@ export function mountCoralLogLayer(map: Map, store: CoralStore) {
   const empty: FeatureCollection = { type: 'FeatureCollection', features: [] };
   const data = (): FeatureCollection => ({
     type: 'FeatureCollection',
-    features: store.list().map((s) => ({ type: 'Feature', properties: { kind: s.kind, label: s.name }, geometry: { type: 'Point', coordinates: [s.lng, s.lat] } })),
+    features: store.list().map((s) => ({ type: 'Feature', properties: { id: s.id, kind: s.kind, label: s.name }, geometry: { type: 'Point', coordinates: [s.lng, s.lat] } })),
   });
   let ready = false;
   const refresh = () => ready && (map.getSource(`${CORAL_LOG_PREFIX}sites`) as GeoJSONSource | undefined)?.setData(data());

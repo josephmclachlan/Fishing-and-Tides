@@ -11,6 +11,9 @@ import type { SeaState as Waves } from './adapters/waves';
 import type { Conditions } from './mock';
 import { boatVerdict, type VerdictInputs } from './boat/verdict';
 import type { Vessel } from './settings';
+import type { WindSide } from './physics/fetch';
+import { DINGHY_OFFSHORE_KT } from './boat/verdict';
+import { CALM_KT } from './physics/flow';
 
 /** What the BOAT verdict reads besides wind and sea: the safety feeds, supplied by main.ts. */
 export type VerdictSafety = Pick<VerdictInputs, 'gustKt' | 'squall' | 'lightning' | 'stormKm' | 'rainMmH' | 'debris'>;
@@ -19,6 +22,8 @@ export interface SeaStateDeps {
   safety: () => VerdictSafety;
   /** Surface current [east, north] m/s at the reticle, or null (PLAN 7.23 item 3). */
   current?: () => readonly [number, number] | null;
+  /** Wind relative to the nearby coast at the reticle (physics/fetch.ts windSide). */
+  windSide?: () => WindSide | null;
 }
 
 export { feedPartitions };
@@ -64,7 +69,15 @@ export function mountSeaStateHud(root: HTMLElement, getData: () => Conditions, s
       t('sea.detail', { h: s.totalHm.toFixed(1), tp: s.meanPeriodS.toFixed(0), steep: t(`sea.steep.${steepWord(s.steepness)}` as Key) }) +
       ` · ${t(`sea.dominant.${s.dominant}` as Key)}${s.confusion > 0.5 ? ` · ${t('sea.cross')}` : ''}`;
     if (deps) {
-      const v = boatVerdict({ vessel: deps.vessel(), windKt: getData().windKt, hsM: s.totalHm, comfort: s.score, ...deps.safety() });
+      // ONSHORE / OFFSHORE / ALONG SHORE after the wind direction (persona review J8): offshore wind carries a dinghy or kayak out.
+      // Under CALM_KT the direction is noise (hud.ts shows CALM), so no side either.
+      const side = Math.round(getData().windKt) >= CALM_KT ? (deps.windSide?.() ?? null) : null;
+      const ws = root.querySelector<HTMLElement>('#wside');
+      if (ws) {
+        ws.textContent = side ? t(`wind.side.${side}` as Key) : '';
+        ws.className = `seg sm ${side === 'offshore' && getData().windKt >= DINGHY_OFFSHORE_KT[0] ? 'red' : ''}`;
+      }
+      const v = boatVerdict({ vessel: deps.vessel(), windKt: getData().windKt, hsM: s.totalHm, comfort: s.score, windSide: side, ...deps.safety() });
       $('bv-verdict').textContent = t(`verdict.${v.verdict}` as Key);
       $('bv-verdict').className = `seg sm ${v.verdict === 'go' ? 'green' : v.verdict === 'nogo' ? 'red' : ''}`;
       const why = v.reasons.slice(0, 3).map((r) => t(`verdict.why.${r.id}` as Key, { kt: Math.round(r.value ?? 0), m: (r.value ?? s.totalHm).toFixed(1) }));

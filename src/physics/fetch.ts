@@ -29,3 +29,24 @@ export type Shelter = 'sheltered' | 'partial' | 'exposed';
 export function shelterClass(fetchM: number): Shelter {
   return fetchM < 2000 ? 'sheltered' : fetchM < 10_000 ? 'partial' : 'exposed';
 }
+
+export type WindSide = 'onshore' | 'offshore' | 'cross';
+/** Land closer than this, upwind or downwind, makes a wind "onshore" or "offshore" for someone launching off a beach. */
+export const SHORE_NEAR_M = 5000;
+
+/**
+ * Which way the wind blows relative to the nearby coast, from fetch along the wind line:
+ *   OFFSHORE  land close upwind (the wind comes off the land and pushes a drifting dinghy or kayak out to sea)
+ *   ONSHORE   land close downwind (it blows you back toward the beach)
+ *   CROSS     open water both ways but land close to one side: the wind runs along the shore
+ * Null on land, or out at sea with no land near. `fetchFrom(deg)` is the open water toward `deg` (windFetchM).
+ */
+export function windSide(fetchFrom: (fromDeg: number) => number, windFromDeg: number, near = SHORE_NEAR_M): WindSide | null {
+  const up = fetchFrom(windFromDeg);
+  const down = fetchFrom(windFromDeg + 180);
+  if (up === 0 && down === 0) return null;
+  if (up < near && down > up) return 'offshore';
+  if (down < near && up > down) return 'onshore';
+  if (up >= near && down >= near && (fetchFrom(windFromDeg + 90) < near || fetchFrom(windFromDeg - 90) < near)) return 'cross';
+  return null;
+}
