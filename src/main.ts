@@ -32,6 +32,9 @@ import { mountHarbours } from './layers/harbours';
 import { mountHarboursHud } from './harbours-hud';
 import type { Grid } from './physics/bathy';
 import { createBoatStore } from './boat/store';
+import { createCoralStore } from './coral/store';
+import { mountCoralPanel } from './coral-panel';
+import { mountCoralLogLayer } from './layers/coral-log';
 import { mountBoatPanel, type CatchScorer, type OffshoreRead } from './boat-panel';
 import { dictFor, setDict, t } from './i18n';
 import { mountLangUi } from './lang-ui';
@@ -308,6 +311,9 @@ const offshoreRead: OffshoreRead = (lng, lat) => {
   return { front: front && { km: front.km, bearingDeg: front.bearingDeg, kind: front.front.kind }, mldM: inputs.mldM, scores };
 };
 mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch, () => (offshoreDepth ? offshoreRead : null));
+const coralStore = createCoralStore(safeStorage());
+mountCoralPanel(hud, map, coralStore, sheets, () => depthAt);
+mountCoralLogLayer(map, coralStore);
 // WATCH (PLAN 7.13): the metric tracker reads the same wind, wave, weather and tide data as the HUD, at any hour of the next days.
 const watchSea = new globalThis.Map<string, [number, number] | null>();
 const hourWind = new globalThis.Map<number, ReturnType<typeof windAt>>();

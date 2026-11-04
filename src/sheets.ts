@@ -8,7 +8,7 @@
 import type { Map } from 'maplibre-gl';
 import { t } from './i18n';
 
-export type SheetId = 'watch' | 'find' | 'cond' | 'time' | 'layers' | 'boat' | 'settings' | 'check' | 'obs' | 'spot';
+export type SheetId = 'watch' | 'find' | 'cond' | 'time' | 'layers' | 'boat' | 'coral' | 'settings' | 'check' | 'obs' | 'spot';
 
 export interface Sheets {
   current(): SheetId | null;
