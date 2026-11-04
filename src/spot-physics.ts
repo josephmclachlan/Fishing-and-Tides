@@ -40,6 +40,8 @@ const KNOWN_CHANNEL = PLACES.map((p) => knownChannel(p));
 /** Per-hour, per-place extras the surf score reads besides the sea and wind (wired in main.ts). */
 export interface HourExtras {
   gustMs: number | null;
+  /** The wind at the place now, m/s and direction FROM; null falls back to the conditions' wind. */
+  wind?: { speedMs: number; fromDeg: number } | null;
   ahead: { speedMs: number; fromDeg: number } | null;
   lightning?: boolean;
   squall?: SquallLevel;
@@ -90,15 +92,18 @@ export function createSpotPhysics(
     // lows alike, so it does not move the position; adding it here mixed metres into a 0..1 share.
     const tideLevel = ts.level;
     const sea: Sea = { Hs: c.swellHeightM, Tp: c.swellPeriodS, fromDeg: c.swellDirDeg };
-    const wind = { speedMs: c.windKt / KT_PER_MS, fromDeg: c.windDirDeg };
-        const seasX = PLACES.map((p) => seaAt(p.lngLat));
+    const wind0 = { speedMs: c.windKt / KT_PER_MS, fromDeg: c.windDirDeg };
+    const wxs = PLACES.map((p) => windExtras(ms, p.lngLat, p.name));
+    const winds = wxs.map((wx) => wx.wind ?? wind0);
+    const seasX = PLACES.map((p) => seaAt(p.lngLat));
     const seas: Sea[] = seasX.map((x) => (x ? { Hs: x.Hs, Tp: x.Tp, fromDeg: x.fromDeg } : sea));
     client
-      .latestMany(PLACES.map((p, i) => ({ pin: p.lngLat, sea: seas[i], tideLevel, wind, knownChannel: KNOWN_CHANNEL[i] })))
+      .latestMany(PLACES.map((p, i) => ({ pin: p.lngLat, sea: seas[i], tideLevel, wind: winds[i], knownChannel: KNOWN_CHANNEL[i] })))
       .then((rs) => {
         states = PLACES.map((s, i) => {
           const r = rs[i];
-          const wx = windExtras(ms, s.lngLat, s.name);
+          const wx = wxs[i];
+          const wind = winds[i];
           const surf0 = s.brk && r
             ? surfQuality({ brk: s.brk, Hb: r.waves.breaker.Hb, Tp: seas[i].Tp, swellFromDeg: seas[i].fromDeg, windMs: wind.speedMs, windFromDeg: wind.fromDeg, swellHs: seasX[i]?.swellHs, swell2: seasX[i]?.swell2, windSeaHs: seasX[i]?.windSeaHs, tide: { level: ts.level, rising: ts.rising }, gustMs: wx.gustMs, windAhead: wx.ahead, lightning: wx.lightning, squall: wx.squall, rainMmH: wx.rainMmH, sarg: wx.sarg, info: { sstC: wx.sstC, uv: wx.uv } })
             : undefined;
