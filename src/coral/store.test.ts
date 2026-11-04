@@ -67,3 +67,19 @@ describe('coral export', () => {
     expect(lines[1]).toContain(`"'=cmd, ""q"""`);
   });
 });
+
+import { fitSize } from './photos';
+describe('coral photos and moves', () => {
+  it('scales photos down by the long side and never up', () => {
+    expect(fitSize(4000, 3000)).toEqual({ w: 1280, h: 960 });
+    expect(fitSize(600, 800)).toEqual({ w: 600, h: 800 });
+  });
+  it('moves a site and tracks photo ids, and old records get an empty photo list', () => {
+    const st = mem();
+    st.setItem('ft.coral.v1', JSON.stringify({ sites: [{ id: 'y', kind: 'reef', lng: 1, lat: 2, visits: [] }] }));
+    const s = createCoralStore(st);
+    expect(s.list()[0].photoIds).toEqual([]);
+    s.update('y', { lng: 3, lat: 4, photoIds: ['p1'] }, 9);
+    expect(s.list()[0]).toMatchObject({ lng: 3, lat: 4, photoIds: ['p1'], updatedAt: 9 });
+  });
+});
