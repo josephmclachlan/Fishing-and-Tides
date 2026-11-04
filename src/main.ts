@@ -96,6 +96,7 @@ import { effortCells, fetchEffort } from './adapters/effort';
 import { mountEffort } from './layers/effort';
 import { mountSst, type SstCoast } from './layers/sst';
 import { coastTest, type CoastTest } from './layers/sea-image';
+import { coralNow, fetchCoral, nearestReef, type CoralLoaded } from './adapters/coral';
 import { runoffRisk } from './physics/outing';
 import { clarityAt, mountClarity, mountClarityHud, riverRain, type ClarityContext } from './layers/clarity';
 import { fetchCatchmentRain, type CatchmentRain } from './adapters/catchment-rain';
@@ -525,6 +526,10 @@ let clarityLand: Grid | null = null;
 const clarityLayer = mountClarity(map);
 const bandAt = (ms: number) => bandFor((ms - time.baseMs()) / 3.6e6).id;
 const currentOut: [number, number] = [0, 0];
+let coral: CoralLoaded | null = null;
+fetchCoral()
+  .then((d) => ((coral = d), diveHud?.refresh()))
+  .catch((err) => console.warn('coral heat stress unavailable', err));
 const clarityCtx = (): ClarityContext | null =>
   clarityElevation && {
     satellite, rain: catchmentRain, flow: riverFlow, elevation: clarityElevation, land: clarityLand, ms: time.validMs(),
@@ -769,6 +774,12 @@ fetchSeafloor()
         const ratio = riverFlow ? flowRatio(riverFlow, m.point.name, ms) : null;
         const rainMm = catchmentRain ? (riverRain(catchmentRain, ms).find((r) => r.name === m.point.name)?.rainMm ?? null) : null;
         return runoffRisk(m.distanceM / 1000, ratio, rainMm);
+      },
+      // Coral heat stress (NOAA Coral Reef Watch, newest day) at the nearest reef.
+      coralAt: (lng, lat) => {
+        const reef = coral && nearestReef(coral, [lng, lat]);
+        const now = coral && reef && coralNow(coral, reef);
+        return now ? { name: now.reef.name.toUpperCase(), dhw: now.dhw, alert: now.alert, day: now.dhwDay } : null;
       },
       currentAt: (lng, lat, ms) => {
         const f = currents && currentsAt(currents, bandAt(ms), ms)?.field;
