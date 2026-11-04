@@ -11,6 +11,11 @@
  *   chop    1 at 4 m/s wind, 0 at 10 m/s (a snorkeller loses the bottom in whitecaps)
  *   depth   0 below 0.5 m of water over the reef (you touch coral), 1 from 1.5 m
  *   light   0 at 07:00, 1 from 09:00 until 15:00, 0 at 17:00 (local clock; no sun model needed here)
+ *   current 1 up to 0.15 m/s, 0 at 0.60 m/s (a snorkeller swims about 0.5 m/s and cannot make headway, so the
+ *           drift sweeps you off the reef; optional, left out when unknown; surface current forecast, tide streams not included)
+ *   cold    1 from 26 °C, 0.4 at 20 °C and below (needs a suit, you tire and cut the outing short; this coast is 27 to 30 °C
+ *           most of the year, so it rarely bites; optional)
+ *   sargassum  1 for NONE or LOW at the nearest beach, 0.6 MODERATE, 0.3 HIGH (mats foul the entry and hide the bottom; optional)
  *   rain    1 up to 2 mm/h, 0.3 at 10 mm/h and above (optional input; left out when unknown)
  *
  * Weather safety caps the whole score afterwards: score × safetyTerm (physics/safety.ts, shared with fishing).
@@ -18,7 +23,9 @@
  */
 import { safetyTerm, type SquallLevel } from './safety';
 
-export type OutingReason = 'storm' | 'surge' | 'vis' | 'chop' | 'shallow' | 'light' | 'rain';
+export type SargLevel = 'NONE' | 'LOW' | 'MODERATE' | 'HIGH';
+
+export type OutingReason = 'storm' | 'surge' | 'vis' | 'chop' | 'shallow' | 'light' | 'rain' | 'current' | 'cold' | 'sargassum';
 
 export interface OutingInputs {
   /** Peak bed velocity at the activity's depth, m/s. */
@@ -31,6 +38,12 @@ export interface OutingInputs {
   waterM: number;
   /** Local hour of day, 0..24. */
   localHour: number;
+  /** Surface current speed, m/s. Left out when no forecast covers the spot. */
+  currentMs?: number;
+  /** Sea surface temperature, °C. Left out when unknown. */
+  sstC?: number;
+  /** Sargassum outlook at the nearest beach for the day. Left out when unknown. */
+  sarg?: SargLevel;
   /** Rain, mm/h (mean over the models). Left out when no forecast covers the hour. */
   rainMmH?: number;
   /** Squall flag for the hour (weather.ts squallLevel). */
@@ -60,6 +73,9 @@ export function outingScore(i: OutingInputs): OutingScore {
     ['shallow', ramp(i.waterM, 0.5, 1.5)],
     ['light', lightTerm(i.localHour)],
   ].map(([r, v]) => [r, Number.isFinite(v as number) ? (v as number) : 0.5] as [OutingReason, number]);
+  if (i.sstC !== undefined && Number.isFinite(i.sstC)) terms.push(['cold', 1 - 0.6 * ramp(26 - i.sstC, 0, 6)]);
+  if (i.sarg) terms.push(['sargassum', i.sarg === 'HIGH' ? 0.3 : i.sarg === 'MODERATE' ? 0.6 : 1]);
+  if (i.currentMs !== undefined && Number.isFinite(i.currentMs)) terms.push(['current', 1 - ramp(i.currentMs, 0.15, 0.6)]);
   if (i.rainMmH !== undefined && Number.isFinite(i.rainMmH)) terms.push(['rain', 1 - 0.7 * ramp(i.rainMmH, 2, 10)]);
   const min = Math.min(...terms.map((x) => x[1]));
   const mean = terms.reduce((a, x) => a + x[1], 0) / terms.length;
@@ -114,3 +130,7 @@ export function stingerGuess(windMs: number, windFromDeg: number, facingDeg: num
   const d = Math.abs(((windFromDeg - facingDeg + 540) % 360) - 180);
   return d <= 60;
 }
+
+export type Suit = 'lycra' | 'shorty' | 'wet3' | 'wet5';
+/** What most dive shops suggest for the water temperature: 28 °C and up a lycra skin, 25 to 28 a shorty, 21 to 25 a 3 mm suit, colder a 5 mm. A rule of thumb, not a standard. */
+export const suitFor = (sstC: number): Suit => (sstC >= 28 ? 'lycra' : sstC >= 25 ? 'shorty' : sstC >= 21 ? 'wet3' : 'wet5');

@@ -11,7 +11,7 @@ import type { FeatureCollection } from 'geojson';
 import { TIER_ZOOM } from '../region';
 import { firstSymbolId } from '../map';
 import { CONTOURS_FROM } from './seafloor';
-import { buildCells, cellIndexAt, cellRing, type FishingInput, type Mouth } from '../fishing/cells';
+import { buildCells, cellGeometry, cellIndexAt, type FishingInput, type Mouth } from '../fishing/cells';
 import { baseScore, habitatScore, seasonFactor } from '../fishing/habitat';
 import { fitWeights, recordCells, type HabitatFit } from '../fishing/fit';
 import { SPECIES, speciesById, type SpeciesId } from '../fishing/species';
@@ -91,16 +91,18 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   let catchKey = '';
   const geojson: FeatureCollection = { type: 'FeatureCollection', features: [] };
   const boostAt = (id: SpeciesId, lng: number, lat: number) => occurrenceBoost(near[id], lng, lat);
+  // Cell shapes cut at the coastline, so shore cells don't paint the beach. Fixed, so built once.
+  const shapes = built.cells.map((c) => cellGeometry(input.land, c.lng, c.lat));
   const rebuild = (catches: readonly CatchPin[]) => {
     const recs = Object.fromEntries(SPECIES.map((s) => [s.id, [...recordsFor(occurrences, s.id), ...catchRecords(catches, s.id)]])) as unknown as Record<SpeciesId, Recs>;
     near = Object.fromEntries(SPECIES.map((s) => [s.id, recs[s.id].filter(inBox)])) as unknown as Record<SpeciesId, Recs>;
     // Habitat weights: the hand-written rules updated by the records (a few ms for all species).
     fits = Object.fromEntries(SPECIES.map((s) => [s.id, fitWeights(s, built.cells, recordCells(built.lattice, built.index, built.cells, recs[s.id]))])) as Record<SpeciesId, HabitatFit>;
-    geojson.features = built.cells.map((c) => {
+    geojson.features = built.cells.map((c, i) => {
       const properties: Record<string, number> = {};
       for (const s of SPECIES) properties[s.id] = Math.round(withEvidence(baseScore(s, c.f, fits[s.id].weights), boostAt(s.id, c.lng, c.lat)) * 100) / 100; // season applied in the paint
       properties.coast = Math.round(c.coastM);
-      return { type: 'Feature' as const, properties, geometry: { type: 'Polygon' as const, coordinates: [cellRing(c.lng, c.lat)] } };
+      return { type: 'Feature' as const, properties, geometry: shapes[i] };
     });
   };
   rebuild([]);

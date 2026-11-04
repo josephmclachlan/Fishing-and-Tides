@@ -25,7 +25,8 @@ Each break is run through the same physics as the spots (refraction over GEBCO, 
 | Period | 0.35 at 6 s rising to 1 at 13 s |
 | Swell window | 1 inside the guides' window (or ±60° of the facing), easing to 0.4 at 30° outside |
 | Clean (7.23) | Wave trains by energy share (Hs² adds): wind-sea over ~15% takes up to 45% off; a second swell more than 30° off the main one carrying 10–50% takes up to 30% off; aligned trains cost nothing. The SURFACE row shows CLEAN, MIXED SEAS or CHOPPY / CROSSED |
-| Wind | Offshore (from the land) keeps faces clean; onshore takes up to 65% off by 8 m/s, cross-shore up to 15%, very strong offshore up to 20% |
+| Tide (7.25) | A soft nudge of at most 12%: the shallow reef (Salsa Brava) wants high water, steep shorebreaks (Playa Cocles) want the middle of the tide, others have no preference. These preferences are generic reasoning (no guide agrees), so treat them as CHECK. The tide here is small, about 0.6 m, so the effect is small. The TIDE FIT row shows where the tide stands |
+| Wind (7.23 B) | Gusts over the mean by 3 to 8 m/s take up to 20% off. A WIND +3H row says TURNS ONSHORE or CLEANING UP when the onshore part changes by 3 m/s within 3 hours. Offshore (from the land) keeps faces clean; onshore takes up to 65% off by 8 m/s, cross-shore up to 15%, very strong offshore up to 20% |
 
 Bands: FLAT (breaker under 0.3 m), POOR under 3, FAIR to 5.5, GOOD to 8.5, EPIC above. Rings on the map turn green for GOOD and EPIC, amber for FAIR, red for POOR and dim when FLAT. The spot-tier label and the SURF row show the band, the score and the wind (OFFSHORE, CROSS, ONSHORE or GLASSY).
 

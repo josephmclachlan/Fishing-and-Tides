@@ -8,7 +8,7 @@ import { daylight, hourlyVerdicts, nextWindow, pressureWord, type HourVerdict } 
 const H = 3.6e6;
 const T0 = Date.UTC(2026, 10, 4, 12);
 const sea = (hs: number): SeaState => ({ hs, tm: 7, dir: 60, swellHs: hs, swellT: 9, swellDir: 60, swell2Hs: NaN, swell2T: NaN, swell2Dir: NaN, windSeaHs: 0.1, windSeaT: 3, windSeaDir: 60, kind: 'forecast' });
-const wx = (gustKt: number) => [{ model: 'gfs_seamless' as const, rainMmH: 0, cloudPct: 20, uv: 5, tempC: 28, gustKt, capeJkg: 0, pressureHpa: 1012 }];
+const wx = (gustKt: number) => [{ model: 'gfs_seamless' as const, rainMmH: 0, cloudPct: 20, uv: 5, tempC: 28, gustKt, capeJkg: 0, pressureHpa: 1012, windKt: NaN }];
 // Wind is 6 m/s (12 kt) except hours 3 to 5, when it is 12 m/s (23 kt).
 const env = (): MetricEnv => ({
   windMs: (_a, _b, ms) => { const h = (ms - T0) / H; return h >= 3 && h < 6 ? 12 : 6; },
