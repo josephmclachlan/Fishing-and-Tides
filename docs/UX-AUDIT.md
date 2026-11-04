@@ -37,7 +37,7 @@ Not looked at yet beyond what earlier PRs did (tap-to-explain on most CONDITIONS
 
 - [ ] Top bar and tabs (LAYERS, FIND, COND, SPOT, BOAT, WATCH, SET): tab names and what each opens
 - [ ] CONDITIONS core and groups (WAVES, WATER, WEATHER, FISHING, PLACE), glance strip
-- [ ] Short codes in readouts: SARG, VIS, SST, RIP, BITE, DATA AGE, TIER, FCST, VALID
+- [x] Readouts without a tap-to-explain card found by scanning every panel and now covered: DIVE and SNORKEL rows (mode, water over reef, outing, best time and day, week, spot, rating, stingers), GUSTS, CAPE, SQUALL, LIGHTNING, VIS +DAYS. Still without one: BOAT rows (distance, speed, time, pins, GPS), UTC clock, ZOOM, last-sync time
 - [ ] Time slider: bands FORECAST / LOW CONF / OUTLOOK, what NOW and VALID mean
 - [ ] Tide chart (PRED vs GAUGE)
 - [ ] SPOT page, FISHING panel (BEST SPOTS, BITE, BEST TIMES), DIVE panel, SURF zone panel
