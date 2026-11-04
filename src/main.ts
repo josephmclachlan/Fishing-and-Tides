@@ -136,12 +136,21 @@ const windAtRef: [number, number] = [0, 0];
 // Rip risk at the spot nearest the map centre, from the physics worker (PLAN 3.6, 4.2) once the seafloor loads.
 let spotPhysics: SpotPhysics | null = null;
 /** Gusts (weather feed, model mean) now and the wind three hours on, for the surf score (PLAN 7.23 B). */
-const windExtras = (ms: number) => {
+const windExtras = (ms: number, pin: [number, number], name: string) => {
   const g = weatherData ? weatherAt(weatherData, ms).map((w) => w.gustKt).filter(Number.isFinite) : [];
   const f = wind ? windAt(wind, time.band(), ms + 3 * 3.6e6)?.field : null;
   const v: [number, number] = [0, 0];
   const ahead = f && sampleField(f, ...MOCK_FLOW.windRef, v) ? { speedMs: Math.hypot(...v), fromDeg: fromDeg(...v) } : null;
-  return { gustMs: g.length ? g.reduce((a, b) => a + b, 0) / g.length / KT_PER_MS : null, ahead };
+  const near = Math.abs(ms - Date.now()) < 3.6e6 && nearestFlash(flashes, pin[0], pin[1], Date.now());
+  const wx = weatherData ? biteWeather(weatherAt(weatherData, ms)) : {};
+  return {
+    gustMs: g.length ? g.reduce((a, b) => a + b, 0) / g.length / KT_PER_MS : null,
+    ahead,
+    lightning: !!near && near.km <= STRIKE_ALERT_KM,
+    squall: wx.squall,
+    rainMmH: wx.rainMmH ?? null,
+    sarg: sargForecast ? beachDay(sargForecast, name, ms)?.level ?? null : null,
+  };
 };
 const conditionsAt = () => {
   const c = baseConditions();
