@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  GAMMA_DEFAULT, angleAtBreak, breaker, breakerHeight, breakerIndex, breakerType, depthLimited, energyDensity, iribarren, longshoreCurrent, meanSlope, waveFlux,
+  GAMMA_DEFAULT, angleAtBreak, breaker, breakerHeight, breakerIndex, breakerType, combinedBreaker, depthLimited, energyDensity, iribarren, longshoreCurrent, meanSlope, obliqueKr, waveFlux,
 } from './breaking';
 import { G, RHO_SEA } from './waves';
 
@@ -72,5 +72,29 @@ describe('energy and force', () => {
   it('mean slope from a point and its distance', () => {
     expect(meanSlope(10, 500)).toBeCloseTo(0.02, 9);
     expect(meanSlope(0, 500)).toBeNull();
+  });
+});
+
+describe('several trains (audit G)', () => {
+  it('adds breaker energies and ignores missing trains', () => {
+    expect(combinedBreaker([0.6, 0.8])).toBeCloseTo(1, 12);
+    expect(combinedBreaker([1.2, NaN, -1, 0])).toBeCloseTo(1.2, 12);
+    expect(combinedBreaker([])).toBe(0);
+  });
+
+  it('a short wind sea breaks smaller than the same height on a long swell period', () => {
+    // Total 1.5 m run through the swell's 12 s overstates a 1.0 m swell plus a 1.1 m 5 s wind sea.
+    const naive = breakerHeight(1.5, 12);
+    const split = combinedBreaker([breakerHeight(1.0, 12), breakerHeight(1.1, 5)]);
+    expect(split).toBeLessThan(naive);
+  });
+
+  it('cuts oblique trains by sqrt(cos) and floors at 0.3', () => {
+    expect(obliqueKr(0)).toBe(1);
+    expect(obliqueKr(60)).toBeCloseTo(Math.sqrt(0.5), 12);
+    expect(obliqueKr(-60)).toBeCloseTo(obliqueKr(60), 12);
+    expect(obliqueKr(300)).toBeCloseTo(obliqueKr(60), 12);
+    expect(obliqueKr(85)).toBe(0.3);
+    expect(obliqueKr(180)).toBe(0.3);
   });
 });

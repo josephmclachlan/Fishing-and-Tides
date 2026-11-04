@@ -19,6 +19,8 @@ Rays bend toward slower (shallower) water. `traceRay` integrates the ray equatio
 ## 3.4 Breaking, energy and force (`breaking.ts`, `surf-zone.ts`)
 
 - **Breaker height:** Komar and Gaughan, Hb = 0.39 g^⅕ (T H0′²)^⅖, with H0′ = Kr·H0 from 3.3.
+- **Several trains:** the ray model breaks the leading train (the swell, else the wind sea) on its own height, period and direction. Each other train (second swell, wind sea) is broken on its own period with an estimated refraction factor √cos(angle off the shore normal), 0.3 beyond 80°, and the energies add: Hb,all = √(Σ Hb,i²). The rip and the dive entry read Hb,all; the surf score keeps the swell's own breaker, since its chop terms already score the wind sea. Running the total Hs through the swell period overstated the surf (audit G).
+- **Scaling to another hour:** the dive entry scales the spot model's breaker to the hour's sea as (Hs/Hs0)^0.8, the height power in Komar and Gaughan, not linearly (audit L).
 - **Breaking depth:** hb = Hb/γ, with Weggel's slope-dependent breaker index γ (0.78 when the slope is unknown).
 - **Breaker type:** Iribarren number ξ0 = tan β / √(H0/L0) with Battjes' classes: spilling below 0.5, plunging to 3.3, surging above.
 - **Energy and force:** E = ρgHs²/16, wave power P = E·Cg (kW per metre of beach, conserved to the break and spread by Kr²), crest speed √(g(hb + Hb)), impact pressure ½ρc² (kPa), and the Longuet-Higgins longshore current.

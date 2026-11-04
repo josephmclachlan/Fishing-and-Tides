@@ -153,8 +153,10 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     const waterM = chart === undefined || chart > depth ? depth : chart + tideM(ms);
     const runoff = env.runoffAt(c.lng, c.lat, ms);
     // Surf at the entry: the spot model's breaker height, scaled to this hour's swell; the rip level only for the hour it was computed for.
-    const ratio = sea.hs > 0 && st && st.sea.Hs > 0 ? sea.hs / st.sea.Hs : 1;
-    const breakerM = r.waves.breaker.Hb * ratio;
+    // Breaker height goes as Hs^0.8 (Komar-Gaughan, at a fixed period), not linearly (audit L); every train, not the main one.
+    const hs0 = st?.sea.total ?? st?.sea.Hs ?? 0;
+    const ratio = sea.hs > 0 && hs0 > 0 ? sea.hs / hs0 : 1;
+    const breakerM = (r.HbAll ?? r.waves.breaker.Hb) * ratio ** 0.8;
     const rip = Math.abs(ms - time.validMs()) < 0.5 * 3.6e6 ? r.rip.level : undefined;
     return outingScore({ surgeMs: u, visM: vis ?? NaN, windMs: wind, waterM, localHour, sunAltDeg: sunAltitude(ms, c.lat, c.lng), currentMs: env.currentAt(c.lng, c.lat, ms)?.ms, breakerM, ...(rip ? { rip } : {}), ...(runoff === null ? {} : { runoff }), ...waterTerms(env.waterAt(c.lng, c.lat, ms)), ...env.wxAt(c.lng, c.lat, ms) });
   };
