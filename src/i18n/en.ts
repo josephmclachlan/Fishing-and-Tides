@@ -354,6 +354,7 @@ export const en = {
   'sarg.from': 'FROM',
   'sarg.cloud': 'CLOUD',
   'check.feed.sargassum': 'SARGASSUM',
+  'check.feed.coral': 'CORAL HEAT STRESS',
   'layer.rip': 'RIP RISK',
   'layer.surf': 'SURF BREAKS',
   'layer.depth': 'DEPTH',

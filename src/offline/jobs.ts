@@ -4,6 +4,7 @@
  * and the adapter fell back to an older copy, or when nothing was published, so the summary
  * never claims a fresh download it did not get.
  */
+import { fetchCoral } from '../adapters/coral';
 import { fetchCatchmentRain } from '../adapters/catchment-rain';
 import { fetchCurrents } from '../adapters/currents';
 import { fetchGauge } from '../adapters/gauge';
@@ -47,6 +48,7 @@ export const JOB_FEEDS: Record<string, readonly string[]> = {
   sargassum: ['sargassum'],
   mld: ['mld'],
   effort: ['effort'],
+  coral: ['coral'],
 };
 
 /** Verify feeds that are precached with the app rather than synced (checked in the sync's last step). */
@@ -71,6 +73,7 @@ export function tripJobs(base: string = import.meta.env.BASE_URL): SyncJob[] {
     { name: 'sargassum', run: async () => need((await fetchSargassum({ base })).series, 'no sargassum detections') },
     { name: 'mld', run: async () => need((await fetchMld({ base })).series, 'no mixed-layer depth') },
     { name: 'effort', run: async () => need((await fetchEffort({ base })).series, 'no fishing effort') },
+    { name: 'coral', run: async () => live(await fetchCoral({ base }), 'coral heat stress') },
     { name: 'lightning', run: async () => { const d = await fetchLightning(); if (d) live(d, 'lightning'); } },
   ];
 }

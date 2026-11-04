@@ -16,6 +16,7 @@ import { effortChecks, fetchEffort } from '../adapters/effort';
 import { fetchPasses, passChecks } from '../adapters/passes';
 import { fetchSargassum, sargassumChecks } from '../adapters/sargassum';
 import { weatherChecks } from '../adapters/weather';
+import { coralChecks, fetchCoral } from '../adapters/coral';
 import { fetchHindcast, weatherSkillChecks } from '../adapters/weather-skill';
 import { fetchStorms, stormsChecks } from '../adapters/storms';
 import { fetchLightning, lightningChecks } from '../adapters/lightning';
@@ -39,6 +40,7 @@ export function allChecks(base: string = import.meta.env.BASE_URL): Check[] {
     ...weatherChecks(),
     ...weatherSkillChecks(() => fetchHindcast(), () => fetchMetar({ base })),
     ...stormsChecks(() => fetchStorms({ base })),
+    ...coralChecks(() => fetchCoral({ base })),
     ...lightningChecks(() => fetchLightning({ base })),
     ...occurrenceChecks(base),
   ];

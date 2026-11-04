@@ -19,6 +19,7 @@ import { buildStorms } from './forecast/storms.ts';
 import { buildCurrents } from './forecast/currents.ts';
 import { buildMetar } from './forecast/metar.ts';
 import { buildEffort } from './forecast/effort.ts';
+import { buildCoral } from './forecast/coral.ts';
 import { buildChl, buildChlPass, buildKd490, buildMld, buildSargassum, buildScatPass, buildSst, buildSstPass } from './forecast/satellite.ts';
 
 const OUT = 'public/data/forecast';
@@ -50,6 +51,8 @@ const FEEDS: Record<string, { build: (dir: string) => Promise<string>; refreshH:
   effort: { build: buildEffort, refreshH: 24 },
   // Sargassum detections from the daily USF AFAI map (PLAN 7.1), NOAA AOML ERDDAP (no CORS, so relayed).
   sargassum: { build: buildSargassum, refreshH: 12 },
+  // Coral bleaching heat stress (PLAN 7.23), NOAA Coral Reef Watch daily 5 km via CoastWatch ERDDAP (no CORS, so relayed).
+  coral: { build: buildCoral, refreshH: 12 },
 };
 
 const wanted = process.argv.slice(2).filter((a) => !a.startsWith('-'));
