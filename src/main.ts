@@ -265,7 +265,19 @@ const harboursHud = mountHarboursHud(hud, map, { windFromDeg: () => conditionsAt
 // Boat mode: GPS track and pin log, kept on the device. Depth at a pin comes from the seafloor grid once it loads.
 let depthAt: ((lng: number, lat: number) => number | undefined) | null = null;
 // Spot pages (PLAN 4.1): tide, sky and the spot's physics on one sheet; its tab sits before BOAT.
-const spotPage = mountSpotPage(hud, map, { time, sheets, physics: () => spotPhysics, observed: () => gauge, go: (t) => enhancer.go(t) });
+const spotPage = mountSpotPage(hud, map, {
+  time, sheets, physics: () => spotPhysics, observed: () => gauge, go: (t) => enhancer.go(t),
+  // Read at render time: metricEnv and the feeds are defined further down this file.
+  metricEnv: () => metricEnv(),
+  stripEnv: () => ({
+    sea: (lng, lat, ms) => (waves ? wavesAt(waves, bandAt(ms), ms, lng, lat) : null),
+    wind: (lng, lat, ms) => {
+      const v = windVecAt(lng, lat, ms);
+      return v ? { ms: Math.hypot(...v), fromDeg: fromDeg(...v) } : null;
+    },
+    tide: LIMON_HARMONICS,
+  }),
+});
 loadGauge();
 setInterval(loadGauge, 10 * 60_000);
 const boatStore = createBoatStore(safeStorage());
@@ -301,14 +313,18 @@ const watchSea = new globalThis.Map<string, [number, number] | null>();
 const hourWind = new globalThis.Map<number, ReturnType<typeof windAt>>();
 let hourWindFor: WindData | null = null;
 /** Forecast wind speed, m/s, at any place and hour (one wind frame per hour, cached); shared by WATCH and fishing. */
-const windMsAt = (lng: number, lat: number, ms: number): number | null => {
+const windVecAt = (lng: number, lat: number, ms: number): [number, number] | null => {
   if (!wind) return null;
   if (hourWindFor !== wind) (hourWind.clear(), (hourWindFor = wind));
   const h = Math.floor(ms / 3.6e6);
   if (!hourWind.has(h)) hourWind.set(h, windAt(wind, bandAt(ms), ms));
   const f = hourWind.get(h);
   const out: [number, number] = [0, 0];
-  return f && sampleField(f.field, lng, lat, out) ? Math.hypot(...out) : null;
+  return f && sampleField(f.field, lng, lat, out) ? out : null;
+};
+const windMsAt = (lng: number, lat: number, ms: number): number | null => {
+  const v = windVecAt(lng, lat, ms);
+  return v ? Math.hypot(...v) : null;
 };
 const metricEnv = (): MetricEnv => ({
   windMs: windMsAt,

@@ -633,6 +633,8 @@ export const es: Dict = {
   'spot.title': 'PÁGINA DEL PUNTO',
   'spot.prev': 'Punto anterior',
   'spot.next': 'Punto siguiente',
+  'spot.best': 'MEJORES HORAS HOY',
+  'spot.hourly': 'HORA POR HORA',
   'spot.tides': 'MAREAS',
   'spot.sky': 'SOL Y LUNA',
   'spot.moon': 'LUNA',

@@ -18,6 +18,10 @@ import { localClock, nextTides } from './tide-chart';
 import { tideBlock, tideWhen, type Observed } from './tide-hud';
 import type { TimeStore } from './time';
 import { clock } from './astro-hud';
+import type { MetricEnv } from './metrics/registry';
+import { hourlyScores, type Activity } from './metrics/best-today';
+import { hourRows, ribbonSvg, stripsSvg, type RibbonRow, type StripEnv } from './spot-charts';
+import { offsetForTap } from './tide-chart';
 
 /** Local "TUE 02 14:00" for the slider time. */
 function localWhen(ms: number): string {
@@ -32,7 +36,18 @@ export interface SpotPageDeps {
   observed: Observed;
   /** Fly the map to the spot (the enhance fly-to). */
   go: (target: Target) => void;
+  /** Read at render time (the feeds load after this page mounts). */
+  metricEnv: () => MetricEnv;
+  stripEnv: () => StripEnv;
 }
+
+/** Ribbon rows: the activities the page scores, label keys from the activity picker. */
+const RIBBON: readonly { act: Activity; label: Key }[] = [
+  { act: 'surf', label: 'activity.surf' },
+  { act: 'fish', label: 'activity.fishing' },
+  { act: 'dive', label: 'activity.dive' },
+];
+const CHART_W = 320;
 
 export function mountSpotPage(root: HTMLElement, map: Map, deps: SpotPageDeps) {
   const { time, sheets } = deps;
@@ -48,6 +63,10 @@ export function mountSpotPage(root: HTMLElement, map: Map, deps: SpotPageDeps) {
       <span class="seg green" id="sp-name">--</span>
       <button type="button" class="tab" id="sp-next" aria-label="${t('spot.next')}">›</button>
     </div>
+    <div class="sp-sec lbl">${t('spot.best')}</div>
+    <button type="button" class="sc-tap" id="sp-ribbon" title="${t('tide.tap')}"></button>
+    <div class="sp-sec lbl">${t('spot.hourly')}</div>
+    <button type="button" class="sc-tap" id="sp-strips" title="${t('tide.tap')}"></button>
     <div class="sp-sec lbl">${t('spot.tides')}</div>
     <div class="tc-host"></div>
     <ul class="sp-tides" id="sp-tides"></ul>
@@ -72,10 +91,38 @@ export function mountSpotPage(root: HTMLElement, map: Map, deps: SpotPageDeps) {
     $(id).className = `seg sm ${tone}`;
   };
 
+  // Charts for the spot and local day on the slider, rebuilt at most once a minute (data loads late).
+  let chartKey = '';
+  const charts = (spot: (typeof SPOTS)[number], now: number) => {
+    const day0 = localDayStart(now, REGION.tzOffsetH);
+    const key = `${spot.name}|${day0}|${now}|${Math.floor(Date.now() / 60_000)}`;
+    if (key === chartKey) return;
+    chartKey = key;
+    const env = deps.metricEnv();
+    const opts = { width: CHART_W, cursor: now, dayStartMs: day0 };
+    const rows: RibbonRow[] = RIBBON.map(({ act, label }) => ({
+      label: t(label),
+      scores: hourlyScores(env, act, spot, day0)?.map((r) => r.score) ?? Array(24).fill(null),
+    }));
+    $('sp-ribbon').innerHTML = ribbonSvg(rows, { ...opts, label: t('spot.best') });
+    $('sp-strips').innerHTML = stripsSvg(hourRows(deps.stripEnv(), spot.lngLat, day0), { ...opts, label: t('spot.hourly') });
+  };
+  // A tap on a chart moves the slider to that hour (the x axis is the same 24 h as the tide chart).
+  for (const id of ['sp-ribbon', 'sp-strips']) {
+    $(id).addEventListener('click', (e) => {
+      const r = $(id).getBoundingClientRect();
+      if (r.width <= 0) return;
+      const left = 34; // LEFT in spot-charts.ts
+      const fx = ((((e as MouseEvent).clientX - r.left) / r.width) * CHART_W - left) / (CHART_W - left);
+      time.set(offsetForTap(fx, localDayStart(time.validMs(), REGION.tzOffsetH), time.baseMs()));
+    });
+  }
+
   const render = () => {
     if (!sheets.is('spot')) return;
     const spot = SPOTS[i];
     const now = time.validMs();
+    charts(spot, now);
     $('sp-name').textContent = spot.name;
     $('sp-when').textContent = localWhen(now);
     chart.render();

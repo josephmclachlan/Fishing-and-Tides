@@ -633,6 +633,8 @@ export const en = {
   'spot.title': 'SPOT PAGE',
   'spot.prev': 'Previous spot',
   'spot.next': 'Next spot',
+  'spot.best': 'BEST HOURS TODAY',
+  'spot.hourly': 'HOUR BY HOUR',
   'spot.tides': 'TIDES',
   'spot.sky': 'SUN & MOON',
   'spot.moon': 'MOON',
