@@ -556,6 +556,10 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
  */
 .cg-acts { grid-column: 1 / -1; display: flex; gap: 4px; }
 .cg-acts .tab { flex: 1 1 0; min-width: 0; padding: 4px 2px; font-size: 11px; letter-spacing: 1px; justify-content: center; text-align: center; }
+/* SNORKEL / DIVE is the long one: let it wrap onto two lines rather than clip. */
+.cg-acts .tab[data-cact="dive"] { flex-grow: 1.6; white-space: normal; line-height: 1.1; }
+/* The surf-break rows are empty for a snorkeler; they stay under ALL and SURF (J6). */
+#cond-panel[data-activity="dive"] .surf-rows { display: none; }
 .cg { grid-column: 1 / -1; display: grid; grid-template-columns: inherit; gap: 4px; min-width: 0; }
 .cg[hidden] { display: none; }
 .cg-core { padding: 2px 0 6px; }

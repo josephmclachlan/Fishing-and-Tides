@@ -19,7 +19,7 @@ export function mountSurfHud(root: HTMLElement, map: Map, quality: (name: string
   if (!side) return { refresh() {} };
   side.insertAdjacentHTML(
     'beforeend',
-    `<div class="from-coast">
+    `<div class="from-coast surf-rows">
       <div class="ro"><span class="lbl">${t('surf.title')}</span><span class="seg sm green" id="sb-name">--</span></div>
       <div class="ro"><span class="lbl">${t('surf.q')}</span><span class="seg sm" id="sb-q">--</span></div>
       <div class="ro"><span class="lbl">${t('surf.surface')}</span><span class="seg sm" id="sb-surf">--</span></div>

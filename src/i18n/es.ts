@@ -190,7 +190,7 @@ export const es: Dict = {
   'cg.act.all': 'TODO',
   'cg.act.surf': 'SURF',
   'cg.act.fish': 'PESCA',
-  'cg.act.dive': 'BUCEO',
+  'cg.act.dive': 'SNORKEL / BUCEO',
   'cg.act.boat': 'BOTE',
   'bt.label': 'MEJOR HORA {when} · {name}',
   'bt.today': 'HOY',
