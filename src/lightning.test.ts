@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { countNear, nearestFlash, type Flash } from './lightning';
-import { parseLightning, repoSlug, lightningUrl } from './adapters/lightning';
+import { parseLightning, repoSlug, slugFor, lightningUrl } from './adapters/lightning';
 
 const NOW = 1_800_000_000_000;
 const flashes: Flash[] = [
@@ -32,5 +32,11 @@ describe('lightning', () => {
     expect(repoSlug('josephmclachlan.github.io', '/Fishing-and-Tides/')).toBe('josephmclachlan/Fishing-and-Tides');
     expect(repoSlug('localhost', '/')).toBeNull();
     expect(lightningUrl('a/b')).toBe('https://raw.githubusercontent.com/a/b/data-lightning/lightning.json');
+  });
+  it('reads the repo from an absolute site base without a page (the Node verify run)', () => {
+    expect(slugFor('https://josephmclachlan.github.io/Fishing-and-Tides/', undefined)).toBe('josephmclachlan/Fishing-and-Tides');
+    expect(slugFor('/Fishing-and-Tides/', 'https://josephmclachlan.github.io/Fishing-and-Tides/#x')).toBe('josephmclachlan/Fishing-and-Tides');
+    expect(slugFor('/Fishing-and-Tides/', undefined)).toBeNull();
+    expect(slugFor('/', 'http://localhost:5173/')).toBeNull();
   });
 });

@@ -31,7 +31,7 @@ export function allChecks(base: string = import.meta.env.BASE_URL): Check[] {
     ...sargassumChecks(() => fetchSargassum({ base })),
     ...weatherChecks(),
     ...stormsChecks(() => fetchStorms({ base })),
-    ...lightningChecks(() => fetchLightning()),
+    ...lightningChecks(() => fetchLightning({ base })),
     ...occurrenceChecks(base),
   ];
 }
