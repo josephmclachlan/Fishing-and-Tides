@@ -18,6 +18,7 @@ import { fetchSatellite } from '../adapters/satellite';
 import { fetchStorms } from '../adapters/storms';
 import { fetchWaves } from '../adapters/waves';
 import { fetchWeather } from '../adapters/weather';
+import { fetchHindcast } from '../adapters/weather-skill';
 import { fetchWind } from '../adapters/wind';
 import type { SyncJob } from './sync';
 
@@ -57,7 +58,8 @@ export function tripJobs(base: string = import.meta.env.BASE_URL): SyncJob[] {
     { name: 'waves', run: async () => need((await fetchWaves({ base })).forecast, 'no wave forecast') },
     { name: 'currents', run: async () => need((await fetchCurrents({ base })).forecast, 'no current forecast') },
     { name: 'sst', run: async () => need(Number.isFinite((await fetchSatellite({ base })).fetchedAt), 'no satellite data') },
-    { name: 'weather', run: async () => live(await fetchWeather(), 'weather') },
+    // The airport hindcast that scores the models (PLAN 7.4) rides with the forecast; without it the blend uses equal weights.
+    { name: 'weather', run: async () => { live(await fetchWeather(), 'weather'); await fetchHindcast().catch(() => null); } },
     { name: 'rain', run: async () => live(await fetchCatchmentRain(), 'rain') },
     { name: 'river', run: async () => live(await fetchRiverFlow(), 'river') },
     { name: 'storms', run: async () => live(await fetchStorms({ base }), 'storms') },

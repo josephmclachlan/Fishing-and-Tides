@@ -51,6 +51,12 @@ jobs:
           COPERNICUSMARINE_PASSWORD: ${{ secrets.COPERNICUSMARINE_PASSWORD }}
           # Free Global Fishing Watch API token for the fishing effort map (effort, PLAN 7.19).
           GFW_TOKEN: ${{ secrets.GFW_TOKEN }}
+      # Hand the fresh feeds to the archive job (PLAN 8.1) so it can save today's history.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forecast-data
+          path: public/data/forecast
+          retention-days: 1
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -64,3 +70,40 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+  # Daily history (PLAN 8.1, docs/HISTORY.md): samples the feeds the build just fetched at the
+  # spots, plus the tide gauge and each weather model at the airport, and appends them to one CSV
+  # per day on the `history` branch. Public ocean data only. Its own job, so only it can push, and
+  # a failure here never holds up the deploy.
+  archive:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          name: forecast-data
+          path: public/data/forecast
+      - name: Check out the history branch (created on the first run)
+        run: |
+          if git ls-remote --exit-code --heads origin history; then
+            git fetch --depth=1 origin history
+            git worktree add history FETCH_HEAD
+          else
+            git worktree add --orphan -b history history
+          fi
+      - run: npm run data:archive
+        env:
+          HISTORY_DIR: history
+      - name: Commit and push
+        working-directory: history
+        run: |
+          git add -A
+          git diff --cached --quiet && { echo "nothing new"; exit 0; }
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "History $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3; do git push origin HEAD:refs/heads/history && exit 0; sleep $((i * 5)); git pull -q --rebase --depth=1 origin history || true; done
+          exit 1

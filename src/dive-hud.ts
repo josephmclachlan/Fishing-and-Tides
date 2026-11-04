@@ -124,14 +124,14 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
   };
 
   /** Score for one hour at the reticle's spot; null when the sea or wind forecast has nothing for it. */
-  const scoreAt = (ms: number, localHour: number, vis: number | null, at?: [number, number]): OutingScore | null => {
+  const scoreAt = (ms: number, localHour: number, vis: number | null, at?: [number, number], m: Mode = mode): OutingScore | null => {
     const { c, st } = at ? { c: { lng: at[0], lat: at[1] }, st: spots.byName(nearest(at, SPOTS)!.point.name) } : spotAt();
     const r = st?.result;
     const sea = env.seaAt(st?.pin[0] ?? c.lng, st?.pin[1] ?? c.lat, ms);
     const w = env.windAt(c.lng, c.lat, ms);
     const wind = w ? w.ms : null;
     if (!r || !sea || wind === null) return null;
-    const depth = MODE_DEPTH[mode];
+    const depth = MODE_DEPTH[m];
     const u = surgeAt(sea.hs * r.waves.refraction.K, r.waves.refraction.depth, sea.tp, depth).uMs;
     const chart = env.depthAt(c.lng, c.lat);
     // Open water or unknown depth: use the activity depth so only a real reef flat can read as too shallow.
@@ -210,5 +210,11 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
   });
   apply();
   // Forecast feeds arrive after the first draw; recheck when they have.
-  return { refresh: () => ((heavyKey = ''), refresh()) };
+  // The verdict chips (verdict-hud.ts, PLAN 7.8) read the score for the slider hour, and set the mode.
+  const now = (m: Mode): OutingScore | null => {
+    const ms = time.validMs();
+    const c = map.getCenter();
+    return scoreAt(ms, (((ms + REGION.tzOffsetH * 3.6e6) % 864e5) + 864e5) % 864e5 / 3.6e6, env.visAt(c.lng, c.lat, ms), undefined, m);
+  };
+  return { refresh: () => ((heavyKey = ''), refresh()), now, mode: () => mode, setMode: (m: Mode) => ((mode = m), apply()) };
 }

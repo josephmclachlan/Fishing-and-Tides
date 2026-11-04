@@ -16,7 +16,7 @@ import { safetyTerm, type SquallLevel } from '../physics/safety';
 import type { Vessel } from '../settings';
 
 export type Verdict = 'go' | 'marginal' | 'nogo';
-export type VerdictReason = 'lightning' | 'storm' | 'squallHigh' | 'squall' | 'wind' | 'gust' | 'sea' | 'comfort' | 'rain';
+export type VerdictReason = 'debris' | 'lightning' | 'storm' | 'squallHigh' | 'squall' | 'wind' | 'gust' | 'sea' | 'comfort' | 'rain';
 
 /** [MARGINAL at or above, NO-GO at or above] per vessel. Comfort is a score, so it is [MARGINAL below, NO-GO below]. */
 export const LIMITS: Readonly<Record<Vessel, { windKt: readonly [number, number]; gustKt: readonly [number, number]; hsM: readonly [number, number]; comfort: readonly [number, number] }>> = {
@@ -45,6 +45,8 @@ export interface VerdictInputs {
   /** Distance to the nearest active tropical storm, km. */
   stormKm?: number | null;
   rainMmH?: number;
+  /** Flood debris near a river mouth (debris.ts); LIKELY makes the verdict at least MARGINAL. */
+  debris?: 'none' | 'possible' | 'likely';
 }
 
 export interface BoatVerdict {
@@ -79,6 +81,7 @@ export function boatVerdict(i: VerdictInputs): BoatVerdict {
     else if (i.comfort < L.comfort[0]) reasons.push({ id: 'comfort', level: 'marginal' });
   }
   if (finite(i.rainMmH) && i.rainMmH >= HEAVY_RAIN_MM_H) reasons.push({ id: 'rain', level: 'marginal', value: i.rainMmH });
+  if (i.debris === 'likely') reasons.push({ id: 'debris', level: 'marginal' });
   reasons.sort((a, b) => (a.level === b.level ? 0 : a.level === 'nogo' ? -1 : 1));
   const verdict: Verdict = reasons.some((r) => r.level === 'nogo') ? 'nogo' : reasons.length ? 'marginal' : 'go';
   return { verdict, reasons };
