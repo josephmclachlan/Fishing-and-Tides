@@ -49,7 +49,7 @@ body { touch-action: pan-x pan-y; }
 .unit { font-size: 10px; opacity: 0.7; }
 .green { color: var(--green); }
 .red { color: var(--red); animation: blink 1s infinite steps(1); }
-.dim { opacity: 0.55; }
+.dim { opacity: 0.65; }
 .blink { animation: blink 1.4s infinite steps(1); color: var(--green); }
 @keyframes blink { 50% { opacity: 0.25; } }
 
@@ -219,7 +219,8 @@ body[data-enhance='off'] .from-spot > * { animation: tier-in 0.9s ease-out both;
 .lay-cell { display: flex; gap: 2px; min-width: 0; }
 .lay-cell .tab.lay { flex: 1; min-width: 0; }
 .layers .tab { min-height: 36px; padding: 6px; text-align: center; }
-.layers .tab.lay { opacity: 0.45; border-style: dashed; }
+/* Off layers: dashed and dimmed, but still readable in sunlight (0.45 was too faint on a phone; clarity review CL21). */
+.layers .tab.lay { opacity: 0.7; border-style: dashed; }
 .layers .tab.lay.on { opacity: 1; border-style: solid; }
 .layers .tab.lay .soon { display: none; font-style: normal; font-size: 9px; letter-spacing: 1px; margin-left: 6px; color: var(--amber); opacity: 0.7; }
 .layers .tab.lay.pending .soon { display: inline; }
@@ -403,7 +404,7 @@ body[data-contrast='high'] .dim { opacity: 1; }
 body[data-contrast='high'] .tab { border-color: var(--amber); }
 body[data-contrast='high'] .tab.on { border-color: var(--green); border-width: 2px; }
 body[data-contrast='high'] .tab:disabled { opacity: 0.5; }
-body[data-contrast='high'] .layers .tab.lay { opacity: 0.75; }
+body[data-contrast='high'] .layers .tab.lay { opacity: 0.85; }
 body[data-contrast='high'] .tab.flag:not(.on) { opacity: 0.8; }
 body[data-contrast='high'] .gauge-bar { border-color: var(--amber); }
 body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important; }
@@ -586,7 +587,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .wt-row, .wt-chips, .wt-tabs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .wt-row .tab, .wt-chips .tab, .wt-tabs .tab, .wt-go { min-height: 40px; }
 .wt-go { text-align: center; justify-content: center; }
-.wt-go:disabled, .wt-row .tab:disabled { opacity: 0.35; }
+.wt-go:disabled, .wt-row .tab:disabled { opacity: 0.55; }
 .wt-count { text-transform: uppercase; opacity: 0.8; }
 .watch-pop { position: fixed; z-index: 8; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(760px, calc(100vw - 16px)); max-height: calc(100vh - 24px); overflow-y: auto; background: rgba(5, 8, 5, 0.97); pointer-events: auto; display: grid; gap: 8px; }
 .watch-pop[hidden] { display: none; }
