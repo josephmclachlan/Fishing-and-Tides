@@ -8,6 +8,15 @@ import { t, type Key } from './i18n';
 import { seaState, simPartitions, type SeaPartitions } from './physics/sea-state';
 import type { SeaState as Waves } from './adapters/waves';
 import type { Conditions } from './mock';
+import { boatVerdict, type VerdictInputs } from './boat/verdict';
+import type { Vessel } from './settings';
+
+/** What the BOAT verdict reads besides wind and sea: the safety feeds, supplied by main.ts. */
+export type VerdictSafety = Pick<VerdictInputs, 'gustKt' | 'squall' | 'lightning' | 'stormKm' | 'rainMmH'>;
+export interface SeaStateDeps {
+  vessel: () => Vessel;
+  safety: () => VerdictSafety;
+}
 
 const ok = (x: number) => Number.isFinite(x) && x > 0;
 
@@ -30,7 +39,7 @@ export function feedPartitions(w: Waves | null): SeaPartitions | null {
   };
 }
 
-export function mountSeaStateHud(root: HTMLElement, getData: () => Conditions, seaAt: () => Waves | null = () => null) {
+export function mountSeaStateHud(root: HTMLElement, getData: () => Conditions, seaAt: () => Waves | null = () => null, deps?: SeaStateDeps) {
   const side = condSlot(root, 'waves', 20);
   if (!side) return;
   side.insertAdjacentHTML(
@@ -39,6 +48,8 @@ export function mountSeaStateHud(root: HTMLElement, getData: () => Conditions, s
       <div class="ro"><span class="lbl">${t('sea.title')}<span id="ss-sim"> · ${t('sea.sim')}</span></span><span class="seg sm" id="ss-comfort">--</span></div>
       <div class="ro"><span class="lbl">${t('sea.comfort')}</span><span class="seg sm" id="ss-score">--</span></div>
       <div class="ro"><span class="seg sm" id="ss-detail">--</span></div>
+      <div class="ro"><span class="lbl">${t('verdict.title')}</span><span class="seg sm" id="bv-verdict">--</span></div>
+      <div class="ro"><span class="seg sm" id="bv-why">--</span></div>
     </div>`,
   );
   const $ = (id: string) => side.querySelector<HTMLElement>('#' + id)!;
@@ -53,6 +64,13 @@ export function mountSeaStateHud(root: HTMLElement, getData: () => Conditions, s
     $('ss-detail').textContent =
       t('sea.detail', { h: s.totalHm.toFixed(1), tp: s.meanPeriodS.toFixed(0), steep: s.steepness.toFixed(3) }) +
       ` · ${t(`sea.dominant.${s.dominant}` as Key)}${s.confusion > 0.5 ? ` · ${t('sea.cross')}` : ''}`;
+    if (deps) {
+      const v = boatVerdict({ vessel: deps.vessel(), windKt: getData().windKt, hsM: s.totalHm, comfort: s.score, ...deps.safety() });
+      $('bv-verdict').textContent = t(`verdict.${v.verdict}` as Key);
+      $('bv-verdict').className = `seg sm ${v.verdict === 'go' ? 'green' : v.verdict === 'nogo' ? 'red' : ''}`;
+      const why = v.reasons.slice(0, 3).map((r) => t(`verdict.why.${r.id}` as Key, { kt: Math.round(r.value ?? 0), m: (r.value ?? s.totalHm).toFixed(1) }));
+      $('bv-why').textContent = (why.length ? why.join(' · ') : t('verdict.why.none')) + (real ? '' : ` · ${t('verdict.sim')}`);
+    }
   };
   tick();
   setInterval(tick, 1000);

@@ -8,7 +8,7 @@ import { PHONE_QUERY, closeButton, type Sheets } from './sheets';
 
 export function mountSettingsPanel(root: HTMLElement, sheets: Sheets) {
   const tabs = root.querySelector<HTMLElement>('.top-tabs')!;
-  const controls = [...tabs.querySelectorAll<HTMLElement>('.enh-toggle, .sun-toggle, .snd-toggle, .lang, .check-open, .intro-open')];
+  const controls = [...tabs.querySelectorAll<HTMLElement>('.enh-toggle, .sun-toggle, .snd-toggle, .vessel-toggle, .lang, .check-open, .intro-open')];
 
   const el = document.createElement('section');
   el.className = 'panel settings';
