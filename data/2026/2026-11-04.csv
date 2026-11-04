@@ -2416,3 +2416,5 @@ t,site,source,model,var,value,issued
 2026-11-04T22:00Z,PLAYA GRANDE,currents,,v,-0.13653,2026-11-04T19:18Z
 2026-11-04T22:25Z,limon,gauge,,levelM,0.095,
 2026-11-04T22:25Z,limon,gauge,,tideM,0.042926,
+2026-11-04T22:35Z,limon,gauge,,levelM,0.1041,
+2026-11-04T22:35Z,limon,gauge,,tideM,0.04793,
