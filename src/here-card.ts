@@ -38,8 +38,22 @@ export function hereRows(s: HereSample): [string, string][] {
 const MARKS = ['ob-dot', 'ob-label', 'lt-dot', 'st-ring', 'st-label', 'wv-crest', 'rp-site', 'rp-coast', 'sg-mat', 'sg-beach'];
 const TAP_BOX_PX = 9;
 
+let tapClaims = 0;
+/** A feature that takes the next map tap for itself (e.g. picking a forecast spot) calls this, and the returned function when it is done. */
+export function claimMapTap(): () => void {
+  tapClaims++;
+  let released = false;
+  // Release after the current click has reached every handler, so this tap is not also "what's here".
+  return () => {
+    if (released) return;
+    released = true;
+    setTimeout(() => tapClaims--, 0);
+  };
+}
+
 export function mountHere(map: Map, sample: (lng: number, lat: number) => HereSample, show: (title: string, rows: [string, string][], at: { x: number; y: number }) => void) {
   map.on('click', (e) => {
+    if (tapClaims > 0) return;
     const layers = MARKS.filter((id) => map.getLayer(id));
     const { x, y } = e.point;
     if (layers.length && map.queryRenderedFeatures([[x - TAP_BOX_PX, y - TAP_BOX_PX], [x + TAP_BOX_PX, y + TAP_BOX_PX]], { layers }).length) return;

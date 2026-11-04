@@ -13,6 +13,7 @@ import { METRICS, METRIC_BY_ID, METRIC_PRESETS, MAX_TRACKED, type MetricEnv } fr
 import { buildForecast, spotsIn, type Region, type WatchForecast } from './metrics/forecast';
 import { RADII_KM, loadWatch, saveWatch, type WatchState } from './metrics/store';
 import { drawForecast, shareCanvas } from './metrics/share-image';
+import { claimMapTap } from './here-card';
 
 const HOUR = 3.6e6;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
@@ -171,8 +172,10 @@ export function mountWatchPanel(root: HTMLElement, map: Map, sheets: Sheets, sto
 
   // Pick on the map: close the drawer (on a phone a tap on the map closes sheets anyway), take the next tap as the centre, reopen.
   let picking = false;
+  let release: (() => void) | null = null;
   $('wt-pick').addEventListener('click', () => {
     picking = true;
+    release ??= claimMapTap();
     $('wt-pick').textContent = t('watch.picking');
     map.getCanvas().style.cursor = 'crosshair';
     if (window.matchMedia('(max-width: 600px)').matches) sheets.close('watch');
@@ -180,6 +183,8 @@ export function mountWatchPanel(root: HTMLElement, map: Map, sheets: Sheets, sto
   map.on('click', (e) => {
     if (!picking) return;
     picking = false;
+    release?.();
+    release = null;
     map.getCanvas().style.cursor = '';
     $('wt-pick').textContent = t('watch.pick');
     state = { ...state, region: { center: [e.lngLat.lng, e.lngLat.lat], radiusKm: state.region?.radiusKm ?? 10 } };
