@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LIMON_HARMONICS } from '../data/tides-limon';
-import { bestToday, hourlyScores, spotNear, todayOver } from './best-today';
+import { DIVE_TO_H, bestOnDay, bestToday, hourlyScores, spotNear, todayOver } from './best-today';
 import type { MetricEnv } from './registry';
 import type { SeaState } from '../adapters/waves';
 
@@ -80,5 +80,29 @@ describe('todayOver (clarity CL10)', () => {
     expect(todayOver(-6, Date.UTC(2026, 10, 4, 23, 30))).toBe(false);
     expect(todayOver(-6, Date.UTC(2026, 10, 5, 0, 0))).toBe(true);
     expect(todayOver(-6, Date.UTC(2026, 10, 4, 12, 0))).toBe(false);
+  });
+});
+
+describe('bestOnDay (J3)', () => {
+  it('answers for a later day, at the same calm hours', () => {
+    const e = { ...env(), windMs: (_a: number, _b: number, ms: number) => { const h = (((ms - DAY0) / H) % 24 + 24) % 24; return h >= 8 && h < 10 ? 2 : 11; } };
+    const w = bestOnDay(e, 'boat', spot, DAY0 + 15 * H, 3)!;
+    expect(w.startMs).toBe(DAY0 + 3 * 24 * H + 8 * H);
+    expect(w.good).toBe(true);
+  });
+  it('gives nothing past the 7-day forecast', () => {
+    expect(bestOnDay(env(), 'boat', spot, DAY0 + 6 * H, 7)).toBeNull();
+  });
+  it('ends dive and snorkel windows by 17:00, before the light goes', () => {
+    const w = bestToday({ ...env(), windMs: () => 2 }, 'dive', spot, DAY0 + 15 * H + 1)!;
+    expect(w.endMs).toBeLessThanOrEqual(DAY0 + DIVE_TO_H * H);
+    expect(bestToday(env(), 'dive', spot, DAY0 + 16 * H + 1)).toBeNull();
+    expect(todayOver(-6, DAY0 + 16 * H + 1, 'dive')).toBe(true);
+    expect(todayOver(-6, DAY0 + 16 * H + 1, 'boat')).toBe(false);
+  });
+  it('flags a day where even the best hours are mostly bad', () => {
+    const storm = { ...env(), windMs: () => 20, weather: () => [{ model: 'gfs_seamless', rainMmH: 15, cloudPct: 100, uv: 1, tempC: 25, gustKt: 40, capeJkg: 3000, pressureHpa: 1000, windKt: 38 }] as ReturnType<MetricEnv['weather']> };
+    const w = bestToday(storm, 'boat', spot, DAY0 + 6 * H);
+    expect(w === null || w.good === false).toBe(true);
   });
 });

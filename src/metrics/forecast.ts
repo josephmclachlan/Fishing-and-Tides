@@ -146,12 +146,12 @@ export function hourScores(rows: readonly MetricRow[], metrics: readonly Metric[
   });
 }
 
-export function bestTime(rows: readonly MetricRow[], metrics: readonly Metric[], d: number, startMs: number, notBeforeMs = -Infinity): { startMs: number; endMs: number } | null {
+export function bestTime(rows: readonly MetricRow[], metrics: readonly Metric[], d: number, startMs: number, notBeforeMs = -Infinity, toH = BEST_TO_H): { startMs: number; endMs: number; score: number } | null {
   const scores = hourScores(rows, metrics, d);
   if (!scores) return null;
   const score = (h: number) => scores[h];
   let best: { h: number; v: number } | null = null;
-  for (let h = BEST_FROM_H; h + BEST_LEN_H <= BEST_TO_H; h++) {
+  for (let h = BEST_FROM_H; h + BEST_LEN_H <= toH; h++) {
     // Windows already over (or whose first hour is past) are not offered when asking for the rest of today.
     if (startMs + d * DAY + (h + 1) * HOUR <= notBeforeMs) continue;
     const parts = Array.from({ length: BEST_LEN_H }, (_, k) => score(h + k));
@@ -161,5 +161,5 @@ export function bestTime(rows: readonly MetricRow[], metrics: readonly Metric[],
   }
   if (!best) return null;
   const from = startMs + d * DAY + best.h * HOUR;
-  return { startMs: from, endMs: from + BEST_LEN_H * HOUR };
+  return { startMs: from, endMs: from + BEST_LEN_H * HOUR, score: best.v };
 }
