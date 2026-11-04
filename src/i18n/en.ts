@@ -713,6 +713,16 @@ export const en = {
   'intro.5': 'WATCH lets you pick the numbers you care about and get a 5-day forecast with the best day and time.',
   'intro.colours': 'Colours: green is good, amber means take care, red is bad or dangerous.',
   'intro.ok': 'GOT IT',
+  'here.from': 'from',
+  'here.title': "WHAT'S HERE",
+  'here.swell': 'SWELL',
+  'here.wave': 'SEA',
+  'here.wind': 'WIND',
+  'here.depth': 'DEPTH',
+  'here.vis': 'VISIBILITY',
+  'here.land': 'LAND',
+  'here.none': 'No data here yet.',
+  'here.note': 'Values for the time on the slider.',
 } as const;
 
 export type Key = keyof typeof en;

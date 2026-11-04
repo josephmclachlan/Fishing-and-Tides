@@ -38,6 +38,7 @@ import { mountSounds } from './sounds';
 import { mountSettingsUi } from './settings-ui';
 import { mountIntro } from './intro';
 import { mountMapExplain } from './map-explain';
+import { mountHere } from './here-card';
 import { mountSettingsPanel } from './settings-panel';
 import { mountGlance } from './glance';
 import { activityForPreset, mountCondGroups } from './cond-groups';
@@ -450,6 +451,23 @@ fetchMouths()
   .catch((err) => console.warn('rip sites unavailable', err));
 // Tap a lightning flash, storm, observation or wave crest for what it is (registered first so the rip and sargassum cards below win where marks overlap).
 mountMapExplain(map, (title, id, at) => explain.show(title, id, at));
+// Bare map: a "what's here" card with the sea, wind, depth and visibility at the tap, for the slider's hour.
+mountHere(map, (lng, lat) => {
+  const ms = time.validMs();
+  const s = seaStateAt(lng, lat);
+  const wf = wind && windAt(wind, bandAt(ms), ms)?.field;
+  const w = wf && sampleField(wf, lng, lat, diveWind) ? { ms: Math.hypot(...diveWind), fromDeg: fromDeg(...diveWind) } : null;
+  const depth = depthAt?.(lng, lat);
+  const c = clarityCtx();
+  return {
+    land: depth === undefined && !!waterMask && !waterMask(lng, lat),
+    depthM: depth,
+    swell: s && Number.isFinite(s.swellHs) ? { hs: s.swellHs, tp: s.swellT, fromDeg: s.swellDir } : null,
+    sea: s ? { hs: s.hs, tm: s.tm } : null,
+    wind: w,
+    visM: c ? (clarityAt(c, lng, lat)?.visM ?? null) : null,
+  };
+}, (title, rows, at) => explain.showRows(title, rows, at));
 map.on('click', 'rp-site', (e) => {
   const f = e.features?.[0]?.properties;
   if (f) explain.show(`${f.name}`, f.site === 'mouth' ? 'ripMouth' : 'ripBreak', e.point);
