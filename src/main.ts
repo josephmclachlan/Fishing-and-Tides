@@ -75,6 +75,7 @@ import { mountZonesHud } from './zones-hud';
 import { fetchMouths, fetchOccurrences, mountFishing } from './layers/fishing';
 import { loadSpecies, mountFishingHud } from './fishing-hud';
 import { layers } from './layers/registry';
+import { mountMotionKey } from './layers/motion-key';
 import { bindMapLayers } from './layers/visibility';
 import { createCoralMode } from './coral-mode';
 import { mountCoral } from './layers/coral';
@@ -296,6 +297,8 @@ mountSeek(hud, (t) => enhancer.go(t), settings, sheets);
 bindMapLayers(map, layers);
 mountSettingsUi(hud, settings);
 mountIntro(hud, safeStorage());
+// Which moving lines are which, while two or more are on (clarity review CL5).
+mountMotionKey(hud, layers, () => sheets.open('layers'));
 mountSounds(document, settings.sound);
 // CORAL overlay (PLAN 7.31): its own switch in LAYERS, apart from the activities; reef heat stress marks.
 const coralMode = createCoralMode(layers, safeStorage());

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CORAL_LOG_PREFIX } from './coral-log';
-import { ACTIVITIES, LAYERS, createLayerStore } from './registry';
+import { ACTIVITIES, FIRST_OPEN_OFF, LAYERS, createLayerStore } from './registry';
 
 const mem = () => {
   const m = new Map<string, string>();
@@ -8,10 +8,14 @@ const mem = () => {
 };
 
 describe('layer store', () => {
-  it('starts with every layer on, as ALL', () => {
-    const s = createLayerStore(mem());
-    expect(LAYERS.every((l) => s.isOn(l.id))).toBe(true);
-    expect(s.activity()).toBe('all');
+  it('opens the first time with every layer but the wind particles, then remembers', () => {
+    const store = mem();
+    const s = createLayerStore(store);
+    expect(LAYERS.filter((l) => !s.isOn(l.id)).map((l) => l.id)).toEqual([...FIRST_OPEN_OFF]);
+    s.setActivity('all');
+    expect(createLayerStore(store).activity()).toBe('all');
+    // Without storage (tests, blocked storage) everything is on.
+    expect(createLayerStore().activity()).toBe('all');
   });
 
   it('applies a preset exactly', () => {
