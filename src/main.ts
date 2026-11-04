@@ -20,7 +20,9 @@ import { crestGrid } from './waves-lines';
 import { mountWavesLayer } from './layers/waves';
 import { mountWeatherHud } from './weather-hud';
 import { mountStorms } from './layers/storms';
-import { fetchWeather } from './adapters/weather';
+import { fetchWeather, weatherAt, type WeatherData } from './adapters/weather';
+import { LIMON_HARMONICS } from './data/tides-limon';
+import { mountWatchPanel } from './watch-panel';
 import { fetchStorms } from './adapters/storms';
 import { mountSeaStateHud } from './sea-state-hud';
 import { mountAstroHud } from './astro-hud';
@@ -222,7 +224,8 @@ const loadLightning = () =>
     .catch((err) => (console.warn('lightning unavailable', err), lightningHud?.setFailed()));
 loadLightning();
 setInterval(loadLightning, 5 * 60000);
-fetchWeather().then((d) => weatherHud?.setWeather(d)).catch((err) => console.warn('weather unavailable', err));
+let weatherData: WeatherData | null = null;
+fetchWeather().then((d) => ((weatherData = d), weatherHud?.setWeather(d))).catch((err) => console.warn('weather unavailable', err));
 fetchStorms().then((d) => (stormLayer.setStorms(d.storms), weatherHud?.setStorms(d.storms))).catch((err) => console.warn('storms unavailable', err));
 mountAstroHud(hud, map, time);
 mountHarbours(map);
@@ -235,6 +238,24 @@ const spotPage = mountSpotPage(hud, map, { time, sheets, physics: () => spotPhys
 loadGauge();
 setInterval(loadGauge, 10 * 60_000);
 mountBoatPanel(hud, map, createBoatStore(safeStorage()), sheets, () => depthAt);
+// WATCH (PLAN 7.13): the metric tracker reads the same wind, wave, weather and tide data as the HUD, at any hour of the next days.
+const watchWind = new globalThis.Map<number, ReturnType<typeof windAt>>();
+let watchWindFor: WindData | null = null;
+mountWatchPanel(hud, map, sheets, safeStorage(), () => ({
+  windMs: (lng, lat, ms) => {
+    if (!wind) return null;
+    if (watchWindFor !== wind) (watchWind.clear(), (watchWindFor = wind));
+    const h = Math.floor(ms / 3.6e6);
+    if (!watchWind.has(h)) watchWind.set(h, windAt(wind, bandAt(ms), ms));
+    const f = watchWind.get(h);
+    const out: [number, number] = [0, 0];
+    return f && sampleField(f.field, lng, lat, out) ? Math.hypot(...out) : null;
+  },
+  sea: (lng, lat, ms) => (waves ? wavesAt(waves, bandAt(ms), ms, lng, lat) : null),
+  weather: (ms) => (weatherData ? weatherAt(weatherData, ms) : []),
+  tide: LIMON_HARMONICS,
+  tzOffsetH: REGION.tzOffsetH,
+}));
 // SYSTEM CHECK: its tab joins the settings controls on a phone.
 mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeStorage() });
 // LIVE OBS (PLAN 2.13): the newest real reading from the gauge, the airport and the satellite passes, with ages.
