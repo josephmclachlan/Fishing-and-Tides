@@ -406,6 +406,9 @@ export const es: Dict = {
   'bite.r.rough': 'MAR PICADO',
   'bite.r.wind': 'VIENTO FUERTE',
   'bite.r.rain': 'LLUVIA FUERTE',
+  'bite.r.overcast': 'NUBLADO',
+  'bite.r.squall': 'RIESGO DE TURBONADA',
+  'bite.r.lightning': 'RAYOS CERCA',
 
   // Fishing rules card (PLAN 6.8). Advisory text: SINAC and INCOPESCA are the authorities.
   'rules.open': 'REGLAS',

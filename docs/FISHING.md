@@ -63,11 +63,12 @@ Not in yet: offshore fronts and FAD positions (no open data source found; fronts
 
 **BITE** (`src/fishing/bite.ts`) says how good the timing is at the reticle for the slider time:
 
-`timing = 0.40 tide + 0.35 light + 0.15 solunar + 0.10 calm`, `bite = timing x weather x (0.4 + 0.6 x habitat)`
+`timing = 0.40 tide + 0.35 light + 0.15 solunar + 0.10 calm`, `bite = timing x weather x safety x (0.4 + 0.6 x habitat)`
 
 - tide: current flow relative to the fastest within 13 h either side (floor 0.3 at slack). Fish feed on moving water.
-- light: sun -6 to +6 degrees (dawn, dusk) 1.0; to 20 degrees 0.8; night 0.65; midday 0.45.
+- light: sun -6 to +6 degrees (dawn, dusk) 1.0; to 20 degrees 0.8; night 0.65; midday 0.45. In daylight, cloud above 40% lifts it toward 1 by up to 0.4 of the gap (full at 90% cloud): overcast stretches the low-light bite.
 - solunar: major window 1.0, minor 0.8, else 0.5, tilted by the day rating. Folklore, so the smallest weight.
-- calm and weather: wind above 5 m/s and waves above 1 m pull both down; heavy rain takes a little more (not wired to a feed yet).
+- calm and weather: wind above 5 m/s and waves above 1 m pull both down; rain takes up to 0.2 more, starting at 2 mm/h and in full from 10 mm/h (mean of the three weather models).
+- safety: lightning within 25 km in the last 15 minutes (only for the hour around now) x 0.1; squall HIGH x 0.25, squall WATCH x 0.7 (`src/weather.ts` squallLevel).
 
-All weights are hand-written rules of thumb, not checked against catches. BEST TIMES is the same timing across the day in 10-minute steps (no weather, which is only known for the slider hour), with the three best runs listed. Water temperature and clarity are not included until PLAN 2.4, 2.12 and 6.1 land (tracked in 7.11).
+All weights are hand-written rules of thumb, not checked against catches. BEST TIMES is the same score across the day in 10-minute steps, with each hour's forecast wind, waves, rain, cloud and squall risk, and the three best runs listed. The WATCH tracker's BITE metric uses the same weather. Water temperature, clarity and chlorophyll are not in yet; the feature x input table and plan are in `docs/SYNC.md` (PLAN 7.11).
