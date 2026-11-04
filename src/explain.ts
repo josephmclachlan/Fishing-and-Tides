@@ -11,7 +11,7 @@ export type HelpId = string;
 
 /** Value-element id (or gauge id) -> explainer id. */
 export const HELP_BY_ID: Readonly<Record<string, HelpId>> = {
-  swell: 'swell', period: 'period', sdir: 'swellDir', wind: 'wind', wdir: 'windDir', sst: 'sst', vis: 'vis', tide: 'tide',
+  sarg: 'sargassum', swell: 'swell', period: 'period', sdir: 'swellDir', wind: 'wind', wdir: 'windDir', sst: 'sst', vis: 'vis', tide: 'tide',
   rip: 'rip', ripgauge: 'rip', curr: 'current', cset: 'set', tgt: 'target', tgtrng: 'range', tgtbrg: 'bearing',
   'sz-hb': 'breaker', 'sz-type': 'wavetype', 'sz-pow': 'power', 'sz-drift': 'drift', 'sz-rips': 'ripStrength', 'sz-ripl': 'ripReach',
   'dv-3': 'surge', 'dv-6': 'surge', 'dv-12': 'surge',

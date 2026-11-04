@@ -402,6 +402,8 @@ map.on('click', 'rp-site', (e) => {
   const f = e.features?.[0]?.properties;
   if (f) explain.show(`${f.name}`, f.site === 'mouth' ? 'ripMouth' : 'ripBreak', e.point);
 });
+map.on('click', 'sg-mat', (e) => explain.show(t('sarg.short'), 'sargMat', e.point));
+map.on('click', 'sg-beach', (e) => explain.show(t('sarg.short'), 'sargBeach', e.point));
 map.on('click', 'rp-coast', (e) => {
   // A site ring sits on the shaded shore: the ring's own explainer wins.
   if (!map.queryRenderedFeatures(e.point, { layers: ['rp-site'] }).length) explain.show(t('layer.rip'), 'ripCoast', e.point);

@@ -81,4 +81,7 @@ export const helpEs: Record<keyof typeof helpEn, string> = {
   'glance.sea.lively': 'MOVIDO',
   'glance.sea.rough': 'AGITADO',
   'glance.sea.uncomfortable': 'FEO',
+  'help.sargassum': 'SARG es el pronóstico de sargazo (alga parda flotante) para la playa más cercana a la mira, en el día elegido con la barra de tiempo: NADA, BAJO, MOD o ALTO. En el mapa, los cuadros ámbar son donde un satélite vio alga flotando por última vez (más brillo, más alga). El rayado tenue es mar que el satélite no pudo ver por nubes: es desconocido, no limpio. Los puntos sobre líneas punteadas son esas masas a la deriva con la corriente y algo de viento, donde estarán a la hora de la barra. Una etiqueta SARGASSUM en una playa dice que se espera que lleguen masas en 5 días. NUBES significa que se vio muy poco mar para opinar. Es una estimación por satélite, no un reporte de playa.',
+  'help.sargMat': 'Una masa de sargazo a la deriva: donde se espera que esté el alga vista por el satélite a la hora de la barra. La línea punteada es su recorrido. Un punto tenue ya llegó a la orilla.',
+  'help.sargBeach': 'Se espera que lleguen masas de sargazo cerca de esta playa en los próximos 5 días. BAJO, MOD o ALTO es la cantidad esperada, no una certeza. Mueve la barra para ver qué día.',
 };
