@@ -82,7 +82,7 @@ Fishing and rip scores are not stored: they are computed on the phone from the s
 | FRONTS | satellite SST (macro and coast nest) and chlorophyll, newest map | sync `sst` | sst, sst-coast, chl |
 | CLARITY | satellite chlorophyll and Kd490, catchment rain, currents, waves, seafloor | sync `sst`, `rain`, `currents`, `waves`; seafloor precached | sst, rain |
 | SARGASSUM | AFAI detections, currents, wind, seafloor (coastline) | sync `sargassum`, `currents`, `wind`; seafloor precached | sargassum |
-| WEATHER | Open-Meteo weather, NHC storms | sync `weather`, `storms` | weather, storms |
+| WEATHER | Open-Meteo weather and rain by town, NHC storms | sync `weather`, `townrain`, `storms` | weather, townrain, storms |
 | LIGHTNING | GLM flashes (collector branch) | sync `lightning` (live site only) | lightning |
 | LIVE OBS | gauge, airport METAR, satellite passes (SST, colour, ASCAT wind) | sync `gauge`, `metar`, `passes` | gauge, metar, sst-pass, chl-pass, scat-pass |
 | RIP RISK, SURF BREAKS | waves, wind, tide (on device), seafloor | from the synced inputs | through waves and wind |
@@ -206,6 +206,8 @@ The DIVE panel heat card uses this feed too: `fetchCoral()`, then `nearestReef(d
 ## Weather (PLAN 7.3)
 
 `src/adapters/weather.ts` fetches rain, cloud, UV and air temperature live from Open-Meteo's multi-model endpoint (GFS, ECMWF IFS, ICON) for one point at the region centre, through the offline cache, and keeps the models separate for the ensemble blend (PLAN 7.4). Models reach different horizons and ECMWF has no UV, so missing hours are NaN. A point is enough for HUD readouts; a gridded radar and cloud layer comes with PLAN 7.5. Storms are relayed by the data build (table above) because NHC sends no CORS headers; the forecast cone needs NHC's GIS files and is left to 7.5. Both feeds have verify checks.
+
+**Rain by town (PLAN 7.24).** `src/adapters/town-rain.ts` asks Open-Meteo for hourly rain at the four `RAIN_TOWNS` (Cahuita, Playa Negra, Puerto Viejo, Manzanillo) in one multi-location call, from the sharpest free global models: ECMWF IFS HRES 9 km (open data since October 2025), UK Met Office global 10 km, ICON and GFS (~13 km here). 7 days, through the offline cache, feed `townrain`. Checks: every town answers with all four models (amber at two or three), fresh within 3 h, hourly rain within 0..200 mm.
 
 **Currents past day 9.** SMOC stops near day 9 and there is no currents climatology yet, so late LOW CONF and OUTLOOK show the mean of the forecast days (`meanSeries`), which also averages out the tidal currents. A real climatology (Open-Meteo's SMOC archive sampled per month, like the waves one) can replace it once the call budget allows.
 
