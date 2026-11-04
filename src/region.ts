@@ -110,6 +110,12 @@ export const METAR_STATION = { icao: 'MRLM', name: 'LIMÓN AIRPORT', lngLat: [-8
 export const SCAT_BOX: [[number, number], [number, number]] = [[-84, 8.75], [-81.5, 11]];
 
 /**
+ * Box the mixed-layer depth forecast covers (PLAN 7.18): the same coast plus open sea as the wind
+ * passes, where a boat goes for the offshore fish, on the Copernicus global model's 1/12° grid.
+ */
+export const MLD_BOX: [[number, number], [number, number]] = SCAT_BOX;
+
+/**
  * Box the sargassum detections cover (PLAN 7.1): far enough offshore that a mat seen there can
  * drift onto the coast within the 5-day forecast (~0.3 m/s for 5 days is ~130 km), on the AFAI
  * grid. [[west, south], [east, north]]

@@ -16,10 +16,11 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { REGION, SARG_BOX, SCAT_BOX } from '../../src/region.ts';
+import { MLD_BOX, REGION, SARG_BOX, SCAT_BOX } from '../../src/region.ts';
 import type { GridGeom, SourceSpan } from '../../src/adapters/pack.ts';
 import { erddapToGrid, type ErddapGrid } from '../../src/adapters/erddap-parse.ts';
 import { scatFrames, type ScatJson } from '../../src/adapters/scat-parse.ts';
+import { mldFrames, type MldJson } from '../../src/adapters/mld-parse.ts';
 import { aggregateCover, detectSargassum, SARG } from '../../src/adapters/sargassum-parse.ts';
 import { depthGrid, get, seaMask, writeSeries } from './common.ts';
 
@@ -167,6 +168,38 @@ export async function buildScatPass(dir: string): Promise<string> {
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
+}
+
+/** Run a Copernicus Marine fetcher script (Python toolbox) into a temporary JSON file and parse it. */
+function copernicus<T>(script: string, box: [[number, number], [number, number]], days: number): T {
+  if (!process.env.COPERNICUSMARINE_USERNAME || !process.env.COPERNICUSMARINE_PASSWORD) throw new Error('no Copernicus Marine login (COPERNICUSMARINE_USERNAME, COPERNICUSMARINE_PASSWORD)');
+  const tmp = mkdtempSync(join(tmpdir(), 'cmems-'));
+  try {
+    const out = join(tmp, 'out.json');
+    const [[w, s], [e, n]] = box;
+    const r = spawnSync('python3', ['-I', `scripts/${script}`, `--box=${w},${s},${e},${n}`, '--days', String(days), '--out', out], { encoding: 'utf8', timeout: 10 * 60e3 });
+    if (r.status !== 0) throw new Error(`${script} ${r.error ? r.error.message : `exit ${r.status}`}: ${(r.stderr || '').trim().split('\n').slice(-3).join(' | ').slice(0, 400)}`);
+    if (r.stderr.trim()) console.warn(r.stderr.trim());
+    return JSON.parse(readFileSync(out, 'utf8')) as T;
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Mixed-layer depth (PLAN 7.18): Copernicus Marine global ocean model (GLOBAL_ANALYSISFORECAST_PHY_001_024,
+ * daily means at 1/12°) over MLD_BOX, yesterday to 10 days ahead. scripts/mld.py fetches, this packs.
+ * Same account and toolbox as the ASCAT passes.
+ */
+export async function buildMld(dir: string): Promise<string> {
+  const f = mldFrames(copernicus<MldJson>('mld.py', MLD_BOX, 10));
+  const size = writeSeries(dir, {
+    feed: 'mld', kind: 'forecast', fetchedAt: new Date().toISOString(), grid: f.grid, times: f.times,
+    vars: [{ name: 'mld', unit: 'm', scale: 0.1, offset: 0 }],
+    sources: f.sources,
+    licence: 'E.U. Copernicus Marine Service Information (GLOBAL_ANALYSISFORECAST_PHY_001_024)',
+  }, { mld: f.mld });
+  return `mld: ${f.grid.cols}×${f.grid.rows}, ${f.times.length} days to ${day(f.times[f.times.length - 1])}, ${kb(size)}`;
 }
 
 /**

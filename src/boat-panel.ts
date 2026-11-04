@@ -5,6 +5,7 @@
  * layers/boat.ts.
  */
 import type { Map } from 'maplibre-gl';
+import { mldLevel } from './adapters/mld';
 import { t, type Key } from './i18n';
 import { closeButton, type Sheets } from './sheets';
 import { BOAT_SPECIES } from './boat/species';
@@ -22,7 +23,7 @@ const hhmm = (ms: number) => {
 export type CatchScorer = (lng: number, lat: number, ms: number, species: string) => { bite: number; biteDay: number } | null;
 
 /** Offshore read at a place (PLAN 7.17): nearest front and the boat species' scores, best first. */
-export type OffshoreRead = (lng: number, lat: number) => { front: { km: number; bearingDeg: number; kind: 'sst' | 'chl' } | null; scores: { id: string; score: number }[] } | null;
+export type OffshoreRead = (lng: number, lat: number) => { front: { km: number; bearingDeg: number; kind: 'sst' | 'chl' } | null; mldM: number | null; scores: { id: string; score: number }[] } | null;
 
 const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
 
@@ -50,6 +51,7 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     <div class="ro"><span class="lbl">${t('boat.speed')}</span><span class="seg" id="b-spd">--</span><span class="unit">${t('unit.kt')}</span></div>
     <div class="ro"><span class="lbl">${t('boat.pins')}</span><span class="seg" id="b-pins">0</span></div>
     <div class="ro"><span class="lbl">${t('boat.front')}</span><span class="seg sm" id="b-front">--</span></div>
+    <div class="ro"><span class="lbl">${t('boat.mld')}</span><span class="seg sm" id="b-mld">--</span></div>
     <div class="ro"><span class="lbl">${t('boat.offshore')}</span><span class="seg sm" id="b-off">--</span></div>
     <div class="boat-btns">
       <button type="button" class="tab" id="b-rec"></button>
@@ -115,6 +117,7 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     const c = at ?? map.getCenter();
     const o = offshore()?.(c.lng, c.lat);
     $('b-front').textContent = !o ? '--' : o.front ? `${o.front.km.toFixed(1)} ${t('unit.km')} ${COMPASS[Math.round(o.front.bearingDeg / 45) % 8]} · ${t(`boat.front.${o.front.kind}` as Key)}` : t('boat.front.none');
+    $('b-mld').textContent = !o || o.mldM === null ? '--' : `${Math.round(o.mldM)} ${t('unit.m')} · ${t(`boat.mld.${mldLevel(o.mldM)}` as Key)}`;
     $('b-off').innerHTML = !o || !o.scores.length ? '--' : o.scores.slice(0, 2).map((s) => `<span class="${s.score >= 0.6 ? 'green' : ''}">${t(`boat.sp.${s.id}` as Key)} ${Math.round(s.score * 100)}</span>`).join(' · ');
     $('b-list').innerHTML = s.pins
       .slice(-5)

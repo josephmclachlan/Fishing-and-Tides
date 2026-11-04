@@ -31,7 +31,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # The Copernicus Marine toolbox for the ASCAT wind passes (scripts/scat.py, PLAN 2.14).
+      # The Copernicus Marine toolbox for the ASCAT wind passes (scripts/scat.py, PLAN 2.14) and the mixed-layer depth (scripts/mld.py, PLAN 7.18).
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -45,8 +45,8 @@ jobs:
       - run: npm run data:forecast
         env:
           FALLBACK_URL: https://${{ github.repository_owner }}.github.io${{ env.BASE_PATH }}data/forecast/
-          # Free Copernicus Marine account for the ASCAT passes (scat-pass). Only this step sees them;
-          # without them that one feed fails and keeps its previous files.
+          # Free Copernicus Marine account for the ASCAT passes (scat-pass) and mixed-layer depth (mld). Only this step sees them;
+          # without them those feeds fail and keep their previous files.
           COPERNICUSMARINE_USERNAME: ${{ secrets.COPERNICUSMARINE_USERNAME }}
           COPERNICUSMARINE_PASSWORD: ${{ secrets.COPERNICUSMARINE_PASSWORD }}
       - run: npm run build
