@@ -17,7 +17,7 @@ import { mountLightningHud } from './lightning-hud';
 import { mountLightning } from './layers/lightning';
 import { fetchLightning } from './adapters/lightning';
 import { nearestFlash, STRIKE_ALERT_KM, type Flash } from './lightning';
-import { biteWeather } from './weather';
+import { biteWeather, pressureTrend } from './weather';
 import { crestGrid } from './waves-lines';
 import { mountWavesLayer } from './layers/waves';
 import { mountWeatherHud } from './weather-hud';
@@ -553,6 +553,11 @@ fetchSeafloor()
         const species = loadSpecies();
         const month = new Date(time.validMs()).getUTCMonth();
         const layer = mountFishing(map, { region: data.region, land: data.land, reefs: data.reefs, mouths, bounds: [REGION.bounds[0][0], REGION.bounds[0][1], REGION.bounds[1][0], REGION.bounds[1][1]] }, { species, month }, occurrences);
+        // Live gauge minus the predicted tide, for the hours around now, from a reading under an hour old.
+        const surgeNear = (ms: number) => {
+          const g = gauge.at(-1);
+          return g && Math.abs(ms - Date.now()) < 3 * 3.6e6 && Date.now() - g.t < 3.6e6 ? g.levelM - g.tideM : null;
+        };
         // BITE reads the hourly forecast (wind, waves, rain, cloud, squalls) at any hour of the day, and live lightning for the hour around now.
         const fishEnv = {
           at: (lng: number, lat: number, ms: number) => {
@@ -562,6 +567,8 @@ fetchSeafloor()
               hsM: (waves && wavesAt(waves, bandAt(ms), ms, lng, lat)?.hs) ?? null,
               ...(weatherData ? biteWeather(weatherAt(weatherData, ms)) : {}),
               lightning: !!near && near.km <= STRIKE_ALERT_KM,
+              pressureTrend: weatherData ? pressureTrend(weatherData, ms) : null,
+              surgeM: surgeNear(ms),
             };
           },
           // The water for the species: clarity forecast, satellite temperature and chlorophyll, and the sargassum outlook at the nearest beach.
@@ -575,7 +582,7 @@ fetchSeafloor()
               sarg: sargForecast && beach && beach.distanceM <= BEACH_RADIUS_M ? (beachDay(sargForecast, beach.point.name, ms)?.level ?? null) : null,
             };
           },
-          version: () => `${wind ? 1 : 0}${waves ? 1 : 0}${weatherData ? 1 : 0}${satellite ? 1 : 0}${catchmentRain ? 1 : 0}${sargForecast ? 1 : 0}|${flashesAt}`,
+          version: () => `${wind ? 1 : 0}${waves ? 1 : 0}${weatherData ? 1 : 0}${satellite ? 1 : 0}${catchmentRain ? 1 : 0}${sargForecast ? 1 : 0}|${flashesAt}|${gauge.at(-1)?.t ?? 0}`,
         };
         mountFishingHud(hud, map, layer, time, species, fishEnv);
       })

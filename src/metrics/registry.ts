@@ -10,7 +10,7 @@ import { daySky, type DaySky } from '../physics/astro';
 import { clarityLevel } from '../physics/clarity';
 import { predict, type Harmonics } from '../physics/tide';
 import type { WeatherNow } from '../adapters/weather';
-import { biteWeather } from '../weather';
+import { biteWeather, pressureChange } from '../weather';
 import type { SeaState } from '../adapters/waves';
 
 export type Tone = 'green' | 'amber' | 'red' | 'none';
@@ -87,6 +87,7 @@ export const METRICS: readonly Metric[] = [
         tMs: a.ms, lat: a.lat, lng: a.lng, tide: a.env.tide, tzOffsetH: a.env.tzOffsetH, sky: a.sky,
         windMs: a.env.windMs(a.lng, a.lat, a.ms), hsM: a.env.sea(a.lng, a.lat, a.ms)?.hs ?? null,
         ...biteWeather(a.env.weather(a.ms)),
+        pressureTrend: pressureChange(a.env.weather(a.ms), a.env.weather(a.ms - 3 * 3.6e6)),
       }).bite,
     tone: (v) => (v >= 60 ? 'green' : v >= 40 ? 'amber' : 'red'),
   },

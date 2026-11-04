@@ -69,6 +69,8 @@ Not in yet: offshore fronts and FAD positions (no open data source found; fronts
 - light: sun -6 to +6 degrees (dawn, dusk) 1.0; to 20 degrees 0.8; night 0.65; midday 0.45. In daylight, cloud above 40% lifts it toward 1 by up to 0.4 of the gap (full at 90% cloud): overcast stretches the low-light bite.
 - solunar: major window 1.0, minor 0.8, else 0.5, tilted by the day rating. Folklore, so the smallest weight.
 - calm and weather: wind above 5 m/s and waves above 1 m pull both down; rain takes up to 0.2 more, starting at 2 mm/h and in full from 10 mm/h (mean of the three weather models).
+- night: after dark the light term is 0.7 on a dark night, down to 0.6 with a bright moon well up (illumination x moon altitude to 15 degrees). Bright nights spread feeding out (angler lore).
+- extras (PLAN 7.14): falling sea-level pressure, 2 hPa in 3 h or more (mean of the weather models), x1.05; rising as fast x0.95 (folklore-grade evidence, so a small weight). The live Limón gauge 10 cm or more above the predicted tide x1.03 (bait pushed into flooded edges), 10 cm below x0.97; only for the hours around now, from a reading under an hour old.
 - safety: lightning within 25 km in the last 15 minutes (only for the hour around now) x 0.1; squall HIGH x 0.25, squall WATCH x 0.7 (`src/weather.ts` squallLevel).
 
 All weights are hand-written rules of thumb, not checked against catches. BEST TIMES is the same score across the day in 10-minute steps, with each hour's forecast wind, waves, rain, cloud and squall risk, and the three best runs listed. The WATCH tracker's BITE metric uses the same weather. The feature x input table is in `docs/SYNC.md` (PLAN 7.11).

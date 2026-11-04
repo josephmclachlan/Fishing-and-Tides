@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LIMON_HARMONICS } from '../data/tides-limon';
-import { bestWindows, bite, lightTerm, overcastLift, rainShare, safetyTerm, weatherTerms, solunarTerm } from './bite';
+import { bestWindows, bite, extrasTerm, lightTerm, nightTerm, overcastLift, rainShare, safetyTerm, weatherTerms, solunarTerm } from './bite';
 import { daySky, localDayStart } from '../physics/astro';
 
 const base = { lat: 9.99, lng: -83.03, tide: LIMON_HARMONICS, tzOffsetH: -6 };
@@ -81,5 +81,28 @@ describe('bite: weather and safety (PLAN 7.11)', () => {
     const { windows } = bestWindows(base, day, 3, 0.8, wxAt);
     expect(windows.length).toBeGreaterThan(0);
     for (const w of windows) expect(w.start).toBeGreaterThanOrEqual(day + 12 * 3.6e6);
+  });
+});
+
+describe('bite: moon, pressure and gauge (PLAN 7.14)', () => {
+  it('a bright moon up dims the night term', () => {
+    expect(nightTerm(0, 40)).toBeCloseTo(0.7);
+    expect(nightTerm(1, 40)).toBeCloseTo(0.6);
+    expect(nightTerm(1, -10)).toBeCloseTo(0.7);
+  });
+  it('falling pressure and high water nudge the score up, with reasons', () => {
+    expect(extrasTerm(null, null)).toEqual({ mult: 1, reasons: [] });
+    const up = extrasTerm(-3, 0.15);
+    expect(up.mult).toBeCloseTo(1.05 * 1.03);
+    expect(up.reasons).toEqual(['falling', 'highwater']);
+    const down = extrasTerm(3, -0.2);
+    expect(down.mult).toBeCloseTo(0.95 * 0.97);
+    expect(down.reasons).toEqual(['rising', 'lowwater']);
+    expect(extrasTerm(0.5, 0.05).reasons).toEqual([]);
+  });
+  it('night reasons name the moon', () => {
+    const night = day + 23 * 3.6e6;
+    const r = bite({ ...base, tMs: night }).reasons;
+    expect(r.some((x) => x === 'brightmoon' || x === 'darknight')).toBe(true);
   });
 });
