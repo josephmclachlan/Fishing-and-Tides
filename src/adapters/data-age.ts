@@ -26,13 +26,15 @@ export interface AgeView {
   text: string;
   /** The oldest feed is the phone's last stored copy, not a fresh download. */
   fromCache: boolean;
+  /** Which feed that is (its id, as reported), so the HUD can name it. */
+  feed?: string;
 }
 
 /** What DATA AGE shows for the oldest feed at time `now`. */
 export function describeAge(oldest: FeedAge | undefined, now: number): AgeView {
   if (!oldest) return { state: 'none', text: '', fromCache: false };
   const ageMs = now - oldest.fetchedAt;
-  return { state: ageState(ageMs), text: formatAge(ageMs), fromCache: oldest.fromCache };
+  return { state: ageState(ageMs), text: formatAge(ageMs), fromCache: oldest.fromCache, feed: oldest.feed };
 }
 
 export interface FeedAge {
