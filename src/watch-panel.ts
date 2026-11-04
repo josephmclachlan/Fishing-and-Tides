@@ -11,7 +11,7 @@ import { t, type Key } from './i18n';
 import { PHONE_QUERY, closeButton, type Sheets } from './sheets';
 import { METRICS, METRIC_BY_ID, METRIC_PRESETS, MAX_TRACKED, type MetricEnv } from './metrics/registry';
 import { buildForecast, spotsIn, type Region, type WatchForecast } from './metrics/forecast';
-import { RADII_KM, loadWatch, saveWatch, type WatchState } from './metrics/store';
+import { DEFAULT_STATE, RADII_KM, hasSavedWatch, loadWatch, saveWatch, type WatchState } from './metrics/store';
 import { drawForecast, shareCanvas } from './metrics/share-image';
 import { claimMapTap } from './here-card';
 
@@ -75,9 +75,19 @@ export function tableHtml(f: WatchForecast): string {
     .join('')}</tbody></table>`;
 }
 
-export function mountWatchPanel(root: HTMLElement, map: Map, sheets: Sheets, store: Pick<globalThis.Storage, 'getItem' | 'setItem'> | undefined, getEnv: () => MetricEnv) {
+export function mountWatchPanel(
+  root: HTMLElement,
+  map: Map,
+  sheets: Sheets,
+  store: Pick<globalThis.Storage, 'getItem' | 'setItem'> | undefined,
+  getEnv: () => MetricEnv,
+  /** The CONDITIONS activity ('all' or a preset id), to start a first-time user on that activity's metrics. */
+  getActivity: () => string = () => 'all',
+) {
   let state: WatchState = loadWatch(store);
-  const persist = () => saveWatch(store, state);
+  // Until the user picks anything, the metrics follow the activity chosen in CONDITIONS (J4).
+  let picked = hasSavedWatch(store);
+  const persist = () => ((picked = true), saveWatch(store, state));
 
   const el = document.createElement('section');
   el.className = 'panel watch';
@@ -148,9 +158,17 @@ export function mountWatchPanel(root: HTMLElement, map: Map, sheets: Sheets, sto
       b.setAttribute('aria-pressed', String(on));
     });
     ($('wt-go') as HTMLButtonElement).disabled = !n || !state.metrics.length;
+    el.querySelectorAll<HTMLElement>('[data-preset]').forEach((b) => b.classList.toggle('on', METRIC_PRESETS[b.dataset.preset as keyof typeof METRIC_PRESETS]?.join() === state.metrics.join()));
     drawRing();
   };
   const change = () => (persist(), sync());
+  // A first-time user starts on the metrics of the activity picked in CONDITIONS, until they choose their own.
+  sheets.subscribe(() => {
+    if (!sheets.is('watch') || picked) return;
+    const act = getActivity() as keyof typeof METRIC_PRESETS;
+    const metrics = METRIC_PRESETS[act] ? [...METRIC_PRESETS[act]] : [...DEFAULT_STATE.metrics];
+    if (metrics.join() !== state.metrics.join()) (state = { ...state, metrics }), sync();
+  });
 
   $('wt-all').addEventListener('click', () => ((state = { ...state, region: null }), change()));
   el.querySelector('#wt-radii')!.addEventListener('click', (e) => {

@@ -561,7 +561,7 @@ const metricEnv = (): MetricEnv => ({
   tide: LIMON_HARMONICS,
   tzOffsetH: REGION.tzOffsetH,
 });
-mountWatchPanel(hud, map, sheets, safeStorage(), metricEnv);
+mountWatchPanel(hud, map, sheets, safeStorage(), metricEnv, () => condGroups.activity());
 // SYSTEM CHECK: its tab joins the settings controls on a phone.
 mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeStorage() });
 // LIVE OBS (PLAN 2.13): the newest real reading from the gauge, the airport and the satellite passes, with ages.

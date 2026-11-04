@@ -24,3 +24,15 @@ describe('watch store', () => {
     expect(r.region).toBeNull();
   });
 });
+
+describe('hasSavedWatch (J4)', () => {
+  it('is false on a fresh device and true once something is saved', async () => {
+    const { hasSavedWatch, saveWatch, DEFAULT_STATE } = await import('./store');
+    const m = new Map<string, string>();
+    const store = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) };
+    expect(hasSavedWatch(store)).toBe(false);
+    expect(DEFAULT_STATE.metrics).not.toContain('tide');
+    saveWatch(store, DEFAULT_STATE);
+    expect(hasSavedWatch(store)).toBe(true);
+  });
+});

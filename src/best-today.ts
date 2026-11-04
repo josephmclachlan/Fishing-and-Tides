@@ -58,6 +58,8 @@ export function mountBestToday(
     return Math.round((localDayStart(time.validMs(), tz) - localDayStart(Date.now(), tz)) / (24 * HOUR));
   };
   let shownDay = -1;
+  /** True while the button says NO DATA YET: it then rechecks every few seconds so it fills in as the feeds land. */
+  let waiting = false;
 
   const refresh = () => {
     const c = map.getCenter();
@@ -73,6 +75,7 @@ export function mountBestToday(
     const none = t(
       day > BEST_MAX_DAY ? 'bt.tooFar' : found && !found.good ? 'bt.poor' : day === 0 && todayOver(getEnv().tzOffsetH, Date.now(), act) ? 'bt.noneLeft' : 'bt.noData',
     );
+    waiting = !win && none === t('bt.noData');
     const body = win
       ? `<span class="seg sm green">${hhmm(win.startMs)}–${hhmm(win.endMs)}</span><span class="bt-at">${esc(win.spot)}</span>`
       : `<span class="seg sm">--</span><span class="bt-at">${none}</span>`;
@@ -89,6 +92,7 @@ export function mountBestToday(
     if (dayAhead() !== shownDay) refresh();
   });
   setInterval(refresh, 60_000);
+  setInterval(() => waiting && refresh(), 2_000);
   refresh();
   return { refresh, window: () => win };
 }
