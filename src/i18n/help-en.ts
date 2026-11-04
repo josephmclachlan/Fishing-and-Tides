@@ -70,7 +70,7 @@ export const helpEn = {
   'help.reach': 'Which water to highlight. SHORE is within about 400 m of the beach: a cast, a wade or a short paddle. BOAT is farther out than that. ALL shows both.',
   'help.times': 'BEST TIMES shows the day as bars: taller means a better bite, using each hour\'s forecast wind, waves, rain, cloud and squall risk. The brightest runs are the best windows, with the reasons beside them. Move the time slider to see another day.',
   'help.fcst': 'FCST is how far ahead the map is looking: NOW, or hours and days into the future. Drag the slider to see the forecast for another time.',
-  'help.valid': 'The exact date and hour, in UTC, that the map and readings show. Costa Rica is UTC minus 6 hours.',
+  'help.valid': 'The exact date and hour, in Costa Rica time, that the map and readings show. Every time in the app is Costa Rica time (UTC minus 6 hours); the clock at the top shows UTC when you hover or long-press it.',
   'help.band': 'How much to trust the forecast at this time. FORECAST is the real model forecast (up to 7 days). LOW CONF stretches it to 16 days and gets shaky. OUTLOOK beyond that is only the typical climate for the month.',
   'help.lat': 'Latitude of the cross-hair in degrees. North is positive.',
   'help.lon': 'Longitude of the cross-hair in degrees. West is negative.',

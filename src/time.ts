@@ -5,6 +5,7 @@
  * with time (particles, tide and condition readouts, later every adapter) subscribes here and
  * asks for `validMs()`, so the slider is the single source of truth for "what time am I looking at".
  */
+import { REGION } from './region';
 import { t, type Key } from './i18n';
 
 /**
@@ -80,8 +81,8 @@ export function offsetLabel(offsetH: number): string {
   return offsetH <= 0 ? t('time.now') : `+${String(offsetH).padStart(2, '0')}H`;
 }
 
-/** Day, date and hour of a valid time in UTC, e.g. "MON 02 14:00". */
-export function validLabel(ms: number): string {
-  const d = new Date(ms);
+/** Day, date and hour of a valid time in Costa Rica time (REGION.tzOffsetH), e.g. "MON 02 08:00". */
+export function validLabel(ms: number, tzOffsetH: number = REGION.tzOffsetH): string {
+  const d = new Date(ms + tzOffsetH * 3_600_000);
   return `${t(`day.${d.getUTCDay()}` as Key)} ${String(d.getUTCDate()).padStart(2, '0')} ${String(d.getUTCHours()).padStart(2, '0')}:00`;
 }

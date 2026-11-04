@@ -66,6 +66,8 @@ describe('time store', () => {
     expect(offsetLabel(0)).toBe('NOW');
     expect(offsetLabel(6)).toBe('+06H');
     expect(offsetLabel(48)).toBe('+48H');
-    expect(validLabel(Date.UTC(2026, 10, 2, 4))).toBe('MON 02 04:00');
+    expect(validLabel(Date.UTC(2026, 10, 2, 4))).toBe('SUN 01 22:00'); // Costa Rica is UTC-6
+    expect(validLabel(Date.UTC(2026, 10, 2, 14))).toBe('MON 02 08:00');
+    expect(validLabel(Date.UTC(2026, 10, 2, 4), 0)).toBe('MON 02 04:00');
   });
 });

@@ -9,7 +9,7 @@ import { helpEn } from './help-en';
 export const en = {
   // Top bar and footer
   'hud.tier': 'TIER',
-  'hud.utc': 'UTC',
+  'hud.utc': 'CR',
   'hud.lat': 'LAT',
   'hud.lon': 'LON',
   'hud.zoom': 'ZOOM',
@@ -420,7 +420,7 @@ export const en = {
 
   // Forecast time slider
   'time.fcst': 'FCST',
-  'time.validUtc': 'VALID UTC',
+  'time.validUtc': 'VALID CR',
   'time.band': 'BAND',
   'time.now': 'NOW',
   'time.aria': 'Forecast time',

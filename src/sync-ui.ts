@@ -7,6 +7,7 @@
 import { t, type Key } from './i18n';
 import { loadSummary, saveSummary, syncForTrip, type SyncJob, type SyncSummary } from './offline/sync';
 import { localClock } from './tide-chart';
+import { REGION } from './region';
 import type { Net } from './net';
 
 const DAY_MS = 864e5;
@@ -23,10 +24,10 @@ export interface SyncUiDeps {
 
 const mb = (bytes: number) => (bytes / 1e6).toFixed(bytes < 1e7 ? 1 : 0);
 
-/** "TUE 02 14:00 · 18 MB" in UTC, like the clock and VALID UTC beside it. */
+/** "TUE 02 08:00 · 18 MB" in Costa Rica time, like the clock and VALID beside it. */
 function when(s: SyncSummary): string {
-  const d = new Date(s.at);
-  return `${t(`day.${d.getUTCDay()}` as Key)} ${String(d.getUTCDate()).padStart(2, '0')} ${localClock(s.at, 0)} · ${mb(s.bytes)} ${t('sync.mb')}`;
+  const d = new Date(s.at + REGION.tzOffsetH * 3_600_000);
+  return `${t(`day.${d.getUTCDay()}` as Key)} ${String(d.getUTCDate()).padStart(2, '0')} ${localClock(s.at)} · ${mb(s.bytes)} ${t('sync.mb')}`;
 }
 
 export function mountSyncUi(root: HTMLElement, deps: SyncUiDeps) {

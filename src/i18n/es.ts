@@ -10,7 +10,7 @@ import { helpEs } from './help-es';
 export const es: Dict = {
   // Top bar and footer
   'hud.tier': 'NIVEL',
-  'hud.utc': 'UTC',
+  'hud.utc': 'CR',
   'hud.lat': 'LAT',
   'hud.lon': 'LON',
   'hud.zoom': 'ZOOM',
@@ -419,7 +419,7 @@ export const es: Dict = {
 
   // Forecast time slider
   'time.fcst': 'PRON.',
-  'time.validUtc': 'VÁLIDO UTC',
+  'time.validUtc': 'VÁLIDO CR',
   'time.band': 'BANDA',
   'time.now': 'AHORA',
   'time.aria': 'Hora del pronóstico',

@@ -181,7 +181,7 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     $('b-list').innerHTML = s.pins
       .slice(-5)
       .reverse()
-      .map((p) => `<li data-id="${p.id}"><button type="button" class="tab pin-go">${new Date(p.t).toISOString().slice(11, 16)} ${p.kind === 'catch' ? t(`boat.sp.${p.species ?? 'other'}` as Key) : t('boat.mark')}${p.depthM !== undefined ? ` ${Math.round(p.depthM)}${t('unit.m')}` : ''}</button><button type="button" class="tab pin-x" aria-label="${t('boat.remove')}">✕</button></li>`)
+      .map((p) => `<li data-id="${p.id}"><button type="button" class="tab pin-go">${clock(p.t)} ${p.kind === 'catch' ? t(`boat.sp.${p.species ?? 'other'}` as Key) : t('boat.mark')}${p.depthM !== undefined ? ` ${Math.round(p.depthM)}${t('unit.m')}` : ''}</button><button type="button" class="tab pin-x" aria-label="${t('boat.remove')}">✕</button></li>`)
       .join('');
   }
 

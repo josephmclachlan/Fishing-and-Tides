@@ -68,7 +68,7 @@ export const helpEs: Record<keyof typeof helpEn, string> = {
   'help.reach': 'Qué agua resaltar. ORILLA es hasta unos 400 m de la playa: un lance, vadear o una remada corta. BOTE es más lejos. TODO muestra ambas.',
   'help.times': 'MEJORES HORAS muestra el día en barras: más alta es mejor picada, con el viento, las olas, la lluvia, las nubes y el riesgo de turbonada previstos para cada hora. Las franjas más brillantes son las mejores ventanas, con sus razones al lado. Cambia el día con el control de tiempo.',
   'help.fcst': 'PRON es qué tan adelante mira el mapa: AHORA, o horas y días en el futuro. Arrastra el control para ver el pronóstico de otro momento.',
-  'help.valid': 'La fecha y hora exactas, en UTC, que muestran el mapa y las lecturas. Costa Rica es UTC menos 6 horas.',
+  'help.valid': 'La fecha y hora exactas, en hora de Costa Rica, que muestran el mapa y las lecturas. Todas las horas de la app son hora de Costa Rica (UTC menos 6 horas); el reloj de arriba muestra UTC al pasar el cursor o mantenerlo pulsado.',
   'help.band': 'Cuánto confiar en el pronóstico a esa hora. PRONÓSTICO es el pronóstico real del modelo (hasta 7 días). BAJA CONF lo estira a 16 días y se vuelve incierto. TENDENCIA, más allá, es solo el clima típico del mes.',
   'help.lat': 'Latitud de la mira en grados. El norte es positivo.',
   'help.lon': 'Longitud de la mira en grados. El oeste es negativo.',
