@@ -308,6 +308,7 @@ export const es: Dict = {
   'sarg.from': 'DESDE',
   'sarg.cloud': 'NUBES',
   'check.feed.sargassum': 'SARGAZO',
+  'check.feed.coral': 'ESTRÉS TÉRMICO CORAL',
   'layer.rip': 'RESACA',
   'layer.surf': 'ROMPIENTES',
   'layer.depth': 'PROFUNDIDAD',

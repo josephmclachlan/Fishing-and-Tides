@@ -113,6 +113,7 @@ Checked in the built app (Chromium, `vite preview`): after a sync with the brows
 | `effort` | `scripts/forecast/effort.ts` | Global Fishing Watch 4Wings report, `public-global-fishing-effort:latest` (AIS apparent fishing effort), POST with the box as GeoJSON, token in the `GFW_TOKEN` Actions secret; about 4 days late | Fishing hours per 0.1° cell over `EFFORT_BOX` (25×23), summed over the last 365 days and all flags, one frame, kind `observed` | ~1 KB | Every 24 h |
 | `mld` | `scripts/forecast/satellite.ts` + `scripts/mld.py` | Mixed-layer depth (`mlotst`), Copernicus Marine global ocean model `GLOBAL_ANALYSISFORECAST_PHY_001_024`, daily means `cmems_mod_glo_phy_anfc_0.083deg_P1D-m`, same toolbox and account as `scat-pass` | Metres over `MLD_BOX` (= `SCAT_BOX`) at 1/12°, yesterday to 10 days ahead, kind `forecast` | ~5 KB | Every 24 h |
 | `storms` | `scripts/forecast/storms.ts` | NHC CurrentStorms.json (no CORS, so relayed) | Plain JSON: active Atlantic storms with position, wind, pressure, motion, advisory link; empty list in a quiet season | tiny | Every build (advisories come every 6 h in season) |
+| `coral` | `scripts/forecast/coral.ts` | NOAA Coral Reef Watch v3.1 daily 5 km via CoastWatch ERDDAP (`noaacrwdhwDaily`, `noaacrwhotspotDaily`, `noaacrwsstanomalyDaily`, `noaacrwsstDaily`, `noaacrwbaa7dDaily`), about 2 to 5 days late | Plain JSON: one CRW pixel per reef in `CORAL_REEFS` (nearest sea pixel; Punta Uva and Manzanillo share one), last 84 days of DHW, HotSpot, SST anomaly, SST and the 7-day bleaching alert level. Parsed by `src/adapters/coral-parse.ts` | ~15 KB | Every 12 h |
 
 Bodies are gzipped (`.i16.gz`, `encoding: 'gzip'` in the manifest) because GitHub Pages doesn't compress binary files; `series.ts` unzips with `DecompressionStream` when it sees the gzip magic bytes.
 
@@ -175,6 +176,16 @@ In the HUD, VIS shows the estimate, then the range and the cause (`5 M 3–9 PLA
 **Display.** Amber cells where weed was last seen (stronger with more), faint hatching over sea not seen in 5 days (unknown, not clear), dim dashed tracks of the 2% member with a dot at the slider's time, and beach labels when a landing is forecast. The SARG readout under VIS gives the level at the spot nearest the cross-hair for the slider's day and the first arrival day, or ASHORE; it says CLOUD instead of NONE when under a fifth of the sea was seen. On 2026-11-02 the mats seen off Limón and Tortuguero all drift south-east toward Bocas del Toro and Colón with the coastal current, so no beach here gets a landing.
 
 Checks: manifest, relay age (12 h cadence), newest map under 3 days (red past 6), a fifth of the sea seen in 5 days (amber only: cloud is weather), cover within 0..1.
+
+## Coral heat stress (PLAN 7.23)
+
+NOAA Coral Reef Watch (CRW) is the standard bleaching warning. DHW (degree heating weeks) adds up how far the sea has sat at least 1 °C above its warmest normal month over the last 12 weeks: 4 °C-weeks means significant bleaching is likely, 8 means severe bleaching and deaths. The alert level (0 none, 1 watch, 2 warning, 3 alert 1, 4 alert 2) is CRW's own 7-day maximum. `alertLevel(hotspot, dhw)` gives the same level for a single day.
+
+The 5 km pixels are coarse against these fringing reefs, and CRW masks pixels that touch land, so each reef reads the nearest sea pixel (within ~10 km). Read it as the water just off the reef. The ERDDAP history goes back daily to 25 March 1985 (peaks at the Cahuita pixel: 16.6 in Nov 2023, 15.4 in Jul 2024). Query with index ranges (`last-83:1:last`); date ranges over a box time out upstream.
+
+Reef points are public reef areas only. Restoration nurseries and outplant sites are never put in `region.ts`, since the app is public.
+
+The DIVE panel heat card uses this feed too: `fetchCoral()`, then `nearestReef(d, lngLat)` and `coralNow(d, reef)` from `src/adapters/coral.ts`.
 
 ## Weather (PLAN 7.3)
 
