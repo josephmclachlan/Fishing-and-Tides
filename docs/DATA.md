@@ -146,6 +146,22 @@ ERDDAP sends no CORS headers, so these go through the data build. Verify checks 
 
 It is a drawer behind an OBS tab whose lamp shows the stalest source; on phones the tab sits in SET with SYSTEM CHECK. It also shows as map labels (catalog layer `obs`, style ids `ob-`) at the stations and at the centre of what each pass saw.
 
+## Corrections from observations (PLAN 7.10)
+
+Two corrections are learnt on the phone each time their data loads, held in `src/corrections.ts`, and shown with their confidence under MODEL CORRECTIONS in the LIVE OBS drawer.
+
+**Wind map vs satellite** (`src/adapters/wind-fix.ts`). For every ASCAT pass in the last 4 days, the wind feed's model (Open-Meteo best match, read at up to 20 cells seen by two or more passes, one multi-point call with `past_days`) is compared with the satellite at the pass time. The fit is a speed scale k = Σ|obs||model| / Σ|model|², shrunk toward 1 by P/(P+2) for P passes and clamped to 0.8..1.25. The forecast wind's u and v are multiplied by k when they load, so the particles, readouts, BITE, surf and sargassum drift all see the same corrected wind. The climatology (OUTLOOK band) is not touched. A scale is used rather than an offset because model wind errors over the sea grow with the wind. Passes, not cells, set the confidence, since the cells of one pass share the same weather: HIGH with 4 or more passes and ≤2.5 m/s RMS left, MEDIUM up to 4 m/s, LOW beyond. A LOW fit is shown but not applied: that much error left means the model has the pattern wrong, not just the strength. ASCAT reports equivalent-neutral wind, about 0.2 m/s above the true 10 m wind in warm seas, which is left in. The fix is for the open sea; ASCAT sees nothing within ~20 km of land, so the land and sea breezes at the coast are not corrected by it.
+
+**Tide vs gauge** (`src/physics/tide-fix.ts`). The IOC Limón gauge minus the harmonic prediction, as hourly means over the last 24 h. Their mean is the offset (spikes over 0.5 m are dropped, and an offset over 0.3 m is not applied because it more likely means a gauge or datum fault). It is added to the predicted tide in full up to the newest reading, then fades as exp(−Δt / 2 days), on the TIDE readout, the tide chart, next high and low, spot pages, surf-break physics and dive depth. The 24 h mean averages out the harmonics running slightly early or late, which swings the residual both ways within a day. The fade is persistence: sea-level anomalies from pressure, wind set-up, river outflow and seasonal warming last days here, but not a month. Confidence: HIGH with 20+ hours and a spread of 6 cm or less, MEDIUM up to 12 cm. LIVE OBS still shows the raw gauge reading against the uncorrected tide.
+
+**Sea temperature** needs no correction: the app shows the satellite analysis itself (MUR, with the passes as a cross-check); there is no SST model forecast to correct.
+
+**Air temperature and gusts** are the PLAN 7.4 blend (docs/WEATHER.md), scored against the airport.
+
+Checks (amber only): the wind scale with its pass count and RMS before and after (amber at the clamp or with fewer than two passes), and the 24 h gauge offset within ±0.15 m.
+
+The windows are short on purpose: 24 h of gauge and 4 days of passes are what the app has without a history store. Longer windows belong with the history archive being planned in its own thread, not a separate store here.
+
 ## Water clarity (PLAN 6.1)
 
 `src/physics/clarity.ts` turns everything into a diffuse attenuation coefficient and adds the causes, since attenuation from separate causes adds: Kd = Kd490 (satellite; chlorophyll through Morel and Maritorena 2001 where the map has none; 0.11/m background with neither) + river plume + swell resuspension. Visibility is the Secchi depth 1.7 / Kd. Green 8 m or more, amber 3 to 8 m, red under 3 m.

@@ -10,6 +10,7 @@ import { REGION } from './region';
 import { binReadings, localClock, nextTides, offsetForTap, signedM, tideChartSvg, tideDay, type TideDay } from './tide-chart';
 import type { TimeStore } from './time';
 import type { Extremum } from './physics/tide';
+import { corrections } from './corrections';
 
 export type Observed = () => readonly { t: number; levelM: number }[];
 
@@ -36,11 +37,12 @@ export function tideBlock(host: HTMLElement, time: TimeStore, observed: Observed
   const key = host.querySelector<HTMLElement>('.tc-key')!;
   const tap = host.querySelector<HTMLButtonElement>('.tc-tap')!;
   let day: TideDay | null = null;
+  let dayFix = corrections.tide();
   let last = '';
   const render = () => {
     const now = time.validMs();
     const t0 = localDayStart(now, REGION.tzOffsetH);
-    if (!day || day.t0 !== t0) day = tideDay(t0);
+    if (!day || day.t0 !== t0 || dayFix !== corrections.tide()) (day = tideDay(t0)), (dayFix = corrections.tide()), (last = '');
     const obs = observed();
     const inDay = binReadings(obs.filter((r) => r.t >= day!.t0 && r.t <= day!.t1));
     const sig = `${t0}|${now}|${inDay.length}|${inDay.at(-1)?.t ?? 0}`;

@@ -18,6 +18,7 @@ import { fetchSatellite } from '../adapters/satellite';
 import { fetchStorms } from '../adapters/storms';
 import { fetchWaves } from '../adapters/waves';
 import { fetchWeather } from '../adapters/weather';
+import { fetchWindFix } from '../adapters/wind-fix';
 import { fetchHindcast } from '../adapters/weather-skill';
 import { fetchWind } from '../adapters/wind';
 import type { SyncJob } from './sync';
@@ -66,7 +67,7 @@ export function tripJobs(base: string = import.meta.env.BASE_URL): SyncJob[] {
     { name: 'gauge', run: async () => live(await fetchGauge({ hours: 30 }), 'gauge') },
     // LIVE OBS (PLAN 2.13): the airport's reports and the satellite passes.
     { name: 'metar', run: async () => live(await fetchMetar({ base }), 'metar') },
-    { name: 'passes', run: async () => { const d = await fetchPasses({ base }); need(d.sst || d.chl || d.scat, 'no satellite passes'); } },
+    { name: 'passes', run: async () => { const d = await fetchPasses({ base }); need(d.sst || d.chl || d.scat, 'no satellite passes'); await fetchWindFix(d.scat).catch(() => null); } },
     // Published only from the live site (null in dev and preview): nothing to sync there.
     { name: 'sargassum', run: async () => need((await fetchSargassum({ base })).series, 'no sargassum detections') },
     { name: 'mld', run: async () => need((await fetchMld({ base })).series, 'no mixed-layer depth') },

@@ -6,7 +6,7 @@
 import { fetchWind, windChecks } from '../adapters/wind';
 import { fetchWaves, wavesChecks } from '../adapters/waves';
 import { currentsChecks, fetchCurrents } from '../adapters/currents';
-import { gaugeChecks } from '../adapters/gauge';
+import { fetchGauge, gaugeChecks } from '../adapters/gauge';
 import { fetchMetar, metarChecks } from '../adapters/metar';
 import { fetchSatellite, satelliteChecks } from '../adapters/satellite';
 import { catchmentRainChecks } from '../adapters/catchment-rain';
@@ -16,6 +16,7 @@ import { effortChecks, fetchEffort } from '../adapters/effort';
 import { fetchPasses, passChecks } from '../adapters/passes';
 import { fetchSargassum, sargassumChecks } from '../adapters/sargassum';
 import { weatherChecks } from '../adapters/weather';
+import { correctionChecks } from '../adapters/wind-fix';
 import { fetchHindcast, weatherSkillChecks } from '../adapters/weather-skill';
 import { fetchStorms, stormsChecks } from '../adapters/storms';
 import { fetchLightning, lightningChecks } from '../adapters/lightning';
@@ -37,6 +38,7 @@ export function allChecks(base: string = import.meta.env.BASE_URL): Check[] {
     ...mldChecks(() => fetchMld({ base })),
     ...effortChecks(() => fetchEffort({ base })),
     ...weatherChecks(),
+    ...correctionChecks(async () => (await fetchPasses({ base })).scat, async () => (await fetchGauge({ hours: 30 })).readings),
     ...weatherSkillChecks(() => fetchHindcast(), () => fetchMetar({ base })),
     ...stormsChecks(() => fetchStorms({ base })),
     ...lightningChecks(() => fetchLightning({ base })),

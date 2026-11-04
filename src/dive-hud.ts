@@ -13,6 +13,7 @@ import { compassName } from './spot-charts';
 import { panelHeader } from './hud-kit';
 import { t, type Key } from './i18n';
 import { LIMON_HARMONICS } from './data/tides-limon';
+import { tideFixNow } from './corrections';
 import { localDayStart } from './physics/astro';
 import type { SquallLevel } from './physics/safety';
 import { suitFor, type SargLevel, outingScore, outlook, ratingFor, stingerGuess, type OutingReason, type OutingScore } from './physics/outing';
@@ -94,7 +95,7 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     const sp = nearest([c.lng, c.lat], SPOTS)!.point;
     return { c, sp, st: spots.byName(sp.name) };
   };
-  const tideM = (ms: number) => tideState(LIMON_HARMONICS, ms).level;
+  const tideM = (ms: number) => tideState(LIMON_HARMONICS, ms).level + tideFixNow(ms);
 
   const update = () => {
     const { c, st } = spotAt();
