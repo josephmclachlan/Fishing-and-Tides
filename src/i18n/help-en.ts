@@ -91,7 +91,7 @@ export const helpEn = {
   'glance.rip': 'RIP',
   'glance.sst': 'TEMP',
   'glance.curr': 'CURR',
-  'glance.set': 'FLOWS TO',
+  'glance.set': 'CURRENT TO',
   'glance.surge': 'SURGE AT 6M',
   'glance.vis': 'SEE',
   'glance.sea': 'SEA',

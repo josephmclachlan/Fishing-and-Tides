@@ -11,3 +11,12 @@ describe('glance cells', () => {
     expect(nextMode('boat')).toBe('surf');
   });
 });
+
+describe('glance current direction', async () => {
+  const { toward } = await import('./glance');
+  it('names the compass point the current flows toward', () => {
+    expect(toward('145')).toBe('SE');
+    expect(toward('000')).toBe('N');
+    expect(toward('--')).toBe('--');
+  });
+});

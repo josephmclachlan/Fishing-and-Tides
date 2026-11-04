@@ -6,6 +6,7 @@
  * also carries that activity's GO / MARGINAL / NO-GO (verdict-hud.ts, PLAN 7.8).
  */
 import { t, type Key } from './i18n';
+import { compass8 } from './surf-breaks';
 
 export type Mode = 'surf' | 'fish' | 'dive' | 'boat';
 export const MODES: readonly Mode[] = ['surf', 'fish', 'dive', 'boat'];
@@ -24,6 +25,11 @@ interface Cell {
 const first = (s: string) => s.split(/\s+/)[0] ?? s;
 /** Cross-hair on land: the current has no value there, so -- (the explainer says why), not the word LAND. */
 const sea0 = (s: string) => (s === t('flow.land') ? '--' : s);
+/** "145" (degrees true the current flows toward) to "SE": a compass point reads at a glance. */
+export const toward = (s: string) => {
+  const d = Number(s);
+  return s.trim() !== '' && Number.isFinite(d) ? compass8(d) : s;
+};
 const SEA = ['comfortable', 'lively', 'rough', 'uncomfortable'] as const;
 const sea = (s: string) => {
   const hit = SEA.find((k) => t(`sea.${k}` as Key) === s);
@@ -41,7 +47,7 @@ export const CELLS: Record<Mode, Cell[]> = {
     { src: 'wind', label: 'glance.wind', help: 'wind', unit: 'unit.kt' },
     { src: 'sst', label: 'glance.sst', help: 'sst', unit: 'unit.degC' },
     { src: 'curr', label: 'glance.curr', help: 'current', unit: 'unit.kt', fmt: sea0 },
-    { src: 'cset', label: 'glance.set', help: 'set', unit: 'unit.degT' },
+    { src: 'cset', label: 'glance.set', help: 'set', fmt: toward },
   ],
   dive: [
     { src: 'swell', label: 'glance.swell', help: 'swell', unit: 'unit.m' },
@@ -93,7 +99,7 @@ export function mountGlance(
       ${CELLS[mode]
         .map(
           (c, i) => `<div class="gl-cell" data-help="${c.help}" data-help-title="${t(c.label)}" data-i="${i}" role="button" tabindex="0">
-            <span class="lbl">${t(c.label)}</span><span class="seg">--</span>${c.unit ? `<span class="unit">${t(c.unit)}</span>` : ''}</div>`,
+            <span class="lbl">${t(c.label)}</span><span class="gl-v"><span class="seg">--</span>${c.unit ? `<span class="unit">${t(c.unit)}</span>` : ''}</span></div>`,
         )
         .join('')}
       <div class="gl-why" data-why hidden></div>`;
