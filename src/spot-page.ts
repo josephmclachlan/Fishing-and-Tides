@@ -11,6 +11,7 @@ import { t, type Key } from './i18n';
 import { daySky, localDayStart } from './physics/astro';
 import { surgeProfile } from './physics/surge';
 import { REGION, SPOTS } from './region';
+import { SURF_BREAKS } from './data/surf-breaks';
 import { closeButton, type Sheets } from './sheets';
 import type { SpotPhysics } from './spot-physics';
 import type { Target } from './target';
@@ -20,7 +21,7 @@ import type { TimeStore } from './time';
 import { clock } from './astro-hud';
 import type { MetricEnv } from './metrics/registry';
 import { hourlyScores, type Activity } from './metrics/best-today';
-import { hourRows, ribbonSvg, stripsSvg, type RibbonRow, type StripEnv } from './spot-charts';
+import { hourRows, ribbonSvg, roseData, roseSvg, stripsSvg, type RibbonRow, type StripEnv } from './spot-charts';
 import { offsetForTap } from './tide-chart';
 
 /** Local "TUE 02 14:00" for the slider time. */
@@ -65,8 +66,12 @@ export function mountSpotPage(root: HTMLElement, map: Map, deps: SpotPageDeps) {
     </div>
     <div class="sp-sec lbl">${t('spot.best')}</div>
     <button type="button" class="sc-tap" id="sp-ribbon" title="${t('tide.tap')}"></button>
-    <div class="sp-sec lbl">${t('spot.hourly')}</div>
+    <div class="sp-sec lbl sp-viewtabs">
+      <button type="button" class="tab on" id="sp-v-hourly">${t('spot.hourly')}</button>
+      <button type="button" class="tab" id="sp-v-rose">${t('spot.rose')}</button>
+    </div>
     <button type="button" class="sc-tap" id="sp-strips" title="${t('tide.tap')}"></button>
+    <div class="sc-tap sc-rose" id="sp-rose" hidden></div>
     <div class="sp-sec lbl">${t('spot.tides')}</div>
     <div class="tc-host"></div>
     <ul class="sp-tides" id="sp-tides"></ul>
@@ -106,7 +111,21 @@ export function mountSpotPage(root: HTMLElement, map: Map, deps: SpotPageDeps) {
     }));
     $('sp-ribbon').innerHTML = ribbonSvg(rows, { ...opts, label: t('spot.best') });
     $('sp-strips').innerHTML = stripsSvg(hourRows(deps.stripEnv(), spot.lngLat, day0), { ...opts, label: t('spot.hourly') });
+    const facing = SURF_BREAKS.find((b) => b.name === spot.name)?.facing ?? null;
+    $('sp-rose').innerHTML = roseSvg(roseData(deps.stripEnv(), spot.lngLat, now, facing), {
+      label: t('spot.rose'),
+      names: { sw1: t('rose.sw1'), sw2: t('rose.sw2'), ws: t('rose.ws'), wind: t('cond.wind'), shore: t('rose.shore') },
+    });
   };
+  // HOURLY / ROSE switch under the ribbon (the rose is the swell trains at the slider hour).
+  const view = (rose: boolean) => {
+    $('sp-strips').hidden = rose;
+    $('sp-rose').hidden = !rose;
+    $('sp-v-hourly').classList.toggle('on', !rose);
+    $('sp-v-rose').classList.toggle('on', rose);
+  };
+  $('sp-v-hourly').addEventListener('click', () => view(false));
+  $('sp-v-rose').addEventListener('click', () => view(true));
   // A tap on a chart moves the slider to that hour (the x axis is the same 24 h as the tide chart).
   for (const id of ['sp-ribbon', 'sp-strips']) {
     $(id).addEventListener('click', (e) => {

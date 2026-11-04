@@ -159,3 +159,81 @@ export function stripsSvg(rows: readonly HourRow[], o: ChartOptions): string {
   const rules = [sBase, wBase, tBase].map((y) => `<line class="sc-rule" x1="${LEFT}" x2="${W}" y1="${y}" y2="${y}"/>`).join('');
   return `<svg class="sc-svg" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${o.label ?? ''}" preserveAspectRatio="xMidYMid meet">${rules}${labels}${bars}${sArrows}${periods}${wLine}${wMarks}${tLine}${cursorAt(W, o, 4, tBase)}${hourTicks(W, H - 6)}</svg>`;
 }
+
+// ---- Swell rose ----
+
+export interface RoseTrain {
+  kind: 'sw1' | 'sw2' | 'ws';
+  /** Compass degrees the train comes FROM. */
+  from: number;
+  hs: number;
+  tp: number | null;
+}
+
+export interface RoseData {
+  trains: RoseTrain[];
+  wind: { kt: number; from: number } | null;
+  /** Bearing the shore faces (seaward normal) for a catalog break, else null. */
+  facing: number | null;
+}
+
+/** The swell trains, wind sea and wind at one place and hour. Trains the model does not report are left out. */
+export function roseData(env: StripEnv, lngLat: [number, number], ms: number, facing: number | null): RoseData {
+  const s = env.sea(lngLat[0], lngLat[1], ms);
+  const w = env.wind(lngLat[0], lngLat[1], ms);
+  const trains: RoseTrain[] = [];
+  if (s) {
+    const add = (kind: RoseTrain['kind'], hs: number, tp: number, from: number) => {
+      if (fin(hs) && fin(from) && hs > 0.05) trains.push({ kind, from, hs, tp: fin(tp) && tp > 0 ? tp : null });
+    };
+    add('sw1', s.swellHs, s.swellT, s.swellDir);
+    add('sw2', s.swell2Hs, s.swell2T, s.swell2Dir);
+    add('ws', s.windSeaHs, s.windSeaT, s.windSeaDir);
+    // A model with no partitions still has one mean sea: show it as the main train.
+    if (!trains.length) add('sw1', s.hs, s.tm, s.dir);
+  }
+  return { trains, wind: w ? { kt: w.ms * KT, from: w.fromDeg } : null, facing };
+}
+
+const POINTS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+/** 16-point compass name of a bearing. */
+export const compassName = (deg: number) => POINTS[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16];
+
+const polar = (cx: number, cy: number, r: number, deg: number): [number, number] => [cx + r * Math.sin((deg * Math.PI) / 180), cy - r * Math.cos((deg * Math.PI) / 180)];
+
+/**
+ * Compass dial: one arrow per swell train and wind sea, pointing the way the waves travel (from the
+ * bearing they come from toward the centre), longer for bigger waves, plus the wind and the shore.
+ * The legend lines under the dial give height, period and direction as text, so the dial is never
+ * the only carrier of the numbers.
+ */
+export function roseSvg(d: RoseData, o: { width?: number; label?: string; names: { sw1: string; sw2: string; ws: string; wind: string; shore: string } }): string {
+  const W = o.width ?? 320, cx = W / 2, cy = 82, R = 62;
+  const fmt = (n: number) => f(n);
+  const arrowTo = (from: number, len: number, cls: string, dash = false) => {
+    const [x0, y0] = polar(cx, cy, R, from);
+    const [x1, y1] = polar(cx, cy, Math.max(8, R - len), from);
+    const head = (a: number) => {
+      const [hx, hy] = polar(x1, y1, 7, from + a);
+      return `${fmt(hx)} ${fmt(hy)}`;
+    };
+    return `<line class="${cls}" x1="${fmt(x0)}" y1="${fmt(y0)}" x2="${fmt(x1)}" y2="${fmt(y1)}"${dash ? ' stroke-dasharray="4 3"' : ''}/><path class="${cls} sc-head" d="M${head(-25)} L${fmt(x1)} ${fmt(y1)} L${head(25)}"/>`;
+  };
+  const trains = d.trains.map((t) => arrowTo(t.from, Math.min(R - 8, 14 + t.hs * 22), `sc-rose-${t.kind}`)).join('');
+  const wind = d.wind ? arrowTo(d.wind.from, Math.min(R - 8, 10 + d.wind.kt * 2), 'sc-rose-wind', true) : '';
+  let shore = '';
+  if (d.facing !== null) {
+    const a0 = polar(cx, cy, R + 4, d.facing - 28), a1 = polar(cx, cy, R + 4, d.facing + 28);
+    shore = `<path class="sc-shore" d="M${fmt(a0[0])} ${fmt(a0[1])} A${R + 4} ${R + 4} 0 0 1 ${fmt(a1[0])} ${fmt(a1[1])}"/>`;
+  }
+  const ticks = [0, 90, 180, 270].map((a, i) => {
+    const [x, y] = polar(cx, cy, R + 12, a);
+    return `<text class="sc-lbl" x="${fmt(x)}" y="${fmt(y + 3)}" text-anchor="middle">${'NESW'[i]}</text>`;
+  }).join('');
+  const legend: string[] = d.trains.map((t) => `<tspan class="sc-rose-${t.kind}-t">${o.names[t.kind]} ${t.hs.toFixed(1)}M${t.tp ? ' ' + t.tp.toFixed(0) + 'S' : ''} ${compassName(t.from)}</tspan>`);
+  if (d.wind) legend.push(`<tspan class="sc-rose-wind-t">${o.names.wind} ${Math.round(d.wind.kt)}KN ${compassName(d.wind.from)}</tspan>`);
+  if (d.facing !== null) legend.push(`<tspan class="sc-rose-shore-t">${o.names.shore} ${compassName(d.facing)}</tspan>`);
+  const H = 164 + legend.length * 15;
+  const lines = legend.map((l, i) => `<text class="sc-val" x="${cx}" y="${160 + i * 15}" text-anchor="middle" font-size="11">${l}</text>`).join('');
+  return `<svg class="sc-svg" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${o.label ?? ''}"><circle class="sc-ring" cx="${cx}" cy="${cy}" r="${R}"/><circle class="sc-ring sc-ring2" cx="${cx}" cy="${cy}" r="${R / 2}"/>${shore}${ticks}${trains}${wind}${lines}</svg>`;
+}

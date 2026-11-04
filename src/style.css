@@ -667,3 +667,16 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .sc-arr-sw { fill: var(--green); }
 .sc-arr-wd { fill: var(--amber); }
 .sc-cursor { stroke: var(--red); stroke-width: 1.2; stroke-dasharray: 3 2; }
+.sp-viewtabs { display: flex; gap: 6px; }
+.sc-rose[hidden], .sc-tap[hidden] { display: none; }
+.sc-ring { fill: none; stroke: var(--amber-dim); stroke-width: 1; }
+.sc-ring2 { stroke-dasharray: 2 3; opacity: 0.6; }
+.sc-shore { fill: none; stroke: var(--amber); stroke-width: 4; filter: drop-shadow(0 0 3px var(--amber)); }
+.sc-head { fill: none; }
+.sc-rose-sw1 { stroke: var(--green); stroke-width: 3; fill: none; }
+.sc-rose-sw2 { stroke: var(--green); stroke-width: 2; opacity: 0.6; fill: none; }
+.sc-rose-ws { stroke: var(--amber); stroke-width: 2; fill: none; }
+.sc-rose-wind { stroke: var(--red); stroke-width: 1.5; fill: none; }
+.sc-rose-sw1-t, .sc-rose-sw2-t { fill: var(--green); }
+.sc-rose-ws-t, .sc-rose-shore-t { fill: var(--amber); }
+.sc-rose-wind-t { fill: var(--red); }
