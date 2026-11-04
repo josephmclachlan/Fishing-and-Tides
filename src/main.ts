@@ -39,7 +39,7 @@ import { createBoatStore } from './boat/store';
 import { createCoralStore } from './coral/store';
 import { mountCoralPanel } from './coral-panel';
 import { mountCoralLogLayer } from './layers/coral-log';
-import { mountBoatPanel, type CatchScorer, type OffshoreRead, type ShoalRead } from './boat-panel';
+import { mountBoatPanel, type CatchScorer, type OffshoreRead, type RouteDeps, type ShoalRead } from './boat-panel';
 import { dictFor, setDict, t } from './i18n';
 import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
@@ -141,6 +141,8 @@ let wind: WindData | null = null;
 const windField = () => (wind && windAt(wind, time.band(), time.validMs())?.field) || mockWindField(windHour());
 // Real surface currents (PLAN 2.5): SMOC regional grid with the 1/12° coastal nest, the forecast mean past day 9. Mock until loaded.
 let currents: CurrentsData | null = null;
+// Declared up here because HUD modules tick as soon as they mount, before the lines that load these feeds.
+let riverFlow: RiverFlow | null = null;
 const currentField = () => (currents && currentsAt(currents, time.band(), time.validMs())?.field) || mockCurrentField(hoursSinceEpoch(time.validMs()));
 const flowSources: { wind: FlowSource; current: FlowSource } = {
   wind: { field: windField(), ...FLOW_STYLE.wind },
@@ -151,6 +153,10 @@ const windAtRef: [number, number] = [0, 0];
 // Rip risk at the spot nearest the map centre, from the physics worker (PLAN 3.6, 4.2) once the seafloor loads.
 let spotPhysics: SpotPhysics | null = null;
 /** Gusts (weather feed, model mean) now and the wind three hours on, for the surf score (PLAN 7.23 B). */
+const uvMean = (ws: readonly { uv: number }[]) => {
+  const xs = ws.map((w) => w.uv).filter(Number.isFinite);
+  return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+};
 const windExtras = (ms: number, pin: [number, number], name: string) => {
   const g = weatherData ? weatherAt(weatherData, ms).map((w) => w.gustKt).filter(Number.isFinite) : [];
   const f = wind ? windAt(wind, time.band(), ms + 3 * 3.6e6)?.field : null;
@@ -165,6 +171,8 @@ const windExtras = (ms: number, pin: [number, number], name: string) => {
     squall: wx.squall,
     rainMmH: wx.rainMmH ?? null,
     sarg: sargForecast ? beachDay(sargForecast, name, ms)?.level ?? null : null,
+    sstC: satellite ? (sstAt(satellite, pin[0], pin[1], ms)?.value ?? null) : null,
+    uv: weatherData ? uvMean(weatherAt(weatherData, ms)) : null,
   };
 };
 const conditionsAt = () => {
@@ -277,7 +285,9 @@ const surfBreaks = mountSurfBreaks(map);
 const surfHud = mountSurfHud(hud, map, (name) => spotPhysics?.byName(name)?.surf);
 // BOAT verdict inputs besides wind and sea (PLAN 7.23); filled in once weather, storms and lightning are declared below.
 let boatSafety: () => VerdictSafety = () => ({});
-mountSeaStateHud(hud, conditionsAt, seaHere, { vessel: settings.vessel, safety: () => boatSafety(), current: () => { const c = map.getCenter(); return currentVecAt(c.lng, c.lat, time.validMs()); } });
+// The current reading is wired below, once currentVecAt exists: the HUD ticks as soon as it mounts.
+let seaCurrent: () => readonly [number, number] | null = () => null;
+mountSeaStateHud(hud, conditionsAt, seaHere, { vessel: settings.vessel, safety: () => boatSafety(), current: () => seaCurrent() });
 // Weather and active tropical storms (PLAN 7.3, 7.5): live feeds, rows stay -- until they load.
 weatherHud = mountWeatherHud(hud, { validMs: () => time.validMs() });
 time.subscribe(() => weatherHud?.refresh());
@@ -367,9 +377,10 @@ const offshoreRead: OffshoreRead = (lng, lat) => {
   const scores = OFFSHORE.map((s) => ({ id: s.id, score: offshoreScore(s, inputs) ?? 0 })).sort((a, b) => b.score - a.score);
   return { front: front && { km: front.km, bearingDeg: front.bearingDeg, kind: front.front.kind }, mldM: inputs.mldM, scores };
 };
+let routeDeps: () => RouteDeps | null = () => null;
 let reefLookup: ReefAt | null = null;
 const shoalRead: ShoalRead = (lng, lat) => (depthAt ? shoalAlert((x, y) => depthAt?.(x, y), reefLookup, lng, lat, settings.vessel()) : null);
-mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch, () => (offshoreDepth ? offshoreRead : null), () => shoalRead, () => ({ env: metricEnv(), vessel: settings.vessel(), validMs: time.validMs() }));
+mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch, () => (offshoreDepth ? offshoreRead : null), () => shoalRead, () => routeDeps());
 const coralStore = createCoralStore(safeStorage());
 mountCoralPanel(hud, map, coralStore, sheets, () => depthAt);
 mountCoralLogLayer(map, coralStore);
@@ -420,6 +431,11 @@ const watchWater = (lng: number, lat: number, c: ClarityContext): [number, numbe
     watchSea.set(key, at);
   }
   return at;
+};
+routeDeps = () => ({ env: metricEnv(), vessel: settings.vessel(), validMs: time.validMs() });
+seaCurrent = () => {
+  const c = map.getCenter();
+  return currentVecAt(c.lng, c.lat, time.validMs());
 };
 const metricEnv = (): MetricEnv => ({
   windMs: windMsAt,
@@ -509,7 +525,6 @@ let clarityLand: Grid | null = null;
 const clarityLayer = mountClarity(map);
 const bandAt = (ms: number) => bandFor((ms - time.baseMs()) / 3.6e6).id;
 const currentOut: [number, number] = [0, 0];
-let riverFlow: RiverFlow | null = null;
 const clarityCtx = (): ClarityContext | null =>
   clarityElevation && {
     satellite, rain: catchmentRain, flow: riverFlow, elevation: clarityElevation, land: clarityLand, ms: time.validMs(),

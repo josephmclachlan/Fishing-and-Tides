@@ -150,7 +150,7 @@ export const MAX_TRACKED = 8;
 
 /** Starter sets for the picker, matching the activity presets. */
 export const METRIC_PRESETS: Readonly<Record<'surf' | 'fish' | 'dive' | 'boat', readonly string[]>> = {
-  surf: ['surfq', 'swell', 'period', 'wind', 'tide', 'sargassum'],
+  surf: ['surfq', 'swell', 'period', 'wind', 'tide', 'sargassum', 'sst', 'uv'],
   fish: ['bite', 'wind', 'swell', 'rain', 'clarity'],
   dive: ['swell', 'wind', 'rain', 'clarity', 'sst', 'sargassum'],
   boat: ['comfort', 'wind', 'wdir', 'gust', 'squall', 'current', 'rain'],
