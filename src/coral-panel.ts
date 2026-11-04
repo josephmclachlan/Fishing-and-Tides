@@ -7,9 +7,10 @@ import type { Map } from 'maplibre-gl';
 import { t, type Key } from './i18n';
 import { closeButton, PHONE_QUERY, type Sheets } from './sheets';
 import { haversineM } from './geo';
-import { ACTIONS, MEASURES, MEASURE_LIMITS, newId, SITE_KINDS, STATUSES, cleanMeasures, photosOf, type ActionId, type Conditions, type CoralSite, type CoralStatus, type CoralStore, type SiteKind, type Visit } from './coral/store';
+import { ACTIONS, MEASURES, MEASURE_LIMITS, newId, SITE_KINDS, STATUSES, cleanMeasures, entryCount, photosOf, type ActionId, type Conditions, type CoralSite, type CoralStatus, type CoralStore, type SiteKind, type Visit } from './coral/store';
 import { conditionRows, dateInputMs, lastVisit, localDay, measureRows, nextMission, overdue, parseTags, photosNewestFirst, photoTime, type Row } from './coral/folder-view';
 import { toCSV, toGeoJSON } from './coral/export';
+import { buildBackup, mergeSites, readBackup } from './coral/backup';
 import { deletePhoto, getPhoto, putPhoto, shrink } from './coral/photos';
 import { CORAL_LOG_PREFIX } from './layers/coral-log';
 import { claimMapTap } from './here-card';
@@ -47,6 +48,12 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
       <button type="button" class="tab" id="c-geo">${t('coral.exportGeo')}</button>
       <button type="button" class="tab" id="c-csv">${t('coral.exportCsv')}</button>
     </div>
+    <div class="boat-btns">
+      <button type="button" class="tab" id="c-backup">${t('coral.backup')}</button>
+      <button type="button" class="tab" id="c-import">${t('coral.import')}</button>
+      <input id="c-file-backup" type="file" accept=".zip,application/zip" hidden>
+    </div>
+    <div class="cr-note" id="c-remind"></div>
     <div class="seek-msg" id="c-msg" role="status"></div>
     <ul class="boat-pins" id="c-list"></ul>
     <div id="c-detail" class="cf"></div>
@@ -362,6 +369,7 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
   $('c-add').addEventListener('click', async () => {
     const f = await here();
     const s = addSite(f.lng, f.lat, f.gps ? 'gps' : 'centre', f.accuracy);
+    persist();
     if (!f.gps) say(t('coral.atCentre'));
     else say(t('coral.addedGps', { m: Math.round(f.accuracy ?? 0) }));
     openSite(s.id, 'overview', false);
@@ -418,15 +426,82 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     say(t('coral.fromPhotoDone'));
     openSite(s.id, 'overview', true);
   });
-  const download = (text: string, type: string, name: string) => {
+  const download = (text: string | Blob, type: string, name: string) => {
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.href = URL.createObjectURL(typeof text === 'string' ? new Blob([text], { type }) : text);
     a.download = name;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
   };
   $('c-geo').addEventListener('click', () => (store.list().length ? download(JSON.stringify(toGeoJSON(store.list()), null, 1), 'application/geo+json', `coral-sites-${day(Date.now())}.geojson`) : say(t('coral.exportEmpty'))));
   $('c-csv').addEventListener('click', () => (store.list().length ? download(toCSV(store.list()), 'text/csv', `coral-sites-${day(Date.now())}.csv`) : say(t('coral.exportEmpty'))));
+
+  // BACKUP / IMPORT (PLAN 7.41): one zip with the log and the photos, to move the log between phones.
+  const BACKED_KEY = 'ft.coral.backedUp';
+  const REMIND_EVERY = 10;
+  const backedUp = () => {
+    try {
+      return Number(localStorage.getItem(BACKED_KEY) ?? '0') || 0;
+    } catch {
+      return 0;
+    }
+  };
+  const remind = () => {
+    const n = entryCount(store.list()) - backedUp();
+    $('c-remind').textContent = n >= REMIND_EVERY ? t('coral.backupRemind', { n }) : '';
+  };
+  let busy = false;
+  $('c-backup').addEventListener('click', async () => {
+    if (busy) return;
+    if (!store.list().length) return say(t('coral.exportEmpty'));
+    busy = true;
+    $('c-msg').textContent = t('coral.backupBusy');
+    try {
+      const r = await buildBackup(store.list(), getPhoto);
+      download(r.blob, 'application/zip', `coral-backup-${day(Date.now())}.zip`);
+      try {
+        localStorage.setItem(BACKED_KEY, String(entryCount(store.list())));
+      } catch {
+        /* reminder only */
+      }
+      say(r.missing ? t('coral.backupMissing', { n: r.photos, m: r.missing }) : t('coral.backupDone', { n: r.photos }));
+      remind();
+    } catch {
+      say(t('coral.backupFail'));
+    } finally {
+      busy = false;
+    }
+  });
+  const backupInput = $<HTMLInputElement>('c-file-backup');
+  $('c-import').addEventListener('click', () => backupInput.click());
+  backupInput.addEventListener('change', async () => {
+    const file = backupInput.files?.[0];
+    backupInput.value = '';
+    if (!file || busy) return;
+    busy = true;
+    $('c-msg').textContent = t('coral.importBusy');
+    try {
+      const b = await readBackup(file);
+      const r = mergeSites(store.list(), b.log.sites);
+      // Photos first, so the log never points at a photo this device lacks.
+      let copied = 0;
+      for (const id of r.newPhotoIds) {
+        const blob = await b.photo(id);
+        if (blob && (await putPhoto(id, blob))) copied++;
+      }
+      store.replaceAll(r.sites);
+      say(t('coral.importDone', { a: r.added, m: r.merged, p: copied }));
+    } catch (err) {
+      const m = err instanceof Error ? err.message : '';
+      say(`${t('coral.importFail')} ${t(/newer/.test(m) ? 'coral.importNewer' : /zip|backup/.test(m) ? 'coral.importNotBackup' : 'coral.importDamaged')}`);
+    } finally {
+      busy = false;
+    }
+  });
+  // Ask the browser not to clear this storage under pressure (it may still if the user clears site data).
+  const persist = () => void navigator.storage?.persist?.().catch(() => false);
+  store.subscribe(remind);
+  remind();
 
   $('c-list').addEventListener('click', (e) => {
     const li = (e.target as HTMLElement).closest<HTMLElement>('li');
@@ -452,7 +527,8 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     if (!target || !files.length) return;
     let failed = 0;
     let farKm = 0;
-    for (const file of files) {
+    for (const [k, file] of files.entries()) {
+      $('c-msg').textContent = t('coral.photoSaving', { k: k + 1, n: files.length });
       const m = await meta(file);
       const s0 = store.list().find((x) => x.id === target.siteId);
       if (s0 && m.lat !== undefined && m.lng !== undefined) farKm = Math.max(farKm, kmBetween(s0.lng, s0.lat, m.lng, m.lat));

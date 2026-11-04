@@ -164,6 +164,8 @@ export interface CoralStore {
   removeMission(siteId: string, missionId: string, now?: number): void;
   /** Logs a visit for a mission (its planned actions unless the visit lists its own) and marks it done. */
   completeMission(siteId: string, missionId: string, v: NewVisit, now?: number): Visit | null;
+  /** Replace every site at once (an import after merging; records are re-checked). */
+  replaceAll(sites: readonly unknown[]): void;
   flush(): void;
   subscribe(fn: () => void): () => void;
 }
@@ -336,6 +338,7 @@ export function createCoralStore(storage?: Storage): CoralStore {
       }));
       return visit;
     },
+    replaceAll: (next) => commit(next.map(upgradeSite).filter((x): x is CoralSite => !!x)),
     flush,
     subscribe(fn) {
       subs.add(fn);
@@ -343,3 +346,6 @@ export function createCoralStore(storage?: Storage): CoralStore {
     },
   };
 }
+
+/** How many records a log holds (sites, visits, photos, missions), for the backup reminder. */
+export const entryCount = (sites: readonly CoralSite[]) => sites.reduce((n, s) => n + 1 + s.visits.length + s.photos.length + s.missions.length, 0);
