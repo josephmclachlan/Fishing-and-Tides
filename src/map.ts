@@ -137,12 +137,16 @@ export function createMap(container: string, view?: { center: [number, number]; 
   });
   map.touchZoomRotate.disableRotation();
   map.keyboard.disableRotation();
-  // Compact credits start open and are wide; fold them to the (i) button so they don't sit over the HUD.
-  map.once('load', () => {
-    const a = map.getContainer().querySelector('.maplibregl-ctrl-attrib');
-    a?.classList.remove('maplibregl-compact-show');
-    a?.removeAttribute('open');
-  });
+  // Compact credits open themselves when the first source brings its credits (after 'load', so folding once at load
+  // missed it) and cover a third of a phone's map. Keep them folded to the (i) button until the user taps it.
+  const a = map.getContainer().querySelector('.maplibregl-ctrl-attrib');
+  if (a) {
+    let userOpened = false;
+    a.addEventListener('click', () => { userOpened = true; }, { capture: true });
+    const fold = () => { if (!userOpened && a.classList.contains('maplibregl-compact-show')) a.classList.remove('maplibregl-compact-show'); };
+    new MutationObserver(fold).observe(a, { attributes: true, attributeFilter: ['class'] });
+    fold();
+  }
   map.on('style.load', () => {
     hudify(map);
     addTierLayers(map);
