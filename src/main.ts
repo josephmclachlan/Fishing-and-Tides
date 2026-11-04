@@ -501,6 +501,7 @@ const loadWind = () => {
     if (!d.forecast) return console.warn('currents: no forecast published; using mock');
     currents = d;
     runSargassum();
+    diveHud?.refresh();
     flowSources.current = { ...flowSources.current, field: currentField() };
     flow?.setSource('current', flowSources.current);
     flowHud?.refresh();
@@ -635,6 +636,11 @@ fetchSeafloor()
       windAt: (lng, lat, ms) => {
         const f = wind && windAt(wind, bandAt(ms), ms)?.field;
         return f && sampleField(f, lng, lat, diveWind) ? { ms: Math.hypot(...diveWind), fromDeg: fromDeg(...diveWind) } : null;
+      },
+      currentAt: (lng, lat, ms) => {
+        const f = currents && currentsAt(currents, bandAt(ms), ms)?.field;
+        if (!f || !sampleField(f, lng, lat, currentOut)) return null;
+        return { ms: Math.hypot(currentOut[0], currentOut[1]), toDeg: (fromDeg(currentOut[0], currentOut[1]) + 180) % 360 };
       },
       visAt: (lng, lat, ms) => {
         const c = clarityCtx();

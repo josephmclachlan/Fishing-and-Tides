@@ -177,6 +177,8 @@ export const es: Dict = {
   'dive.r.chop': 'OLEAJE',
   'dive.r.shallow': 'POCA AGUA',
   'dive.r.light': 'POCA LUZ',
+  'dive.current': 'CORRIENTE',
+  'dive.r.current': 'CORRIENTE',
   'dive.r.storm': 'RIESGO DE TORMENTA',
   'dive.r.rain': 'LLUVIA',
   'snk.spot': 'SITIO DE SNORKEL',

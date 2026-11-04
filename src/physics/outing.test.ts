@@ -89,3 +89,15 @@ describe('weather safety and rain', () => {
     expect(heavy.reasons).toContain('rain');
   });
 });
+
+describe('current', () => {
+  it('slow drift costs nothing, a strong current does', () => {
+    expect(outingScore({ ...good, currentMs: 0.1 }).score).toBe(outingScore(good).score);
+    const strong = outingScore({ ...good, currentMs: 0.6 });
+    expect(strong.score).toBeLessThan(30);
+    expect(strong.reasons[0]).toBe('current');
+  });
+  it('an unknown current is ignored', () => {
+    expect(outingScore({ ...good, currentMs: NaN }).score).toBe(outingScore(good).score);
+  });
+});
