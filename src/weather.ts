@@ -1,9 +1,13 @@
 /**
  * Weather summary for the HUD (PLAN 7.5). Pure. Turns the per-model series from adapters/weather.ts into
- * the numbers the panel shows: a simple mean across the models that cover the hour, and the spread between
- * them as a rough confidence cue (the weighted blend with local bias correction is PLAN 7.4).
+ * the numbers the panel shows. Air temperature and gusts are the ensemble blend (PLAN 7.4, src/blend.ts):
+ * weighted by how well each model matched the Limón airport over the last few days, temperature also
+ * corrected by each model's local bias. Rain, cloud, UV and CAPE are the plain mean, since the airport
+ * does not measure them. Before the models are scored, every weight is equal.
  */
-import { weatherAt, rainAccumMm, WEATHER_MODELS, type WeatherData, type WeatherNow } from './adapters/weather';
+import { weatherAt, rainAccumMm, WEATHER_MODELS, type WeatherData, type WeatherModel, type WeatherNow } from './adapters/weather';
+import { leadModel, type SkillVar, type WeatherSkill } from './adapters/weather-skill';
+import { blend, confidence, type Confidence } from './blend';
 import { stormCategory, type Storm } from './adapters/storms';
 import { REGION } from './region';
 import { haversineM } from './geo';
@@ -20,29 +24,63 @@ export interface WeatherSummary {
   rainSpreadMmH: number;
   /** Rain over the 24 h from the valid time, mm (mean of the models that cover all of it). */
   rain24Mm: number;
+  /** Expected error of the blended air temperature (°C) and mean wind (kt): model disagreement plus their recent error at the airport. NaN when unknown. */
+  tempSigmaC: number;
+  windSigmaKt: number;
+  /** The worse of the temperature and wind confidences. */
+  confidence: Confidence;
+  /** The model the blend leans on most (by wind weight) and its share, or null while the weights are equal. */
+  lead: { model: WeatherModel; share: number } | null;
 }
+
+/** Confidence bands: HIGH while the blend's expected error is within `good`, MED within `fair` (°C, kt). */
+export const CONF_TEMP_C = { good: 1, fair: 2 } as const;
+export const CONF_WIND_KT = { good: 3, fair: 6 } as const;
 
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
 const finite = (xs: number[]) => xs.filter(Number.isFinite);
+const EQUAL: Record<WeatherModel, number> = Object.fromEntries(WEATHER_MODELS.map((m) => [m, 1])) as Record<WeatherModel, number>;
+const weightsOf = (sk: WeatherSkill | undefined, v: SkillVar) => sk?.weights[v] ?? EQUAL;
+const byModel = (now: readonly WeatherNow[], f: (w: WeatherNow) => number) => Object.fromEntries(now.map((w) => [w.model, f(w)]));
+const worse = (a: Confidence, b: Confidence): Confidence => (a === 'LOW' || b === 'LOW' ? 'LOW' : a === 'MED' || b === 'MED' ? 'MED' : 'HIGH');
+
+/** The present model with the largest wind weight and its share among the present models; null while the weights are equal. */
+function leadOf(sk: WeatherSkill | undefined, now: readonly WeatherNow[]): WeatherSummary['lead'] {
+  if (!leadModel(sk, 'wind') || now.length < 2) return null;
+  const w = sk!.weights.wind;
+  const top = now.reduce((a, x) => (w[x.model] > w[a.model] ? x : a), now[0]).model;
+  return { model: top, share: w[top] / now.reduce((a, x) => a + w[x.model], 0) };
+}
 
 export function summarise(d: WeatherData, ms: number): WeatherSummary | null {
   const now = weatherAt(d, ms);
   if (!now.length) return null;
+  const sk = d.skill;
   const rains = now.map((w) => w.rainMmH);
   const end = d.times[d.times.length - 1] + 3.6e6;
   const acc = WEATHER_MODELS.filter((m) => now.some((w) => w.model === m) && ms + 24 * 3.6e6 <= end)
     .map((m) => rainAccumMm(d, m, ms, ms + 24 * 3.6e6))
     .filter((x): x is number => x !== null);
+  const temp = blend(byModel(now, (w) => w.tempC), weightsOf(sk, 'temp'), sk?.scores.temp);
+  const wind = blend(byModel(now, (w) => w.windKt), weightsOf(sk, 'wind'), sk?.scores.wind);
+  const gust = blend(byModel(now, (w) => w.gustKt), weightsOf(sk, 'wind'));
+  const tempSigmaC = temp?.sigma ?? NaN, windSigmaKt = wind?.sigma ?? NaN;
+  // A single model has no spread to judge it by: LOW unless the airport has scored it.
+  const conf = (b: typeof temp, band: { good: number; fair: number }) => (!b || (b.models < 2 && !sk) ? 'LOW' : confidence(b.sigma, band.good, band.fair));
   return {
     models: now.length,
     rainMmH: mean(rains),
     cloudPct: mean(finite(now.map((w) => w.cloudPct))),
     uv: mean(finite(now.map((w) => w.uv))),
-    tempC: mean(finite(now.map((w) => w.tempC))),
-    gustKt: mean(finite(now.map((w) => w.gustKt))),
+    tempC: temp?.value ?? NaN,
+    gustKt: gust?.value ?? NaN,
     capeJkg: mean(finite(now.map((w) => w.capeJkg))),
     rainSpreadMmH: Math.max(...rains) - Math.min(...rains),
     rain24Mm: mean(acc),
+    tempSigmaC,
+    windSigmaKt,
+    confidence: wind ? worse(conf(temp, CONF_TEMP_C), conf(wind, CONF_WIND_KT)) : conf(temp, CONF_TEMP_C),
+    lead: leadOf(sk, now),
   };
 }
 
@@ -106,12 +144,20 @@ export function pressureChange(now: readonly WeatherNow[], before: readonly Weat
   return diffs.length ? mean(diffs) : null;
 }
 
-/** The weather the BITE score reads for one hour (fishing/bite.ts): mean rain and cloud over the models, and the squall flag. Empty when no model covers the hour. */
-export function biteWeather(now: readonly WeatherNow[]): { rainMmH?: number; cloudPct?: number; squall?: Squall } {
+/** Blended air temperature (°C, bias-corrected) and gusts (kt) for one hour's model readings; NaN when no model has them. Equal weights without `skill`. */
+export const blendedTempC = (now: readonly WeatherNow[], skill?: WeatherSkill) => blend(byModel(now, (w) => w.tempC), weightsOf(skill, 'temp'), skill?.scores.temp)?.value ?? NaN;
+export const blendedGustKt = (now: readonly WeatherNow[], skill?: WeatherSkill) => blend(byModel(now, (w) => w.gustKt), weightsOf(skill, 'wind'))?.value ?? NaN;
+
+/**
+ * The weather the BITE score reads for one hour (fishing/bite.ts): mean rain and cloud over the models, and
+ * the squall flag. Gusts are blended with the airport-scored wind weights when given (WeatherData.skill), as
+ * in the HUD. Empty when no model covers the hour.
+ */
+export function biteWeather(now: readonly WeatherNow[], skill?: WeatherSkill): { rainMmH?: number; cloudPct?: number; squall?: Squall } {
   if (!now.length) return {};
   const rainMmH = mean(finite(now.map((w) => w.rainMmH)));
   const cloudPct = mean(finite(now.map((w) => w.cloudPct)));
-  const s = { rainMmH, capeJkg: mean(finite(now.map((w) => w.capeJkg))), gustKt: mean(finite(now.map((w) => w.gustKt))) };
+  const s = { rainMmH, capeJkg: mean(finite(now.map((w) => w.capeJkg))), gustKt: blendedGustKt(now, skill) };
   return {
     rainMmH: Number.isFinite(rainMmH) ? rainMmH : undefined,
     cloudPct: Number.isFinite(cloudPct) ? cloudPct : undefined,

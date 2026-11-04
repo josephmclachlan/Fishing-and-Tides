@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { tideFactor, cleanFactor, windTrend, sizeFactor, surfBand, surfQuality, windFactor, windowFactor, type SurfInput } from './surf-quality';
+import { waterFactor, tideFactor, cleanFactor, windTrend, sizeFactor, surfBand, surfQuality, windFactor, windowFactor, type SurfInput } from './surf-quality';
 
 const reef: SurfInput['brk'] = { type: 'reef', facing: 350, swellFrom: [45, 135] };
 const base: SurfInput = { brk: reef, Hb: 1.8, Tp: 13, swellFromDeg: 60, windMs: 3, windFromDeg: 170 };
@@ -86,5 +86,15 @@ describe('surf quality', () => {
     const lo = surfQuality({ ...base, brk: { ...reef, tidePref: 'high' }, tide: { level: 0, rising: true } });
     expect(lo.tideKind).toBe('low');
     expect(lo.score).toBeLessThan(surfQuality(base).score);
+  });
+
+  it('storms cap the score; heavy rain and sargassum take points off', () => {
+    const ok = surfQuality(base).score;
+    expect(surfQuality({ ...base, lightning: true }).score).toBeCloseTo(ok * 0.1, 5);
+    expect(surfQuality({ ...base, squall: 'high' }).score).toBeCloseTo(ok * 0.25, 5);
+    expect(waterFactor(0, 'LOW')).toBe(1);
+    expect(waterFactor(12, 'NONE')).toBeCloseTo(0.85, 5);
+    expect(waterFactor(12, 'HIGH')).toBeCloseTo(0.65, 5);
+    expect(surfQuality({ ...base, sarg: 'HIGH' }).score).toBeLessThan(ok);
   });
 });

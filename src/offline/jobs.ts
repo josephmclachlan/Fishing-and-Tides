@@ -4,6 +4,7 @@
  * and the adapter fell back to an older copy, or when nothing was published, so the summary
  * never claims a fresh download it did not get.
  */
+import { fetchCoral } from '../adapters/coral';
 import { fetchCatchmentRain } from '../adapters/catchment-rain';
 import { fetchCurrents } from '../adapters/currents';
 import { fetchGauge } from '../adapters/gauge';
@@ -18,6 +19,7 @@ import { fetchSatellite } from '../adapters/satellite';
 import { fetchStorms } from '../adapters/storms';
 import { fetchWaves } from '../adapters/waves';
 import { fetchWeather } from '../adapters/weather';
+import { fetchHindcast } from '../adapters/weather-skill';
 import { fetchWind } from '../adapters/wind';
 import type { SyncJob } from './sync';
 
@@ -46,6 +48,7 @@ export const JOB_FEEDS: Record<string, readonly string[]> = {
   sargassum: ['sargassum'],
   mld: ['mld'],
   effort: ['effort'],
+  coral: ['coral'],
 };
 
 /** Verify feeds that are precached with the app rather than synced (checked in the sync's last step). */
@@ -57,7 +60,8 @@ export function tripJobs(base: string = import.meta.env.BASE_URL): SyncJob[] {
     { name: 'waves', run: async () => need((await fetchWaves({ base })).forecast, 'no wave forecast') },
     { name: 'currents', run: async () => need((await fetchCurrents({ base })).forecast, 'no current forecast') },
     { name: 'sst', run: async () => need(Number.isFinite((await fetchSatellite({ base })).fetchedAt), 'no satellite data') },
-    { name: 'weather', run: async () => live(await fetchWeather(), 'weather') },
+    // The airport hindcast that scores the models (PLAN 7.4) rides with the forecast; without it the blend uses equal weights.
+    { name: 'weather', run: async () => { live(await fetchWeather(), 'weather'); await fetchHindcast().catch(() => null); } },
     { name: 'rain', run: async () => live(await fetchCatchmentRain(), 'rain') },
     { name: 'river', run: async () => live(await fetchRiverFlow(), 'river') },
     { name: 'storms', run: async () => live(await fetchStorms({ base }), 'storms') },
@@ -69,6 +73,7 @@ export function tripJobs(base: string = import.meta.env.BASE_URL): SyncJob[] {
     { name: 'sargassum', run: async () => need((await fetchSargassum({ base })).series, 'no sargassum detections') },
     { name: 'mld', run: async () => need((await fetchMld({ base })).series, 'no mixed-layer depth') },
     { name: 'effort', run: async () => need((await fetchEffort({ base })).series, 'no fishing effort') },
+    { name: 'coral', run: async () => live(await fetchCoral({ base }), 'coral heat stress') },
     { name: 'lightning', run: async () => { const d = await fetchLightning(); if (d) live(d, 'lightning'); } },
   ];
 }

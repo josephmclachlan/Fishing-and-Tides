@@ -27,6 +27,8 @@ import { LIMON_HARMONICS } from './data/tides-limon';
 import { mountWatchPanel } from './watch-panel';
 import { mountBoatWindowHud } from './boat-window-hud';
 import { debrisAt } from './boat/debris';
+import { makeReefLookup, shoalAlert, type ReefAt } from './boat/shoal';
+import { REEFISH } from './fishing/cells';
 import { fetchStorms, type Storm } from './adapters/storms';
 import { mountSeaStateHud, type VerdictSafety } from './sea-state-hud';
 import { mountAstroHud } from './astro-hud';
@@ -37,7 +39,7 @@ import { createBoatStore } from './boat/store';
 import { createCoralStore } from './coral/store';
 import { mountCoralPanel } from './coral-panel';
 import { mountCoralLogLayer } from './layers/coral-log';
-import { mountBoatPanel, type CatchScorer, type OffshoreRead } from './boat-panel';
+import { mountBoatPanel, type CatchScorer, type OffshoreRead, type ShoalRead } from './boat-panel';
 import { dictFor, setDict, t } from './i18n';
 import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
@@ -56,6 +58,7 @@ import { mountExplain } from './explain';
 import { mountSystemCheck } from './system-check';
 import { mountLiveObs } from './live-obs';
 import { fetchMetar } from './adapters/metar';
+import { fetchHindcast, scoreWeather } from './adapters/weather-skill';
 import type { MetarObs } from './adapters/metar-parse';
 import { fetchPasses, type PassData } from './adapters/passes';
 import { allChecks } from './verify/registry';
@@ -144,12 +147,21 @@ const windAtRef: [number, number] = [0, 0];
 // Rip risk at the spot nearest the map centre, from the physics worker (PLAN 3.6, 4.2) once the seafloor loads.
 let spotPhysics: SpotPhysics | null = null;
 /** Gusts (weather feed, model mean) now and the wind three hours on, for the surf score (PLAN 7.23 B). */
-const windExtras = (ms: number) => {
+const windExtras = (ms: number, pin: [number, number], name: string) => {
   const g = weatherData ? weatherAt(weatherData, ms).map((w) => w.gustKt).filter(Number.isFinite) : [];
   const f = wind ? windAt(wind, time.band(), ms + 3 * 3.6e6)?.field : null;
   const v: [number, number] = [0, 0];
   const ahead = f && sampleField(f, ...MOCK_FLOW.windRef, v) ? { speedMs: Math.hypot(...v), fromDeg: fromDeg(...v) } : null;
-  return { gustMs: g.length ? g.reduce((a, b) => a + b, 0) / g.length / KT_PER_MS : null, ahead };
+  const near = Math.abs(ms - Date.now()) < 3.6e6 && nearestFlash(flashes, pin[0], pin[1], Date.now());
+  const wx = weatherData ? biteWeather(weatherAt(weatherData, ms)) : {};
+  return {
+    gustMs: g.length ? g.reduce((a, b) => a + b, 0) / g.length / KT_PER_MS : null,
+    ahead,
+    lightning: !!near && near.km <= STRIKE_ALERT_KM,
+    squall: wx.squall,
+    rainMmH: wx.rainMmH ?? null,
+    sarg: sargForecast ? beachDay(sargForecast, name, ms)?.level ?? null : null,
+  };
 };
 const conditionsAt = () => {
   const c = baseConditions();
@@ -284,7 +296,8 @@ const loadLightning = () =>
 loadLightning();
 setInterval(loadLightning, 5 * 60000);
 let weatherData: WeatherData | null = null;
-fetchWeather().then((d) => ((weatherData = d), weatherHud?.setWeather(d), diveHud?.refresh())).catch((err) => console.warn('weather unavailable', err));
+const weatherLoad = fetchWeather();
+weatherLoad.then((d) => ((weatherData = d), weatherHud?.setWeather(d), diveHud?.refresh())).catch((err) => console.warn('weather unavailable', err));
 let stormList: readonly Storm[] = [];
 boatSafety = () => {
   const c = map.getCenter();
@@ -349,7 +362,9 @@ const offshoreRead: OffshoreRead = (lng, lat) => {
   const scores = OFFSHORE.map((s) => ({ id: s.id, score: offshoreScore(s, inputs) ?? 0 })).sort((a, b) => b.score - a.score);
   return { front: front && { km: front.km, bearingDeg: front.bearingDeg, kind: front.front.kind }, mldM: inputs.mldM, scores };
 };
-mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch, () => (offshoreDepth ? offshoreRead : null));
+let reefLookup: ReefAt | null = null;
+const shoalRead: ShoalRead = (lng, lat) => (depthAt ? shoalAlert((x, y) => depthAt?.(x, y), reefLookup, lng, lat, settings.vessel()) : null);
+mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch, () => (offshoreDepth ? offshoreRead : null), () => shoalRead, () => ({ env: metricEnv(), vessel: settings.vessel(), validMs: time.validMs() }));
 const coralStore = createCoralStore(safeStorage());
 mountCoralPanel(hud, map, coralStore, sheets, () => depthAt);
 mountCoralLogLayer(map, coralStore);
@@ -414,6 +429,7 @@ const metricEnv = (): MetricEnv => ({
   },
   sea: (lng, lat, ms) => (waves ? wavesAt(waves, bandAt(ms), ms, lng, lat) : null),
   weather: (ms) => (weatherData ? weatherAt(weatherData, ms) : []),
+  weatherSkill: () => weatherData?.skill,
   // Clarity is a sea value and the spot pins sit on the shore: read it at the nearest water within ~1.8 km (cached per spot).
   clarityM: (lng, lat, ms) => {
     const c = clarityCtx();
@@ -436,9 +452,12 @@ mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeSto
 let metarObs: MetarObs[] = [];
 let passes: PassData | null = null;
 const liveObs = mountLiveObs(hud, map, sheets, () => ({ gauge, metar: metarObs, passes }));
-fetchMetar()
-  .then((d) => ((metarObs = d.obs), liveObs.refresh()))
-  .catch((err) => console.warn('metar unavailable', err));
+const metarLoad = fetchMetar();
+metarLoad.then((d) => ((metarObs = d.obs), liveObs.refresh())).catch((err) => console.warn('metar unavailable', err));
+// Ensemble blend (PLAN 7.4): score the weather models against the airport, then re-show the weather blended by that skill.
+Promise.all([weatherLoad, metarLoad, fetchHindcast()])
+  .then(([w, m, h]) => ((weatherData = { ...w, skill: scoreWeather(h, m.obs, Date.now()) }), weatherHud?.setWeather(weatherData), diveHud?.refresh()))
+  .catch((err) => console.warn('weather scoring unavailable, equal model weights', err));
 fetchPasses()
   .then((d) => ((passes = d), liveObs.refresh()))
   .catch((err) => console.warn('satellite passes unavailable', err));
@@ -722,12 +741,15 @@ fetchSeafloor()
       // Rain, squall and live lightning for the hour, the same cap fishing uses (physics/safety.ts).
       wxAt: (lng, lat, ms) => {
         const near = Math.abs(ms - Date.now()) < 3.6e6 && nearestFlash(flashes, lng, lat, Date.now());
-        const w = weatherData ? biteWeather(weatherAt(weatherData, ms)) : {};
-        return { rainMmH: w.rainMmH, squall: w.squall, lightning: !!near && near.km <= STRIKE_ALERT_KM };
+        const now = weatherData ? weatherAt(weatherData, ms) : [];
+        const w = biteWeather(now, weatherData?.skill);
+        const uvs = now.map((x) => x.uv).filter((x) => Number.isFinite(x));
+        return { rainMmH: w.rainMmH, cloudPct: w.cloudPct, uv: uvs.length ? uvs.reduce((a, b) => a + b, 0) / uvs.length : undefined, squall: w.squall, lightning: !!near && near.km <= STRIKE_ALERT_KM };
       },
       depthAt: (lng, lat) => depthAt?.(lng, lat),
     }) ?? null;
     spotPhysics.update();
+    reefLookup = makeReefLookup(data.reefs, REEFISH);
     depthAt = (lng, lat) => {
       const z = sample(data.region, lng, lat);
       return Number.isFinite(z) && z < 0 ? -z : undefined;
@@ -763,7 +785,7 @@ fetchSeafloor()
             return {
               windMs: windMsAt(lng, lat, ms),
               hsM: (waves && wavesAt(waves, bandAt(ms), ms, lng, lat)?.hs) ?? null,
-              ...(weatherData ? biteWeather(weatherAt(weatherData, ms)) : {}),
+              ...(weatherData ? biteWeather(weatherAt(weatherData, ms), weatherData.skill) : {}),
               lightning: !!near && near.km <= STRIKE_ALERT_KM,
               pressureTrend: weatherData ? pressureTrend(weatherData, ms) : null,
               surgeM: surgeNear(ms),

@@ -69,7 +69,7 @@ describe('weather summary', () => {
 });
 
 describe('biteWeather', () => {
-  const w = (rainMmH: number, cloudPct: number, capeJkg = 0, gustKt = 0) => ({ model: 'gfs_seamless' as const, rainMmH, cloudPct, uv: 0, tempC: 27, gustKt, capeJkg, pressureHpa: 1012 });
+  const w = (rainMmH: number, cloudPct: number, capeJkg = 0, gustKt = 0) => ({ model: 'gfs_seamless' as const, rainMmH, cloudPct, uv: 0, tempC: 27, gustKt, capeJkg, pressureHpa: 1012, windKt: 10 });
   it('averages the models and flags squalls', () => {
     expect(biteWeather([])).toEqual({});
     const b = biteWeather([w(4, 80), w(8, 100)]);
@@ -81,7 +81,7 @@ describe('biteWeather', () => {
 });
 
 describe('pressureChange', () => {
-  const w = (model: 'gfs_seamless' | 'icon_seamless', pressureHpa: number) => ({ model, rainMmH: 0, cloudPct: 0, uv: 0, tempC: 27, gustKt: 0, capeJkg: 0, pressureHpa });
+  const w = (model: 'gfs_seamless' | 'icon_seamless', pressureHpa: number) => ({ model, rainMmH: 0, cloudPct: 0, uv: 0, tempC: 27, gustKt: 0, capeJkg: 0, pressureHpa, windKt: 10 });
   it('means the change over models present at both ends', () => {
     expect(pressureChange([w('gfs_seamless', 1008), w('icon_seamless', 1009)], [w('gfs_seamless', 1011), w('icon_seamless', 1011)])).toBeCloseTo(-2.5);
     expect(pressureChange([w('gfs_seamless', 1008)], [w('icon_seamless', 1011)])).toBeNull();
