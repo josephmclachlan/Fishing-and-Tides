@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bestWindow, lightTerm, outingScore, outlook, type OutingInputs } from './outing';
+import { bestWindow, lightTerm, outingScore, outlook, suitFor, type OutingInputs } from './outing';
 
 const good: OutingInputs = { surgeMs: 0.05, visM: 12, windMs: 3, waterM: 2, localHour: 11 };
 
@@ -99,5 +99,26 @@ describe('current', () => {
   });
   it('an unknown current is ignored', () => {
     expect(outingScore({ ...good, currentMs: NaN }).score).toBe(outingScore(good).score);
+  });
+});
+
+describe('water temperature and sargassum', () => {
+  it('warm water and no sargassum change nothing', () => {
+    expect(outingScore({ ...good, sstC: 28.5, sarg: 'LOW' }).score).toBe(outingScore(good).score);
+  });
+  it('cold water lowers the score and says so', () => {
+    const cold = outingScore({ ...good, sstC: 20 });
+    expect(cold.score).toBeLessThan(outingScore(good).score);
+    expect(cold.reasons).toContain('cold');
+  });
+  it('sargassum on the beach lowers it by level', () => {
+    const mod = outingScore({ ...good, sarg: 'MODERATE' }).score;
+    const high = outingScore({ ...good, sarg: 'HIGH' });
+    expect(high.score).toBeLessThan(mod);
+    expect(mod).toBeLessThan(outingScore(good).score);
+    expect(high.reasons[0]).toBe('sargassum');
+  });
+  it('suggests a suit by temperature', () => {
+    expect([29, 26, 23, 19].map(suitFor)).toEqual(['lycra', 'shorty', 'wet3', 'wet5']);
   });
 });

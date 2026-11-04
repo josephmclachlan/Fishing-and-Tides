@@ -97,6 +97,7 @@ export const helpEn = {
   'help.diveMode': 'Whether the outing score is worked out for snorkelling or diving. Snorkelling judges the water movement at 2 m, diving at 6 m, because that is where you spend your time.',
   'help.waterOver': 'How much water is over the reef right now: the charted depth plus the tide. Under about 0.5 m you can touch coral and the outing score drops to zero; from 1.5 m up it is fine.',
   'help.diveCurrent': 'The surface current at the reticle and the way it flows toward. Above about 0.15 m/s you drift off the reef; from 0.45 m/s a snorkeller cannot swim back against it and the outing score drops. Forecast ocean current, so tide streams through narrow gaps are not included.',
+  'help.diveSst': 'Sea surface temperature from the newest satellite map, with the suit most dive shops suggest: 28 °C and up lycra is enough, 25 to 28 a shorty, 21 to 25 a 3 mm suit. This coast is usually 27 to 30 °C, so only a cold spell changes the score. Clouds can leave the map a few days old.',
   'help.outing': 'One number from 0 to 100 for how good the outing is at the hour on the slider. It combines water movement at the bottom, visibility, wind chop on the surface, water over the reef, current and daylight. One bad factor pulls the whole score down. Advice only, not a safety guarantee.',
   'help.bestTime': 'The best stretch of hours today, between 07:00 and 17:00 local: the run of hours within 10% of the day\'s highest outing score.',
   'help.bestDay': 'The best of the next 7 days for an outing, picked by each day\'s best-hours score.',
