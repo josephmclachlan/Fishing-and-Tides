@@ -81,6 +81,7 @@ import { mountCoral } from './layers/coral';
 import type { CoralData } from './adapters/coral';
 import { mountCoralHeat } from './coral-heat-ui';
 import { mountCoralSpawning } from './coral-spawn-ui';
+import { mountCoralGuide } from './coral-guide-ui';
 import type { CoralHistory } from './coral/history';
 import { worstSarg } from './coral/risks';
 import { predictSeries } from './physics/tide';
@@ -449,6 +450,8 @@ if (coralPanelEl) {
   });
   // Spawning calendar (PLAN 7.33), worked out on the device; redone once a day.
   const spawnUi = mountCoralSpawning(coralPanelEl);
+  // Species guide and disease cards (PLAN 7.34), folded.
+  mountCoralGuide(coralPanelEl);
   map.on('moveend', () => coralHeatUi?.refresh());
   sheets.subscribe(() => sheets.is('coral') && (coralHeatUi?.refresh(), spawnUi.refresh()));
 }
