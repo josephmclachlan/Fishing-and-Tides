@@ -36,6 +36,7 @@ import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
 import { mountSounds } from './sounds';
 import { mountSettingsUi } from './settings-ui';
+import { mountIntro } from './intro';
 import { mountSettingsPanel } from './settings-panel';
 import { mountGlance } from './glance';
 import { activityForPreset, mountCondGroups } from './cond-groups';
@@ -199,6 +200,7 @@ mountSeek(hud, (t) => enhancer.go(t), settings, sheets);
 // Layer toggles and activity presets; other layers register into `layers` (src/layers/registry.ts).
 bindMapLayers(map, layers);
 mountSettingsUi(hud, settings);
+mountIntro(hud, safeStorage());
 mountSounds(document, settings.sound);
 mountLayersPanel(hud, layers, sheets);
 mountLangUi(hud, settings, map);

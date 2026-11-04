@@ -703,6 +703,16 @@ export const en = {
   'legend.currents.2': 'Red: 1.5 kt or more, too strong to swim against',
   'legend.wind.1': 'Amber streaks: the wind (brighter and quicker is stronger)',
   'legend.wind.2': 'Red: 25 kt or more, small-craft wind',
+  'intro.tab': 'ABOUT',
+  'intro.title': 'WELCOME TO FISHING&TIDES',
+  'intro.lead': 'Ocean conditions and fishing for Costa Rica\'s Caribbean coast, Gandoca to Limón: waves, wind, currents, tides, water clarity, sargassum, and where the fish are likely to be.',
+  'intro.1': 'Drag and zoom the map. Zoom in to a beach or reef for detail.',
+  'intro.2': 'LAYERS turns map layers on and off. Tap the ? beside a layer to see what its colours and marks mean.',
+  'intro.3': 'Tap any label in the CONDITIONS panel to see what it means in plain words.',
+  'intro.4': 'The time slider at the bottom looks ahead up to 30 days. The first 7 days are model forecasts; further out it is less certain, and says so.',
+  'intro.5': 'WATCH lets you pick the numbers you care about and get a 5-day forecast with the best day and time.',
+  'intro.colours': 'Colours: green is good, amber means take care, red is bad or dangerous.',
+  'intro.ok': 'GOT IT',
 } as const;
 
 export type Key = keyof typeof en;

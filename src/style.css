@@ -624,3 +624,14 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .sw-ring { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--sw); }
 .sw-line { height: 0; border-top: 2px solid var(--sw); align-self: center; }
 .sw-none { visibility: hidden; }
+
+/* First-run intro (PLAN 7.12, src/intro.ts). */
+.intro { position: fixed; z-index: 50; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(520px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow-y: auto; background: rgba(5, 8, 5, 0.98); box-shadow: 0 0 24px var(--amber-dim); pointer-events: auto; display: grid; gap: 10px; }
+.intro[hidden] { display: none; }
+.intro .ph { display: flex; align-items: center; gap: 8px; color: var(--green); text-shadow: 0 0 6px var(--green); }
+.intro .ph .sheet-x { display: inline-flex; margin-left: auto; }
+.intro-lead { margin: 0; line-height: 1.4; }
+.intro-steps { margin: 0; padding-left: 22px; display: grid; gap: 8px; line-height: 1.35; font-size: 14px; }
+.intro-steps li::marker { color: var(--green); }
+.intro-colours { margin: 0; font-size: 13px; opacity: 0.85; }
+.intro-ok { min-height: 44px; justify-content: center; text-align: center; }
