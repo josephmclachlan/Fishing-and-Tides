@@ -179,7 +179,7 @@ export function seaImage(g: RegularGrid, values: ArrayLike<number>, word: (v: nu
 /**
  * A free-form sea-only image over `box` ([west, south, east, north]): `word(lng, lat, i, j)` gives
  * each sea pixel's RGBA word (0 = clear; i, j are the pixel's column and row). Pixels the coast
- * test calls land are never asked. For categorical cells (sargassum detections, fishing effort)
+ * test calls land are never asked. For categorical cells (sargassum detections)
  * that are drawn as blocks, so a block on the shore keeps only its sea part.
  */
 export function paintSea(box: readonly [number, number, number, number], pixelDeg: number, coast: CoastTest | null | undefined, word: (lng: number, lat: number, i: number, j: number) => number): SeaImage {
