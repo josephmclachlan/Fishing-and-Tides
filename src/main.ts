@@ -17,7 +17,7 @@ import { mountLightningHud } from './lightning-hud';
 import { mountLightning } from './layers/lightning';
 import { fetchLightning } from './adapters/lightning';
 import { nearestFlash, STRIKE_ALERT_KM, type Flash } from './lightning';
-import { biteWeather, nearestStorm, pressureTrend, squallLevel, summarise } from './weather';
+import { biteWeather, blendedGustKt, nearestStorm, pressureTrend, squallLevel, summarise } from './weather';
 import { crestGrid } from './waves-lines';
 import { mountWavesLayer } from './layers/waves';
 import { mountWeatherHud } from './weather-hud';
@@ -175,11 +175,15 @@ const windExtras = (ms: number, pin: [number, number], name: string) => {
   const g = weatherData ? weatherAt(weatherData, ms).map((w) => w.gustKt).filter(Number.isFinite) : [];
   const f = wind ? windAt(wind, time.band(), ms + 3 * 3.6e6)?.field : null;
   const v: [number, number] = [0, 0];
-  const ahead = f && sampleField(f, ...MOCK_FLOW.windRef, v) ? { speedMs: Math.hypot(...v), fromDeg: fromDeg(...v) } : null;
+  // The wind at this place, not one reading for the whole coast (audit F): now from the field on the map, and 3 h on.
+  const here = sampleField(flowSources.wind.field, pin[0], pin[1], v) ? { speedMs: Math.hypot(...v), fromDeg: fromDeg(...v) } : null;
+  const ahead = f && sampleField(f, pin[0], pin[1], v) ? { speedMs: Math.hypot(...v), fromDeg: fromDeg(...v) } : null;
   const near = Math.abs(ms - Date.now()) < 3.6e6 && nearestFlash(flashes, pin[0], pin[1], Date.now());
   const wx = weatherData ? biteWeather(weatherAt(weatherData, ms)) : {};
   return {
-    gustMs: g.length ? g.reduce((a, b) => a + b, 0) / g.length / KT_PER_MS : null,
+    // Gusts blended with the airport-scored weights, as the GUSTS row shows them (audit J).
+    gustMs: g.length && weatherData ? blendedGustKt(weatherAt(weatherData, ms), weatherData.skill) / KT_PER_MS : null,
+    wind: here,
     ahead,
     lightning: !!near && near.km <= STRIKE_ALERT_KM,
     squall: wx.squall,
@@ -198,7 +202,9 @@ const conditionsAt = () => {
 };
 const baseConditions = () => {
   const c = mockConditions(Date.now(), time.validMs(), climatological());
-  if (sampleField(flowSources.wind.field, ...MOCK_FLOW.windRef, windAtRef)) {
+  // WIND follows the cross-hair like SWELL and SST (audit F); the reference point only when the centre is off the field.
+  const wc = map.getCenter();
+  if (sampleField(flowSources.wind.field, wc.lng, wc.lat, windAtRef) || sampleField(flowSources.wind.field, ...MOCK_FLOW.windRef, windAtRef)) {
     c.windKt = Math.hypot(...windAtRef) * KT_PER_MS;
     c.windDirDeg = fromDeg(...windAtRef);
   }
