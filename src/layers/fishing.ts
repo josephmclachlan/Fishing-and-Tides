@@ -110,9 +110,10 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     if (!map.getLayer('fh-cells')) return;
     const raw: ExpressionSpecification = ['*', ['get', sp.id], seasonFactor(sp, month)];
     const score: ExpressionSpecification = reach === 'all' ? raw : ['case', reach === 'shore' ? ['<=', ['get', 'coast'], SHORE_M] : ['>', ['get', 'coast'], SHORE_M], raw, 0];
-    // Amber only. Nothing below fair (0.3); the best water reaches a firm but see-through fill.
+    // Amber only. Nothing below fair (0.3); the best water reaches a firm but see-through fill. Past spot zoom the 0.06°
+    // cells are bigger than the screen's detail and read as blocks, so they fade out (clarity review CL19).
     map.setPaintProperty('fh-cells', 'fill-color', amber);
-    map.setPaintProperty('fh-cells', 'fill-opacity', ['interpolate', ['linear'], ['zoom'], COAST, 0, COAST + 1, ['interpolate', ['linear'], score, 0.3, 0, 0.45, 0.1, 0.8, 0.32], SPOT + 2, ['interpolate', ['linear'], score, 0.3, 0, 0.45, 0.07, 0.8, 0.24]]);
+    map.setPaintProperty('fh-cells', 'fill-opacity', ['interpolate', ['linear'], ['zoom'], COAST, 0, COAST + 1, ['interpolate', ['linear'], score, 0.3, 0, 0.45, 0.1, 0.8, 0.32], SPOT, ['interpolate', ['linear'], score, 0.3, 0, 0.45, 0.08, 0.8, 0.24], SPOT + 2, ['interpolate', ['linear'], score, 0.3, 0, 0.45, 0.03, 0.8, 0.1]]);
   };
   const add = () => {
     if (map.getSource('fh')) return;
