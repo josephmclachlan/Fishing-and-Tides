@@ -93,6 +93,6 @@ Ranked by value for effort.
 | Depth, reefs | ✓ (BOAT drawer shoal alert; not in the verdict) | – | – |
 | Seamarks | ✗ (map only) | – | – |
 
-Vessel (SET): SMALL BOAT is MARGINAL at 15 kt / 20 kt gusts / 1.2 m seas and NO-GO at 20 / 27 / 2.0; YACHT is MARGINAL at 20 / 27 / 2.0 and NO-GO at 28 / 37 / 3.0. Thresholds are rules of thumb in `src/boat/verdict.ts`.
+Vessel (SET): SMALL BOAT is MARGINAL at 14 kt / 20 kt gusts / 1.3 m seas (the FISH limits) and NO-GO at 20 / 27 / 2.0; YACHT is MARGINAL at 20 / 27 / 2.0 and NO-GO at 28 / 37 / 3.0. Thresholds are rules of thumb in `src/boat/verdict.ts`; the small-boat wind and sea limits and the storm limits (NO-GO inside 500 km, MARGINAL to 1500 km) are shared with the activity verdicts in `src/physics/safety.ts`.
 
 BOAT drawer tools (PLAN 7.23): DEPTH / shoal alert (item 7) and ROUTE (item 8: distance, course, passage time at a set speed, arrival against sunset, wind angle, worst verdict met along the leg). The route is a straight line and ignores land, reefs and bars.
