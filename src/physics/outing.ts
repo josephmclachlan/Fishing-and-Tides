@@ -11,6 +11,8 @@
  *   chop    1 at 4 m/s wind, 0 at 10 m/s (a snorkeller loses the bottom in whitecaps)
  *   depth   0 below 0.5 m of water over the reef (you touch coral), 1 from 1.5 m
  *   light   0 at 07:00, 1 from 09:00 until 15:00, 0 at 17:00 (local clock; no sun model needed here)
+ *   current 1 up to 0.15 m/s, 0 at 0.60 m/s (a snorkeller swims about 0.5 m/s and cannot make headway, so the
+ *           drift sweeps you off the reef; optional, left out when unknown; surface current forecast, tide streams not included)
  *   rain    1 up to 2 mm/h, 0.3 at 10 mm/h and above (optional input; left out when unknown)
  *
  * Weather safety caps the whole score afterwards: score × safetyTerm (physics/safety.ts, shared with fishing).
@@ -18,7 +20,7 @@
  */
 import { safetyTerm, type SquallLevel } from './safety';
 
-export type OutingReason = 'storm' | 'surge' | 'vis' | 'chop' | 'shallow' | 'light' | 'rain';
+export type OutingReason = 'storm' | 'surge' | 'vis' | 'chop' | 'shallow' | 'light' | 'rain' | 'current';
 
 export interface OutingInputs {
   /** Peak bed velocity at the activity's depth, m/s. */
@@ -31,6 +33,8 @@ export interface OutingInputs {
   waterM: number;
   /** Local hour of day, 0..24. */
   localHour: number;
+  /** Surface current speed, m/s. Left out when no forecast covers the spot. */
+  currentMs?: number;
   /** Rain, mm/h (mean over the models). Left out when no forecast covers the hour. */
   rainMmH?: number;
   /** Squall flag for the hour (weather.ts squallLevel). */
@@ -60,6 +64,7 @@ export function outingScore(i: OutingInputs): OutingScore {
     ['shallow', ramp(i.waterM, 0.5, 1.5)],
     ['light', lightTerm(i.localHour)],
   ].map(([r, v]) => [r, Number.isFinite(v as number) ? (v as number) : 0.5] as [OutingReason, number]);
+  if (i.currentMs !== undefined && Number.isFinite(i.currentMs)) terms.push(['current', 1 - ramp(i.currentMs, 0.15, 0.6)]);
   if (i.rainMmH !== undefined && Number.isFinite(i.rainMmH)) terms.push(['rain', 1 - 0.7 * ramp(i.rainMmH, 2, 10)]);
   const min = Math.min(...terms.map((x) => x[1]));
   const mean = terms.reduce((a, x) => a + x[1], 0) / terms.length;

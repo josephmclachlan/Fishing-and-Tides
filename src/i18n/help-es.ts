@@ -92,6 +92,7 @@ export const helpEs: Record<keyof typeof helpEn, string> = {
   'help.crestHigh': 'Una línea de cresta roja: olas de 2.5 m o más en este punto a la hora de la barra. Es mar picado para botes pequeños y peligroso en la rompiente.',
   'help.diveMode': 'Si el puntaje de la salida se calcula para snorkel o para buceo. Snorkel mide el movimiento del agua a 2 m, buceo a 6 m, que es donde pasas el tiempo.',
   'help.waterOver': 'Cuánta agua hay sobre el arrecife ahora: la profundidad de la carta más la marea. Con menos de unos 0.5 m puedes tocar coral y el puntaje baja a cero; de 1.5 m para arriba está bien.',
+  'help.diveCurrent': 'La corriente superficial en la mira y hacia dónde fluye. Con más de unos 0.15 m/s te alejas del arrecife; desde 0.45 m/s un esnorquelista no puede nadar contra ella y baja el puntaje. Es corriente pronosticada del océano, no incluye las corrientes de marea en pasos angostos.',
   'help.outing': 'Un número de 0 a 100 de qué tan buena es la salida a la hora de la barra. Combina el movimiento del agua en el fondo, la visibilidad, el oleaje de viento en la superficie, el agua sobre el arrecife y la luz del día. Un solo factor malo baja todo el puntaje. Es un consejo, no una garantía de seguridad.',
   'help.bestTime': 'El mejor tramo de horas de hoy, entre las 07:00 y las 17:00 locales: la racha de horas dentro del 10% del puntaje más alto del día.',
   'help.bestDay': 'El mejor de los próximos 7 días para una salida, elegido por el puntaje de las mejores horas de cada día.',
