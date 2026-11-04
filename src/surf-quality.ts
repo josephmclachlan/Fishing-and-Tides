@@ -2,7 +2,7 @@
  * Surf break quality (PLAN 6.3). Pure. Scores a catalog break (6.4) against the forecast,
  * using our own refraction and breaking (3.3, 3.4) at the break:
  *
- *   Q = 10 · size · period · window · clean · tide · wind       (0 … 10)
+ *   Q = 10 · size · period · window · clean · tide · wind · safety · water       (0 … 10)
  *
  *   size    breaker height Hb against the break type's working range (trapezoid):
  *           beach  0.4 → 0.8 … 1.8 → 2.8 m   (closes out above)
@@ -10,6 +10,8 @@
  *           point  0.5 → 0.9 … 2.5 → 3.5 m
  *   period  0.35 at 6 s → 1 at 13 s (groundswell lines up and holds shape)
  *   window  1 inside the guides' swell window (or ±60° of the facing), easing to 0.4 at 30° outside
+ *   safety  lightning / squall cap (physics/safety.ts): ×0.1 with a strike near, ×0.25 squall HIGH, ×0.7 WATCH
+ *   water   heavy rain and sargassum at the beach (`waterFactor`), 0.7 … 1
  *   tide    soft nudge from the break's tide preference (PLAN 7.25, `tideFactor`), 0.88 … 1
  *   clean   how tidy the surface is (PLAN 7.23): wind-sea and a crossing second swell share the energy
  *           with the main swell and put chop or a second set angle on its faces (see `cleanFactor`)
@@ -21,6 +23,8 @@
  * ratings of commercial forecasts, but every factor is shown so a surfer can see why.
  */
 import type { SurfBreak, BreakType } from './data/surf-breaks';
+import { safetyTerm, type SquallLevel } from './physics/safety';
+import type { SargLevel } from './physics/drift';
 
 const RAD = Math.PI / 180;
 
@@ -61,13 +65,19 @@ export interface SurfInput {
   /** Main swell height, m (energy share base); defaults to Hs of the breaker's offshore sea. */
   swellHs?: number | null;
   /** Gust speed m/s (weather feed, model mean), when known (PLAN 7.23 B). */
+  /** Live lightning near the break and the hour's squall level (physics/safety.ts, shared with fishing and dive). */
+  lightning?: boolean;
+  squall?: SquallLevel;
+  /** Rain, mm/h (model mean), and the sargassum outlook at this beach. */
+  rainMmH?: number | null;
+  sarg?: SargLevel | null;
   tide?: { level: number; rising: boolean } | null;
   gustMs?: number | null;
   /** The wind a few hours on (same units), to say whether the faces are about to turn. */
   windAhead?: { speedMs: number; fromDeg: number } | null;
 }
 
-export interface SurfFactors { size: number; period: number; window: number; clean: number; tide: number; wind: number }
+export interface SurfFactors { size: number; period: number; window: number; clean: number; tide: number; wind: number; safety: number; water: number }
 
 export interface SurfQuality {
   score: number;
@@ -79,6 +89,8 @@ export interface SurfQuality {
   windTrend: WindTrend;
   /** Where the tide stands, for the readout; 'any' when the break has no preference or no tide is known. */
   tideKind: TideKind;
+  /** Rip current level at the break from the physics worker (advisory, not scored); set by spot-physics. */
+  ripLevel?: 'LOW' | 'MOD' | 'HIGH';
 }
 
 export type TideKind = 'low' | 'mid' | 'high' | 'none';
@@ -144,6 +156,16 @@ export function tideFactor(pref: SurfBreak['tidePref'], level: number | undefine
   return 1 - 0.12 * miss;
 }
 
+/**
+ * Water quality at the beach, 0.7 … 1: heavy rain (brown runoff from the rivers, 3 mm/h easing to 12 mm/h) takes up to
+ * 15% and sargassum on the beach takes 5% (LOW is ignored), 12% (MODERATE) or 20% (HIGH): weed in the lineup and a foul water.
+ */
+export function waterFactor(rainMmH?: number | null, sarg?: SargLevel | null): number {
+  const rain = rainMmH && rainMmH > 0 ? 0.15 * smoothstep(3, 12, rainMmH) : 0;
+  const weed = sarg === 'HIGH' ? 0.2 : sarg === 'MODERATE' ? 0.12 : 0;
+  return 1 - rain - weed;
+}
+
 /** Onshore part of the wind, m/s (negative = offshore). */
 const onshoreMs = (facing: number, speedMs: number, fromDeg: number) => speedMs * Math.cos(wrap(fromDeg - facing) * RAD);
 
@@ -171,7 +193,9 @@ export function surfQuality(inp: SurfInput): SurfQuality {
     clean: cleanFactor({ Hs: inp.swellHs ?? inp.Hb, Tp: inp.Tp, fromDeg: inp.swellFromDeg }, inp.swell2, inp.windSeaHs),
     tide: tideFactor(inp.brk.tidePref, inp.tide?.level),
     wind: w.f,
+    safety: safetyTerm(inp.lightning, inp.squall),
+    water: waterFactor(inp.rainMmH, inp.sarg),
   };
-  const score = 10 * factors.size * factors.period * factors.window * factors.clean * factors.tide * factors.wind;
+  const score = 10 * factors.size * factors.period * factors.window * factors.clean * factors.tide * factors.wind * factors.safety * factors.water;
   return { score, band: surfBand(score, inp.Hb), factors, windKind: w.kind, tideKind: !inp.tide || !inp.brk.tidePref || inp.brk.tidePref === 'any' ? 'none' : inp.tide.level < 0.33 ? 'low' : inp.tide.level > 0.67 ? 'high' : 'mid', windTrend: windTrend(inp.brk.facing, { speedMs: inp.windMs, fromDeg: inp.windFromDeg }, inp.windAhead) };
 }

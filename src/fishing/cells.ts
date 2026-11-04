@@ -36,7 +36,7 @@ export interface FishingInput {
 export interface Cell { lng: number; lat: number; f: CellFeatures; /** Distance to the shore, m. */ coastM: number }
 
 /** Allen Atlas classes that hold fish: reef structure and hard or living bottom. */
-const REEFISH = new Set(['REEF CREST', 'OUTER REEF FLAT', 'INNER REEF FLAT', 'TERRESTRIAL REEF FLAT', 'BACK REEF SLOPE', 'REEF SLOPE', 'SHELTERED REEF SLOPE', 'PLATEAU', 'CORAL/ALGAE', 'ROCK']);
+export const REEFISH = new Set(['REEF CREST', 'OUTER REEF FLAT', 'INNER REEF FLAT', 'TERRESTRIAL REEF FLAT', 'BACK REEF SLOPE', 'REEF SLOPE', 'SHELTERED REEF SLOPE', 'PLATEAU', 'CORAL/ALGAE', 'ROCK']);
 
 export interface Lattice { lon0: number; lat0: number; cols: number; rows: number }
 export const latticeFor = ([w, s, e, n]: FishingInput['bounds']): Lattice => ({ lon0: w, lat0: n, cols: Math.ceil((e - w) / STEP), rows: Math.ceil((n - s) / STEP) });

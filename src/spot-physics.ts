@@ -11,6 +11,8 @@ import type { SpotResult } from './physics/spot-model';
 import { tideState } from './physics/tide';
 import { SPOTS } from './region';
 import { SURF_BREAKS, type SurfBreak } from './data/surf-breaks';
+import type { SquallLevel } from './physics/safety';
+import type { SargLevel } from './physics/drift';
 import { surfQuality, type SurfQuality, type Train } from './surf-quality';
 
 /** Every place we model: the named spots plus catalog surf breaks that aren't one of them. */
@@ -20,6 +22,16 @@ export const PLACES: readonly { name: string; lngLat: [number, number]; brk?: Su
 ];
 
 type Sea = { Hs: number; Tp: number; fromDeg: number };
+
+/** Per-hour, per-place extras the surf score reads besides the sea and wind (wired in main.ts). */
+export interface HourExtras {
+  gustMs: number | null;
+  ahead: { speedMs: number; fromDeg: number } | null;
+  lightning?: boolean;
+  squall?: SquallLevel;
+  rainMmH?: number | null;
+  sarg?: SargLevel | null;
+}
 
 export interface SpotState {
   name: string;
@@ -48,7 +60,7 @@ export function createSpotPhysics(
   client: PhysicsClient,
   conditions: () => Conditions,
   validMs: () => number,
-  windExtras: (ms: number) => { gustMs: number | null; ahead: { speedMs: number; fromDeg: number } | null } = () => ({ gustMs: null, ahead: null }),
+  windExtras: (ms: number, pin: [number, number], name: string) => HourExtras = () => ({ gustMs: null, ahead: null }),
   seaAt: (pin: [number, number]) => (Sea & { swellHs?: number | null; swell2?: Train | null; windSeaHs?: number | null }) | null = () => null,
 ): SpotPhysics {
   let states: SpotState[] = [];
@@ -60,17 +72,18 @@ export function createSpotPhysics(
     const tideLevel = ts.level;
     const sea: Sea = { Hs: c.swellHeightM, Tp: c.swellPeriodS, fromDeg: c.swellDirDeg };
     const wind = { speedMs: c.windKt / KT_PER_MS, fromDeg: c.windDirDeg };
-    const wx = windExtras(ms);
-    const seasX = PLACES.map((p) => seaAt(p.lngLat));
+        const seasX = PLACES.map((p) => seaAt(p.lngLat));
     const seas: Sea[] = seasX.map((x) => (x ? { Hs: x.Hs, Tp: x.Tp, fromDeg: x.fromDeg } : sea));
     client
       .latestMany(PLACES.map((p, i) => ({ pin: p.lngLat, sea: seas[i], tideLevel, wind })))
       .then((rs) => {
         states = PLACES.map((s, i) => {
           const r = rs[i];
-          const surf = s.brk && r
-            ? surfQuality({ brk: s.brk, Hb: r.waves.breaker.Hb, Tp: seas[i].Tp, swellFromDeg: seas[i].fromDeg, windMs: wind.speedMs, windFromDeg: wind.fromDeg, swellHs: seasX[i]?.swellHs, swell2: seasX[i]?.swell2, windSeaHs: seasX[i]?.windSeaHs, tide: { level: ts.level, rising: ts.rising }, gustMs: wx.gustMs, windAhead: wx.ahead })
+          const wx = windExtras(ms, s.lngLat, s.name);
+          const surf0 = s.brk && r
+            ? surfQuality({ brk: s.brk, Hb: r.waves.breaker.Hb, Tp: seas[i].Tp, swellFromDeg: seas[i].fromDeg, windMs: wind.speedMs, windFromDeg: wind.fromDeg, swellHs: seasX[i]?.swellHs, swell2: seasX[i]?.swell2, windSeaHs: seasX[i]?.windSeaHs, tide: { level: ts.level, rising: ts.rising }, gustMs: wx.gustMs, windAhead: wx.ahead, lightning: wx.lightning, squall: wx.squall, rainMmH: wx.rainMmH, sarg: wx.sarg })
             : undefined;
+          const surf = surf0 && r ? { ...surf0, ripLevel: r.rip.level } : surf0;
           return { name: s.name, pin: s.lngLat, result: r, sea: seas[i], surf };
         });
         subs.forEach((fn) => fn());
