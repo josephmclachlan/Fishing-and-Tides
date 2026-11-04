@@ -89,7 +89,7 @@ body { touch-action: pan-x pan-y; }
 /* A forecast hour is on screen: tint the clock so it is never mistaken for live data. */
 body.forecast #clock { color: var(--green); }
 
-@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+@media (max-width: 1100px), (max-height: 700px) {
   .timebar { gap: 8px 10px; }
   .t-track { flex-basis: 100%; order: 3; }
   .t-btns { order: 4; width: 100%; }
@@ -199,14 +199,14 @@ body[data-enhance='off'] .from-spot > * { animation: tier-in 0.9s ease-out both;
 }
 .tab.on { color: var(--green); border-color: var(--green); text-shadow: 0 0 6px var(--green); }
 
-@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+@media (max-width: 1100px), (max-height: 700px) {
   .seek-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 }
 
 /* Seafloor readouts (PLAN 2.6): text values in the segmented style, smaller to fit */
 .seg.sm { font-size: 13px; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .side .wide-only { display: contents; }
-@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) { .side .wide-only { display: none; } }
+@media (max-width: 1100px), (max-height: 700px) { .side .wide-only { display: none; } }
 
 /* Layers drawer (PLAN 1.8) */
 .layers { right: 8px; bottom: 150px; width: 330px; max-height: calc(100% - 400px); overflow-y: auto; display: none; gap: 6px; }
@@ -222,7 +222,7 @@ body[data-enhance='off'] .from-spot > * { animation: tier-in 0.9s ease-out both;
 .layers .tab.lay .soon { display: none; font-style: normal; font-size: 9px; letter-spacing: 1px; margin-left: 6px; color: var(--amber); opacity: 0.7; }
 .layers .tab.lay.pending .soon { display: inline; }
 .lay-open { white-space: nowrap; pointer-events: auto; }
-@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+@media (max-width: 1100px), (max-height: 700px) {
   .layers .tab { min-height: 44px; }
   .lay-open { font-size: 12px; padding: 5px 8px; }
   .lay-mode { display: none; }
@@ -238,7 +238,7 @@ body[data-enhance='off'] .from-spot > * { animation: tier-in 0.9s ease-out both;
 .alert { top: calc(var(--top-h, 56px) + 8px); }
 
 /* Phone: top bar and bottom strip stay; everything else is a drawer opened from a tab, one at a time. */
-@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+@media (max-width: 1100px), (max-height: 700px) {
   .mob-only, .dock-bar, .sheet-x { display: inline-flex; align-items: center; justify-content: center; }
   .top { gap: 4px 12px; padding: 6px 10px; }
   .title { font-size: 13px; letter-spacing: 1px; }
@@ -335,7 +335,7 @@ body[data-band='outlook'] #t-valid, body[data-band='outlook'] #t-off { color: va
 .boat-pins li { display: flex; gap: 4px; }
 .boat-pins .pin-go { flex: 1; text-align: left; }
 .boat-pins .pin-x { width: 34px; }
-@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+@media (max-width: 1100px), (max-height: 700px) {
   .boat { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgba(5, 8, 5, 0.94); }
   .boat.open { display: grid; top: calc(var(--top-h, 100px) + 8px); bottom: auto; max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
 }
@@ -345,7 +345,7 @@ body[data-band='outlook'] #t-valid, body[data-band='outlook'] #t-off { color: va
 .tab.flag { display: inline-flex; align-items: center; justify-content: center; padding: 4px 5px; min-height: 34px; }
 .tab.flag:not(.on) { opacity: 0.55; }
 .tab.flag svg { display: block; }
-@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+@media (max-width: 1100px), (max-height: 700px) {
   /* The rules card opens below the top bar so the tabs stay reachable. */
   .rules-card { top: calc(var(--top-h, 100px) + 8px); max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
 }
@@ -359,7 +359,7 @@ body[data-net='offline'] .title .blink, body[data-net='cached'] .title .blink { 
 /* SET drawer (PLAN 5.3): settings controls on a phone. */
 .settings { display: none; }
 .settings-body { display: grid; gap: 8px; }
-@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+@media (max-width: 1100px), (max-height: 700px) {
   body[data-sheet='settings'] .settings { display: grid; z-index: 5; left: 8px; right: 8px; width: auto; top: calc(var(--top-h, 100px) + 8px); background: rgba(5, 8, 5, 0.97); gap: 6px; max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); overflow-y: auto; }
   .settings-body .tab { min-height: 48px; font-size: 13px; text-align: center; }
   .settings-body .lang { gap: 8px; }
@@ -368,7 +368,7 @@ body[data-net='offline'] .title .blink, body[data-net='cached'] .title .blink { 
 }
 
 /* Readability on a phone in daylight (PLAN 5.3): bigger small print and thumb-sized targets. */
-@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+@media (max-width: 1100px), (max-height: 700px) {
   .lbl, .unit { font-size: 11px; }
   .t-bands { font-size: 10px; }
   .seg.sm { font-size: 14px; }
@@ -434,7 +434,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .check-open .lamp { display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; background: var(--amber); }
 .check-open .lamp.pass { background: var(--green); box-shadow: 0 0 6px var(--green); }
 .check-open .lamp.fail { background: var(--red); box-shadow: 0 0 6px var(--red); }
-@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+@media (max-width: 1100px), (max-height: 700px) {
   .check { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgba(5, 8, 5, 0.97); }
   .check.open { display: grid; top: calc(var(--top-h, 100px) + 8px); bottom: auto; max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
   .ck-feed summary { min-height: 44px; }
@@ -452,7 +452,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 
 /* Glance strip: phone only. */
 .glance { display: none; }
-@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+@media (max-width: 1100px), (max-height: 700px) {
   .glance { display: flex; align-items: stretch; gap: 6px; padding: 6px 10px 4px; border-bottom: 1px solid var(--amber-dim); }
   .gl-mode { flex: 0 0 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 44px; font: inherit; color: var(--green); background: transparent; border: 1px solid var(--green); text-shadow: 0 0 6px var(--green); cursor: pointer; padding: 2px; }
   .gl-name { font-size: 13px; letter-spacing: 2px; }
@@ -475,7 +475,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .astro .ro .lbl { white-space: normal; min-width: 0; }
 .astro .ro .seg { margin-left: auto; }
 .astro .ro .lbl.note { font-size: 10px; letter-spacing: 1px; opacity: 0.7; }
-@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+@media (max-width: 1100px), (max-height: 700px) {
   .astro summary { min-height: 44px; align-items: center; }
 }
 
@@ -491,7 +491,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .side .ro:has(button) > .seg { flex: 0 0 auto; overflow-wrap: normal; white-space: nowrap; }
 .side .ro > .lbl { flex: 0 0 auto; }
 .side .ro > .lbl:only-child, .side .ro > .lbl:last-child:not(:first-child) { flex: 1 1 auto; min-width: 0; white-space: normal; }
-@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+@media (max-width: 1100px), (max-height: 700px) {
   .side .ro:not(:has(button)) { flex-wrap: wrap; }
   /* The two-column drawer: a picker row needs the full width. */
   .side .fish-pick { grid-column: 1 / -1; }
@@ -533,7 +533,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .sp-tides li { display: flex; justify-content: space-between; gap: 8px; }
 .sp-go { min-height: 40px; margin-top: 6px; }
 .sp-open { margin-left: auto; font-size: 11px; padding: 2px 8px; }
-@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+@media (max-width: 1100px), (max-height: 700px) {
   .spot-page { display: none; z-index: 5; left: 8px; right: 8px; width: auto; background: rgba(5, 8, 5, 0.97); }
   .spot-page.open { display: grid; top: calc(var(--top-h, 100px) + 8px); bottom: auto; max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
 }
@@ -562,7 +562,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .cg-slot { display: contents; }
 .sw-row .lbl { min-width: 72px; }
 .side .ro[hidden] { display: none; }
-@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+@media (max-width: 1100px), (max-height: 700px) {
   .cg-acts .tab { min-height: 40px; font-size: 12px; }
   .cg-h { min-height: 44px; }
   /* Swell rows carry three numbers: give them the drawer's full width. */
@@ -607,7 +607,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .wt-table small { display: block; opacity: 0.6; font-size: 10px; }
 .wt-table td { font-size: 22px; }
 @media print { body > *:not(#hud) { display: none; } .watch-pop { position: static; transform: none; width: auto; max-height: none; } .wt-tabs, .wt-x { display: none; } }
-@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+@media (max-width: 1100px), (max-height: 700px) {
   .watch { left: 8px; right: 8px; width: auto; top: calc(var(--top-h, 100px) + 8px); bottom: calc(var(--dock-h, 64px) + 8px); max-height: none; }
   .watch-pop { width: calc(100vw - 16px); top: calc(var(--top-h, 100px) + 8px); transform: translateX(-50%); max-height: calc(100vh - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); }
   .watch-pop .ph { flex-wrap: nowrap; font-size: 11px; }
@@ -649,7 +649,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .best-today .bt-at { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; letter-spacing: 1px; color: var(--amber); }
 .best-today .bt-go { color: var(--green); text-shadow: 0 0 6px var(--green); }
 .bt-glance { display: none; }
-@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+@media (max-width: 1100px), (max-height: 700px) {
   .bt-glance { display: flex; flex-wrap: nowrap; align-items: baseline; width: calc(100% - 20px); margin: 4px 10px 0; min-height: 36px; }
   .bt-glance .lbl { flex: 0 0 auto; }
   .bt-cond { display: none; }

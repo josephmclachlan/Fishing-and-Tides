@@ -8,7 +8,7 @@ import type { Map, GeoJSONSource } from 'maplibre-gl';
 import type { FeatureCollection } from 'geojson';
 import { REGION, SPOTS } from './region';
 import { t, type Key } from './i18n';
-import { closeButton, type Sheets } from './sheets';
+import { PHONE_QUERY, closeButton, type Sheets } from './sheets';
 import { METRICS, METRIC_BY_ID, METRIC_PRESETS, MAX_TRACKED, type MetricEnv } from './metrics/registry';
 import { buildForecast, spotsIn, type Region, type WatchForecast } from './metrics/forecast';
 import { RADII_KM, loadWatch, saveWatch, type WatchState } from './metrics/store';
@@ -178,7 +178,7 @@ export function mountWatchPanel(root: HTMLElement, map: Map, sheets: Sheets, sto
     release ??= claimMapTap();
     $('wt-pick').textContent = t('watch.picking');
     map.getCanvas().style.cursor = 'crosshair';
-    if (window.matchMedia('(max-width: 600px)').matches) sheets.close('watch');
+    if (window.matchMedia(PHONE_QUERY).matches) sheets.close('watch');
   });
   map.on('click', (e) => {
     if (!picking) return;
@@ -226,7 +226,7 @@ export function mountWatchPanel(root: HTMLElement, map: Map, sheets: Sheets, sto
   $('wt-go').addEventListener('click', () => {
     fc = buildForecast(getEnv(), state.metrics, inRegion(), Date.now(), 5);
     pop.hidden = false;
-    if (window.matchMedia('(max-width: 600px)').matches) sheets.close('watch');
+    if (window.matchMedia(PHONE_QUERY).matches) sheets.close('watch');
     render();
   });
   document.addEventListener('keydown', (e) => e.key === 'Escape' && (pop.hidden = true));

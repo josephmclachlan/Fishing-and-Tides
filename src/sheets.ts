@@ -19,8 +19,12 @@ export interface Sheets {
   subscribe(fn: () => void): () => void;
 }
 
-/** A phone: narrow, or a phone held sideways (short and touch). Keep in step with the media queries in style.css. */
-export const PHONE_QUERY = '(max-width: 600px), (max-height: 500px) and (pointer: coarse)';
+/**
+ * The drawer (phone) layout: phones, and any window too small for the desktop panels to leave a usable map (a
+ * half-width window, a short laptop screen). Below about 1100 px wide the three desktop panels cover over half the map.
+ * Keep in step with the same media query in style.css.
+ */
+export const PHONE_QUERY = '(max-width: 1100px), (max-height: 700px)';
 
 /** `initial`: the sheet open at start (the LAYERS drawer on wide screens, none on a phone). */
 export function createSheets(initial: SheetId | null = null): Sheets {
