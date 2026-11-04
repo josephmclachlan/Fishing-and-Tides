@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ageState, createDataAge, describeAge, formatAge } from './data-age';
+import { ageState, createDataAge, describeAge, formatAge, agoWords } from './data-age';
 
 describe('data age', () => {
   it('reports the oldest feed and notifies', () => {
@@ -45,5 +45,12 @@ describe('describeAge', () => {
     expect(describeAge({ feed: 'wind', fetchedAt: now - 2 * 3.6e6, fromCache: false }, now)).toEqual({ state: 'fresh', text: '02H00', fromCache: false, feed: 'wind' });
     expect(describeAge({ feed: 'wind', fetchedAt: now - 20 * 3.6e6, fromCache: true }, now)).toMatchObject({ state: 'aging', fromCache: true });
     expect(describeAge({ feed: 'wind', fetchedAt: now - 60 * 3.6e6, fromCache: true }, now).state).toBe('stale');
+  });
+});
+
+describe('agoWords (clarity CL13)', () => {
+  const w = (ms: number) => agoWords(ms, (n, u) => `${n} ${u}`);
+  it('uses minutes, then hours, then days', () => {
+    expect([w(40 * 6e4), w(28.5 * 3.6e6), w(9 * 864e5), w(NaN)]).toEqual(['40 min', '29 h', '9 d', '0 min']);
   });
 });

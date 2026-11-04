@@ -23,6 +23,12 @@ export interface SeaStateDeps {
 
 export { feedPartitions };
 
+/**
+ * Wave steepness H/L in words. Ocean swell is under about 0.01; fresh wind chop runs 0.03 to 0.05 and breaks near
+ * 1/7 (0.14), so past 0.025 the sea is short and steep enough to slam a small boat.
+ */
+export const steepWord = (steep: number): 'gentle' | 'moderate' | 'steep' => (steep < 0.01 ? 'gentle' : steep < 0.025 ? 'moderate' : 'steep');
+
 export function mountSeaStateHud(root: HTMLElement, getData: () => Conditions, seaAt: () => Waves | null = () => null, deps?: SeaStateDeps) {
   const side = condSlot(root, 'waves', 20);
   if (!side) return;
@@ -31,10 +37,10 @@ export function mountSeaStateHud(root: HTMLElement, getData: () => Conditions, s
     `<div class="from-coast">
       <div class="ro"><span class="lbl">${t('sea.title')}<span id="ss-sim"> · ${t('sea.sim')}</span></span><span class="seg sm" id="ss-comfort">--</span></div>
       <div class="ro"><span class="lbl">${t('sea.comfort')}</span><span class="seg sm" id="ss-score">--</span></div>
-      <div class="ro"><span class="seg sm" id="ss-detail">--</span></div>
-      <div class="ro"><span class="lbl">${t('sea.current')}</span><span class="seg sm" id="ss-curr">--</span></div>
+      <div class="ro"><span class="seg sm wrap" id="ss-detail">--</span></div>
+      <div class="ro"><span class="lbl">${t('sea.current')}</span><span class="seg sm wrap" id="ss-curr">--</span></div>
       <div class="ro"><span class="lbl">${t('verdict.title')}</span><span class="seg sm" id="bv-verdict">--</span></div>
-      <div class="ro"><span class="seg sm" id="bv-why">--</span></div>
+      <div class="ro"><span class="seg sm wrap" id="bv-why">--</span></div>
     </div>`,
   );
   const $ = (id: string) => side.querySelector<HTMLElement>('#' + id)!;
@@ -49,13 +55,13 @@ export function mountSeaStateHud(root: HTMLElement, getData: () => Conditions, s
     const speed = c ? Math.hypot(c.u, c.v) : 0;
     const opp = c ? opposingMs(base, c) : null;
     $('ss-curr').textContent = !c ? '--' : `${(speed * 1.94384).toFixed(1)} ${t('unit.kt')}${speed >= 0.1 && opp !== null ? ' · ' + t(opp / speed > 0.5 ? 'sea.curr.against' : opp / speed < -0.5 ? 'sea.curr.with' : 'sea.curr.cross') : ''}`;
-    $('ss-curr').className = `seg sm ${opp !== null && speed >= 0.25 && opp / speed > 0.5 ? 'red' : ''}`;
+    $('ss-curr').className = `seg sm wrap ${opp !== null && speed >= 0.25 && opp / speed > 0.5 ? 'red' : ''}`;
     const tone = s.comfort === 'comfortable' ? 'green' : s.comfort === 'lively' ? '' : 'red';
     $('ss-comfort').textContent = t(`sea.${s.comfort}` as Key);
     $('ss-comfort').className = `seg sm ${tone}`;
-    $('ss-score').textContent = String(s.score).padStart(3, '0');
+    $('ss-score').textContent = `${s.score}/100`;
     $('ss-detail').textContent =
-      t('sea.detail', { h: s.totalHm.toFixed(1), tp: s.meanPeriodS.toFixed(0), steep: s.steepness.toFixed(3) }) +
+      t('sea.detail', { h: s.totalHm.toFixed(1), tp: s.meanPeriodS.toFixed(0), steep: t(`sea.steep.${steepWord(s.steepness)}` as Key) }) +
       ` · ${t(`sea.dominant.${s.dominant}` as Key)}${s.confusion > 0.5 ? ` · ${t('sea.cross')}` : ''}`;
     if (deps) {
       const v = boatVerdict({ vessel: deps.vessel(), windKt: getData().windKt, hsM: s.totalHm, comfort: s.score, ...deps.safety() });
