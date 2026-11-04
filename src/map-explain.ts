@@ -7,6 +7,7 @@
 import type { Map } from 'maplibre-gl';
 import { t } from './i18n';
 import { HIGH_SEA_M } from './layers/waves';
+import { mapTapClaimed } from './here-card';
 
 const TAP_BOX_PX = 9;
 /** Layers in the order that wins when several are under the tap. */
@@ -37,6 +38,7 @@ export function pickExplain(layerId: string, props: Record<string, unknown>): Pi
 
 export function mountMapExplain(map: Map, show: (title: string, id: string, at: { x: number; y: number }) => void) {
   map.on('click', (e) => {
+    if (mapTapClaimed()) return;
     const layers = TAPPABLE.filter((id) => map.getLayer(id));
     if (!layers.length) return;
     const { x, y } = e.point;

@@ -51,6 +51,9 @@ export function claimMapTap(): () => void {
   };
 }
 
+/** True while some feature has claimed map taps (other tap cards stay quiet then). */
+export const mapTapClaimed = () => tapClaims > 0;
+
 export function mountHere(map: Map, sample: (lng: number, lat: number) => HereSample, show: (title: string, rows: [string, string][], at: { x: number; y: number }) => void) {
   map.on('click', (e) => {
     if (tapClaims > 0) return;
