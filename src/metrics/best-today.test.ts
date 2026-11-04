@@ -11,7 +11,7 @@ const sea = (hs: number): SeaState => ({ hs, tm: 6, dir: 60, swellHs: hs, swellT
 const env = (): MetricEnv => ({
   windMs: (_a, _b, ms) => { const h = (ms - DAY0) / H; return h >= 8 && h < 10 ? 2 : 11; },
   sea: () => sea(1),
-  weather: () => [{ model: 'gfs_seamless', rainMmH: 0, cloudPct: 50, uv: 5, tempC: 28, gustKt: 12, capeJkg: 0, pressureHpa: 1012 }],
+  weather: () => [{ model: 'gfs_seamless', rainMmH: 0, cloudPct: 50, uv: 5, tempC: 28, gustKt: 12, capeJkg: 0, pressureHpa: 1012, windKt: 10 }],
   clarityM: () => 10,
   sargassumKm2: () => 0,
   tide: LIMON_HARMONICS,

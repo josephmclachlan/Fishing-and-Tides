@@ -25,7 +25,7 @@ export interface MetarFile {
   station: string;
   /** When the data build fetched it (ISO). */
   fetchedAt: string;
-  /** Newest first, last 36 h. */
+  /** Newest first, last 96 h (36 h before PLAN 7.4). */
   obs: MetarObs[];
 }
 

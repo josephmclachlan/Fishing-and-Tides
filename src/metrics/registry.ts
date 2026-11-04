@@ -10,7 +10,8 @@ import { daySky, type DaySky } from '../physics/astro';
 import { clarityLevel } from '../physics/clarity';
 import { predict, type Harmonics } from '../physics/tide';
 import type { WeatherNow } from '../adapters/weather';
-import { biteWeather, pressureChange } from '../weather';
+import { biteWeather, blendedGustKt, blendedTempC, pressureChange } from '../weather';
+import type { WeatherSkill } from '../adapters/weather-skill';
 import type { SeaState } from '../adapters/waves';
 
 export type Tone = 'green' | 'amber' | 'red' | 'none';
@@ -22,6 +23,8 @@ export interface MetricEnv {
   sea(lng: number, lat: number, ms: number): SeaState | null;
   /** Every weather model's reading for the hour containing `ms`. */
   weather(ms: number): WeatherNow[];
+  /** The models' recent skill at the Limón airport (PLAN 7.4), once scored: gusts and air temperature are blended with it. */
+  weatherSkill?(): WeatherSkill | undefined;
   /** Water visibility, m, off the spot at `ms` (the CLARITY forecast), or null before its data loads. */
   clarityM(lng: number, lat: number, ms: number): number | null;
   /** Sargassum expected to reach the named beach on the day containing `ms`, km² (the SARGASSUM outlook), or null. */
@@ -58,6 +61,7 @@ export interface Metric {
 const KT = 1.94384;
 const finite = (x: number | undefined | null): x is number => typeof x === 'number' && Number.isFinite(x);
 const meanOf = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+const orNull = (x: number) => (Number.isFinite(x) ? x : null);
 const band = (low: number, high: number) => (v: number): Tone => (v < low ? 'green' : v < high ? 'amber' : 'red');
 
 const SARG_LOW_KM2 = 0.01, SARG_HIGH_KM2 = 0.5; // keep in step with sargLevel in physics/drift.ts
@@ -73,9 +77,9 @@ export const METRICS: readonly Metric[] = [
     tone: () => 'none',
   },
   { id: 'wind', group: 'weather', unit: 'kn', decimals: 0, better: 'low', agg: 'mean', at: (a) => { const w = a.env.windMs(a.lng, a.lat, a.ms); return w === null ? null : w * KT; }, tone: band(12, 20) },
-  { id: 'gust', group: 'weather', unit: 'kn', decimals: 0, better: 'low', agg: 'max', at: (a) => meanOf(a.env.weather(a.ms).map((w) => w.gustKt).filter(finite)), tone: band(18, 28) },
+  { id: 'gust', group: 'weather', unit: 'kn', decimals: 0, better: 'low', agg: 'max', at: (a) => orNull(blendedGustKt(a.env.weather(a.ms), a.env.weatherSkill?.())), tone: band(18, 28) },
   { id: 'rain', group: 'weather', unit: 'mm', decimals: 0, better: 'low', agg: 'sum', at: (a) => meanOf(a.env.weather(a.ms).map((w) => w.rainMmH).filter(finite)), tone: band(2, 15) },
-  { id: 'air', group: 'weather', unit: '°C', decimals: 0, better: null, agg: 'mean', at: (a) => meanOf(a.env.weather(a.ms).map((w) => w.tempC).filter(finite)), tone: () => 'none' },
+  { id: 'air', group: 'weather', unit: '°C', decimals: 0, better: null, agg: 'mean', at: (a) => orNull(blendedTempC(a.env.weather(a.ms), a.env.weatherSkill?.())), tone: () => 'none' },
   { id: 'uv', group: 'weather', unit: '', decimals: 0, better: 'low', agg: 'max', at: (a) => meanOf(a.env.weather(a.ms).map((w) => w.uv).filter(finite)), tone: band(6, 9) },
   { id: 'tide', group: 'water', unit: 'm', decimals: 1, better: null, agg: 'max', at: (a) => predict(a.env.tide, a.ms), tone: () => 'none' },
   { id: 'clarity', group: 'water', unit: 'm', decimals: 0, better: 'high', agg: 'mean', hours: [12], at: (a) => a.env.clarityM(a.lng, a.lat, a.ms), tone: (v) => ({ GOOD: 'green', FAIR: 'amber', POOR: 'red' } as const)[clarityLevel(v)] },
@@ -86,7 +90,7 @@ export const METRICS: readonly Metric[] = [
       bite({
         tMs: a.ms, lat: a.lat, lng: a.lng, tide: a.env.tide, tzOffsetH: a.env.tzOffsetH, sky: a.sky,
         windMs: a.env.windMs(a.lng, a.lat, a.ms), hsM: a.env.sea(a.lng, a.lat, a.ms)?.hs ?? null,
-        ...biteWeather(a.env.weather(a.ms)),
+        ...biteWeather(a.env.weather(a.ms), a.env.weatherSkill?.()),
         pressureTrend: pressureChange(a.env.weather(a.ms), a.env.weather(a.ms - 3 * 3.6e6)),
       }).bite,
     tone: (v) => (v >= 60 ? 'green' : v >= 40 ? 'amber' : 'red'),

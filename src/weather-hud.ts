@@ -1,6 +1,7 @@
 /**
  * WEATHER rows in the side panel (PLAN 7.5): rain now and over the next 24 h, cloud, UV and air
- * temperature at the slider's valid time (mean of GFS, ECMWF and ICON, with a note when they disagree),
+ * temperature at the slider's valid time (GFS, ECMWF and ICON: temperature and gusts blended by their recent
+ * skill at the Limón airport, the rest averaged; PLAN 7.4), a CONFIDENCE row with the model the blend leans on,
  * and the nearest active tropical storm. `alerts()` feeds the alert strip. Rows show -- until the
  * forecast has loaded. There is no radar yet: it needs an observation source (see docs/WEATHER.md).
  */
@@ -8,6 +9,7 @@ import { condSlot } from './cond-groups';
 import { t } from './i18n';
 import { readout } from './hud-kit';
 import type { WeatherData } from './adapters/weather';
+import { MODEL_SHORT } from './adapters/weather-skill';
 import type { Storm } from './adapters/storms';
 import { heavyRainSoon, nearestStorm, squallSoon, summarise, STORM_ALERT_KM } from './weather';
 
@@ -31,6 +33,7 @@ export function mountWeatherHud(root: HTMLElement, deps: WeatherHudDeps) {
       ${readout(t('wx.gust'), 'wx-gust', t('unit.kt'))}
       ${readout(t('wx.cape'), 'wx-cape', t('unit.jkg'))}
       <div class="ro"><span class="lbl">${t('wx.squall')}</span><span class="seg sm" id="wx-squall">--</span></div>
+      <div class="ro"><span class="lbl">${t('wx.conf')}</span><span class="seg sm" id="wx-conf">--</span></div>
       <div class="ro"><span class="seg sm" id="wx-note">--</span></div>
       <div class="ro"><span class="lbl">${t('wx.storm')}</span><span class="seg sm" id="wx-storm">--</span></div>
     </div>`,
@@ -52,7 +55,16 @@ export function mountWeatherHud(root: HTMLElement, deps: WeatherHudDeps) {
     const sqEl = $('wx-squall');
     sqEl.textContent = sq ? t(`wx.squall.${sq}`) : '--';
     sqEl.className = 'seg sm ' + (sq === 'high' ? 'red' : sq === 'watch' ? '' : 'green');
-    $('wx-note').textContent = !s ? t('wx.none') : s.models > 1 && s.rainSpreadMmH >= 2 ? t('wx.spread') : t('wx.models', { n: s.models });
+    const conf = $('wx-conf');
+    conf.textContent = s ? t(`wx.conf.${s.confidence}`) : '--';
+    conf.className = 'seg sm ' + (s?.confidence === 'HIGH' ? 'green' : s?.confidence === 'LOW' ? 'red' : '');
+    $('wx-note').textContent = !s
+      ? t('wx.none')
+      : s.models > 1 && s.rainSpreadMmH >= 2
+        ? t('wx.spread')
+        : s.lead && s.models > 1
+          ? t('wx.lead', { n: s.models, model: MODEL_SHORT[s.lead.model], pct: Math.round(100 * s.lead.share) })
+          : t('wx.models', { n: s.models });
     const n = storms ? nearestStorm(storms) : null;
     const el = $('wx-storm');
     el.textContent = !storms ? '--' : n ? t('wx.stormRow', { name: n.storm.name, cls: n.category ? t('wx.cat', { n: n.category }) : n.storm.classification, km: Math.round(n.km) }) : t('wx.noStorm');
