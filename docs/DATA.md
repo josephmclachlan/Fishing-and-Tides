@@ -193,7 +193,7 @@ In the HUD, VIS shows the estimate, then the range and the cause (`5 M 3–9 PLA
 
 Checks: manifest, relay age (12 h cadence), newest map under 3 days (red past 6), a fifth of the sea seen in 5 days (amber only: cloud is weather), cover within 0..1.
 
-## Coral heat stress (PLAN 7.23)
+## Coral heat stress (PLAN 7.30)
 
 NOAA Coral Reef Watch (CRW) is the standard bleaching warning. DHW (degree heating weeks) adds up how far the sea has sat at least 1 °C above its warmest normal month over the last 12 weeks: 4 °C-weeks means significant bleaching is likely, 8 means severe bleaching and deaths. The alert level (0 none, 1 watch, 2 warning, 3 alert 1, 4 alert 2) is CRW's own 7-day maximum. `alertLevel(hotspot, dhw)` gives the same level for a single day.
 

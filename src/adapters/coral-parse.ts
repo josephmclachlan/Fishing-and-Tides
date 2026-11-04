@@ -1,5 +1,5 @@
 /**
- * Coral bleaching heat stress (PLAN 7.23) from NOAA Coral Reef Watch (CRW) v3.1, daily 5 km. Pure, with
+ * Coral bleaching heat stress (PLAN 7.30) from NOAA Coral Reef Watch (CRW) v3.1, daily 5 km. Pure, with
  * no imports apart from types, so the Node data build (scripts/forecast/coral.ts) and the app share it.
  *
  * CRW's products, per 0.05° pixel and day:

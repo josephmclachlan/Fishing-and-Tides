@@ -58,6 +58,13 @@ export const ACTIVITIES: readonly Activity[] = [
   { id: 'sail', layers: ['wind', 'weather', 'lightning', 'obs', 'waves', 'currents', 'depth', 'seamarks', 'anchorages', 'reefs'] },
 ];
 
+/**
+ * What the CORAL overlay (PLAN 7.31) switches on: reef zones, the sediment plume (clarity), sargassum,
+ * sea temperature, depth, protected zones and the weather warnings. CORAL is not an activity: it is
+ * a separate switch that saves the current layers and puts them back when it is turned off.
+ */
+export const CORAL_VIEW: readonly LayerId[] = ['reefs', 'clarity', 'sargassum', 'sst', 'depth', 'zones', 'lightning', 'weather'];
+
 export interface LayerImpl {
   /** Called with the current state on register and again on every change. */
   setVisible(on: boolean): void;
@@ -70,6 +77,10 @@ export interface LayerStore {
   activity(): ActivityId | null;
   toggle(id: LayerId): void;
   setActivity(id: ActivityId): void;
+  /** The layers switched on now. */
+  onIds(): LayerId[];
+  /** Switch on exactly these layers (unknown ids ignored), e.g. to restore a saved view. */
+  setOn(ids: readonly string[]): void;
   /** Hook an implementation (e.g. the particle layer) into a catalog id. Returns an unregister function. */
   register(id: LayerId, impl: LayerImpl): () => void;
   subscribe(fn: () => void): () => void;
@@ -119,6 +130,12 @@ export function createLayerStore(storage?: Storage): LayerStore {
       const a = ACTIVITIES.find((x) => x.id === id);
       if (!a) return;
       off = new Set(ALL_IDS.filter((l) => !a.layers.includes(l)));
+      commit();
+    },
+    onIds: () => ALL_IDS.filter(isOn),
+    setOn(ids) {
+      const want = new Set(ids);
+      off = new Set(ALL_IDS.filter((l) => !want.has(l)));
       commit();
     },
     register(id, impl) {
