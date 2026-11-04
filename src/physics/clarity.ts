@@ -29,6 +29,12 @@ export const kdFromChl = (chlMgM3: number) => 0.0166 + 0.0773 * Math.pow(Math.ma
 export const KD_PLUME = 3;
 /** Rain over a catchment (e-folding-weighted mm) that makes a full-strength plume. */
 export const PLUME_SATURATION_MM = 60;
+/**
+ * Plume rain-equivalent from the measured river (GloFAS discharge as a share of its own median), mm:
+ * median flow or below gives none, 10 times the median is a saturated plume. The plume uses the larger of this and the
+ * rain proxy, so a river in spate still muddies the water when the catchment-rain model missed the storm.
+ */
+export const flowPlumeMm = (ratio: number): number => PLUME_SATURATION_MM * Math.min(1, Math.max(0, (ratio - 1) / 9));
 /** How fast a plume clears after the rain stops: e-folding time, s (about a day). */
 export const PLUME_DECAY_S = 24 * 3600;
 /** Plume radius for a 1000 km² catchment after saturating rain, m. Scales with √(area × rain). */

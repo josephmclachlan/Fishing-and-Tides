@@ -18,6 +18,8 @@
  *   cold    1 from 26 °C, 0.4 at 20 °C and below (needs a suit, you tire and cut the outing short; this coast is 27 to 30 °C
  *           most of the year, so it rarely bites; optional)
  *   sargassum  1 for NONE or LOW at the nearest beach, 0.6 MODERATE, 0.3 HIGH (mats foul the entry and hide the bottom; optional)
+ *   runoff  1, or 0.6 when a river mouth is within 8 km and runs at 3 times its median or the catchment had 25 mm or more
+ *           (rule of thumb, not a measurement; optional)
  *   rain    1 up to 2 mm/h, 0.3 at 10 mm/h and above (optional input; left out when unknown)
  *
  * Weather safety caps the whole score afterwards: score × safetyTerm (physics/safety.ts, shared with fishing).
@@ -27,7 +29,7 @@ import { safetyTerm, type SquallLevel } from './safety';
 
 export type SargLevel = 'NONE' | 'LOW' | 'MODERATE' | 'HIGH';
 
-export type OutingReason = 'storm' | 'surge' | 'vis' | 'chop' | 'shallow' | 'light' | 'rain' | 'current' | 'cold' | 'sargassum';
+export type OutingReason = 'storm' | 'surge' | 'vis' | 'chop' | 'shallow' | 'light' | 'rain' | 'current' | 'cold' | 'sargassum' | 'runoff';
 
 export interface OutingInputs {
   /** Peak bed velocity at the activity's depth, m/s. */
@@ -50,6 +52,8 @@ export interface OutingInputs {
   sstC?: number;
   /** Sargassum outlook at the nearest beach for the day. Left out when unknown. */
   sarg?: SargLevel;
+  /** River runoff close by after heavy rain or a high river (see runoffRisk): bacteria and mud with it. */
+  runoff?: boolean;
   /** Rain, mm/h (mean over the models). Left out when no forecast covers the hour. */
   rainMmH?: number;
   /** Squall flag for the hour (weather.ts squallLevel). */
@@ -88,6 +92,7 @@ export function outingScore(i: OutingInputs): OutingScore {
   ].map(([r, v]) => [r, Number.isFinite(v as number) ? (v as number) : 0.5] as [OutingReason, number]);
   if (i.sstC !== undefined && Number.isFinite(i.sstC)) terms.push(['cold', 1 - 0.6 * ramp(26 - i.sstC, 0, 6)]);
   if (i.sarg) terms.push(['sargassum', i.sarg === 'HIGH' ? 0.3 : i.sarg === 'MODERATE' ? 0.6 : 1]);
+  if (i.runoff !== undefined) terms.push(['runoff', i.runoff ? 0.6 : 1]);
   if (i.currentMs !== undefined && Number.isFinite(i.currentMs)) terms.push(['current', 1 - ramp(i.currentMs, 0.15, 0.6)]);
   if (i.rainMmH !== undefined && Number.isFinite(i.rainMmH)) terms.push(['rain', 1 - 0.7 * ramp(i.rainMmH, 2, 10)]);
   const min = Math.min(...terms.map((x) => x[1]));
@@ -147,3 +152,16 @@ export function stingerGuess(windMs: number, windFromDeg: number, facingDeg: num
 export type Suit = 'lycra' | 'shorty' | 'wet3' | 'wet5';
 /** What most dive shops suggest for the water temperature: 28 °C and up a lycra skin, 25 to 28 a shorty, 21 to 25 a 3 mm suit, colder a 5 mm. A rule of thumb, not a standard. */
 export const suitFor = (sstC: number): Suit => (sstC >= 28 ? 'lycra' : sstC >= 25 ? 'shorty' : sstC >= 21 ? 'wet3' : 'wet5');
+
+/** Distance within which a river mouth's runoff reaches a swimmer, km. */
+export const RUNOFF_KM = 8;
+/**
+ * Runoff flag: a river mouth within RUNOFF_KM that runs at 3 times or more its median flow (GloFAS), or whose catchment
+ * had 25 mm or more of recent rain (e-folding weighted). Coastal bacteria counts rise with runoff and the Laboratorio Nacional de
+ * Aguas has found Caribbean beaches near river mouths and towns polluted; there is no live feed, so this is our rule
+ * of thumb, not a measurement. Null when neither the flow nor the rain is known.
+ */
+export function runoffRisk(kmToMouth: number, flowRatio: number | null, rainMm: number | null): boolean | null {
+  if (flowRatio === null && rainMm === null) return null;
+  return kmToMouth <= RUNOFF_KM && ((flowRatio ?? 0) >= 3 || (rainMm ?? 0) >= 25);
+}

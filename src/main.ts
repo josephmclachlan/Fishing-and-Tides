@@ -91,7 +91,8 @@ import { effortCells, fetchEffort } from './adapters/effort';
 import { mountEffort } from './layers/effort';
 import { mountSst, type SstCoast } from './layers/sst';
 import { coastTest, type CoastTest } from './layers/sea-image';
-import { clarityAt, mountClarity, mountClarityHud, type ClarityContext } from './layers/clarity';
+import { runoffRisk } from './physics/outing';
+import { clarityAt, mountClarity, mountClarityHud, riverRain, type ClarityContext } from './layers/clarity';
 import { fetchCatchmentRain, type CatchmentRain } from './adapters/catchment-rain';
 import { fetchRiverFlow, flowRatio, type RiverFlow } from './adapters/river-flow';
 import { dataAge, describeAge } from './adapters/data-age';
@@ -486,9 +487,10 @@ let clarityLand: Grid | null = null;
 const clarityLayer = mountClarity(map);
 const bandAt = (ms: number) => bandFor((ms - time.baseMs()) / 3.6e6).id;
 const currentOut: [number, number] = [0, 0];
+let riverFlow: RiverFlow | null = null;
 const clarityCtx = (): ClarityContext | null =>
   clarityElevation && {
-    satellite, rain: catchmentRain, elevation: clarityElevation, land: clarityLand, ms: time.validMs(),
+    satellite, rain: catchmentRain, flow: riverFlow, elevation: clarityElevation, land: clarityLand, ms: time.validMs(),
     currentAt: (lng, lat, ms) => {
       const f = currents && currentsAt(currents, bandAt(ms), ms)?.field;
       return f && sampleField(f, lng, lat, currentOut) ? [currentOut[0], currentOut[1]] : null;
@@ -511,9 +513,8 @@ const refreshClarity = () => {
 };
 time.subscribe(refreshClarity);
 // River flow at the mouths (PLAN 7.15): GloFAS discharge against its median, for fishing near the mouths.
-let riverFlow: RiverFlow | null = null;
 fetchRiverFlow()
-  .then((d) => (riverFlow = d))
+  .then((d) => ((riverFlow = d), refreshClarity()))
   .catch((err) => console.warn('river flow unavailable', err));
 // BOAT daylight, pressure, next GO window and flood debris (PLAN 7.23 items 4, 5).
 mountBoatWindowHud(hud, map, { env: metricEnv, vessel: settings.vessel, validMs: () => time.validMs(), riverFlow: () => riverFlow });
@@ -715,6 +716,14 @@ fetchSeafloor()
           sstC: satellite ? (sstAt(satellite, lng, lat, ms)?.value ?? null) : null,
           sarg: sargForecast && beach && beach.distanceM <= BEACH_RADIUS_M ? (beachDay(sargForecast, beach.point.name, ms)?.level ?? null) : null,
         };
+      },
+      // Runoff near a river mouth after heavy rain or a high river: a rule of thumb for water quality, not a measurement.
+      runoffAt: (lng, lat, ms) => {
+        const m = nearest([lng, lat], PLUME_RIVERS.map((r) => ({ name: r.name, lngLat: r.mouth })));
+        if (!m) return null;
+        const ratio = riverFlow ? flowRatio(riverFlow, m.point.name, ms) : null;
+        const rainMm = catchmentRain ? (riverRain(catchmentRain, ms).find((r) => r.name === m.point.name)?.rainMm ?? null) : null;
+        return runoffRisk(m.distanceM / 1000, ratio, rainMm);
       },
       currentAt: (lng, lat, ms) => {
         const f = currents && currentsAt(currents, bandAt(ms), ms)?.field;
