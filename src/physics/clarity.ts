@@ -5,8 +5,8 @@
  *
  * Everything is combined as a diffuse attenuation coefficient Kd (1/m), because attenuation from
  * separate causes adds: Kd = Kd_satellite + Kd_plume + Kd_resuspension. Visibility is then the
- * Secchi depth, Zsd ≈ 1.7 / Kd (Poole and Atkins 1929; the constant is 1.3 to 1.9 in the
- * literature, and Secchi depth is a fair stand-in for horizontal diver visibility in clear water).
+ * Secchi depth from Lee et al. (2015, Remote Sensing of Environment 169: 139-149), see `secchiFromKd`;
+ * Secchi depth is a fair stand-in for horizontal diver visibility in clear water.
  *
  * The plume and resuspension terms are rules of thumb with round-number constants, not fitted to
  * local observations: they say "after heavy rain the water near the Sixaola is brown", with the
@@ -15,17 +15,26 @@
  */
 import { bottomOrbitalVelocitySea } from './waves';
 
-/** Secchi depth from Kd, m (Poole–Atkins, constant 1.7). */
-export const secchiFromKd = (kd: number) => 1.7 / kd;
+/**
+ * Secchi depth, m, from Lee et al. (2015): Zsd = ln(|0.14 − Rrs_tr| / 0.013) / (2.5 · Kd_tr), where Kd_tr is the
+ * attenuation in the most transparent band and Rrs_tr the reflectance there. Kd490 stands in for Kd_tr (the
+ * transparent window of clear water sits near 490 nm; in green, muddy water Kd490 is larger than Kd_tr, so the
+ * estimate errs short, the safe side for divers) and Rrs_tr is a typical 0.005 per sr, so Zsd ≈ 0.94 / Kd490.
+ * The older Poole–Atkins 1.7 / Kd was fitted for the light-weighted Kd and read clear blue water nearly twice as
+ * far (34 m against 19 m at Kd 0.05; audit N).
+ */
+export const SECCHI_RRS_TR = 0.005;
+export const SECCHI_K = Math.log(Math.abs(0.14 - SECCHI_RRS_TR) / 0.013) / 2.5;
+export const secchiFromKd = (kd: number) => SECCHI_K / kd;
 
 /**
- * Kd490 from chlorophyll-a for open (case 1) water, Morel and Maritorena (2001):
+ * Kd490 from chlorophyll-a for open (case 1) water, Morel et al. (2007, Remote Sensing of Environment 111: 69-88):
  * Kd490 = 0.0166 + 0.0773 · Chl^0.6715, Chl in mg/m³. Used only where the Kd490 map has no value;
  * it underestimates muddy coastal water, which the plume term covers.
  */
 export const kdFromChl = (chlMgM3: number) => 0.0166 + 0.0773 * Math.pow(Math.max(0, chlMgM3), 0.6715);
 
-/** Kd of the core of a fresh river plume, 1/m: brown water, about 0.6 m visibility. */
+/** Kd of the core of a fresh river plume, 1/m: brown water, about 0.3 m visibility. */
 export const KD_PLUME = 3;
 /** Rain over a catchment (e-folding-weighted mm) that makes a full-strength plume. */
 export const PLUME_SATURATION_MM = 60;

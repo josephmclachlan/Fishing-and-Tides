@@ -83,7 +83,7 @@ export function seaDepthAt(c: Pick<ClarityContext, 'elevation' | 'land'>, lng: n
 /** Ocean-colour history per point, worked out once per satellite load (the grid asks for every cell). */
 const satMemo = new WeakMap<SatelliteData, globalThis.Map<string, SatState | null>>();
 
-/** A point's satellite Kd history: Kd490 where the coast map has it, else chlorophyll through Morel and Maritorena. */
+/** A point's satellite Kd history: Kd490 where the coast map has it, else chlorophyll through Morel et al. (2007). */
 export function satHistory(sat: SatelliteData, lng: number, lat: number): SatState | null {
   let memo = satMemo.get(sat);
   if (!memo) satMemo.set(sat, (memo = new globalThis.Map()));
