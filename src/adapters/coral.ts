@@ -1,5 +1,5 @@
 /**
- * Coral heat stress adapter (PLAN 7.23): NOAA Coral Reef Watch DHW, HotSpot, SST, SST anomaly and the
+ * Coral heat stress adapter (PLAN 7.30): NOAA Coral Reef Watch DHW, HotSpot, SST, SST anomaly and the
  * 7-day bleaching alert for each reef in CORAL_REEFS, relayed daily by the data build
  * (scripts/forecast/coral.ts). Shared by the CORAL overlay and the DIVE panel's heat card:
  *

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { CORAL_LOG_PREFIX } from './coral-log';
 import { ACTIVITIES, LAYERS, createLayerStore } from './registry';
 
 const mem = () => {
@@ -80,5 +81,12 @@ describe('layer store', () => {
     un();
     s.toggle('wind');
     expect(fn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('map layer prefixes', () => {
+  it('the coral site log is not caught by any layer toggle (it once shared the CLARITY prefix)', () => {
+    const prefixes = LAYERS.flatMap((l) => l.mapPrefixes ?? []);
+    for (const id of [`${CORAL_LOG_PREFIX}sites`, `${CORAL_LOG_PREFIX}label`]) expect(prefixes.some((p) => id.startsWith(p))).toBe(false);
   });
 });

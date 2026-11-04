@@ -21,6 +21,8 @@ import { biteWeather, nearestStorm, pressureTrend, squallLevel, summarise } from
 import { crestGrid } from './waves-lines';
 import { mountWavesLayer } from './layers/waves';
 import { mountWeatherHud } from './weather-hud';
+import { mountTownRainHud } from './town-rain-hud';
+import { fetchTownRain } from './adapters/town-rain';
 import { mountStorms } from './layers/storms';
 import { fetchWeather, weatherAt, type WeatherData } from './adapters/weather';
 import { LIMON_HARMONICS } from './data/tides-limon';
@@ -71,6 +73,9 @@ import { fetchMouths, fetchOccurrences, mountFishing } from './layers/fishing';
 import { loadSpecies, mountFishingHud } from './fishing-hud';
 import { layers } from './layers/registry';
 import { bindMapLayers } from './layers/visibility';
+import { createCoralMode } from './coral-mode';
+import { mountCoral } from './layers/coral';
+import { fetchCoral } from './adapters/coral';
 import { mountLayersPanel } from './layers-panel';
 import { FLOW_STYLE, mountFlow } from './layers/flow';
 import type { FlowSource } from './layers/flow-sim';
@@ -79,7 +84,7 @@ import { isWater, sample } from './physics/bathy';
 import { bandFor, createTimeStore } from './time';
 import { mountTimeSlider } from './time-slider';
 import { KT_PER_MS, sampleField, fromDeg, type VectorField } from './physics/flow';
-import { MOCK_FLOW, PLUME_RIVERS, REGION, SPOTS } from './region';
+import { CORAL_REEFS, MOCK_FLOW, PLUME_RIVERS, REGION, SPOTS } from './region';
 import { fetchWind, windAt, type WindData } from './adapters/wind';
 import { appliedScale, fetchWindFix, scaleWind } from './adapters/wind-fix';
 import { corrections } from './corrections';
@@ -278,7 +283,15 @@ bindMapLayers(map, layers);
 mountSettingsUi(hud, settings);
 mountIntro(hud, safeStorage());
 mountSounds(document, settings.sound);
-mountLayersPanel(hud, layers, sheets);
+// CORAL overlay (PLAN 7.31): its own switch in LAYERS, apart from the activities; reef heat stress marks.
+const coralMode = createCoralMode(layers, safeStorage());
+mountLayersPanel(hud, layers, sheets, coralMode);
+const coralLayer = mountCoral(map, CORAL_REEFS);
+coralLayer.setVisible(coralMode.isOn());
+coralMode.subscribe((on) => coralLayer.setVisible(on));
+fetchCoral()
+  .then((d) => coralLayer.setHeat(d))
+  .catch((err) => console.warn('coral heat stress unavailable', err));
 mountLangUi(hud, settings, map);
 mountSheets(hud, map, sheets);
 // Surf break catalog (PLAN 6.4): markers and BREAK rows.
@@ -292,6 +305,10 @@ mountSeaStateHud(hud, conditionsAt, seaHere, { vessel: settings.vessel, safety: 
 // Weather and active tropical storms (PLAN 7.3, 7.5): live feeds, rows stay -- until they load.
 weatherHud = mountWeatherHud(hud, { validMs: () => time.validMs() });
 time.subscribe(() => weatherHud?.refresh());
+// RAIN BY TOWN (PLAN 7.24): the four towns from the sharpest models, next 3 h from the slider.
+const townRainHud = mountTownRainHud(hud, { validMs: () => time.validMs() });
+time.subscribe(() => townRainHud?.refresh());
+fetchTownRain().then((d) => townRainHud?.set(d)).catch((err) => console.warn('town rain unavailable', err));
 const stormLayer = mountStorms(map);
 // Lightning (PLAN 7.6): GOES GLM flashes from the collector workflow, refreshed every 5 minutes.
 lightningHud = mountLightningHud(hud, map);
@@ -879,6 +896,7 @@ fetchSeafloor()
     flowSources.current = current;
     flow?.setSource('current', current);
     flowHud?.refresh();
+    coralLayer.setReefPolygons([data.marks, data.reefs]);
     return mountSeafloor(map, data);
   })
   .catch((err) => console.warn('seafloor layer unavailable', err));

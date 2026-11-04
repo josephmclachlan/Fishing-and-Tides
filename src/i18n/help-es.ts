@@ -50,6 +50,7 @@ export const helpEs: Record<keyof typeof helpEn, string> = {
   'help.harbourRange': 'Distancia en kilómetros de la mira a ese puerto o fondeadero.',
   'help.shelter': 'ABRIGO dice qué tan protegido está el lugar del viento pronosticado. FETCH es la longitud de agua abierta sobre la que sopla el viento antes de llegar a ti, medida en el mapa en línea recta contra el viento. Fetch corto (pocos km) deja poco espacio para formar olas: ABRIGADO. Fetch largo forma olas grandes de viento: EXPUESTO.',
   'help.rain': 'Lluvia que cae ahora en este punto, en milímetros por hora. Menos de 2 es ligera, más de 10 es fuerte. La lluvia fuerte también enloda el agua cerca de las desembocaduras.',
+  'help.townRain': 'Lluvia en este pueblo durante las 3 horas desde la hora del deslizador: el promedio de cuatro modelos (ECMWF 9 km, UK Met Office 10 km, ICON, GFS) y la parte de ellos que da al menos 0,5 mm. 100% significa que los cuatro dan lluvia aquí. Los modelos miden de 9 a 13 km, así que no ubican cada aguacero con exactitud. Más allá de unas 3 horas, léalo como probabilidad, no como promesa.',
   'help.rain24': 'Lluvia pronosticada para las próximas 24 horas, en milímetros. Mucha lluvia trae crecidas, agua café en los ríos y mala visibilidad en los arrecifes.',
   'help.cloud': 'Nubosidad como porcentaje del cielo. Afecta la luz bajo el agua además del sol en tu piel.',
   'help.uv': 'Índice UV: la escala de quemaduras de sol. 3 a 5 es moderado, 6 a 7 alto, 8 o más muy alto, y a esta latitud suele serlo. Cúbrete o usa protector solar seguro para arrecifes.',
