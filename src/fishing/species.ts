@@ -23,8 +23,12 @@ export interface Species {
    * visibility, m (river-mouth hunters like stained water, reef sight-hunters clear), and sea temperature, °C.
    */
   water: { visM: readonly [number, number, number, number]; sstC: readonly [number, number, number, number] };
-  /** Eat with care: large fish of these species can carry ciguatera (shown beside the picker). */
-  ciguatera?: boolean;
+  /**
+   * Ciguatera beside the picker: `true` is the red warning (large fish of these species often carry it); 'caution' is a
+   * gentle amber note, for fish where it is uncommon but has been found (lionfish: Robertson et al. 2014, Toxicon 91:
+   * 102-110, found toxin in some Caribbean lionfish; Costa Rica has no published cases).
+   */
+  ciguatera?: boolean | 'caution';
 }
 
 export const SPECIES: readonly Species[] = [
@@ -37,7 +41,7 @@ export const SPECIES: readonly Species[] = [
   { id: 'grouper', depthM: [2, 5, 40, 60], w: { mouth: 0.05, reef: 0.7, drop: 0.25 }, mouthReachKm: 0.8, season: Array(12).fill(0.95), water: { visM: [2, 4, 20, 40], sstC: [22, 24, 30, 33] }, ciguatera: true },
   { id: 'barracuda', depthM: [1.5, 3, 18, 40], w: { mouth: 0.1, reef: 0.55, drop: 0.35 }, mouthReachKm: 1, season: [1, 1, 1, 0.95, 0.9, 0.85, 0.85, 0.9, 0.9, 0.95, 1, 1], water: { visM: [1.5, 4, 20, 40], sstC: [20, 24, 30, 33] }, ciguatera: true },
   // Lionfish (pez león): invasive, eaten locally and its catch is encouraged; reef only, by spear, so clear water matters. All year.
-  { id: 'lionfish', depthM: [1, 4, 40, 60], w: { mouth: 0, reef: 0.9, drop: 0.1 }, mouthReachKm: 0.5, season: Array(12).fill(1), water: { visM: [2, 6, 25, 40], sstC: [22, 24, 31, 33] } },
+  { id: 'lionfish', depthM: [1, 4, 40, 60], w: { mouth: 0, reef: 0.9, drop: 0.1 }, mouthReachKm: 0.5, season: Array(12).fill(1), water: { visM: [2, 6, 25, 40], sstC: [22, 24, 31, 33] }, ciguatera: 'caution' },
 ];
 
 /** PEAK at 0.97 or more, GOOD from 0.88, else OFF: a coarse word for the season factor. */
