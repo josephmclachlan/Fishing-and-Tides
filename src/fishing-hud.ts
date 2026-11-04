@@ -15,6 +15,8 @@ import type { TimeStore } from './time';
 import { SPECIES, seasonOf, type SpeciesId } from './fishing/species';
 import { bestWindows, bite, type BiteReason, type BiteWx } from './fishing/bite';
 import { waterTerm, type WaterInputs } from './fishing/water';
+import { catchStats, MIN_CATCHES, type CatchPin } from './fishing/catches';
+import { speciesById } from './fishing/species';
 import { LIMON_HARMONICS } from './data/tides-limon';
 import { localDayStart } from './physics/astro';
 import { clock } from './astro-hud';
@@ -56,9 +58,9 @@ const NO_ENV: FishEnv = { at: () => ({}), water: () => ({}), version: () => '' }
 
 const why = (rs: readonly BiteReason[]) => rs.map((r) => t(`bite.r.${r}` as Key)).join(' · ');
 
-export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer, time: TimeStore, initial: SpeciesId, env: FishEnv = NO_ENV) {
+export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer, time: TimeStore, initial: SpeciesId, env: FishEnv = NO_ENV, catches: () => readonly CatchPin[] = () => []) {
   const side = condSlot(root, 'fishing', 10);
-  if (!side) return;
+  if (!side) return null;
   side.insertAdjacentHTML(
     'beforeend',
     `<div class="from-coast fish-rows">
@@ -74,6 +76,7 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
       <div class="bite-strip" id="fish-strip" aria-hidden="true"></div>
       <div class="bite-wins" id="fish-wins"></div>
       <details class="fishx" open><summary><span class="lbl">${t('fish.spots')}</span></summary><div id="fish-spots" class="fish-spots"></div></details>
+      <div class="ro"><span class="lbl">${t('fish.yours')}</span><span class="seg sm" id="fish-yours">--</span></div>
       <div class="ro"><span class="lbl note">${t('fish.note')}</span></div>
     </div>`,
   );
@@ -127,6 +130,13 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     if (nowEl) nowEl.style.left = `${Math.min(100, Math.max(0, ((time.validMs() - day) / 864e5) * 100))}%`;
 
     $('fish-spots').innerHTML = spotsHtml();
+    yours();
+  };
+  // YOUR CATCHES (PLAN 7.16): BITE at your logged catches of this species against their days' means.
+  const yours = () => {
+    const st = catchStats(catches(), SPECIES[i].id);
+    $('fish-yours').textContent = !st ? t('fish.yours.none') : st.n < MIN_CATCHES ? t('fish.yours.few', { n: st.n }) : t('fish.yours.line', { n: st.n, bite: Math.round(st.bite), day: Math.round(st.day) });
+    $('fish-yours').className = 'seg sm ' + (st && st.n >= MIN_CATCHES && st.bite > st.day ? 'green' : '');
   };
   const spotsHtml = () => {
     const c = map.getCenter();
@@ -187,4 +197,25 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
   // Feeds load after the panel and lightning refreshes every few minutes: pick them up.
   setInterval(queue, 60_000);
   apply();
+
+  /** BITE at a catch with that species' habitat and water, and the mean over that day's daylight there (local 06 to 18). */
+  const scoreCatch = (lng: number, lat: number, ms: number, id: string) => {
+    const sp = SPECIES.find((s) => s.id === id);
+    const habitat = sp ? layer.scoreFor(sp.id, lng, lat) : null;
+    const water = sp ? waterTerm(speciesById(sp.id), env.water(lng, lat, ms)) : null;
+    const base = { lat, lng, tide: LIMON_HARMONICS, tzOffsetH: REGION.tzOffsetH, water, habitat };
+    const now = bite({ ...base, ...env.at(lng, lat, ms), tMs: ms }).bite;
+    const day = localDayStart(ms, REGION.tzOffsetH);
+    const hours = new globalThis.Map<number, BiteWx>();
+    const wxAt = (t: number) => {
+      const h = Math.floor(t / 3.6e6);
+      let w = hours.get(h);
+      if (!w) hours.set(h, (w = env.at(lng, lat, h * 3.6e6 + 1.8e6)));
+      return w;
+    };
+    const light = bestWindows(base, day, 1, 0.8, wxAt).series.filter((s) => s.t >= day + 6 * 3.6e6 && s.t < day + 18 * 3.6e6);
+    const biteDay = light.reduce((a, s) => a + s.bite, 0) / Math.max(1, light.length);
+    return { bite: now, biteDay: Math.round(biteDay) };
+  };
+  return { scoreCatch, refresh: queue };
 }

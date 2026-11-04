@@ -32,7 +32,7 @@ import { mountHarbours } from './layers/harbours';
 import { mountHarboursHud } from './harbours-hud';
 import type { Grid } from './physics/bathy';
 import { createBoatStore } from './boat/store';
-import { mountBoatPanel } from './boat-panel';
+import { mountBoatPanel, type CatchScorer } from './boat-panel';
 import { dictFor, setDict, t } from './i18n';
 import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
@@ -248,7 +248,10 @@ let depthAt: ((lng: number, lat: number) => number | undefined) | null = null;
 const spotPage = mountSpotPage(hud, map, { time, sheets, physics: () => spotPhysics, observed: () => gauge, go: (t) => enhancer.go(t) });
 loadGauge();
 setInterval(loadGauge, 10 * 60_000);
-mountBoatPanel(hud, map, createBoatStore(safeStorage()), sheets, () => depthAt);
+const boatStore = createBoatStore(safeStorage());
+// Catches logged in the BOAT drawer store their BITE once the fishing panel is up (PLAN 7.16).
+let scoreCatch: CatchScorer | null = null;
+mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch);
 // WATCH (PLAN 7.13): the metric tracker reads the same wind, wave, weather and tide data as the HUD, at any hour of the next days.
 const watchSea = new globalThis.Map<string, [number, number] | null>();
 const hourWind = new globalThis.Map<number, ReturnType<typeof windAt>>();
@@ -598,7 +601,12 @@ fetchSeafloor()
           },
           version: () => `${wind ? 1 : 0}${waves ? 1 : 0}${weatherData ? 1 : 0}${satellite ? 1 : 0}${catchmentRain ? 1 : 0}${sargForecast ? 1 : 0}${riverFlow ? 1 : 0}|${flashesAt}|${gauge.at(-1)?.t ?? 0}`,
         };
-        mountFishingHud(hud, map, layer, time, species, fishEnv);
+        // Your logged catches join the habitat fit and the YOUR CATCHES check (PLAN 7.16).
+        const pins = () => boatStore.state().pins;
+        layer.setCatches(pins());
+        const fishHud = mountFishingHud(hud, map, layer, time, species, fishEnv, pins);
+        scoreCatch = fishHud?.scoreCatch ?? null;
+        boatStore.subscribe(() => (layer.setCatches(pins()), fishHud?.refresh()));
       })
       .catch((err) => console.warn('fishing layer unavailable', err));
     // Currents stay in the sea once the coastline mask is here.

@@ -22,9 +22,9 @@ export interface BoatStore {
   /** Feed a GPS fix; kept only while recording and when it passes `shouldKeep`. Returns whether it was kept. */
   addFix(p: TrackPoint): boolean;
   /** Drop a pin at a position. */
-  addPin(at: { lng: number; lat: number; t: number }, kind: PinKind, extra?: { species?: string; depthM?: number }): Pin;
+  addPin(at: { lng: number; lat: number; t: number }, kind: PinKind, extra?: { species?: string; depthM?: number; bite?: number; biteDay?: number }): Pin;
   removePin(id: string): void;
-  /** Forget the track and the pins. */
+  /** Forget the track and the marks. Catches are kept: they are the catch log the fishing model learns from (PLAN 7.16). */
   clear(): void;
   flush(): void;
   subscribe(fn: () => void): () => void;
@@ -83,7 +83,7 @@ export function createBoatStore(storage?: Storage, saveEvery = 30): BoatStore {
       emit();
     },
     clear() {
-      s = { recording: s.recording, points: [], pins: [] };
+      s = { recording: s.recording, points: [], pins: s.pins.filter((p) => p.kind === 'catch') };
       flush();
       emit();
     },

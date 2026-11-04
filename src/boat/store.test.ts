@@ -38,6 +38,14 @@ describe('boat store', () => {
     expect(s.state().pins).toEqual([]);
     expect(fn).toHaveBeenCalledTimes(4);
   });
+  it('clear keeps the catch log (PLAN 7.16)', () => {
+    const s = createBoatStore(mem());
+    s.addPin({ lng: 0, lat: 0, t: 1 }, 'mark');
+    s.addPin({ lng: 1, lat: 1, t: 2 }, 'catch', { species: 'snook', bite: 70, biteDay: 50 });
+    s.clear();
+    expect(s.state().pins).toHaveLength(1);
+    expect(s.state().pins[0]).toMatchObject({ kind: 'catch', species: 'snook', bite: 70, biteDay: 50 });
+  });
   it('survives corrupt or blocked storage', () => {
     const bad = { getItem: () => '{nope', setItem: () => { throw new Error('full'); } };
     const s = createBoatStore(bad);
