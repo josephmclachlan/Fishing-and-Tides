@@ -14,15 +14,15 @@ After PR for 7.12 part 1 every layer has WHAT and LEGEND under the ? beside its 
 
 | Layer | TITLE | WHAT | LEGEND | TAP on map | EMPTY | Next step |
 |---|---|---|---|---|---|---|
-| WAVES/SWELL | ok | yes | yes | no (readouts yes) | ? | tap a crest line for height and period |
+| WAVES/SWELL | ok | yes | yes | yes (crest line, height in title) | ? | n/a |
 | CURRENTS | ok | yes | yes | no | ? | n/a |
 | WIND | ok | yes | yes | no | ? | n/a |
 | WATER TEMP | ok | yes | yes | no (SST readout yes) | ? | label the isotherms in the legend with the current range |
 | CLARITY | ok | yes | yes | no (VIS readout yes) | ? | rename VIS to VISIBILITY in readouts |
 | SARGASSUM | ok | yes | yes | yes (dots, beach labels, SARG readout) | CLOUD text | on-map legend when the layer is first switched on |
-| WEATHER | ok | yes | yes | no | ? | storms are usually off the map: say "none active" |
-| LIGHTNING | ok | yes | yes | no | ? | say "no strikes" when empty |
-| LIVE OBS | ok | yes | yes | drawer rows | lamps | n/a |
+| WEATHER | ok | yes | yes | yes (storm mark) | ? | storms are usually off the map: say "none active" |
+| LIGHTNING | ok | yes | yes | yes (fresh vs old flash) | ? | say "no strikes" when empty |
+| LIVE OBS | ok | yes | yes | yes (dot and label) | lamps | n/a |
 | RIP RISK | ok | yes | yes | yes | "nothing drawn: low" | n/a |
 | SURF BREAKS | ok | yes | yes | spot page | ? | n/a |
 | DEPTH | ok | yes | yes | no (depth readout yes) | n/a | n/a |

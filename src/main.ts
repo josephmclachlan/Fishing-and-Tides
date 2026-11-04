@@ -37,6 +37,7 @@ import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
 import { mountSounds } from './sounds';
 import { mountSettingsUi } from './settings-ui';
 import { mountIntro } from './intro';
+import { mountMapExplain } from './map-explain';
 import { mountSettingsPanel } from './settings-panel';
 import { mountGlance } from './glance';
 import { activityForPreset, mountCondGroups } from './cond-groups';
@@ -447,6 +448,8 @@ const ripLayer = mountRip(map);
 fetchMouths()
   .then(({ data }) => ripLayer.setSites(ripSites(data, SURF_BREAKS)))
   .catch((err) => console.warn('rip sites unavailable', err));
+// Tap a lightning flash, storm, observation or wave crest for what it is (registered first so the rip and sargassum cards below win where marks overlap).
+mountMapExplain(map, (title, id, at) => explain.show(title, id, at));
 map.on('click', 'rp-site', (e) => {
   const f = e.features?.[0]?.properties;
   if (f) explain.show(`${f.name}`, f.site === 'mouth' ? 'ripMouth' : 'ripBreak', e.point);
