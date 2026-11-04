@@ -125,10 +125,16 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions,
     $('sst').textContent = fmt(d.waterTempC);
     $('tide').textContent = $('d-tide').textContent = (d.tideM >= 0 ? '+' : '') + fmt(d.tideM, 2) + (d.tideRising ? '▲' : '▼');
     const rip = $('rip');
-    rip.textContent = t(`rip.${d.ripRisk}` as Key);
-    rip.className = 'seg ' + (d.ripRisk === 'HIGH' ? 'red' : d.ripRisk === 'MOD' ? '' : 'green');
-    setGauge($('ripgauge'), { LOW: 0.2, MOD: 0.55, HIGH: 1 }[d.ripRisk], d.ripRisk === 'HIGH' ? 'red' : d.ripRisk === 'MOD' ? '' : 'green');
-    setAlert($('alert'), [...(d.ripRisk === 'HIGH' ? [t('hud.alertRip')] : []), ...(status?.alerts?.() ?? [])].join(' · ') || null);
+    // Until the spot model has run on the real sea, the rip is unknown: --, an empty gauge and no alarm.
+    const ripLvl = d.ripKnown ? d.ripRisk : null;
+    rip.textContent = ripLvl ? t(`rip.${ripLvl}` as Key) : '--';
+    rip.className = 'seg ' + (ripLvl === 'HIGH' ? 'red' : ripLvl === 'LOW' ? 'green' : '');
+    setGauge($('ripgauge'), ripLvl ? { LOW: 0.2, MOD: 0.55, HIGH: 1 }[ripLvl] : 0, ripLvl === 'HIGH' ? 'red' : ripLvl === 'MOD' || !ripLvl ? '' : 'green');
+    setAlert($('alert'), [...(ripLvl === 'HIGH' ? [t('hud.alertRip')] : []), ...(status?.alerts?.() ?? [])].join(' · ') || null);
+    // CONDITIONS tag: the band past day 7 says what it is; in the forecast band, LIVE once the waves feed is in, else MOCK.
+    const band = document.body.dataset.band;
+    const tag = document.querySelector<HTMLElement>('.side .ph .tag');
+    if (tag) tag.textContent = band === 'outlook' ? t('time.climateAvg') : band === 'lowconf' ? t('band.lowconf') : d.seaLive ? t('cond.live') : t('cond.mock');
     renderStatus();
   };
   tick();

@@ -60,6 +60,8 @@ export interface SpotState {
   result: SpotResult | null;
   /** Offshore sea state the result was computed for. */
   sea: Sea;
+  /** The sea came from the waves feed; false means the conditions' (mock) swell stood in. */
+  liveSea?: boolean;
   /** Surf quality (PLAN 6.3), for catalog breaks. */
   surf?: SurfQuality;
 }
@@ -111,7 +113,7 @@ export function createSpotPhysics(
             ? surfQuality({ brk: s.brk, Hb: r.waves.breaker.Hb, Tp: seas[i].Tp, swellFromDeg: seas[i].fromDeg, windMs: wind.speedMs, windFromDeg: wind.fromDeg, swellHs: seasX[i]?.swellHs, swell2: seasX[i]?.swell2, windSeaHs: seasX[i]?.windSeaHs, tide: { level: ts.level, rising: ts.rising }, gustMs: wx.gustMs, windAhead: wx.ahead, lightning: wx.lightning, squall: wx.squall, rainMmH: wx.rainMmH, sarg: wx.sarg, info: { sstC: wx.sstC, uv: wx.uv } })
             : undefined;
           const surf = surf0 && r ? { ...surf0, ripLevel: r.rip.level } : surf0;
-          return { name: s.name, pin: s.lngLat, result: r, sea: seas[i], surf };
+          return { name: s.name, pin: s.lngLat, result: r, sea: seas[i], liveSea: !!seasX[i], surf };
         });
         subs.forEach((fn) => fn());
       })

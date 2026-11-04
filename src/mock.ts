@@ -16,6 +16,10 @@ export interface Conditions {
   tideM: number;
   tideRising: boolean;
   ripRisk: 'LOW' | 'MOD' | 'HIGH';
+  /** The rip level comes from the spot model run on the real sea (not the mock swell). Unset in the mock: the HUD shows -- and no alarm. */
+  ripKnown?: boolean;
+  /** The swell readouts come from the waves feed, not the mock. */
+  seaLive?: boolean;
 }
 
 /**

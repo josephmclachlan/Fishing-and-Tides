@@ -46,8 +46,6 @@ export function mountTimeSlider(root: HTMLElement, time: TimeStore) {
     document.body.dataset.band = band.id;
     $('t-band').textContent = t(`band.${band.id}` as Key);
     $('t-band').className = 'seg ' + (band.id === 'forecast' ? 'green' : '');
-    const tag = document.querySelector<HTMLElement>('.side .ph .tag');
-    if (tag) tag.textContent = band.id === 'outlook' ? t('time.climateAvg') : band.id === 'lowconf' ? t('band.lowconf') : t('cond.mock');
     $('t-back').textContent = '−' + stepLabel(h - 1);
     $('t-fwd').textContent = '+' + stepLabel(h);
     $('t-valid').textContent = validLabel(time.validMs());

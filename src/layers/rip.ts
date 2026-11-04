@@ -158,7 +158,7 @@ const MIN_CONF = 0.35;
  */
 export function riskAt(p: [number, number], states: readonly SpotState[]): { score: number; conf: number } | null {
   const near = states
-    .filter((s) => s.result)
+    .filter((s) => s.result && s.liveSea !== false)
     .map((s) => ({ s, d: flatM(p, s.pin) }))
     .sort((a, b) => a.d - b.d)
     .slice(0, 2);
@@ -214,7 +214,8 @@ export function ripFeatures(states: readonly SpotState[], stations: readonly Sta
   }
   for (const s of states) {
     const r = s.result;
-    if (!r || r.rip.level === 'LOW') continue;
+    // Mock swell (waves feed not in yet) draws no rip zones: it raised false HIGH zones on first open.
+    if (!r || s.liveSea === false || r.rip.level === 'LOW') continue;
     const normalDeg = (land && maskNormal(land, s.pin)) ?? r.waves.normalDeg;
     const xb = surfZoneWidth(r.waves.breaker.hb, r.waves.slope);
     const label = [
