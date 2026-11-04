@@ -16,7 +16,7 @@ export function mountCoralGuide(panel: HTMLElement) {
     </details>
     <details class="cr-fold"><summary class="lbl">${t('coral.guide', { n: CORAL_SPECIES.length })}</summary>
       <ul class="cr-guide">${CORAL_SPECIES.map((s) => `<li><div class="cr-name">${t(`cg.${s.id}.name` as Key)} <i class="lbl">${s.name}</i></div>
-        <div class="cr-tags">${s.status ? tag('cr-red', t(`coral.iucn.${s.status}` as Key)) : ''}${tag(s.sctld === 'high' ? 'cr-red' : s.sctld === 'mid' ? 'cr-amber' : 'cr-green', t(`coral.sctld.${s.sctld}` as Key))}${s.localSctld ? tag('cr-amber', t('coral.sctld.local')) : ''}${s.heatSensitive ? tag('cr-amber', t('coral.heatSens')) : ''}</div>
+        <div class="cr-tags">${tag(s.status === 'CR' || s.status === 'EN' ? 'cr-red' : s.status === 'VU' || s.status === 'NT' ? 'cr-amber' : 'cr-green', t(`coral.iucn.${s.status}` as Key))}${tag(s.sctld === 'high' ? 'cr-red' : s.sctld === 'mid' ? 'cr-amber' : 'cr-green', t(`coral.sctld.${s.sctld}` as Key))}${s.localSctld ? tag('cr-amber', t('coral.sctld.local')) : ''}${s.heatSensitive ? tag('cr-amber', t('coral.heatSens')) : ''}</div>
         <p>${t(`cg.${s.id}.tip` as Key)}</p></li>`).join('')}</ul>
     </details>`;
 }

@@ -12,6 +12,7 @@ describe('coral species guide', () => {
     }
   });
   it('the two Acropora are critically endangered', () => {
-    expect(CORAL_SPECIES.filter((s) => s.status === 'CR').map((s) => s.id)).toEqual(['apal', 'acer']);
+    expect(CORAL_SPECIES.filter((s) => s.status === 'CR').map((s) => s.id)).toEqual(['apal', 'acer', 'ssid', 'pstr', 'dlab', 'mmea', 'mill']);
+    expect(CORAL_SPECIES.filter((s) => s.status === 'EN').map((s) => s.id)).toEqual(['ofav', 'oann']);
   });
 });
