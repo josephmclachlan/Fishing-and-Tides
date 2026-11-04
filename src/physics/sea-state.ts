@@ -41,6 +41,42 @@ export interface SeaState {
   dominant: 'wind-sea' | 'swell';
 }
 
+/**
+ * Wave-current interaction (PLAN 7.23 item 3). A current running against the waves shortens and steepens them,
+ * a following current stretches and flattens them. To first order (Longuet-Higgins and Stewart 1961, wave action
+ * conserved, deep water) the height changes by
+ *
+ *   H / H0 ≈ 1 − 2 U / cg0,    cg0 = g T / 4π,
+ *
+ * with U the current component along the direction the waves travel (positive = following), clamped to 0.7 to 1.6
+ * because the formula is only good while |U| is well under cg0 (waves stop at U = −cg0/2 in deep water).
+ * Applied to each train on its own heading. A heuristic for planning, not a wave model.
+ */
+export function currentFactor(periodS: number, dirFromDeg: number | undefined, current: { u: number; v: number }): number {
+  if (!(periodS > 0) || dirFromDeg === undefined) return 1;
+  const heading = ((dirFromDeg + 180) * Math.PI) / 180; // degrees true the waves travel TOWARD
+  const along = current.u * Math.sin(heading) + current.v * Math.cos(heading);
+  const cg0 = (G * periodS) / (4 * Math.PI);
+  return Math.min(1.6, Math.max(0.7, 1 - (2 * along) / cg0));
+}
+
+/** The two trains after the current has acted on them. */
+export function withCurrent(p: SeaPartitions, current: { u: number; v: number }): SeaPartitions {
+  return {
+    ...p,
+    windWaveHm: p.windWaveHm * currentFactor(p.windWaveTs, p.windWaveDirDeg, current),
+    swellHm: p.swellHm * currentFactor(p.swellTs, p.swellDirDeg, current),
+  };
+}
+
+/** Current component against the dominant train (positive = against), m/s; null if the train has no direction. */
+export function opposingMs(p: SeaPartitions, current: { u: number; v: number }): number | null {
+  const dir = p.swellHm >= p.windWaveHm ? p.swellDirDeg : p.windWaveDirDeg;
+  if (dir === undefined) return null;
+  const heading = ((dir + 180) * Math.PI) / 180;
+  return -(current.u * Math.sin(heading) + current.v * Math.cos(heading));
+}
+
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 
 /** Smallest angle between two bearings, degrees 0..180. */
