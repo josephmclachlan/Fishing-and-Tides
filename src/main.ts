@@ -46,7 +46,7 @@ import { createCoralStore } from './coral/store';
 import { mountCoralPanel } from './coral-panel';
 import { mountCoralLogLayer } from './layers/coral-log';
 import { mountBoatPanel, type CatchScorer, type OffshoreRead, type RouteDeps, type ShoalRead } from './boat-panel';
-import { dictFor, setDict, t } from './i18n';
+import { dictFor, setDict, t, type Key } from './i18n';
 import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
 import { mountSounds } from './sounds';
@@ -57,6 +57,8 @@ import { mountHere } from './here-card';
 import { mountSettingsPanel } from './settings-panel';
 import { mountGlance } from './glance';
 import { mountBestToday } from './best-today';
+import { bestVisitDay } from './metrics/best-today';
+import { clock } from './astro-hud';
 import type { MetricEnv } from './metrics/registry';
 import { activityForPreset, mountCondGroups } from './cond-groups';
 import { mountSwellHud } from './swell-hud';
@@ -479,6 +481,16 @@ if (coralPanelEl) {
       return coralHeat ? nearestReef(coralHeat, [c.lng, c.lat]) : null;
     },
     risks: reefRisks,
+    // Best day this week in the water at the reef (persona review J9): snorkel windows at the nearest spot, ranked with the reef's visibility.
+    visit: (reef) => {
+      const spot = nearest(reef.lngLat, SPOTS)?.point;
+      const v = spot ? bestVisitDay(metricEnv(), spot, reef.lngLat, Date.now()) : null;
+      if (!v) return null;
+      const tz = REGION.tzOffsetH;
+      const when = v.day === 0 ? t('bt.today') : v.day === 1 ? t('bt.tomorrow') : t(`day.${new Date(v.startMs + tz * 3.6e6).getUTCDay()}` as Key);
+      return { when, hours: `${clock(v.startMs)}–${clock(v.endMs)}`, visM: v.visM };
+    },
+    goTo: (reef) => map.flyTo({ center: reef.lngLat, zoom: Math.max(map.getZoom(), 12) }),
   });
   // Spawning calendar (PLAN 7.33), worked out on the device; redone once a day.
   const spawnUi = mountCoralSpawning(coralPanelEl);
