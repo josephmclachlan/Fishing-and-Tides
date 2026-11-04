@@ -647,3 +647,22 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
   .bt-glance { display: flex; width: auto; margin: 4px 10px 0; min-height: 36px; }
   .bt-cond { display: none; }
 }
+
+/* Spot-page charts (ribbon + hourly strips); theme variables only. */
+.sc-tap { display: block; width: 100%; padding: 0; margin: 0 0 4px; border: 1px solid var(--amber-dim); background: transparent; cursor: crosshair; }
+.sc-svg { display: block; }
+.sc-lbl, .sc-hr, .sc-val { fill: var(--amber); font-family: inherit; font-size: 8px; letter-spacing: 0.5px; }
+.sc-val { font-size: 7px; opacity: 0.85; }
+.sc-cell { opacity: 0.85; }
+.sc-g { fill: var(--green); }
+.sc-a { fill: var(--amber); opacity: 0.7; }
+.sc-r { fill: var(--red); opacity: 0.75; }
+.sc-n { fill: var(--amber-dim); opacity: 0.3; }
+.sc-best { fill: none; stroke: var(--green); stroke-width: 1.5; filter: drop-shadow(0 0 2px var(--green)); }
+.sc-bar { fill: var(--green); opacity: 0.7; }
+.sc-rule { stroke: var(--amber-dim); stroke-width: 0.5; }
+.sc-wind { fill: none; stroke: var(--amber); stroke-width: 1.5; filter: drop-shadow(0 0 2px var(--amber-dim)); }
+.sc-tide { fill: none; stroke: var(--green); stroke-width: 1.5; }
+.sc-arr-sw { fill: var(--green); }
+.sc-arr-wd { fill: var(--amber); }
+.sc-cursor { stroke: var(--red); stroke-width: 1.2; stroke-dasharray: 3 2; }
