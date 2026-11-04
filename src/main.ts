@@ -88,7 +88,8 @@ import { sargassumSeeds } from './adapters/sargassum';
 import { fetchMld, mldAt, type MldData } from './adapters/mld';
 import { effortCells, fetchEffort } from './adapters/effort';
 import { mountEffort } from './layers/effort';
-import { mountSst } from './layers/sst';
+import { mountSst, type SstCoast } from './layers/sst';
+import { coastTest, type CoastTest } from './layers/sea-image';
 import { clarityAt, mountClarity, mountClarityHud, type ClarityContext } from './layers/clarity';
 import { fetchCatchmentRain, type CatchmentRain } from './adapters/catchment-rain';
 import { fetchRiverFlow, flowRatio, type RiverFlow } from './adapters/river-flow';
@@ -179,16 +180,22 @@ const baseConditions = () => {
 };
 // Satellite SST and ocean colour (PLAN 2.4): HUD sea temperature and the WATER TEMP isotherms.
 let satellite: SatelliteData | null = null;
+let sstLayer: ReturnType<typeof mountSst> | null = null;
+let sstCoast: SstCoast | null = null;
+/** Where the sea is (the coastline mask, then the 1′ depth grid), once the seafloor data loads: sea-only overlays cut at it. */
+let seaCoast: CoastTest | null = null;
+const seaFronts = () => (waterMask ? fronts.filter((c) => waterMask!(c.lng, c.lat)) : fronts);
 const frontsLayer = mountFronts(map);
 let fronts: FrontCell[] = [];
 fetchSatellite()
   .then((d) => {
     if (!d.sst && !d.sstCoast) return console.warn('sst: nothing published; using mock');
     satellite = d;
-    mountSst(map, d);
+    // Cut at the coastline if its mask is already here; otherwise the seafloor load re-cuts them.
+    sstLayer = mountSst(map, d, sstCoast ?? undefined);
     // Fronts (PLAN 7.17): from the newest SST and chlorophyll maps.
     fronts = satelliteFronts(d);
-    frontsLayer.setFronts(fronts);
+    frontsLayer.setFronts(seaFronts());
     refreshClarity();
   })
   .catch((err) => console.warn('satellite unavailable', err));
@@ -196,7 +203,7 @@ fetchSatellite()
 let mld: MldData | null = null;
 fetchMld().then((d) => (mld = d.series ? d : null)).catch((err) => console.warn('mld unavailable', err));
 // FISHING BOATS (PLAN 7.19): a year of Global Fishing Watch effort; published only once the GFW_TOKEN secret is set.
-const effortLayer = mountEffort(map);
+const effortLayer = mountEffort(map, () => seaCoast);
 fetchEffort().then((d) => d.series && effortLayer.setCells(effortCells(d.series), d.series.meta.grid.dlon)).catch((err) => console.warn('effort unavailable', err));
 // Real waves once loaded (forecast to day 16, then climatology); the mock swell until then.
 let waves: WavesData | null = null;
@@ -469,12 +476,13 @@ const flowHud = mountFlowHud(hud, map, () => flowSources.current);
 // (or the hour asked for: the VIS DAYS row). Needs the depth grid, so it starts once that loads.
 let catchmentRain: CatchmentRain | null = null;
 let clarityElevation: Grid | null = null;
+let clarityLand: Grid | null = null;
 const clarityLayer = mountClarity(map);
 const bandAt = (ms: number) => bandFor((ms - time.baseMs()) / 3.6e6).id;
 const currentOut: [number, number] = [0, 0];
 const clarityCtx = (): ClarityContext | null =>
   clarityElevation && {
-    satellite, rain: catchmentRain, elevation: clarityElevation, ms: time.validMs(),
+    satellite, rain: catchmentRain, elevation: clarityElevation, land: clarityLand, ms: time.validMs(),
     currentAt: (lng, lat, ms) => {
       const f = currents && currentsAt(currents, bandAt(ms), ms)?.field;
       return f && sampleField(f, lng, lat, currentOut) ? [currentOut[0], currentOut[1]] : null;
@@ -511,7 +519,7 @@ fetchCatchmentRain()
 // 5-day landing outlook per beach. Needs the detections, the current forecast and the coastline; rerun as each loads.
 let sargassum: SargassumData | null = null;
 let sargForecast: SargForecast | null = null;
-const sargLayer = mountSargassum(map);
+const sargLayer = mountSargassum(map, () => seaCoast);
 const sargHud = mountSargassumHud(hud, map, () => ({ f: sargForecast, ms: time.validMs() }));
 const showSargassum = () => {
   if (sargForecast) sargLayer.update(sargForecast, time.validMs());
@@ -672,6 +680,7 @@ fetchSeafloor()
     landGrid = data.land;
     harboursHud?.refresh();
     clarityElevation = data.region;
+    clarityLand = data.land;
     refreshClarity();
     spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land }), baseConditions, () => time.validMs(), windExtras, spotSea);
     spotPhysics.subscribe(() => queueVerdict());
@@ -782,10 +791,15 @@ fetchSeafloor()
         boatStore.subscribe(() => (layer.setCatches(pins()), fishHud?.refresh()));
       })
       .catch((err) => console.warn('fishing layer unavailable', err));
-    // Currents stay in the sea once the coastline mask is here.
+    // Currents, wave crests and isotherms stay in the sea once the coastline mask is here.
     waterMask = (lng, lat) => isWater(data.land, data.macro, lng, lat);
     runSargassum();
     rebuildCrests();
+    seaCoast = coastTest(data.land, data.macro);
+    sstCoast = { water: waterMask, coast: seaCoast };
+    sstLayer?.setCoast(sstCoast);
+    frontsLayer.setFronts(seaFronts());
+    effortLayer.refresh();
     const current = { ...flowSources.current, water: waterMask };
     flowSources.current = current;
     flow?.setSource('current', current);
