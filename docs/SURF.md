@@ -33,3 +33,7 @@ Each break is run through the same physics as the spots (refraction over GEBCO, 
 Bands: FLAT (breaker under 0.3 m), POOR under 3, FAIR to 5.5, GOOD to 8.5, EPIC above. Rings on the map turn green for GOOD and EPIC, amber for FAIR, red for POOR and dim when FLAT. The spot-tier label and the SURF row show the band, the score and the wind (OFFSHORE, CROSS, ONSHORE or GLASSY).
 
 **Playa Bonita's facing needs a look.** The catalog says it faces 10° (N), but measured from the OSM coastline around the pin the open water runs from about 15° to 90°, a shore normal of about 50° (NE). The model uses the measured shore normal for refraction and wind, and the catalog swell window for scoring.
+
+## Forecast views (PLAN 7.27)
+
+BEST TODAY (SURF), the spot-page BEST HOURS ribbon and the WATCH tracker's SURF SCORE metric (`surfq`) now use this same score instead of wind and rain alone. They run it for every hour of the week, so `src/metrics/surf-estimate.ts` estimates the breaker height from the offshore swell (cut by sqrt(cos(angle off the break's normal))) instead of calling the physics worker. The BREAK row in CONDITIONS keeps the full refraction model, so the two can differ by a few tenths when the swell is angled. A spot without a break of its own uses the nearest break within 25 km; further than that it keeps voting on wind and rain.

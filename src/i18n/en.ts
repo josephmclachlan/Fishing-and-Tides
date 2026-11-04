@@ -843,6 +843,7 @@ export const en = {
   'metric.air': 'AIR',
   'metric.uv': 'UV',
   'metric.tide': 'HIGH TIDE',
+  'metric.surfq': 'SURF SCORE',
   'metric.bite': 'BITE',
   'metric.clarity': 'VISIBILITY',
   'metric.sargassum': 'SARGASSUM',

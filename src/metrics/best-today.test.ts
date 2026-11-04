@@ -41,6 +41,21 @@ describe('bestToday', () => {
   });
 });
 
+describe('bestToday for surf', () => {
+  it('uses the break score where the spot has a break: onshore hours lose to the calm window', () => {
+    // CAHUITA reads Playa Negra (faces 35°); wind from the NE is onshore except 08:00-10:00.
+    const e = { ...env(), windDirDeg: () => 40 };
+    const w = bestToday(e, 'surf', spot, DAY0 + 6 * H);
+    expect(w).not.toBeNull();
+    expect(w!.startMs).toBe(DAY0 + 8 * H);
+  });
+  it('falls back to wind and rain at a spot with no break nearby', () => {
+    const far = { name: 'FAR', lngLat: [-84.5, 10.5] as [number, number] };
+    const w = bestToday(env(), 'surf', far, DAY0 + 6 * H);
+    expect(w?.startMs).toBe(DAY0 + 8 * H);
+  });
+});
+
 describe('spotNear', () => {
   it('picks the closest spot', () => {
     const far = { name: 'FAR', lngLat: [-83.5, 10.5] as [number, number] };
