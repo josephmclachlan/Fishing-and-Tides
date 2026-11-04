@@ -20,20 +20,20 @@ Features were built in phases, so older ones can miss data that landed later. Th
 | Squall risk: CAPE, gusts (weather) | – | – | ✓ | ✓ | ✓ |
 | Lightning (live strikes) | – | – | ✓ (hour around now) | ✓ (hour around now) | ✗ (live only) |
 | Tropical storms | – | – | ✗ | ✗ | ✗ |
-| Water clarity (CLARITY forecast: satellite Kd490, river plumes, stirred bottom) | ✗ | ✗ | ✗ | ✗ | ✗ |
-| Water temperature (MUR SST + ACSPO passes) | ✗ | ✗ | ✗ | ✗ | ✗ |
-| Chlorophyll (gap-filled daily + passes) | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Water clarity (CLARITY forecast: satellite Kd490, river plumes, stirred bottom) | ✗ | ✓ | ✓ | ✓ (slider time) | ✗ (no species) |
+| Water temperature (MUR SST analysis) | ✗ | ✓ | ✓ | ✓ (slider time) | ✗ (no species) |
+| Chlorophyll (gap-filled daily) | ✗ | ✓ | ✓ | ✓ (slider time) | ✗ (no species) |
 | Currents (forecast) | – | ✗ | ✗ | ✗ | ✗ |
-| Sargassum beaching outlook | – | ✗ | ✗ | ✗ | ✗ |
+| Sargassum beaching outlook | – | ✓ | ✓ | ✓ (slider time) | ✗ |
 | Live tide gauge (Limón) | – | – | ✗ (harmonics only) | – | ✗ |
 | Your own CATCH pins (BOAT mode) | ✗ | ✗ | – | – | – |
 
-Before this pass fishing was built from the static seafloor plus tide, sun, moon, wind and waves; rain was an input nobody fed, and BEST TIMES ignored the hourly forecast. Step 1 below (weather and safety) is in. None of the water feeds (clarity, temperature, chlorophyll, currents, sargassum) reach fishing yet. Storms act through their wind and waves.
+Before this pass fishing was built from the static seafloor plus tide, sun, moon, wind and waves; rain was an input nobody fed, and BEST TIMES ignored the hourly forecast. Steps 1 (weather and safety) and 2 (water) below are in. Currents do not reach fishing yet, and the amber heat stays structure and season only. Storms act through their wind and waves.
 
 ## Plan
 
 1. **Weather and safety into BITE** (done). Wire heavy rain (the input was there but never fed). Overcast stretches the low-light bite through the day. A squall watch or a lightning strike within 25 km in the last 15 min caps BITE and says why (get off the water). BEST TIMES and the WATCH BITE metric use the hourly wind, waves and rain forecast instead of timing only.
-2. **Water into BITE and BEST SPOTS** (second PR). A per-species water term from clarity, temperature and chlorophyll, plus sargassum fouling lines on shore spots. Rules of thumb:
+2. **Water into BITE and BEST SPOTS** (done; formulas in `docs/FISHING.md`). A per-species water term from clarity, temperature and chlorophyll, plus sargassum fouling lines on shore spots. Rules of thumb:
 
    | Species | Visibility it likes | Water temperature, best | Notes |
    |---|---|---|---|

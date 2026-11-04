@@ -411,7 +411,7 @@ export const en = {
   'fish.spots': 'BEST SPOTS',
   'fish.nospots': 'NONE NEARBY FOR THIS REACH',
   'fish.spot.line': '{score}% · {depth} M · {km} KM',
-  'fish.note': 'RULE OF THUMB, NOT A CATCH FORECAST. SOLUNAR IS FOLKLORE. WATER TEMP AND CLARITY NOT IN YET',
+  'fish.note': 'RULE OF THUMB, NOT A CATCH FORECAST. SOLUNAR IS FOLKLORE',
   'fish.why.mouth': 'RIVER MOUTH',
   'fish.why.reef': 'REEF',
   'fish.why.drop': 'DROP-OFF',
@@ -430,6 +430,11 @@ export const en = {
   'bite.r.overcast': 'OVERCAST',
   'bite.r.squall': 'SQUALL RISK',
   'bite.r.lightning': 'LIGHTNING NEAR',
+  'bite.r.murky': 'TOO MURKY',
+  'bite.r.clearwater': 'TOO CLEAR',
+  'bite.r.temp': 'WATER TEMP OFF',
+  'bite.r.sargassum': 'SARGASSUM',
+  'bite.r.goodwater': 'GOOD WATER',
 
   // Boat mode (PLAN 4.6)
   'boat.tab': 'BOAT',

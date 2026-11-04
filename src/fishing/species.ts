@@ -16,14 +16,19 @@ export interface Species {
   mouthReachKm: number;
   /** Season factor per month (Jan..Dec), 0.7 (off) to 1 (peak). Kept narrow so a wrong guess costs little. */
   season: readonly number[];
+  /**
+   * Water the species feeds best in (PLAN 7.11, fishing/water.ts), each [floor from, ideal from, ideal to, floor from]:
+   * visibility, m (river-mouth hunters like stained water, reef sight-hunters clear), and sea temperature, °C.
+   */
+  water: { visM: readonly [number, number, number, number]; sstC: readonly [number, number, number, number] };
 }
 
 export const SPECIES: readonly Species[] = [
-  { id: 'tarpon', depthM: [0.5, 1, 8, 20], w: { mouth: 0.75, reef: 0, drop: 0.25 }, mouthReachKm: 1.2, season: [0.95, 1, 1, 1, 0.95, 0.85, 0.8, 0.8, 0.9, 1, 0.9, 0.9] },
-  { id: 'snook', depthM: [0.3, 0.5, 4, 10], w: { mouth: 0.8, reef: 0.1, drop: 0.1 }, mouthReachKm: 0.9, season: [0.85, 0.85, 0.8, 0.8, 0.85, 0.9, 0.95, 1, 1, 1, 1, 0.95] },
-  { id: 'jack', depthM: [1, 2, 18, 40], w: { mouth: 0.5, reef: 0.25, drop: 0.25 }, mouthReachKm: 1.5, season: [0.9, 0.95, 1, 1, 0.95, 0.9, 0.85, 0.85, 0.9, 0.95, 0.95, 0.9] },
-  { id: 'snapper', depthM: [4, 8, 30, 50], w: { mouth: 0.1, reef: 0.55, drop: 0.35 }, mouthReachKm: 1, season: [1, 1, 0.95, 0.9, 0.85, 0.8, 0.8, 0.85, 0.9, 0.95, 1, 1] },
-  { id: 'barracuda', depthM: [1.5, 3, 18, 40], w: { mouth: 0.1, reef: 0.55, drop: 0.35 }, mouthReachKm: 1, season: [1, 1, 1, 0.95, 0.9, 0.85, 0.85, 0.9, 0.9, 0.95, 1, 1] },
+  { id: 'tarpon', depthM: [0.5, 1, 8, 20], w: { mouth: 0.75, reef: 0, drop: 0.25 }, mouthReachKm: 1.2, season: [0.95, 1, 1, 1, 0.95, 0.85, 0.8, 0.8, 0.9, 1, 0.9, 0.9], water: { visM: [0.2, 0.5, 3, 8], sstC: [20, 26, 30, 33] } },
+  { id: 'snook', depthM: [0.3, 0.5, 4, 10], w: { mouth: 0.8, reef: 0.1, drop: 0.1 }, mouthReachKm: 0.9, season: [0.85, 0.85, 0.8, 0.8, 0.85, 0.9, 0.95, 1, 1, 1, 1, 0.95], water: { visM: [0.2, 0.5, 2.5, 6], sstC: [18, 24, 30, 33] } },
+  { id: 'jack', depthM: [1, 2, 18, 40], w: { mouth: 0.5, reef: 0.25, drop: 0.25 }, mouthReachKm: 1.5, season: [0.9, 0.95, 1, 1, 0.95, 0.9, 0.85, 0.85, 0.9, 0.95, 0.95, 0.9], water: { visM: [0.3, 1, 6, 15], sstC: [20, 24, 30, 33] } },
+  { id: 'snapper', depthM: [4, 8, 30, 50], w: { mouth: 0.1, reef: 0.55, drop: 0.35 }, mouthReachKm: 1, season: [1, 1, 0.95, 0.9, 0.85, 0.8, 0.8, 0.85, 0.9, 0.95, 1, 1], water: { visM: [1, 3, 15, 30], sstC: [20, 24, 29, 32] } },
+  { id: 'barracuda', depthM: [1.5, 3, 18, 40], w: { mouth: 0.1, reef: 0.55, drop: 0.35 }, mouthReachKm: 1, season: [1, 1, 1, 0.95, 0.9, 0.85, 0.85, 0.9, 0.9, 0.95, 1, 1], water: { visM: [1.5, 4, 20, 40], sstC: [20, 24, 30, 33] } },
 ];
 
 /** PEAK at 0.97 or more, GOOD from 0.88, else OFF: a coarse word for the season factor. */

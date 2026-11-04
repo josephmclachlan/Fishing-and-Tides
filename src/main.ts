@@ -73,7 +73,7 @@ import { MOCK_FLOW, REGION, SPOTS } from './region';
 import { fetchWind, windAt, type WindData } from './adapters/wind';
 import { currentsAt, fetchCurrents, type CurrentsData } from './adapters/currents';
 import { fetchWaves, wavesAt, type SeaState, type WavesData } from './adapters/waves';
-import { fetchSatellite, sstAt, type SatelliteData } from './adapters/satellite';
+import { chlAt, fetchSatellite, sstAt, type SatelliteData } from './adapters/satellite';
 import { mountSst } from './layers/sst';
 import { clarityAt, mountClarity, mountClarityHud, type ClarityContext } from './layers/clarity';
 import { fetchCatchmentRain, type CatchmentRain } from './adapters/catchment-rain';
@@ -90,7 +90,7 @@ import { fetchGauge, type GaugeReading } from './adapters/gauge';
 import { mountTideHud } from './tide-hud';
 import { mountSpotPage } from './spot-page';
 import { fetchSargassum, type SargassumData } from './adapters/sargassum';
-import { beachDay, mountSargassum, mountSargassumHud, sargassumForecast, type SargForecast } from './layers/sargassum';
+import { BEACH_RADIUS_M, beachDay, mountSargassum, mountSargassumHud, sargassumForecast, type SargForecast } from './layers/sargassum';
 
 registerSW({ immediate: true });
 
@@ -564,7 +564,18 @@ fetchSeafloor()
               lightning: !!near && near.km <= STRIKE_ALERT_KM,
             };
           },
-          version: () => `${wind ? 1 : 0}${waves ? 1 : 0}${weatherData ? 1 : 0}|${flashesAt}`,
+          // The water for the species: clarity forecast, satellite temperature and chlorophyll, and the sargassum outlook at the nearest beach.
+          water: (lng: number, lat: number, ms: number) => {
+            const c = clarityCtx();
+            const beach = sargForecast ? nearest([lng, lat], SPOTS) : null;
+            return {
+              visM: c ? (clarityAt({ ...c, ms }, lng, lat)?.visM ?? null) : null,
+              sstC: satellite ? (sstAt(satellite, lng, lat, ms)?.value ?? null) : null,
+              chl: satellite ? (chlAt(satellite, lng, lat, ms)?.value ?? null) : null,
+              sarg: sargForecast && beach && beach.distanceM <= BEACH_RADIUS_M ? (beachDay(sargForecast, beach.point.name, ms)?.level ?? null) : null,
+            };
+          },
+          version: () => `${wind ? 1 : 0}${waves ? 1 : 0}${weatherData ? 1 : 0}${satellite ? 1 : 0}${catchmentRain ? 1 : 0}${sargForecast ? 1 : 0}|${flashesAt}`,
         };
         mountFishingHud(hud, map, layer, time, species, fishEnv);
       })

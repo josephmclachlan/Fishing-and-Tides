@@ -10,6 +10,7 @@ describe('species catalog', () => {
       expect(s.season).toHaveLength(12);
       const [a, b, c, d] = s.depthM;
       expect(a < b && b <= c && c < d).toBe(true);
+      for (const r of [s.water.visM, s.water.sstC]) expect(r[0] < r[1] && r[1] <= r[2] && r[2] < r[3]).toBe(true);
     }
   });
 });
