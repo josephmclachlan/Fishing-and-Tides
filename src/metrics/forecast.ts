@@ -110,15 +110,28 @@ export function buildForecast(env: MetricEnv, ids: readonly string[], spots: rea
     }
     return { id: m.id, unit: m.unit, decimals: m.decimals, days: cells, hourly };
   });
+  // Best day (J4): each metric with a better end votes its tone plus where the day sits in its own
+  // 5-day range (so an all-green week still picks the calmest or bitiest day). Metrics with no better
+  // end (tide height, wind direction) don't vote. Today counts only while it has a window left.
+  const voting = rows.map((r, i) => ({ r, m: metrics[i] })).filter(({ m }) => m.better !== null);
+  const windows = Array.from({ length: days }, (_, d) => bestTime(rows, metrics, d, start, fromMs));
   let bestDay: number | null = null;
   let top = -Infinity;
   for (let d = 0; d < days; d++) {
-    const scored = rows.filter((r) => r.days[d].value !== null);
+    if (!windows[d] && voting.some(({ r }) => r.hourly.slice(d * 24, d * 24 + 24).some((x) => x !== null))) continue;
+    const scored = voting.filter(({ r }) => r.days[d].value !== null);
     if (!scored.length) continue;
-    const score = scored.reduce((a, r) => a + TONE_SCORE[r.days[d].tone], 0) / scored.length;
-    if (score > top) (top = score), (bestDay = d);
+    const score =
+      scored.reduce((a, { r, m }) => {
+        const vals = r.days.map((c) => c.value).filter((v): v is number => v !== null);
+        const lo = Math.min(...vals), hi = Math.max(...vals);
+        const pos = hi > lo ? (r.days[d].value! - lo) / (hi - lo) : 0.5;
+        return a + TONE_SCORE[r.days[d].tone] + 0.5 * (m.better === 'high' ? pos : 1 - pos);
+      }, 0) / scored.length;
+    if (score > top + 1e-9) (top = score), (bestDay = d);
   }
-  return { startMs: start, days, spots: spots.map((s) => s.name), rows, bestDay, bestTime: bestDay === null ? null : bestTime(rows, metrics, bestDay, start) };
+  const bt = bestDay === null ? null : windows[bestDay];
+  return { startMs: start, days, spots: spots.map((s) => s.name), rows, bestDay, bestTime: bt ? { startMs: bt.startMs, endMs: bt.endMs } : null };
 }
 
 /**

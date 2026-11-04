@@ -9,7 +9,17 @@ export interface WatchState {
 }
 
 export const KEY = 'watch.v1';
-export const DEFAULT_STATE: WatchState = { metrics: ['swell', 'wind', 'rain', 'tide'], region: null };
+/** For ALL: the four things every activity cares about. HIGH TIDE left out: it barely changes day to day on this coast (about 0.2 m). */
+export const DEFAULT_STATE: WatchState = { metrics: ['swell', 'wind', 'rain', 'clarity'], region: null };
+
+/** True once the user has saved a WATCH selection on this device. */
+export function hasSavedWatch(store: Pick<Storage, 'getItem'> | undefined): boolean {
+  try {
+    return store?.getItem(KEY) != null;
+  } catch {
+    return false;
+  }
+}
 export const RADII_KM = [5, 10, 20, 40] as const;
 
 /** Read the saved state, repairing anything unknown or out of range; defaults when nothing usable is stored. */

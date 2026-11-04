@@ -84,10 +84,20 @@ describe('best time', () => {
   const localH = (ms: number) => (((ms / 36e5 - 6) % 24) + 24) % 24;
   const morning = (): MetricEnv => ({ ...env(), windMs: (_l, _a, ms) => 1 + localH(ms) / 2, sea: () => sea(1) });
   it('picks the calm early window for a wind that builds', () => {
-    const f = buildForecast(morning(), ['wind'], spots, NOON, 2);
+    const f = buildForecast(morning(), ['wind'], spots, NOON - 8 * 36e5, 2); // asked at 04:00 local
     expect(f.bestTime).not.toBeNull();
     expect(localH(f.bestTime!.startMs)).toBe(5);
     expect(f.bestTime!.endMs - f.bestTime!.startMs).toBe(2 * 36e5);
+  });
+  it('never offers a window that has already passed (J4)', () => {
+    const f = buildForecast(morning(), ['wind'], spots, NOON, 2); // asked at noon: 05:00 today is gone
+    expect(f.bestTime!.startMs).toBeGreaterThanOrEqual(NOON - 36e5);
+  });
+  it('lets the 5-day range break a tie between all-green days (J4)', () => {
+    // Bite-free: wind is green every day but falls day by day, so the last day is the calmest.
+    const falling = (): MetricEnv => ({ ...env(), windMs: (_l, _a, ms) => 5 - (ms - NOON) / 864e5 });
+    const f = buildForecast(falling(), ['wind', 'tide'], spots, NOON, 4);
+    expect(f.bestDay).toBe(3);
   });
   it('lies inside the best day and the 05 to 19 local window', () => {
     const f = buildForecast(env(), ['bite', 'wind', 'swell'], spots, NOON, 5);
