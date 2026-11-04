@@ -656,7 +656,11 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 /* Crests: short bars across; streaks: a line with a fading tail along the flow. */
 .mk-waves { background: repeating-linear-gradient(90deg, var(--sw) 0 2px, transparent 2px 5px); }
 .mk-wind, .mk-currents { height: 0; border-top: 2px solid var(--sw); -webkit-mask-image: linear-gradient(90deg, transparent, #000); mask-image: linear-gradient(90deg, transparent, #000); }
-@media (max-width: 1100px), (max-height: 700px) { .mkey { top: 104px; } }
+/* Area fills: a good-to-bad scale, or one colour strengthening. */
+.mk-fill { height: 8px; }
+.mk-gar { background: linear-gradient(90deg, var(--green), var(--amber), var(--red)); }
+.mk-ramp { background: linear-gradient(90deg, transparent, var(--amber)); border: 1px solid var(--amber-dim); }
+@media (max-width: 1100px), (max-height: 700px) { .mkey { top: 104px; flex-wrap: wrap; justify-content: center; gap: 4px 10px; max-width: calc(100% - 32px); font-size: 9px; } }
 /* Empty-layer note (layers/layer-notes.ts): one line under the top bar. */
 .lnote { position: absolute; top: 128px; left: 50%; transform: translateX(-50%); z-index: 4; max-width: calc(100% - 32px); padding: 3px 10px; font-size: 10px; letter-spacing: 1px; color: var(--amber); background: var(--bg); border: 1px solid var(--amber-dim); text-align: center; pointer-events: none; }
 .lnote[hidden] { display: none; }

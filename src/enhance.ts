@@ -24,8 +24,8 @@ import { ENHANCE_WIDE_ZOOM, ENHANCE_ZOOM, planHops, plainPanMs, plainZoomMs, ste
 import { haversineM } from './geo';
 import { sizeOf } from './layout-size';
 
-/** Step timings, ms. Slow on purpose so it reads as a sensor working, not a glitch. */
-const T = { wide: 1600, designate: 1300, center: 1200, zoom: 2200, tiles: 3000, resolve: 2600, settle: 700, hold: 2500 };
+/** Step timings, ms: slow enough to read as a sensor working, short enough not to look like a glitch (persona review J10). */
+const T = { wide: 1400, designate: 800, center: 1000, zoom: 1300, tiles: 3000, resolve: 1000, settle: 400, hold: 1500 };
 /** Discrete camera jumps per stepped zoom-in. */
 const ZOOM_STEPS = 9;
 const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
