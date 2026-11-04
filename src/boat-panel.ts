@@ -21,7 +21,12 @@ const hhmm = (ms: number) => {
 /** BITE at a catch and the mean BITE of its daylight day there (PLAN 7.16), once the fishing panel is up. */
 export type CatchScorer = (lng: number, lat: number, ms: number, species: string) => { bite: number; biteDay: number } | null;
 
-export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sheets: Sheets, depthAt: () => ((lng: number, lat: number) => number | undefined) | null, scoreCatch: () => CatchScorer | null = () => null) {
+/** Offshore read at a place (PLAN 7.17): nearest front and the boat species' scores, best first. */
+export type OffshoreRead = (lng: number, lat: number) => { front: { km: number; bearingDeg: number; kind: 'sst' | 'chl' } | null; scores: { id: string; score: number }[] } | null;
+
+const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
+
+export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sheets: Sheets, depthAt: () => ((lng: number, lat: number) => number | undefined) | null, scoreCatch: () => CatchScorer | null = () => null, offshore: () => OffshoreRead | null = () => null) {
   const gps = createGps(
     (p) => {
       store.addFix(p);
@@ -44,6 +49,8 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     <div class="ro"><span class="lbl">${t('boat.time')}</span><span class="seg" id="b-time">00:00</span></div>
     <div class="ro"><span class="lbl">${t('boat.speed')}</span><span class="seg" id="b-spd">--</span><span class="unit">${t('unit.kt')}</span></div>
     <div class="ro"><span class="lbl">${t('boat.pins')}</span><span class="seg" id="b-pins">0</span></div>
+    <div class="ro"><span class="lbl">${t('boat.front')}</span><span class="seg sm" id="b-front">--</span></div>
+    <div class="ro"><span class="lbl">${t('boat.offshore')}</span><span class="seg sm" id="b-off">--</span></div>
     <div class="boat-btns">
       <button type="button" class="tab" id="b-rec"></button>
       <button type="button" class="tab" id="b-mark">${t('boat.mark')}</button>
@@ -103,6 +110,12 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     $('b-rec').textContent = s.recording ? t('boat.stop') : t('boat.rec');
     $('b-rec').classList.toggle('on', s.recording);
     $('b-sp').textContent = t(`boat.sp.${BOAT_SPECIES[sp]}` as Key);
+    // Offshore read at the boat, or at the map centre with no fix (PLAN 7.17).
+    const at = gps.state() === 'ok' ? gps.last() : null;
+    const c = at ?? map.getCenter();
+    const o = offshore()?.(c.lng, c.lat);
+    $('b-front').textContent = !o ? '--' : o.front ? `${o.front.km.toFixed(1)} ${t('unit.km')} ${COMPASS[Math.round(o.front.bearingDeg / 45) % 8]} · ${t(`boat.front.${o.front.kind}` as Key)}` : t('boat.front.none');
+    $('b-off').innerHTML = !o || !o.scores.length ? '--' : o.scores.slice(0, 2).map((s) => `<span class="${s.score >= 0.6 ? 'green' : ''}">${t(`boat.sp.${s.id}` as Key)} ${Math.round(s.score * 100)}</span>`).join(' · ');
     $('b-list').innerHTML = s.pins
       .slice(-5)
       .reverse()
@@ -175,6 +188,8 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
   });
 
   window.addEventListener('pagehide', () => store.flush());
+  map.on('moveend', () => sheets.is('boat') && update());
+  sheets.subscribe(() => sheets.is('boat') && update());
   void layer;
   return { gps };
 }
