@@ -699,6 +699,10 @@ export const en = {
   'legend.anchorages.2': 'Fainter: not verified',
   'legend.info': 'What is this layer?',
   'legend.close': 'Hide',
+  'legend.currents.1': 'Green streaks: the current (brighter and quicker is stronger)',
+  'legend.currents.2': 'Red: 1.5 kt or more, too strong to swim against',
+  'legend.wind.1': 'Amber streaks: the wind (brighter and quicker is stronger)',
+  'legend.wind.2': 'Red: 25 kt or more, small-craft wind',
 } as const;
 
 export type Key = keyof typeof en;

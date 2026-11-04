@@ -15,8 +15,8 @@ After PR for 7.12 part 1 every layer has WHAT and LEGEND under the ? beside its 
 | Layer | TITLE | WHAT | LEGEND | TAP on map | EMPTY | Next step |
 |---|---|---|---|---|---|---|
 | WAVES/SWELL | ok | yes | yes | no (readouts yes) | ? | tap a crest line for height and period |
-| CURRENTS | ok | yes | yes (no swatches) | no | ? | colour or speed key for streaks |
-| WIND | ok | yes | yes (no swatches) | no | ? | colour or speed key for streaks |
+| CURRENTS | ok | yes | yes | no | ? | n/a |
+| WIND | ok | yes | yes | no | ? | n/a |
 | WATER TEMP | ok | yes | yes | no (SST readout yes) | ? | label the isotherms in the legend with the current range |
 | CLARITY | ok | yes | yes | no (VIS readout yes) | ? | rename VIS to VISIBILITY in readouts |
 | SARGASSUM | ok | yes | yes | yes (dots, beach labels, SARG readout) | CLOUD text | on-map legend when the layer is first switched on |
