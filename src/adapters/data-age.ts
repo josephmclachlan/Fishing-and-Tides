@@ -20,6 +20,14 @@ export function formatAge(ageMs: number): string {
   return h < 100 ? `${pad(h)}H${pad((h % 1) * 60)}` : `${pad(h / 24)}D${pad(h % 24)}H`;
 }
 
+/** An age in words for a person: "40 MIN AGO", "28 H AGO", "9 DAYS AGO" (`ago` is the localized "{n} {u} AGO" template). */
+export function agoWords(ageMs: number, ago: (n: number, unit: 'min' | 'h' | 'd') => string): string {
+  const min = Math.max(0, Math.round((Number.isFinite(ageMs) ? ageMs : 0) / 6e4));
+  if (min < 60) return ago(min, 'min');
+  const h = Math.round(min / 60);
+  return h < 48 ? ago(h, 'h') : ago(Math.round(h / 24), 'd');
+}
+
 export interface AgeView {
   /** `none`: no live feed has loaded (first run offline, or the data build isn't published): the HUD is showing simulated values. */
   state: AgeState | 'none';

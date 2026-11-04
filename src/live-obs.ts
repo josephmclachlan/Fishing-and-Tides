@@ -14,7 +14,9 @@ import type { GaugeReading } from './adapters/gauge';
 import type { MetarObs } from './adapters/metar-parse';
 import { CLOUDED_OUT, passList, scatMean, type Pass, type PassData } from './adapters/passes';
 import type { GridSeries } from './adapters/pack';
-import { formatAge } from './adapters/data-age';
+import { agoWords } from './adapters/data-age';
+
+const ago = (ms: number) => agoWords(ms, (n, u) => t(`ago.${u}` as Key, { n }));
 import { t, type Key } from './i18n';
 import { closeButton, type Sheets } from './sheets';
 import type { TideFix } from './physics/tide-fix';
@@ -196,7 +198,7 @@ export function mountLiveObs(root: HTMLElement, map: Map, sheets: Sheets, data: 
     type: 'FeatureCollection',
     features: rows.filter((r) => r.lngLat && r.obsMs !== null).map((r) => ({
       type: 'Feature',
-      properties: { fresh: r.fresh, label: `${t(`obs.short.${r.id}` as Key)} ${valueText(r)}\n${formatAge(now() - r.obsMs!)}` },
+      properties: { fresh: r.fresh, label: `${t(`obs.short.${r.id}` as Key)} ${valueText(r)}\n${ago(now() - r.obsMs!)}` },
       geometry: { type: 'Point', coordinates: r.lngLat! },
     })),
   });
@@ -230,7 +232,7 @@ export function mountLiveObs(root: HTMLElement, map: Map, sheets: Sheets, data: 
     el.querySelector('#ob-list')!.innerHTML = rows
       .map((r) => `<div class="ck-feed ${LAMP[r.fresh]}"><div class="ob-row">
         <span class="ck-lamp ${TONE[r.fresh]}" aria-hidden="true">●</span><span class="ck-name">${t(`obs.name.${r.id}` as Key)}</span>
-        <span class="ck-age seg sm ${TONE[r.fresh]}">${r.obsMs === null ? '--' : formatAge(now() - r.obsMs)}</span>
+        <span class="ck-age seg sm ${TONE[r.fresh]}">${r.obsMs === null ? '--' : ago(now() - r.obsMs)}</span>
         <span class="ob-val seg">${valueText(r)}</span><span class="ck-worst dim">${detailText(r)}</span></div></div>`)
       .join('');
     el.querySelector('#ob-fix')!.innerHTML = fixRows(data().fixes)
