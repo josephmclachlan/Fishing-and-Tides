@@ -75,7 +75,6 @@ import { layers } from './layers/registry';
 import { bindMapLayers } from './layers/visibility';
 import { createCoralMode } from './coral-mode';
 import { mountCoral } from './layers/coral';
-import { fetchCoral } from './adapters/coral';
 import { mountLayersPanel } from './layers-panel';
 import { FLOW_STYLE, mountFlow } from './layers/flow';
 import type { FlowSource } from './layers/flow-sim';
