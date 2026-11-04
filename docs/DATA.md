@@ -84,6 +84,7 @@ Fishing and rip scores are not stored: they are computed on the phone from the s
 | SARGASSUM | AFAI detections, currents, wind, seafloor (coastline) | sync `sargassum`, `currents`, `wind`; seafloor precached | sargassum |
 | WEATHER | Open-Meteo weather and rain by town, NHC storms | sync `weather`, `townrain`, `storms` | weather, townrain, storms |
 | LIGHTNING | GLM flashes (collector branch) | sync `lightning` (live site only) | lightning |
+| WEATHER (rain cells) | GOES-19 rain rate or IR estimate (collector branch `data-rain`) | sync `raincells` (live site only) | raincells |
 | LIVE OBS | gauge, airport METAR, satellite passes (SST, colour, ASCAT wind) | sync `gauge`, `metar`, `passes` | gauge, metar, sst-pass, chl-pass, scat-pass |
 | RIP RISK, SURF BREAKS | waves, wind, tide (on device), seafloor | from the synced inputs | through waves and wind |
 | DEPTH, REEFS, SEAMARKS | seafloor grids, reefs, OSM marks | precached | (static build) |
