@@ -49,3 +49,5 @@ Not looked at yet beyond what earlier PRs did (tap-to-explain on most CONDITIONS
 
 ## Rules for new layers and panels
 Added to the definition of done: a plain title, a legend entry in `src/layers/legend.ts` (the test fails without one, in EN and ESP), a tap-to-explain card for anything drawn on the map that is not self-evident, and an empty state that says why.
+
+- Tap bare map: "what's here" card (swell, sea, wind, depth, visibility at the point, `src/here-card.ts`). Where a mark is under the tap its own card wins instead.

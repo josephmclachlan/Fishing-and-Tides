@@ -90,6 +90,19 @@ export function mountExplain(root: HTMLElement) {
     card.style.top = `${Math.min(Math.max(8, at.y - 16), window.innerHeight - h - 8)}px`;
   };
 
+  /** A card of label/value rows for a map point (the "what's here" card). */
+  const showRows = (title: string, rows: [string, string][], at: { x: number; y: number }) => {
+    const body = rows.length ? rows.map(([k, v]) => `<div class="ro"><span class="lbl">${esc(k)}</span><span class="val">${esc(v)}</span></div>`).join('') : `<p class="help-text">${esc(t('here.none'))}</p>`;
+    card.innerHTML = `<div class="ph"><span>${esc(title)}</span><button type="button" class="sheet-x help-x" aria-label="${t('help.close')}">✕</button></div>${body}<p class="help-text">${esc(t('here.note'))}</p>`;
+    card.querySelector('.help-x')!.addEventListener('click', close);
+    card.hidden = false;
+    anchor = null;
+    if (phone.matches) return card.style.removeProperty('top'), card.style.removeProperty('left');
+    const w = card.offsetWidth, h = card.offsetHeight;
+    card.style.left = `${Math.min(Math.max(8, at.x + 16), window.innerWidth - w - 8)}px`;
+    card.style.top = `${Math.min(Math.max(8, at.y - 16), window.innerHeight - h - 8)}px`;
+  };
+
   const open = (row: HTMLElement) => {
     if (anchor === row && !card.hidden) return close();
     const id = row.dataset.help!;
@@ -133,7 +146,7 @@ export function mountExplain(root: HTMLElement) {
   new MutationObserver((muts) => {
     for (const m of muts) m.addedNodes.forEach((n) => n instanceof Element && scan(n));
   }).observe(root, { childList: true, subtree: true });
-  return { close, show };
+  return { close, show, showRows };
 }
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
