@@ -2,6 +2,8 @@
 
 **Shown:** rain now and over the next 24 h, cloud, UV and air temperature at the slider's valid time, from GFS, ECMWF IFS and ICON (`src/weather.ts`). Air temperature and gusts are the ensemble blend below; rain, cloud, UV and CAPE are the plain mean. When the models' rain rates differ by 2 mm/h or more the panel says MODELS DISAGREE. The WEATHER layer shows active Atlantic tropical storms from NHC as a red ring with name and category.
 
+**Rain by town (PLAN 7.24):** under the weather rows, RAIN BY TOWN gives Cahuita, Playa Negra, Puerto Viejo and Manzanillo the rain over the 3 hours from the slider's time: the mean of ECMWF 9 km, UK Met Office 10 km, ICON and GFS, and the share of those models with at least 0.5 mm (`src/rain/town.ts`). A model votes only if it covers half the window. With four models the share moves in 25 % steps; it is model agreement, not a calibrated chance (that needs town gauges, 7.24 item 5). When one town's models are mostly dry (≤25 %) and another's mostly wet (≥75 %) the note says SHOWERS PATCHY. The models are 9 to 13 km wide, so Cahuita and Puerto Viejo sit in neighbouring cells: the towns differ, but less than real showers do.
+
 **Alerts** (alert strip, after the rip warning): a tropical system within 1500 km of the region, and heavy rain (mean model rate of 10 mm/h or more) in the next 3 hours. Both are advisory and say so; follow NHC and the IMN.
 
 **Not built, and why:**

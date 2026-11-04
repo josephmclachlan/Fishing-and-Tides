@@ -20,6 +20,9 @@
  *   sargassum  1 for NONE or LOW at the nearest beach, 0.6 MODERATE, 0.3 HIGH (mats foul the entry and hide the bottom; optional)
  *   runoff  1, or 0.6 when a river mouth is within 8 km and runs at 3 times its median or the catchment had 25 mm or more
  *           (rule of thumb, not a measurement; optional)
+ *   entry   1 up to 0.5 m of breaking surf at the shore, 0 at 1.5 m and above (you cannot get in or out through it; the breaker
+ *           height already carries the swell direction, refraction and sheltering of the spot model; optional)
+ *   rip     LOW 1, MOD 0.8, HIGH 0.4 at the entry (swept off the reef; optional, only given for the hour the rip model ran)
  *   rain    1 up to 2 mm/h, 0.3 at 10 mm/h and above (optional input; left out when unknown)
  *
  * Weather safety caps the whole score afterwards: score × safetyTerm (physics/safety.ts, shared with fishing).
@@ -29,7 +32,7 @@ import { safetyTerm, type SquallLevel } from './safety';
 
 export type SargLevel = 'NONE' | 'LOW' | 'MODERATE' | 'HIGH';
 
-export type OutingReason = 'storm' | 'surge' | 'vis' | 'chop' | 'shallow' | 'light' | 'rain' | 'current' | 'cold' | 'sargassum' | 'runoff';
+export type OutingReason = 'storm' | 'surge' | 'vis' | 'chop' | 'shallow' | 'light' | 'rain' | 'current' | 'cold' | 'sargassum' | 'runoff' | 'entry' | 'rip';
 
 export interface OutingInputs {
   /** Peak bed velocity at the activity's depth, m/s. */
@@ -54,6 +57,10 @@ export interface OutingInputs {
   sarg?: SargLevel;
   /** River runoff close by after heavy rain or a high river (see runoffRisk): bacteria and mud with it. */
   runoff?: boolean;
+  /** Breaker height at the shore, m (spot model, scaled to the hour's swell). */
+  breakerM?: number;
+  /** Rip current risk at the entry. */
+  rip?: 'LOW' | 'MOD' | 'HIGH';
   /** Rain, mm/h (mean over the models). Left out when no forecast covers the hour. */
   rainMmH?: number;
   /** Squall flag for the hour (weather.ts squallLevel). */
@@ -93,6 +100,8 @@ export function outingScore(i: OutingInputs): OutingScore {
   if (i.sstC !== undefined && Number.isFinite(i.sstC)) terms.push(['cold', 1 - 0.6 * ramp(26 - i.sstC, 0, 6)]);
   if (i.sarg) terms.push(['sargassum', i.sarg === 'HIGH' ? 0.3 : i.sarg === 'MODERATE' ? 0.6 : 1]);
   if (i.runoff !== undefined) terms.push(['runoff', i.runoff ? 0.6 : 1]);
+  if (i.breakerM !== undefined && Number.isFinite(i.breakerM)) terms.push(['entry', 1 - ramp(i.breakerM, 0.5, 1.5)]);
+  if (i.rip) terms.push(['rip', i.rip === 'HIGH' ? 0.4 : i.rip === 'MOD' ? 0.8 : 1]);
   if (i.currentMs !== undefined && Number.isFinite(i.currentMs)) terms.push(['current', 1 - ramp(i.currentMs, 0.15, 0.6)]);
   if (i.rainMmH !== undefined && Number.isFinite(i.rainMmH)) terms.push(['rain', 1 - 0.7 * ramp(i.rainMmH, 2, 10)]);
   const min = Math.min(...terms.map((x) => x[1]));

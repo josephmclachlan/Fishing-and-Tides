@@ -21,6 +21,8 @@ import { biteWeather, nearestStorm, pressureTrend, squallLevel, summarise } from
 import { crestGrid } from './waves-lines';
 import { mountWavesLayer } from './layers/waves';
 import { mountWeatherHud } from './weather-hud';
+import { mountTownRainHud } from './town-rain-hud';
+import { fetchTownRain } from './adapters/town-rain';
 import { mountStorms } from './layers/storms';
 import { fetchWeather, weatherAt, type WeatherData } from './adapters/weather';
 import { LIMON_HARMONICS } from './data/tides-limon';
@@ -73,7 +75,7 @@ import { layers } from './layers/registry';
 import { bindMapLayers } from './layers/visibility';
 import { createCoralMode } from './coral-mode';
 import { mountCoral } from './layers/coral';
-import { fetchCoral, nearestReef, type CoralData } from './adapters/coral';
+import type { CoralData } from './adapters/coral';
 import { mountCoralHeat } from './coral-heat-ui';
 import type { CoralHistory } from './coral/history';
 import { worstSarg } from './coral/risks';
@@ -103,6 +105,7 @@ import { effortCells, fetchEffort } from './adapters/effort';
 import { mountEffort } from './layers/effort';
 import { mountSst, type SstCoast } from './layers/sst';
 import { coastTest, type CoastTest } from './layers/sea-image';
+import { coralNow, fetchCoral, nearestReef, type CoralLoaded } from './adapters/coral';
 import { runoffRisk } from './physics/outing';
 import { clarityAt, mountClarity, mountClarityHud, riverRain, type ClarityContext } from './layers/clarity';
 import { fetchCatchmentRain, type CatchmentRain } from './adapters/catchment-rain';
@@ -309,6 +312,10 @@ mountSeaStateHud(hud, conditionsAt, seaHere, { vessel: settings.vessel, safety: 
 // Weather and active tropical storms (PLAN 7.3, 7.5): live feeds, rows stay -- until they load.
 weatherHud = mountWeatherHud(hud, { validMs: () => time.validMs() });
 time.subscribe(() => weatherHud?.refresh());
+// RAIN BY TOWN (PLAN 7.24): the four towns from the sharpest models, next 3 h from the slider.
+const townRainHud = mountTownRainHud(hud, { validMs: () => time.validMs() });
+time.subscribe(() => townRainHud?.refresh());
+fetchTownRain().then((d) => townRainHud?.set(d)).catch((err) => console.warn('town rain unavailable', err));
 const stormLayer = mountStorms(map);
 // Lightning (PLAN 7.6): GOES GLM flashes from the collector workflow, refreshed every 5 minutes.
 lightningHud = mountLightningHud(hud, map);
@@ -574,6 +581,10 @@ let clarityLand: Grid | null = null;
 const clarityLayer = mountClarity(map);
 const bandAt = (ms: number) => bandFor((ms - time.baseMs()) / 3.6e6).id;
 const currentOut: [number, number] = [0, 0];
+let coral: CoralLoaded | null = null;
+fetchCoral()
+  .then((d) => ((coral = d), diveHud?.refresh()))
+  .catch((err) => console.warn('coral heat stress unavailable', err));
 const clarityCtx = (): ClarityContext | null =>
   clarityElevation && {
     satellite, rain: catchmentRain, flow: riverFlow, elevation: clarityElevation, land: clarityLand, ms: time.validMs(),
@@ -818,6 +829,12 @@ fetchSeafloor()
         const ratio = riverFlow ? flowRatio(riverFlow, m.point.name, ms) : null;
         const rainMm = catchmentRain ? (riverRain(catchmentRain, ms).find((r) => r.name === m.point.name)?.rainMm ?? null) : null;
         return runoffRisk(m.distanceM / 1000, ratio, rainMm);
+      },
+      // Coral heat stress (NOAA Coral Reef Watch, newest day) at the nearest reef.
+      coralAt: (lng, lat) => {
+        const reef = coral && nearestReef(coral, [lng, lat]);
+        const now = coral && reef && coralNow(coral, reef);
+        return now ? { name: now.reef.name.toUpperCase(), dhw: now.dhw, alert: now.alert, day: now.dhwDay } : null;
       },
       currentAt: (lng, lat, ms) => {
         const f = currents && currentsAt(currents, bandAt(ms), ms)?.field;

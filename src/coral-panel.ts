@@ -5,8 +5,9 @@
 import type { Map } from 'maplibre-gl';
 import { t, type Key } from './i18n';
 import { closeButton, type Sheets } from './sheets';
-import { SITE_KINDS, STATUSES, type CoralStatus, type CoralStore, type SiteKind } from './coral/store';
+import { newId, SITE_KINDS, STATUSES, type CoralStatus, type CoralStore, type SiteKind } from './coral/store';
 import { toCSV, toGeoJSON } from './coral/export';
+import { deletePhoto, getPhoto, putPhoto, shrink } from './coral/photos';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const day = (ms: number) => new Date(ms).toISOString().slice(0, 10);
@@ -51,6 +52,7 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
   syncOpen();
 
   const $ = <T extends HTMLElement>(id: string) => el.querySelector<T>('#' + id)!;
+  const detail = $('c-detail');
   let kind: SiteKind = 'reef';
   let sel: string | null = null;
   let vStatus: CoralStatus = 'unknown';
@@ -79,11 +81,33 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
       <div class="ro"><span class="lbl">${t('coral.last')}</span><span class="seg sm ${last?.status === 'healthy' ? 'green' : last && last.status !== 'unknown' ? 'red' : ''}">${last ? `${day(last.t)} ${t(`coral.st.${last.status}` as Key)}` : '--'}</span></div>
       <input id="c-sp" type="text" maxlength="120" value="${esc(s.species)}" placeholder="${t('coral.species')}" aria-label="${t('coral.species')}">
       <textarea id="c-notes" rows="3" maxlength="2000" placeholder="${t('coral.notes')}" aria-label="${t('coral.notes')}">${esc(s.notes)}</textarea>
+      <div class="boat-btns"><button type="button" class="tab" id="c-move">${t('coral.move')}</button>
+        <button type="button" class="tab" id="c-photo">${t('coral.photo')}</button>
+        <input id="c-file" type="file" accept="image/*" hidden></div>
+      <div class="coral-photos" id="c-photos"></div>
       <div class="boat-btns"><button type="button" class="tab" id="c-st">${t(`coral.st.${vStatus}` as Key)}</button>
         <input id="c-bl" type="number" min="0" max="100" inputmode="numeric" placeholder="${t('coral.bleach')}" aria-label="${t('coral.bleach')}">
         <button type="button" class="tab" id="c-visit">${t('coral.visit')}</button></div>
       <textarea id="c-vnotes" rows="2" maxlength="1000" placeholder="${t('coral.visitNotes')}" aria-label="${t('coral.visitNotes')}"></textarea>
       <ul class="boat-pins" id="c-visits">${[...s.visits].reverse().map((v) => `<li data-vid="${v.id}"><span class="tab pin-go">${day(v.t)} ${t(`coral.st.${v.status}` as Key)}${v.bleachPct !== undefined ? ` ${v.bleachPct}%` : ''}${v.notes ? ` · ${esc(v.notes)}` : ''}</span><button type="button" class="tab pin-x" aria-label="${t('coral.remove')}">✕</button></li>`).join('')}</ul>`;
+    void showPhotos(s.photoIds, s.id);
+  }
+
+  const urls: string[] = [];
+  async function showPhotos(ids: readonly string[], siteId: string) {
+    urls.splice(0).forEach((u) => URL.revokeObjectURL(u));
+    const box = detail.querySelector<HTMLElement>('#c-photos');
+    if (!box) return;
+    const parts: string[] = [];
+    for (const id of ids) {
+      const b = await getPhoto(id);
+      if (sel !== siteId) return;
+      if (!b) continue;
+      const u = URL.createObjectURL(b);
+      urls.push(u);
+      parts.push(`<img src="${u}" data-pid="${id}" alt="${t('coral.photoAlt')}">`);
+    }
+    box.innerHTML = parts.join('');
   }
 
   const here = (): Promise<{ lng: number; lat: number; gps: boolean }> =>
@@ -122,6 +146,7 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     if ((e.target as HTMLElement).closest('.pin-x')) {
       if (!confirm(t('coral.removeSure'))) return;
       if (sel === s.id) sel = null;
+      s.photoIds.forEach((p) => void deletePhoto(p));
       store.remove(s.id);
     } else {
       sel = sel === s.id ? null : s.id;
@@ -130,17 +155,45 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     }
   });
   // Detail: edits save on change; the visit form is read at LOG VISIT.
-  const detail = $('c-detail');
-  detail.addEventListener('change', (e) => {
+  detail.addEventListener('change', async (e) => {
     if (!sel) return;
     const id = (e.target as HTMLElement).id;
+    if (id === 'c-file') {
+      const input = e.target as HTMLInputElement;
+      const file = input.files?.[0];
+      const siteId = sel;
+      input.value = '';
+      const blob = file && (await shrink(file));
+      const cur = store.list().find((x) => x.id === siteId);
+      if (!blob || !cur) return say(t('coral.photoFail'));
+      const pid = newId();
+      if (!(await putPhoto(pid, blob))) return say(t('coral.photoFail'));
+      store.update(siteId, { photoIds: [...cur.photoIds, pid] });
+      return;
+    }
     if (id === 'c-sp') store.update(sel, { species: (e.target as HTMLInputElement).value.trim() });
     if (id === 'c-notes') store.update(sel, { notes: (e.target as HTMLTextAreaElement).value.trim() });
   });
   detail.addEventListener('click', (e) => {
     if (!sel) return;
     const target = e.target as HTMLElement;
-    if (target.closest('#c-st')) {
+    if (target.closest('#c-move')) {
+      void here().then((f) => {
+        const d = depthAt()?.(f.lng, f.lat);
+        store.update(sel!, { lng: f.lng, lat: f.lat, ...(d !== undefined && d < 0 ? { depthM: Math.abs(d) } : {}) });
+        map.easeTo({ center: [f.lng, f.lat], duration: 800 });
+        say(f.gps ? t('coral.moved') : t('coral.movedCentre'));
+      });
+    } else if (target.closest('#c-photo')) {
+      detail.querySelector<HTMLInputElement>('#c-file')!.click();
+    } else if (target.closest('#c-photos img')) {
+      const pid = (target as HTMLElement).dataset.pid!;
+      const cur = store.list().find((x) => x.id === sel);
+      if (cur && confirm(t('coral.photoRemoveSure'))) {
+        void deletePhoto(pid);
+        store.update(sel, { photoIds: cur.photoIds.filter((x) => x !== pid) });
+      }
+    } else if (target.closest('#c-st')) {
       vStatus = STATUSES[(STATUSES.indexOf(vStatus) + 1) % STATUSES.length];
       target.closest('#c-st')!.textContent = t(`coral.st.${vStatus}` as Key);
     } else if (target.closest('#c-visit')) {

@@ -46,6 +46,17 @@ export const SPOTS: { name: string; lngLat: [number, number] }[] = [
   { name: 'GANDOCA', lngLat: [-82.6128, 9.6075] },
 ];
 
+/**
+ * Town rain points (PLAN 7.24): the four towns Joseph asked to tell apart, [lng, lat] at each town centre.
+ * Cahuita and Puerto Viejo are ~13 km apart, so with 9-13 km models they land in neighbouring cells.
+ */
+export const RAIN_TOWNS: { id: string; name: string; lngLat: [number, number] }[] = [
+  { id: 'cahuita', name: 'CAHUITA', lngLat: [-82.8303, 9.7353] },
+  { id: 'playanegra', name: 'PLAYA NEGRA', lngLat: [-82.7789, 9.6633] },
+  { id: 'puertoviejo', name: 'PUERTO VIEJO', lngLat: [-82.7543, 9.656] },
+  { id: 'manzanillo', name: 'MANZANILLO', lngLat: [-82.6569, 9.634] },
+];
+
 /** Seafloor layer (PLAN 2.6). Depths in metres, positive down. */
 export const SEAFLOOR = {
   /** Contours from the 1′ grid over the whole Caribbean view. */

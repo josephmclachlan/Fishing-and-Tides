@@ -36,6 +36,8 @@ export interface DiveEnv {
   waterAt: (lng: number, lat: number, ms: number) => { sstC?: number | null; sarg?: SargLevel | null };
   /** Heavy-runoff flag at the point (outing.ts runoffRisk), or null when no flow or rain data. */
   runoffAt: (lng: number, lat: number, ms: number) => boolean | null;
+  /** Coral heat stress at the reef nearest the point (NOAA Coral Reef Watch, newest day), or null before the feed loads. Informational: not part of the score. */
+  coralAt: (lng: number, lat: number) => { name: string; dhw: number; alert: number | null; day: number } | null;
   /** Surface current: speed m/s and the bearing it flows TOWARD. */
   currentAt: (lng: number, lat: number, ms: number) => { ms: number; toDeg: number } | null;
   /** Weather safety and rain for the hour: mean rain, squall flag and a close lightning strike. Empty when no forecast covers it. */
@@ -79,6 +81,8 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
       <div class="ro"><span class="lbl">${t('dive.current')}</span><span class="seg sm" id="dv-current">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.sst')}</span><span class="seg sm" id="dv-sst">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.uv')}</span><span class="seg sm" id="dv-uv">--</span></div>
+      <div class="ro"><span class="lbl">${t('dive.coral')}</span><span class="seg sm" id="dv-coral">--</span></div>
+      <div class="ro"><span class="lbl">${t('dive.entry')}</span><span class="seg sm" id="dv-entry">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.score')}</span><span class="seg sm" id="dv-score">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.time')}</span><span class="seg sm" id="dv-time">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.day')}</span><span class="seg sm" id="dv-day">--</span></div>
@@ -124,6 +128,12 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     const uv = env.wxAt(c.lng, c.lat, time.validMs()).uv;
     $('uv').textContent = typeof uv === 'number' ? `${uv.toFixed(0)} · ${uv >= 8 ? t('dive.uv.cover') : uv >= 6 ? t('dive.uv.high') : t('dive.uv.ok')}` : '--';
     $('uv').className = 'seg sm ' + (typeof uv !== 'number' ? '' : uv >= 8 ? 'red' : uv >= 6 ? '' : 'green');
+    const heat = env.coralAt(c.lng, c.lat);
+    $('coral').textContent = heat && Number.isFinite(heat.dhw) ? `${heat.dhw.toFixed(1)} ${t('dive.coral.unit')} · ${t(`dive.coral.a${heat.alert ?? 0}` as Key)} · ${heat.name}` : '--';
+    $('coral').className = 'seg sm ' + (!heat || heat.alert === null ? '' : heat.alert >= 3 ? 'red' : heat.alert >= 1 ? '' : 'green');
+    const hb = r?.waves.breaker.Hb;
+    $('entry').textContent = r && Number.isFinite(hb) ? `${(hb as number).toFixed(1)} ${t('unit.m')} · ${t('dive.rip')} ${t(`dive.rip.${r.rip.level}` as Key)}` : '--';
+    $('entry').className = 'seg sm ' + (!r || !Number.isFinite(hb) ? '' : (hb as number) >= 1.2 || r.rip.level === 'HIGH' ? 'red' : (hb as number) >= 0.5 || r.rip.level === 'MOD' ? '' : 'green');
     heavy();
   };
 
@@ -141,7 +151,11 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     // Open water or unknown depth: use the activity depth so only a real reef flat can read as too shallow.
     const waterM = chart === undefined || chart > depth ? depth : chart + tideM(ms);
     const runoff = env.runoffAt(c.lng, c.lat, ms);
-    return outingScore({ surgeMs: u, visM: vis ?? NaN, windMs: wind, waterM, localHour, sunAltDeg: sunAltitude(ms, c.lat, c.lng), currentMs: env.currentAt(c.lng, c.lat, ms)?.ms, ...(runoff === null ? {} : { runoff }), ...waterTerms(env.waterAt(c.lng, c.lat, ms)), ...env.wxAt(c.lng, c.lat, ms) });
+    // Surf at the entry: the spot model's breaker height, scaled to this hour's swell; the rip level only for the hour it was computed for.
+    const ratio = sea.hs > 0 && st && st.sea.Hs > 0 ? sea.hs / st.sea.Hs : 1;
+    const breakerM = r.waves.breaker.Hb * ratio;
+    const rip = Math.abs(ms - time.validMs()) < 0.5 * 3.6e6 ? r.rip.level : undefined;
+    return outingScore({ surgeMs: u, visM: vis ?? NaN, windMs: wind, waterM, localHour, sunAltDeg: sunAltitude(ms, c.lat, c.lng), currentMs: env.currentAt(c.lng, c.lat, ms)?.ms, breakerM, ...(rip ? { rip } : {}), ...(runoff === null ? {} : { runoff }), ...waterTerms(env.waterAt(c.lng, c.lat, ms)), ...env.wxAt(c.lng, c.lat, ms) });
   };
 
   let heavyKey = '';
