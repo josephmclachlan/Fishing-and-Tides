@@ -53,9 +53,9 @@ export function mountVerdictHud(root: HTMLElement, inputs: () => VerdictInputs, 
   const picked = (m: Chip) => groups.activity() === GROUP[m] && (GROUP[m] !== 'dive' || (dive()?.mode() ?? 'snorkel') === m);
   for (const m of CHIPS)
     chip(m).addEventListener('click', () => {
-      const on = picked(m);
+      // A tap always shows that activity (ALL is its own tab): toggling back to ALL lost new users (J6).
       if (m === 'snorkel' || m === 'dive') dive()?.setMode(m);
-      groups.setActivity(on ? 'all' : GROUP[m]);
+      groups.setActivity(GROUP[m]);
       // Switching SNORKEL to DIVE keeps the same group open, so nothing else would redraw the chips.
       refresh();
     });

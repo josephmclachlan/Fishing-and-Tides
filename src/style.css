@@ -309,6 +309,8 @@ body[data-band='outlook'] #t-valid, body[data-band='outlook'] #t-off { color: va
 .fishx[open] summary::before { content: '▾ '; }
 .fish-spots { display: grid; gap: 2px; }
 .fish-spots .spot { all: unset; cursor: pointer; display: flex; flex-wrap: wrap; gap: 2px 6px; padding: 3px 0; align-items: baseline; }
+.fish-spots .spot-name { color: var(--green); letter-spacing: 1px; }
+.fish-spots .spot.on { outline: 1px solid var(--green); outline-offset: 2px; }
 .fish-spots .spot:hover, .fish-spots .spot:focus-visible { background: var(--amber-dim); }
 @media (max-width: 700px) { .fish-spots .spot { min-height: 40px; align-items: center; } }
 
@@ -554,6 +556,10 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
  */
 .cg-acts { grid-column: 1 / -1; display: flex; gap: 4px; }
 .cg-acts .tab { flex: 1 1 0; min-width: 0; padding: 4px 2px; font-size: 11px; letter-spacing: 1px; justify-content: center; text-align: center; }
+/* SNORKEL / DIVE is the long one: let it wrap onto two lines rather than clip. */
+.cg-acts .tab[data-cact="dive"] { flex-grow: 1.6; white-space: normal; line-height: 1.1; }
+/* The surf-break rows are empty for a snorkeler; they stay under ALL and SURF (J6). */
+#cond-panel[data-activity="dive"] .surf-rows { display: none; }
 .cg { grid-column: 1 / -1; display: grid; grid-template-columns: inherit; gap: 4px; min-width: 0; }
 .cg[hidden] { display: none; }
 .cg-core { padding: 2px 0 6px; }
