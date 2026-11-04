@@ -23,6 +23,9 @@ import { mountWavesLayer } from './layers/waves';
 import { mountWeatherHud } from './weather-hud';
 import { mountTownRainHud } from './town-rain-hud';
 import { fetchTownRain } from './adapters/town-rain';
+import { mountRainNowHud } from './rain-now-hud';
+import { mountRainLayer } from './layers/rain';
+import { fetchRainCells } from './adapters/rain-cells';
 import { mountStorms } from './layers/storms';
 import { fetchWeather, weatherAt, type WeatherData } from './adapters/weather';
 import { LIMON_HARMONICS } from './data/tides-limon';
@@ -259,7 +262,8 @@ fetchWaves()
 const net = createNet();
 let weatherHud: ReturnType<typeof mountWeatherHud> = null;
 let lightningHud: ReturnType<typeof mountLightningHud> = null;
-mountHud(hud, map, conditionsAt, { age: () => describeAge(dataAge.oldest(), Date.now()), online: net.online, alerts: () => [...(weatherHud?.alerts() ?? []), ...(lightningHud?.alerts() ?? [])] });
+let rainNowHud: ReturnType<typeof mountRainNowHud> = null;
+mountHud(hud, map, conditionsAt, { age: () => describeAge(dataAge.oldest(), Date.now()), online: net.online, alerts: () => [...(weatherHud?.alerts() ?? []), ...(rainNowHud?.alerts() ?? []), ...(lightningHud?.alerts() ?? [])] });
 // CONDITIONS groups: core always shown, the rest opened by activity (SURF, FISH, DIVE, BOAT) or by hand.
 const condGroups = mountCondGroups(hud, safeStorage());
 mountSwellHud(hud, seaHere);
@@ -308,6 +312,16 @@ time.subscribe(() => weatherHud?.refresh());
 const townRainHud = mountTownRainHud(hud, { validMs: () => time.validMs() });
 time.subscribe(() => townRainHud?.refresh());
 fetchTownRain().then((d) => townRainHud?.set(d)).catch((err) => console.warn('town rain unavailable', err));
+// RAIN CELLS (PLAN 7.24): satellite rain-cell nowcast per town and RAIN NOW on the map, refreshed every 5 minutes.
+rainNowHud = mountRainNowHud(hud);
+const rainLayer = mountRainLayer(map);
+time.subscribe(() => rainLayer.setTime(time.validMs()));
+const loadRainCells = () =>
+  fetchRainCells()
+    .then((d) => (d ? (rainNowHud?.set(d), rainLayer.set(d), rainLayer.setTime(time.validMs())) : rainNowHud?.setFailed()))
+    .catch((err) => (console.warn('rain cells unavailable', err), rainNowHud?.setFailed()));
+loadRainCells();
+setInterval(loadRainCells, 5 * 60000);
 const stormLayer = mountStorms(map);
 // Lightning (PLAN 7.6): GOES GLM flashes from the collector workflow, refreshed every 5 minutes.
 lightningHud = mountLightningHud(hud, map);

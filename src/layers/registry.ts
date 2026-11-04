@@ -30,7 +30,7 @@ export const LAYERS: readonly LayerDef[] = [
   { id: 'fronts', group: 'OCEAN', mapPrefixes: ['fr-'] },
   { id: 'clarity', group: 'OCEAN', mapPrefixes: ['cl-'] },
   { id: 'sargassum', group: 'OCEAN', mapPrefixes: ['sg-'] },
-  { id: 'weather', group: 'OCEAN', mapPrefixes: ['st-'] },
+  { id: 'weather', group: 'OCEAN', mapPrefixes: ['st-', 'rn-'] },
   { id: 'lightning', group: 'OCEAN', mapPrefixes: ['lt-'] },
   { id: 'obs', group: 'OCEAN', mapPrefixes: ['ob-'] },
   { id: 'rip', group: 'SURF ZONE', mapPrefixes: ['rp-'] },

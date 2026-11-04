@@ -1,6 +1,7 @@
 name: Collect lightning
 
-# Recent GOES GLM flashes over the region (PLAN 7.6, docs/LIGHTNING.md). Runs every 10 minutes and
+# Recent GOES GLM flashes over the region (PLAN 7.6, docs/LIGHTNING.md), and the last hour of GOES ABI
+# rain rate for the rain-cell nowcast (job `rain`, PLAN 7.24, published to `data-rain`). Runs every 10 minutes and
 # publishes one file, lightning.json, as the only commit on the orphan branch `data-lightning`, which the
 # app reads from raw.githubusercontent.com. Kept off the Pages deploy so a 10-minute cadence does not
 # redeploy the whole site. GitHub may delay scheduled runs; the app shows the file's age.
@@ -41,3 +42,31 @@ jobs:
           git add lightning.json
           git commit -qm "Lightning $(date -u +%FT%TZ)"
           git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" data-lightning
+
+  # Rain cells (PLAN 7.24 item 3): the last hour of GOES-19 rain rate over RAIN_BOX, read with HTTP range
+  # requests (~1 MB a frame), published as rain.json on the orphan branch `data-rain`. Shares this
+  # workflow's 10-minute trigger so one external dispatch serves both feeds.
+  rain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install h5py==3.12.1 numpy==2.2.6
+      - run: python3 -I scripts/rain-cells.py --bbox="$(node scripts/rain-bbox.ts)" --out "$RUNNER_TEMP/rain.json"
+      - name: Publish to data-rain
+        run: |
+          cd "$RUNNER_TEMP"
+          rm -rf pub && mkdir pub && mv rain.json pub/
+          cd pub
+          git init -q -b data-rain
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add rain.json
+          git commit -qm "Rain cells $(date -u +%FT%TZ)"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" data-rain
