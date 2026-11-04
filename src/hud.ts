@@ -4,6 +4,7 @@ import type { Conditions } from './mock';
 import { alertStrip, gauge, panelHeader, readout, setAlert, setGauge } from './hud-kit';
 import { nearest } from './geo';
 import { formatAltitude, mapAltitudeM } from './zoom-fx';
+import { CALM_KT } from './physics/flow';
 import { t, type Key } from './i18n';
 import { describeAge, type AgeView } from './adapters/data-age';
 import { en } from './i18n/en';
@@ -38,7 +39,7 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions,
       ${panelHeader(t('cond.title'), t('cond.mock'))}
       ${groupsHtml(`
         <div class="ro ro-multi"><span class="lbl">${t('cond.swell')}</span><span class="seg" id="swell">--</span><span class="unit">${t('unit.m')}</span><span class="seg" id="period">--</span><span class="unit">${t('unit.s')}</span><span class="seg" id="sdir">--</span><span class="unit">${t('unit.deg')}</span></div>
-        <div class="ro ro-multi"><span class="lbl">${t('cond.wind')}</span><span class="seg" id="wind">--</span><span class="unit">${t('unit.kt')}</span><span class="seg" id="wdir">--</span><span class="unit">${t('unit.deg')}</span></div>
+        <div class="ro ro-multi"><span class="lbl">${t('cond.wind')}</span><span class="seg" id="wind">--</span><span class="unit">${t('unit.kt')}</span><span class="seg" id="wdir">--</span><span class="unit" id="wdir-unit">${t('unit.deg')}</span></div>
         ${from('coast', readout(t('cond.tide'), 'tide', t('unit.m')))}
         ${from('coast', `<div class="ro"><span class="lbl">${t('cond.rip')}</span><span class="seg" id="rip">--</span></div>`)}
         ${from('coast', gauge(t('cond.ripGauge'), 'ripgauge'))}`)}
@@ -129,7 +130,10 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions,
     $('period').textContent = fmt(d.swellPeriodS, 0);
     $('sdir').textContent = pad3(d.swellDirDeg);
     $('wind').textContent = fmt(d.windKt, 0);
-    $('wdir').textContent = pad3(d.windDirDeg);
+    // Under 3 kt the direction is noise (the map fades it too), so say CALM rather than a bearing.
+    const calm = Math.round(d.windKt) < CALM_KT;
+    $('wdir').textContent = calm ? t('obs.calm') : pad3(d.windDirDeg);
+    $('wdir-unit').hidden = calm;
     $('sst').textContent = fmt(d.waterTempC);
     $('tide').textContent = $('d-tide').textContent = (d.tideM >= 0 ? '+' : '') + fmt(d.tideM, 2) + (d.tideRising ? '▲' : '▼');
     const rip = $('rip');
