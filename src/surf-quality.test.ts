@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanFactor, windTrend, sizeFactor, surfBand, surfQuality, windFactor, windowFactor, type SurfInput } from './surf-quality';
+import { tideFactor, cleanFactor, windTrend, sizeFactor, surfBand, surfQuality, windFactor, windowFactor, type SurfInput } from './surf-quality';
 
 const reef: SurfInput['brk'] = { type: 'reef', facing: 350, swellFrom: [45, 135] };
 const base: SurfInput = { brk: reef, Hb: 1.8, Tp: 13, swellFromDeg: 60, windMs: 3, windFromDeg: 170 };
@@ -73,5 +73,18 @@ describe('surf quality', () => {
     expect(windTrend(350, on, off)).toBe('cleaning');
     expect(windTrend(350, off, off)).toBe('steady');
     expect(windTrend(350, off, null)).toBe('steady');
+  });
+
+  it('tide is a soft nudge: reefs want high water, beaches the middle, and no preference means no effect', () => {
+    expect(tideFactor('high', 0)).toBeCloseTo(0.88, 5);
+    expect(tideFactor('high', 0.8)).toBe(1);
+    expect(tideFactor('mid', 0.5)).toBe(1);
+    expect(tideFactor('mid', 0)).toBeCloseTo(0.88, 5);
+    expect(tideFactor('mid', 1)).toBeCloseTo(0.88, 5);
+    expect(tideFactor('any', 0)).toBe(1);
+    expect(tideFactor(undefined, 0)).toBe(1);
+    const lo = surfQuality({ ...base, brk: { ...reef, tidePref: 'high' }, tide: { level: 0, rising: true } });
+    expect(lo.tideKind).toBe('low');
+    expect(lo.score).toBeLessThan(surfQuality(base).score);
   });
 });
