@@ -14,6 +14,12 @@ import type { BoatStore } from './boat/store';
 import { M_PER_NM, recentSpeedKt, toGPX, trackStats } from './boat/track';
 import { mountBoatLayer } from './layers/boat';
 import type { Shoal } from './boat/shoal';
+import type { MetricEnv } from './metrics/registry';
+import type { Vessel } from './settings';
+import { clock } from './astro-hud';
+import { daySky, localDayStart } from './physics/astro';
+import { REGION } from './region';
+import { DEFAULT_SPEED_KT, MAX_SPEED_KT, MIN_SPEED_KT, SPEED_STEP_KT, readRoute } from './boat/route';
 
 const hhmm = (ms: number) => {
   const m = Math.floor(ms / 60_000);
@@ -26,12 +32,19 @@ export type CatchScorer = (lng: number, lat: number, ms: number, species: string
 /** Offshore read at a place (PLAN 7.17): nearest front and the boat species' scores, best first. */
 export type OffshoreRead = (lng: number, lat: number) => { front: { km: number; bearingDeg: number; kind: 'sst' | 'chl' } | null; mldM: number | null; scores: { id: string; score: number }[] } | null;
 
+/** What the ROUTE tool reads (PLAN 7.23 item 8): the forecast environment, the vessel and the slider time. */
+export interface RouteDeps {
+  env: MetricEnv;
+  vessel: Vessel;
+  validMs: number;
+}
+
 /** Shoal read at a place (PLAN 7.23 item 7). */
 export type ShoalRead = (lng: number, lat: number) => Shoal | null;
 
 const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
 
-export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sheets: Sheets, depthAt: () => ((lng: number, lat: number) => number | undefined) | null, scoreCatch: () => CatchScorer | null = () => null, offshore: () => OffshoreRead | null = () => null, shoal: () => ShoalRead | null = () => null) {
+export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sheets: Sheets, depthAt: () => ((lng: number, lat: number) => number | undefined) | null, scoreCatch: () => CatchScorer | null = () => null, offshore: () => OffshoreRead | null = () => null, shoal: () => ShoalRead | null = () => null, routeDeps: () => RouteDeps | null = () => null) {
   const gps = createGps(
     (p) => {
       store.addFix(p);
@@ -58,6 +71,18 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     <div class="ro"><span class="lbl">${t('boat.front')}</span><span class="seg sm" id="b-front">--</span></div>
     <div class="ro"><span class="lbl">${t('boat.mld')}</span><span class="seg sm" id="b-mld">--</span></div>
     <div class="ro"><span class="lbl">${t('boat.offshore')}</span><span class="seg sm" id="b-off">--</span></div>
+    <div class="ro"><span class="lbl">${t('route.title')}</span><span class="seg sm" id="rt-leg">--</span></div>
+    <div class="ro"><span class="lbl">${t('route.time')}</span><span class="seg sm" id="rt-eta">--</span></div>
+    <div class="ro"><span class="lbl">${t('route.sail')}</span><span class="seg sm" id="rt-sail">--</span></div>
+    <div class="ro"><span class="lbl">${t('route.worst')}</span><span class="seg sm" id="rt-worst">--</span></div>
+    <div class="boat-btns">
+      <button type="button" class="tab" id="rt-start">${t('route.start')}</button>
+      <button type="button" class="tab" id="rt-end">${t('route.end')}</button>
+      <button type="button" class="tab" id="rt-slow" aria-label="${t('route.slower')}">‹</button>
+      <span class="seg sm green" id="rt-spd">--</span>
+      <button type="button" class="tab" id="rt-fast" aria-label="${t('route.faster')}">›</button>
+      <button type="button" class="tab" id="rt-clear">${t('route.clear')}</button>
+    </div>
     <div class="boat-btns">
       <button type="button" class="tab" id="b-rec"></button>
       <button type="button" class="tab" id="b-mark">${t('boat.mark')}</button>
@@ -103,6 +128,31 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     setTimeout(() => $('b-msg').textContent === m && ($('b-msg').textContent = ''), 3000);
   };
 
+  // ROUTE (PLAN 7.23 item 8): start and end are points the skipper marks at the boat or the map centre.
+  let rStart: [number, number] | null = null;
+  let rEnd: [number, number] | null = null;
+  let rSpeed: number | null = null;
+  const speedFor = (v: Vessel) => rSpeed ?? DEFAULT_SPEED_KT[v];
+  function renderRoute() {
+    const d = routeDeps();
+    const sp = d ? speedFor(d.vessel) : rSpeed ?? DEFAULT_SPEED_KT.small;
+    $('rt-spd').textContent = `${sp} ${t('unit.kt')}`;
+    layer.setRoute(rStart && rEnd ? [rStart, rEnd] : []);
+    const clear = () => ['rt-leg', 'rt-eta', 'rt-sail', 'rt-worst'].forEach((id) => (($(id).textContent = '--'), ($(id).className = 'seg sm')));
+    if (!rStart || !rEnd || !d) return clear();
+    const r = readRoute(d.env, d.vessel, rStart, rEnd, sp, d.validMs);
+    $('rt-leg').textContent = `${r.leg.distanceNm.toFixed(1)} ${t('unit.nm')} · ${String(Math.round(r.leg.bearingDeg)).padStart(3, '0')}°`;
+    const min = Math.round(r.durationMs / 60000);
+    const sunset = daySky(localDayStart(d.validMs, REGION.tzOffsetH), rStart[1], rStart[0]).sun.sunset;
+    const dark = sunset !== null && r.arriveMs > sunset;
+    $('rt-eta').textContent = `${Math.floor(min / 60)}H ${String(min % 60).padStart(2, '0')}M · ${t('route.arrive', { at: clock(r.arriveMs) })}${dark ? ' · ' + t('route.dark') : ''}`;
+    $('rt-eta').className = 'seg sm ' + (dark ? 'red' : '');
+    $('rt-sail').textContent = r.sail ? `${t(`route.sail.${r.sail.sail}` as Key)} · ${Math.round(r.sail.twa)}°` : '--';
+    $('rt-sail').className = 'seg sm ' + (r.sail?.sail === 'headToWind' && d.vessel === 'yacht' ? 'red' : '');
+    $('rt-worst').textContent = r.worst ? `${t(`verdict.${r.worst.verdict}` as Key)}${r.worst.verdict !== 'go' ? ` · ${clock(r.worst.atMs)}` : ''}${r.worst.windKt !== null ? ` · ${Math.round(r.worst.windKt)} ${t('unit.kt')}` : ''}${r.worst.hsM !== null ? ` · ${r.worst.hsM.toFixed(1)} ${t('unit.m')}` : ''}` : '--';
+    $('rt-worst').className = 'seg sm ' + (r.worst?.verdict === 'nogo' ? 'red' : r.worst?.verdict === 'go' ? 'green' : '');
+  }
+
   function update() {
     const s = store.state();
     const { distanceM, durationMs } = trackStats(s.points);
@@ -127,6 +177,7 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     $('b-front').textContent = !o ? '--' : o.front ? `${o.front.km.toFixed(1)} ${t('unit.km')} ${COMPASS[Math.round(o.front.bearingDeg / 45) % 8]} · ${t(`boat.front.${o.front.kind}` as Key)}` : t('boat.front.none');
     $('b-mld').textContent = !o || o.mldM === null ? '--' : `${Math.round(o.mldM)} ${t('unit.m')} · ${t(`boat.mld.${mldLevel(o.mldM)}` as Key)}`;
     $('b-off').innerHTML = !o || !o.scores.length ? '--' : o.scores.slice(0, 2).map((s) => `<span class="${s.score >= 0.6 ? 'green' : ''}">${t(`boat.sp.${s.id}` as Key)} ${Math.round(s.score * 100)}</span>`).join(' · ');
+    renderRoute();
     $('b-list').innerHTML = s.pins
       .slice(-5)
       .reverse()
@@ -154,6 +205,21 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     const scored = species ? scoreCatch()?.(f.lng, f.lat, now, species) : null;
     store.addPin({ lng: f.lng, lat: f.lat, t: now }, kind, { species, depthM: depth, ...(scored ?? {}) });
   };
+  const here = (): [number, number] => {
+    const g = gps.state() === 'ok' ? gps.last() : null;
+    const c = g ?? map.getCenter();
+    return [c.lng, c.lat];
+  };
+  $('rt-start').addEventListener('click', () => ((rStart = here()), renderRoute()));
+  $('rt-end').addEventListener('click', () => ((rEnd = [map.getCenter().lng, map.getCenter().lat]), renderRoute()));
+  $('rt-clear').addEventListener('click', () => ((rStart = rEnd = null), renderRoute()));
+  const bump = (dir: number) => {
+    const d = routeDeps();
+    rSpeed = Math.min(MAX_SPEED_KT, Math.max(MIN_SPEED_KT, speedFor(d?.vessel ?? 'small') + dir * SPEED_STEP_KT));
+    renderRoute();
+  };
+  $('rt-slow').addEventListener('click', () => bump(-1));
+  $('rt-fast').addEventListener('click', () => bump(1));
   $('b-rec').addEventListener('click', () => {
     if (store.state().recording) {
       store.stop();
