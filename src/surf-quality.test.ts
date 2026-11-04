@@ -97,4 +97,11 @@ describe('surf quality', () => {
     expect(waterFactor(12, 'HIGH')).toBeCloseTo(0.65, 5);
     expect(surfQuality({ ...base, sarg: 'HIGH' }).score).toBeLessThan(ok);
   });
+
+  it('sea temperature and UV are echoed for the readout but never change the score', () => {
+    const plain = surfQuality(base);
+    const withInfo = surfQuality({ ...base, info: { sstC: 22, uv: 12 } });
+    expect(withInfo.info).toEqual({ sstC: 22, uv: 12 });
+    expect(withInfo.score).toBe(plain.score);
+  });
 });

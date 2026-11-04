@@ -16,6 +16,7 @@ import type { SeaState } from '../adapters/waves';
 import { seaState, withCurrent } from '../physics/sea-state';
 import { feedPartitions } from '../sea-partitions';
 import { squallLevel } from '../weather';
+import { breakFor, surfScoreAt } from './surf-estimate';
 
 export type Tone = 'green' | 'amber' | 'red' | 'none';
 export type MetricGroup = 'waves' | 'weather' | 'water' | 'fishing';
@@ -109,6 +110,28 @@ export const METRICS: readonly Metric[] = [
   { id: 'clarity', group: 'water', unit: 'm', decimals: 0, better: 'high', agg: 'mean', hours: [12], at: (a) => a.env.clarityM(a.lng, a.lat, a.ms), tone: (v) => ({ GOOD: 'green', FAIR: 'amber', POOR: 'red' } as const)[clarityLevel(v)] },
   { id: 'sst', group: 'water', unit: '°C', decimals: 1, better: 'high', agg: 'mean', hours: [12], at: (a) => a.env.sstC?.(a.lng, a.lat, a.ms) ?? null, tone: (v) => (v >= 26 ? 'green' : v >= 22 ? 'amber' : 'red') },
   { id: 'sargassum', group: 'water', unit: 'km²', decimals: 2, better: 'low', agg: 'max', hours: [12], at: (a) => a.env.sargassumKm2(a.spot, a.ms), tone: (v) => (v < SARG_LOW_KM2 ? 'green' : v < SARG_HIGH_KM2 ? 'amber' : 'red') },
+  // Break score 0..10 (PLAN 7.27): swell trains, period, direction vs the break, wind and gusts, tide, storms, rain and sargassum.
+  // Only for spots with a surf break (their own, or one within 25 km); null elsewhere, so those spots fall back to wind and rain.
+  {
+    id: 'surfq', group: 'waves', unit: '/10', decimals: 1, better: 'high', agg: 'max',
+    at: (a) => {
+      const brk = breakFor(a.spot, [a.lng, a.lat]);
+      const sea = brk ? a.env.sea(a.lng, a.lat, a.ms) : null;
+      if (!brk || !sea) return null;
+      const wx = a.env.weather(a.ms);
+      const gust = blendedGustKt(wx, a.env.weatherSkill?.());
+      const rain = meanOf(wx.map((w) => w.rainMmH).filter(finite));
+      return surfScoreAt({
+        brk, sea, tide: a.env.tide, ms: a.ms,
+        windMs: a.env.windMs(a.lng, a.lat, a.ms), windFromDeg: a.env.windDirDeg?.(a.lng, a.lat, a.ms) ?? null,
+        gustMs: Number.isFinite(gust) ? gust / KT : null,
+        rainMmH: rain,
+        squall: wx.length ? squallLevel(weatherSummary(wx)) : undefined,
+        sargKm2: a.env.sargassumKm2(a.spot, a.ms),
+      });
+    },
+    tone: (v) => (v >= 5.5 ? 'green' : v >= 3 ? 'amber' : 'red'),
+  },
   {
     id: 'bite', group: 'fishing', unit: '/100', decimals: 0, better: 'high', agg: 'max',
     at: (a) =>
@@ -127,7 +150,7 @@ export const MAX_TRACKED = 8;
 
 /** Starter sets for the picker, matching the activity presets. */
 export const METRIC_PRESETS: Readonly<Record<'surf' | 'fish' | 'dive' | 'boat', readonly string[]>> = {
-  surf: ['swell', 'period', 'wind', 'tide', 'sargassum'],
+  surf: ['surfq', 'swell', 'period', 'wind', 'tide', 'sargassum', 'sst', 'uv'],
   fish: ['bite', 'wind', 'swell', 'rain', 'clarity'],
   dive: ['swell', 'wind', 'rain', 'clarity', 'sst', 'sargassum'],
   boat: ['comfort', 'wind', 'wdir', 'gust', 'squall', 'current', 'rain'],

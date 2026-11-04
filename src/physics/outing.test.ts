@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bestWindow, lightTerm, outingScore, outlook, suitFor, type OutingInputs } from './outing';
+import { bestWindow, lightTerm, outingScore, outlook, runoffRisk, suitFor, type OutingInputs } from './outing';
 
 const good: OutingInputs = { surgeMs: 0.05, visM: 12, windMs: 3, waterM: 2, localHour: 11 };
 
@@ -140,5 +140,22 @@ describe('real daylight', () => {
   });
   it('ignores the clock once a sun height is given', () => {
     expect(outingScore({ ...good, localHour: 3, sunAltDeg: 60 }).score).toBe(outingScore(good).score);
+  });
+});
+
+describe('river runoff', () => {
+  it('flags a near mouth in spate or after heavy rain, not a far one or a calm river', () => {
+    expect(runoffRisk(3, 4, null)).toBe(true);
+    expect(runoffRisk(3, 1, 30)).toBe(true);
+    expect(runoffRisk(12, 6, 40)).toBe(false);
+    expect(runoffRisk(3, 1.2, 5)).toBe(false);
+  });
+  it('is unknown without flow or rain', () => {
+    expect(runoffRisk(3, null, null)).toBeNull();
+  });
+  it('lowers the score and says why', () => {
+    const r = outingScore({ ...good, runoff: true });
+    expect(r.score).toBeLessThan(outingScore(good).score);
+    expect(outingScore({ ...good, runoff: false }).score).toBe(outingScore(good).score);
   });
 });

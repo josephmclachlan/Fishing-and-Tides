@@ -58,3 +58,10 @@ describe('fishing effort (PLAN 7.19)', () => {
     expect(r).toMatch(/GFW_TOKEN/);
   });
 });
+
+describe('fishing effort: response variants', () => {
+  it('reads numeric strings and a value field', () => {
+    const rows = effortRows({ entries: [{ d: [{ lat: '9.15', lon: '-82.25', hours: '12.5', flag: 'CRI' }, { lat: 9.25, lon: -82.25, value: 3 }, { lat: 'x', lon: 1, hours: 1 }] }] });
+    expect(rows).toEqual([{ lat: 9.15, lon: -82.25, hours: 12.5, flag: 'CRI' }, { lat: 9.25, lon: -82.25, hours: 3 }]);
+  });
+});

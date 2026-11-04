@@ -140,6 +140,24 @@ export const EFFORT_BOX: [[number, number], [number, number]] = [[-84, 8.7], [-8
 export const SARG_BOX: [[number, number], [number, number]] = [[-84, 8.75], [-80.5, 11.5]];
 
 /**
+ * Coral reef areas for the coral heat-stress feed and the CORAL overlay (PLAN 7.23). Public reef areas
+ * only, never restoration nurseries or outplant sites (the app is public). `lngLat` sits on the reef;
+ * the build picks the nearest NOAA Coral Reef Watch 5 km sea pixel to it. Reefs from Cortés (1992),
+ * Cortés & Risk (1984) and the Allen Coral Atlas.
+ */
+export const CORAL_REEFS: { id: string; name: string; lngLat: [number, number] }[] = [
+  { id: 'limon', name: 'LIMÓN · ISLA UVITA', lngLat: [-83.005, 9.995] },
+  { id: 'cahuita', name: 'CAHUITA', lngLat: [-82.815, 9.745] },
+  { id: 'cocles', name: 'PUERTO VIEJO · COCLES', lngLat: [-82.735, 9.66] },
+  { id: 'punta-uva', name: 'PUNTA UVA', lngLat: [-82.685, 9.643] },
+  { id: 'manzanillo', name: 'MANZANILLO', lngLat: [-82.652, 9.636] },
+  { id: 'punta-mona', name: 'PUNTA MONA', lngLat: [-82.615, 9.628] },
+];
+
+/** Box the coral heat-stress feed reads from Coral Reef Watch, on its 0.05° grid. [[west, south], [east, north]] */
+export const CORAL_BOX: [[number, number], [number, number]] = [[-83.1, 9.55], [-82.55, 10.05]];
+
+/**
  * Rivers whose plumes muddy the coast after rain (PLAN 6.1, DESIGN §6 dive row). Mouths from the
  * OSM waterways (data/fishing/mouths.geojson); `rainAt` is a point inside each catchment where the
  * clarity layer samples rainfall. Catchment areas are approximate published basin figures
