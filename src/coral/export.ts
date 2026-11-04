@@ -7,7 +7,7 @@ export function toGeoJSON(sites: readonly CoralSite[]) {
     features: sites.map((s) => ({
       type: 'Feature' as const,
       geometry: { type: 'Point' as const, coordinates: [s.lng, s.lat] },
-      properties: { id: s.id, kind: s.kind, name: s.name, depthM: s.depthM ?? null, species: s.species, notes: s.notes, createdAt: new Date(s.createdAt).toISOString(), visits: s.visits.map((v) => ({ ...v, t: new Date(v.t).toISOString() })) },
+      properties: { id: s.id, kind: s.kind, name: s.name, depthM: s.depthM ?? null, species: s.species, notes: s.notes, photoCount: s.photoIds.length, createdAt: new Date(s.createdAt).toISOString(), visits: s.visits.map((v) => ({ ...v, t: new Date(v.t).toISOString() })) },
     })),
   };
 }
