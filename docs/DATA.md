@@ -1,6 +1,6 @@
 # Data pipeline (PLAN 2.1)
 
-How forecast and live data get from the models and gauges to the HUD, stay usable offline, and line up with the time slider. Sources and why each was picked: `docs/OBSERVATIONS.md`. Static layers (depth, reefs, zones): `docs/SEAFLOOR.md`.
+How forecast and live data get from the models and gauges to the HUD, stay usable offline, and line up with the time slider. Sources and why each was picked: `docs/OBSERVATIONS.md`. Static layers (depth, reefs, zones): `docs/SEAFLOOR.md`. What the build saves for later (the `history` branch): `docs/HISTORY.md`.
 
 ## Two paths
 
