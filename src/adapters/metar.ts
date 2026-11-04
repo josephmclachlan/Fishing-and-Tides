@@ -38,7 +38,7 @@ export function metarChecks(load: () => Promise<MetarData>, loadWind?: () => Pro
   const checks: Check[] = [
     { feed: 'metar', kind: 'fresh', label: `${METAR_STATION.icao} report within 12 h`, run: async () => {
       const d = await data();
-      if (!d.obs.length) return { status: 'fail', detail: 'no reports in 36 h' };
+      if (!d.obs.length) return { status: 'fail', detail: 'no reports in 96 h' };
       return freshness(Date.now() - d.obs[0].t, 6 * 3.6e6);
     } },
     { feed: 'metar', kind: 'range', label: 'Wind 0..120 kt, temperature 10..40 °C', run: async () => {
