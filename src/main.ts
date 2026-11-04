@@ -32,7 +32,7 @@ import { mountHarbours } from './layers/harbours';
 import { mountHarboursHud } from './harbours-hud';
 import type { Grid } from './physics/bathy';
 import { createBoatStore } from './boat/store';
-import { mountBoatPanel, type CatchScorer } from './boat-panel';
+import { mountBoatPanel, type CatchScorer, type OffshoreRead } from './boat-panel';
 import { dictFor, setDict, t } from './i18n';
 import { mountLangUi } from './lang-ui';
 import { PHONE_QUERY, createSheets, mountSheets } from './sheets';
@@ -74,6 +74,10 @@ import { fetchWind, windAt, type WindData } from './adapters/wind';
 import { currentsAt, fetchCurrents, type CurrentsData } from './adapters/currents';
 import { fetchWaves, wavesAt, type SeaState, type WavesData } from './adapters/waves';
 import { chlAt, fetchSatellite, sstAt, type SatelliteData } from './adapters/satellite';
+import { mountFronts, satelliteFronts } from './layers/fronts';
+import { nearestFront, type FrontCell } from './physics/fronts';
+import { OFFSHORE, offshoreScore } from './fishing/offshore';
+import { sargassumSeeds } from './adapters/sargassum';
 import { mountSst } from './layers/sst';
 import { clarityAt, mountClarity, mountClarityHud, type ClarityContext } from './layers/clarity';
 import { fetchCatchmentRain, type CatchmentRain } from './adapters/catchment-rain';
@@ -152,11 +156,16 @@ const baseConditions = () => {
 };
 // Satellite SST and ocean colour (PLAN 2.4): HUD sea temperature and the WATER TEMP isotherms.
 let satellite: SatelliteData | null = null;
+const frontsLayer = mountFronts(map);
+let fronts: FrontCell[] = [];
 fetchSatellite()
   .then((d) => {
     if (!d.sst && !d.sstCoast) return console.warn('sst: nothing published; using mock');
     satellite = d;
     mountSst(map, d);
+    // Fronts (PLAN 7.17): from the newest SST and chlorophyll maps.
+    fronts = satelliteFronts(d);
+    frontsLayer.setFronts(fronts);
     refreshClarity();
   })
   .catch((err) => console.warn('satellite unavailable', err));
@@ -251,7 +260,30 @@ setInterval(loadGauge, 10 * 60_000);
 const boatStore = createBoatStore(safeStorage());
 // Catches logged in the BOAT drawer store their BITE once the fishing panel is up (PLAN 7.16).
 let scoreCatch: CatchScorer | null = null;
-mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch);
+// Offshore read for the BOAT drawer (PLAN 7.17): depth and ledge from the seafloor grids, satellite
+// temperature, chlorophyll and fronts, and floating sargassum, scored per boat species.
+let offshoreDepth: ((lng: number, lat: number) => number | null) | null = null;
+const offshoreRead: OffshoreRead = (lng, lat) => {
+  const dAt = offshoreDepth;
+  const depthM = dAt?.(lng, lat) ?? null;
+  if (depthM === null) return null;
+  const e = 0.01, kmE = e * 111.32;
+  const around = [dAt!(lng + e, lat), dAt!(lng - e, lat), dAt!(lng, lat + e), dAt!(lng, lat - e)].filter((x): x is number => x !== null);
+  const slopeMPerKm = around.length ? Math.max(...around.map((x) => Math.abs(x - depthM))) / kmE : null;
+  const ms = Date.now();
+  const front = nearestFront(fronts, lng, lat);
+  const weed = nearest([lng, lat], sargassumSeeds(sargassum?.series ?? null, ms).map((s) => ({ lngLat: [s.lng, s.lat] as [number, number] })));
+  const inputs = {
+    depthM, slopeMPerKm,
+    sstC: satellite ? (sstAt(satellite, lng, lat, ms)?.value ?? null) : null,
+    chl: satellite ? (chlAt(satellite, lng, lat, ms)?.value ?? null) : null,
+    frontKm: front?.km ?? null,
+    weedKm: weed ? weed.distanceM / 1000 : null,
+  };
+  const scores = OFFSHORE.map((s) => ({ id: s.id, score: offshoreScore(s, inputs) ?? 0 })).sort((a, b) => b.score - a.score);
+  return { front: front && { km: front.km, bearingDeg: front.bearingDeg, kind: front.front.kind }, scores };
+};
+mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch, () => (offshoreDepth ? offshoreRead : null));
 // WATCH (PLAN 7.13): the metric tracker reads the same wind, wave, weather and tide data as the HUD, at any hour of the next days.
 const watchSea = new globalThis.Map<string, [number, number] | null>();
 const hourWind = new globalThis.Map<number, ReturnType<typeof windAt>>();
@@ -555,6 +587,12 @@ fetchSeafloor()
     depthAt = (lng, lat) => {
       const z = sample(data.region, lng, lat);
       return Number.isFinite(z) && z < 0 ? -z : undefined;
+    };
+    // Offshore depth: the fine region grid, then the macro grid beyond it.
+    offshoreDepth = (lng, lat) => {
+      const r = sample(data.region, lng, lat);
+      const z = Number.isFinite(r) ? r : sample(data.macro, lng, lat);
+      return Number.isFinite(z) && z < 0 ? -z : null;
     };
     // Shore and kayak habitat score: built from the depth grid, reefs and river mouths.
     Promise.all([fetchMouths(), fetchOccurrences()])

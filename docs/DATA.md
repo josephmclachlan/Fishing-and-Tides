@@ -79,6 +79,7 @@ Fishing and rip scores are not stored: they are computed on the phone from the s
 | CURRENTS | `currents`, `currents-coast` | sync `currents` | currents |
 | WIND | `wind` forecast, wind climatology | sync `wind`; climatology precached | wind, wind-clim |
 | WATER TEMP | satellite SST | sync `sst` | sst, sst-coast |
+| FRONTS | satellite SST (macro and coast nest) and chlorophyll, newest map | sync `sst` | sst, sst-coast, chl |
 | CLARITY | satellite chlorophyll and Kd490, catchment rain, currents, waves, seafloor | sync `sst`, `rain`, `currents`, `waves`; seafloor precached | sst, rain |
 | SARGASSUM | AFAI detections, currents, wind, seafloor (coastline) | sync `sargassum`, `currents`, `wind`; seafloor precached | sargassum |
 | WEATHER | Open-Meteo weather, NHC storms | sync `weather`, `storms` | weather, storms |

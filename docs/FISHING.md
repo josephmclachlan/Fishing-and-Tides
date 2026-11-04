@@ -48,7 +48,22 @@ The BOAT tab opens a drawer (a sheet on phones, see `src/sheets.ts`). It works w
 - **EXPORT GPX** downloads the track and pins for a chartplotter or phone app. **CLEAR** needs two taps.
 - The track, pins and boat position are drawn by the `bt-` map layers, switched with the FISHING toggle.
 
-Not in yet: offshore fronts and FAD positions (no open data source found; fronts need the satellite SST from PLAN 2.12), and species scoring for offshore water (needs SST and chlorophyll, PLAN 2.4).
+**Fronts and offshore fish** (PLAN 7.17):
+
+- **FRONTS layer** (`src/physics/fronts.ts`, `src/layers/fronts.ts`). These are edges where the newest satellite map changes fast. Sea temperature fronts are amber, from MUR at 0.05° and the 0.01° coast nest. Colour fronts are green, from VIIRS chlorophyll at 9 km, measured in log10, so a front is a ratio.
+  - The gradient comes from central differences, in units per km.
+  - A cell counts as a front when it is above both a floor and the scene's 95th percentile. The floors are 0.05 °C/km and 0.05 decades/km.
+  - On the map of 2026-11-04 this gives 19 temperature cells and 163 colour cells over the western Caribbean box.
+  - Thresholds are starting points, not checked against catches.
+- **BOAT › NEAREST FRONT** gives the distance and compass direction from the boat, or from the map centre with no GPS.
+- **BOAT › OFFSHORE FISH** gives the two best boat species there (`src/fishing/offshore.ts`): `depth fit × weighted mean of the known terms`.
+  - temperature: inside the ideal range 1, beyond the limits 0.3
+  - chlorophyll: blue-water hunters want about 0.1 to 0.6 mg/m³, kingfish greener shelf water
+  - front closeness: exp(-(km/5)²)
+  - floating sargassum closeness: exp(-(km/3)²), for mahi only
+  - ledge: slope / 40 m per km
+- Per-species depth ranges: mahi beyond 150 m, tuna beyond 300 m, wahoo 100 to 1000 m (ledges), kingfish 20 to 60 m, silk snapper (pargo seda, a bottom fish caught by hand line) 100 to 250 m on ledges.
+- FAD positions are still not in. No open data source was found.
 
 ## Species records and fishing pressure (PLAN 4.7)
 
