@@ -614,6 +614,8 @@ export const en = {
   'metric.uv': 'UV',
   'metric.tide': 'HIGH TIDE',
   'metric.bite': 'BITE',
+  'metric.clarity': 'VISIBILITY',
+  'metric.sargassum': 'SARGASSUM',
 } as const;
 
 export type Key = keyof typeof en;

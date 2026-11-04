@@ -614,4 +614,6 @@ export const es: Dict = {
   'metric.uv': 'UV',
   'metric.tide': 'MAREA ALTA',
   'metric.bite': 'PICADA',
+  'metric.clarity': 'VISIBILIDAD',
+  'metric.sargassum': 'SARGAZO',
 };

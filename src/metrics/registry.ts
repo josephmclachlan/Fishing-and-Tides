@@ -7,6 +7,7 @@
  */
 import { bite } from '../fishing/bite';
 import { daySky, type DaySky } from '../physics/astro';
+import { clarityLevel } from '../physics/clarity';
 import { predict, type Harmonics } from '../physics/tide';
 import type { WeatherNow } from '../adapters/weather';
 import type { SeaState } from '../adapters/waves';
@@ -20,12 +21,17 @@ export interface MetricEnv {
   sea(lng: number, lat: number, ms: number): SeaState | null;
   /** Every weather model's reading for the hour containing `ms`. */
   weather(ms: number): WeatherNow[];
+  /** Water visibility, m, off the spot at `ms` (the CLARITY forecast), or null before its data loads. */
+  clarityM(lng: number, lat: number, ms: number): number | null;
+  /** Sargassum expected to reach the named beach on the day containing `ms`, km² (the SARGASSUM outlook), or null. */
+  sargassumKm2(spot: string, ms: number): number | null;
   tide: Harmonics;
   tzOffsetH: number;
 }
 
 export interface MetricArgs {
   env: MetricEnv;
+  spot: string;
   lng: number;
   lat: number;
   ms: number;
@@ -42,6 +48,8 @@ export interface Metric {
   better: 'high' | 'low' | null;
   /** How the hours of a day fold into one value. `sum` uses all 24 hours, the others 06:00 to 18:00 local. */
   agg: 'mean' | 'max' | 'sum';
+  /** Local hours to sample when the default (06 to 18, or all 24 for `sum`) is too costly or meaningless: clarity is a midday value, sargassum a daily one. */
+  hours?: readonly number[];
   at(a: MetricArgs): number | null;
   tone(v: number): Tone;
 }
@@ -50,6 +58,8 @@ const KT = 1.94384;
 const finite = (x: number | undefined | null): x is number => typeof x === 'number' && Number.isFinite(x);
 const meanOf = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 const band = (low: number, high: number) => (v: number): Tone => (v < low ? 'green' : v < high ? 'amber' : 'red');
+
+const SARG_LOW_KM2 = 0.01, SARG_HIGH_KM2 = 0.5; // keep in step with sargLevel in physics/drift.ts
 
 export const METRICS: readonly Metric[] = [
   { id: 'swell', group: 'waves', unit: 'm', decimals: 1, better: 'low', agg: 'mean', at: (a) => a.env.sea(a.lng, a.lat, a.ms)?.hs ?? null, tone: band(1.5, 2.5) },
@@ -67,6 +77,8 @@ export const METRICS: readonly Metric[] = [
   { id: 'air', group: 'weather', unit: '°C', decimals: 0, better: null, agg: 'mean', at: (a) => meanOf(a.env.weather(a.ms).map((w) => w.tempC).filter(finite)), tone: () => 'none' },
   { id: 'uv', group: 'weather', unit: '', decimals: 0, better: 'low', agg: 'max', at: (a) => meanOf(a.env.weather(a.ms).map((w) => w.uv).filter(finite)), tone: band(6, 9) },
   { id: 'tide', group: 'water', unit: 'm', decimals: 1, better: null, agg: 'max', at: (a) => predict(a.env.tide, a.ms), tone: () => 'none' },
+  { id: 'clarity', group: 'water', unit: 'm', decimals: 0, better: 'high', agg: 'mean', hours: [12], at: (a) => a.env.clarityM(a.lng, a.lat, a.ms), tone: (v) => ({ GOOD: 'green', FAIR: 'amber', POOR: 'red' } as const)[clarityLevel(v)] },
+  { id: 'sargassum', group: 'water', unit: 'km²', decimals: 2, better: 'low', agg: 'max', hours: [12], at: (a) => a.env.sargassumKm2(a.spot, a.ms), tone: (v) => (v < SARG_LOW_KM2 ? 'green' : v < SARG_HIGH_KM2 ? 'amber' : 'red') },
   {
     id: 'bite', group: 'fishing', unit: '/100', decimals: 0, better: 'high', agg: 'max',
     at: (a) =>
@@ -83,9 +95,9 @@ export const MAX_TRACKED = 8;
 
 /** Starter sets for the picker, matching the activity presets. */
 export const METRIC_PRESETS: Readonly<Record<'surf' | 'fish' | 'dive' | 'boat', readonly string[]>> = {
-  surf: ['swell', 'period', 'wind', 'tide'],
-  fish: ['bite', 'wind', 'swell', 'rain', 'tide'],
-  dive: ['swell', 'wind', 'rain', 'tide'],
+  surf: ['swell', 'period', 'wind', 'tide', 'sargassum'],
+  fish: ['bite', 'wind', 'swell', 'rain', 'clarity'],
+  dive: ['swell', 'wind', 'rain', 'clarity', 'sargassum'],
   boat: ['swell', 'wind', 'gust', 'rain'],
 };
 

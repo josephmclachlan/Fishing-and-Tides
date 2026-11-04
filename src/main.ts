@@ -70,7 +70,7 @@ import { currentsAt, fetchCurrents, type CurrentsData } from './adapters/current
 import { fetchWaves, wavesAt, type SeaState, type WavesData } from './adapters/waves';
 import { fetchSatellite, sstAt, type SatelliteData } from './adapters/satellite';
 import { mountSst } from './layers/sst';
-import { mountClarity, mountClarityHud, type ClarityContext } from './layers/clarity';
+import { clarityAt, mountClarity, mountClarityHud, type ClarityContext } from './layers/clarity';
 import { fetchCatchmentRain, type CatchmentRain } from './adapters/catchment-rain';
 import { dataAge, describeAge } from './adapters/data-age';
 import { createNet } from './net';
@@ -85,7 +85,7 @@ import { fetchGauge, type GaugeReading } from './adapters/gauge';
 import { mountTideHud } from './tide-hud';
 import { mountSpotPage } from './spot-page';
 import { fetchSargassum, type SargassumData } from './adapters/sargassum';
-import { mountSargassum, mountSargassumHud, sargassumForecast, type SargForecast } from './layers/sargassum';
+import { beachDay, mountSargassum, mountSargassumHud, sargassumForecast, type SargForecast } from './layers/sargassum';
 
 registerSW({ immediate: true });
 
@@ -239,6 +239,7 @@ loadGauge();
 setInterval(loadGauge, 10 * 60_000);
 mountBoatPanel(hud, map, createBoatStore(safeStorage()), sheets, () => depthAt);
 // WATCH (PLAN 7.13): the metric tracker reads the same wind, wave, weather and tide data as the HUD, at any hour of the next days.
+const watchSea = new globalThis.Map<string, [number, number] | null>();
 const watchWind = new globalThis.Map<number, ReturnType<typeof windAt>>();
 let watchWindFor: WindData | null = null;
 mountWatchPanel(hud, map, sheets, safeStorage(), () => ({
@@ -253,6 +254,27 @@ mountWatchPanel(hud, map, sheets, safeStorage(), () => ({
   },
   sea: (lng, lat, ms) => (waves ? wavesAt(waves, bandAt(ms), ms, lng, lat) : null),
   weather: (ms) => (weatherData ? weatherAt(weatherData, ms) : []),
+  // Clarity is a sea value and the spot pins sit on the shore: read it at the nearest water within ~1.8 km (cached per spot).
+  clarityM: (lng, lat, ms) => {
+    const c = clarityCtx();
+    if (!c) return null;
+    const key = `${lng},${lat}`;
+    let at = watchSea.get(key);
+    if (at === undefined) {
+      at = null;
+      search: for (const r of [0.004, 0.008, 0.016])
+        for (let k = 0; k < 8; k++) {
+          const p: [number, number] = [lng + r * Math.cos((k * Math.PI) / 4), lat + r * Math.sin((k * Math.PI) / 4)];
+          if (clarityAt(c, p[0], p[1])) {
+            at = p;
+            break search;
+          }
+        }
+      watchSea.set(key, at);
+    }
+    return at ? clarityAt({ ...c, ms }, at[0], at[1])?.visM ?? null : null;
+  },
+  sargassumKm2: (spot, ms) => (sargForecast ? beachDay(sargForecast, spot, ms)?.km2 ?? null : null),
   tide: LIMON_HARMONICS,
   tzOffsetH: REGION.tzOffsetH,
 }));

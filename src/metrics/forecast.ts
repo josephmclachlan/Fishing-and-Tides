@@ -49,7 +49,7 @@ export interface WatchForecast {
   bestDay: number | null;
 }
 
-const hoursFor = (m: Metric): number[] => (m.agg === 'sum' ? Array.from({ length: 24 }, (_, h) => h) : Array.from({ length: 12 }, (_, h) => h + 6));
+const hoursFor = (m: Metric): readonly number[] => m.hours ?? (m.agg === 'sum' ? Array.from({ length: 24 }, (_, h) => h) : Array.from({ length: 12 }, (_, h) => h + 6));
 
 function fold(m: Metric, xs: number[]): number | null {
   if (!xs.length) return null;
@@ -84,7 +84,7 @@ export function buildForecast(env: MetricEnv, ids: readonly string[], spots: rea
       const perSpot = spots.map((s) => {
         const xs: number[] = [];
         for (const h of hrs) {
-          const v = m.at({ env, lng: s.lngLat[0], lat: s.lngLat[1], ms: dayMs + h * HOUR, sky: sky(dayMs, s) });
+          const v = m.at({ env, spot: s.name, lng: s.lngLat[0], lat: s.lngLat[1], ms: dayMs + h * HOUR, sky: sky(dayMs, s) });
           if (v !== null && Number.isFinite(v)) xs.push(v);
         }
         return { s, v: fold(m, xs) };
@@ -100,7 +100,8 @@ export function buildForecast(env: MetricEnv, ids: readonly string[], spots: rea
       const s = spots.find((x) => x.name === firstWith.spot)!;
       hourly = Array.from({ length: days * 24 }, (_, i) => {
         const ms = start + i * HOUR;
-        return m.at({ env, lng: s.lngLat[0], lat: s.lngLat[1], ms, sky: sky(start + Math.floor(i / 24) * DAY, s) });
+        if (m.hours && !m.hours.includes(i % 24)) return null;
+        return m.at({ env, spot: s.name, lng: s.lngLat[0], lat: s.lngLat[1], ms, sky: sky(start + Math.floor(i / 24) * DAY, s) });
       });
     }
     return { id: m.id, unit: m.unit, decimals: m.decimals, days: cells, hourly };
