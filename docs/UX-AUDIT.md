@@ -51,3 +51,9 @@ Not looked at yet beyond what earlier PRs did (tap-to-explain on most CONDITIONS
 Added to the definition of done: a plain title, a legend entry in `src/layers/legend.ts` (the test fails without one, in EN and ESP), a tap-to-explain card for anything drawn on the map that is not self-evident, and an empty state that says why.
 
 - Tap bare map: "what's here" card (swell, sea, wind, depth, visibility at the point, `src/here-card.ts`). Where a mark is under the tap its own card wins instead.
+
+## Clarity review 2026-11-04 (desktop, phone, half-width window)
+
+Findings CL1 to CL23 are in the audit doc; fixes ship one PR each.
+
+- [x] CL1 Half-width window: the drawer layout now takes over below 1100 px wide or 700 px tall (`PHONE_QUERY` in `src/sheets.ts` and the matching queries in `style.css`), so a 1000 px window or a short laptop screen gets the full map instead of a 40% strip.
