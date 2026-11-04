@@ -41,7 +41,10 @@ export const SPOTS: { name: string; lngLat: [number, number] }[] = [
   { name: 'CAHUITA', lngLat: [-82.84, 9.7397] },
   { name: 'PLAYA NEGRA', lngLat: [-82.7789, 9.6633] },
   { name: 'SALSA BRAVA', lngLat: [-82.7524, 9.6582] },
+  { name: 'PLAYA COCLES', lngLat: [-82.7368, 9.6507] },
+  { name: 'PLAYA CHIQUITA', lngLat: [-82.711, 9.6413] },
   { name: 'PUNTA UVA', lngLat: [-82.6871, 9.6432] },
+  { name: 'PLAYA GRANDE', lngLat: [-82.6698, 9.6326] },
   { name: 'MANZANILLO', lngLat: [-82.6569, 9.634] },
   { name: 'GANDOCA', lngLat: [-82.6128, 9.6075] },
 ];

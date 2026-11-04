@@ -4,7 +4,7 @@ import { matchSpots, parseCoordinate, resolveTarget } from './target';
 describe('matchSpots', () => {
   it('ignores case and accents and ranks prefix matches first', () => {
     expect(matchSpots('limon')[0].name).toBe('LIMÓN');
-    expect(matchSpots('playa').map((s) => s.name)).toEqual(['PLAYA BONITA', 'PLAYA NEGRA']);
+    expect(matchSpots('playa').map((s) => s.name)).toEqual(['PLAYA BONITA', 'PLAYA NEGRA', 'PLAYA COCLES', 'PLAYA CHIQUITA', 'PLAYA GRANDE']);
     expect(matchSpots('negra')[0].name).toBe('PLAYA NEGRA');
   });
   it('returns nothing for blank or unknown', () => {
