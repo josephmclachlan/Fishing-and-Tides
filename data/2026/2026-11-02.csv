@@ -72,3 +72,6 @@ t,site,source,model,var,value,issued
 2026-11-02T00:00Z,MRLM,metar,,tempC,26,
 2026-11-02T00:00Z,MRLM,metar,,dewC,24,
 2026-11-02T00:00Z,MRLM,metar,,pressureHpa,1010.9,
+2026-11-02T09:00Z,PLAYA COCLES,sst,,sst,29.04,
+2026-11-02T09:00Z,PLAYA CHIQUITA,sst,,sst,29.031,
+2026-11-02T09:00Z,PLAYA GRANDE,sst,,sst,29.02,
