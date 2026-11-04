@@ -10,7 +10,9 @@
  *   vis     0 at 1 m, 1 at 10 m (linear)
  *   chop    1 at 4 m/s wind, 0 at 10 m/s (a snorkeller loses the bottom in whitecaps)
  *   depth   0 below 0.5 m of water over the reef (you touch coral), 1 from 1.5 m
- *   light   0 at 07:00, 1 from 09:00 until 15:00, 0 at 17:00 (local clock; no sun model needed here)
+ *   light   from the sun's real height when given (sunAltDeg): 0 at 5° and below, 1 from 30° up (about 08:00 to 16:00 here),
+ *           times (1 − 0.3 × cloud share), because overcast dulls the colour and the bottom; without it a fixed clock:
+ *           0 at 07:00, 1 from 09:00 until 15:00, 0 at 17:00
  *   current 1 up to 0.15 m/s, 0 at 0.60 m/s (a snorkeller swims about 0.5 m/s and cannot make headway, so the
  *           drift sweeps you off the reef; optional, left out when unknown; surface current forecast, tide streams not included)
  *   cold    1 from 26 °C, 0.4 at 20 °C and below (needs a suit, you tire and cut the outing short; this coast is 27 to 30 °C
@@ -36,8 +38,12 @@ export interface OutingInputs {
   windMs: number;
   /** Water over the reef at the activity's spot: chart depth plus tide, m. */
   waterM: number;
-  /** Local hour of day, 0..24. */
+  /** Local hour of day, 0..24. Used for the light term only when `sunAltDeg` is not given. */
   localHour: number;
+  /** Sun height above the horizon, degrees (physics/astro.ts sunAltitude). */
+  sunAltDeg?: number;
+  /** Cloud cover, percent (mean over the models). */
+  cloudPct?: number;
   /** Surface current speed, m/s. Left out when no forecast covers the spot. */
   currentMs?: number;
   /** Sea surface temperature, °C. Left out when unknown. */
@@ -65,13 +71,20 @@ export function lightTerm(h: number): number {
   return Math.min(ramp(h, 7, 9), 1 - ramp(h, 15, 17));
 }
 
+/** Light term from the sun's height and the cloud, or from the clock when no sun height is given. */
+function sunLight(i: Pick<OutingInputs, 'localHour' | 'sunAltDeg' | 'cloudPct'>): number {
+  if (i.sunAltDeg === undefined || !Number.isFinite(i.sunAltDeg)) return lightTerm(i.localHour);
+  const cloud = Number.isFinite(i.cloudPct) ? Math.min(1, Math.max(0, (i.cloudPct as number) / 100)) : 0;
+  return ramp(i.sunAltDeg, 5, 30) * (1 - 0.3 * cloud);
+}
+
 export function outingScore(i: OutingInputs): OutingScore {
   const terms: [OutingReason, number][] = [
     ['surge', 1 - ramp(i.surgeMs, 0.1, 0.6)],
     ['vis', ramp(i.visM, 1, 10)],
     ['chop', 1 - ramp(i.windMs, 4, 10)],
     ['shallow', ramp(i.waterM, 0.5, 1.5)],
-    ['light', lightTerm(i.localHour)],
+    ['light', sunLight(i)],
   ].map(([r, v]) => [r, Number.isFinite(v as number) ? (v as number) : 0.5] as [OutingReason, number]);
   if (i.sstC !== undefined && Number.isFinite(i.sstC)) terms.push(['cold', 1 - 0.6 * ramp(26 - i.sstC, 0, 6)]);
   if (i.sarg) terms.push(['sargassum', i.sarg === 'HIGH' ? 0.3 : i.sarg === 'MODERATE' ? 0.6 : 1]);

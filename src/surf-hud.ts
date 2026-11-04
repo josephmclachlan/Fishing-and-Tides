@@ -24,6 +24,7 @@ export function mountSurfHud(root: HTMLElement, map: Map, quality: (name: string
       <div class="ro"><span class="lbl">${t('surf.surface')}</span><span class="seg sm" id="sb-surf">--</span></div>
       <div class="ro"><span class="lbl">${t('surf.trend')}</span><span class="seg sm" id="sb-trend">--</span></div>
       <div class="ro"><span class="lbl">${t('surf.tide')}</span><span class="seg sm" id="sb-tide">--</span></div>
+      <div class="ro"><span class="lbl">${t('surf.warn')}</span><span class="seg sm" id="sb-warn">--</span></div>
       <div class="ro"><span class="lbl">${t('surf.type')}</span><span class="seg sm" id="sb-type">--</span></div>
       <div class="ro"><span class="lbl">${t('surf.hazard')}</span><span class="seg sm" id="sb-haz">--</span></div>
       <div class="ro"><button type="button" class="tab" id="sb-info" hidden>${t('rules.source')}</button></div>
@@ -72,6 +73,10 @@ export function mountSurfHud(root: HTMLElement, map: Map, quality: (name: string
     const rise = q && tk && tk !== 'none';
     $('sb-tide').textContent = rise ? `${t(`surf.tide.${tk}` as Key)}${hit?.tidePref === 'high' ? ` · ${t('surf.tide.wantsHigh')}` : ` · ${t('surf.tide.wantsMid')}`}` : '--';
     $('sb-tide').className = 'seg sm ' + (!q || tk === 'none' ? '' : q.factors.tide >= 0.97 ? 'green' : q.factors.tide < 0.92 ? 'red' : '');
+    const sf = q?.factors;
+    const warn = !q ? '' : sf!.safety < 1 ? t('surf.warn.storm') : sf!.water < 0.9 ? t('surf.warn.water') : q.ripLevel === 'HIGH' ? t('surf.warn.rip') : '';
+    $('sb-warn').textContent = warn || '--';
+    $('sb-warn').className = 'seg sm ' + (warn ? 'red' : '');
     sEl.className = 'seg sm ' + (cl === undefined ? '' : cl >= 0.9 ? 'green' : cl < 0.7 ? 'red' : '');
     qEl.className = 'seg sm ' + (!q ? '' : q.band === 'GOOD' || q.band === 'EPIC' ? 'green' : q.band === 'POOR' ? 'red' : '');
   };
