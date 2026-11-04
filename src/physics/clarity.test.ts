@@ -8,11 +8,13 @@ import { runChecks } from '../verify/types';
 const H = 3.6e6;
 
 describe('optics', () => {
-  it('Secchi depth is 1.7 / Kd', () => {
-    expect(secchiFromKd(0.1)).toBeCloseTo(17);
-    expect(secchiFromKd(1.7)).toBeCloseTo(1);
+  it('Secchi depth follows Lee et al. (2015) with Kd490 for the transparent band (audit N)', () => {
+    // ln((0.14 - 0.005) / 0.013) / 2.5 = 0.936
+    expect(secchiFromKd(1)).toBeCloseTo(0.936, 3);
+    // Clear blue water, Kd 0.05: about 19 m, where Poole–Atkins said 34 m.
+    expect(secchiFromKd(0.05)).toBeCloseTo(18.7, 1);
   });
-  it('Kd490 from chlorophyll follows Morel and Maritorena (2001)', () => {
+  it('Kd490 from chlorophyll follows Morel et al. (2007)', () => {
     expect(kdFromChl(0)).toBeCloseTo(0.0166);
     expect(kdFromChl(1)).toBeCloseTo(0.0939, 4);
     expect(kdFromChl(10)).toBeGreaterThan(kdFromChl(1));
@@ -54,7 +56,7 @@ describe('clarity', () => {
   const calm = { kd490: 0.08, chl: NaN, plumeKd: 0, hs: 0.3, tp: 6, depthM: 20 };
   it('reads clear water as good', () => {
     const c = clarity(calm);
-    expect(c.visM).toBeCloseTo(21.25);
+    expect(c.visM).toBeCloseTo(0.936 / 0.08, 2);
     expect(c.level).toBe('GOOD');
     expect(c.cause).toBe('clear');
   });
@@ -68,7 +70,7 @@ describe('clarity', () => {
   });
   it('falls back to chlorophyll, then to a background', () => {
     expect(clarity({ ...calm, kd490: NaN, chl: 5 }).kd).toBeCloseTo(kdFromChl(5));
-    expect(clarity({ ...calm, kd490: NaN }).visM).toBeGreaterThan(10);
+    expect(clarity({ ...calm, kd490: NaN }).visM).toBeGreaterThan(8);
   });
 });
 
