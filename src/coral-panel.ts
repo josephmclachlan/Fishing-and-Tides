@@ -5,14 +5,14 @@
 import type { Map } from 'maplibre-gl';
 import { t, type Key } from './i18n';
 import { closeButton, type Sheets } from './sheets';
-import { newId, SITE_KINDS, STATUSES, type CoralStatus, type CoralStore, type SiteKind } from './coral/store';
+import { newId, photosOf, SITE_KINDS, STATUSES, type Conditions, type CoralStatus, type CoralStore, type SiteKind } from './coral/store';
 import { toCSV, toGeoJSON } from './coral/export';
 import { deletePhoto, getPhoto, putPhoto, shrink } from './coral/photos';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const day = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
-export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, sheets: Sheets, depthAt: () => ((lng: number, lat: number) => number | undefined) | null) {
+export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, sheets: Sheets, depthAt: () => ((lng: number, lat: number) => number | undefined) | null, conditionsAt: (lng: number, lat: number) => Conditions | null = () => null) {
   const el = document.createElement('section');
   el.className = 'panel boat coral';
   el.id = 'coral-panel';
@@ -90,7 +90,7 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
         <button type="button" class="tab" id="c-visit">${t('coral.visit')}</button></div>
       <textarea id="c-vnotes" rows="2" maxlength="1000" placeholder="${t('coral.visitNotes')}" aria-label="${t('coral.visitNotes')}"></textarea>
       <ul class="boat-pins" id="c-visits">${[...s.visits].reverse().map((v) => `<li data-vid="${v.id}"><span class="tab pin-go">${day(v.t)} ${t(`coral.st.${v.status}` as Key)}${v.bleachPct !== undefined ? ` ${v.bleachPct}%` : ''}${v.notes ? ` · ${esc(v.notes)}` : ''}</span><button type="button" class="tab pin-x" aria-label="${t('coral.remove')}">✕</button></li>`).join('')}</ul>`;
-    void showPhotos(s.photoIds, s.id);
+    void showPhotos(photosOf(s, null).map((p) => p.id), s.id);
   }
 
   const urls: string[] = [];
@@ -146,7 +146,7 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     if ((e.target as HTMLElement).closest('.pin-x')) {
       if (!confirm(t('coral.removeSure'))) return;
       if (sel === s.id) sel = null;
-      s.photoIds.forEach((p) => void deletePhoto(p));
+      s.photos.forEach((p) => void deletePhoto(p.id));
       store.remove(s.id);
     } else {
       sel = sel === s.id ? null : s.id;
@@ -168,7 +168,7 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
       if (!blob || !cur) return say(t('coral.photoFail'));
       const pid = newId();
       if (!(await putPhoto(pid, blob))) return say(t('coral.photoFail'));
-      store.update(siteId, { photoIds: [...cur.photoIds, pid] });
+      store.addPhoto(siteId, { id: pid, ...(file.lastModified ? { takenAt: file.lastModified } : {}) });
       return;
     }
     if (id === 'c-sp') store.update(sel, { species: (e.target as HTMLInputElement).value.trim() });
@@ -191,14 +191,16 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
       const cur = store.list().find((x) => x.id === sel);
       if (cur && confirm(t('coral.photoRemoveSure'))) {
         void deletePhoto(pid);
-        store.update(sel, { photoIds: cur.photoIds.filter((x) => x !== pid) });
+        store.removePhoto(sel, pid);
       }
     } else if (target.closest('#c-st')) {
       vStatus = STATUSES[(STATUSES.indexOf(vStatus) + 1) % STATUSES.length];
       target.closest('#c-st')!.textContent = t(`coral.st.${vStatus}` as Key);
     } else if (target.closest('#c-visit')) {
       const bl = parseFloat(detail.querySelector<HTMLInputElement>('#c-bl')!.value);
-      store.addVisit(sel, { t: Date.now(), status: vStatus, ...(Number.isFinite(bl) ? { bleachPct: Math.min(100, Math.max(0, Math.round(bl))) } : {}), notes: detail.querySelector<HTMLTextAreaElement>('#c-vnotes')!.value.trim() });
+      const cur = store.list().find((x) => x.id === sel);
+      const conditions = cur ? (conditionsAt(cur.lng, cur.lat) ?? undefined) : undefined;
+      store.addVisit(sel, { t: Date.now(), status: vStatus, ...(conditions ? { conditions } : {}), ...(Number.isFinite(bl) ? { bleachPct: Math.min(100, Math.max(0, Math.round(bl))) } : {}), notes: detail.querySelector<HTMLTextAreaElement>('#c-vnotes')!.value.trim() });
       vStatus = 'unknown';
     } else if (target.closest('#c-visits .pin-x')) {
       store.removeVisit(sel, target.closest<HTMLElement>('li')!.dataset.vid!);

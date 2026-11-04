@@ -86,7 +86,8 @@ import { mountCoralSpawning } from './coral-spawn-ui';
 import { mountCoralGuide } from './coral-guide-ui';
 import { mountCoralConduct } from './coral-conduct-ui';
 import type { CoralHistory } from './coral/history';
-import { worstSarg } from './coral/risks';
+import { worstSarg, type RiskInputs } from './coral/risks';
+import { buildConditions } from './coral/conditions';
 import { predictSeries } from './physics/tide';
 import { mountLayersPanel } from './layers-panel';
 import { FLOW_STYLE, mountFlow } from './layers/flow';
@@ -433,7 +434,26 @@ let reefLookup: ReefAt | null = null;
 const shoalRead: ShoalRead = (lng, lat) => (depthAt ? shoalAlert((x, y) => depthAt?.(x, y), reefLookup, lng, lat, settings.vessel()) : null);
 mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch, () => (offshoreDepth ? offshoreRead : null), () => shoalRead, () => routeDeps());
 const coralStore = createCoralStore(safeStorage());
-mountCoralPanel(hud, map, coralStore, sheets, () => depthAt);
+// Reef stresses at a CRW reef: the CORAL drawer's risk rows and the conditions frozen with each logged visit (PLAN 7.36).
+const reefRisks = (id: string): Omit<RiskInputs, 'alert'> => {
+  const reef = CORAL_REEFS.find((r) => r.id === id);
+  if (!reef) return { flowRatio: null, rainMm: null, sargassum: null, hsM: null, lowTideM: null };
+  const now = Date.now();
+  const beach = nearest(reef.lngLat, SPOTS)?.point.name;
+  const lows = predictSeries(LIMON_HARMONICS, now, now + 24 * 3.6e6, 10 * 60e3).h;
+  return {
+    flowRatio: riverFlow ? flowRatio(riverFlow, reef.river, now) : null,
+    rainMm: catchmentRain ? (riverRain(catchmentRain, now, undefined, riverFlow).find((r) => r.name === reef.river)?.rainMm ?? null) : null,
+    sargassum: sargForecast && beach ? worstSarg([0, 1, 2].map((k) => beachDay(sargForecast!, beach, now + k * 864e5)?.level ?? null)) : null,
+    hsM: waves ? (wavesAt(waves, time.band(), now, ...reef.lngLat)?.hs ?? null) : null,
+    lowTideM: lows.length ? Math.min(...lows) : null,
+  };
+};
+const coralConditions = (lng: number, lat: number) => {
+  const reef = coralHeat ? nearestReef(coralHeat, [lng, lat]) : null;
+  return buildConditions(Date.now(), coralHeat && reef ? coralNow(coralHeat, reef) : null, reef ? reefRisks(reef.id) : null);
+};
+mountCoralPanel(hud, map, coralStore, sheets, () => depthAt, coralConditions);
 mountCoralLogLayer(map, coralStore);
 // Reef heat, history since 1985 and today's stresses at the top of the CORAL drawer (PLAN 7.32), for the reef nearest the map centre.
 fetch(`${import.meta.env.BASE_URL}data/climatology/coral-history.json`)
@@ -449,19 +469,7 @@ if (coralPanelEl) {
       const c = map.getCenter();
       return coralHeat ? nearestReef(coralHeat, [c.lng, c.lat]) : null;
     },
-    risks: (id) => {
-      const reef = CORAL_REEFS.find((r) => r.id === id)!;
-      const now = Date.now();
-      const beach = nearest(reef.lngLat, SPOTS)?.point.name;
-      const lows = predictSeries(LIMON_HARMONICS, now, now + 24 * 3.6e6, 10 * 60e3).h;
-      return {
-        flowRatio: riverFlow ? flowRatio(riverFlow, reef.river, now) : null,
-        rainMm: catchmentRain ? (riverRain(catchmentRain, now, undefined, riverFlow).find((r) => r.name === reef.river)?.rainMm ?? null) : null,
-        sargassum: sargForecast && beach ? worstSarg([0, 1, 2].map((k) => beachDay(sargForecast!, beach, now + k * 864e5)?.level ?? null)) : null,
-        hsM: waves ? (wavesAt(waves, time.band(), now, ...reef.lngLat)?.hs ?? null) : null,
-        lowTideM: lows.length ? Math.min(...lows) : null,
-      };
-    },
+    risks: reefRisks,
   });
   // Spawning calendar (PLAN 7.33), worked out on the device; redone once a day.
   const spawnUi = mountCoralSpawning(coralPanelEl);

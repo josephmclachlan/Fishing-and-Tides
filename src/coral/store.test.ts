@@ -14,7 +14,7 @@ describe('coral store', () => {
     const a = s.add(site, 100);
     const b = s.add(site, 100);
     expect(a.id).not.toBe(b.id);
-    expect(a).toMatchObject({ privacy: 'private', schemaVersion: 1, createdAt: 100, updatedAt: 100, visits: [], species: '', notes: '' });
+    expect(a).toMatchObject({ privacy: 'private', schemaVersion: 2, photos: [], missions: [], createdAt: 100, updatedAt: 100, visits: [], species: '', notes: '' });
   });
   it('persists across a restart', () => {
     const st = mem();
@@ -74,12 +74,13 @@ describe('coral photos and moves', () => {
     expect(fitSize(4000, 3000)).toEqual({ w: 1280, h: 960 });
     expect(fitSize(600, 800)).toEqual({ w: 600, h: 800 });
   });
-  it('moves a site and tracks photo ids, and old records get an empty photo list', () => {
+  it('moves a site and tracks photos, and old records get an empty photo list', () => {
     const st = mem();
     st.setItem('ft.coral.v1', JSON.stringify({ sites: [{ id: 'y', kind: 'reef', lng: 1, lat: 2, visits: [] }] }));
     const s = createCoralStore(st);
-    expect(s.list()[0].photoIds).toEqual([]);
-    s.update('y', { lng: 3, lat: 4, photoIds: ['p1'] }, 9);
-    expect(s.list()[0]).toMatchObject({ lng: 3, lat: 4, photoIds: ['p1'], updatedAt: 9 });
+    expect(s.list()[0].photos).toEqual([]);
+    s.update('y', { lng: 3, lat: 4 }, 9);
+    s.addPhoto('y', { id: 'p1' }, 9);
+    expect(s.list()[0]).toMatchObject({ lng: 3, lat: 4, photos: [{ id: 'p1', addedAt: 9, caption: '', tags: [] }], updatedAt: 9 });
   });
 });
