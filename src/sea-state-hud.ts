@@ -5,7 +5,7 @@
  */
 import { condSlot } from './cond-groups';
 import { t, type Key } from './i18n';
-import { seaState, simPartitions } from './physics/sea-state';
+import { opposingMs, seaState, simPartitions, withCurrent } from './physics/sea-state';
 import { feedPartitions } from './sea-partitions';
 import type { SeaState as Waves } from './adapters/waves';
 import type { Conditions } from './mock';
@@ -17,6 +17,8 @@ export type VerdictSafety = Pick<VerdictInputs, 'gustKt' | 'squall' | 'lightning
 export interface SeaStateDeps {
   vessel: () => Vessel;
   safety: () => VerdictSafety;
+  /** Surface current [east, north] m/s at the reticle, or null (PLAN 7.23 item 3). */
+  current?: () => readonly [number, number] | null;
 }
 
 export { feedPartitions };
@@ -30,6 +32,7 @@ export function mountSeaStateHud(root: HTMLElement, getData: () => Conditions, s
       <div class="ro"><span class="lbl">${t('sea.title')}<span id="ss-sim"> · ${t('sea.sim')}</span></span><span class="seg sm" id="ss-comfort">--</span></div>
       <div class="ro"><span class="lbl">${t('sea.comfort')}</span><span class="seg sm" id="ss-score">--</span></div>
       <div class="ro"><span class="seg sm" id="ss-detail">--</span></div>
+      <div class="ro"><span class="lbl">${t('sea.current')}</span><span class="seg sm" id="ss-curr">--</span></div>
       <div class="ro"><span class="lbl">${t('verdict.title')}</span><span class="seg sm" id="bv-verdict">--</span></div>
       <div class="ro"><span class="seg sm" id="bv-why">--</span></div>
     </div>`,
@@ -38,7 +41,15 @@ export function mountSeaStateHud(root: HTMLElement, getData: () => Conditions, s
   const tick = () => {
     const real = feedPartitions(seaAt());
     $('ss-sim').hidden = !!real;
-    const s = seaState(real ?? simPartitions(getData()));
+    const base = real ?? simPartitions(getData());
+    const cur = deps?.current?.();
+    const c = cur ? { u: cur[0], v: cur[1] } : null;
+    const s = seaState(c ? withCurrent(base, c) : base);
+    // Current against the waves steepens them (physics/sea-state.ts currentFactor); the comfort score above already includes it.
+    const speed = c ? Math.hypot(c.u, c.v) : 0;
+    const opp = c ? opposingMs(base, c) : null;
+    $('ss-curr').textContent = !c ? '--' : `${(speed * 1.94384).toFixed(1)} ${t('unit.kt')}${speed >= 0.1 && opp !== null ? ' · ' + t(opp / speed > 0.5 ? 'sea.curr.against' : opp / speed < -0.5 ? 'sea.curr.with' : 'sea.curr.cross') : ''}`;
+    $('ss-curr').className = `seg sm ${opp !== null && speed >= 0.25 && opp / speed > 0.5 ? 'red' : ''}`;
     const tone = s.comfort === 'comfortable' ? 'green' : s.comfort === 'lively' ? '' : 'red';
     $('ss-comfort').textContent = t(`sea.${s.comfort}` as Key);
     $('ss-comfort').className = `seg sm ${tone}`;

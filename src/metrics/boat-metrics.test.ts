@@ -20,6 +20,12 @@ describe('boat metrics', () => {
     expect(read('comfort', env({ sea: () => sea({ swellHs: NaN }) }))).toBeNull();
     expect(read('comfort', env({ sea: () => null }))).toBeNull();
   });
+  it('comfort drops when the current runs against the waves', () => {
+    const toward = (deg: number, v: number): [number, number] => [v * Math.sin((deg * Math.PI) / 180), v * Math.cos((deg * Math.PI) / 180)];
+    const still = read('comfort', env())!;
+    expect(read('comfort', env({ currentVec: () => toward(60, 1.5) }))!).toBeLessThan(still); // sea() waves come FROM 60°
+    expect(read('comfort', env({ currentVec: () => toward(240, 1.5) }))!).toBeGreaterThanOrEqual(still);
+  });
   it('squall is 0 none, 1 watch, 2 likely', () => {
     expect(read('squall', env())).toBe(0);
     expect(read('squall', env({ weather: () => wx(1500, 30, 0) }))).toBe(1);
