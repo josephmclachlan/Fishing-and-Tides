@@ -6,6 +6,10 @@ import { nearest } from './geo';
 import { formatAltitude, mapAltitudeM } from './zoom-fx';
 import { t, type Key } from './i18n';
 import { describeAge, type AgeView } from './adapters/data-age';
+import { en } from './i18n/en';
+
+/** A feed's name for DATA AGE (its SYSTEM CHECK title), or the id in capitals. */
+const feedName = (feed: string) => (`check.feed.${feed}` in en ? t(`check.feed.${feed}` as Key) : feed.toUpperCase());
 import { condSlot, groupsHtml } from './cond-groups';
 
 /** Show `html` only at `tier` and finer (CSS keys off body[data-tier]). */
@@ -51,7 +55,7 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions,
       <div class="ro"><span class="lbl">${t('hud.lon')}</span><span class="seg green" id="lon">--</span></div>
       <div class="ro wide-only"><span class="lbl">${t('hud.zoom')}</span><span class="seg green" id="zoom">--</span></div>
       <div class="ro"><span class="lbl">${t('hud.alt')}</span><span class="seg green" id="alt">--</span></div>
-      <div class="ro"><span class="lbl">${t('hud.dataAge')}</span><span class="seg" id="age">--</span><span class="tag" id="age-net" hidden></span></div>
+      <div class="ro"><span class="lbl">${t('hud.dataAge')}</span><span class="seg" id="age">--</span><span class="lbl age-feed" id="age-feed"></span><span class="tag" id="age-net" hidden></span></div>
       <button id="sync" class="btn" title="${t('hud.syncTitle')}">${t('hud.sync')}</button>
       </div>
     </footer>
@@ -97,6 +101,8 @@ export function mountHud(root: HTMLElement, map: Map, getData: () => Conditions,
     const tone = a.state === 'stale' ? 'red' : a.state === 'fresh' ? 'green' : '';
     const text = a.state === 'none' ? t('age.sim') : a.text;
     const net = !online ? t('net.offline') : a.fromCache ? t('net.cached') : '';
+    // Name the oldest feed: a daily feed (coral heat) is always about a day old, which is fine, and 23H alone looked stale.
+    $('age-feed').textContent = a.state === 'none' || !a.feed ? '' : `· ${feedName(a.feed)}`;
     const age = $('age');
     age.textContent = text;
     age.className = `seg ${tone}`;

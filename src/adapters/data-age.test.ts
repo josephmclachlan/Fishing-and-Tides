@@ -42,7 +42,7 @@ describe('describeAge', () => {
     expect(describeAge(undefined, now)).toEqual({ state: 'none', text: '', fromCache: false });
   });
   it('colours and flags the stored copy', () => {
-    expect(describeAge({ feed: 'wind', fetchedAt: now - 2 * 3.6e6, fromCache: false }, now)).toEqual({ state: 'fresh', text: '02H00', fromCache: false });
+    expect(describeAge({ feed: 'wind', fetchedAt: now - 2 * 3.6e6, fromCache: false }, now)).toEqual({ state: 'fresh', text: '02H00', fromCache: false, feed: 'wind' });
     expect(describeAge({ feed: 'wind', fetchedAt: now - 20 * 3.6e6, fromCache: true }, now)).toMatchObject({ state: 'aging', fromCache: true });
     expect(describeAge({ feed: 'wind', fetchedAt: now - 60 * 3.6e6, fromCache: true }, now).state).toBe('stale');
   });
