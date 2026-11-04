@@ -1,3 +1,4 @@
+import './theme';
 import '@fontsource/share-tech-mono';
 import './style.css';
 import { registerSW } from 'virtual:pwa-register';

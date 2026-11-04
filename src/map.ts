@@ -7,6 +7,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { GRATICULE_STEP, REGION, SPOTS, TIER_ZOOM } from './region';
 import { graticule, toDDM } from './geo';
 import { hemispheres } from './i18n';
+import { themeColour as tc } from './theme';
 
 export const STYLE_URL = 'https://tiles.openfreemap.org/styles/dark';
 
@@ -15,17 +16,17 @@ function hudify(map: Map) {
   for (const layer of map.getStyle().layers ?? []) {
     const id = layer.id;
     try {
-      if (layer.type === 'background') map.setPaintProperty(id, 'background-color', '#070a06');
+      if (layer.type === 'background') map.setPaintProperty(id, 'background-color', tc('--map-bg', '#070a06'));
       else if (layer.type === 'fill') {
         const water = /water|ocean|sea/.test(id);
-        map.setPaintProperty(id, 'fill-color', water ? '#03120b' : '#0c0d07');
-        map.setPaintProperty(id, 'fill-outline-color', water ? '#1d6b3a' : '#2a2410');
+        map.setPaintProperty(id, 'fill-color', water ? tc('--map-water', '#03120b') : tc('--map-land', '#0c0d07'));
+        map.setPaintProperty(id, 'fill-outline-color', water ? tc('--map-water-edge', '#1d6b3a') : tc('--map-land-edge', '#2a2410'));
       } else if (layer.type === 'line') {
         const water = /water|river|coast/.test(id);
-        map.setPaintProperty(id, 'line-color', water ? '#2fbf66' : '#5a4510');
+        map.setPaintProperty(id, 'line-color', water ? tc('--map-water-line', '#2fbf66') : tc('--map-land-line', '#5a4510'));
         map.setPaintProperty(id, 'line-opacity', water ? 0.8 : 0.45);
       } else if (layer.type === 'symbol') {
-        map.setPaintProperty(id, 'text-color', '#c98a00');
+        map.setPaintProperty(id, 'text-color', tc('--map-text', '#c98a00'));
         map.setPaintProperty(id, 'text-halo-color', '#000');
         map.setPaintProperty(id, 'icon-opacity', 0);
       } else if (layer.type === 'fill-extrusion') map.setLayoutProperty(id, 'visibility', 'none');
@@ -50,7 +51,7 @@ function addTierLayers(map: Map) {
       type: 'geojson',
       data: { type: 'Feature', properties: {}, geometry: { type: 'MultiLineString', coordinates: graticule(bounds, step) } },
     });
-    map.addLayer({ id, type: 'line', source: id, minzoom, maxzoom, paint: { 'line-color': '#ffb000', 'line-width': 0.6, 'line-opacity': opacity } }, firstSymbolId(map));
+    map.addLayer({ id, type: 'line', source: id, minzoom, maxzoom, paint: { 'line-color': tc('--amber', '#ffb000'), 'line-width': 0.6, 'line-opacity': opacity } }, firstSymbolId(map));
   };
   grid('grat-macro', REGION.viewBounds, GRATICULE_STEP.MACRO, byTier(0.3, 0, 0), 0, COAST + 0.5);
   grid('grat-coast', REGION.maxBounds, GRATICULE_STEP.COAST, byTier(0, 0.16, 0), COAST - 0.5, SPOT + 0.5);
@@ -59,9 +60,9 @@ function addTierLayers(map: Map) {
   // Coastline traced from the water polygons; sharpens and brightens as you zoom in.
   if (map.getSource('openmaptiles')) {
     const coast = { type: 'line', source: 'openmaptiles', 'source-layer': 'water', minzoom: COAST - 0.5 } as const;
-    map.addLayer({ ...coast, id: 'coastline-halo', minzoom: SPOT - 1, paint: { 'line-color': '#39ff7a', 'line-width': 7, 'line-blur': 6, 'line-opacity': byTier(0, 0, 0.3) } }, firstSymbolId(map));
+    map.addLayer({ ...coast, id: 'coastline-halo', minzoom: SPOT - 1, paint: { 'line-color': tc('--green', '#39ff7a'), 'line-width': 7, 'line-blur': 6, 'line-opacity': byTier(0, 0, 0.3) } }, firstSymbolId(map));
     map.addLayer(
-      { ...coast, id: 'coastline', paint: { 'line-color': '#39ff7a', 'line-width': byTier(0, 0.8, 1.8), 'line-opacity': byTier(0, 0.55, 0.95) } },
+      { ...coast, id: 'coastline', paint: { 'line-color': tc('--green', '#39ff7a'), 'line-width': byTier(0, 0.8, 1.8), 'line-opacity': byTier(0, 0.55, 0.95) } },
       firstSymbolId(map),
     );
   }
@@ -81,7 +82,7 @@ function addOverlays(map: Map) {
     id: 'region-box',
     type: 'line',
     source: 'region',
-    paint: { 'line-color': '#ffb000', 'line-width': byTier(1.5, 1, 1), 'line-dasharray': [4, 4], 'line-opacity': byTier(0.85, 0.5, 0.15) },
+    paint: { 'line-color': tc('--amber', '#ffb000'), 'line-width': byTier(1.5, 1, 1), 'line-dasharray': [4, 4], 'line-opacity': byTier(0.85, 0.5, 0.15) },
   });
 
   map.addSource('spots', {
@@ -98,9 +99,9 @@ function addOverlays(map: Map) {
     id: 'spots-ring',
     type: 'circle',
     source: 'spots',
-    paint: { 'circle-radius': byTier(3, 6, 11), 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#39ff7a', 'circle-stroke-width': byTier(1, 1.5, 2) },
+    paint: { 'circle-radius': byTier(3, 6, 11), 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': tc('--green', '#39ff7a'), 'circle-stroke-width': byTier(1, 1.5, 2) },
   });
-  map.addLayer({ id: 'spots-core', type: 'circle', source: 'spots', minzoom: SPOT - 0.5, paint: { 'circle-radius': 2, 'circle-color': '#39ff7a' } });
+  map.addLayer({ id: 'spots-core', type: 'circle', source: 'spots', minzoom: SPOT - 0.5, paint: { 'circle-radius': 2, 'circle-color': tc('--green', '#39ff7a') } });
   map.addLayer({
     id: 'spots-label',
     type: 'symbol',
@@ -115,7 +116,7 @@ function addOverlays(map: Map) {
       'text-anchor': 'left',
       'text-font': ['Noto Sans Regular'],
     },
-    paint: { 'text-color': '#39ff7a', 'text-halo-color': '#000', 'text-halo-width': 1.5 },
+    paint: { 'text-color': tc('--green', '#39ff7a'), 'text-halo-color': '#000', 'text-halo-width': 1.5 },
   });
 }
 
