@@ -10,6 +10,7 @@ import { fetchGauge } from '../adapters/gauge';
 import { fetchLightning } from '../adapters/lightning';
 import { fetchMetar } from '../adapters/metar';
 import { fetchPasses } from '../adapters/passes';
+import { fetchRiverFlow } from '../adapters/river-flow';
 import { fetchSargassum } from '../adapters/sargassum';
 import { fetchSatellite } from '../adapters/satellite';
 import { fetchStorms } from '../adapters/storms';
@@ -35,6 +36,7 @@ export const JOB_FEEDS: Record<string, readonly string[]> = {
   passes: ['sst-pass', 'chl-pass', 'scat-pass'],
   weather: ['weather'],
   rain: ['rain'],
+  river: ['river'],
   storms: ['storms'],
   gauge: ['gauge'],
   metar: ['metar'],
@@ -53,6 +55,7 @@ export function tripJobs(base: string = import.meta.env.BASE_URL): SyncJob[] {
     { name: 'sst', run: async () => need(Number.isFinite((await fetchSatellite({ base })).fetchedAt), 'no satellite data') },
     { name: 'weather', run: async () => live(await fetchWeather(), 'weather') },
     { name: 'rain', run: async () => live(await fetchCatchmentRain(), 'rain') },
+    { name: 'river', run: async () => live(await fetchRiverFlow(), 'river') },
     { name: 'storms', run: async () => live(await fetchStorms({ base }), 'storms') },
     { name: 'gauge', run: async () => live(await fetchGauge({ hours: 30 }), 'gauge') },
     // LIVE OBS (PLAN 2.13): the airport's reports and the satellite passes.

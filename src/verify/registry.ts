@@ -10,6 +10,7 @@ import { gaugeChecks } from '../adapters/gauge';
 import { fetchMetar, metarChecks } from '../adapters/metar';
 import { fetchSatellite, satelliteChecks } from '../adapters/satellite';
 import { catchmentRainChecks } from '../adapters/catchment-rain';
+import { riverFlowChecks } from '../adapters/river-flow';
 import { fetchPasses, passChecks } from '../adapters/passes';
 import { fetchSargassum, sargassumChecks } from '../adapters/sargassum';
 import { weatherChecks } from '../adapters/weather';
@@ -27,6 +28,7 @@ export function allChecks(base: string = import.meta.env.BASE_URL): Check[] {
     ...metarChecks(() => fetchMetar({ base }), () => fetchWind({ base })),
     ...satelliteChecks(() => fetchSatellite({ base })),
     ...catchmentRainChecks(),
+    ...riverFlowChecks(),
     ...passChecks(() => fetchPasses({ base }), () => fetchSatellite({ base })),
     ...sargassumChecks(() => fetchSargassum({ base })),
     ...weatherChecks(),

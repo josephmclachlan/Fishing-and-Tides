@@ -69,7 +69,7 @@ import { isWater, sample } from './physics/bathy';
 import { bandFor, createTimeStore } from './time';
 import { mountTimeSlider } from './time-slider';
 import { KT_PER_MS, sampleField, fromDeg } from './physics/flow';
-import { MOCK_FLOW, REGION, SPOTS } from './region';
+import { MOCK_FLOW, PLUME_RIVERS, REGION, SPOTS } from './region';
 import { fetchWind, windAt, type WindData } from './adapters/wind';
 import { currentsAt, fetchCurrents, type CurrentsData } from './adapters/currents';
 import { fetchWaves, wavesAt, type SeaState, type WavesData } from './adapters/waves';
@@ -77,6 +77,7 @@ import { chlAt, fetchSatellite, sstAt, type SatelliteData } from './adapters/sat
 import { mountSst } from './layers/sst';
 import { clarityAt, mountClarity, mountClarityHud, type ClarityContext } from './layers/clarity';
 import { fetchCatchmentRain, type CatchmentRain } from './adapters/catchment-rain';
+import { fetchRiverFlow, flowRatio, type RiverFlow } from './adapters/river-flow';
 import { dataAge, describeAge } from './adapters/data-age';
 import { createNet } from './net';
 import { createPhysicsClient } from './physics/client';
@@ -357,6 +358,11 @@ const refreshClarity = () => {
   diveHud?.refresh();
 };
 time.subscribe(refreshClarity);
+// River flow at the mouths (PLAN 7.15): GloFAS discharge against its median, for fishing near the mouths.
+let riverFlow: RiverFlow | null = null;
+fetchRiverFlow()
+  .then((d) => (riverFlow = d))
+  .catch((err) => console.warn('river flow unavailable', err));
 fetchCatchmentRain()
   .then((d) => ((catchmentRain = d), refreshClarity()))
   .catch((err) => console.warn('catchment rain unavailable', err));
@@ -553,6 +559,13 @@ fetchSeafloor()
         const species = loadSpecies();
         const month = new Date(time.validMs()).getUTCMonth();
         const layer = mountFishing(map, { region: data.region, land: data.land, reefs: data.reefs, mouths, bounds: [REGION.bounds[0][0], REGION.bounds[0][1], REGION.bounds[1][0], REGION.bounds[1][1]] }, { species, month }, occurrences);
+        // The nearest big river mouth and its GloFAS flow against the median (PLAN 7.15).
+        const riverAt = (lng: number, lat: number, ms: number) => {
+          if (!riverFlow) return null;
+          const m = nearest([lng, lat], PLUME_RIVERS.map((r) => ({ name: r.name, lngLat: r.mouth })));
+          const ratio = m && flowRatio(riverFlow, m.point.name, ms);
+          return m && ratio !== null ? { km: m.distanceM / 1000, ratio } : null;
+        };
         // Live gauge minus the predicted tide, for the hours around now, from a reading under an hour old.
         const surgeNear = (ms: number) => {
           const g = gauge.at(-1);
@@ -579,10 +592,11 @@ fetchSeafloor()
               visM: c ? (clarityAt({ ...c, ms }, lng, lat)?.visM ?? null) : null,
               sstC: satellite ? (sstAt(satellite, lng, lat, ms)?.value ?? null) : null,
               chl: satellite ? (chlAt(satellite, lng, lat, ms)?.value ?? null) : null,
+              river: riverAt(lng, lat, ms),
               sarg: sargForecast && beach && beach.distanceM <= BEACH_RADIUS_M ? (beachDay(sargForecast, beach.point.name, ms)?.level ?? null) : null,
             };
           },
-          version: () => `${wind ? 1 : 0}${waves ? 1 : 0}${weatherData ? 1 : 0}${satellite ? 1 : 0}${catchmentRain ? 1 : 0}${sargForecast ? 1 : 0}|${flashesAt}|${gauge.at(-1)?.t ?? 0}`,
+          version: () => `${wind ? 1 : 0}${waves ? 1 : 0}${weatherData ? 1 : 0}${satellite ? 1 : 0}${catchmentRain ? 1 : 0}${sargForecast ? 1 : 0}${riverFlow ? 1 : 0}|${flashesAt}|${gauge.at(-1)?.t ?? 0}`,
         };
         mountFishingHud(hud, map, layer, time, species, fishEnv);
       })
