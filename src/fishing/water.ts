@@ -13,6 +13,11 @@
  *   water   = weighted mean of the terms that are known: 0.6 vis, 0.2 temp, 0.2 chl; null if none are.
  *   factor  = (0.6 + 0.4 × water) × sargassum,  sargassum = 0.85 MODERATE, 0.6 HIGH at the nearest beach
  *           (mats foul lines and block launching), else 1. Unknown water counts as 1.
+ *   river   (PLAN 7.15) the nearest big river mouth's flow as a share of its GloFAS median, weighted by
+ *           closeness p = exp(−(km / 2·reach)²): running 1.3 to 5× median lifts mouth hunters (prior mouth
+ *           weight ≥ 0.5: tarpon, snook, jack) by up to ×1.10 (bait flushed out, a colour line); a flood
+ *           above 5× cuts every species by up to ×0.85 (mud, debris); under half the median trims mouth
+ *           hunters by up to ×0.95.
  */
 import { trapezoid } from './habitat';
 import type { Species } from './species';
@@ -28,14 +33,16 @@ export interface WaterInputs {
   chl?: number | null;
   /** Sargassum outlook at the nearest beach for the day. */
   sarg?: SargLevel | null;
+  /** The nearest plume river: distance from the place to its mouth, km, and its flow as a share of the median. */
+  river?: { km: number; ratio: number } | null;
 }
 
-export type WaterReason = 'murky' | 'clearwater' | 'temp' | 'sargassum' | 'goodwater';
+export type WaterReason = 'murky' | 'clearwater' | 'temp' | 'sargassum' | 'goodwater' | 'riverup' | 'flood' | 'riverlow';
 
 export interface WaterTerm {
   /** 0..1, or null when nothing about the water is known. */
   water: number | null;
-  /** Multiplier for the BITE score, 0.36..1. */
+  /** Multiplier for the BITE score, about 0.3..1.1. */
   factor: number;
   reasons: WaterReason[];
 }
@@ -56,6 +63,18 @@ export function chlFit(chl: number): number {
 
 export const SARG_FACTOR: Record<SargLevel, number> = { NONE: 1, LOW: 1, MODERATE: 0.85, HIGH: 0.6 };
 
+/** River-mouth flow multiplier and reason (PLAN 7.15); 1 with no river or too far from it. */
+export function riverTerm(sp: Species, river: WaterInputs['river']): { factor: number; why: WaterReason | null } {
+  if (!river || !ok(river.ratio) || !ok(river.km)) return { factor: 1, why: null };
+  const p = Math.exp(-((river.km / (2 * sp.mouthReachKm)) ** 2));
+  if (p < 0.2) return { factor: 1, why: null };
+  const mouthHunter = sp.w.mouth >= 0.5;
+  if (river.ratio > 5) return { factor: 1 - 0.15 * p, why: 'flood' };
+  if (river.ratio >= 1.3 && mouthHunter) return { factor: 1 + 0.1 * p, why: 'riverup' };
+  if (river.ratio < 0.5 && mouthHunter) return { factor: 1 - 0.05 * p, why: 'riverlow' };
+  return { factor: 1, why: null };
+}
+
 export function waterTerm(sp: Species, w: WaterInputs): WaterTerm {
   const parts: [number, number][] = [];
   const reasons: WaterReason[] = [];
@@ -74,6 +93,8 @@ export function waterTerm(sp: Species, w: WaterInputs): WaterTerm {
   const water = sum > 0 ? parts.reduce((a, [k, v]) => a + k * v, 0) / sum : null;
   const sarg = SARG_FACTOR[w.sarg ?? 'NONE'];
   if (sarg < 1) reasons.unshift('sargassum');
+  const rv = riverTerm(sp, w.river);
+  if (rv.why) reasons.push(rv.why);
   if (water !== null && water >= 0.95 && ok(w.visM) && sarg === 1) reasons.push('goodwater');
-  return { water, factor: (water === null ? 1 : 0.6 + 0.4 * water) * sarg, reasons };
+  return { water, factor: (water === null ? 1 : 0.6 + 0.4 * water) * sarg * rv.factor, reasons };
 }

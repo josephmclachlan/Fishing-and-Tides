@@ -62,7 +62,7 @@ Map style, fonts, sprites and tiles from OpenFreeMap go through one route: stale
 The SYNC FOR TRIP button (`src/sync-ui.ts`, `src/offline/`) gets the phone ready for a day with no signal:
 
 1. **Map** (`offline/tiles.ts`, `offline/sync.ts`): the dark style, its TileJSON, sprites at 1× and 2×, six glyph ranges of Noto Sans Regular, and the tiles of `tripPlan()`: z0–6 over `REGION.viewBounds` (everything you can pan to), z7–10 over `REGION.maxBounds`, z11–14 over `REGION.bounds` (the coast). The hillshade raster stops at its z6. About 2,170 tiles and 23 MB, taking from under a minute to a few minutes depending on signal; 8 downloads at a time, one retry each. They go into their own cache, `trip-v1`, which nothing evicts; the service worker's map route falls back to it when `map-tiles` misses (the `cachedResponseWillBeUsed` plugin in `vite.config.ts`). Sync requests carry `ftsync=1`, which the route skips, so each tile is stored once.
-2. **Forecasts and feeds** (`offline/jobs.ts`): wind, waves, currents, satellite SST and ocean colour, weather, catchment rain, storms, the Limón gauge (now stored under a stable key, since its URL carries the time) and lightning, each fetched once through `cachedFetch`. A feed counts as missing when nothing was published or, for the feeds that report it, when the network failed and the older copy was kept.
+2. **Forecasts and feeds** (`offline/jobs.ts`): wind, waves, currents, satellite SST and ocean colour, weather, catchment rain, river flow, storms, the Limón gauge (now stored under a stable key, since its URL carries the time) and lightning, each fetched once through `cachedFetch`. A feed counts as missing when nothing was published or, for the feeds that report it, when the network failed and the older copy was kept.
 3. **Check**: the seafloor manifest, grids and reef files are in the precache.
 
 The result (`{ at, tiles, failed, bytes, feeds, feedsFailed, staticOk, persisted }`) is kept in `localStorage['ft.sync']` and shown in the TRIP row: green within a day of a complete sync, amber after or when something was missing, red after 7 days. The sync also asks the browser to keep the site's storage (`navigator.storage.persist()`), which phones grant to installed apps.
@@ -86,7 +86,7 @@ Fishing and rip scores are not stored: they are computed on the phone from the s
 | LIVE OBS | gauge, airport METAR, satellite passes (SST, colour, ASCAT wind) | sync `gauge`, `metar`, `passes` | gauge, metar, sst-pass, chl-pass, scat-pass |
 | RIP RISK, SURF BREAKS | waves, wind, tide (on device), seafloor | from the synced inputs | through waves and wind |
 | DEPTH, REEFS, SEAMARKS | seafloor grids, reefs, OSM marks | precached | (static build) |
-| FISHING | OBIS/GBIF records, river mouths, plus tide, sun and moon on device | precached | occurrences, obis, gbif |
+| FISHING | OBIS/GBIF records, river mouths, plus tide, sun and moon on device; BITE also reads wind, waves, weather, lightning, the gauge, clarity, satellite SST and chlorophyll, sargassum and GloFAS river flow | precached, plus the synced inputs and sync `river` | occurrences, obis, gbif, river |
 | PROTECTED, ANCHORAGES | zones GeoJSON, harbours in `region.ts` | precached / built in | (static build) |
 | Basemap | OpenFreeMap style, fonts, tiles | sync map step (`trip-v1`) | none |
 
@@ -146,6 +146,7 @@ It is a drawer behind an OBS tab whose lamp shows the stalest source; on phones 
 
 `src/physics/clarity.ts` turns everything into a diffuse attenuation coefficient and adds the causes, since attenuation from separate causes adds: Kd = Kd490 (satellite; chlorophyll through Morel and Maritorena 2001 where the map has none; 0.11/m background with neither) + river plume + swell resuspension. Visibility is the Secchi depth 1.7 / Kd. Green 8 m or more, amber 3 to 8 m, red under 3 m.
 
+- **River flow** (PLAN 7.15): `src/adapters/river-flow.ts` fetches daily GloFAS discharge and its long-term median for each `PLUME_RIVERS` mouth from Open-Meteo's flood API (7 days back, 16 ahead, one call, no key). GloFAS runs on a ~5 km grid, so a small river's mouth may land in a neighbour's cell; fishing uses only the flow as a share of that cell's own median. Not validated against gauged flows here.
 - **River plumes**: `PLUME_RIVERS` in `src/region.ts` (Sixaola, Estrella, Banano, Bananito) each have a mouth, an approximate catchment area and a rain point inside the catchment. `src/adapters/catchment-rain.ts` fetches hourly rain for those points straight from Open-Meteo (3 days back, 16 ahead, one call). Rain before the valid time is weighted by exp(−age / 24 h). A plume reaches full strength (Kd 3/m, about 0.6 m visibility) at 60 mm of that weighted rain, and spreads as a Gaussian 6 km wide for a 1000 km² catchment, scaling with √(area × strength).
 - **Resuspension**: the bed orbital velocity from the waves adapter's Hs and period at the cell's depth (Soulsby 1997). It adds up to 1.1/m between 0.15 and 0.5 m/s.
 
