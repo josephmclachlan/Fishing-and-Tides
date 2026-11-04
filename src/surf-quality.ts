@@ -71,6 +71,8 @@ export interface SurfInput {
   /** Rain, mm/h (model mean), and the sargassum outlook at this beach. */
   rainMmH?: number | null;
   sarg?: SargLevel | null;
+  /** Shown beside the score, not scored (PLAN 7.28): sea temperature °C and UV index. */
+  info?: { sstC?: number | null; uv?: number | null };
   tide?: { level: number; rising: boolean } | null;
   gustMs?: number | null;
   /** The wind a few hours on (same units), to say whether the faces are about to turn. */
@@ -91,6 +93,8 @@ export interface SurfQuality {
   tideKind: TideKind;
   /** Rip current level at the break from the physics worker (advisory, not scored); set by spot-physics. */
   ripLevel?: 'LOW' | 'MOD' | 'HIGH';
+  /** Echo of the display-only inputs. */
+  info?: { sstC?: number | null; uv?: number | null };
 }
 
 export type TideKind = 'low' | 'mid' | 'high' | 'none';
@@ -197,5 +201,5 @@ export function surfQuality(inp: SurfInput): SurfQuality {
     water: waterFactor(inp.rainMmH, inp.sarg),
   };
   const score = 10 * factors.size * factors.period * factors.window * factors.clean * factors.tide * factors.wind * factors.safety * factors.water;
-  return { score, band: surfBand(score, inp.Hb), factors, windKind: w.kind, tideKind: !inp.tide || !inp.brk.tidePref || inp.brk.tidePref === 'any' ? 'none' : inp.tide.level < 0.33 ? 'low' : inp.tide.level > 0.67 ? 'high' : 'mid', windTrend: windTrend(inp.brk.facing, { speedMs: inp.windMs, fromDeg: inp.windFromDeg }, inp.windAhead) };
+  return { score, band: surfBand(score, inp.Hb), factors, info: inp.info, windKind: w.kind, tideKind: !inp.tide || !inp.brk.tidePref || inp.brk.tidePref === 'any' ? 'none' : inp.tide.level < 0.33 ? 'low' : inp.tide.level > 0.67 ? 'high' : 'mid', windTrend: windTrend(inp.brk.facing, { speedMs: inp.windMs, fromDeg: inp.windFromDeg }, inp.windAhead) };
 }

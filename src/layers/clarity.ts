@@ -8,11 +8,12 @@
 import type { Map } from 'maplibre-gl';
 import { PLUME_RIVERS, REGION } from '../region';
 import { cellAt, M_PER_DEG_LAT, M_PER_DEG_LNG, sample, type Grid } from '../physics/bathy';
-import { CLARITY_BANDS, clarity, effectiveRain, kdFromChl, resuspensionKd, type Clarity, type ClarityLevel } from '../physics/clarity';
+import { CLARITY_BANDS, clarity, effectiveRain, flowPlumeMm, kdFromChl, resuspensionKd, type Clarity, type ClarityLevel } from '../physics/clarity';
 import { clarityBand, driftedPlumeKd, plumeAge, plumeDrift, satKdAt, satState, waveSpread, type ClarityBand, type SatState } from '../physics/clarity-forecast';
 import { observedAt, type SatelliteData } from '../adapters/satellite';
 import { coastTest, rgbaWord, seaImage, type SeaImage } from './sea-image';
 import type { CatchmentRain } from '../adapters/catchment-rain';
+import { flowRatio, type RiverFlow } from '../adapters/river-flow';
 import { readout } from '../hud-kit';
 import { t, type Key } from '../i18n';
 
@@ -30,6 +31,8 @@ const SHORE_DEPTH_M = 2;
 export interface ClarityContext {
   satellite: SatelliteData | null;
   rain: CatchmentRain | null;
+  /** Measured river discharge (GloFAS). Where it covers the hour it can raise a river's plume above what the rain proxy gives. */
+  flow?: RiverFlow | null;
   /** Elevation (m, positive up) for depth, and the land mask where `land` doesn't reach. */
   elevation: Grid;
   /**
@@ -50,10 +53,11 @@ export interface ClarityContext {
  * Plume rain per river at `ms`, and how far the surface current has carried the plume (PLAN 7.2):
  * the mean current at the mouth over the plume's rain-weighted age, sampled at four times.
  */
-export const riverRain = (rain: CatchmentRain | null, ms: number, currentAt?: ClarityContext['currentAt']) =>
+export const riverRain = (rain: CatchmentRain | null, ms: number, currentAt?: ClarityContext['currentAt'], flow?: RiverFlow | null) =>
   PLUME_RIVERS.map((r) => {
     const mm = rain?.byRiver[r.name];
-    const rainMm = mm ? effectiveRain(rain.times, mm, ms) : 0;
+    const ratio = flow ? flowRatio(flow, r.name, ms) : null;
+    const rainMm = Math.max(mm ? effectiveRain(rain.times, mm, ms) : 0, ratio === null ? 0 : flowPlumeMm(ratio));
     let drift: [number, number] = [0, 0];
     if (mm && rainMm > 0 && currentAt) {
       const age = plumeAge(rain.times, mm, ms);
@@ -98,7 +102,7 @@ export function satHistory(sat: SatelliteData, lng: number, lat: number): SatSta
 export type ClarityAt = Clarity & ClarityBand;
 
 /** Clarity at one sea point, with its band; null on land. */
-export function clarityAt(c: ClarityContext, lng: number, lat: number, rivers = riverRain(c.rain, c.ms, c.currentAt), sea = c.seaAt(lng, lat, c.ms)): ClarityAt | null {
+export function clarityAt(c: ClarityContext, lng: number, lat: number, rivers = riverRain(c.rain, c.ms, c.currentAt, c.flow), sea = c.seaAt(lng, lat, c.ms)): ClarityAt | null {
   const depthM = seaDepthAt(c, lng, lat);
   if (depthM === null) return null;
   const mx = M_PER_DEG_LNG * Math.cos(lat * RAD);
@@ -131,7 +135,7 @@ export function clarityGrid(c: ClarityContext): ClarityGrid {
   const [[w, s], [e, n]] = REGION.bounds;
   const cols = Math.round((e - w) / CLARITY_STEP) + 1, rows = Math.round((n - s) / CLARITY_STEP) + 1;
   const vis = new Float32Array(cols * rows).fill(NaN);
-  const rivers = riverRain(c.rain, c.ms, c.currentAt);
+  const rivers = riverRain(c.rain, c.ms, c.currentAt, c.flow);
   // The wave grid is 0.25° (nest 1/12°), so one sea state per 0.05° block is plenty.
   const seaMemo = new globalThis.Map<string, { hs: number; tp: number } | null>();
   const seaFor = (lng: number, lat: number) => {

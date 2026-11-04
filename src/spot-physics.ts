@@ -4,6 +4,7 @@
  * overlay and the SURF ZONE readouts. Swell comes from the waves adapter per spot, else the conditions feed.
  */
 import { LIMON_HARMONICS } from './data/tides-limon';
+import { tideFixNow } from './corrections';
 import type { Conditions } from './mock';
 import type { PhysicsClient } from './physics/client';
 import { KT_PER_MS } from './physics/flow';
@@ -31,6 +32,9 @@ export interface HourExtras {
   squall?: SquallLevel;
   rainMmH?: number | null;
   sarg?: SargLevel | null;
+  /** Sea temperature °C and UV index for the readout (not scored). */
+  sstC?: number | null;
+  uv?: number | null;
 }
 
 export interface SpotState {
@@ -69,7 +73,7 @@ export function createSpotPhysics(
     const c = conditions();
     const ms = validMs();
     const ts = tideState(LIMON_HARMONICS, ms);
-    const tideLevel = ts.level;
+    const tideLevel = ts.level + tideFixNow(ms);
     const sea: Sea = { Hs: c.swellHeightM, Tp: c.swellPeriodS, fromDeg: c.swellDirDeg };
     const wind = { speedMs: c.windKt / KT_PER_MS, fromDeg: c.windDirDeg };
         const seasX = PLACES.map((p) => seaAt(p.lngLat));
@@ -81,7 +85,7 @@ export function createSpotPhysics(
           const r = rs[i];
           const wx = windExtras(ms, s.lngLat, s.name);
           const surf0 = s.brk && r
-            ? surfQuality({ brk: s.brk, Hb: r.waves.breaker.Hb, Tp: seas[i].Tp, swellFromDeg: seas[i].fromDeg, windMs: wind.speedMs, windFromDeg: wind.fromDeg, swellHs: seasX[i]?.swellHs, swell2: seasX[i]?.swell2, windSeaHs: seasX[i]?.windSeaHs, tide: { level: ts.level, rising: ts.rising }, gustMs: wx.gustMs, windAhead: wx.ahead, lightning: wx.lightning, squall: wx.squall, rainMmH: wx.rainMmH, sarg: wx.sarg })
+            ? surfQuality({ brk: s.brk, Hb: r.waves.breaker.Hb, Tp: seas[i].Tp, swellFromDeg: seas[i].fromDeg, windMs: wind.speedMs, windFromDeg: wind.fromDeg, swellHs: seasX[i]?.swellHs, swell2: seasX[i]?.swell2, windSeaHs: seasX[i]?.windSeaHs, tide: { level: ts.level, rising: ts.rising }, gustMs: wx.gustMs, windAhead: wx.ahead, lightning: wx.lightning, squall: wx.squall, rainMmH: wx.rainMmH, sarg: wx.sarg, info: { sstC: wx.sstC, uv: wx.uv } })
             : undefined;
           const surf = surf0 && r ? { ...surf0, ripLevel: r.rip.level } : surf0;
           return { name: s.name, pin: s.lngLat, result: r, sea: seas[i], surf };

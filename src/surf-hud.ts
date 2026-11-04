@@ -9,6 +9,7 @@ import type { Map } from 'maplibre-gl';
 import { t, type Key } from './i18n';
 import { breaksNear, compass8 } from './surf-breaks';
 import type { SurfBreak } from './data/surf-breaks';
+import { suitFor } from './physics/outing';
 import type { SurfQuality } from './surf-quality';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
@@ -25,6 +26,8 @@ export function mountSurfHud(root: HTMLElement, map: Map, quality: (name: string
       <div class="ro"><span class="lbl">${t('surf.trend')}</span><span class="seg sm" id="sb-trend">--</span></div>
       <div class="ro"><span class="lbl">${t('surf.tide')}</span><span class="seg sm" id="sb-tide">--</span></div>
       <div class="ro"><span class="lbl">${t('surf.warn')}</span><span class="seg sm" id="sb-warn">--</span></div>
+      <div class="ro"><span class="lbl">${t('surf.sst')}</span><span class="seg sm" id="sb-sst">--</span></div>
+      <div class="ro"><span class="lbl">${t('surf.uv')}</span><span class="seg sm" id="sb-uv">--</span></div>
       <div class="ro"><span class="lbl">${t('surf.type')}</span><span class="seg sm" id="sb-type">--</span></div>
       <div class="ro"><span class="lbl">${t('surf.hazard')}</span><span class="seg sm" id="sb-haz">--</span></div>
       <div class="ro"><button type="button" class="tab" id="sb-info" hidden>${t('rules.source')}</button></div>
@@ -77,6 +80,11 @@ export function mountSurfHud(root: HTMLElement, map: Map, quality: (name: string
     const warn = !q ? '' : sf!.safety < 1 ? t('surf.warn.storm') : sf!.water < 0.9 ? t('surf.warn.water') : q.ripLevel === 'HIGH' ? t('surf.warn.rip') : '';
     $('sb-warn').textContent = warn || '--';
     $('sb-warn').className = 'seg sm ' + (warn ? 'red' : '');
+    const sst = q?.info?.sstC;
+    const uv = q?.info?.uv;
+    $('sb-sst').textContent = typeof sst === 'number' ? `${sst.toFixed(1)} ${t('unit.degC')} · ${t(`dive.suit.${suitFor(sst)}` as Key)}` : '--';
+    $('sb-uv').textContent = typeof uv === 'number' && Number.isFinite(uv) ? `${uv.toFixed(0)} · ${t(uv >= 11 ? 'surf.uv.extreme' : uv >= 8 ? 'surf.uv.high' : uv >= 6 ? 'surf.uv.mod' : 'surf.uv.low')}` : '--';
+    $('sb-uv').className = 'seg sm ' + (typeof uv !== 'number' || !Number.isFinite(uv) ? '' : uv >= 8 ? 'red' : uv >= 6 ? '' : 'green');
     sEl.className = 'seg sm ' + (cl === undefined ? '' : cl >= 0.9 ? 'green' : cl < 0.7 ? 'red' : '');
     qEl.className = 'seg sm ' + (!q ? '' : q.band === 'GOOD' || q.band === 'EPIC' ? 'green' : q.band === 'POOR' ? 'red' : '');
   };
