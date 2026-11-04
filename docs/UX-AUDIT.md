@@ -45,7 +45,7 @@ Not looked at yet beyond what earlier PRs did (tap-to-explain on most CONDITIONS
 - [ ] LIVE OBS and SYSTEM CHECK drawers
 - [ ] SETTINGS, ENHANCE, SUN mode, language toggle
 - [ ] Alert strip (storm, lightning, closed zone) wording
-- [ ] First-run: what a new user sees before touching anything (a short intro or a "what is this app" card)
+- [x] First-run: a short "what is this and how do I read it" card on first open, and again from ABOUT (`src/intro.ts`)
 
 ## Rules for new layers and panels
 Added to the definition of done: a plain title, a legend entry in `src/layers/legend.ts` (the test fails without one, in EN and ESP), a tap-to-explain card for anything drawn on the map that is not self-evident, and an empty state that says why.
