@@ -435,6 +435,12 @@ export const en = {
   'bite.r.temp': 'WATER TEMP OFF',
   'bite.r.sargassum': 'SARGASSUM',
   'bite.r.goodwater': 'GOOD WATER',
+  'bite.r.brightmoon': 'BRIGHT MOON',
+  'bite.r.darknight': 'DARK NIGHT',
+  'bite.r.falling': 'FALLING PRESSURE',
+  'bite.r.rising': 'RISING PRESSURE',
+  'bite.r.highwater': 'WATER ABOVE TIDE',
+  'bite.r.lowwater': 'WATER BELOW TIDE',
 
   // Boat mode (PLAN 4.6)
   'boat.tab': 'BOAT',

@@ -16,11 +16,16 @@
  *         counts from 2 mm/h and in full from 10 mm/h (weather.ts HEAVY_RAIN_MM_H).
  * safety  1, or a cap for conditions nobody should fish in: lightning within 25 km in the last
  *         15 min × 0.1, squall HIGH × 0.25, squall WATCH × 0.7 (weather.ts squallLevel).
+ * night   after dark the light term is 0.7 on a dark night, falling to 0.6 with a bright moon up (illumination ×
+ *         moon above the horizon): bright nights spread the feeding out (angler lore).
+ * extras  multiplier 0.95..1.05 from the pressure tendency (falling 2 hPa/3 h or more: ×1.05, rising as
+ *         fast: ×0.95, folklore-grade) and ×1.03 / ×0.97 when the live Limón gauge reads 10 cm or more
+ *         above / below the predicted tide (high water pushes bait into flooded edges and over flats).
  * water   the species' water factor (fishing/water.ts): clarity, temperature, chlorophyll and sargassum, 0.36..1; 1 if unknown.
  */
 import { predict, type Harmonics } from '../physics/tide';
 import type { WaterReason, WaterTerm } from './water';
-import { daySky, localDayStart, sunAltitude, type DaySky } from '../physics/astro';
+import { daySky, localDayStart, moonAltitude, moonPhase, sunAltitude, type DaySky } from '../physics/astro';
 
 const HOUR = 3.6e6;
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
@@ -45,6 +50,10 @@ export interface BiteInputs {
   squall?: 'none' | 'watch' | 'high';
   /** A lightning strike close by right now (lightning.ts alert distance and age). */
   lightning?: boolean;
+  /** Sea-level pressure tendency, hPa over the last 3 h (weather.ts pressureTrend). */
+  pressureTrend?: number | null;
+  /** Live gauge level minus the predicted tide, m (only for the hours around now). */
+  surgeM?: number | null;
   /** The species' water factor at the place (fishing/water.ts waterTerm); omit when unknown. */
   water?: WaterTerm | null;
   /** Habitat score 0..1 at the place; omit for pure timing. */
@@ -71,7 +80,7 @@ export interface BiteTerms {
   reasons: BiteReason[];
 }
 
-export type BiteReason = 'tide' | 'dawn' | 'dusk' | 'golden' | 'night' | 'major' | 'minor' | 'rough' | 'wind' | 'rain' | 'slack' | 'midday' | 'overcast' | 'squall' | 'lightning' | WaterReason;
+export type BiteReason = 'tide' | 'dawn' | 'dusk' | 'golden' | 'night' | 'major' | 'minor' | 'rough' | 'wind' | 'rain' | 'slack' | 'midday' | 'overcast' | 'squall' | 'lightning' | 'brightmoon' | 'darknight' | 'falling' | 'rising' | 'highwater' | 'lowwater' | WaterReason;
 
 /** Tide term: current flow relative to the fastest in ±13 h, with a floor so slack is weak, not zero. */
 export function tideTerm(h: Harmonics, tMs: number): { term: number; moving: boolean } {
@@ -97,6 +106,28 @@ export function solunarTerm(sky: DaySky, tMs: number): { term: number; kind: 'ma
   const kind = inside.some((w) => w.kind === 'major') ? 'major' : inside.length ? 'minor' : null;
   const base = kind === 'major' ? 1 : kind === 'minor' ? 0.8 : 0.5;
   return { term: clamp01(base * (0.8 + 0.05 * sky.rating)), kind };
+}
+
+/** Night light term from the moon: 0.7 dark, down to 0.6 with a full moon high enough to light the water. */
+export function nightTerm(illumination: number, moonAltDeg: number): number {
+  return 0.7 - 0.1 * clamp01(illumination) * clamp01(moonAltDeg / 15);
+}
+
+/** Pressure and gauge multiplier 0.92..1.08, with its reasons. */
+export function extrasTerm(pressureTrend: number | null | undefined, surgeM: number | null | undefined): { mult: number; reasons: BiteReason[] } {
+  const reasons: BiteReason[] = [];
+  let mult = 1;
+  if (pressureTrend != null && Number.isFinite(pressureTrend)) {
+    const p = Math.max(-1, Math.min(1, -pressureTrend / 2));
+    mult *= 1 + 0.05 * p;
+    if (p >= 0.5) reasons.push('falling');
+    else if (p <= -0.5) reasons.push('rising');
+  }
+  if (surgeM != null && Number.isFinite(surgeM)) {
+    if (surgeM >= 0.1) (mult *= 1.03), reasons.push('highwater');
+    else if (surgeM <= -0.1) (mult *= 0.97), reasons.push('lowwater');
+  }
+  return { mult, reasons };
 }
 
 /** Overcast lift for the light term: 0 in the dark or under 40% cloud, up to 0.4 of the gap to 1 at 90% cloud. */
@@ -131,7 +162,11 @@ export function bite(i: BiteInputs): BiteTerms {
   const tide = tideTerm(i.tide, i.tMs);
   const alt = sunAltitude(i.tMs, i.lat, i.lng);
   const rising = alt > sunAltitude(i.tMs - 10 * 60_000, i.lat, i.lng);
-  const light = lightTerm(alt, rising);
+  let light = lightTerm(alt, rising);
+  if (light.why === 'night') {
+    const term = nightTerm(moonPhase(i.tMs).illumination, moonAltitude(i.tMs, i.lat, i.lng));
+    light = { term, why: term <= 0.65 ? 'brightmoon' : 'darknight' };
+  }
   const lift = overcastLift(light.term, alt, i.cloudPct);
   const lightT = light.term + lift;
   const sol = solunarTerm(sky, i.tMs);
@@ -140,7 +175,8 @@ export function bite(i: BiteInputs): BiteTerms {
   const safety = safetyTerm(i.lightning, i.squall);
   const timing = 0.4 * tide.term + 0.35 * lightT + 0.15 * sol.term + 0.1 * wx.calm;
   const hab = i.habitat == null ? 1 : clamp01(i.habitat);
-  const score = timing * wx.weather * safety * (i.water?.factor ?? 1) * (0.4 + 0.6 * hab);
+  const extra = extrasTerm(i.pressureTrend, i.surgeM);
+  const score = timing * wx.weather * safety * extra.mult * (i.water?.factor ?? 1) * (0.4 + 0.6 * hab);
   const reasons: BiteReason[] = [];
   if (i.lightning) reasons.push('lightning');
   else if (i.squall && i.squall !== 'none') reasons.push('squall');
@@ -153,15 +189,16 @@ export function bite(i: BiteInputs): BiteTerms {
   if (tide.moving) reasons.push('tide');
   else if (tide.term < 0.5) reasons.push('slack');
   if (i.water?.reasons.includes('goodwater')) reasons.push('goodwater');
+  reasons.push(...extra.reasons);
   if (sol.kind) reasons.push(sol.kind);
-  if ((light.why === 'midday' && lift < 0.15) || light.why === 'night') reasons.push(light.why);
+  if ((light.why === 'midday' && lift < 0.15) || light.why === 'brightmoon' || light.why === 'darknight') reasons.push(light.why);
   return { tide: tide.term, light: lightT, solunar: sol.term, calm: wx.calm, weather: wx.weather, safety, timing, bite: Math.round(clamp01(score) * 100), reasons: reasons.slice(0, 3) };
 }
 
 export interface BiteWindow { start: number; end: number; peak: number; reasons: BiteReason[] }
 
 /** The changing conditions at a moment: the forecast wind, waves and weather, and live hazards. */
-export type BiteWx = Pick<BiteInputs, 'windMs' | 'hsM' | 'rainMmH' | 'cloudPct' | 'squall' | 'lightning' | 'heavyRain'>;
+export type BiteWx = Pick<BiteInputs, 'windMs' | 'hsM' | 'rainMmH' | 'cloudPct' | 'squall' | 'lightning' | 'heavyRain' | 'pressureTrend' | 'surgeM'>;
 
 /**
  * The best windows of a local day: 10-minute steps, contiguous runs above `threshold` (default 0.8 of

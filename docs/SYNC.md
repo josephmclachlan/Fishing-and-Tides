@@ -25,7 +25,9 @@ Features were built in phases, so older ones can miss data that landed later. Th
 | Chlorophyll (gap-filled daily) | ✗ | ✓ | ✓ | ✓ (slider time) | ✗ (no species) |
 | Currents (forecast) | – | ✗ | ✗ | ✗ | ✗ |
 | Sargassum beaching outlook | – | ✓ | ✓ | ✓ (slider time) | ✗ |
-| Live tide gauge (Limón) | – | – | ✗ (harmonics only) | – | ✗ |
+| Live tide gauge (Limón) | – | – | ✓ (above or below the tide, hours around now) | ✓ (same) | ✗ |
+| Pressure tendency (weather, 3 models) | – | – | ✓ | ✓ | ✓ |
+| Moonlight at night (astro) | – | – | ✓ | ✓ | ✓ |
 | Your own CATCH pins (BOAT mode) | ✗ | ✗ | – | – | – |
 
 Before this pass fishing was built from the static seafloor plus tide, sun, moon, wind and waves; rain was an input nobody fed, and BEST TIMES ignored the hourly forecast. Steps 1 (weather and safety) and 2 (water) below are in. Currents do not reach fishing yet, and the amber heat stays structure and season only. Storms act through their wind and waves.

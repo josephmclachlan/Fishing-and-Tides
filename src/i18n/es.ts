@@ -414,6 +414,12 @@ export const es: Dict = {
   'bite.r.temp': 'TEMP. DEL AGUA MAL',
   'bite.r.sargassum': 'SARGAZO',
   'bite.r.goodwater': 'BUEN AGUA',
+  'bite.r.brightmoon': 'LUNA BRILLANTE',
+  'bite.r.darknight': 'NOCHE OSCURA',
+  'bite.r.falling': 'PRESIÓN BAJANDO',
+  'bite.r.rising': 'PRESIÓN SUBIENDO',
+  'bite.r.highwater': 'AGUA SOBRE LA MAREA',
+  'bite.r.lowwater': 'AGUA BAJO LA MAREA',
 
   // Fishing rules card (PLAN 6.8). Advisory text: SINAC and INCOPESCA are the authorities.
   'rules.open': 'REGLAS',
