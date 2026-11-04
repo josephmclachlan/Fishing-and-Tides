@@ -8,6 +8,7 @@
 import type { Grid } from './bathy';
 import { seafloorDepth, type DepthFn, type RefractionResult } from './refraction';
 import { ripRisk, onshoreWind, type Rip } from './rip';
+import { breakerHeight, combinedBreaker, obliqueKr } from './breaking';
 import { defaultSpread, spotGeometry, spotRefraction, spotWavesFrom, type SeaState, type SpotGeometry, type SpotWaves } from './surf-zone';
 
 export interface SpotRequest {
@@ -18,11 +19,15 @@ export interface SpotRequest {
   /** Wind speed (m/s) and direction it blows FROM, if known. */
   wind?: { speedMs: number; fromDeg: number };
   knownChannel?: boolean;
+  /** The other wave trains at the spot (second swell, wind sea, or the swells when the wind sea leads), each broken on its own period. */
+  others?: readonly { Hs: number; Tp: number; fromDeg: number }[];
 }
 
 export interface SpotResult {
   waves: SpotWaves;
   rip: Rip;
+  /** Breaker height of every train together (the main train's from the ray model, the others estimated), m. */
+  HbAll: number;
 }
 
 export interface SeafloorGrids { region: Grid; macro: Grid; land?: Grid }
@@ -56,9 +61,12 @@ export function createSpotModel(depth: DepthFn, opts: { fanStepDeg?: number; max
       }
       const sea = { ...req.sea, Tp };
       const waves = spotWavesFrom(geom, r, sea);
+      // Other trains: estimated refraction from their angle to the shore, own period; energies add (audit G).
+      const HbAll = combinedBreaker([waves.breaker.Hb, ...(req.others ?? []).map((o) => breakerHeight(o.Hs * obliqueKr(o.fromDeg - geom.normalDeg), o.Tp))]);
+      const grow = waves.breaker.Hb > 0 ? HbAll / waves.breaker.Hb : 1;
       const rip = ripRisk({
-        Hb: waves.breaker.Hb,
-        hb: waves.breaker.hb,
+        Hb: HbAll,
+        hb: waves.breaker.hb * grow,
         Tp,
         // The rip drivers (Lushine, Dusek and Seim) are about the angle of the breakers, not of the waves offshore.
         angleDeg: waves.breakAngleDeg,
@@ -67,7 +75,7 @@ export function createSpotModel(depth: DepthFn, opts: { fanStepDeg?: number; max
         onshoreWindMs: req.wind ? onshoreWind(req.wind.speedMs, req.wind.fromDeg, geom.normalDeg) : 0,
         knownChannel: req.knownChannel,
       });
-      return { waves, rip };
+      return { waves, rip, HbAll };
     },
     cacheSize: () => refr.size,
   };

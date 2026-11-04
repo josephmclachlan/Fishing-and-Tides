@@ -145,3 +145,21 @@ export function meanSlope(depthAtPoint: number, distanceM: number): number | nul
   if (!(depthAtPoint > 0) || !(distanceM > 0)) return null;
   return depthAtPoint / distanceM;
 }
+
+/**
+ * Rough refraction factor for a train arriving `offDeg` off the shore normal when there is no ray tracing for it:
+ * √cos(off) (Snell over straight contours with the break angle near 0), 0.3 beyond 80° (it barely reaches the beach).
+ */
+export function obliqueKr(offDeg: number): number {
+  const off = Math.abs(((((offDeg + 180) % 360) + 360) % 360) - 180);
+  return off < 80 ? Math.max(0.3, Math.sqrt(Math.cos(off * RAD))) : 0.3;
+}
+
+/**
+ * Breakers from several wave trains (swell, second swell, wind sea) at one beach. Each train breaks with its own
+ * period (Komar and Gaughan is per period, so running the total height through one long period overstates the surf),
+ * and the energies add: Hb = √(Σ Hb,i²).
+ */
+export function combinedBreaker(hbs: readonly number[]): number {
+  return Math.sqrt(hbs.reduce((a, h) => a + (Number.isFinite(h) && h > 0 ? h * h : 0), 0));
+}

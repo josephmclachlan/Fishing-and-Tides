@@ -8,7 +8,7 @@
  */
 import { SURF_BREAKS, type SurfBreak } from '../data/surf-breaks';
 import { haversineM } from '../geo';
-import { breakerHeight } from '../physics/breaking';
+import { breakerHeight, obliqueKr } from '../physics/breaking';
 import { sargLevel } from '../physics/drift';
 import { tideState, type Harmonics } from '../physics/tide';
 import { surfQuality } from '../surf-quality';
@@ -29,13 +29,10 @@ export function breakFor(name: string, lngLat: [number, number], breaks: readonl
   return best?.b ?? null;
 }
 
-const wrap = (a: number) => ((((a + 180) % 360) + 360) % 360) - 180;
 
 /** Breaker height at a break from the offshore swell, m. */
 export function estimateHb(brk: Pick<SurfBreak, 'facing'>, hs: number, tp: number, fromDeg: number): number {
-  const off = Math.abs(wrap(fromDeg - brk.facing));
-  const kr = off < 80 ? Math.sqrt(Math.cos((off * Math.PI) / 180)) : 0.3;
-  return breakerHeight(hs * Math.max(0.3, kr), tp);
+  return breakerHeight(hs * obliqueKr(fromDeg - brk.facing), tp);
 }
 
 export interface SurfHour {

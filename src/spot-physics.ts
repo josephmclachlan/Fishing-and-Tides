@@ -22,7 +22,9 @@ export const PLACES: readonly { name: string; lngLat: [number, number]; brk?: Su
   ...SURF_BREAKS.filter((b) => !SPOTS.some((s) => s.name === b.name)).map((b) => ({ name: b.name, lngLat: b.lngLat, brk: b })),
 ];
 
-type Sea = { Hs: number; Tp: number; fromDeg: number };
+/** The leading wave train; `total` is the whole sea's Hs (all trains), when known. */
+type Sea = { Hs: number; Tp: number; fromDeg: number; total?: number };
+type Train0 = { Hs: number; Tp: number; fromDeg: number };
 
 /** A river mouth this close to a place holds a rip channel there, km. */
 export const CHANNEL_MOUTH_KM = 1;
@@ -80,7 +82,7 @@ export function createSpotPhysics(
   conditions: () => Conditions,
   validMs: () => number,
   windExtras: (ms: number, pin: [number, number], name: string) => HourExtras = () => ({ gustMs: null, ahead: null }),
-  seaAt: (pin: [number, number]) => (Sea & { swellHs?: number | null; swell2?: Train | null; windSeaHs?: number | null }) | null = () => null,
+  seaAt: (pin: [number, number]) => (Sea & { others?: Train0[]; swellHs?: number | null; swell2?: Train | null; windSeaHs?: number | null }) | null = () => null,
 ): SpotPhysics {
   let states: SpotState[] = [];
   const subs = new Set<() => void>();
@@ -96,9 +98,9 @@ export function createSpotPhysics(
     const wxs = PLACES.map((p) => windExtras(ms, p.lngLat, p.name));
     const winds = wxs.map((wx) => wx.wind ?? wind0);
     const seasX = PLACES.map((p) => seaAt(p.lngLat));
-    const seas: Sea[] = seasX.map((x) => (x ? { Hs: x.Hs, Tp: x.Tp, fromDeg: x.fromDeg } : sea));
+    const seas: Sea[] = seasX.map((x) => (x ? { Hs: x.Hs, Tp: x.Tp, fromDeg: x.fromDeg, total: x.total ?? x.Hs } : sea));
     client
-      .latestMany(PLACES.map((p, i) => ({ pin: p.lngLat, sea: seas[i], tideLevel, wind: winds[i], knownChannel: KNOWN_CHANNEL[i] })))
+      .latestMany(PLACES.map((p, i) => ({ pin: p.lngLat, sea: { Hs: seas[i].Hs, Tp: seas[i].Tp, fromDeg: seas[i].fromDeg }, others: seasX[i]?.others, tideLevel, wind: winds[i], knownChannel: KNOWN_CHANNEL[i] })))
       .then((rs) => {
         states = PLACES.map((s, i) => {
           const r = rs[i];

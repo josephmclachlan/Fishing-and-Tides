@@ -778,21 +778,27 @@ map.on('click', 'rp-coast', (e) => {
   if (!map.queryRenderedFeatures(e.point, { layers: ['rp-site'] }).length) explain.show(t('layer.rip'), 'ripCoast', e.point);
 });
 /**
- * Offshore sea state for the physics at a shoreline pin. The models give mean, not peak,
- * periods; the swell's mean period stands in for Tp when swell dominates, as it does on this
- * coast most of the year.
+ * Offshore sea state for the physics at a shoreline pin. The ray model breaks the leading train (the swell, else
+ * the wind sea) on its own period and direction; the other trains go in `others` and are broken on their own
+ * periods, then added by energy (audit G). The models give mean, not peak, periods. Without partitions the total
+ * sea goes in alone.
  */
 const spotSea = (pin: [number, number]) => {
   const w = seaStateAt(...pin);
   if (!w || !Number.isFinite(w.tm)) return null;
-  const swellLeads = Number.isFinite(w.swellHs) && Number.isFinite(w.swellT) && w.swellHs >= (Number.isFinite(w.windSeaHs) ? w.windSeaHs : 0);
   const part = (hs: number, T: number, dir: number) => (Number.isFinite(hs) && Number.isFinite(T) && Number.isFinite(dir) && hs >= 0.1 ? { Hs: hs, Tp: T, fromDeg: dir } : null);
+  const swell = part(w.swellHs, w.swellT, w.swellDir);
+  const swell2 = part(w.swell2Hs, w.swell2T, w.swell2Dir);
+  const windSea = part(w.windSeaHs, w.windSeaT, w.windSeaDir);
+  const swellLeads = !!swell && swell.Hs >= (windSea?.Hs ?? 0);
+  const main = swellLeads ? swell : windSea ?? { Hs: w.hs, Tp: w.tm, fromDeg: w.dir };
+  const others = [swellLeads ? null : swell, swell2, swellLeads ? windSea : null].filter((x): x is NonNullable<typeof x> => !!x);
   return {
-    Hs: w.hs,
-    Tp: swellLeads ? w.swellT : w.tm,
-    fromDeg: swellLeads ? w.swellDir : w.dir,
+    ...main,
+    total: w.hs,
+    others,
     swellHs: swellLeads ? w.swellHs : w.hs,
-    swell2: part(w.swell2Hs, w.swell2T, w.swell2Dir),
+    swell2,
     windSeaHs: Number.isFinite(w.windSeaHs) ? w.windSeaHs : null,
   };
 };

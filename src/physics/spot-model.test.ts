@@ -27,6 +27,17 @@ describe('spot model', () => {
     expect(m.cacheSize()).toBe(2);
   });
 
+  it('adds the other trains to the breaker height the rip reads (audit G)', () => {
+    const m = createSpotModel(realDepth, { fanStepDeg: 1 });
+    const one = m.spot({ pin: cahuita, sea, tideLevel: 0.5 })!;
+    expect(one.HbAll).toBeCloseTo(one.waves.breaker.Hb, 12);
+    const two = m.spot({ pin: cahuita, sea, tideLevel: 0.5, others: [{ Hs: 0.8, Tp: 5, fromDeg: 60 }] })!;
+    expect(two.waves.breaker.Hb).toBeCloseTo(one.waves.breaker.Hb, 12);
+    expect(two.HbAll).toBeGreaterThan(one.HbAll);
+    expect(two.HbAll).toBeLessThan(one.HbAll + 0.8);
+    expect(two.rip.score).toBeGreaterThanOrEqual(one.rip.score);
+  });
+
   it('returns null inland', () => {
     const m = createSpotModel(() => 0);
     expect(m.spot({ pin: cahuita, sea, tideLevel: 0.5 })).toBeNull();
