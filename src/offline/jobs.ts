@@ -21,6 +21,7 @@ import { fetchWaves } from '../adapters/waves';
 import { fetchWeather } from '../adapters/weather';
 import { fetchTownRain } from '../adapters/town-rain';
 import { fetchWindFix } from '../adapters/wind-fix';
+import { fetchRainCells } from '../adapters/rain-cells';
 import { fetchHindcast } from '../adapters/weather-skill';
 import { fetchWind } from '../adapters/wind';
 import type { SyncJob } from './sync';
@@ -43,6 +44,7 @@ export const JOB_FEEDS: Record<string, readonly string[]> = {
   weather: ['weather'],
   rain: ['rain'],
   townrain: ['townrain'],
+  raincells: ['raincells'],
   river: ['river'],
   storms: ['storms'],
   gauge: ['gauge'],
@@ -67,6 +69,7 @@ export function tripJobs(base: string = import.meta.env.BASE_URL): SyncJob[] {
     { name: 'weather', run: async () => { live(await fetchWeather(), 'weather'); await fetchHindcast().catch(() => null); } },
     { name: 'rain', run: async () => live(await fetchCatchmentRain(), 'rain') },
     { name: 'townrain', run: async () => live(await fetchTownRain(), 'townrain') },
+    { name: 'raincells', run: async () => { const d = await fetchRainCells(); if (d) live(d, 'raincells'); } },
     { name: 'river', run: async () => live(await fetchRiverFlow(), 'river') },
     { name: 'storms', run: async () => live(await fetchStorms({ base }), 'storms') },
     { name: 'gauge', run: async () => live(await fetchGauge({ hours: 30 }), 'gauge') },

@@ -20,7 +20,7 @@ export const LEGEND: Readonly<Record<LayerId, readonly LegendItem[]>> = {
   fronts: [{ sw: 'dot', tone: 'amber' }, { sw: 'dot', tone: 'green' }, { sw: 'none', tone: 'amber' }],
   clarity: [{ sw: 'fill', tone: 'green' }, { sw: 'fill', tone: 'amber' }, { sw: 'fill', tone: 'red' }],
   sargassum: [{ sw: 'fill', tone: 'amber' }, { sw: 'hatch', tone: 'dim' }, { sw: 'dot', tone: 'amber' }, { sw: 'ring', tone: 'amber' }],
-  weather: [{ sw: 'ring', tone: 'red' }],
+  weather: [{ sw: 'ring', tone: 'red' }, { sw: 'fill', tone: 'green' }, { sw: 'fill', tone: 'amber' }, { sw: 'fill', tone: 'red' }, { sw: 'line', tone: 'amber' }],
   lightning: [{ sw: 'dot', tone: 'red' }, { sw: 'dot', tone: 'amber' }],
   obs: [{ sw: 'dot', tone: 'green' }, { sw: 'dot', tone: 'amber' }, { sw: 'dot', tone: 'red' }],
   rip: [{ sw: 'fill', tone: 'amber' }, { sw: 'fill', tone: 'red' }, { sw: 'ring', tone: 'amber' }, { sw: 'none', tone: 'dim' }],

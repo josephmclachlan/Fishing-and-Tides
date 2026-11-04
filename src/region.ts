@@ -57,6 +57,13 @@ export const RAIN_TOWNS: { id: string; name: string; lngLat: [number, number] }[
   { id: 'manzanillo', name: 'MANZANILLO', lngLat: [-82.6569, 9.634] },
 ];
 
+/**
+ * Rain-cell nowcast box (PLAN 7.24 item 3), [[w, s], [e, n]]: the coast plus ~60 km of sea to the east
+ * and north, where the trade-wind showers come from, and the Talamanca foothills they run into.
+ * 80 x 70 cells at 0.02°.
+ */
+export const RAIN_BOX: [[number, number], [number, number]] = [[-83.6, 9.1], [-82.0, 10.5]];
+
 /** Seafloor layer (PLAN 2.6). Depths in metres, positive down. */
 export const SEAFLOOR = {
   /** Contours from the 1′ grid over the whole Caribbean view. */
