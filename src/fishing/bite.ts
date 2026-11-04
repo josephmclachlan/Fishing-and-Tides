@@ -7,7 +7,7 @@
  *   bite   = timing × weather × safety × water × (0.4 + 0.6 × habitat)
  *
  * tide    fish feed on moving water: |dh/dt| as a share of the day's fastest flow, floor 0.3 at slack.
- * light   dawn and dusk best, golden hour next, night fair (snook and tarpon feed in the dark), midday weakest.
+ * light   dawn and dusk best, golden hour next, night fair (snook and jack feed in the dark), midday weakest.
  *         Overcast stretches the low-light bite into the day: in daylight, cloud above 40% lifts the
  *         term toward 1 by up to 0.4 of the gap (full at 90% cloud).
  * solunar inside a major window 1, a minor window 0.8, else 0.5, tilted by the day rating (0..4).

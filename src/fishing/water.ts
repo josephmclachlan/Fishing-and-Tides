@@ -4,8 +4,8 @@
  * fitted to catches.
  *
  *   fit(x)  = floor + (1 − floor) × trapezoid(x, a, b, c, d)    1 inside [b, c], `floor` outside [a, d]
- *   vis     fit of visibility (CLARITY forecast), floor 0.3. Snook and tarpon hunt stained river-mouth
- *           water; snapper and barracuda want it clear (species.ts `water.visM`).
+ *   vis     fit of visibility (CLARITY forecast), floor 0.3. Snook and jack hunt stained river-mouth
+ *           water; snapper, grouper, barracuda and lionfish want it clear (species.ts `water.visM`).
  *   temp    fit of sea temperature (satellite SST), floor 0.5. This coast is 27 to 30 °C most of the
  *           year, so it rarely bites inshore.
  *   chl     chlorophyll as a bait sign: 0.7 in blue desert water (≤ 0.1 mg/m³), 1 from 0.3 to 3, easing to
@@ -15,7 +15,7 @@
  *           (mats foul lines and block launching), else 1. Unknown water counts as 1.
  *   river   (PLAN 7.15) the nearest big river mouth's flow as a share of its GloFAS median, weighted by
  *           closeness p = exp(−(km / 2·reach)²): running 1.3 to 5× median lifts mouth hunters (prior mouth
- *           weight ≥ 0.5: tarpon, snook, jack) by up to ×1.10 (bait flushed out, a colour line); a flood
+ *           weight ≥ 0.5: snook, jack) by up to ×1.10 (bait flushed out, a colour line); a flood
  *           above 5× cuts every species by up to ×0.85 (mud, debris); under half the median trims mouth
  *           hunters by up to ×0.95.
  */

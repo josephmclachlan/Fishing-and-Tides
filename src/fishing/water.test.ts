@@ -54,22 +54,22 @@ describe('water term (PLAN 7.11)', () => {
 });
 
 describe('river flow term (PLAN 7.15)', () => {
-  const tarpon = speciesById('tarpon');
+  const snook2 = speciesById('snook');
   const snapper = speciesById('snapper');
   it('a running river lifts mouth hunters near the mouth only', () => {
-    expect(riverTerm(tarpon, { km: 0.2, ratio: 2 }).why).toBe('riverup');
-    expect(riverTerm(tarpon, { km: 0.2, ratio: 2 }).factor).toBeGreaterThan(1.09);
-    expect(riverTerm(tarpon, { km: 20, ratio: 2 })).toEqual({ factor: 1, why: null });
+    expect(riverTerm(snook2, { km: 0.2, ratio: 2 }).why).toBe('riverup');
+    expect(riverTerm(snook2, { km: 0.2, ratio: 2 }).factor).toBeGreaterThan(1.09);
+    expect(riverTerm(snook2, { km: 20, ratio: 2 })).toEqual({ factor: 1, why: null });
     expect(riverTerm(snapper, { km: 0.2, ratio: 2 })).toEqual({ factor: 1, why: null });
   });
   it('a flood cuts everyone, a low river trims mouth hunters', () => {
     expect(riverTerm(snapper, { km: 0.2, ratio: 8 }).why).toBe('flood');
     expect(riverTerm(snapper, { km: 0.2, ratio: 8 }).factor).toBeLessThan(0.87);
-    expect(riverTerm(tarpon, { km: 0.2, ratio: 0.3 }).why).toBe('riverlow');
-    expect(riverTerm(tarpon, null)).toEqual({ factor: 1, why: null });
+    expect(riverTerm(snook2, { km: 0.2, ratio: 0.3 }).why).toBe('riverlow');
+    expect(riverTerm(snook2, null)).toEqual({ factor: 1, why: null });
   });
   it('flows into the water term', () => {
-    const t = waterTerm(tarpon, { river: { km: 0.1, ratio: 3 } });
+    const t = waterTerm(snook2, { river: { km: 0.1, ratio: 3 } });
     expect(t.factor).toBeGreaterThan(1);
     expect(t.reasons).toContain('riverup');
   });
