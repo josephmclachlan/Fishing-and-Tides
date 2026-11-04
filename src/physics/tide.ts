@@ -162,6 +162,15 @@ export function predict(hc: Harmonics, tMs: number): number {
   return eta;
 }
 
+/**
+ * Tide height in metres above the harmonics' datum (mean sea level for Limón) at t, plus a correction in metres
+ * (the live gauge's, physics/tide-fix.ts). This is what adds to a chart depth; `tideState().level` is only the
+ * position within the cycle (0..1) and must never be added to a depth.
+ */
+export function tideHeightM(hc: Harmonics, tMs: number, fixM = 0): number {
+  return predict(hc, tMs) + (Number.isFinite(fixM) ? fixM : 0);
+}
+
 /** Heights every `stepMs` from t0 (inclusive) to t1 (inclusive). */
 export function predictSeries(hc: Harmonics, t0: number, t1: number, stepMs: number): { t: number[]; h: number[] } {
   const t: number[] = [];

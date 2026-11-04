@@ -19,7 +19,7 @@ import type { SquallLevel } from './physics/safety';
 import { suitFor, type SargLevel, outingScore, outlook, ratingFor, stingerGuess, type OutingReason, type OutingScore } from './physics/outing';
 import { SNORKEL_SPOTS } from './data/snorkel-spots';
 import { OUTING_DEPTHS, surgeAt, surgeProfile } from './physics/surge';
-import { tideState } from './physics/tide';
+import { tideHeightM } from './physics/tide';
 import { REGION, SPOTS } from './region';
 import type { SpotPhysics } from './spot-physics';
 import type { TimeStore } from './time';
@@ -103,7 +103,8 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     const sp = nearest([c.lng, c.lat], SPOTS)!.point;
     return { c, sp, st: spots.byName(sp.name) };
   };
-  const tideM = (ms: number) => tideState(LIMON_HARMONICS, ms).level + tideFixNow(ms);
+  /** Tide height above mean sea level, m (the chart depths' datum), with the gauge correction. */
+  const tideM = (ms: number) => tideHeightM(LIMON_HARMONICS, ms, tideFixNow(ms));
 
   const update = () => {
     const { c, st } = spotAt();
