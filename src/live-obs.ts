@@ -17,6 +17,8 @@ import type { GridSeries } from './adapters/pack';
 import { formatAge } from './adapters/data-age';
 import { t, type Key } from './i18n';
 import { closeButton, type Sheets } from './sheets';
+import type { TideFix } from './physics/tide-fix';
+import { appliedScale, type WindFix } from './adapters/wind-fix';
 
 export type ObsId = 'gauge' | 'metar' | 'sst-pass' | 'chl-pass' | 'scat-pass';
 export type Fresh = 'green' | 'amber' | 'red';
@@ -59,6 +61,8 @@ export interface ObsInputs {
   gauge: readonly GaugeReading[];
   metar: readonly MetarObs[];
   passes: PassData | null;
+  /** The corrections learnt from these measurements (PLAN 7.10). */
+  fixes?: { tide: TideFix | null; wind: WindFix | null };
 }
 
 /** The newest pass that saw at least CLOUDED_OUT of the sea, else the newest pass. */
@@ -142,6 +146,23 @@ export function detailText(r: ObsRow): string {
 }
 
 const TONE: Record<Fresh, string> = { green: 'green', amber: '', red: 'red' };
+// LOW is amber, not red: a weak correction is not a fault.
+const CONF_TONE = { HIGH: 'green', MED: '', LOW: '' } as const;
+
+/** The MODEL CORRECTIONS lines (PLAN 7.10): what was learnt, how sure, and what it rests on. */
+export function fixRows(f: ObsInputs['fixes']): { name: string; value: string; detail: string; tone: string }[] {
+  const w = f?.wind, tf = f?.tide;
+  return [
+    w
+      ? { name: t('obs.fix.wind'), value: `×${w.scale.toFixed(2)}`, tone: CONF_TONE[w.confidence],
+          detail: `${t('obs.fix.windDetail', { c: t(`wx.conf.${w.confidence}` as Key), n: w.passes, a: Math.round(w.rmsBefore * KT_PER_MS), b: Math.round(w.rmsAfter * KT_PER_MS) })}${appliedScale(w) === 1 && w.scale !== 1 ? ` · ${t('obs.fix.notApplied')}` : ''}` }
+      : { name: t('obs.fix.wind'), value: '--', tone: '', detail: t('obs.fix.none') },
+    tf
+      ? { name: t('obs.fix.tide'), value: `${sign(tf.offsetM)} ${t('unit.m')}`, tone: CONF_TONE[tf.confidence],
+          detail: t('obs.fix.tideDetail', { c: t(`wx.conf.${tf.confidence}` as Key), h: tf.hours, s: tf.sigmaM.toFixed(2) }) }
+      : { name: t('obs.fix.tide'), value: '--', tone: '', detail: t('obs.fix.none') },
+  ];
+}
 const LAMP: Record<Fresh, string> = { green: 'pass', amber: 'warn', red: 'fail' };
 
 export interface LiveObs {
@@ -155,7 +176,9 @@ export function mountLiveObs(root: HTMLElement, map: Map, sheets: Sheets, data: 
   el.id = 'obs-panel';
   el.innerHTML = `<div class="ph"><span>${t('obs.title')} <span class="tag" id="ob-all">--</span></span></div>
     <div class="ck-list" id="ob-list"></div>
-    <p class="rules-advice">${t('obs.note')}</p>`;
+    <div class="lbl ob-fix-h">${t('obs.fixes')}</div>
+    <div class="ck-list" id="ob-fix"></div>
+    <p class="rules-advice">${t('obs.note')} ${t('obs.fixNote')}</p>`;
   el.querySelector('.ph')!.appendChild(closeButton(() => sheets.close('obs')));
   root.appendChild(el);
   const tab = document.createElement('button');
@@ -209,6 +232,11 @@ export function mountLiveObs(root: HTMLElement, map: Map, sheets: Sheets, data: 
         <span class="ck-lamp ${TONE[r.fresh]}" aria-hidden="true">●</span><span class="ck-name">${t(`obs.name.${r.id}` as Key)}</span>
         <span class="ck-age seg sm ${TONE[r.fresh]}">${r.obsMs === null ? '--' : formatAge(now() - r.obsMs)}</span>
         <span class="ob-val seg">${valueText(r)}</span><span class="ck-worst dim">${detailText(r)}</span></div></div>`)
+      .join('');
+    el.querySelector('#ob-fix')!.innerHTML = fixRows(data().fixes)
+      .map((f) => `<div class="ck-feed"><div class="ob-row">
+        <span class="ck-lamp ${f.tone}" aria-hidden="true">●</span><span class="ck-name">${f.name}</span><span class="ck-age"></span>
+        <span class="ob-val seg ${f.tone}">${f.value}</span><span class="ck-worst dim">${f.detail}</span></div></div>`)
       .join('');
     ensureLayer(geo(rows));
   };

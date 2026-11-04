@@ -1,5 +1,6 @@
 import { MOCK_FLOW, REGION } from './region';
 import { LIMON_HARMONICS } from './data/tides-limon';
+import { tideFixNow } from './corrections';
 import { predict } from './physics/tide';
 import { KT_PER_MS, fromSpeedDir, gridField, nearestOnLine, vortexSpeed, type VectorField } from './physics/flow';
 
@@ -27,8 +28,9 @@ export function mockConditions(now = Date.now(), at = now, climatology = false):
   const t = at / 3.6e6;
   const swell = 1.4 + (climatology ? 0 : 0.35) * Math.sin((2 * Math.PI * (t - now / 3.6e6)) / 40);
   // Real tide (PLAN 3.1): Limón harmonics, metres relative to MSL.
-  const tide = predict(LIMON_HARMONICS, at);
-  const tideNext = predict(LIMON_HARMONICS, at + 360_000);
+  // Plus the Limón gauge correction (PLAN 7.10), fading over the days ahead.
+  const tide = predict(LIMON_HARMONICS, at) + tideFixNow(at);
+  const tideNext = predict(LIMON_HARMONICS, at + 360_000) + tideFixNow(at + 360_000);
   return {
     fetchedAt: now - 3 * 3.6e6,
     swellHeightM: swell,
