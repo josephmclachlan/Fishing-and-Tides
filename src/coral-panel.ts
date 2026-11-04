@@ -11,6 +11,8 @@ import { ACTIONS, MEASURES, MEASURE_LIMITS, newId, SITE_KINDS, STATUSES, cleanMe
 import { conditionRows, dateInputMs, lastVisit, localDay, measureRows, nextMission, overdue, parseTags, photosNewestFirst, photoTime, type Row } from './coral/folder-view';
 import { toCSV, toGeoJSON } from './coral/export';
 import { buildBackup, mergeSites, readBackup } from './coral/backup';
+import { timelineSvg, yearRows, type Series } from './coral/timeline';
+import { RISK } from './coral/risks';
 import { deletePhoto, getPhoto, putPhoto, shrink } from './coral/photos';
 import { CORAL_LOG_PREFIX } from './layers/coral-log';
 import { claimMapTap } from './here-card';
@@ -19,8 +21,20 @@ import { bestFix, doneWaiting, type Fix } from './coral/gps';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const day = (ms: number) => localDay(ms);
-export type FolderTab = 'overview' | 'visits' | 'photos' | 'missions';
-const TABS: readonly FolderTab[] = ['overview', 'visits', 'photos', 'missions'];
+export type FolderTab = 'overview' | 'visits' | 'photos' | 'missions' | 'conditions';
+const TABS: readonly FolderTab[] = ['overview', 'visits', 'photos', 'missions', 'conditions'];
+
+/** What the CONDITIONS tab needs for one site (PLAN 7.40): the nearest reef's recent series and yearly peaks. */
+export interface SiteHistory {
+  reefName: string;
+  series: Series[];
+  from: number;
+  to: number;
+  yearFrom: number;
+  yearTo: number;
+  heatPeak: (year: number) => number | null;
+  mudPeak: (year: number) => number | null;
+}
 
 /** A row's value: an i18n key when it starts with @, else text. */
 const val = (v: string) => (v.startsWith('@') ? t(v.slice(1) as Key) : esc(v));
@@ -28,7 +42,7 @@ const rowsHtml = (rows: Row[]) => rows.map(([k, v]) => `<div class="ro"><span cl
 const kmBetween = (lng1: number, lat1: number, lng2: number, lat2: number) => haversineM([lng1, lat1], [lng2, lat2]) / 1000;
 const statusTone = (s: CoralStatus | undefined) => (s === 'healthy' ? 'green' : s && s !== 'unknown' ? 'red' : '');
 
-export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, sheets: Sheets, depthAt: () => ((lng: number, lat: number) => number | undefined) | null, conditionsAt: (lng: number, lat: number, depthM?: number) => Conditions | null = () => null) {
+export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, sheets: Sheets, depthAt: () => ((lng: number, lat: number) => number | undefined) | null, conditionsAt: (lng: number, lat: number, depthM?: number) => Conditions | null = () => null, historyAt: (site: CoralSite) => SiteHistory | null = () => null) {
   const el = document.createElement('section');
   el.className = 'panel boat coral';
   el.id = 'coral-panel';
@@ -203,6 +217,33 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
       ${done.length ? `<div class="lbl cf-sub">${t('coral.doneMissions')}</div><ul class="boat-pins">${done.map((m) => `<li><button type="button" class="tab pin-go" data-goto-visit="${m.doneVisitId}">${day(s.visits.find((v) => v.id === m.doneVisitId)?.t ?? m.t)} ✓ ${esc(m.goal || '--')}</button></li>`).join('')}</ul>` : ''}`;
   }
 
+  /** Steady (non-blinking) tone classes for table cells. */
+  const cr = (tone: string) => (tone ? `cr-${tone}` : '');
+  /** River flow against normal, toned like the drawer's sediment risk row. */
+  const flowTone = (x: number | null | undefined) => (x === null || x === undefined ? '' : x >= RISK.flowHigh ? 'red' : x >= RISK.flowWatch ? 'amber' : 'green');
+  function conditionsHtml(s: CoralSite) {
+    const h = historyAt(s);
+    const f1 = (x: number | null | undefined) => (x === null || x === undefined || !Number.isFinite(x) ? '--' : x.toFixed(1));
+    const atVisits = [...s.visits].reverse().map((v) => {
+      const c = v.conditions;
+      return `<tr><td>${day(v.t)}</td><td class="${cr(statusTone(v.status))}">${t(`coral.st.${v.status}` as Key)}</td><td>${f1(c?.dhw)}</td><td>${f1(c?.mudWeeks)}</td><td>${f1(c?.sstC)}</td><td class="${cr(flowTone(c?.flowRatio))}">${f1(c?.flowRatio)}</td><td>${f1(c?.hsM)}</td><td>${f1(v.secchiM)}</td><td>${v.sedimentPct ?? '--'}</td><td>${v.bleachPct ?? '--'}</td></tr>`;
+    }).join('');
+    const visitsTable = s.visits.length
+      ? `<div class="lbl cf-sub">${t('coral.atVisits')}</div><div class="cf-scroll"><table class="cf-table"><tr><th>${t('coral.th.date')}</th><th>${t('coral.th.status')}</th><th>DHW</th><th>${t('coral.th.mud')}</th><th>SST °C</th><th>${t('coral.th.river')}</th><th>${t('coral.th.swell')}</th><th>SECCHI M</th><th>${t('coral.th.sed')}</th><th>${t('coral.th.bleach')}</th></tr>${atVisits}</table></div>`
+      : `<p class="rules-advice">${t('coral.noVisitsYet')}</p>`;
+    if (!h) return `<p class="rules-advice">${t('coral.historyLoading')}</p>${visitsTable}`;
+    const years = yearRows(s, h.yearFrom, h.yearTo, h.heatPeak, h.mudPeak);
+    return `
+      <div class="lbl cf-sub">${t('coral.last12', { reef: esc(h.reefName) })}</div>
+      ${timelineSvg(h.series, s.visits, h.from, h.to)}
+      ${visitsTable}
+      <div class="lbl cf-sub">${t('coral.eachYear')}</div>
+      <div class="cf-scroll"><table class="cf-table"><tr><th>${t('coral.th.year')}</th><th>${t('coral.th.heatPeak')}</th><th>${t('coral.th.mudPeak')}</th><th>${t('coral.th.visits')}</th></tr>${years
+        .map((y) => `<tr><td>${y.year}</td><td class="${cr(y.heat !== null && y.heat >= 8 ? 'red' : y.heat !== null && y.heat >= 4 ? 'amber' : '')}">${f1(y.heat)}</td><td class="${cr(y.mud !== null && y.mud >= 4 ? 'red' : y.mud !== null && y.mud >= 2 ? 'amber' : '')}">${f1(y.mud)}</td><td class="${cr(statusTone(y.worst ?? undefined))}">${y.visits ? `${y.visits}${y.worst ? ` · ${t(`coral.st.${y.worst}` as Key)}` : ''}` : '--'}</td></tr>`)
+        .join('')}</table></div>
+      <p class="rules-advice">${t('coral.historyNote')}</p>`;
+  }
+
   function render() {
     const sites = store.list();
     $('c-n').textContent = String(sites.length);
@@ -217,7 +258,7 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
       detail.innerHTML = '';
       return;
     }
-    const body = folderTab === 'overview' ? overviewHtml(s) : folderTab === 'visits' ? visitsHtml(s) : folderTab === 'photos' ? photosHtml(s) : missionsHtml(s);
+    const body = folderTab === 'overview' ? overviewHtml(s) : folderTab === 'visits' ? visitsHtml(s) : folderTab === 'photos' ? photosHtml(s) : folderTab === 'missions' ? missionsHtml(s) : conditionsHtml(s);
     detail.innerHTML = `
       <div class="cf-head lbl">${esc(s.name || t('coral.unnamed'))} · ${t(`coral.kind.${s.kind}` as Key)}</div>
       <div class="cf-tabs" role="tablist">${TABS.map((k) => `<button type="button" role="tab" class="tab${k === folderTab ? ' on' : ''}" aria-selected="${k === folderTab}" data-ftab="${k}">${t(`coral.ftab.${k}` as Key)}</button>`).join('')}</div>

@@ -51,6 +51,9 @@ export interface CoralHeatDeps {
   /** MUD WEEKS at a reef (PLAN 7.39), null before the feed loads. */
   mud?: (reefId: string) => (MudNow & { fromHistory: boolean }) | null;
   mudHistory?: () => MudHistory | null;
+  /** The logged sites (private, on this device) whose nearest reef is this one, and opening one's folder (PLAN 7.40). */
+  sitesFor?: (reefId: string) => { id: string; name: string }[];
+  openSite?: (id: string) => void;
 }
 
 export function mountCoralHeat(panel: HTMLElement, deps: CoralHeatDeps) {
@@ -87,6 +90,7 @@ export function mountCoralHeat(panel: HTMLElement, deps: CoralHeatDeps) {
     box.innerHTML = `
       <details class="cr-all"><summary class="lbl">${t('coral.allReefs', { n: d.reefs.length })}</summary><ul class="cr-list">${list}</ul></details>
       <div class="ro"><span class="lbl">${t('coral.reef')}</span><span class="seg sm">${esc(reef.name)}</span></div>
+      ${sitesHtml(reef.id)}
       <div class="ro"><span class="lbl">DHW</span><span class="seg cr-${tone}">${Number.isFinite(now.dhw) ? now.dhw.toFixed(1) : '--'}</span><span class="cr-lvl cr-${tone}">${alert}</span><span class="lbl">${Number.isFinite(now.dhwDay) ? dated(now.dhwDay) : ''}</span></div>
       <div class="ro"><span class="lbl">${t('coral.bestVisit')}</span>${
         visit
@@ -107,6 +111,14 @@ export function mountCoralHeat(panel: HTMLElement, deps: CoralHeatDeps) {
       <ul class="cr-risks">${rows.map((r) => `<li><span class="lbl">${t(`coral.risk.${r.id}` as Key)}</span><span class="cr-lvl cr-${r.level === 'high' ? 'red' : r.level === 'watch' ? 'amber' : r.level === 'ok' ? 'green' : 'dim'}">${t(`coral.lvl.${r.level}` as Key)}</span><span class="seg sm">${r.value}</span></li>`).join('')}</ul>
       <p class="rules-advice">${t('coral.heatNote')}</p>`;
   };
+  /** The user's own sites by this reef, each opening its folder at CONDITIONS. */
+  function sitesHtml(id: string) {
+    const sites = deps.sitesFor?.(id) ?? [];
+    if (!sites.length) return '';
+    return `<div class="lbl">${t('coral.yourSites')}</div><ul class="boat-pins">${sites
+      .map((s) => `<li><button type="button" class="tab pin-go" data-site="${esc(s.id)}">${t('coral.openFolder')} ${esc(s.name || t('coral.unnamed'))}</button></li>`)
+      .join('')}</ul>`;
+  }
   /** MUD WEEKS (PLAN 7.39): the number, its 12-week build-up and each year's peak, under the heat charts. */
   function mudHtml(id: string) {
     const m = deps.mud?.(id);
@@ -132,6 +144,8 @@ export function mountCoralHeat(panel: HTMLElement, deps: CoralHeatDeps) {
       <p class="rules-advice">${t('coral.mudNote', { m: m.depthM })}${m.fromHistory ? '' : ` ${t('coral.mudNoHistory')}`}</p>`;
   }
   box.addEventListener('click', (e) => {
+    const site = (e.target as Element).closest<HTMLElement>('[data-site]');
+    if (site?.dataset.site) return deps.openSite?.(site.dataset.site);
     const b = (e.target as Element).closest<HTMLElement>('[data-reef]');
     const r = b && deps.heat()?.reefs.find((x) => x.id === b.dataset.reef);
     if (r) deps.goTo?.(r);
