@@ -9,7 +9,8 @@ import type { PhysicsClient } from './physics/client';
 import { KT_PER_MS } from './physics/flow';
 import type { SpotResult } from './physics/spot-model';
 import { tideState } from './physics/tide';
-import { SPOTS } from './region';
+import { PLUME_RIVERS, SPOTS } from './region';
+import { haversineM } from './geo';
 import { SURF_BREAKS, type SurfBreak } from './data/surf-breaks';
 import type { SquallLevel } from './physics/safety';
 import type { SargLevel } from './physics/drift';
@@ -22,6 +23,19 @@ export const PLACES: readonly { name: string; lngLat: [number, number]; brk?: Su
 ];
 
 type Sea = { Hs: number; Tp: number; fromDeg: number };
+
+/** A river mouth this close to a place holds a rip channel there, km. */
+export const CHANNEL_MOUTH_KM = 1;
+
+/**
+ * Places with a fixed rip channel (physics/rip.ts `knownChannel`: score ×1.3, speed ×1.15): a break whose guides list
+ * rips as a hazard, or one of the plume rivers' mouths within CHANNEL_MOUTH_KM. The same sites the RIP RISK layer rings.
+ */
+export function knownChannel(place: { lngLat: [number, number]; brk?: Pick<SurfBreak, 'hazards'> }, mouths: readonly { mouth: [number, number] }[] = PLUME_RIVERS): boolean {
+  if (place.brk?.hazards.includes('rip')) return true;
+  return mouths.some((m) => haversineM(place.lngLat, m.mouth) / 1000 <= CHANNEL_MOUTH_KM);
+}
+const KNOWN_CHANNEL = PLACES.map((p) => knownChannel(p));
 
 /** Per-hour, per-place extras the surf score reads besides the sea and wind (wired in main.ts). */
 export interface HourExtras {
@@ -80,7 +94,7 @@ export function createSpotPhysics(
         const seasX = PLACES.map((p) => seaAt(p.lngLat));
     const seas: Sea[] = seasX.map((x) => (x ? { Hs: x.Hs, Tp: x.Tp, fromDeg: x.fromDeg } : sea));
     client
-      .latestMany(PLACES.map((p, i) => ({ pin: p.lngLat, sea: seas[i], tideLevel, wind })))
+      .latestMany(PLACES.map((p, i) => ({ pin: p.lngLat, sea: seas[i], tideLevel, wind, knownChannel: KNOWN_CHANNEL[i] })))
       .then((rs) => {
         states = PLACES.map((s, i) => {
           const r = rs[i];

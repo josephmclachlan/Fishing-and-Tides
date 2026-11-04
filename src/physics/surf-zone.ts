@@ -44,6 +44,8 @@ export interface SpotWaves {
   breaker: Breaker;
   /** Arrival angle to the shore normal at the read point, degrees (+ = coming from the right, looking out to sea). */
   angleDeg: number;
+  /** The same angle where the waves break, after Snell's law has turned them further in, degrees. */
+  breakAngleDeg: number;
 }
 
 /** Where and how a shoreline pin meets the sea; depends only on the seafloor, so callers cache it per spot. */
@@ -98,8 +100,9 @@ export function spotWavesFrom(geom: SpotGeometry, refraction: RefractionResult, 
   const inp = { H0: sea.Hs, T: sea.Tp, Kr: refraction.Kr || 0, slope: geom.slope };
   // The arrival angle is at the read point; waves turn further in before they break.
   const atRead = Math.abs(angleDeg) < 90 ? angleDeg : 0;
-  const b = breaker({ ...inp, angleDeg: angleAtBreak(atRead, sea.Tp, refraction.depth, breaker(inp).hb) });
-  return { point: geom.point, normalDeg: geom.normalDeg, slope: geom.slope, refraction, breaker: b, angleDeg };
+  const breakAngleDeg = angleAtBreak(atRead, sea.Tp, refraction.depth, breaker(inp).hb);
+  const b = breaker({ ...inp, angleDeg: breakAngleDeg });
+  return { point: geom.point, normalDeg: geom.normalDeg, slope: geom.slope, refraction, breaker: b, angleDeg, breakAngleDeg };
 }
 
 /** Refraction + breaking for a shoreline pin; null when there's no water deep enough nearby. */

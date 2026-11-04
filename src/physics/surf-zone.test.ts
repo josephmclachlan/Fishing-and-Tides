@@ -31,6 +31,9 @@ describe('spot surf zone', () => {
     expect(oblique.angleDeg).toBeLessThan(0);
     expect(oblique.angleDeg).toBeGreaterThan(-50);
     expect(Math.abs(oblique.breaker.longshoreMs)).toBeGreaterThan(0.2);
+    // Turned further in by the break (Snell), same side: the rip score reads this angle.
+    expect(oblique.breakAngleDeg).toBeLessThan(0);
+    expect(Math.abs(oblique.breakAngleDeg)).toBeLessThan(Math.abs(oblique.angleDeg));
   });
 
   it('no water nearby gives null', () => {
