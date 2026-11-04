@@ -356,6 +356,24 @@ const windMsAt = (lng: number, lat: number, ms: number): number | null => {
   const v = windVecAt(lng, lat, ms);
   return v ? Math.hypot(...v) : null;
 };
+/** The nearest water point within ~1.8 km of a shore pin (cached per spot): clarity and sea temperature are sea values. */
+const watchWater = (lng: number, lat: number, c: ClarityContext): [number, number] | null => {
+  const key = `${lng},${lat}`;
+  let at = watchSea.get(key);
+  if (at === undefined) {
+    at = null;
+    search: for (const r of [0.004, 0.008, 0.016])
+      for (let k = 0; k < 8; k++) {
+        const p: [number, number] = [lng + r * Math.cos((k * Math.PI) / 4), lat + r * Math.sin((k * Math.PI) / 4)];
+        if (clarityAt(c, p[0], p[1])) {
+          at = p;
+          break search;
+        }
+      }
+    watchSea.set(key, at);
+  }
+  return at;
+};
 const metricEnv = (): MetricEnv => ({
   windMs: windMsAt,
   sea: (lng, lat, ms) => (waves ? wavesAt(waves, bandAt(ms), ms, lng, lat) : null),
@@ -363,22 +381,13 @@ const metricEnv = (): MetricEnv => ({
   // Clarity is a sea value and the spot pins sit on the shore: read it at the nearest water within ~1.8 km (cached per spot).
   clarityM: (lng, lat, ms) => {
     const c = clarityCtx();
-    if (!c) return null;
-    const key = `${lng},${lat}`;
-    let at = watchSea.get(key);
-    if (at === undefined) {
-      at = null;
-      search: for (const r of [0.004, 0.008, 0.016])
-        for (let k = 0; k < 8; k++) {
-          const p: [number, number] = [lng + r * Math.cos((k * Math.PI) / 4), lat + r * Math.sin((k * Math.PI) / 4)];
-          if (clarityAt(c, p[0], p[1])) {
-            at = p;
-            break search;
-          }
-        }
-      watchSea.set(key, at);
-    }
+    const at = c && watchWater(lng, lat, c);
     return at ? clarityAt({ ...c, ms }, at[0], at[1])?.visM ?? null : null;
+  },
+  sstC: (lng, lat, ms) => {
+    const c = clarityCtx();
+    const at = c && satellite && watchWater(lng, lat, c);
+    return at && satellite ? sstAt(satellite, at[0], at[1], ms)?.value ?? null : null;
   },
   sargassumKm2: (spot, ms) => (sargForecast ? beachDay(sargForecast, spot, ms)?.km2 ?? null : null),
   tide: LIMON_HARMONICS,
@@ -481,6 +490,7 @@ const runSargassum = () => {
   if (!sargassum?.series || !currents?.forecast || !waterMask) return;
   sargForecast = sargassumForecast({ data: sargassum, currents, wind, isWater: waterMask, now: Date.now() });
   showSargassum();
+  diveHud?.refresh();
 };
 time.subscribe(showSargassum);
 fetchSargassum()
@@ -650,6 +660,14 @@ fetchSeafloor()
       windAt: (lng, lat, ms) => {
         const f = wind && windAt(wind, bandAt(ms), ms)?.field;
         return f && sampleField(f, lng, lat, diveWind) ? { ms: Math.hypot(...diveWind), fromDeg: fromDeg(...diveWind) } : null;
+      },
+      // Sea temperature and the sargassum outlook at the nearest beach (same reads as fishing).
+      waterAt: (lng, lat, ms) => {
+        const beach = sargForecast ? nearest([lng, lat], SPOTS) : null;
+        return {
+          sstC: satellite ? (sstAt(satellite, lng, lat, ms)?.value ?? null) : null,
+          sarg: sargForecast && beach && beach.distanceM <= BEACH_RADIUS_M ? (beachDay(sargForecast, beach.point.name, ms)?.level ?? null) : null,
+        };
       },
       currentAt: (lng, lat, ms) => {
         const f = currents && currentsAt(currents, bandAt(ms), ms)?.field;
