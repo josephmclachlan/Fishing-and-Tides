@@ -1,7 +1,8 @@
 /** LAYERS drawer (PLAN 1.8): activity presets plus per-layer toggles, as HUD buttons sized for a thumb. */
 import { t, type Key } from './i18n';
 import { closeButton, type Sheets } from './sheets';
-import { ACTIVITIES, LAYERS, type LayerGroup, type LayerStore } from './layers/registry';
+import { ACTIVITIES, LAYERS, type LayerGroup, type LayerId, type LayerStore } from './layers/registry';
+import { legendHtml } from './layers/legend';
 
 export function mountLayersPanel(root: HTMLElement, store: LayerStore, sheets: Sheets) {
   const groups = [...new Set(LAYERS.map((l) => l.group))] as LayerGroup[];
@@ -14,8 +15,8 @@ export function mountLayersPanel(root: HTMLElement, store: LayerStore, sheets: S
     ${groups
       .map(
         (g) => `<div class="lay-group"><div class="lbl">${t(`group.${g}` as Key)}</div><div class="lay-grid">${LAYERS.filter((l) => l.group === g)
-          .map((l) => `<button type="button" class="tab lay" data-id="${l.id}" aria-pressed="true">${t(`layer.${l.id}` as Key)}<i class="soon">${t('layers.soon')}</i></button>`)
-          .join('')}</div></div>`,
+          .map((l) => `<div class="lay-cell"><button type="button" class="tab lay" data-id="${l.id}" aria-pressed="true">${t(`layer.${l.id}` as Key)}<i class="soon">${t('layers.soon')}</i></button><button type="button" class="tab lay-info" data-info="${l.id}" aria-expanded="false" aria-label="${t('legend.info')}: ${t(`layer.${l.id}` as Key)}">?</button></div>`)
+          .join('')}</div><div class="lay-legend" hidden></div></div>`,
       )
       .join('')}`;
   el.querySelector('.ph')!.appendChild(closeButton(() => sheets.close('layers')));
@@ -30,6 +31,23 @@ export function mountLayersPanel(root: HTMLElement, store: LayerStore, sheets: S
   const mode = el.querySelector<HTMLElement>('#lay-mode')!;
   const acts = [...el.querySelectorAll<HTMLButtonElement>('[data-act]')];
   const toggles = [...el.querySelectorAll<HTMLButtonElement>('[data-id]')];
+
+  // The ? beside each layer opens its legend (what it is, what the colours and marks mean) under that group; one at a time.
+  const infos = [...el.querySelectorAll<HTMLButtonElement>('[data-info]')];
+  let shown: LayerId | null = null;
+  const renderLegend = () => {
+    el.querySelectorAll<HTMLElement>('.lay-legend').forEach((box) => (box.hidden = true));
+    for (const b of infos) {
+      const on = b.dataset.info === shown;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-expanded', String(on));
+      if (!on) continue;
+      const box = b.closest('.lay-group')!.querySelector<HTMLElement>('.lay-legend')!;
+      box.innerHTML = `<div class="lg-title">${t(`layer.${shown}` as Key)}</div>${legendHtml(shown!, (k) => t(k as Key))}`;
+      box.hidden = false;
+    }
+  };
+  for (const b of infos) b.addEventListener('click', () => ((shown = shown === b.dataset.info ? null : (b.dataset.info as LayerId)), renderLegend()));
 
   const render = () => {
     const a = store.activity();
