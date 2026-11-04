@@ -444,6 +444,10 @@ export const es: Dict = {
 
   // Surf breaks (PLAN 6.4)
   'surf.title': 'ROMPIENTE',
+  'surf.surface': 'SUPERFICIE',
+  'surf.clean.ok': 'LIMPIA',
+  'surf.clean.mixed': 'MAR MIXTO',
+  'surf.clean.messy': 'PICADA / CRUZADA',
   'surf.q': 'OLAS',
   'surf.band.FLAT': 'PLANO',
   'surf.band.POOR': 'MALO',

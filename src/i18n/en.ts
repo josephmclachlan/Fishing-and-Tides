@@ -438,6 +438,10 @@ export const en = {
 
   // Surf breaks (PLAN 6.4)
   'surf.title': 'BREAK',
+  'surf.surface': 'SURFACE',
+  'surf.clean.ok': 'CLEAN',
+  'surf.clean.mixed': 'MIXED SEAS',
+  'surf.clean.messy': 'CHOPPY / CROSSED',
   'surf.q': 'SURF',
   'surf.band.FLAT': 'FLAT',
   'surf.band.POOR': 'POOR',
