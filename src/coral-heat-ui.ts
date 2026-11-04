@@ -10,8 +10,26 @@ import { peakFor } from './coral/history';
 import { dhwTrendSvg, peaksSvg, yearsOver } from './coral/charts';
 import { coralRisks, type RiskInputs } from './coral/risks';
 import { toneOf } from './layers/coral';
+import { clarityLevel } from './physics/clarity';
 
-const day = (ms: number) => new Date(ms).toISOString().slice(5, 10);
+/** Visibility colour on the BEST VISIT line: the best day can still be murky, and should look it. */
+const VIS_TONE = { GOOD: 'green', FAIR: 'amber', POOR: 'red' } as const;
+
+/** "DATED 29 OCT": when the satellite reading is from, in words rather than 10-29 (persona review J9). */
+const dated = (ms: number) => {
+  const d = new Date(ms);
+  return t('coral.dated', { d: `${d.getUTCDate()} ${t(`coral.mon.${d.getUTCMonth() + 1}` as Key)}` });
+};
+const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+/** The best day this week to be in the water at a reef (metrics/best-today.ts bestVisitDay), as the drawer shows it. */
+export interface ReefVisit {
+  /** "SAT", "TODAY", "TOMORROW". */
+  when: string;
+  /** "09:00–11:00". */
+  hours: string;
+  visM: number | null;
+}
 
 export interface CoralHeatDeps {
   /** The reef nearest the map centre. */
@@ -20,6 +38,10 @@ export interface CoralHeatDeps {
   history: () => CoralHistory | null;
   /** Today's inputs for the risk rows at a reef (alert is filled in here). */
   risks: (reefId: string) => Omit<RiskInputs, 'alert'>;
+  /** Best day this week to visit `reef`; null when no day has a good window or there is no forecast yet. */
+  visit?: (reef: CoralReef) => ReefVisit | null;
+  /** Move the map to a reef from the list. */
+  goTo?: (reef: CoralReef) => void;
 }
 
 export function mountCoralHeat(panel: HTMLElement, deps: CoralHeatDeps) {
@@ -43,9 +65,29 @@ export function mountCoralHeat(panel: HTMLElement, deps: CoralHeatDeps) {
     const peaks = years.map((y) => peakFor(h, reef.id, y, { peak: now.peakDhw, year }));
     const severe = yearsOver(years, peaks, 8);
     const rows = coralRisks({ alert: now.alert, ...deps.risks(reef.id) });
+    const visit = deps.visit?.(reef);
+    // Every reef the app tracks, so they can be compared; tap one to go there.
+    const list = d.reefs
+      .map((r) => {
+        const n = coralNow(d, r);
+        const rt = toneOf(n.alert);
+        const lvl = n.alert === null ? t('coral.nodata') : t(`coral.alert.${ALERT_KEYS[n.alert]}` as Key);
+        return `<li><button type="button" class="cr-reef${r.id === reef.id ? ' on' : ''}" data-reef="${esc(r.id)}"><span class="cr-rn">${esc(r.name)}</span><span class="seg sm cr-${rt}">${Number.isFinite(n.dhw) ? n.dhw.toFixed(1) : '--'}</span><span class="cr-lvl cr-${rt}">${lvl}</span></button></li>`;
+      })
+      .join('');
     box.innerHTML = `
-      <div class="ro"><span class="lbl">${t('coral.reef')}</span><span class="seg sm">${reef.name}</span></div>
-      <div class="ro"><span class="lbl">DHW</span><span class="seg cr-${tone}">${Number.isFinite(now.dhw) ? now.dhw.toFixed(1) : '--'}</span><span class="cr-lvl cr-${tone}">${alert}</span><span class="lbl">${Number.isFinite(now.dhwDay) ? day(now.dhwDay) : ''}</span></div>
+      <details class="cr-all"><summary class="lbl">${t('coral.allReefs', { n: d.reefs.length })}</summary><ul class="cr-list">${list}</ul></details>
+      <div class="ro"><span class="lbl">${t('coral.reef')}</span><span class="seg sm">${esc(reef.name)}</span></div>
+      <div class="ro"><span class="lbl">DHW</span><span class="seg cr-${tone}">${Number.isFinite(now.dhw) ? now.dhw.toFixed(1) : '--'}</span><span class="cr-lvl cr-${tone}">${alert}</span><span class="lbl">${Number.isFinite(now.dhwDay) ? dated(now.dhwDay) : ''}</span></div>
+      <div class="ro"><span class="lbl">${t('coral.bestVisit')}</span>${
+        visit
+          ? `<span class="seg sm green">${t('coral.bestVisitAt', { when: visit.when, hours: visit.hours })}</span>${
+              visit.visM !== null
+                ? `<span class="seg sm cr-${VIS_TONE[clarityLevel(visit.visM)]}">${t('coral.bestVisitVis', { m: visit.visM < 10 ? visit.visM.toFixed(1) : Math.round(visit.visM) })}</span>`
+                : ''
+            }`
+          : `<span class="seg sm">${t('coral.bestVisitNone')}</span>`
+      }</div>
       <div class="lbl">${t('coral.trend')}</div>
       ${dhwTrendSvg(reef.dhw)}
       <div class="lbl">${t('coral.peaks', { from: years[0] })}</div>
@@ -55,6 +97,11 @@ export function mountCoralHeat(panel: HTMLElement, deps: CoralHeatDeps) {
       <ul class="cr-risks">${rows.map((r) => `<li><span class="lbl">${t(`coral.risk.${r.id}` as Key)}</span><span class="cr-lvl cr-${r.level === 'high' ? 'red' : r.level === 'watch' ? 'amber' : r.level === 'ok' ? 'green' : 'dim'}">${t(`coral.lvl.${r.level}` as Key)}</span><span class="seg sm">${r.value}</span></li>`).join('')}</ul>
       <p class="rules-advice">${t('coral.heatNote')}</p>`;
   };
+  box.addEventListener('click', (e) => {
+    const b = (e.target as Element).closest<HTMLElement>('[data-reef]');
+    const r = b && deps.heat()?.reefs.find((x) => x.id === b.dataset.reef);
+    if (r) deps.goTo?.(r);
+  });
   render();
   return { refresh: render };
 }
