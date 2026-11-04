@@ -43,9 +43,20 @@ describe('wave-current interaction', () => {
   // Waves from 60° travel toward 240°; a current toward 60° runs against them.
   const against = { u: Math.sin(Math.PI / 3), v: Math.cos(Math.PI / 3) }; // 1 m/s toward 60°
   const along = { u: -against.u, v: -against.v };
-  it('steepens against the waves and flattens with them (cg0 = 7.8 m/s at 10 s)', () => {
-    expect(currentFactor(10, 60, against)).toBeCloseTo(1 + 2 / 7.85, 2);
-    expect(currentFactor(10, 60, along)).toBeCloseTo(1 - 2 / 7.85, 2);
+  it('steepens against the waves and flattens with them (exact deep-water action balance, c0 = 15.6 m/s at 10 s)', () => {
+    // H/H0 = c0 / sqrt(c (c + 2U)), c = c0/2 (1 + sqrt(1 + 4U/c0)); U = -1 against, +1 following.
+    const exact = (U: number) => { const c0 = (9.80665 * 10) / (2 * Math.PI); const c = (c0 / 2) * (1 + Math.sqrt(1 + (4 * U) / c0)); return c0 / Math.sqrt(c * (c + 2 * U)); };
+    expect(currentFactor(10, 60, against)).toBeCloseTo(exact(-1), 6);
+    expect(currentFactor(10, 60, along)).toBeCloseTo(exact(1), 6);
+    expect(currentFactor(10, 60, against)).toBeCloseTo(1.155, 2);
+    expect(currentFactor(10, 60, along)).toBeCloseTo(0.894, 2);
+  });
+  it('matches the small-current limit 1 - U/cg0 (the old formula doubled it)', () => {
+    const small = { u: 0.05 * against.u, v: 0.05 * against.v }; // 0.05 m/s against a 10 s swell, cg0 = 7.8 m/s
+    expect(currentFactor(10, 60, small) - 1).toBeCloseTo(0.05 / 7.806, 3);
+  });
+  it('8 s swell into a 0.5 m/s current grows about 9%, not 16%', () => {
+    expect(currentFactor(8, 60, { u: 0.5 * against.u, v: 0.5 * against.v })).toBeCloseTo(1.09, 2);
   });
   it('changes nothing for still water, a cross current or missing data', () => {
     expect(currentFactor(10, 60, { u: 0, v: 0 })).toBe(1);
