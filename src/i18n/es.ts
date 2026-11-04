@@ -177,6 +177,8 @@ export const es: Dict = {
   'dive.r.chop': 'OLEAJE',
   'dive.r.shallow': 'POCA AGUA',
   'dive.r.light': 'POCA LUZ',
+  'dive.r.storm': 'RIESGO DE TORMENTA',
+  'dive.r.rain': 'LLUVIA',
   'snk.spot': 'SITIO DE SNORKEL',
   'snk.rating': 'ESTADO AHORA',
   'snk.stingers': 'AGUAVIVAS',
@@ -523,6 +525,10 @@ export const es: Dict = {
 
   // Surf breaks (PLAN 6.4)
   'surf.title': 'ROMPIENTE',
+  'surf.surface': 'SUPERFICIE',
+  'surf.clean.ok': 'LIMPIA',
+  'surf.clean.mixed': 'MAR MIXTO',
+  'surf.clean.messy': 'PICADA / CRUZADA',
   'surf.q': 'OLAS',
   'surf.band.FLAT': 'PLANO',
   'surf.band.POOR': 'MALO',

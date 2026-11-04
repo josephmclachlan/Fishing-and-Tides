@@ -7,8 +7,12 @@
  *   MARGINAL  any one past the MARGINAL line, a squall watch, heavy rain, or a storm within range
  *   GO        otherwise
  *
+ * Lightning and squall use the cap the other activities share (physics/safety.ts): a cap below
+ * SAFETY_NOGO_BELOW is NO-GO, any cap at all is at least MARGINAL.
+ *
  * The reasons are the conditions that set the verdict, worst first.
  */
+import { safetyTerm, type SquallLevel } from '../physics/safety';
 import type { Vessel } from '../settings';
 
 export type Verdict = 'go' | 'marginal' | 'nogo';
@@ -24,6 +28,8 @@ export const LIMITS: Readonly<Record<Vessel, { windKt: readonly [number, number]
 export const STORM_NOGO_KM = 300;
 export const STORM_MARGINAL_KM = 1000;
 export const HEAVY_RAIN_MM_H = 10;
+/** A shared safety cap (multiplier on a score) under this means stay ashore. */
+export const SAFETY_NOGO_BELOW = 0.5;
 
 export interface VerdictInputs {
   vessel: Vessel;
@@ -33,7 +39,7 @@ export interface VerdictInputs {
   hsM?: number;
   /** Sea comfort score 0..100 (physics/sea-state.ts). */
   comfort?: number;
-  squall?: 'none' | 'watch' | 'high';
+  squall?: SquallLevel;
   /** A strike within 25 km in the last 15 min. */
   lightning?: boolean;
   /** Distance to the nearest active tropical storm, km. */
@@ -61,8 +67,10 @@ export function boatVerdict(i: VerdictInputs): BoatVerdict {
     if (i.stormKm <= STORM_NOGO_KM) reasons.push({ id: 'storm', level: 'nogo', value: i.stormKm });
     else if (i.stormKm <= STORM_MARGINAL_KM) reasons.push({ id: 'storm', level: 'marginal', value: i.stormKm });
   }
-  if (i.squall === 'high') reasons.push({ id: 'squallHigh', level: 'nogo' });
-  else if (i.squall === 'watch') reasons.push({ id: 'squall', level: 'marginal' });
+  if (i.squall && i.squall !== 'none') {
+    const nogo = safetyTerm(false, i.squall) < SAFETY_NOGO_BELOW;
+    reasons.push({ id: nogo ? 'squallHigh' : 'squall', level: nogo ? 'nogo' : 'marginal' });
+  }
   up('wind', i.windKt, L.windKt);
   up('gust', i.gustKt, L.gustKt);
   up('sea', i.hsM, L.hsM);

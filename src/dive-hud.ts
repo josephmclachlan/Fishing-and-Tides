@@ -13,6 +13,7 @@ import { panelHeader } from './hud-kit';
 import { t, type Key } from './i18n';
 import { LIMON_HARMONICS } from './data/tides-limon';
 import { localDayStart } from './physics/astro';
+import type { SquallLevel } from './physics/safety';
 import { outingScore, outlook, ratingFor, stingerGuess, type OutingReason, type OutingScore } from './physics/outing';
 import { SNORKEL_SPOTS } from './data/snorkel-spots';
 import { OUTING_DEPTHS, surgeAt, surgeProfile } from './physics/surge';
@@ -29,6 +30,8 @@ export interface DiveEnv {
   windAt: (lng: number, lat: number, ms: number) => { ms: number; fromDeg: number } | null;
   /** Visibility, m. */
   visAt: (lng: number, lat: number, ms: number) => number | null;
+  /** Weather safety and rain for the hour: mean rain, squall flag and a close lightning strike. Empty when no forecast covers it. */
+  wxAt: (lng: number, lat: number, ms: number) => { rainMmH?: number; squall?: SquallLevel; lightning?: boolean };
   /** Chart depth, m (positive down), or undefined on land or before the depth grid loads. */
   depthAt: (lng: number, lat: number) => number | undefined;
 }
@@ -113,7 +116,7 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     const chart = env.depthAt(c.lng, c.lat);
     // Open water or unknown depth: use the activity depth so only a real reef flat can read as too shallow.
     const waterM = chart === undefined || chart > depth ? depth : chart + tideM(ms);
-    return outingScore({ surgeMs: u, visM: vis ?? NaN, windMs: wind, waterM, localHour });
+    return outingScore({ surgeMs: u, visM: vis ?? NaN, windMs: wind, waterM, localHour, ...env.wxAt(c.lng, c.lat, ms) });
   };
 
   let heavyKey = '';

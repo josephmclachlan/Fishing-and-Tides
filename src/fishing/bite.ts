@@ -23,6 +23,7 @@
  *         above / below the predicted tide (high water pushes bait into flooded edges and over flats).
  * water   the species' water factor (fishing/water.ts): clarity, temperature, chlorophyll and sargassum, 0.36..1; 1 if unknown.
  */
+import { safetyTerm } from '../physics/safety';
 import { predict, type Harmonics } from '../physics/tide';
 import type { WaterReason, WaterTerm } from './water';
 import { daySky, localDayStart, moonAltitude, moonPhase, sunAltitude, type DaySky } from '../physics/astro';
@@ -151,10 +152,7 @@ export function weatherTerms(windMs: number | null | undefined, hsM: number | nu
 }
 
 /** Safety cap: lightning close by, or a squall in the hour. */
-export function safetyTerm(lightning: boolean | undefined, squall: BiteInputs['squall']): number {
-  if (lightning) return 0.1;
-  return squall === 'high' ? 0.25 : squall === 'watch' ? 0.7 : 1;
-}
+export { safetyTerm };
 
 export function bite(i: BiteInputs): BiteTerms {
   const day = localDayStart(i.tMs, i.tzOffsetH);

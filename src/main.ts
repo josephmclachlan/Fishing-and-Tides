@@ -253,12 +253,13 @@ const loadLightning = () =>
       flashesAt = d.fetchedAt;
       lightningLayer.setFlashes(d.flashes);
       lightningHud?.setFlashes(d.flashes, d.fetchedAt);
+      diveHud?.refresh();
     })
     .catch((err) => (console.warn('lightning unavailable', err), lightningHud?.setFailed()));
 loadLightning();
 setInterval(loadLightning, 5 * 60000);
 let weatherData: WeatherData | null = null;
-fetchWeather().then((d) => ((weatherData = d), weatherHud?.setWeather(d))).catch((err) => console.warn('weather unavailable', err));
+fetchWeather().then((d) => ((weatherData = d), weatherHud?.setWeather(d), diveHud?.refresh())).catch((err) => console.warn('weather unavailable', err));
 let stormList: readonly Storm[] = [];
 boatSafety = () => {
   const c = map.getCenter();
@@ -586,7 +587,15 @@ const spotSea = (pin: [number, number]) => {
   const w = seaStateAt(...pin);
   if (!w || !Number.isFinite(w.tm)) return null;
   const swellLeads = Number.isFinite(w.swellHs) && Number.isFinite(w.swellT) && w.swellHs >= (Number.isFinite(w.windSeaHs) ? w.windSeaHs : 0);
-  return { Hs: w.hs, Tp: swellLeads ? w.swellT : w.tm, fromDeg: swellLeads ? w.swellDir : w.dir };
+  const part = (hs: number, T: number, dir: number) => (Number.isFinite(hs) && Number.isFinite(T) && Number.isFinite(dir) && hs >= 0.1 ? { Hs: hs, Tp: T, fromDeg: dir } : null);
+  return {
+    Hs: w.hs,
+    Tp: swellLeads ? w.swellT : w.tm,
+    fromDeg: swellLeads ? w.swellDir : w.dir,
+    swellHs: swellLeads ? w.swellHs : w.hs,
+    swell2: part(w.swell2Hs, w.swell2T, w.swell2Dir),
+    windSeaHs: Number.isFinite(w.windSeaHs) ? w.windSeaHs : null,
+  };
 };
 let physicsQueued = false;
 const queueSpotPhysics = () => {
@@ -630,6 +639,12 @@ fetchSeafloor()
       visAt: (lng, lat, ms) => {
         const c = clarityCtx();
         return c ? (clarityAt({ ...c, ms }, lng, lat)?.visM ?? null) : null;
+      },
+      // Rain, squall and live lightning for the hour, the same cap fishing uses (physics/safety.ts).
+      wxAt: (lng, lat, ms) => {
+        const near = Math.abs(ms - Date.now()) < 3.6e6 && nearestFlash(flashes, lng, lat, Date.now());
+        const w = weatherData ? biteWeather(weatherAt(weatherData, ms)) : {};
+        return { rainMmH: w.rainMmH, squall: w.squall, lightning: !!near && near.km <= STRIKE_ALERT_KM };
       },
       depthAt: (lng, lat) => depthAt?.(lng, lat),
     }) ?? null;

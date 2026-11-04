@@ -179,6 +179,8 @@ export const en = {
   'dive.r.chop': 'CHOP',
   'dive.r.shallow': 'TOO SHALLOW',
   'dive.r.light': 'LOW LIGHT',
+  'dive.r.storm': 'STORM RISK',
+  'dive.r.rain': 'RAIN',
   'snk.spot': 'SNORKEL SPOT',
   'snk.rating': 'RATING NOW',
   'snk.stingers': 'STINGERS',
@@ -517,6 +519,10 @@ export const en = {
 
   // Surf breaks (PLAN 6.4)
   'surf.title': 'BREAK',
+  'surf.surface': 'SURFACE',
+  'surf.clean.ok': 'CLEAN',
+  'surf.clean.mixed': 'MIXED SEAS',
+  'surf.clean.messy': 'CHOPPY / CROSSED',
   'surf.q': 'SURF',
   'surf.band.FLAT': 'FLAT',
   'surf.band.POOR': 'POOR',
