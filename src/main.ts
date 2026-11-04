@@ -56,6 +56,7 @@ import { mountExplain } from './explain';
 import { mountSystemCheck } from './system-check';
 import { mountLiveObs } from './live-obs';
 import { fetchMetar } from './adapters/metar';
+import { fetchHindcast, scoreWeather } from './adapters/weather-skill';
 import type { MetarObs } from './adapters/metar-parse';
 import { fetchPasses, type PassData } from './adapters/passes';
 import { allChecks } from './verify/registry';
@@ -284,7 +285,8 @@ const loadLightning = () =>
 loadLightning();
 setInterval(loadLightning, 5 * 60000);
 let weatherData: WeatherData | null = null;
-fetchWeather().then((d) => ((weatherData = d), weatherHud?.setWeather(d), diveHud?.refresh())).catch((err) => console.warn('weather unavailable', err));
+const weatherLoad = fetchWeather();
+weatherLoad.then((d) => ((weatherData = d), weatherHud?.setWeather(d), diveHud?.refresh())).catch((err) => console.warn('weather unavailable', err));
 let stormList: readonly Storm[] = [];
 boatSafety = () => {
   const c = map.getCenter();
@@ -414,6 +416,7 @@ const metricEnv = (): MetricEnv => ({
   },
   sea: (lng, lat, ms) => (waves ? wavesAt(waves, bandAt(ms), ms, lng, lat) : null),
   weather: (ms) => (weatherData ? weatherAt(weatherData, ms) : []),
+  weatherSkill: () => weatherData?.skill,
   // Clarity is a sea value and the spot pins sit on the shore: read it at the nearest water within ~1.8 km (cached per spot).
   clarityM: (lng, lat, ms) => {
     const c = clarityCtx();
@@ -436,9 +439,12 @@ mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeSto
 let metarObs: MetarObs[] = [];
 let passes: PassData | null = null;
 const liveObs = mountLiveObs(hud, map, sheets, () => ({ gauge, metar: metarObs, passes }));
-fetchMetar()
-  .then((d) => ((metarObs = d.obs), liveObs.refresh()))
-  .catch((err) => console.warn('metar unavailable', err));
+const metarLoad = fetchMetar();
+metarLoad.then((d) => ((metarObs = d.obs), liveObs.refresh())).catch((err) => console.warn('metar unavailable', err));
+// Ensemble blend (PLAN 7.4): score the weather models against the airport, then re-show the weather blended by that skill.
+Promise.all([weatherLoad, metarLoad, fetchHindcast()])
+  .then(([w, m, h]) => ((weatherData = { ...w, skill: scoreWeather(h, m.obs, Date.now()) }), weatherHud?.setWeather(weatherData), diveHud?.refresh()))
+  .catch((err) => console.warn('weather scoring unavailable, equal model weights', err));
 fetchPasses()
   .then((d) => ((passes = d), liveObs.refresh()))
   .catch((err) => console.warn('satellite passes unavailable', err));
@@ -722,7 +728,7 @@ fetchSeafloor()
       // Rain, squall and live lightning for the hour, the same cap fishing uses (physics/safety.ts).
       wxAt: (lng, lat, ms) => {
         const near = Math.abs(ms - Date.now()) < 3.6e6 && nearestFlash(flashes, lng, lat, Date.now());
-        const w = weatherData ? biteWeather(weatherAt(weatherData, ms)) : {};
+        const w = weatherData ? biteWeather(weatherAt(weatherData, ms), weatherData.skill) : {};
         return { rainMmH: w.rainMmH, squall: w.squall, lightning: !!near && near.km <= STRIKE_ALERT_KM };
       },
       depthAt: (lng, lat) => depthAt?.(lng, lat),
@@ -763,7 +769,7 @@ fetchSeafloor()
             return {
               windMs: windMsAt(lng, lat, ms),
               hsM: (waves && wavesAt(waves, bandAt(ms), ms, lng, lat)?.hs) ?? null,
-              ...(weatherData ? biteWeather(weatherAt(weatherData, ms)) : {}),
+              ...(weatherData ? biteWeather(weatherAt(weatherData, ms), weatherData.skill) : {}),
               lightning: !!near && near.km <= STRIKE_ALERT_KM,
               pressureTrend: weatherData ? pressureTrend(weatherData, ms) : null,
               surgeM: surgeNear(ms),

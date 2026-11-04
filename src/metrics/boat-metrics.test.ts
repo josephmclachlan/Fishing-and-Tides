@@ -5,7 +5,7 @@ import { BEST_METRICS } from './best-today';
 import type { SeaState } from '../adapters/waves';
 
 const sea = (over: Partial<SeaState> = {}): SeaState => ({ hs: 1, tm: 7, dir: 60, swellHs: 1, swellT: 9, swellDir: 60, swell2Hs: NaN, swell2T: NaN, swell2Dir: NaN, windSeaHs: 0.2, windSeaT: 3, windSeaDir: 60, kind: 'forecast', ...over });
-const wx = (capeJkg: number, gustKt: number, rainMmH: number) => [{ model: 'gfs_seamless' as const, rainMmH, cloudPct: 50, uv: 5, tempC: 28, gustKt, capeJkg, pressureHpa: 1012 }];
+const wx = (capeJkg: number, gustKt: number, rainMmH: number) => [{ model: 'gfs_seamless' as const, rainMmH, cloudPct: 50, uv: 5, tempC: 28, gustKt, capeJkg, pressureHpa: 1012, windKt: NaN }];
 const env = (over: Partial<MetricEnv> = {}): MetricEnv => ({
   windMs: () => 5, sea: () => sea(), weather: () => wx(0, 10, 0), clarityM: () => 10, sargassumKm2: () => 0, tide: LIMON_HARMONICS, tzOffsetH: -6, ...over,
 });
