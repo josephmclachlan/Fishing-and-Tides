@@ -681,8 +681,10 @@ fetchSeafloor()
       // Rain, squall and live lightning for the hour, the same cap fishing uses (physics/safety.ts).
       wxAt: (lng, lat, ms) => {
         const near = Math.abs(ms - Date.now()) < 3.6e6 && nearestFlash(flashes, lng, lat, Date.now());
-        const w = weatherData ? biteWeather(weatherAt(weatherData, ms)) : {};
-        return { rainMmH: w.rainMmH, squall: w.squall, lightning: !!near && near.km <= STRIKE_ALERT_KM };
+        const now = weatherData ? weatherAt(weatherData, ms) : [];
+        const w = biteWeather(now);
+        const uvs = now.map((x) => x.uv).filter((x) => Number.isFinite(x));
+        return { rainMmH: w.rainMmH, cloudPct: w.cloudPct, uv: uvs.length ? uvs.reduce((a, b) => a + b, 0) / uvs.length : undefined, squall: w.squall, lightning: !!near && near.km <= STRIKE_ALERT_KM };
       },
       depthAt: (lng, lat) => depthAt?.(lng, lat),
     }) ?? null;
