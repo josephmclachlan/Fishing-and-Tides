@@ -55,4 +55,17 @@ export function mountSettingsUi(root: HTMLElement, settings: Settings) {
   snd.addEventListener('click', () => settings.setSound(!settings.sound()));
   settings.subscribe(renderSnd);
   renderSnd();
+
+  // Vessel for the BOAT verdict (PLAN 7.23): small open boat or sailing yacht.
+  const vsl = document.createElement('button');
+  vsl.type = 'button';
+  vsl.className = 'tab vessel-toggle';
+  vsl.title = t('settings.vesselTitle');
+  root.querySelector('.top-tabs')?.appendChild(vsl);
+  const renderVsl = () => {
+    vsl.textContent = `${t('settings.vessel')}: ${t(settings.vessel() === 'yacht' ? 'settings.vessel.yacht' : 'settings.vessel.small')}`;
+  };
+  vsl.addEventListener('click', () => settings.setVessel(settings.vessel() === 'yacht' ? 'small' : 'yacht'));
+  settings.subscribe(renderVsl);
+  renderVsl();
 }

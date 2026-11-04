@@ -49,8 +49,8 @@ export const CELLS: Record<Mode, Cell[]> = {
   boat: [
     { src: 'wind', label: 'glance.wind', help: 'wind', unit: 'unit.kt' },
     { src: 'swell', label: 'glance.swell', help: 'swell', unit: 'unit.m' },
-    { src: 'period', label: 'glance.period', help: 'period', unit: 'unit.s' },
     { src: 'ss-comfort', label: 'glance.sea', help: 'seaState', fmt: sea },
+    { src: 'bv-verdict', label: 'glance.verdict', help: 'verdict' },
   ],
 };
 
