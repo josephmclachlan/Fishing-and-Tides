@@ -77,6 +77,7 @@ import { loadSpecies, mountFishingHud } from './fishing-hud';
 import { layers } from './layers/registry';
 import { mountMotionKey } from './layers/motion-key';
 import { bindMapLayers } from './layers/visibility';
+import { mountLayerNotes } from './layers/layer-notes';
 import { createCoralMode } from './coral-mode';
 import { mountCoral } from './layers/coral';
 import type { CoralData } from './adapters/coral';
@@ -295,6 +296,8 @@ const sheets = createSheets(window.matchMedia(PHONE_QUERY).matches ? null : 'lay
 mountSeek(hud, (t) => enhancer.go(t), settings, sheets);
 // Layer toggles and activity presets; other layers register into `layers` (src/layers/registry.ts).
 bindMapLayers(map, layers);
+// Say why a switched-on layer shows nothing (clarity review CL15 to CL17).
+mountLayerNotes(hud, map, layers, () => (satellite ? baseConditions().waterTempC : null));
 mountSettingsUi(hud, settings);
 mountIntro(hud, safeStorage());
 // Which moving lines are which, while two or more are on (clarity review CL5).
