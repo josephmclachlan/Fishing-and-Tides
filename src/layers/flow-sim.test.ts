@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FlowSim, type FlowSource, type FlowView } from './flow-sim';
+import { calmLift, FlowSim, type FlowSource, type FlowView } from './flow-sim';
 import { gridField, latOfY, lngOfX, mercX, mercY, worldPx } from '../physics/flow';
 
 /** Seeded LCG so runs repeat. */
@@ -55,6 +55,37 @@ describe('FlowSim', () => {
     const x1 = Float64Array.from(sim2.x);
     sim2.step(0.1, v, fast);
     for (let i = 0; i < sim2.n; i++) expect((sim2.x[i] - x1[i]) * v.world).toBeCloseTo(2, 6);
+  });
+
+  it('fades the light-flow floors out in calm: off at half the calm speed, full at it', () => {
+    expect(calmLift(5, undefined)).toBe(1);
+    expect(calmLift(0.5, 2)).toBe(0);
+    expect(calmLift(1, 2)).toBe(0);
+    expect(calmLift(1.5, 2)).toBeCloseTo(0.5, 6);
+    expect(calmLift(2, 2)).toBe(1);
+    expect(calmLift(3, 2)).toBe(1);
+  });
+
+  it('lets near-calm flow drift at its true pace and dims it, but keeps the floor for a light breeze', () => {
+    const v = { ...view(), w: 2000, h: 2000 };
+    const run = (ms: number) => {
+      const src: FlowSource = { ...east, field: gridField([[-86, 7.5], [-79, 13]], 0.5, () => [ms, 0]), minPxS: 50, minBright: 0.4, calmMs: 2 };
+      const sim = new FlowSim(10, rng());
+      sim.seed(v, src, false);
+      const x0 = Float64Array.from(sim.x);
+      sim.step(0.1, v, src);
+      const out = new Float32Array(sim.n * 4);
+      sim.write(out, 0, 0, src);
+      return { px: (sim.x[0] - x0[0]) * v.world, bright: out[2] };
+    };
+    // 0.8 m/s, under half the calm speed: no floor, 0.8 × 10 px/s × 0.1 s, brightness from speed alone.
+    const calm = run(0.8);
+    expect(calm.px).toBeCloseTo(0.8, 6);
+    expect(calm.bright).toBeLessThan(0.15);
+    // 2.5 m/s, above calm: the floor applies as before (50 px/s × 0.1 s).
+    const breeze = run(2.5);
+    expect(breeze.px).toBeCloseTo(5, 6);
+    expect(breeze.bright).toBeGreaterThan(0.4);
   });
 
   it('keeps currents in the sea: particles never live on land', () => {

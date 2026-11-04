@@ -22,6 +22,12 @@ export interface VectorField {
 /** Knots per metre per second (1 kt = 1852 m / 3600 s). */
 export const KT_PER_MS = 3600 / 1852;
 
+/**
+ * Wind under this, knots, is calm: a forecast model's direction at 1 to 2 kt is noise that changes
+ * from one grid cell to the next, so the map fades it out and the readout says CALM, not a bearing.
+ */
+export const CALM_KT = 3;
+
 const RAD = Math.PI / 180;
 
 /** Sample `fn(lng, lat) → [u, v]` on a grid covering `bounds` ([[w, s], [e, n]]) every `step` degrees. */
