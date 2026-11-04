@@ -48,3 +48,19 @@ describe('best time and best day', () => {
     expect(o.bestDay).toBe(3);
   });
 });
+
+import { ratingFor, stingerGuess } from './outing';
+
+describe('rating and stinger guess', () => {
+  it('bands the score', () => {
+    expect([ratingFor(85), ratingFor(70), ratingFor(69), ratingFor(40), ratingFor(39)]).toEqual(['GO', 'GO', 'CAUTION', 'CAUTION', 'AVOID']);
+  });
+  it('flags only fresh on-shore wind', () => {
+    expect(stingerGuess(6, 40, 40)).toBe(true);
+    expect(stingerGuess(6, 90, 40)).toBe(true); // 50° off
+    expect(stingerGuess(6, 200, 40)).toBe(false); // off-shore
+    expect(stingerGuess(3, 40, 40)).toBe(false); // too light
+    expect(stingerGuess(6, 350, 20)).toBe(true); // wraps through north
+    expect(stingerGuess(NaN, 40, 40)).toBe(false);
+  });
+});
