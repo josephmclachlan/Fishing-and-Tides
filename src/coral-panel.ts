@@ -5,12 +5,16 @@
  */
 import type { Map } from 'maplibre-gl';
 import { t, type Key } from './i18n';
-import { closeButton, type Sheets } from './sheets';
+import { closeButton, PHONE_QUERY, type Sheets } from './sheets';
+import { haversineM } from './geo';
 import { ACTIONS, MEASURES, MEASURE_LIMITS, newId, SITE_KINDS, STATUSES, cleanMeasures, photosOf, type ActionId, type Conditions, type CoralSite, type CoralStatus, type CoralStore, type SiteKind, type Visit } from './coral/store';
 import { conditionRows, dateInputMs, lastVisit, localDay, measureRows, nextMission, overdue, parseTags, photosNewestFirst, photoTime, type Row } from './coral/folder-view';
 import { toCSV, toGeoJSON } from './coral/export';
 import { deletePhoto, getPhoto, putPhoto, shrink } from './coral/photos';
 import { CORAL_LOG_PREFIX } from './layers/coral-log';
+import { claimMapTap } from './here-card';
+import { EXIF_BYTES, readExif, type PhotoMeta } from './coral/exif';
+import { bestFix, doneWaiting, type Fix } from './coral/gps';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const day = (ms: number) => localDay(ms);
@@ -20,6 +24,7 @@ const TABS: readonly FolderTab[] = ['overview', 'visits', 'photos', 'missions'];
 /** A row's value: an i18n key when it starts with @, else text. */
 const val = (v: string) => (v.startsWith('@') ? t(v.slice(1) as Key) : esc(v));
 const rowsHtml = (rows: Row[]) => rows.map(([k, v]) => `<div class="ro"><span class="lbl">${t(k as Key)}</span><span class="seg sm">${val(v)}</span></div>`).join('');
+const kmBetween = (lng1: number, lat1: number, lng2: number, lat2: number) => haversineM([lng1, lat1], [lng2, lat2]) / 1000;
 const statusTone = (s: CoralStatus | undefined) => (s === 'healthy' ? 'green' : s && s !== 'unknown' ? 'red' : '');
 
 export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, sheets: Sheets, depthAt: () => ((lng: number, lat: number) => number | undefined) | null, conditionsAt: (lng: number, lat: number) => Conditions | null = () => null) {
@@ -35,6 +40,10 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
       <button type="button" class="tab" id="c-add">${t('coral.add')}</button>
     </div>
     <div class="boat-btns">
+      <button type="button" class="tab" id="c-place">${t('coral.place')}</button>
+      <button type="button" class="tab" id="c-fromphoto">${t('coral.fromPhoto')}</button>
+    </div>
+    <div class="boat-btns">
       <button type="button" class="tab" id="c-geo">${t('coral.exportGeo')}</button>
       <button type="button" class="tab" id="c-csv">${t('coral.exportCsv')}</button>
     </div>
@@ -42,6 +51,7 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     <ul class="boat-pins" id="c-list"></ul>
     <div id="c-detail" class="cf"></div>
     <input id="c-file" type="file" accept="image/*" multiple hidden>
+    <input id="c-file-site" type="file" accept="image/jpeg,image/*" hidden>
     <p class="rules-advice">${t('coral.note')}</p>`;
   el.querySelector('.ph')!.appendChild(closeButton(() => sheets.close('coral')));
   root.appendChild(el);
@@ -305,12 +315,43 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     if (e.key === 'Escape' && !viewer.hidden) closeViewer();
   });
 
+  /**
+   * Your position for a new or moved site: watches GPS and keeps the best fix until it is within
+   * GOOD_FIX_M or FIX_TIMEOUT_MS passes, showing the accuracy as it improves. No GPS: the map centre.
+   */
+  let fixing = false;
   const here = (): Promise<{ lng: number; lat: number; gps: boolean; accuracy?: number }> =>
     new Promise((resolve) => {
       const c = map.getCenter();
       const centre = { lng: c.lng, lat: c.lat, gps: false };
-      if (!navigator.geolocation) return resolve(centre);
-      navigator.geolocation.getCurrentPosition((p) => resolve({ lng: p.coords.longitude, lat: p.coords.latitude, gps: true, accuracy: p.coords.accuracy }), () => resolve(centre), { enableHighAccuracy: true, timeout: 8000, maximumAge: 30_000 });
+      if (!navigator.geolocation || fixing) return resolve(centre);
+      fixing = true;
+      const fixes: Fix[] = [];
+      const started = Date.now();
+      const msg = $('c-msg');
+      msg.textContent = t('coral.gpsWaiting');
+      let id = -1;
+      const finish = () => {
+        if (!fixing) return;
+        fixing = false;
+        navigator.geolocation.clearWatch(id);
+        clearTimeout(timer);
+        const best = bestFix(fixes);
+        msg.textContent = '';
+        resolve(best ? { lng: best.lng, lat: best.lat, gps: true, accuracy: best.accuracy } : centre);
+      };
+      const timer = setTimeout(finish, 20_500);
+      id = navigator.geolocation.watchPosition(
+        (p) => {
+          fixes.push({ lng: p.coords.longitude, lat: p.coords.latitude, accuracy: p.coords.accuracy, t: p.timestamp });
+          const best = bestFix(fixes);
+          if (best) msg.textContent = t('coral.gpsFix', { m: Math.round(best.accuracy) });
+          if (doneWaiting(best, started, Date.now())) finish();
+        },
+        // Permission refused: stop. A momentary loss of signal or a slow fix: keep waiting until the timer.
+        (err) => err.code === err.PERMISSION_DENIED && finish(),
+        { enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 },
+      );
     });
   const depthFields = (lng: number, lat: number) => {
     const d = depthAt()?.(lng, lat);
@@ -320,11 +361,62 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
   $('c-kind').addEventListener('click', () => ((kind = SITE_KINDS[(SITE_KINDS.indexOf(kind) + 1) % SITE_KINDS.length]), render()));
   $('c-add').addEventListener('click', async () => {
     const f = await here();
-    const name = $<HTMLInputElement>('c-name').value.trim();
-    const s = store.add({ kind, name, lng: f.lng, lat: f.lat, locSource: f.gps ? 'gps' : 'centre', ...(f.accuracy !== undefined ? { gpsAccuracyM: f.accuracy } : {}), ...depthFields(f.lng, f.lat) });
-    $<HTMLInputElement>('c-name').value = '';
+    const s = addSite(f.lng, f.lat, f.gps ? 'gps' : 'centre', f.accuracy);
     if (!f.gps) say(t('coral.atCentre'));
+    else say(t('coral.addedGps', { m: Math.round(f.accuracy ?? 0) }));
     openSite(s.id, 'overview', false);
+  });
+  function addSite(lng: number, lat: number, locSource: 'gps' | 'centre' | 'hand' | 'photo', accuracy?: number) {
+    const name = $<HTMLInputElement>('c-name').value.trim();
+    $<HTMLInputElement>('c-name').value = '';
+    return store.add({ kind, name, lng, lat, locSource, ...(accuracy !== undefined && Number.isFinite(accuracy) ? { gpsAccuracyM: accuracy } : {}), ...depthFields(lng, lat) });
+  }
+  // PLACE ON MAP: the next map tap places the site (the drawer steps aside on a phone so the map can be tapped).
+  let placing: (() => void) | null = null;
+  $('c-place').addEventListener('click', () => {
+    if (placing) return placing(), say(t('coral.placeCancel'));
+    const release = claimMapTap();
+    const wasOpen = sheets.is('coral');
+    const phone = matchMedia(PHONE_QUERY).matches;
+    if (phone && wasOpen) sheets.toggle('coral');
+    say(t('coral.placeTap'));
+    $('c-place').classList.add('on');
+    const onTap = (e: { lngLat: { lng: number; lat: number } }) => {
+      placing?.();
+      const s = addSite(e.lngLat.lng, e.lngLat.lat, 'hand');
+      setTimeout(() => openSite(s.id, 'overview', false), 0);
+    };
+    placing = () => {
+      map.off('click', onTap);
+      release();
+      $('c-place').classList.remove('on');
+      placing = null;
+    };
+    map.once('click', onTap);
+  });
+  // NEW SITE FROM PHOTO: the photo's own GPS places the site, and the photo is filed in it.
+  const meta = async (file: File): Promise<PhotoMeta> => {
+    try {
+      return readExif(await file.slice(0, EXIF_BYTES).arrayBuffer());
+    } catch {
+      return {};
+    }
+  };
+  const fileSite = $<HTMLInputElement>('c-file-site');
+  $('c-fromphoto').addEventListener('click', () => fileSite.click());
+  fileSite.addEventListener('change', async () => {
+    const file = fileSite.files?.[0];
+    fileSite.value = '';
+    if (!file) return;
+    const m = await meta(file);
+    if (m.lat === undefined || m.lng === undefined) return say(t('coral.photoNoGps'));
+    const blob = await shrink(file);
+    const pid = newId();
+    if (!blob || !(await putPhoto(pid, blob))) return say(t('coral.photoFail'));
+    const s = addSite(m.lng, m.lat, 'photo', m.accuracyM);
+    store.addPhoto(s.id, { id: pid, ...(m.takenAt !== undefined ? { takenAt: m.takenAt } : file.lastModified ? { takenAt: file.lastModified } : {}) });
+    say(t('coral.fromPhotoDone'));
+    openSite(s.id, 'overview', true);
   });
   const download = (text: string, type: string, name: string) => {
     const a = document.createElement('a');
@@ -359,16 +451,22 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     const target = photoTarget;
     if (!target || !files.length) return;
     let failed = 0;
+    let farKm = 0;
     for (const file of files) {
+      const m = await meta(file);
+      const s0 = store.list().find((x) => x.id === target.siteId);
+      if (s0 && m.lat !== undefined && m.lng !== undefined) farKm = Math.max(farKm, kmBetween(s0.lng, s0.lat, m.lng, m.lat));
       const blob = await shrink(file);
       const pid = newId();
       if (!blob || !store.list().some((x) => x.id === target.siteId) || !(await putPhoto(pid, blob))) {
         failed++;
         continue;
       }
-      store.addPhoto(target.siteId, { id: pid, ...(target.visitId ? { visitId: target.visitId } : {}), ...(file.lastModified ? { takenAt: file.lastModified } : {}) });
+      const taken = m.takenAt ?? (file.lastModified || undefined);
+      store.addPhoto(target.siteId, { id: pid, ...(target.visitId ? { visitId: target.visitId } : {}), ...(taken !== undefined ? { takenAt: taken } : {}) });
     }
     if (failed) say(t('coral.photoFail'));
+    else if (farKm >= 1) say(t('coral.photoFar', { km: farKm.toFixed(1) }));
     else say(t('coral.photosAdded', { n: files.length }));
   });
 
