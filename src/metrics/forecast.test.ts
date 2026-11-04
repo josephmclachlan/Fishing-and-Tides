@@ -78,6 +78,28 @@ describe('clarity and sargassum', () => {
   });
 });
 
+describe('best time', () => {
+  // Wind rises through the day, so the calmest two hours are the first ones searched.
+  const localH = (ms: number) => (((ms / 36e5 - 6) % 24) + 24) % 24;
+  const morning = (): MetricEnv => ({ ...env(), windMs: (_l, _a, ms) => 1 + localH(ms) / 2, sea: () => sea(1) });
+  it('picks the calm early window for a wind that builds', () => {
+    const f = buildForecast(morning(), ['wind'], spots, NOON, 2);
+    expect(f.bestTime).not.toBeNull();
+    expect(localH(f.bestTime!.startMs)).toBe(5);
+    expect(f.bestTime!.endMs - f.bestTime!.startMs).toBe(2 * 36e5);
+  });
+  it('lies inside the best day and the 05 to 19 local window', () => {
+    const f = buildForecast(env(), ['bite', 'wind', 'swell'], spots, NOON, 5);
+    const t0 = f.startMs + f.bestDay! * 864e5;
+    expect(f.bestTime!.startMs).toBeGreaterThanOrEqual(t0 + 5 * 36e5);
+    expect(f.bestTime!.endMs).toBeLessThanOrEqual(t0 + 19 * 36e5);
+  });
+  it('is null when only daily metrics or none are chosen', () => {
+    expect(buildForecast(env(), ['clarity', 'sargassum', 'tide'], spots, NOON, 3).bestTime).toBeNull();
+    expect(buildForecast(env(), [], spots, NOON, 3).bestTime).toBeNull();
+  });
+});
+
 describe('registry', () => {
   it('has unique ids and presets that only name real metrics within the cap', () => {
     const ids = METRICS.map((m) => m.id);

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { cardsHtml, circle, tableHtml } from './watch-panel';
+import { bestText, cardsHtml, circle, tableHtml } from './watch-panel';
 import type { WatchForecast } from './metrics/forecast';
 import { haversineM } from './geo';
 
 const f: WatchForecast = {
-  startMs: Date.UTC(2026, 10, 4, 6), days: 2, spots: ['CAHUITA'], bestDay: 0,
+  startMs: Date.UTC(2026, 10, 4, 6), days: 2, spots: ['CAHUITA'], bestDay: 0, bestTime: { startMs: Date.UTC(2026, 10, 4, 12), endMs: Date.UTC(2026, 10, 4, 14) },
   rows: [{ id: 'swell', unit: 'm', decimals: 1, hourly: [1, 1.2, 1.4], days: [{ dayMs: Date.UTC(2026, 10, 4, 6), value: 1.2, tone: 'green', spot: 'CAHUITA' }, { dayMs: Date.UTC(2026, 10, 5, 6), value: null, tone: 'none', spot: null }] }],
 };
 
@@ -31,5 +31,15 @@ describe('circle', () => {
     const c = circle([-82.7, 9.65], 10);
     expect(c[0]).toEqual(c[c.length - 1]);
     for (const p of c) expect(haversineM([-82.7, 9.65], p) / 1000).toBeGreaterThan(9.8), expect(haversineM([-82.7, 9.65], p) / 1000).toBeLessThan(10.2);
+  });
+});
+
+describe('bestText', () => {
+  it('names the best day and the best two local hours', () => {
+    expect(bestText(f)).toBe('BEST DAY: WED · 06:00–08:00');
+  });
+  it('drops the time when there is none, and says nothing without a best day', () => {
+    expect(bestText({ ...f, bestTime: null })).toBe('BEST DAY: WED');
+    expect(bestText({ ...f, bestDay: null, bestTime: null })).toBeNull();
   });
 });

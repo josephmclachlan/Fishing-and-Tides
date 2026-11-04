@@ -30,6 +30,18 @@ export function circle(center: [number, number], radiusKm: number, steps = 64): 
 
 export const dayName = (ms: number) => t(`day.${new Date(ms + REGION.tzOffsetH * HOUR).getUTCDay()}` as Key);
 
+const hhmm = (ms: number) => {
+  const m = Math.floor((ms + REGION.tzOffsetH * HOUR) / 60_000) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+};
+
+/** "BEST DAY: THU · 06:00–08:00" (Costa Rica time), or null with no best day. */
+export function bestText(f: WatchForecast): string | null {
+  if (f.bestDay === null) return null;
+  const day = `${t('watch.best')}: ${dayName(f.startMs + f.bestDay * 864e5)}`;
+  return f.bestTime ? `${day} · ${hhmm(f.bestTime.startMs)}–${hhmm(f.bestTime.endMs)}` : day;
+}
+
 const fmt = (v: number | null, decimals: number) => (v === null ? '--' : v.toFixed(decimals));
 
 /** A sparkline over the hourly values, drawn in the card's own colour (currentColor). */
@@ -183,13 +195,13 @@ export function mountWatchPanel(root: HTMLElement, map: Map, sheets: Sheets, sto
   root.appendChild(pop);
   let view: 'cards' | 'table' = 'cards';
   let fc: WatchForecast | null = null;
-  const bestText = () => (fc && fc.bestDay !== null ? `${t('watch.best')}: ${dayName(fc.startMs + fc.bestDay * 864e5)}` : null);
+  const best = () => (fc ? bestText(fc) : null);
   const subtitle = () => `${state.region ? '' : t('watch.all') + ' · '}${fc?.spots.join(', ') ?? ''}`;
 
   const render = () => {
     if (!fc) return;
     pop.innerHTML = `<div class="ph">${t('watch.forecast')}<span class="wt-tabs"><button type="button" class="tab${view === 'cards' ? ' on' : ''}" data-view="cards">${t('watch.cards')}</button><button type="button" class="tab${view === 'table' ? ' on' : ''}" data-view="table">${t('watch.table')}</button><button type="button" class="tab" id="wt-share">${t('watch.share')}</button></span><button type="button" class="sheet-x wt-x" aria-label="${t('watch.close')}">✕</button></div>
-      <div class="lbl wt-sub">${esc(subtitle())}</div>${bestText() ? `<div class="wt-best seg sm green">▶ ${esc(bestText()!)}</div>` : ''}
+      <div class="lbl wt-sub">${esc(subtitle())}</div>${best() ? `<div class="wt-best seg sm green">▶ ${esc(best()!)}</div>` : ''}
       <div class="wt-body">${view === 'cards' ? cardsHtml(fc) : tableHtml(fc)}</div><div class="lbl" id="wt-msg" role="status"></div>`;
     pop.querySelector('.wt-x')!.addEventListener('click', () => (pop.hidden = true));
     pop.querySelectorAll<HTMLElement>('[data-view]').forEach((b) => b.addEventListener('click', () => ((view = b.dataset.view as 'cards' | 'table'), render())));
@@ -197,7 +209,7 @@ export function mountWatchPanel(root: HTMLElement, map: Map, sheets: Sheets, sto
       const c = drawForecast(fc!, {
         title: `${t('watch.title')} · ${t('watch.forecast')}`,
         subtitle: subtitle(),
-        best: bestText(),
+        best: best(),
         metric: (id) => t(`metric.${id}` as Key),
         day: dayName,
         value: (_id, v, d) => fmt(v, d),
