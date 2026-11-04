@@ -43,6 +43,8 @@ import { mountMapExplain } from './map-explain';
 import { mountHere } from './here-card';
 import { mountSettingsPanel } from './settings-panel';
 import { mountGlance } from './glance';
+import { mountBestToday } from './best-today';
+import type { MetricEnv } from './metrics/registry';
 import { activityForPreset, mountCondGroups } from './cond-groups';
 import { mountSwellHud } from './swell-hud';
 import { mountExplain } from './explain';
@@ -308,7 +310,7 @@ const windMsAt = (lng: number, lat: number, ms: number): number | null => {
   const out: [number, number] = [0, 0];
   return f && sampleField(f.field, lng, lat, out) ? Math.hypot(...out) : null;
 };
-mountWatchPanel(hud, map, sheets, safeStorage(), () => ({
+const metricEnv = (): MetricEnv => ({
   windMs: windMsAt,
   sea: (lng, lat, ms) => (waves ? wavesAt(waves, bandAt(ms), ms, lng, lat) : null),
   weather: (ms) => (weatherData ? weatherAt(weatherData, ms) : []),
@@ -335,7 +337,8 @@ mountWatchPanel(hud, map, sheets, safeStorage(), () => ({
   sargassumKm2: (spot, ms) => (sargForecast ? beachDay(sargForecast, spot, ms)?.km2 ?? null : null),
   tide: LIMON_HARMONICS,
   tzOffsetH: REGION.tzOffsetH,
-}));
+});
+mountWatchPanel(hud, map, sheets, safeStorage(), metricEnv);
 // SYSTEM CHECK: its tab joins the settings controls on a phone.
 mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeStorage() });
 // LIVE OBS (PLAN 2.13): the newest real reading from the gauge, the airport and the satellite passes, with ages.
@@ -354,6 +357,12 @@ mountSettingsPanel(hud, sheets);
 // The strip and the CONDITIONS panel share the activity: cycling one moves the other, and a LAYERS preset moves both.
 const glance = mountGlance(hud, safeStorage(), (m) => condGroups.setActivity(m));
 condGroups.subscribe((a) => a !== 'all' && glance?.setMode(a));
+// BEST TIME TODAY for the current activity (the CONDITIONS picker's, or the glance strip's while that is ALL).
+const bestToday = mountBestToday(hud, map, time, metricEnv, () => {
+  const a = condGroups.activity();
+  return a === 'all' ? (glance?.mode() ?? 'surf') : a;
+});
+condGroups.subscribe(() => bestToday.refresh());
 let lastPreset = layers.activity();
 layers.subscribe(() => {
   const p = layers.activity();
