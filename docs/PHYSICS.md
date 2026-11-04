@@ -59,7 +59,7 @@ A transparent score built on the drivers that the NWS rip current guidance, the 
 - **Strength:** typical rip speed 0.15·√(g·Hb), scaled by the angle and tide factors (MacMahan et al. 2006: mean flows 0.3 to 0.8 m/s, pulses to twice that). Bands WEAK below 0.3 m/s, MODERATE to 0.6, STRONG to 1, VERY STRONG above. An average swimmer manages about 0.5 m/s.
 - **Length:** about 1.5 surf-zone widths offshore (surf zone = breaking depth / slope), 30 to 600 m. SHORT below 75 m, MEDIUM to 200 m, LONG above.
 
-Known rip channels per spot aren't in the data yet; `knownChannel` is ready for them when the surf break catalogue (6.4) adds local knowledge. The score is a guide, not a lifeguard: the HUD should always say so.
+`knownChannel` is set for the same fixed sites the RIP RISK layer rings: breaks whose guides list rips, and places within 1 km of a plume river's mouth (`spot-physics.ts`). The angle factor uses the angle at the break (Snell's law from the 10 m read point), not offshore. The score is a guide, not a lifeguard: the HUD should always say so.
 
 ## 3.6 Physics worker (`worker.ts`, `client.ts`, `spot-model.ts`)
 

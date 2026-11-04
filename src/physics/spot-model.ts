@@ -60,7 +60,8 @@ export function createSpotModel(depth: DepthFn, opts: { fanStepDeg?: number; max
         Hb: waves.breaker.Hb,
         hb: waves.breaker.hb,
         Tp,
-        angleDeg: waves.angleDeg,
+        // The rip drivers (Lushine, Dusek and Seim) are about the angle of the breakers, not of the waves offshore.
+        angleDeg: waves.breakAngleDeg,
         slope: waves.slope,
         tideLevel: req.tideLevel,
         onshoreWindMs: req.wind ? onshoreWind(req.wind.speedMs, req.wind.fromDeg, geom.normalDeg) : 0,
