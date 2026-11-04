@@ -114,3 +114,15 @@ describe('sound setting', () => {
     expect(createSettings(s, [], false).sound()).toBe(false);
   });
 });
+
+describe('vessel setting', () => {
+  it('defaults to a small boat, remembers a yacht and ignores junk', () => {
+    const m = mem();
+    const st = createSettings(m);
+    expect(st.vessel()).toBe('small');
+    st.setVessel('yacht');
+    expect(createSettings(m).vessel()).toBe('yacht');
+    st.setVessel('tug' as never);
+    expect(st.vessel()).toBe('yacht');
+  });
+});
