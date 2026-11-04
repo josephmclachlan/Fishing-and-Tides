@@ -309,6 +309,8 @@ body[data-band='outlook'] #t-valid, body[data-band='outlook'] #t-off { color: va
 .fishx[open] summary::before { content: '▾ '; }
 .fish-spots { display: grid; gap: 2px; }
 .fish-spots .spot { all: unset; cursor: pointer; display: flex; flex-wrap: wrap; gap: 2px 6px; padding: 3px 0; align-items: baseline; }
+.fish-spots .spot-name { color: var(--green); letter-spacing: 1px; }
+.fish-spots .spot.on { outline: 1px solid var(--green); outline-offset: 2px; }
 .fish-spots .spot:hover, .fish-spots .spot:focus-visible { background: var(--amber-dim); }
 @media (max-width: 700px) { .fish-spots .spot { min-height: 40px; align-items: center; } }
 
