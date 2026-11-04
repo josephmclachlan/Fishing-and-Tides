@@ -106,3 +106,20 @@ describe('bestOnDay (J3)', () => {
     expect(w === null || w.good === false).toBe(true);
   });
 });
+
+describe('bestVisitDay', () => {
+  it('picks the clearest day with a good snorkel window', async () => {
+    const { bestVisitDay } = await import('./best-today');
+    // Calm every morning; the water is clear only on day 3.
+    const e = { ...env(), windMs: (_a: number, _b: number, ms: number) => (((ms - DAY0) / H) % 24 >= 8 && ((ms - DAY0) / H) % 24 < 10 ? 2 : 11), clarityM: (_a: number, _b: number, ms: number) => (Math.floor((ms - DAY0) / (24 * H)) === 3 ? 12 : 2) };
+    const v = bestVisitDay(e, spot, spot.lngLat, DAY0 + 6 * H);
+    expect(v?.day).toBe(3);
+    expect(v?.visM).toBe(12);
+    expect(v!.startMs).toBe(DAY0 + 3 * 24 * H + 8 * H);
+  });
+  it('is null when no day has a good window', async () => {
+    const { bestVisitDay } = await import('./best-today');
+    const rough = { ...env(), windMs: () => 15, sea: () => sea(3), weather: () => [{ ...env().weather(0)[0], rainMmH: 20 }] as ReturnType<MetricEnv['weather']> };
+    expect(bestVisitDay(rough, spot, spot.lngLat, DAY0 + 6 * H)).toBeNull();
+  });
+});

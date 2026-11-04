@@ -8,6 +8,7 @@ import { BEST_LEN_H, BEST_TO_H, buildForecast, bestTime, hourScores, type Spot }
 import { localDayStart } from '../physics/astro';
 import { breakFor } from './surf-estimate';
 import { METRIC_BY_ID, type MetricEnv } from './registry';
+import { clarityLevel } from '../physics/clarity';
 
 export type Activity = 'surf' | 'fish' | 'dive' | 'boat';
 
@@ -36,6 +37,8 @@ export interface BestToday {
   endMs: number;
   /** False when even the best window scores more bad than good (mostly red hours): nothing worth offering. */
   good: boolean;
+  /** The window's mean hour score (green +1, red -1, plus up to 0.5 for where it sits in the day's range). */
+  score: number;
 }
 
 /**
@@ -67,7 +70,7 @@ export function bestOnDay(env: MetricEnv, activity: Activity, spot: Spot, nowMs:
   const metrics = ids.map((id) => METRIC_BY_ID.get(id)!);
   if (f.rows.length !== metrics.length) return null;
   const w = bestTime(f.rows, metrics, day, f.startMs, nowMs, toHFor(activity));
-  return w ? { spot: spot.name, startMs: w.startMs, endMs: w.endMs, good: w.score >= 0 } : null;
+  return w ? { spot: spot.name, startMs: w.startMs, endMs: w.endMs, good: w.score >= 0, score: w.score } : null;
 }
 
 /** Best window left today for `activity` at `spot`, or null when the day is over or there is no data. */
@@ -84,4 +87,31 @@ export function hourlyScores(env: MetricEnv, activity: Activity, spot: Spot, day
   if (f.rows.length !== metrics.length) return null;
   const s = hourScores(f.rows, metrics, 0);
   return s ? s.map((v, h) => ({ t: f.startMs + h * 3.6e6, score: v === null ? null : Math.min(1, Math.max(0, (v + 1) / 2.5)) })) : null;
+}
+
+export interface VisitDay extends BestToday {
+  /** Days ahead, 0 = today. */
+  day: number;
+  /** Estimated visibility at the reef at local noon that day, m; null without clarity data. */
+  visM: number | null;
+}
+const VIS_SCORE = { GOOD: 1, FAIR: 0, POOR: -1 } as const;
+
+/**
+ * The best day this week to visit a reef in the water (CORAL drawer, persona review J9): each day's best
+ * snorkel window at the nearest spot (swell, wind, rain), plus that day's visibility at the reef itself
+ * (clarity is one value a day, so it ranks the days rather than the hours). Null when no day has a good window.
+ */
+export function bestVisitDay(env: MetricEnv, spot: Spot, reefAt: [number, number], nowMs: number): VisitDay | null {
+  let best: { v: VisitDay; rank: number } | null = null;
+  const today = localDayStart(nowMs, env.tzOffsetH);
+  for (let day = 0; day <= BEST_MAX_DAY; day++) {
+    const w = bestOnDay(env, 'dive', spot, nowMs, day);
+    if (!w || !w.good) continue;
+    const vis = env.clarityM(reefAt[0], reefAt[1], today + (day * 24 + 12) * 3.6e6);
+    const visM = vis !== null && Number.isFinite(vis) ? vis : null;
+    const rank = w.score + (visM === null ? 0 : VIS_SCORE[clarityLevel(visM)]);
+    if (!best || rank > best.rank + 1e-9) best = { v: { ...w, day, visM }, rank };
+  }
+  return best?.v ?? null;
 }
