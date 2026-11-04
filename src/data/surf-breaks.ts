@@ -28,6 +28,11 @@ export interface SurfBreak {
   swellFrom?: readonly [number, number];
   /** Best months per the guides (1 = Jan), when stated. */
   bestMonths?: readonly number[];
+  /**
+   * Soft tide preference (PLAN 7.25): 'high' = wants water over the reef or bar, 'mid' = best between the
+   * extremes, 'any' = no effect. The guides disagree, so it is a nudge worth at most 12%, never a gate.
+   */
+  tidePref?: 'high' | 'mid' | 'any';
   confidence: 'ok' | 'check';
   sources: readonly { name: string; url: string }[];
 }
@@ -42,6 +47,7 @@ export const SURF_BREAKS: readonly SurfBreak[] = [
     facing: 350,
     hazards: ['reef', 'urchin', 'rip', 'crowd'],
     swellFrom: [45, 135],
+    tidePref: 'high', // shallow reef: more water over it is safer and cleaner (physical reasoning, no guide agrees)
     bestMonths: [11, 12, 1, 2, 3, 4],
     confidence: 'check', // the guides disagree on the season (Nov-Apr vs Jan-Mar for the big days)
     sources: [
@@ -58,6 +64,7 @@ export const SURF_BREAKS: readonly SurfBreak[] = [
     shape: 'peaks',
     facing: 40,
     hazards: ['shorebreak', 'rip'],
+    tidePref: 'mid', // steep shorebreak at the extremes (generic beach-break rule, not from a guide)
     bestMonths: [12, 1, 2, 3],
     confidence: 'ok',
     sources: [

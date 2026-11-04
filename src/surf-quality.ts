@@ -2,7 +2,7 @@
  * Surf break quality (PLAN 6.3). Pure. Scores a catalog break (6.4) against the forecast,
  * using our own refraction and breaking (3.3, 3.4) at the break:
  *
- *   Q = 10 · size · period · window · clean · wind       (0 … 10)
+ *   Q = 10 · size · period · window · clean · tide · wind       (0 … 10)
  *
  *   size    breaker height Hb against the break type's working range (trapezoid):
  *           beach  0.4 → 0.8 … 1.8 → 2.8 m   (closes out above)
@@ -10,6 +10,7 @@
  *           point  0.5 → 0.9 … 2.5 → 3.5 m
  *   period  0.35 at 6 s → 1 at 13 s (groundswell lines up and holds shape)
  *   window  1 inside the guides' swell window (or ±60° of the facing), easing to 0.4 at 30° outside
+ *   tide    soft nudge from the break's tide preference (PLAN 7.25, `tideFactor`), 0.88 … 1
  *   clean   how tidy the surface is (PLAN 7.23): wind-sea and a crossing second swell share the energy
  *           with the main swell and put chop or a second set angle on its faces (see `cleanFactor`)
  *   wind    (with gusts, PLAN 7.23 B) the angle between the wind and the shore: offshore (blowing from land to sea) holds
@@ -43,7 +44,7 @@ export type SurfBand = 'FLAT' | 'POOR' | 'FAIR' | 'GOOD' | 'EPIC';
 export interface Train { Hs: number; Tp: number; fromDeg: number }
 
 export interface SurfInput {
-  brk: Pick<SurfBreak, 'type' | 'facing' | 'swellFrom'>;
+  brk: Pick<SurfBreak, 'type' | 'facing' | 'swellFrom'> & { tidePref?: SurfBreak['tidePref'] };
   /** Breaker height at the break, m (3.4). */
   Hb: number;
   /** Peak period, s. */
@@ -60,12 +61,13 @@ export interface SurfInput {
   /** Main swell height, m (energy share base); defaults to Hs of the breaker's offshore sea. */
   swellHs?: number | null;
   /** Gust speed m/s (weather feed, model mean), when known (PLAN 7.23 B). */
+  tide?: { level: number; rising: boolean } | null;
   gustMs?: number | null;
   /** The wind a few hours on (same units), to say whether the faces are about to turn. */
   windAhead?: { speedMs: number; fromDeg: number } | null;
 }
 
-export interface SurfFactors { size: number; period: number; window: number; clean: number; wind: number }
+export interface SurfFactors { size: number; period: number; window: number; clean: number; tide: number; wind: number }
 
 export interface SurfQuality {
   score: number;
@@ -75,7 +77,11 @@ export interface SurfQuality {
   windKind: 'offshore' | 'cross' | 'onshore' | 'calm';
   /** Where the wind is heading over the next few hours; 'steady' when unknown. */
   windTrend: WindTrend;
+  /** Where the tide stands, for the readout; 'any' when the break has no preference or no tide is known. */
+  tideKind: TideKind;
 }
+
+export type TideKind = 'low' | 'mid' | 'high' | 'none';
 
 export type WindTrend = 'steady' | 'turnsOnshore' | 'cleaning';
 
@@ -127,6 +133,17 @@ export function cleanFactor(main: Train & { Hs: number }, swell2?: Train | null,
   return 1 - 0.45 * smoothstep(0.15, 0.6, ew / tot) - 0.3 * smoothstep(0.1, 0.5, e2 / tot) * cross;
 }
 
+/**
+ * Soft tide nudge, 0.88 … 1. `level` is 0 at low water and 1 at high (physics/tide.ts). 'high' reefs lose up to 12%
+ * at low water; 'mid' beaches lose up to 12% at either extreme. The Limón tide is small (about 0.6 m range), so this
+ * stays a nudge.
+ */
+export function tideFactor(pref: SurfBreak['tidePref'], level: number | undefined): number {
+  if (!pref || pref === 'any' || level === undefined) return 1;
+  const miss = pref === 'high' ? 1 - smoothstep(0, 0.6, level) : smoothstep(0.5, 1, Math.abs(level - 0.5) * 2);
+  return 1 - 0.12 * miss;
+}
+
 /** Onshore part of the wind, m/s (negative = offshore). */
 const onshoreMs = (facing: number, speedMs: number, fromDeg: number) => speedMs * Math.cos(wrap(fromDeg - facing) * RAD);
 
@@ -152,8 +169,9 @@ export function surfQuality(inp: SurfInput): SurfQuality {
     period: 0.35 + 0.65 * smoothstep(6, 13, inp.Tp),
     window: windowFactor(inp.brk, inp.swellFromDeg),
     clean: cleanFactor({ Hs: inp.swellHs ?? inp.Hb, Tp: inp.Tp, fromDeg: inp.swellFromDeg }, inp.swell2, inp.windSeaHs),
+    tide: tideFactor(inp.brk.tidePref, inp.tide?.level),
     wind: w.f,
   };
-  const score = 10 * factors.size * factors.period * factors.window * factors.clean * factors.wind;
-  return { score, band: surfBand(score, inp.Hb), factors, windKind: w.kind, windTrend: windTrend(inp.brk.facing, { speedMs: inp.windMs, fromDeg: inp.windFromDeg }, inp.windAhead) };
+  const score = 10 * factors.size * factors.period * factors.window * factors.clean * factors.tide * factors.wind;
+  return { score, band: surfBand(score, inp.Hb), factors, windKind: w.kind, tideKind: !inp.tide || !inp.brk.tidePref || inp.brk.tidePref === 'any' ? 'none' : inp.tide.level < 0.33 ? 'low' : inp.tide.level > 0.67 ? 'high' : 'mid', windTrend: windTrend(inp.brk.facing, { speedMs: inp.windMs, fromDeg: inp.windFromDeg }, inp.windAhead) };
 }
