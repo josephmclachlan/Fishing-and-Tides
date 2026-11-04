@@ -26,6 +26,7 @@ import { fetchWeather, weatherAt, type WeatherData } from './adapters/weather';
 import { LIMON_HARMONICS } from './data/tides-limon';
 import { mountWatchPanel } from './watch-panel';
 import { mountBoatWindowHud } from './boat-window-hud';
+import { debrisAt } from './boat/debris';
 import { fetchStorms, type Storm } from './adapters/storms';
 import { mountSeaStateHud, type VerdictSafety } from './sea-state-hud';
 import { mountAstroHud } from './astro-hud';
@@ -272,6 +273,7 @@ boatSafety = () => {
     lightning: !!near && near.km <= STRIKE_ALERT_KM,
     stormKm: nearestStorm(stormList)?.km ?? null,
     rainMmH: w && Number.isFinite(w.rainMmH) ? w.rainMmH : undefined,
+    debris: riverFlow ? debrisAt(riverFlow, c.lng, c.lat, time.validMs())?.level : undefined,
   };
 };
 fetchStorms().then((d) => ((stormList = d.storms), stormLayer.setStorms(d.storms), weatherHud?.setStorms(d.storms))).catch((err) => console.warn('storms unavailable', err));
@@ -393,8 +395,6 @@ const metricEnv = (): MetricEnv => ({
   tzOffsetH: REGION.tzOffsetH,
 });
 mountWatchPanel(hud, map, sheets, safeStorage(), metricEnv);
-// BOAT daylight, pressure and next GO window (PLAN 7.23 item 4).
-mountBoatWindowHud(hud, map, { env: metricEnv, vessel: settings.vessel, validMs: () => time.validMs() });
 // SYSTEM CHECK: its tab joins the settings controls on a phone.
 mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeStorage() });
 // LIVE OBS (PLAN 2.13): the newest real reading from the gauge, the airport and the satellite passes, with ages.
@@ -473,6 +473,8 @@ let riverFlow: RiverFlow | null = null;
 fetchRiverFlow()
   .then((d) => (riverFlow = d))
   .catch((err) => console.warn('river flow unavailable', err));
+// BOAT daylight, pressure, next GO window and flood debris (PLAN 7.23 items 4, 5).
+mountBoatWindowHud(hud, map, { env: metricEnv, vessel: settings.vessel, validMs: () => time.validMs(), riverFlow: () => riverFlow });
 fetchCatchmentRain()
   .then((d) => ((catchmentRain = d), refreshClarity()))
   .catch((err) => console.warn('catchment rain unavailable', err));

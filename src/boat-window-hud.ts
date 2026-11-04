@@ -9,6 +9,8 @@ import { t, type Key } from './i18n';
 import { REGION } from './region';
 import { daySky, localDayStart } from './physics/astro';
 import { daylight, hourlyVerdicts, nextWindow, pressureWord, pressureTrend3h } from './boat/window';
+import { debrisAt } from './boat/debris';
+import type { RiverFlow } from './adapters/river-flow';
 import type { MetricEnv } from './metrics/registry';
 import type { Vessel } from './settings';
 
@@ -16,6 +18,7 @@ export interface BoatWindowDeps {
   env: () => MetricEnv;
   vessel: () => Vessel;
   validMs: () => number;
+  riverFlow: () => RiverFlow | null;
 }
 
 const hm = (min: number) => `${Math.floor(min / 60)}H ${String(min % 60).padStart(2, '0')}M`;
@@ -24,7 +27,7 @@ export function mountBoatWindowHud(root: HTMLElement, map: Map, deps: BoatWindow
   const side = condSlot(root, 'waves', 21);
   if (!side) return;
   const row = (label: Key, id: string) => `<div class="ro"><span class="lbl">${t(label)}</span><span class="seg sm" id="${id}">--</span></div>`;
-  side.insertAdjacentHTML('beforeend', `<div class="from-coast">${row('bw.light', 'bw-light')}${row('bw.moon', 'bw-moon')}${row('bw.press', 'bw-press')}${row('bw.window', 'bw-window')}</div>`);
+  side.insertAdjacentHTML('beforeend', `<div class="from-coast">${row('bw.light', 'bw-light')}${row('bw.moon', 'bw-moon')}${row('bw.press', 'bw-press')}${row('bw.window', 'bw-window')}${row('bw.debris', 'bw-debris')}</div>`);
   const $ = (id: string) => side.querySelector<HTMLElement>('#' + id)!;
 
   const tick = () => {
@@ -47,6 +50,10 @@ export function mountBoatWindowHud(root: HTMLElement, map: Map, deps: BoatWindow
     const w = known ? nextWindow(hours, now) : null;
     $('bw-window').textContent = !known ? '--' : !w ? t('bw.noWindow') : w.now ? t('bw.windowNow', { until: clock(w.endMs) }) : t('bw.windowAt', { from: clock(w.startMs), to: clock(w.endMs) });
     $('bw-window').className = `seg sm ${w?.now ? 'green' : known && !w ? 'red' : ''}`;
+    const flow = deps.riverFlow();
+    const db = flow ? debrisAt(flow, c.lng, c.lat, now) : null;
+    $('bw-debris').textContent = !flow ? '--' : !db ? t('bw.debris.far') : db.level === 'none' ? t('bw.debris.none') : t(`bw.debris.${db.level}` as Key, { river: db.river, km: Math.round(db.km) });
+    $('bw-debris').className = `seg sm ${db?.level === 'likely' ? 'red' : db?.level === 'possible' ? '' : db ? 'green' : ''}`;
   };
   tick();
   setInterval(tick, 5000);

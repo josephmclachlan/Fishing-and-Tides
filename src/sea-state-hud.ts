@@ -13,7 +13,7 @@ import { boatVerdict, type VerdictInputs } from './boat/verdict';
 import type { Vessel } from './settings';
 
 /** What the BOAT verdict reads besides wind and sea: the safety feeds, supplied by main.ts. */
-export type VerdictSafety = Pick<VerdictInputs, 'gustKt' | 'squall' | 'lightning' | 'stormKm' | 'rainMmH'>;
+export type VerdictSafety = Pick<VerdictInputs, 'gustKt' | 'squall' | 'lightning' | 'stormKm' | 'rainMmH' | 'debris'>;
 export interface SeaStateDeps {
   vessel: () => Vessel;
   safety: () => VerdictSafety;

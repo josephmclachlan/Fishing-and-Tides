@@ -33,4 +33,8 @@ describe('boatVerdict', () => {
     expect(boatVerdict({ vessel: 'small', comfort: 40 }).verdict).toBe('marginal');
     expect(boatVerdict({ vessel: 'small', comfort: 20 }).verdict).toBe('nogo');
   });
+  it('flags likely flood debris as at least MARGINAL', () => {
+    expect(boatVerdict({ vessel: 'yacht', ...calm, debris: 'likely' })).toEqual({ verdict: 'marginal', reasons: [{ id: 'debris', level: 'marginal' }] });
+    expect(boatVerdict({ vessel: 'yacht', ...calm, debris: 'possible' }).verdict).toBe('go');
+  });
 });
