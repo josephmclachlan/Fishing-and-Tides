@@ -17,7 +17,7 @@
  */
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import { FlowSim, type FlowSource, type FlowView } from './flow-sim';
-import { KT_PER_MS, mercX, mercY, worldPx } from '../physics/flow';
+import { CALM_KT, KT_PER_MS, mercX, mercY, worldPx } from '../physics/flow';
 import { REGION } from '../region';
 import { sizeOf } from '../layout-size';
 
@@ -27,10 +27,12 @@ export type FlowKind = 'wind' | 'current';
  * Look of each layer. Paces are picked so typical flow moves ~40 px/s on screen: 12 kt of wind
  * and a 0.7 kt current look alike. Red marks small-craft wind (25 kt) and a current too strong
  * to paddle or swim against (1.5 kt). Light wind (the 4 to 6 kt land breeze of a calm morning)
- * keeps a floor of pace and brightness, or it all but vanishes under the real currents.
+ * keeps a floor of pace and brightness, or it all but vanishes under the real currents. Below
+ * CALM_KT the floor fades away: near-calm wind drifts slowly and dimly at its true pace, because a
+ * model's direction in calm is noise and lifting it to a breeze's pace draws swirls that aren't there.
  */
-export const FLOW_STYLE: Record<FlowKind, { pxPerMs: number; fullMs: number; strongMs: number; minBright?: number; minPxS?: number }> = {
-  wind: { pxPerMs: 7, fullMs: 7, strongMs: 25 / KT_PER_MS, minBright: 0.45, minPxS: 28 },
+export const FLOW_STYLE: Record<FlowKind, { pxPerMs: number; fullMs: number; strongMs: number; minBright?: number; minPxS?: number; calmMs?: number }> = {
+  wind: { pxPerMs: 7, fullMs: 7, strongMs: 25 / KT_PER_MS, minBright: 0.45, minPxS: 28, calmMs: CALM_KT / KT_PER_MS },
   current: { pxPerMs: 100, fullMs: 0.5, strongMs: 1.5 / KT_PER_MS },
 };
 
