@@ -2,7 +2,8 @@
  * GLANCE strip (phone): the few numbers that matter for what you are doing, always visible above the
  * time bar while you pan the map. Four activities, each with four values: tap the mode button to
  * cycle. Values are read from the full conditions panel's own readouts, so the two never disagree
- * and every panel that feeds the full view feeds this one. Tapping a value explains it.
+ * and every panel that feeds the full view feeds this one. Tapping a value explains it. The mode button
+ * also carries that activity's GO / MARGINAL / NO-GO (verdict-hud.ts, PLAN 7.8).
  */
 import { t, type Key } from './i18n';
 
@@ -84,6 +85,7 @@ export function mountGlance(
     const name = t(`glance.${mode}` as Key);
     el.innerHTML = `<button type="button" class="gl-mode" aria-label="${t('glance.mode', { name })}">
         <span class="gl-name">${name}</span>
+        <span class="gl-vd seg" data-vd>--</span>
         <span class="gl-dots" aria-hidden="true">${MODES.map((m) => (m === mode ? '●' : '○')).join('')}</span></button>
       ${CELLS[mode]
         .map(
@@ -110,6 +112,13 @@ export function mountGlance(
   };
 
   const refresh = () => {
+    // The mode's GO / NO-GO (PLAN 7.8), from the CONDITIONS chip that verdict-hud.ts marks for it.
+    const vdSrc = root.querySelector<HTMLElement>(`[data-glance-vd="${mode}"]`);
+    const vd = el.querySelector<HTMLElement>('[data-vd]');
+    if (vd) {
+      vd.textContent = vdSrc?.textContent?.trim() || '--';
+      vd.className = `gl-vd seg ${vdSrc?.classList.contains('red') ? 'red' : vdSrc?.classList.contains('green') ? 'green' : ''}`;
+    }
     CELLS[mode].forEach((c, i) => {
       const src = root.querySelector<HTMLElement>(`#${c.src}`);
       const cell = el.querySelector<HTMLElement>(`[data-i="${i}"] .seg`);

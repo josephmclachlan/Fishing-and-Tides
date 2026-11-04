@@ -18,7 +18,7 @@ export const BEST_METRICS: Readonly<Record<Activity, readonly string[]>> = {
   surf: ['wind', 'rain'],
   fish: ['bite', 'wind', 'rain'],
   dive: ['swell', 'wind', 'rain'],
-  boat: ['swell', 'wind', 'gust', 'rain'],
+  boat: ['comfort', 'wind', 'gust', 'squall', 'rain'],
 };
 
 export interface BestToday {

@@ -13,6 +13,9 @@ import type { WeatherNow } from '../adapters/weather';
 import { biteWeather, blendedGustKt, blendedTempC, pressureChange } from '../weather';
 import type { WeatherSkill } from '../adapters/weather-skill';
 import type { SeaState } from '../adapters/waves';
+import { seaState, withCurrent } from '../physics/sea-state';
+import { feedPartitions } from '../sea-partitions';
+import { squallLevel } from '../weather';
 
 export type Tone = 'green' | 'amber' | 'red' | 'none';
 export type MetricGroup = 'waves' | 'weather' | 'water' | 'fishing';
@@ -20,6 +23,12 @@ export type MetricGroup = 'waves' | 'weather' | 'water' | 'fishing';
 /** The data a metric can read. Each may return null where nothing covers the place or hour. */
 export interface MetricEnv {
   windMs(lng: number, lat: number, ms: number): number | null;
+  /** Direction the wind blows FROM, degrees true (optional: the WATCH wind-direction metric reads null without it). */
+  windDirDeg?(lng: number, lat: number, ms: number): number | null;
+  /** Surface current speed, m/s, from the currents feed (optional). */
+  currentMs?(lng: number, lat: number, ms: number): number | null;
+  /** Surface current [east, north] m/s; with it SEA COMFORT includes wind against current (optional). */
+  currentVec?(lng: number, lat: number, ms: number): readonly [number, number] | null;
   sea(lng: number, lat: number, ms: number): SeaState | null;
   /** Every weather model's reading for the hour containing `ms`. */
   weather(ms: number): WeatherNow[];
@@ -68,7 +77,20 @@ const band = (low: number, high: number) => (v: number): Tone => (v < low ? 'gre
 
 const SARG_LOW_KM2 = 0.01, SARG_HIGH_KM2 = 0.5; // keep in step with sargLevel in physics/drift.ts
 
+const SQUALL_LEVEL = { none: 0, watch: 1, high: 2 } as const;
+const weatherSummary = (now: WeatherNow[]) => ({
+  capeJkg: meanOf(now.map((w) => w.capeJkg).filter(finite)) ?? NaN,
+  gustKt: meanOf(now.map((w) => w.gustKt).filter(finite)) ?? NaN,
+  rainMmH: meanOf(now.map((w) => w.rainMmH).filter(finite)) ?? NaN,
+});
+
 export const METRICS: readonly Metric[] = [
+  // Sea comfort for a boat (PLAN 6.6): wind sea + swells, 0 worst to 100 flat. Null where the forecast has no wave split.
+  { id: 'comfort', group: 'waves', unit: '/100', decimals: 0, better: 'high', agg: 'mean', at: (a) => { const p = feedPartitions(a.env.sea(a.lng, a.lat, a.ms)); if (!p) return null; const c = a.env.currentVec?.(a.lng, a.lat, a.ms); return seaState(c ? withCurrent(p, { u: c[0], v: c[1] }) : p).score; }, tone: (v) => (v >= 75 ? 'green' : v >= 50 ? 'amber' : 'red') },
+  // Squall level of the hour: 0 none, 1 watch, 2 likely (CAPE with gusts or heavy rain, weather.ts squallLevel).
+  { id: 'squall', group: 'weather', unit: '0-2', decimals: 0, better: 'low', agg: 'max', at: (a) => { const now = a.env.weather(a.ms); return now.length ? SQUALL_LEVEL[squallLevel(weatherSummary(now))] : null; }, tone: (v) => (v >= 2 ? 'red' : v >= 1 ? 'amber' : 'green') },
+  { id: 'wdir', group: 'weather', unit: '°', decimals: 0, better: null, agg: 'mean', at: (a) => a.env.windDirDeg?.(a.lng, a.lat, a.ms) ?? null, tone: () => 'none' },
+  { id: 'current', group: 'water', unit: 'kn', decimals: 1, better: 'low', agg: 'max', at: (a) => { const c = a.env.currentMs?.(a.lng, a.lat, a.ms); return c === null || c === undefined ? null : c * KT; }, tone: band(1, 2) },
   { id: 'swell', group: 'waves', unit: 'm', decimals: 1, better: 'low', agg: 'mean', at: (a) => a.env.sea(a.lng, a.lat, a.ms)?.hs ?? null, tone: band(1.5, 2.5) },
   {
     id: 'period', group: 'waves', unit: 's', decimals: 0, better: null, agg: 'mean',
@@ -108,7 +130,7 @@ export const METRIC_PRESETS: Readonly<Record<'surf' | 'fish' | 'dive' | 'boat', 
   surf: ['swell', 'period', 'wind', 'tide', 'sargassum'],
   fish: ['bite', 'wind', 'swell', 'rain', 'clarity'],
   dive: ['swell', 'wind', 'rain', 'clarity', 'sst', 'sargassum'],
-  boat: ['swell', 'wind', 'gust', 'rain'],
+  boat: ['comfort', 'wind', 'wdir', 'gust', 'squall', 'current', 'rain'],
 };
 
 export { daySky };
