@@ -754,3 +754,31 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .cr-tags .cr-lvl { font-size: 10px; }
 .coral-conduct .rules-list { margin-top: 6px; }
 .coral-conduct .cr-guide a { color: var(--green); }
+
+/* Coral site folders (PLAN 7.37): tabs, visit form, photo grid, full-screen viewer. Colours only through the theme variables. */
+.cf { display: grid; gap: 6px; }
+.cf:empty { display: none; }
+.cf-head { color: var(--green); letter-spacing: 2px; border-top: 1px solid var(--amber); padding-top: 8px; }
+.cf-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.cf-tabs .tab { min-height: 40px; padding: 4px 2px; font-size: 11px; letter-spacing: 1px; text-align: center; }
+.cf-tabs .tab.on { background: var(--amber); color: var(--bg); }
+.cf-body { display: grid; gap: 6px; }
+.cf-sub { margin-top: 6px; color: var(--green); }
+.cf-acts { display: flex; flex-wrap: wrap; gap: 4px; }
+.cf-acts .tab { min-height: 36px; font-size: 11px; padding: 4px 8px; }
+.cf-acts .tab.on { background: var(--green); color: var(--bg); border-color: var(--green); }
+.cf-measures { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
+.cf-measures label { display: grid; gap: 2px; }
+.cf-measures .lbl { font-size: 10px; }
+.cf-open { display: block !important; }
+.cf-visit { display: grid; gap: 4px; padding: 6px 0 8px 8px; border-left: 2px solid var(--green); }
+.cf-notes { margin: 2px 0; font-size: 12px; line-height: 1.4; text-transform: none; white-space: pre-wrap; }
+.cf-thumb { padding: 0; border: 0; background: none; cursor: pointer; }
+.cf-thumb img { display: block; width: 72px; height: 72px; object-fit: cover; border: 1px solid var(--green); }
+.cf-thumb:focus-visible img { outline: 2px solid var(--amber); }
+.cf-viewer { position: fixed; z-index: 60; inset: 8px; display: grid; grid-template-rows: auto 1fr auto auto auto auto; gap: 6px; background: var(--bg); pointer-events: auto; overflow-y: auto; }
+.cf-viewer[hidden] { display: none; }
+.cf-viewer input { background: transparent; color: var(--amber); border: 1px solid var(--amber); font: inherit; font-size: 14px; padding: 8px; min-height: 40px; width: 100%; box-sizing: border-box; }
+.cf-viewer input:focus { outline: 2px solid var(--green); }
+.cf-viewer .tab:disabled { opacity: 0.4; }
+.cf-big { width: 100%; height: 100%; min-height: 200px; max-height: 70vh; object-fit: contain; }
