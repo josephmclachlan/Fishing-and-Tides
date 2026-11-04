@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LIMON_DATUMS, LIMON_HARMONICS } from '../data/tides-limon';
 import fixture from './fixtures/limon-2024-03.json';
-import { argument, astro, extrema, fitHarmonics, predict, rmsError, speed, tideState, type Harmonics } from './tide';
+import { argument, astro, extrema, fitHarmonics, predict, rmsError, speed, tideHeightM, tideState, type Harmonics } from './tide';
 
 const HOUR = 3_600_000;
 
@@ -125,5 +125,26 @@ describe('Limón harmonics vs the UHSLC gauge (held-out March 2024)', () => {
     expect(LIMON_DATUMS.lat).toBeGreaterThan(-0.5);
     expect(LIMON_DATUMS.hat).toBeGreaterThan(0.15);
     expect(LIMON_DATUMS.hat).toBeLessThan(0.5);
+  });
+});
+
+describe('tideHeightM (water over a reef adds metres, not the cycle position)', () => {
+  it('is the predicted height plus the correction, within the Limón range', () => {
+    
+    for (let k = 0; k < 48; k++) {
+      const ms = Date.UTC(2026, 10, 4) + k * 3.6e6;
+      const h = tideHeightM(LIMON_HARMONICS, ms);
+      expect(h).toBeCloseTo(predict(LIMON_HARMONICS, ms), 12);
+      expect(h).toBeGreaterThanOrEqual(LIMON_DATUMS.lat - 0.01);
+      expect(h).toBeLessThanOrEqual(LIMON_DATUMS.hat + 0.01);
+      expect(tideHeightM(LIMON_HARMONICS, ms, 0.1)).toBeCloseTo(h + 0.1, 12);
+      expect(tideHeightM(LIMON_HARMONICS, ms, NaN)).toBeCloseTo(h, 12);
+    }
+  });
+  it('differs from the 0..1 level at high water (the old bug added up to 1 m)', () => {
+
+    const ex = extrema(LIMON_HARMONICS, Date.UTC(2026, 10, 4), Date.UTC(2026, 10, 5)).find((e) => e.type === 'high')!;
+    expect(tideState(LIMON_HARMONICS, ex.t).level).toBeGreaterThan(0.95);
+    expect(tideHeightM(LIMON_HARMONICS, ex.t)).toBeLessThan(0.35);
   });
 });
