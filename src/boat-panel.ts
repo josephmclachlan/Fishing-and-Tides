@@ -18,7 +18,10 @@ const hhmm = (ms: number) => {
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 };
 
-export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sheets: Sheets, depthAt: () => ((lng: number, lat: number) => number | undefined) | null) {
+/** BITE at a catch and the mean BITE of its daylight day there (PLAN 7.16), once the fishing panel is up. */
+export type CatchScorer = (lng: number, lat: number, ms: number, species: string) => { bite: number; biteDay: number } | null;
+
+export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sheets: Sheets, depthAt: () => ((lng: number, lat: number) => number | undefined) | null, scoreCatch: () => CatchScorer | null = () => null) {
   const gps = createGps(
     (p) => {
       store.addFix(p);
@@ -113,10 +116,19 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
   update();
 
   const pin = (kind: 'mark' | 'catch') => {
-    const f = gps.last();
-    if (!f || gps.state() !== 'ok') return say(t('boat.noFix'));
+    let f: { lng: number; lat: number } | null = gps.last();
+    if (!f || gps.state() !== 'ok') {
+      // A catch can be logged from the shore without GPS: at the map centre, said so (PLAN 7.16).
+      if (kind !== 'catch') return say(t('boat.noFix'));
+      const c = map.getCenter();
+      f = { lng: c.lng, lat: c.lat };
+      say(t('boat.atCentre'));
+    }
+    const now = Date.now();
     const depth = depthAt()?.(f.lng, f.lat);
-    store.addPin({ lng: f.lng, lat: f.lat, t: Date.now() }, kind, { species: kind === 'catch' ? BOAT_SPECIES[sp] : undefined, depthM: depth });
+    const species = kind === 'catch' ? BOAT_SPECIES[sp] : undefined;
+    const scored = species ? scoreCatch()?.(f.lng, f.lat, now, species) : null;
+    store.addPin({ lng: f.lng, lat: f.lat, t: now }, kind, { species, depthM: depth, ...(scored ?? {}) });
   };
   $('b-rec').addEventListener('click', () => {
     if (store.state().recording) {

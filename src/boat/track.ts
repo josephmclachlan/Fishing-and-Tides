@@ -24,6 +24,9 @@ export interface Pin {
   species?: string;
   /** Water depth from the GEBCO grid at the pin, m (a guide, not a sounding). */
   depthM?: number;
+  /** BITE score at the catch (PLAN 7.16), and the mean BITE of that daylight day at the spot, for checking the model. */
+  bite?: number;
+  biteDay?: number;
 }
 
 /** Worst GPS accuracy we keep, m. A phone indoors or just woken can be hundreds of metres out. */
