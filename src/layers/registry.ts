@@ -8,10 +8,10 @@
  */
 
 export type LayerId =
-  | 'waves' | 'currents' | 'wind' | 'sst' | 'clarity' | 'weather' | 'lightning' | 'obs'
+  | 'waves' | 'currents' | 'wind' | 'sst' | 'fronts' | 'clarity' | 'sargassum' | 'weather' | 'lightning' | 'obs'
   | 'rip' | 'surf'
   | 'depth' | 'reefs' | 'seamarks'
-  | 'fishing' | 'zones' | 'anchorages';
+  | 'fishing' | 'effort' | 'zones' | 'anchorages';
 
 export type LayerGroup = 'OCEAN' | 'SURF ZONE' | 'SEAFLOOR' | 'USE';
 
@@ -27,7 +27,9 @@ export const LAYERS: readonly LayerDef[] = [
   { id: 'currents', group: 'OCEAN' },
   { id: 'wind', group: 'OCEAN' },
   { id: 'sst', group: 'OCEAN', mapPrefixes: ['ss-'] },
+  { id: 'fronts', group: 'OCEAN', mapPrefixes: ['fr-'] },
   { id: 'clarity', group: 'OCEAN', mapPrefixes: ['cl-'] },
+  { id: 'sargassum', group: 'OCEAN', mapPrefixes: ['sg-'] },
   { id: 'weather', group: 'OCEAN', mapPrefixes: ['st-'] },
   { id: 'lightning', group: 'OCEAN', mapPrefixes: ['lt-'] },
   { id: 'obs', group: 'OCEAN', mapPrefixes: ['ob-'] },
@@ -37,6 +39,7 @@ export const LAYERS: readonly LayerDef[] = [
   { id: 'reefs', group: 'SEAFLOOR', mapPrefixes: ['sf-reef', 'sf-zone', 'sf-bottom'] },
   { id: 'seamarks', group: 'SEAFLOOR', mapPrefixes: ['sf-marks'] },
   { id: 'fishing', group: 'USE', mapPrefixes: ['fh-', 'bt-'] },
+  { id: 'effort', group: 'USE', mapPrefixes: ['ef-'] },
   { id: 'zones', group: 'USE', mapPrefixes: ['pz-'] },
   { id: 'anchorages', group: 'USE', mapPrefixes: ['an-'] },
 ];
@@ -49,9 +52,9 @@ const ALL_IDS = LAYERS.map((l) => l.id);
 /** One-tap presets. `all` is every layer; the rest are what that activity needs to see. */
 export const ACTIVITIES: readonly Activity[] = [
   { id: 'all', layers: ALL_IDS },
-  { id: 'fishing', layers: ['fishing', 'sst', 'clarity', 'weather', 'lightning', 'obs', 'currents', 'wind', 'depth', 'reefs', 'zones'] },
-  { id: 'dive', layers: ['lightning', 'clarity', 'waves', 'currents', 'rip', 'depth', 'reefs', 'zones', 'seamarks'] },
-  { id: 'surf', layers: ['lightning', 'waves', 'wind', 'rip', 'surf', 'depth', 'reefs'] },
+  { id: 'fishing', layers: ['fishing', 'effort', 'sst', 'fronts', 'clarity', 'weather', 'lightning', 'obs', 'currents', 'wind', 'depth', 'reefs', 'zones'] },
+  { id: 'dive', layers: ['lightning', 'clarity', 'sargassum', 'waves', 'currents', 'rip', 'depth', 'reefs', 'zones', 'seamarks'] },
+  { id: 'surf', layers: ['lightning', 'sargassum', 'waves', 'wind', 'rip', 'surf', 'depth', 'reefs'] },
   { id: 'sail', layers: ['wind', 'weather', 'lightning', 'obs', 'waves', 'currents', 'depth', 'seamarks', 'anchorages', 'reefs'] },
 ];
 

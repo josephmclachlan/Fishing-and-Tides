@@ -12,13 +12,13 @@ import { freshness, inRange, type Check } from '../verify/types';
 
 export const WEATHER_MODELS = ['gfs_seamless', 'ecmwf_ifs025', 'icon_seamless'] as const;
 export type WeatherModel = (typeof WEATHER_MODELS)[number];
-export const WEATHER_VARS = ['precipitation', 'cloud_cover', 'uv_index', 'temperature_2m', 'wind_gusts_10m', 'cape'] as const;
+export const WEATHER_VARS = ['precipitation', 'cloud_cover', 'uv_index', 'temperature_2m', 'wind_gusts_10m', 'cape', 'pressure_msl'] as const;
 export type WeatherVar = (typeof WEATHER_VARS)[number];
 
 export interface WeatherData {
   /** Hour starts, epoch ms. */
   times: number[];
-  /** model → variable → hourly values (NaN where the model has none). Rain mm per hour, cloud %, UV index, °C, gusts kt, CAPE J/kg. */
+  /** model → variable → hourly values (NaN where the model has none). Rain mm per hour, cloud %, UV index, °C, gusts kt, CAPE J/kg, sea-level pressure hPa. */
   models: Partial<Record<WeatherModel, Record<WeatherVar, number[]>>>;
   /** When the bytes were fetched, epoch ms. */
   fetchedAt: number;
@@ -62,6 +62,8 @@ export interface WeatherNow {
   tempC: number;
   gustKt: number;
   capeJkg: number;
+  /** Mean sea-level pressure, hPa (NaN where the model has none). */
+  pressureHpa: number;
 }
 
 /** Index of the hour containing `ms`, or -1 outside the series. */
@@ -79,7 +81,7 @@ export function weatherAt(d: WeatherData, ms: number): WeatherNow[] {
   for (const m of WEATHER_MODELS) {
     const v = d.models[m];
     if (!v || Number.isNaN(v.precipitation[i])) continue;
-    out.push({ model: m, rainMmH: v.precipitation[i], cloudPct: v.cloud_cover[i], uv: v.uv_index[i], tempC: v.temperature_2m[i], gustKt: v.wind_gusts_10m[i], capeJkg: v.cape[i] });
+    out.push({ model: m, rainMmH: v.precipitation[i], cloudPct: v.cloud_cover[i], uv: v.uv_index[i], tempC: v.temperature_2m[i], gustKt: v.wind_gusts_10m[i], capeJkg: v.cape[i], pressureHpa: v.pressure_msl[i] });
   }
   return out;
 }

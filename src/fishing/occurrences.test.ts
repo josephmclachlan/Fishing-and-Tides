@@ -21,6 +21,6 @@ describe('occurrenceBoost', () => {
     expect(withEvidence(0.5, 0.2)).toBeCloseTo(0.6);
   });
   it('handles a missing file', () => {
-    expect(recordsFor(null, 'tarpon')).toEqual([]);
+    expect(recordsFor(null, 'snook')).toEqual([]);
   });
 });

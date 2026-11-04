@@ -11,7 +11,7 @@ export type HelpId = string;
 
 /** Value-element id (or gauge id) -> explainer id. */
 export const HELP_BY_ID: Readonly<Record<string, HelpId>> = {
-  swell: 'swell', period: 'period', sdir: 'swellDir', wind: 'wind', wdir: 'windDir', sst: 'sst', vis: 'vis', tide: 'tide',
+  sarg: 'sargassum', swell: 'swell', period: 'period', sdir: 'swellDir', wind: 'wind', wdir: 'windDir', sst: 'sst', vis: 'vis', tide: 'tide',
   rip: 'rip', ripgauge: 'rip', curr: 'current', cset: 'set', tgt: 'target', tgtrng: 'range', tgtbrg: 'bearing',
   'sz-hb': 'breaker', 'sz-type': 'wavetype', 'sz-pow': 'power', 'sz-drift': 'drift', 'sz-rips': 'ripStrength', 'sz-ripl': 'ripReach',
   'dv-3': 'surge', 'dv-6': 'surge', 'dv-12': 'surge',
@@ -22,6 +22,8 @@ export const HELP_BY_ID: Readonly<Record<string, HelpId>> = {
   'an-name': 'harbour', 'an-dist': 'harbourRange', 'an-shelter': 'shelter', 'an-fetch': 'shelter',
   'wx-rain': 'rain', 'wx-rain24': 'rain24', 'wx-cloud': 'cloud', 'wx-uv': 'uv', 'wx-air': 'air', 'wx-storm': 'storm',
   depth: 'depth', dsrc: 'depthSource', dzone: 'reef', dbottom: 'bottom', zone: 'zone', 'fish-score': 'habitat', 'fish-bite': 'bite', 'fish-reach': 'reach', 'fish-times': 'times',
+  'dv-mode': 'diveMode', 'dv-water': 'waterOver', 'dv-score': 'outing', 'dv-time': 'bestTime', 'dv-day': 'bestDay', 'dv-week': 'weekAhead', 'dv-spot': 'snorkelSpot', 'dv-rate': 'snorkelRating', 'dv-sting': 'stingers',
+  'wx-gust': 'gust', 'wx-cape': 'cape', 'wx-squall': 'squall', 'lt-near': 'lightningNear', 'vis-days': 'visDays',
   't-off': 'fcst', 't-valid': 'valid', 't-band': 'band', lat: 'lat', lon: 'lon', alt: 'alt', age: 'dataAge', tier: 'tier',
 };
 
@@ -88,6 +90,19 @@ export function mountExplain(root: HTMLElement) {
     card.style.top = `${Math.min(Math.max(8, at.y - 16), window.innerHeight - h - 8)}px`;
   };
 
+  /** A card of label/value rows for a map point (the "what's here" card). */
+  const showRows = (title: string, rows: [string, string][], at: { x: number; y: number }) => {
+    const body = rows.length ? rows.map(([k, v]) => `<div class="ro"><span class="lbl">${esc(k)}</span><span class="val">${esc(v)}</span></div>`).join('') : `<p class="help-text">${esc(t('here.none'))}</p>`;
+    card.innerHTML = `<div class="ph"><span>${esc(title)}</span><button type="button" class="sheet-x help-x" aria-label="${t('help.close')}">✕</button></div>${body}<p class="help-text">${esc(t('here.note'))}</p>`;
+    card.querySelector('.help-x')!.addEventListener('click', close);
+    card.hidden = false;
+    anchor = null;
+    if (phone.matches) return card.style.removeProperty('top'), card.style.removeProperty('left');
+    const w = card.offsetWidth, h = card.offsetHeight;
+    card.style.left = `${Math.min(Math.max(8, at.x + 16), window.innerWidth - w - 8)}px`;
+    card.style.top = `${Math.min(Math.max(8, at.y - 16), window.innerHeight - h - 8)}px`;
+  };
+
   const open = (row: HTMLElement) => {
     if (anchor === row && !card.hidden) return close();
     const id = row.dataset.help!;
@@ -131,7 +146,7 @@ export function mountExplain(root: HTMLElement) {
   new MutationObserver((muts) => {
     for (const m of muts) m.addedNodes.forEach((n) => n instanceof Element && scan(n));
   }).observe(root, { childList: true, subtree: true });
-  return { close, show };
+  return { close, show, showRows };
 }
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);

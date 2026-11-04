@@ -110,6 +110,25 @@ export const METAR_STATION = { icao: 'MRLM', name: 'LIMÓN AIRPORT', lngLat: [-8
 export const SCAT_BOX: [[number, number], [number, number]] = [[-84, 8.75], [-81.5, 11]];
 
 /**
+ * Box the mixed-layer depth forecast covers (PLAN 7.18): the same coast plus open sea as the wind
+ * passes, where a boat goes for the offshore fish, on the Copernicus global model's 1/12° grid.
+ */
+export const MLD_BOX: [[number, number], [number, number]] = SCAT_BOX;
+
+/**
+ * Box the fishing-effort map covers (PLAN 7.19): the coast plus ~120 km of sea, on Global Fishing
+ * Watch's 0.1° grid (edges on whole tenths so cells line up). [[west, south], [east, north]]
+ */
+export const EFFORT_BOX: [[number, number], [number, number]] = [[-84, 8.7], [-81.5, 11]];
+
+/**
+ * Box the sargassum detections cover (PLAN 7.1): far enough offshore that a mat seen there can
+ * drift onto the coast within the 5-day forecast (~0.3 m/s for 5 days is ~130 km), on the AFAI
+ * grid. [[west, south], [east, north]]
+ */
+export const SARG_BOX: [[number, number], [number, number]] = [[-84, 8.75], [-80.5, 11.5]];
+
+/**
  * Rivers whose plumes muddy the coast after rain (PLAN 6.1, DESIGN §6 dive row). Mouths from the
  * OSM waterways (data/fishing/mouths.geojson); `rainAt` is a point inside each catchment where the
  * clarity layer samples rainfall. Catchment areas are approximate published basin figures

@@ -3,7 +3,7 @@
  * the numbers the panel shows: a simple mean across the models that cover the hour, and the spread between
  * them as a rough confidence cue (the weighted blend with local bias correction is PLAN 7.4).
  */
-import { weatherAt, rainAccumMm, WEATHER_MODELS, type WeatherData } from './adapters/weather';
+import { weatherAt, rainAccumMm, WEATHER_MODELS, type WeatherData, type WeatherNow } from './adapters/weather';
 import { stormCategory, type Storm } from './adapters/storms';
 import { REGION } from './region';
 import { haversineM } from './geo';
@@ -89,4 +89,32 @@ export function nearestStorm(storms: readonly Storm[]): { storm: Storm; km: numb
     if (!best || km < best.km) best = { storm, km, category: stormCategory(storm.windKt) };
   }
   return best;
+}
+
+/**
+ * Pressure tendency, hPa per 3 h ending at `ms`: mean over the models that have both ends. Null when none do.
+ * Falling pressure ahead of a front is the classic angler's feeding cue (folklore-grade evidence).
+ */
+export const pressureTrend = (d: WeatherData, ms: number): number | null => pressureChange(weatherAt(d, ms), weatherAt(d, ms - 3 * 3.6e6));
+
+/** Mean pressure change between two hours' model readings, hPa, over the models in both; null if none. */
+export function pressureChange(now: readonly WeatherNow[], before: readonly WeatherNow[]): number | null {
+  const diffs = now.flatMap((w) => {
+    const b = before.find((x) => x.model === w.model);
+    return b && Number.isFinite(w.pressureHpa) && Number.isFinite(b.pressureHpa) ? [w.pressureHpa - b.pressureHpa] : [];
+  });
+  return diffs.length ? mean(diffs) : null;
+}
+
+/** The weather the BITE score reads for one hour (fishing/bite.ts): mean rain and cloud over the models, and the squall flag. Empty when no model covers the hour. */
+export function biteWeather(now: readonly WeatherNow[]): { rainMmH?: number; cloudPct?: number; squall?: Squall } {
+  if (!now.length) return {};
+  const rainMmH = mean(finite(now.map((w) => w.rainMmH)));
+  const cloudPct = mean(finite(now.map((w) => w.cloudPct)));
+  const s = { rainMmH, capeJkg: mean(finite(now.map((w) => w.capeJkg))), gustKt: mean(finite(now.map((w) => w.gustKt))) };
+  return {
+    rainMmH: Number.isFinite(rainMmH) ? rainMmH : undefined,
+    cloudPct: Number.isFinite(cloudPct) ? cloudPct : undefined,
+    squall: squallLevel(s),
+  };
 }

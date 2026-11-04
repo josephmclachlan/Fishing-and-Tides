@@ -37,9 +37,24 @@ export function parseLightning(json: unknown, fromCache = false): LightningData 
   return { flashes, fetchedAt, newestFileAt: Date.parse(j.newestFileAt ?? ''), windowMin: j.windowMin ?? 30, fromCache };
 }
 
+/**
+ * `owner/repo` for a site base. An absolute base (the daily verify run in Node passes the live
+ * site URL) is read on its own; a relative one (the app's BASE_URL) is resolved against the
+ * page. Null when neither gives a GitHub Pages address, or when there is no page (Node).
+ */
+export function slugFor(base: string, page: string | undefined = typeof location !== 'undefined' ? location.href : undefined): string | null {
+  let u: URL;
+  try {
+    u = new URL(base, page);
+  } catch {
+    return null;
+  }
+  return repoSlug(u.hostname, u.pathname);
+}
+
 /** Null when not served from GitHub Pages (nothing to fetch from). */
-export async function fetchLightning(opts: { deps?: Partial<CacheDeps>; slug?: string | null } = {}): Promise<LightningData | null> {
-  const slug = opts.slug === undefined ? repoSlug(location.hostname, import.meta.env.BASE_URL) : opts.slug;
+export async function fetchLightning(opts: { base?: string; deps?: Partial<CacheDeps>; slug?: string | null } = {}): Promise<LightningData | null> {
+  const slug = opts.slug === undefined ? slugFor(opts.base ?? import.meta.env.BASE_URL) : opts.slug;
   if (!slug) return null;
   const r = await cachedFetch(lightningUrl(slug), { deps: opts.deps, timeoutMs: 10000 });
   const d = parseLightning(await r.response.json(), r.fromCache);

@@ -1,10 +1,14 @@
-/** Species names to look up in OBIS and GBIF (PLAN 4.7), by our species id (shore/kayak and boat). No imports: the build script loads it directly. */
+/** Species names to look up in OBIS and GBIF (PLAN 4.7), by our species id (shore/kayak and boat). Edible fish only (docs/FISHING.md, eating-fish audit). No imports: the build script loads it directly. */
 export const OCCURRENCE_TAXA: Record<string, string[]> = {
-  tarpon: ['Megalops atlanticus'],
   snook: ['Centropomus undecimalis', 'Centropomus parallelus', 'Centropomus ensiferus'],
-  jack: ['Caranx hippos'],
+  // Jurel: crevalle, horse-eye, bar jack and blue runner (the jacks sold as jurel here; true jack mackerel, Trachurus, does not occur on this coast).
+  jack: ['Caranx hippos', 'Caranx latus', 'Caranx ruber', 'Caranx crysos'],
   snapper: ['Lutjanus cyanopterus', 'Lutjanus jocu', 'Lutjanus griseus', 'Lutjanus analis', 'Lutjanus apodus', 'Lutjanus synagris'],
+  mackerel: ['Scomberomorus brasiliensis', 'Scomberomorus regalis'],
+  // Small reef groupers only: goliath (Epinephelus itajara, reportedly protected) and Nassau (E. striatus, endangered) are left out.
+  grouper: ['Cephalopholis cruentata', 'Cephalopholis fulva', 'Epinephelus guttatus', 'Epinephelus adscensionis', 'Epinephelus morio', 'Mycteroperca bonaci', 'Mycteroperca tigris'],
   barracuda: ['Sphyraena barracuda'],
+  lionfish: ['Pterois volitans', 'Pterois miles'],
   mahi: ['Coryphaena hippurus'],
   wahoo: ['Acanthocybium solandri'],
   kingfish: ['Scomberomorus cavalla'],

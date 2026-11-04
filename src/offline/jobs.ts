@@ -9,7 +9,11 @@ import { fetchCurrents } from '../adapters/currents';
 import { fetchGauge } from '../adapters/gauge';
 import { fetchLightning } from '../adapters/lightning';
 import { fetchMetar } from '../adapters/metar';
+import { fetchMld } from '../adapters/mld';
+import { fetchEffort } from '../adapters/effort';
 import { fetchPasses } from '../adapters/passes';
+import { fetchRiverFlow } from '../adapters/river-flow';
+import { fetchSargassum } from '../adapters/sargassum';
 import { fetchSatellite } from '../adapters/satellite';
 import { fetchStorms } from '../adapters/storms';
 import { fetchWaves } from '../adapters/waves';
@@ -31,13 +35,17 @@ export const JOB_FEEDS: Record<string, readonly string[]> = {
   waves: ['waves'],
   currents: ['currents'],
   sst: ['sst', 'sst-coast', 'chl', 'kd490'],
-  passes: ['sst-pass', 'chl-pass'],
+  passes: ['sst-pass', 'chl-pass', 'scat-pass'],
   weather: ['weather'],
   rain: ['rain'],
+  river: ['river'],
   storms: ['storms'],
   gauge: ['gauge'],
   metar: ['metar'],
   lightning: ['lightning'],
+  sargassum: ['sargassum'],
+  mld: ['mld'],
+  effort: ['effort'],
 };
 
 /** Verify feeds that are precached with the app rather than synced (checked in the sync's last step). */
@@ -51,12 +59,16 @@ export function tripJobs(base: string = import.meta.env.BASE_URL): SyncJob[] {
     { name: 'sst', run: async () => need(Number.isFinite((await fetchSatellite({ base })).fetchedAt), 'no satellite data') },
     { name: 'weather', run: async () => live(await fetchWeather(), 'weather') },
     { name: 'rain', run: async () => live(await fetchCatchmentRain(), 'rain') },
+    { name: 'river', run: async () => live(await fetchRiverFlow(), 'river') },
     { name: 'storms', run: async () => live(await fetchStorms({ base }), 'storms') },
     { name: 'gauge', run: async () => live(await fetchGauge({ hours: 30 }), 'gauge') },
     // LIVE OBS (PLAN 2.13): the airport's reports and the satellite passes.
     { name: 'metar', run: async () => live(await fetchMetar({ base }), 'metar') },
-    { name: 'passes', run: async () => { const d = await fetchPasses({ base }); need(d.sst || d.chl, 'no satellite passes'); } },
+    { name: 'passes', run: async () => { const d = await fetchPasses({ base }); need(d.sst || d.chl || d.scat, 'no satellite passes'); } },
     // Published only from the live site (null in dev and preview): nothing to sync there.
+    { name: 'sargassum', run: async () => need((await fetchSargassum({ base })).series, 'no sargassum detections') },
+    { name: 'mld', run: async () => need((await fetchMld({ base })).series, 'no mixed-layer depth') },
+    { name: 'effort', run: async () => need((await fetchEffort({ base })).series, 'no fishing effort') },
     { name: 'lightning', run: async () => { const d = await fetchLightning(); if (d) live(d, 'lightning'); } },
   ];
 }

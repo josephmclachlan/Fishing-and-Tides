@@ -1,3 +1,4 @@
 # Python packages for the data build (.github/workflows/pages.yml).
-# copernicusmarine: the Copernicus Marine toolbox, for the ASCAT wind passes (scripts/scat.py, PLAN 2.14).
+# copernicusmarine: the Copernicus Marine toolbox, for the ASCAT wind passes (scripts/scat.py, PLAN 2.14)
+# and the mixed-layer depth (scripts/mld.py, PLAN 7.18).
 copernicusmarine==2.5.0

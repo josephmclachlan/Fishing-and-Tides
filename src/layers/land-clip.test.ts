@@ -11,7 +11,8 @@ import { latOfMercY, mercY } from './seafloor-shade';
 import { clarityGrid, clarityImage, seaDepthAt, type ClarityContext } from './clarity';
 import { cellGeometry, STEP } from '../fishing/cells';
 import { crestGrid } from '../waves-lines';
-import { isotherms } from './sst';
+import { isotherms, sstImage, SST_PIXEL_DEG } from './sst';
+import { coastTest, paintSea, type SeaImage } from './sea-image';
 import { clearanceM, coastStations, glowRadius, offset } from './rip';
 import type { GridSeries } from '../adapters/pack';
 import type { SeaState } from '../adapters/waves';
@@ -155,5 +156,46 @@ describe('rip glow stays in the surf zone', () => {
     // At zoom 16, 100 m is 100 / (40075016.686 cos(9.79°) / 512 / 2^16) ≈ 85 px.
     const z16 = e[e.indexOf(16) + 1] as [string, number, [string, unknown, number]];
     expect(100 * z16[2][2]).toBeCloseTo(85, 0);
+  });
+});
+
+/** Painted pixels of an image, and how many of them sit on land by the coastline mask. */
+function audit(img: SeaImage) {
+  const [[w, n], [e], , [, s]] = img.coordinates;
+  const yN = mercY(n), yS = mercY(s);
+  let painted = 0, onLandPx = 0;
+  for (let j = 0; j < img.height; j++) {
+    const lat = latOfMercY(yN - ((j + 0.5) / img.height) * (yN - yS));
+    for (let i = 0; i < img.width; i++) {
+      if (!img.data[(j * img.width + i) * 4 + 3]) continue;
+      painted++;
+      if (onLand(w + ((i + 0.5) / img.width) * (e - w), lat)) onLandPx++;
+    }
+  }
+  return { painted, onLandPx };
+}
+
+describe('water temperature fill stays in the sea', () => {
+  // A 1 km SST grid with values everywhere, land included (worse than MUR, whose land cells are empty).
+  const grid = { cols: 126, rows: 101, lon0: -83.5, lat0: 10.3, dlon: 0.01, dlat: 0.01 };
+  const z = Float32Array.from({ length: grid.cols * grid.rows }, (_, i) => 27 + 0.02 * (i % grid.cols));
+  const s = { meta: { grid, times: [0] }, values: { sst: [z] } } as unknown as GridSeries;
+  const colours = { green: [0, 255, 0], amber: [255, 176, 0], red: [255, 0, 0] } as const;
+  it('paints land without the coastline and none with it', () => {
+    expect(audit(sstImage(s, colours, undefined, { pixelDeg: SST_PIXEL_DEG.coast })).onLandPx).toBeGreaterThan(10_000);
+    const cut = audit(sstImage(s, colours, undefined, { pixelDeg: SST_PIXEL_DEG.coast, coast: coastTest(land, macro) }));
+    expect(cut.onLandPx).toBe(0);
+    expect(cut.painted).toBeGreaterThan(500_000);
+  }, 30_000);
+});
+
+describe('block layers (sargassum, fishing boats) stay in the sea', () => {
+  it('paints a block on the shore only where it is sea', () => {
+    // One 0.1° block straddling the Cahuita shore.
+    const img = paintSea([-82.88, 9.7, -82.78, 9.8], 0.002, coastTest(land, macro), () => 0xffffffff);
+    const a = audit(img);
+    expect(a.onLandPx).toBe(0);
+    expect(a.painted).toBeGreaterThan(0.2 * img.width * img.height);
+    expect(a.painted).toBeLessThan(0.9 * img.width * img.height);
   });
 });

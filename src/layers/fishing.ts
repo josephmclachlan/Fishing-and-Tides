@@ -3,9 +3,10 @@
  * heat of ~220 m cells within a paddle or long cast of the coast, from the coast tier in.
  * Amber only, faint for fair water and stronger for the best (green blended into the map).
  * A SHORE / BOAT highlight keeps cells within a cast or wade of the beach, or those beyond it. Style layer ids start with `fh-` (catalog 'fishing').
- * The weights are fitted to the OBIS/GBIF records when the layer mounts (PLAN 4.4, fishing/fit.ts).
+ * The weights are fitted to the OBIS/GBIF records when the layer mounts (PLAN 4.4, fishing/fit.ts), and
+ * refitted with your own logged catches whenever they change (PLAN 7.16, `setCatches`).
  */
-import type { ExpressionSpecification, Map } from 'maplibre-gl';
+import type { ExpressionSpecification, GeoJSONSource, Map } from 'maplibre-gl';
 import type { FeatureCollection } from 'geojson';
 import { TIER_ZOOM } from '../region';
 import { firstSymbolId } from '../map';
@@ -16,6 +17,7 @@ import { fitWeights, recordCells, type HabitatFit } from '../fishing/fit';
 import { SPECIES, speciesById, type SpeciesId } from '../fishing/species';
 import { occurrenceBoost, recordsFor, withEvidence } from '../fishing/occurrences';
 import type { OccurrenceFile } from '../fishing/occurrence-taxa';
+import { catchRecords, type CatchPin } from '../fishing/catches';
 
 const { COAST, SPOT } = TIER_ZOOM;
 const DIR = 'data/fishing/mouths.geojson';
@@ -62,8 +64,12 @@ export interface FishingLayer {
   setMonth(month: number): void;
   /** Habitat score 0..1 at a point for the current species and month, or null outside the fishing reach. */
   scoreAt(lng: number, lat: number): number | null;
-  /** The fitted habitat weights per species (PLAN 4.4). */
-  fits: Readonly<Record<SpeciesId, HabitatFit>>;
+  /** The fitted habitat weights per species (PLAN 4.4), refitted with your catches. */
+  fits(): Readonly<Record<SpeciesId, HabitatFit>>;
+  /** Your logged catches (BOAT drawer): they join the records for the fit and the nudge (PLAN 7.16). */
+  setCatches(pins: readonly CatchPin[]): void;
+  /** Habitat score 0..1 at a point for a given species and the current month, or null outside the reach. */
+  scoreFor(id: SpeciesId, lng: number, lat: number): number | null;
 }
 
 export function mountFishing(map: Map, input: FishingInput, initial: { species: SpeciesId; month: number }, occurrences: OccurrenceFile | null = null): FishingLayer {
@@ -74,23 +80,32 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   let reach: Reach = 'all';
   const inReach = (coastM: number) => reach === 'all' || (reach === 'shore' ? coastM <= SHORE_M : coastM > SHORE_M);
 
-  // Records nudge a species' score where it has been seen (src/fishing/occurrences.ts).
+  // Records nudge a species' score where it has been seen (src/fishing/occurrences.ts), and fit the weights (fit.ts).
   // Only records near the cells can nudge them (occurrenceBoost looks 0.03° out), so drop the rest once (PLAN 5.4).
+  // Your own catches (PLAN 7.16) join both: the same weight as a survey record, but from where you fish.
   const [bw, bs, be, bn] = input.bounds;
-  const near = Object.fromEntries(SPECIES.map((s) => [s.id, recordsFor(occurrences, s.id).filter(([x, y]) => x > bw - 0.03 && x < be + 0.03 && y > bs - 0.03 && y < bn + 0.03)])) as unknown as Record<SpeciesId, ReturnType<typeof recordsFor>>;
+  const inBox = ([x, y]: readonly [number, number, ...unknown[]]) => x > bw - 0.03 && x < be + 0.03 && y > bs - 0.03 && y < bn + 0.03;
+  type Recs = ReturnType<typeof recordsFor>;
+  let near = {} as Record<SpeciesId, Recs>;
+  let fits = {} as Record<SpeciesId, HabitatFit>;
+  let catchKey = '';
+  const geojson: FeatureCollection = { type: 'FeatureCollection', features: [] };
   const boostAt = (id: SpeciesId, lng: number, lat: number) => occurrenceBoost(near[id], lng, lat);
-  // Habitat weights: the hand-written rules updated by the records (a few ms for all species).
-  const fits = Object.fromEntries(SPECIES.map((s) => [s.id, fitWeights(s, built.cells, recordCells(built.lattice, built.index, built.cells, recordsFor(occurrences, s.id)))])) as Record<SpeciesId, HabitatFit>;
-  const geojson: FeatureCollection = {
-    type: 'FeatureCollection',
-    features: built.cells.map((c) => {
+  // Cell shapes cut at the coastline, so shore cells don't paint the beach. Fixed, so built once.
+  const shapes = built.cells.map((c) => cellGeometry(input.land, c.lng, c.lat));
+  const rebuild = (catches: readonly CatchPin[]) => {
+    const recs = Object.fromEntries(SPECIES.map((s) => [s.id, [...recordsFor(occurrences, s.id), ...catchRecords(catches, s.id)]])) as unknown as Record<SpeciesId, Recs>;
+    near = Object.fromEntries(SPECIES.map((s) => [s.id, recs[s.id].filter(inBox)])) as unknown as Record<SpeciesId, Recs>;
+    // Habitat weights: the hand-written rules updated by the records (a few ms for all species).
+    fits = Object.fromEntries(SPECIES.map((s) => [s.id, fitWeights(s, built.cells, recordCells(built.lattice, built.index, built.cells, recs[s.id]))])) as Record<SpeciesId, HabitatFit>;
+    geojson.features = built.cells.map((c, i) => {
       const properties: Record<string, number> = {};
       for (const s of SPECIES) properties[s.id] = Math.round(withEvidence(baseScore(s, c.f, fits[s.id].weights), boostAt(s.id, c.lng, c.lat)) * 100) / 100; // season applied in the paint
       properties.coast = Math.round(c.coastM);
-      // Cut at the coastline, so shore cells don't paint the beach.
-      return { type: 'Feature' as const, properties, geometry: cellGeometry(input.land, c.lng, c.lat) };
-    }),
+      return { type: 'Feature' as const, properties, geometry: shapes[i] };
+    });
   };
+  rebuild([]);
   const paint = () => {
     if (!map.getLayer('fh-cells')) return;
     const raw: ExpressionSpecification = ['*', ['get', sp.id], seasonFactor(sp, month)];
@@ -128,8 +143,23 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     return out;
   };
 
+  const scoreFor = (id: SpeciesId, lng: number, lat: number) => {
+    const i = cellIndexAt(built.lattice, built.index, lng, lat);
+    if (i < 0) return null;
+    const c = built.cells[i];
+    const s = speciesById(id);
+    return Math.min(1, habitatScore(s, c.f, month, fits[id].weights) * (1 + boostAt(id, c.lng, c.lat)));
+  };
   return {
-    fits,
+    fits: () => fits,
+    setCatches(pins) {
+      const key = pins.filter((p) => p.kind === 'catch').map((p) => `${p.species}${p.lng.toFixed(4)}${p.lat.toFixed(4)}`).join('|');
+      if (key === catchKey) return;
+      catchKey = key;
+      rebuild(pins);
+      (map.getSource('fh') as GeoJSONSource | undefined)?.setData(geojson);
+    },
+    scoreFor,
     setReach(r) {
       reach = r;
       paint();
@@ -143,11 +173,6 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
       month = m;
       paint();
     },
-    scoreAt(lng, lat) {
-      const i = cellIndexAt(built.lattice, built.index, lng, lat);
-      if (i < 0) return null;
-      const c = built.cells[i];
-      return Math.min(1, habitatScore(sp, c.f, month, fits[sp.id].weights) * (1 + (boostAt(sp.id, c.lng, c.lat))));
-    },
+    scoreAt: (lng, lat) => scoreFor(sp.id, lng, lat),
   };
 }

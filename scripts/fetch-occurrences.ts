@@ -8,7 +8,7 @@
  * position (rounded to ~100 m) and year match. Records are sparse here (tens, not thousands), so
  * the app uses them as a modest nudge to the habitat score, never as the score. Needs Node 22.18+.
  *
- * Global Fishing Watch is not fetched: its API needs a free token (see docs/FISHING.md).
+ * Global Fishing Watch effort is fetched by the forecast build instead (scripts/forecast/effort.ts, PLAN 7.19).
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { REGION } from '../src/region.ts';
