@@ -37,3 +37,7 @@ Bands: FLAT (breaker under 0.3 m), POOR under 3, FAIR to 5.5, GOOD to 8.5, EPIC 
 ## Forecast views (PLAN 7.27)
 
 BEST TODAY (SURF), the spot-page BEST HOURS ribbon and the WATCH tracker's SURF SCORE metric (`surfq`) now use this same score instead of wind and rain alone. They run it for every hour of the week, so `src/metrics/surf-estimate.ts` estimates the breaker height from the offshore swell (cut by sqrt(cos(angle off the break's normal))) instead of calling the physics worker. The BREAK row in CONDITIONS keeps the full refraction model, so the two can differ by a few tenths when the swell is angled. A spot without a break of its own uses the nearest break within 25 km; further than that it keeps voting on wind and rain.
+
+## Water and sun (PLAN 7.28)
+
+The BREAK readout shows SEA TEMP with the suit most dive shops suggest (LYCRA OK from 28 °C, SHORTY 25 to 28, 3 MM SUIT 21 to 25, 5 MM SUIT below; the same rule as DIVE) and the UV index (LOW under 6, MODERATE 6 to 7, HIGH 8 to 10, EXTREME 11 and up). Neither changes the score: this coast is 27 to 30 °C most of the year and a surfer goes out in any UV. The WATCH SURF preset now also tracks SST and UV.

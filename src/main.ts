@@ -153,6 +153,10 @@ const windAtRef: [number, number] = [0, 0];
 // Rip risk at the spot nearest the map centre, from the physics worker (PLAN 3.6, 4.2) once the seafloor loads.
 let spotPhysics: SpotPhysics | null = null;
 /** Gusts (weather feed, model mean) now and the wind three hours on, for the surf score (PLAN 7.23 B). */
+const uvMean = (ws: readonly { uv: number }[]) => {
+  const xs = ws.map((w) => w.uv).filter(Number.isFinite);
+  return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+};
 const windExtras = (ms: number, pin: [number, number], name: string) => {
   const g = weatherData ? weatherAt(weatherData, ms).map((w) => w.gustKt).filter(Number.isFinite) : [];
   const f = wind ? windAt(wind, time.band(), ms + 3 * 3.6e6)?.field : null;
@@ -167,6 +171,8 @@ const windExtras = (ms: number, pin: [number, number], name: string) => {
     squall: wx.squall,
     rainMmH: wx.rainMmH ?? null,
     sarg: sargForecast ? beachDay(sargForecast, name, ms)?.level ?? null : null,
+    sstC: satellite ? (sstAt(satellite, pin[0], pin[1], ms)?.value ?? null) : null,
+    uv: weatherData ? uvMean(weatherAt(weatherData, ms)) : null,
   };
 };
 const conditionsAt = () => {
