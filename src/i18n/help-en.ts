@@ -84,4 +84,7 @@ export const helpEn = {
   'glance.sea.lively': 'LIVELY',
   'glance.sea.rough': 'ROUGH',
   'glance.sea.uncomfortable': 'NASTY',
+  'help.sargassum': 'SARG is the sargassum (floating brown seaweed) outlook for the beach nearest the cross-hair, on the day you picked with the time slider: NONE, LOW, MOD or HIGH. On the map, amber squares are where a satellite last saw floating weed (brighter means more). Faint hatching is sea the satellite could not see because of cloud, so it is unknown, not clear. Dots on dashed lines are those mats drifting with the current and a little wind, shown where they will be at the slider time. A SARGASSUM label on a beach means mats are forecast to land there within 5 days. CLOUD means too little sea was seen to say. It is a satellite-based estimate, not a beach report.',
+  'help.sargMat': 'A drifting mat of sargassum: where the weed seen by the satellite is expected to be at the slider time. The dashed line is its path. A dim dot has reached the shore.',
+  'help.sargBeach': 'Mats are forecast to wash up near this beach within 5 days. LOW, MOD or HIGH is the amount of weed expected, not a certainty. Move the slider to see which day.',
 } as const;
