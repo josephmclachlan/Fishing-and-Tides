@@ -34,25 +34,44 @@ export interface BestToday {
   /** Window start and end, epoch ms; startMs may be before `nowMs` while the window is under way. */
   startMs: number;
   endMs: number;
+  /** False when even the best window scores more bad than good (mostly red hours): nothing worth offering. */
+  good: boolean;
 }
+
+/**
+ * Last hour a window may run to, local. Diving and snorkelling need daylight in the water, and
+ * sunset on this coast is 17:10 to 17:50 all year, so their windows end by 17:00; the rest run to 19:00.
+ */
+export const DIVE_TO_H = 17;
+const toHFor = (activity: Activity) => (activity === 'dive' ? DIVE_TO_H : BEST_TO_H);
+/** Days ahead the button can look: the model forecast band (FORECAST, 7 days). */
+export const BEST_MAX_DAY = 6;
 
 /** The spot nearest `at` (lng, lat). */
 export const spotNear = (at: [number, number], spots: readonly Spot[]): Spot | null => nearest(at, spots)?.point ?? null;
 
 /** True once the last window of the local day (BEST_TO_H) has started: an empty BEST TODAY then means none left, not missing data. */
-export function todayOver(tzOffsetH: number, nowMs: number): boolean {
-  return nowMs >= localDayStart(nowMs, tzOffsetH) + (BEST_TO_H - BEST_LEN_H + 1) * 3.6e6;
+export function todayOver(tzOffsetH: number, nowMs: number, activity?: Activity): boolean {
+  const toH = activity ? toHFor(activity) : BEST_TO_H;
+  return nowMs >= localDayStart(nowMs, tzOffsetH) + (toH - BEST_LEN_H + 1) * 3.6e6;
+}
+
+/**
+ * Best window on local day `day` (0 = today, 1 = tomorrow …) for `activity` at `spot`, never one
+ * already over; null when that day has none left, it is past the forecast band, or there is no data.
+ */
+export function bestOnDay(env: MetricEnv, activity: Activity, spot: Spot, nowMs: number, day: number): BestToday | null {
+  if (day < 0 || day > BEST_MAX_DAY) return null;
+  const ids = votersFor(activity, spot);
+  const f = buildForecast(env, ids, [spot], nowMs, day + 1);
+  const metrics = ids.map((id) => METRIC_BY_ID.get(id)!);
+  if (f.rows.length !== metrics.length) return null;
+  const w = bestTime(f.rows, metrics, day, f.startMs, nowMs, toHFor(activity));
+  return w ? { spot: spot.name, startMs: w.startMs, endMs: w.endMs, good: w.score >= 0 } : null;
 }
 
 /** Best window left today for `activity` at `spot`, or null when the day is over or there is no data. */
-export function bestToday(env: MetricEnv, activity: Activity, spot: Spot, nowMs: number): BestToday | null {
-  const ids = votersFor(activity, spot);
-  const f = buildForecast(env, ids, [spot], nowMs, 1);
-  const metrics = ids.map((id) => METRIC_BY_ID.get(id)!);
-  if (f.rows.length !== metrics.length) return null;
-  const w = bestTime(f.rows, metrics, 0, f.startMs, nowMs);
-  return w ? { spot: spot.name, ...w } : null;
-}
+export const bestToday = (env: MetricEnv, activity: Activity, spot: Spot, nowMs: number): BestToday | null => bestOnDay(env, activity, spot, nowMs, 0);
 
 /**
  * The same hour score as `bestToday`, for a whole local day: 24 rows of `{ t, score }` with score
