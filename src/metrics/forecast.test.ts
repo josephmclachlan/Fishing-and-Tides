@@ -11,6 +11,8 @@ const env = (): MetricEnv => ({
   windMs: (_lng, _lat, ms) => 3 + 2 * Math.floor((ms - NOON) / 864e5 + 1),
   sea: (lng) => sea(lng < -83 ? 2 : 1),
   weather: () => [{ model: 'gfs_seamless', rainMmH: 0.1, cloudPct: 50, uv: 8, tempC: 28, gustKt: 15, capeJkg: 0 }],
+  clarityM: (lng) => (lng < -83 ? 4 : 12),
+  sargassumKm2: (spot, ms) => (spot === 'WEST' ? 0.8 : ms > NOON + 864e5 ? 0.05 : 0),
   tide: LIMON_HARMONICS,
   tzOffsetH: -6,
 });
@@ -44,7 +46,7 @@ describe('buildForecast', () => {
     expect(f.rows[1].days[0].value).toBe(15);
   });
   it('leaves cells empty with no data and still returns', () => {
-    const none: MetricEnv = { ...env(), windMs: () => null, sea: () => null, weather: () => [] };
+    const none: MetricEnv = { ...env(), windMs: () => null, sea: () => null, weather: () => [], clarityM: () => null, sargassumKm2: () => null };
     const f = buildForecast(none, ['swell', 'wind', 'rain'], spots, NOON, 3);
     expect(f.rows.every((r) => r.days.every((d) => d.value === null && d.spot === null))).toBe(true);
     expect(f.bestDay).toBeNull();
@@ -58,6 +60,21 @@ describe('buildForecast', () => {
     const f = buildForecast(env(), ['bite'], spots, NOON, 5);
     expect(f.rows[0].days.every((d) => d.value !== null && d.value >= 0 && d.value <= 100)).toBe(true);
     expect(Date.now() - t0).toBeLessThan(3000);
+  });
+});
+
+describe('clarity and sargassum', () => {
+  it('reads clarity at midday and picks the clearer spot', () => {
+    const f = buildForecast(env(), ['clarity'], spots, NOON, 2);
+    expect(f.rows[0].days[0]).toMatchObject({ value: 12, spot: 'EAST', tone: 'green' });
+    expect(f.rows[0].hourly.filter((x) => x !== null)).toHaveLength(2);
+  });
+  it('reads the beach outlook by spot name and flags landings', () => {
+    const f = buildForecast(env(), ['sargassum'], spots, NOON, 3);
+    expect(f.rows[0].days[0]).toMatchObject({ value: 0, spot: 'EAST', tone: 'green' });
+    expect(f.rows[0].days[2].tone).toBe('amber');
+    const west = buildForecast(env(), ['sargassum'], [spots[0]], NOON, 1);
+    expect(west.rows[0].days[0]).toMatchObject({ value: 0.8, tone: 'red' });
   });
 });
 
