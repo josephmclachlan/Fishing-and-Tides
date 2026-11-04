@@ -35,7 +35,7 @@ export function hereRows(s: HereSample): [string, string][] {
 }
 
 /** Layers whose own card wins where the tap hits them (the explainers in main.ts and map-explain.ts). */
-const MARKS = ['ob-dot', 'ob-label', 'lt-dot', 'st-ring', 'st-label', 'wv-crest', 'rp-site', 'rp-coast', 'sg-mat', 'sg-beach'];
+const MARKS = ['ob-dot', 'ob-label', 'lt-dot', 'st-ring', 'st-label', 'wv-crest', 'rp-site', 'rp-coast', 'sg-mat', 'sg-beach', 'cs-sites'];
 const TAP_BOX_PX = 9;
 
 let tapClaims = 0;
