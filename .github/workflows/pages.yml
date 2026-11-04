@@ -64,9 +64,24 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.retry1.outputs.page_url || steps.retry2.outputs.page_url }}
+    # GitHub Pages sometimes leaves a deployment stuck "in progress" on its side well past the
+    # action's 10 min timeout (2026-11-04: about 30 min). Until it clears, every new deploy is
+    # refused ("due to in progress deployment"). Wait and try again twice before failing.
     steps:
       - id: deployment
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - if: steps.deployment.outcome == 'failure'
+        run: sleep 300
+      - id: retry1
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - if: steps.retry1.outcome == 'failure'
+        run: sleep 600
+      - id: retry2
+        if: steps.retry1.outcome == 'failure'
         uses: actions/deploy-pages@v4
   # Daily history (PLAN 8.1, docs/HISTORY.md): samples the feeds the build just fetched at the
   # spots, plus the tide gauge and each weather model at the airport, and appends them to one CSV
