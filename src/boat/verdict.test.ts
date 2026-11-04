@@ -17,11 +17,20 @@ describe('boatVerdict', () => {
     expect(v.verdict).toBe('nogo');
     expect(v.reasons.map((r) => r.id)).toEqual(['lightning', 'wind', 'gust']);
   });
+  it('uses the same storm and small-boat limits as the activity verdicts (audit I)', () => {
+    expect(boatVerdict({ vessel: 'small', ...calm, windKt: 14 }).verdict).toBe('marginal');
+    expect(boatVerdict({ vessel: 'small', ...calm, windKt: 13.9 }).verdict).toBe('go');
+    expect(boatVerdict({ vessel: 'small', ...calm, hsM: 1.3 }).verdict).toBe('marginal');
+    expect(boatVerdict({ vessel: 'small', ...calm, stormKm: 499 }).verdict).toBe('nogo');
+    expect(boatVerdict({ vessel: 'small', ...calm, stormKm: 500 }).verdict).toBe('marginal');
+    expect(boatVerdict({ vessel: 'small', ...calm, stormKm: 1501 }).verdict).toBe('go');
+  });
+
   it('caps on squall, storm and heavy rain whatever the wind', () => {
     expect(boatVerdict({ vessel: 'yacht', ...calm, squall: 'high' }).verdict).toBe('nogo');
     expect(boatVerdict({ vessel: 'yacht', ...calm, squall: 'watch' }).verdict).toBe('marginal');
-    expect(boatVerdict({ vessel: 'yacht', ...calm, stormKm: 250 }).verdict).toBe('nogo');
-    expect(boatVerdict({ vessel: 'yacht', ...calm, stormKm: 800 }).verdict).toBe('marginal');
+    expect(boatVerdict({ vessel: 'yacht', ...calm, stormKm: 450 }).verdict).toBe('nogo');
+    expect(boatVerdict({ vessel: 'yacht', ...calm, stormKm: 1400 }).verdict).toBe('marginal');
     expect(boatVerdict({ vessel: 'yacht', ...calm, stormKm: 2000 }).verdict).toBe('go');
     expect(boatVerdict({ vessel: 'yacht', ...calm, rainMmH: 12 }).verdict).toBe('marginal');
   });

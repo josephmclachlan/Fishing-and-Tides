@@ -22,7 +22,7 @@
 import type { Comfort } from './physics/sea-state';
 import type { SurfBand } from './surf-quality';
 import type { Confidence } from './physics/clarity-forecast';
-import { safetyTerm, type SquallLevel } from './physics/safety';
+import { SMALL_BOAT_HS_M, SMALL_BOAT_WIND_KT, STORM_MARGINAL_KM, STORM_NOGO_KM, safetyTerm, type SquallLevel } from './physics/safety';
 import { ratingFor, type OutingScore } from './physics/outing';
 import type { Band } from './time';
 
@@ -95,8 +95,8 @@ const HAZARD: Rule = (i) => {
   if (level === 'GO') return null;
   return lightning ? R('lightning', level, i.lightningKm!) : R(i.squall === 'high' ? 'squall' : 'squallWatch', level);
 };
-export const STORM_NOGO_KM = 500;
-const STORM: Rule = (i) => (!has(i.stormKm) ? null : i.stormKm < STORM_NOGO_KM ? R('storm', 'NO-GO', i.stormKm) : R('stormFar', 'MARGINAL', i.stormKm));
+export { STORM_NOGO_KM };
+const STORM: Rule = (i) => (!has(i.stormKm) || i.stormKm > STORM_MARGINAL_KM ? null : i.stormKm < STORM_NOGO_KM ? R('storm', 'NO-GO', i.stormKm) : R('stormFar', 'MARGINAL', i.stormKm));
 
 const OUTING_LEVEL = { GO: 'GO', CAUTION: 'MARGINAL', AVOID: 'NO-GO' } as const;
 /** The outing score's rating, its reasons as `dive.r.*`. Its weather cap is already in the score. */
@@ -122,8 +122,8 @@ export const RULES: Record<Activity, readonly Rule[]> = {
   fish: [
     HAZARD, STORM,
     (i) => (i.heavyRain ? R('rain', 'MARGINAL') : null),
-    (i) => above(i.windKt, 14, 20, 'wind', 'windHigh'),
-    (i) => above(i.hsM, 1.3, 2, 'seas', 'seasHigh'),
+    (i) => above(i.windKt, ...SMALL_BOAT_WIND_KT, 'wind', 'windHigh'),
+    (i) => above(i.hsM, ...SMALL_BOAT_HS_M, 'seas', 'seasHigh'),
     (i) => (i.comfort === 'uncomfortable' ? R('uncomfortable', 'NO-GO') : i.comfort === 'rough' ? R('rough', 'MARGINAL') : i.comfort === 'comfortable' ? R('calmSea', 'GO') : null),
     (i) => (!has(i.bite) ? null : i.bite < 30 ? R('biteSlow', 'MARGINAL', i.bite) : i.bite >= 60 ? R('biteGood', 'GO', i.bite) : null),
   ],

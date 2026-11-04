@@ -12,7 +12,7 @@
  *
  * The reasons are the conditions that set the verdict, worst first.
  */
-import { safetyTerm, type SquallLevel } from '../physics/safety';
+import { SMALL_BOAT_HS_M, SMALL_BOAT_WIND_KT, STORM_MARGINAL_KM, STORM_NOGO_KM, safetyTerm, type SquallLevel } from '../physics/safety';
 import type { Vessel } from '../settings';
 
 export type Verdict = 'go' | 'marginal' | 'nogo';
@@ -20,13 +20,12 @@ export type VerdictReason = 'debris' | 'lightning' | 'storm' | 'squallHigh' | 's
 
 /** [MARGINAL at or above, NO-GO at or above] per vessel. Comfort is a score, so it is [MARGINAL below, NO-GO below]. */
 export const LIMITS: Readonly<Record<Vessel, { windKt: readonly [number, number]; gustKt: readonly [number, number]; hsM: readonly [number, number]; comfort: readonly [number, number] }>> = {
-  small: { windKt: [15, 20], gustKt: [20, 27], hsM: [1.2, 2], comfort: [50, 25] },
+  small: { windKt: SMALL_BOAT_WIND_KT, gustKt: [20, 27], hsM: SMALL_BOAT_HS_M, comfort: [50, 25] },
   yacht: { windKt: [20, 28], gustKt: [27, 37], hsM: [2, 3], comfort: [35, 15] },
 };
 
-/** A storm this close (km) is NO-GO; within STORM_MARGINAL_KM it is MARGINAL. */
-export const STORM_NOGO_KM = 300;
-export const STORM_MARGINAL_KM = 1000;
+/** A storm closer than STORM_NOGO_KM is NO-GO, within STORM_MARGINAL_KM MARGINAL: the same limits as every activity (physics/safety.ts). */
+export { STORM_MARGINAL_KM, STORM_NOGO_KM };
 export const HEAVY_RAIN_MM_H = 10;
 /** A shared safety cap (multiplier on a score) under this means stay ashore. */
 export const SAFETY_NOGO_BELOW = 0.5;
@@ -66,7 +65,7 @@ export function boatVerdict(i: VerdictInputs): BoatVerdict {
   };
   if (i.lightning) reasons.push({ id: 'lightning', level: 'nogo' });
   if (finite(i.stormKm)) {
-    if (i.stormKm <= STORM_NOGO_KM) reasons.push({ id: 'storm', level: 'nogo', value: i.stormKm });
+    if (i.stormKm < STORM_NOGO_KM) reasons.push({ id: 'storm', level: 'nogo', value: i.stormKm });
     else if (i.stormKm <= STORM_MARGINAL_KM) reasons.push({ id: 'storm', level: 'marginal', value: i.stormKm });
   }
   if (i.squall && i.squall !== 'none') {
