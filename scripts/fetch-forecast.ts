@@ -19,6 +19,7 @@ import { buildStorms } from './forecast/storms.ts';
 import { buildCurrents } from './forecast/currents.ts';
 import { buildMetar } from './forecast/metar.ts';
 import { buildCoral } from './forecast/coral.ts';
+import { buildMud } from './forecast/mud.ts';
 import { buildChl, buildChlPass, buildKd490, buildMld, buildSargassum, buildScatPass, buildSst, buildSstPass } from './forecast/satellite.ts';
 
 const OUT = 'public/data/forecast';
@@ -51,6 +52,8 @@ const FEEDS: Record<string, { build: (dir: string) => Promise<string>; refreshH:
   sargassum: { build: buildSargassum, refreshH: 12 },
   // Coral bleaching heat stress (PLAN 7.23), NOAA Coral Reef Watch daily 5 km via CoastWatch ERDDAP (no CORS, so relayed).
   coral: { build: buildCoral, refreshH: 12 },
+  // MUD WEEKS (PLAN 7.39): daily Kd490 at each reef's pixel, CoastWatch ERDDAP (no CORS, so relayed). About 10 days late.
+  mud: { build: buildMud, refreshH: 24 },
 };
 
 const wanted = process.argv.slice(2).filter((a) => !a.startsWith('-'));

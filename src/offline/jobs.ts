@@ -5,6 +5,7 @@
  * never claims a fresh download it did not get.
  */
 import { fetchCoral } from '../adapters/coral';
+import { fetchMud } from '../adapters/mud';
 import { fetchCatchmentRain } from '../adapters/catchment-rain';
 import { fetchCurrents } from '../adapters/currents';
 import { fetchGauge } from '../adapters/gauge';
@@ -52,6 +53,7 @@ export const JOB_FEEDS: Record<string, readonly string[]> = {
   sargassum: ['sargassum'],
   mld: ['mld'],
   coral: ['coral'],
+  mud: ['mud'],
 };
 
 /** Verify feeds that are precached with the app rather than synced (checked in the sync's last step). */
@@ -78,6 +80,7 @@ export function tripJobs(base: string = import.meta.env.BASE_URL): SyncJob[] {
     { name: 'sargassum', run: async () => need((await fetchSargassum({ base })).series, 'no sargassum detections') },
     { name: 'mld', run: async () => need((await fetchMld({ base })).series, 'no mixed-layer depth') },
     { name: 'coral', run: async () => live(await fetchCoral({ base }), 'coral heat stress') },
+    { name: 'mud', run: async () => live(await fetchMud({ base }), 'mud weeks') },
     { name: 'lightning', run: async () => { const d = await fetchLightning(); if (d) live(d, 'lightning'); } },
   ];
 }

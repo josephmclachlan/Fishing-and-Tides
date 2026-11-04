@@ -206,6 +206,16 @@ Reef points are public reef areas only. Restoration nurseries and outplant sites
 
 The DIVE panel heat card uses this feed too: `fetchCoral()`, then `nearestReef(d, lngLat)` and `coralNow(d, reef)` from `src/adapters/coral.ts`.
 
+## MUD WEEKS: sediment light stress (PLAN 7.39)
+
+Cahuita's long decline (live coral about 40% in the early 1980s to about 11% by 1993) is a sediment story (Cortés 1994; Cortés & Risk 1985), so the CORAL drawer scores murky water next to heat. `src/physics/mud.ts` has the formula: light lost at the reef's depth against the reef's own clear baseline (Beer–Lambert with Kd490), summed over the last 84 days on days that lose at least half the light, divided by 7. One MUD WEEK is a week with no light, or two weeks at half light. WATCH is 2 and HIGH is 4. These levels are rules of thumb and are not calibrated yet: Secchi and sediment-trap readings in the coral field log are the data to tune them.
+
+**Feed**: `npm run data:forecast -- mud` writes `data/forecast/mud.json`. It holds daily Kd490 at each reef's `kdPixel` (`CORAL_REEFS` in `src/region.ts`) for the last 90 time steps of `noaacwNPPN20S3AkdSCIDINEOF2kmDaily`, the gap-filled VIIRS + OLCI science-quality product at 2 km, about 10 days late. It comes from one box request around the reef pixels (~7 s), refreshed daily. The pixel is the nearest one to the reef with a value on at least 80% of days, because pixels on the reef flat are often masked.
+
+**History**: `npm run data:mud-history` writes `public/data/climatology/mud-history.json` (committed). It holds each reef's baseline Kd490 (20th percentile of the whole record, from 2018) and its peak MUD WEEKS per year at 4 m. It reads the record in 90-step index chunks, because a date range over the record times out upstream. Re-run it once a year. Without the file, the app takes the baseline from the feed's own 90 days and says so.
+
+A logged coral site uses the nearest reef's series at the site's own depth.
+
 ## Weather (PLAN 7.3)
 
 `src/adapters/weather.ts` fetches rain, cloud, UV and air temperature live from Open-Meteo's multi-model endpoint (GFS, ECMWF IFS, ICON) for one point at the region centre, through the offline cache, and keeps the models separate for the ensemble blend (PLAN 7.4). Models reach different horizons and ECMWF has no UV, so missing hours are NaN. A point is enough for HUD readouts; a gridded radar and cloud layer comes with PLAN 7.5. Storms are relayed by the data build (table above) because NHC sends no CORS headers; the forecast cone needs NHC's GIS files and is left to 7.5. Both feeds have verify checks.

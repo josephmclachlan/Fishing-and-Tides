@@ -89,6 +89,8 @@ describe('coral conditions snapshot', () => {
   it('keeps what is loaded, rounded, and leaves out what is missing', () => {
     expect(buildConditions(9, heat, { flowRatio: 2.345, rainMm: null, sargassum: 'LOW', hsM: NaN, lowTideM: -0.214 })).toEqual({ at: 9, reefId: 'cahuita', dhw: 4.26, alert: 3, sstC: 30.12, sstAnomalyC: 1.04, flowRatio: 2.35, sargassum: 'LOW', lowTideM: -0.21 });
     expect(buildConditions(9, null, null)).toEqual({ at: 9 });
+    expect(buildConditions(9, null, null, 3.456)).toEqual({ at: 9, mudWeeks: 3.46 });
+    expect(buildConditions(9, null, null, NaN)).toEqual({ at: 9 });
   });
 });
 

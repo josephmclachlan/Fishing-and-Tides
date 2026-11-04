@@ -29,8 +29,8 @@ const cell = (v: unknown) => {
 };
 
 const SNAKE: Record<(typeof MEASURES)[number], string> = { bleachPct: 'bleach_pct', sedimentPct: 'sediment_pct', secchiM: 'secchi_m', trapMgCm2Day: 'trap_mg_cm2_day', waterTempC: 'water_temp_c', outplanted: 'outplanted' };
-const COND = ['dhw', 'alert', 'sstC', 'flowRatio', 'rainMm', 'hsM', 'lowTideM', 'sargassum'] as const;
-const COND_SNAKE = ['dhw', 'crw_alert', 'sst_c', 'river_flow_x_median', 'catchment_rain_mm', 'wave_hs_m', 'low_tide_m', 'sargassum'];
+const COND = ['dhw', 'alert', 'sstC', 'flowRatio', 'rainMm', 'hsM', 'lowTideM', 'sargassum', 'mudWeeks'] as const;
+const COND_SNAKE = ['dhw', 'crw_alert', 'sst_c', 'river_flow_x_median', 'catchment_rain_mm', 'wave_hs_m', 'low_tide_m', 'sargassum', 'mud_weeks'];
 
 export const CSV_HEADER = [
   'site_id', 'kind', 'name', 'lat', 'lng', 'depth_m', 'species', 'site_notes',

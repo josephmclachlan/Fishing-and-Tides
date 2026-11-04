@@ -16,6 +16,7 @@
     "data:forecast": "node scripts/fetch-forecast.ts",
     "data:climatology": "node scripts/fetch-climatology.ts",
     "data:coral-history": "node scripts/fetch-coral-history.ts",
+    "data:mud-history": "node scripts/fetch-mud-history.ts",
     "data:archive": "node scripts/archive.ts",
     "verify": "vitest run --config vitest.verify.config.ts"
   },

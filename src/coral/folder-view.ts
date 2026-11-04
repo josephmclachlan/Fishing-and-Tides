@@ -25,6 +25,7 @@ export function conditionRows(c: Conditions | undefined): Row[] {
   if (c.dhw !== undefined) rows.push(['coral.c.dhw', c.dhw.toFixed(1)]);
   if (c.alert !== undefined && ALERT_KEYS[c.alert]) rows.push(['coral.c.alert', `@coral.alert.${ALERT_KEYS[c.alert]}`]);
   if (c.sstC !== undefined) rows.push(['coral.c.sst', `${c.sstC.toFixed(1)} °C${c.sstAnomalyC !== undefined ? ` (${c.sstAnomalyC >= 0 ? '+' : ''}${c.sstAnomalyC.toFixed(1)})` : ''}`]);
+  if (c.mudWeeks !== undefined) rows.push(['coral.c.mud', c.mudWeeks.toFixed(1)]);
   if (c.flowRatio !== undefined) rows.push(['coral.c.river', `${c.flowRatio.toFixed(1)}×`]);
   if (c.rainMm !== undefined) rows.push(['coral.c.rain', `${Math.round(c.rainMm)} mm`]);
   if (c.hsM !== undefined) rows.push(['coral.c.swell', `${c.hsM.toFixed(1)} m`]);

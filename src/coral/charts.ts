@@ -4,12 +4,22 @@
  */
 import { DHW_BLEACHING, DHW_SEVERE } from '../adapters/coral-parse';
 
-const tone = (dhw: number) => (dhw >= DHW_SEVERE ? 'var(--red)' : dhw >= DHW_BLEACHING ? 'var(--amber)' : 'var(--green)');
+/** Amber and red thresholds of a chart: DHW by default, MUD WEEKS passes its own. */
+export interface Bands {
+  watch: number;
+  high: number;
+  /** Bar height cap for the yearly chart. */
+  cap: number;
+}
+const DHW_BANDS: Bands = { watch: DHW_BLEACHING, high: DHW_SEVERE, cap: 20 };
+const toneFor = (b: Bands) => (v: number) => (v >= b.high ? 'var(--red)' : v >= b.watch ? 'var(--amber)' : 'var(--green)');
 
-/** The 12-week DHW build-up: a line over day index, with dashed lines at 4 and 8. */
-export function dhwTrendSvg(dhw: readonly (number | null)[], w = 280, h = 64): string {
-  const pts = dhw.map((v, i) => [i, v] as const).filter((p): p is readonly [number, number] => p[1] !== null);
-  const top = Math.max(DHW_SEVERE + 2, ...pts.map((p) => p[1]));
+/** The 12-week build-up: a line over day index, with dashed lines at the two thresholds (DHW 4 and 8 by default). */
+export function dhwTrendSvg(dhw: readonly (number | null)[], w = 280, h = 64, bands: Bands = DHW_BANDS): string {
+  const tone = toneFor(bands);
+  const DHW_BLEACHING = bands.watch, DHW_SEVERE = bands.high;
+  const pts = dhw.map((v, i) => [i, v] as const).filter((p): p is readonly [number, number] => p[1] !== null && Number.isFinite(p[1]));
+  const top = Math.max(DHW_SEVERE * 1.25, ...pts.map((p) => p[1]));
   const x = (i: number) => ((i / Math.max(1, dhw.length - 1)) * (w - 2) + 1).toFixed(1);
   const y = (v: number) => (h - 1 - (v / top) * (h - 2)).toFixed(1);
   const guide = (v: number, c: string) => `<line x1="0" x2="${w}" y1="${y(v)}" y2="${y(v)}" style="stroke:${c};stroke-width:1;stroke-dasharray:3 3;opacity:.6"/>`;
@@ -19,11 +29,13 @@ export function dhwTrendSvg(dhw: readonly (number | null)[], w = 280, h = 64): s
   return `<svg class="coral-chart" viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" role="img">${guide(DHW_BLEACHING, 'var(--amber)')}${guide(DHW_SEVERE, 'var(--red)')}${line}${dot}</svg>`;
 }
 
-/** One bar per year, height by that year's peak DHW (capped at 20), coloured by threshold. */
-export function peaksSvg(years: readonly number[], peaks: readonly (number | null)[], w = 280, h = 56): string {
+/** One bar per year, height by that year's peak (capped; DHW 20 by default), coloured by threshold. */
+export function peaksSvg(years: readonly number[], peaks: readonly (number | null)[], w = 280, h = 56, bands: Bands = DHW_BANDS): string {
+  const tone = toneFor(bands);
+  const DHW_SEVERE = bands.high;
   const n = years.length;
   const bw = w / Math.max(1, n);
-  const cap = 20;
+  const cap = bands.cap;
   const bars = peaks.map((p, i) => {
     if (p === null) return '';
     const bh = Math.max(1, (Math.min(p, cap) / cap) * (h - 2));

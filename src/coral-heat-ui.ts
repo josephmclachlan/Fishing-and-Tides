@@ -11,6 +11,12 @@ import { dhwTrendSvg, peaksSvg, yearsOver } from './coral/charts';
 import { coralRisks, type RiskInputs } from './coral/risks';
 import { toneOf } from './layers/coral';
 import { clarityLevel } from './physics/clarity';
+import type { MudNow } from './adapters/mud';
+import type { MudHistory } from './adapters/mud-parse';
+import { MUD_HIGH, MUD_WATCH } from './physics/mud';
+
+const MUD_BANDS = { watch: MUD_WATCH, high: MUD_HIGH, cap: 10 };
+const mudTone = (l: string) => (l === 'high' ? 'red' : l === 'watch' ? 'amber' : l === 'ok' ? 'green' : 'dim');
 
 /** Visibility colour on the BEST VISIT line: the best day can still be murky, and should look it. */
 const VIS_TONE = { GOOD: 'green', FAIR: 'amber', POOR: 'red' } as const;
@@ -42,6 +48,9 @@ export interface CoralHeatDeps {
   visit?: (reef: CoralReef) => ReefVisit | null;
   /** Move the map to a reef from the list. */
   goTo?: (reef: CoralReef) => void;
+  /** MUD WEEKS at a reef (PLAN 7.39), null before the feed loads. */
+  mud?: (reefId: string) => (MudNow & { fromHistory: boolean }) | null;
+  mudHistory?: () => MudHistory | null;
 }
 
 export function mountCoralHeat(panel: HTMLElement, deps: CoralHeatDeps) {
@@ -93,10 +102,35 @@ export function mountCoralHeat(panel: HTMLElement, deps: CoralHeatDeps) {
       <div class="lbl">${t('coral.peaks', { from: years[0] })}</div>
       ${peaksSvg(years, peaks)}
       <div class="cr-note">${severe.length ? `${t('coral.severeYears')} ${severe.slice(0, 6).join(' ')}` : ''}</div>
+      ${mudHtml(reef.id)}
       <div class="lbl">${t('coral.risks')}</div>
       <ul class="cr-risks">${rows.map((r) => `<li><span class="lbl">${t(`coral.risk.${r.id}` as Key)}</span><span class="cr-lvl cr-${r.level === 'high' ? 'red' : r.level === 'watch' ? 'amber' : r.level === 'ok' ? 'green' : 'dim'}">${t(`coral.lvl.${r.level}` as Key)}</span><span class="seg sm">${r.value}</span></li>`).join('')}</ul>
       <p class="rules-advice">${t('coral.heatNote')}</p>`;
   };
+  /** MUD WEEKS (PLAN 7.39): the number, its 12-week build-up and each year's peak, under the heat charts. */
+  function mudHtml(id: string) {
+    const m = deps.mud?.(id);
+    if (!m) return '';
+    const mh = deps.mudHistory?.() ?? null;
+    const h = mh?.reefs.find((r) => r.id === id);
+    const hy = mh?.years ?? [];
+    const year = new Date().getUTCFullYear();
+    // This year's bar: the larger of the stored history and the live window.
+    const livePeak = Math.max(-Infinity, ...m.trend.filter((v): v is number => v !== null));
+    const years = h ? [...hy.filter((y) => y < year), year] : [];
+    const peaks = years.map((y) => {
+      const i = hy.indexOf(y);
+      const stored = h && i >= 0 ? h.peak[i] : null;
+      return y === year && Number.isFinite(livePeak) ? Math.max(stored ?? -Infinity, livePeak) : stored;
+    });
+    const tone = mudTone(m.level);
+    return `
+      <div class="ro"><span class="lbl">${t('coral.mud')}</span><span class="seg cr-${tone}">${Number.isFinite(m.mw) ? m.mw.toFixed(1) : '--'}</span><span class="cr-lvl cr-${tone}">${t(`coral.lvl.${m.level}` as Key)}</span><span class="lbl">${Number.isFinite(m.day) ? dated(m.day) : ''}</span></div>
+      <div class="lbl">${t('coral.mudTrend')}</div>
+      ${dhwTrendSvg(m.trend, 280, 64, MUD_BANDS)}
+      ${years.length ? `<div class="lbl">${t('coral.mudPeaks', { from: years[0] })}</div>${peaksSvg(years, peaks, 280, 56, MUD_BANDS)}` : ''}
+      <p class="rules-advice">${t('coral.mudNote', { m: m.depthM })}${m.fromHistory ? '' : ` ${t('coral.mudNoHistory')}`}</p>`;
+  }
   box.addEventListener('click', (e) => {
     const b = (e.target as Element).closest<HTMLElement>('[data-reef]');
     const r = b && deps.heat()?.reefs.find((x) => x.id === b.dataset.reef);
