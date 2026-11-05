@@ -880,12 +880,22 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 /* Phone FIND drawer: every beach shortcut on screen, wrapped, rather than a sideways row cut off at the edge. */
 @media (max-width: 1100px), (max-height: 700px) {
   .seek-tabs { flex-wrap: wrap; overflow-x: visible; }
+  body[data-sheet='find'] .seek { max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 64px) - 24px); overflow-y: auto; }
 }
 
 /* Buttons break between words, never inside one (MODERN's panel-wide break-word made SNORKE / L / DIVE). */
 .panel .tab, .panel button { overflow-wrap: normal; }
 /* Desktop MODERN: the search hint fits its box (BEACH OR LAT, LO was cut). Phones keep 16 px so iOS doesn't zoom. */
 @media (min-width: 1101px) and (min-height: 701px) { :root[data-theme='modern'] .seek-in { font-size: 14px; letter-spacing: 0.5px; } }
+
+/* Drawer button rows and site lists: long names (and Spanish labels) wrap inside the button. */
+.boat-btns .tab, .boat-pins .pin-go { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+/* BEST TODAY label wraps when the activity name is long (MEJOR HORA HOY · SNORKEL / BUCEO). */
+.best-today .lbl { white-space: normal; }
+.bt-glance .lbl { flex: 0 1 auto; min-width: 0; }
+/* Phone glance strip: a cell is as wide as its reading, so a long word (ADELANTE) takes room from short ones. */
+@media (max-width: 1100px), (max-height: 700px) { .gl-cell { flex: 1 1 auto; } }
+@media (max-width: 380px) { .gl-cell .seg, :root[data-theme='modern'] .gl-cell .seg { font-size: 16px; } }
 
 /* Drawer readouts wrap onto a second line instead of ending in an ellipsis. */
 .boat .ro, .check .ro, .spot-page .ro, .watch .ro, .layers .ro { min-width: 0; flex-wrap: wrap; }
