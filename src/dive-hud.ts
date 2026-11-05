@@ -241,5 +241,13 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     const c = map.getCenter();
     return scoreAt(ms, (((ms + REGION.tzOffsetH * 3.6e6) % 864e5) + 864e5) % 864e5 / 3.6e6, env.visAt(c.lng, c.lat, ms), undefined, m);
   };
-  return { refresh: () => ((heavyKey = ''), refresh()), now, mode: () => mode, setMode: (m: Mode) => ((mode = m), apply()) };
+  /**
+   * Outing score at any place and hour in SNORKEL or DIVE mode, for WATCH's BEST DAY FOR (metrics/plan.ts). Visibility is
+   * that day's midday value, as in the WEEK row, so the two agree; null without the sea, wind or spot model.
+   */
+  const outingAt = (at: [number, number], m: Mode, ms: number, localHour: number): number | null => {
+    const vis = env.visAt(at[0], at[1], localDayStart(ms, REGION.tzOffsetH) + NOON);
+    return scoreAt(ms, localHour, vis, at, m)?.score ?? null;
+  };
+  return { refresh: () => ((heavyKey = ''), refresh()), now, outingAt, mode: () => mode, setMode: (m: Mode) => ((mode = m), apply()) };
 }

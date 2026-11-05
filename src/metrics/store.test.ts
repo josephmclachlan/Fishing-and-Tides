@@ -9,12 +9,16 @@ const mem = (init?: string) => {
 describe('watch store', () => {
   it('round-trips a selection', () => {
     const s = mem();
-    saveWatch(s, { metrics: ['bite', 'wind'], region: { center: [-82.7, 9.65], radiusKm: 10 } });
-    expect(loadWatch(s)).toEqual({ metrics: ['bite', 'wind'], region: { center: [-82.7, 9.65], radiusKm: 10 } });
+    saveWatch(s, { metrics: ['bite', 'wind'], region: { center: [-82.7, 9.65], radiusKm: 10 }, activity: 'snorkel' });
+    expect(loadWatch(s)).toEqual({ metrics: ['bite', 'wind'], region: { center: [-82.7, 9.65], radiusKm: 10 }, activity: 'snorkel' });
+  });
+  it('reads a selection saved before BEST DAY FOR as following the CONDITIONS activity', () => {
+    expect(loadWatch(mem(JSON.stringify({ metrics: ['wind'], region: null }))).activity).toBeNull();
+    expect(loadWatch(mem(JSON.stringify({ metrics: ['wind'], region: null, activity: 'kite' }))).activity).toBeNull();
   });
   it('falls back to defaults on nothing, junk or no storage', () => {
-    expect(loadWatch(mem())).toEqual({ metrics: DEFAULT_STATE.metrics, region: null });
-    expect(loadWatch(mem('{{'))).toEqual({ metrics: DEFAULT_STATE.metrics, region: null });
+    expect(loadWatch(mem())).toEqual({ metrics: DEFAULT_STATE.metrics, region: null, activity: null });
+    expect(loadWatch(mem('{{'))).toEqual({ metrics: DEFAULT_STATE.metrics, region: null, activity: null });
     expect(loadWatch(undefined).metrics).toEqual(DEFAULT_STATE.metrics);
   });
   it('drops unknown and repeated metrics, caps the count, rejects a bad region', () => {

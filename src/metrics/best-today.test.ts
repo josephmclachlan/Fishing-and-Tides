@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LIMON_HARMONICS } from '../data/tides-limon';
-import { DIVE_TO_H, bestOnDay, bestToday, hourlyScores, spotNear, todayOver } from './best-today';
+import { DIVE_TO_H, DUSK_TO_H, bestOnDay, bestToday, hourlyScores, spotNear, todayOver } from './best-today';
 import type { MetricEnv } from './registry';
 import type { SeaState } from '../adapters/waves';
 
@@ -99,6 +99,13 @@ describe('bestOnDay (J3)', () => {
     expect(bestToday(env(), 'dive', spot, DAY0 + 16 * H + 1)).toBeNull();
     expect(todayOver(-6, DAY0 + 16 * H + 1, 'dive')).toBe(true);
     expect(todayOver(-6, DAY0 + 16 * H + 1, 'boat')).toBe(false);
+  });
+  it('ends surf and boat windows by 18:00 and lets fishing run into the dusk bite', () => {
+    const late = { ...env(), windMs: (_a: number, _b: number, ms: number) => ((ms - DAY0) / H >= 17 ? 1 : 11) };
+    expect(bestToday(late, 'boat', spot, DAY0 + 6 * H)!.endMs).toBeLessThanOrEqual(DAY0 + DUSK_TO_H * H);
+    expect(bestToday(late, 'fish', spot, DAY0 + 6 * H)!.endMs).toBeLessThanOrEqual(DAY0 + 19 * H);
+    expect(todayOver(-6, DAY0 + 17 * H + 1, 'surf')).toBe(true);
+    expect(todayOver(-6, DAY0 + 17 * H + 1, 'fish')).toBe(false);
   });
   it('flags a day where even the best hours are mostly bad', () => {
     const storm = { ...env(), windMs: () => 20, weather: () => [{ model: 'gfs_seamless', rainMmH: 15, cloudPct: 100, uv: 1, tempC: 25, gustKt: 40, capeJkg: 3000, pressureHpa: 1000, windKt: 38 }] as ReturnType<MetricEnv['weather']> };

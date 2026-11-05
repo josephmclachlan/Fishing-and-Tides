@@ -1,8 +1,10 @@
 /**
  * WATCH (PLAN 7.13): the metric tracker. A top-bar WATCH tab opens a drawer (a sheet, see
- * sheets.ts) where the user picks a region on the map and the metrics to track, then GENERATE
- * opens a 5-day forecast popup: CARDS (main) or TABLE (print and share), with SHARE as an image.
- * The numbers come from `src/metrics/forecast.ts`; this file is only DOM.
+ * sheets.ts) where the user picks a region on the map, the activity the BEST DAY is for (SURF, FISH,
+ * SNORKEL, DIVE, BOAT) and the metrics to track, then GENERATE opens a 5-day forecast popup: the
+ * activity's best day, time and spot with its score for each day, then CARDS (main) or TABLE (print
+ * and share), with SHARE as an image. The best day comes from `src/metrics/plan.ts` and the cards from
+ * `src/metrics/forecast.ts`, read at the spot the plan picked each day; this file is only DOM.
  */
 import type { Map, GeoJSONSource } from 'maplibre-gl';
 import type { FeatureCollection } from 'geojson';
@@ -11,6 +13,7 @@ import { t, type Key } from './i18n';
 import { PHONE_QUERY, closeButton, type Sheets } from './sheets';
 import { METRICS, METRIC_BY_ID, METRIC_PRESETS, MAX_TRACKED, type MetricEnv } from './metrics/registry';
 import { buildForecast, spotsIn, type Region, type WatchForecast } from './metrics/forecast';
+import { HEADLINE, PLAN_ACTIVITIES, planDays, type OutingAt, type Plan, type PlanActivity } from './metrics/plan';
 import { DEFAULT_STATE, RADII_KM, hasSavedWatch, loadWatch, saveWatch, type WatchState } from './metrics/store';
 import { drawForecast, shareCanvas } from './metrics/share-image';
 import { claimMapTap } from './here-card';
@@ -36,14 +39,39 @@ const hhmm = (ms: number) => {
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 };
 
-/** "BEST DAY: THU · 06:00–08:00" (Costa Rica time), or null with no best day. */
-export function bestText(f: WatchForecast): string | null {
-  if (f.bestDay === null) return null;
-  const day = `${t('watch.best')}: ${dayName(f.startMs + f.bestDay * 864e5)}`;
-  return f.bestTime ? `${day} · ${hhmm(f.bestTime.startMs)}–${hhmm(f.bestTime.endMs)}` : day;
+const tone = (c: string) => (c === 'green' ? ' green' : c === 'red' ? ' red' : '');
+const actName = (a: PlanActivity) => t(`watch.preset.${a}` as Key);
+
+/**
+ * "BEST DAY FOR SURF: THU · 06:00–08:00 · SALSA BRAVA" (Costa Rica time), or why there is none
+ * ("BEST DAY FOR SURF: NO SURF BREAK IN THIS REGION"); `good` is false for the second kind.
+ */
+export function bestText(p: Plan): { text: string; good: boolean } {
+  const head = t('watch.bestFor', { act: actName(p.activity) });
+  const b = p.bestDay === null ? null : p.days[p.bestDay];
+  if (b) return { text: `${head}: ${dayName(b.dayMs)} · ${hhmm(b.startMs)}–${hhmm(b.endMs)} · ${b.spot}`, good: true };
+  const why = p.none === 'nospot' ? (p.activity === 'surf' ? 'watch.none.nospot.surf' : 'watch.none.nospot.reef') : p.none === 'poor' ? 'watch.none.poor' : 'watch.none.nodata';
+  return { text: `${head}: ${t(why)}`, good: false };
+}
+
+/** "THU, SAT: ABOUT AS GOOD" for the other good days within a whisker of the best, or null. */
+export function alikeText(p: Plan): string | null {
+  return p.alike.length ? t('watch.alike', { days: p.alike.map((d) => dayName(p.startMs + d * 864e5)).join(', ') }) : null;
 }
 
 const fmt = (v: number | null, decimals: number) => (v === null ? '--' : v.toFixed(decimals));
+
+/** The activity's own score for each day (best window, best spot), the best day marked, and what the score is made of. */
+export function planHtml(p: Plan): string {
+  const dec = HEADLINE[p.activity].max === 10 ? 1 : 0;
+  return `<div class="wt-plan"><div class="wt-days">${p.days
+    .map((c, d) => {
+      const dayMs = p.startMs + d * 864e5;
+      const cls = [c ? tone(c.tone).trim() : '', d === p.bestDay ? 'wt-top' : p.alike.includes(d) ? 'wt-alike' : ''].filter(Boolean).join(' ');
+      return `<div class="${cls}"${c ? ` title="${esc(`${c.spot} ${hhmm(c.startMs)}–${hhmm(c.endMs)}`)}"` : ''}>${dayName(dayMs)}<b>${fmt(c?.value ?? null, dec)}</b></div>`;
+    })
+    .join('')}</div>${alikeText(p) ? `<p class="lbl wt-how">${esc(alikeText(p)!)}</p>` : ''}<p class="lbl wt-how">${esc(t(`watch.how.${p.activity}` as Key))}</p></div>`;
+}
 
 /** A sparkline over the hourly values, drawn in the card's own colour (currentColor). */
 function spark(xs: (number | null)[]): string {
@@ -53,8 +81,6 @@ function spark(xs: (number | null)[]): string {
   const pts = xs.map((x, i) => (x === null ? null : `${((i / (xs.length - 1)) * 100).toFixed(1)},${(26 - ((x - lo) / span) * 24).toFixed(1)}`)).filter(Boolean).join(' ');
   return `<svg class="wt-spark" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke" points="${pts}"/></svg>`;
 }
-
-const tone = (c: string) => (c === 'green' ? ' green' : c === 'red' ? ' red' : '');
 
 export function cardsHtml(f: WatchForecast): string {
   return `<div class="wt-cards">${f.rows
@@ -81,13 +107,18 @@ export function mountWatchPanel(
   sheets: Sheets,
   store: Pick<globalThis.Storage, 'getItem' | 'setItem'> | undefined,
   getEnv: () => MetricEnv,
-  /** The CONDITIONS activity ('all' or a preset id), to start a first-time user on that activity's metrics. */
-  getActivity: () => string = () => 'all',
+  /** The activity picked in CONDITIONS (SNORKEL or DIVE from the dive panel), for a user who has not picked one here. */
+  getActivity: () => PlanActivity = () => 'surf',
+  /** The DIVE & SNORKEL panel's outing score at any spot and hour, for SNORKEL and DIVE; absent until that panel is up. */
+  outingAt: () => OutingAt | undefined = () => undefined,
 ) {
   let state: WatchState = loadWatch(store);
   // Until the user picks anything, the metrics follow the activity chosen in CONDITIONS (J4).
   let picked = hasSavedWatch(store);
   const persist = () => ((picked = true), saveWatch(store, state));
+  // getActivity reads panels mounted after this one, so it is only asked once the drawer has been opened.
+  let opened = false;
+  const activity = (): PlanActivity | null => state.activity ?? (opened ? getActivity() : null);
 
   const el = document.createElement('section');
   el.className = 'panel watch';
@@ -98,8 +129,9 @@ export function mountWatchPanel(
       <div class="wt-row"><button type="button" class="tab" id="wt-all">${t('watch.all')}</button><button type="button" class="tab" id="wt-pick">${t('watch.pick')}</button></div>
       <div class="wt-row" id="wt-radii">${RADII_KM.map((k) => `<button type="button" class="tab" data-km="${k}">${k} ${t('unit.km')}</button>`).join('')}</div>
       <div class="lbl wt-count" id="wt-count"></div></div>
+    <div class="wt-sec"><span class="lbl">${t('watch.for')}</span>
+      <div class="wt-row" id="wt-acts">${PLAN_ACTIVITIES.map((p) => `<button type="button" class="tab" data-preset="${p}">${actName(p)}</button>`).join('')}</div></div>
     <div class="wt-sec"><span class="lbl">${t('watch.metrics')} <span id="wt-n"></span> · ${t('watch.max')}</span>
-      <div class="wt-row">${(['surf', 'fish', 'dive', 'boat'] as const).map((p) => `<button type="button" class="tab" data-preset="${p}">${t(`watch.preset.${p}` as Key)}</button>`).join('')}</div>
       <div class="wt-chips" id="wt-chips">${METRICS.map((m) => `<button type="button" class="tab" data-m="${m.id}">${t(`metric.${m.id}` as Key)}</button>`).join('')}</div></div>
     <button type="button" class="tab wt-go" id="wt-go">${t('watch.generate')}</button>
     <p class="rules-advice">${t('watch.note')}</p>`;
@@ -158,16 +190,23 @@ export function mountWatchPanel(
       b.setAttribute('aria-pressed', String(on));
     });
     ($('wt-go') as HTMLButtonElement).disabled = !n || !state.metrics.length;
-    el.querySelectorAll<HTMLElement>('[data-preset]').forEach((b) => b.classList.toggle('on', METRIC_PRESETS[b.dataset.preset as keyof typeof METRIC_PRESETS]?.join() === state.metrics.join()));
+    el.querySelectorAll<HTMLElement>('[data-preset]').forEach((b) => {
+      const on = b.dataset.preset === activity();
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
     drawRing();
   };
   const change = () => (persist(), sync());
   // A first-time user starts on the metrics of the activity picked in CONDITIONS, until they choose their own.
   sheets.subscribe(() => {
-    if (!sheets.is('watch') || picked) return;
-    const act = getActivity() as keyof typeof METRIC_PRESETS;
+    if (!sheets.is('watch')) return;
+    opened = true;
+    if (picked) return sync();
+    const act = activity() ?? 'surf';
     const metrics = METRIC_PRESETS[act] ? [...METRIC_PRESETS[act]] : [...DEFAULT_STATE.metrics];
-    if (metrics.join() !== state.metrics.join()) (state = { ...state, metrics }), sync();
+    if (metrics.join() !== state.metrics.join()) state = { ...state, metrics };
+    sync();
   });
 
   $('wt-all').addEventListener('click', () => ((state = { ...state, region: null }), change()));
@@ -183,9 +222,10 @@ export function mountWatchPanel(
     state = { ...state, metrics: has ? state.metrics.filter((m) => m !== id) : [...state.metrics, id] };
     change();
   });
-  el.addEventListener('click', (e) => {
-    const p = (e.target as HTMLElement).closest<HTMLElement>('[data-preset]')?.dataset.preset as keyof typeof METRIC_PRESETS | undefined;
-    if (p && METRIC_PRESETS[p]) (state = { ...state, metrics: [...METRIC_PRESETS[p]] }), change();
+  // Picking an activity sets what BEST DAY is for, and starts the cards on that activity's set (they can then be changed freely).
+  el.querySelector('#wt-acts')!.addEventListener('click', (e) => {
+    const p = (e.target as HTMLElement).closest<HTMLElement>('[data-preset]')?.dataset.preset as PlanActivity | undefined;
+    if (p && METRIC_PRESETS[p]) (state = { ...state, activity: p, metrics: [...METRIC_PRESETS[p]] }), change();
   });
 
   // Pick on the map: close the drawer (on a phone a tap on the map closes sheets anyway), take the next tap as the centre, reopen.
@@ -218,13 +258,15 @@ export function mountWatchPanel(
   root.appendChild(pop);
   let view: 'cards' | 'table' = 'cards';
   let fc: WatchForecast | null = null;
-  const best = () => (fc ? bestText(fc) : null);
+  let plan: Plan | null = null;
+  const best = () => (plan ? bestText(plan) : null);
   const subtitle = () => `${state.region ? '' : t('watch.all') + ' · '}${fc?.spots.join(', ') ?? ''}`;
 
   const render = () => {
     if (!fc) return;
     pop.innerHTML = `<div class="ph">${t('watch.forecast')}<span class="wt-tabs"><button type="button" class="tab${view === 'cards' ? ' on' : ''}" data-view="cards">${t('watch.cards')}</button><button type="button" class="tab${view === 'table' ? ' on' : ''}" data-view="table">${t('watch.table')}</button><button type="button" class="tab" id="wt-share">${t('watch.share')}</button></span><button type="button" class="sheet-x wt-x" aria-label="${t('watch.close')}">✕</button></div>
-      <div class="lbl wt-sub">${esc(subtitle())}</div>${best() ? `<div class="wt-best seg sm green">▶ ${esc(best()!)}</div>` : ''}
+      <div class="lbl wt-sub">${esc(subtitle())}</div>${best() ? `<div class="wt-best seg sm wrap${best()!.good ? ' green' : ' poor'}">${best()!.good ? '▶ ' : ''}${esc(best()!.text)}</div>` : ''}
+      ${plan ? planHtml(plan) : ''}
       <div class="wt-body">${view === 'cards' ? cardsHtml(fc) : tableHtml(fc)}</div><div class="lbl" id="wt-msg" role="status"></div>`;
     pop.querySelector('.wt-x')!.addEventListener('click', () => (pop.hidden = true));
     pop.querySelectorAll<HTMLElement>('[data-view]').forEach((b) => b.addEventListener('click', () => ((view = b.dataset.view as 'cards' | 'table'), render())));
@@ -232,7 +274,7 @@ export function mountWatchPanel(
       const c = drawForecast(fc!, {
         title: `${t('watch.title')} · ${t('watch.forecast')}`,
         subtitle: subtitle(),
-        best: best(),
+        best: best() ? [best()!.text, plan && alikeText(plan)].filter(Boolean).join(' · ') : null,
         metric: (id) => t(`metric.${id}` as Key),
         day: dayName,
         value: (_id, v, d) => fmt(v, d),
@@ -242,7 +284,13 @@ export function mountWatchPanel(
     });
   };
   $('wt-go').addEventListener('click', () => {
-    fc = buildForecast(getEnv(), state.metrics, inRegion(), Date.now(), 5);
+    const env = getEnv(), now = Date.now(), spots = inRegion();
+    plan = planDays(env, activity() ?? getActivity(), spots, now, 5, outingAt());
+    // Every card reads the spot BEST DAY picked that day, so the numbers describe where it sends you.
+    // A day with no window (today once it is over) reads the best day's spot, so the cards stay on one place.
+    const anchor = (plan.bestDay !== null ? plan.days[plan.bestDay] : null) ?? plan.days.find(Boolean) ?? null;
+    const daySpots = plan.days.map((d) => spots.find((s) => s.name === (d ?? anchor)?.spot) ?? null);
+    fc = buildForecast(env, state.metrics, spots, now, 5, daySpots);
     pop.hidden = false;
     if (window.matchMedia(PHONE_QUERY).matches) sheets.close('watch');
     render();

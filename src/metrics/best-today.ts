@@ -42,11 +42,13 @@ export interface BestToday {
 }
 
 /**
- * Last hour a window may run to, local. Diving and snorkelling need daylight in the water, and
- * sunset on this coast is 17:10 to 17:50 all year, so their windows end by 17:00; the rest run to 19:00.
+ * Last hour a window may run to, local. Sunset on this coast is 17:10 to 17:50 all year and dusk is
+ * short this close to the equator. Diving and snorkelling need daylight in the water, so their
+ * windows end by 17:00; surfing and boating need to see the sets and the reefs, so by 18:00. Fishing
+ * runs to 19:00: the dusk bite is one of the best times for it.
  */
-export const DIVE_TO_H = 17;
-const toHFor = (activity: Activity) => (activity === 'dive' ? DIVE_TO_H : BEST_TO_H);
+export const DIVE_TO_H = 17, DUSK_TO_H = 18;
+export const toHFor = (activity: Activity) => (activity === 'dive' ? DIVE_TO_H : activity === 'fish' ? BEST_TO_H : DUSK_TO_H);
 /** Days ahead the button can look: the model forecast band (FORECAST, 7 days). */
 export const BEST_MAX_DAY = 6;
 

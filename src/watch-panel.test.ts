@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { bestText, cardsHtml, circle, tableHtml } from './watch-panel';
+import { alikeText, bestText, cardsHtml, circle, planHtml, tableHtml } from './watch-panel';
+import type { Plan } from './metrics/plan';
 import type { WatchForecast } from './metrics/forecast';
 import { haversineM } from './geo';
 
 const f: WatchForecast = {
-  startMs: Date.UTC(2026, 10, 4, 6), days: 2, spots: ['CAHUITA'], bestDay: 0, bestTime: { startMs: Date.UTC(2026, 10, 4, 12), endMs: Date.UTC(2026, 10, 4, 14) },
+  startMs: Date.UTC(2026, 10, 4, 6), days: 2, spots: ['CAHUITA'],
   rows: [{ id: 'swell', unit: 'm', decimals: 1, hourly: [1, 1.2, 1.4], days: [{ dayMs: Date.UTC(2026, 10, 4, 6), value: 1.2, tone: 'green', spot: 'CAHUITA' }, { dayMs: Date.UTC(2026, 10, 5, 6), value: null, tone: 'none', spot: null }] }],
 };
 
@@ -34,12 +35,40 @@ describe('circle', () => {
   });
 });
 
+const plan: Plan = {
+  activity: 'surf', startMs: Date.UTC(2026, 10, 4, 6), bestDay: 1, alike: [], none: null,
+  days: [
+    { day: 0, dayMs: Date.UTC(2026, 10, 4, 6), spot: 'PLAYA COCLES', startMs: Date.UTC(2026, 10, 4, 15), endMs: Date.UTC(2026, 10, 4, 17), value: 2.4, tone: 'red', good: false, rank: -0.9 },
+    { day: 1, dayMs: Date.UTC(2026, 10, 5, 6), spot: 'SALSA BRAVA', startMs: Date.UTC(2026, 10, 5, 12), endMs: Date.UTC(2026, 10, 5, 14), value: 7.1, tone: 'green', good: true, rank: 1.36 },
+    null,
+  ],
+};
+
 describe('bestText', () => {
-  it('names the best day and the best two local hours', () => {
-    expect(bestText(f)).toBe('BEST DAY: WED · 06:00–08:00');
+  it('names the activity, the best day, its two local hours and the spot', () => {
+    expect(bestText(plan)).toEqual({ text: 'BEST DAY FOR SURF: THU · 06:00–08:00 · SALSA BRAVA', good: true });
   });
-  it('drops the time when there is none, and says nothing without a best day', () => {
-    expect(bestText({ ...f, bestTime: null })).toBe('BEST DAY: WED');
-    expect(bestText({ ...f, bestDay: null, bestTime: null })).toBeNull();
+  it('says why there is no best day', () => {
+    expect(bestText({ ...plan, bestDay: null, none: 'poor' }).text).toBe('BEST DAY FOR SURF: NO GOOD WINDOW IN THE NEXT 5 DAYS');
+    expect(bestText({ ...plan, bestDay: null, none: 'nospot' }).text).toBe('BEST DAY FOR SURF: NO SURF BREAK IN THIS REGION');
+    expect(bestText({ ...plan, activity: 'snorkel', bestDay: null, none: 'nospot' }).text).toBe('BEST DAY FOR SNORKEL: NO SNORKEL OR DIVE SPOT IN THIS REGION');
+    expect(bestText({ ...plan, bestDay: null, none: 'nodata' })).toEqual({ text: 'BEST DAY FOR SURF: NO DATA YET', good: false });
+  });
+});
+
+describe('planHtml', () => {
+  it("shows the activity's score for each day, marks the best one and says what is scored", () => {
+    const h = planHtml(plan);
+    expect(h).toContain('WED<b>2.4</b>');
+    expect(h).toContain('class="green wt-top"');
+    expect(h).toContain('THU<b>7.1</b>');
+    expect(h).toContain('FRI<b>--</b>');
+    expect(h).toContain('SURF SCORE /10');
+    expect(h).not.toContain('ABOUT AS GOOD');
+  });
+  it('lists the days about as good as the best one', () => {
+    const p: Plan = { ...plan, days: [{ ...plan.days[1]!, day: 0, dayMs: plan.startMs }, plan.days[1], null], alike: [0] };
+    expect(alikeText(p)).toBe('WED: ABOUT AS GOOD');
+    expect(planHtml(p)).toContain('class="green wt-alike"');
   });
 });

@@ -1,16 +1,19 @@
 /** WATCH selection (PLAN 7.13): which metrics are tracked and the chosen region, kept on the device. */
 import { MAX_TRACKED, METRIC_BY_ID } from './registry';
 import type { Region } from './forecast';
+import { isPlanActivity, type PlanActivity } from './plan';
 
 export interface WatchState {
   metrics: string[];
   /** null = every named spot on the coast. */
   region: Region | null;
+  /** The activity the BEST DAY line is for; null until picked, when it follows the CONDITIONS activity. */
+  activity: PlanActivity | null;
 }
 
 export const KEY = 'watch.v1';
 /** For ALL: the four things every activity cares about. HIGH TIDE left out: it barely changes day to day on this coast (about 0.2 m). */
-export const DEFAULT_STATE: WatchState = { metrics: ['swell', 'wind', 'rain', 'clarity'], region: null };
+export const DEFAULT_STATE: WatchState = { metrics: ['swell', 'wind', 'rain', 'clarity'], region: null, activity: null };
 
 /** True once the user has saved a WATCH selection on this device. */
 export function hasSavedWatch(store: Pick<Storage, 'getItem'> | undefined): boolean {
@@ -29,7 +32,7 @@ export function loadWatch(store: Pick<Storage, 'getItem'> | undefined): WatchSta
     const metrics = Array.isArray(raw?.metrics) ? [...new Set(raw.metrics as unknown[])].filter((id): id is string => typeof id === 'string' && METRIC_BY_ID.has(id)).slice(0, MAX_TRACKED) : DEFAULT_STATE.metrics;
     const r = raw?.region;
     const region = r && Array.isArray(r.center) && r.center.length === 2 && r.center.every(Number.isFinite) && Number.isFinite(r.radiusKm) && r.radiusKm > 0 ? ({ center: [r.center[0], r.center[1]], radiusKm: Math.min(100, r.radiusKm) } as Region) : null;
-    return { metrics, region };
+    return { metrics, region, activity: isPlanActivity(raw?.activity) ? raw.activity : null };
   } catch {
     return { ...DEFAULT_STATE, metrics: [...DEFAULT_STATE.metrics] };
   }
