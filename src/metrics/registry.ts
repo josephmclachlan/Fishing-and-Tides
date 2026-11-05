@@ -148,11 +148,16 @@ export const METRICS: readonly Metric[] = [
 export const METRIC_BY_ID: ReadonlyMap<string, Metric> = new Map(METRICS.map((m) => [m.id, m]));
 export const MAX_TRACKED = 8;
 
-/** Starter sets for the picker, matching the activity presets. */
-export const METRIC_PRESETS: Readonly<Record<'surf' | 'fish' | 'dive' | 'boat', readonly string[]>> = {
+/**
+ * Starter cards for each WATCH activity. They only choose what is shown: the BEST DAY line is
+ * scored by the activity itself (plan.ts), whatever is ticked. SNORKEL leads with visibility and the
+ * things that move a swimmer (current, chop, sargassum, sun); DIVE adds period, which drives surge at depth.
+ */
+export const METRIC_PRESETS: Readonly<Record<'surf' | 'fish' | 'snorkel' | 'dive' | 'boat', readonly string[]>> = {
   surf: ['surfq', 'swell', 'period', 'wind', 'tide', 'sargassum', 'sst', 'uv'],
   fish: ['bite', 'wind', 'swell', 'rain', 'clarity'],
-  dive: ['swell', 'wind', 'rain', 'clarity', 'sst', 'sargassum'],
+  snorkel: ['clarity', 'swell', 'wind', 'current', 'rain', 'sargassum', 'uv'],
+  dive: ['clarity', 'swell', 'period', 'current', 'wind', 'rain', 'sst'],
   boat: ['comfort', 'wind', 'wdir', 'gust', 'squall', 'current', 'rain'],
 };
 

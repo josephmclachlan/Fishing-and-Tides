@@ -656,7 +656,20 @@ const metricEnv = (): MetricEnv => ({
   tide: LIMON_HARMONICS,
   tzOffsetH: REGION.tzOffsetH,
 });
-mountWatchPanel(hud, map, sheets, safeStorage(), metricEnv, () => condGroups.activity());
+// BEST DAY FOR follows the CONDITIONS activity until picked in WATCH: SNORKEL or DIVE from the dive panel, the glance strip's under ALL.
+mountWatchPanel(
+  hud, map, sheets, safeStorage(), metricEnv,
+  () => {
+    const a = condGroups.activity();
+    const g = a === 'all' ? (glance?.mode() ?? 'surf') : a;
+    return g === 'dive' ? (diveHud?.mode() ?? 'snorkel') : g;
+  },
+  // The outing score is a water score and the spot pins sit on the shore: read it at the nearest water, as clarity is above.
+  () => {
+    const c = clarityCtx();
+    return diveHud ? (spot, m, ms, h) => diveHud!.outingAt((c && watchWater(spot.lngLat[0], spot.lngLat[1], c)) || spot.lngLat, m, ms, h) : undefined;
+  },
+);
 // SYSTEM CHECK: its tab joins the settings controls on a phone.
 mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeStorage() });
 // LIVE OBS (PLAN 2.13): the newest real reading from the gauge, the airport and the satellite passes, with ages.

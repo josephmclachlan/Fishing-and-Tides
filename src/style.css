@@ -610,6 +610,12 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .wt-tabs .tab { min-height: 34px; padding: 4px 8px; }
 .wt-x { display: inline-flex; margin-left: 0; flex: none; }
 .wt-best { border: 1px solid var(--green); padding: 6px 10px; letter-spacing: 2px; }
+.wt-best.poor { border-color: var(--amber-dim); }
+.wt-plan { display: grid; gap: 4px; border-bottom: 1px solid var(--amber-dim); padding-bottom: 8px; }
+.wt-plan .wt-days div { flex: 1; padding: 2px 0; border: 1px solid transparent; }
+.wt-plan .wt-days .wt-top { border-color: currentColor; }
+.wt-plan .wt-days .wt-alike { border: 1px dashed var(--amber-dim); }
+.wt-how { opacity: 0.75; font-size: 11px; margin: 0; }
 .wt-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
 .wt-card { border: 1px solid var(--amber-dim); padding: 10px; display: grid; gap: 4px; }
 .wt-ct { display: flex; justify-content: space-between; letter-spacing: 2px; font-size: 12px; }

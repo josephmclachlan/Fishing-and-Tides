@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LIMON_HARMONICS } from '../data/tides-limon';
-import { buildForecast, spotsIn } from './forecast';
-import { METRICS, MAX_TRACKED, METRIC_PRESETS, type MetricEnv } from './registry';
+import { bestTime, buildForecast, spotsIn } from './forecast';
+import { METRICS, METRIC_BY_ID, MAX_TRACKED, METRIC_PRESETS, type MetricEnv } from './registry';
 import type { SeaState } from '../adapters/waves';
 
 const NOON = Date.UTC(2026, 10, 4, 18);
@@ -50,11 +50,13 @@ describe('buildForecast', () => {
     const none: MetricEnv = { ...env(), windMs: () => null, sea: () => null, weather: () => [], clarityM: () => null, sargassumKm2: () => null };
     const f = buildForecast(none, ['swell', 'wind', 'rain'], spots, NOON, 3);
     expect(f.rows.every((r) => r.days.every((d) => d.value === null && d.spot === null))).toBe(true);
-    expect(f.bestDay).toBeNull();
   });
-  it('names the calmest-wind day as best', () => {
-    const f = buildForecast(env(), ['wind', 'swell'], spots, NOON, 5);
-    expect(f.bestDay).toBe(0);
+  it("reads every metric at the day's chosen spot, and at the region's best spot on days with none", () => {
+    const f = buildForecast(env(), ['swell', 'clarity'], spots, NOON, 2, [spots[0], null]);
+    expect(f.rows[0].days[0]).toMatchObject({ value: 2, spot: 'WEST' });
+    expect(f.rows[1].days[0]).toMatchObject({ value: 4, spot: 'WEST' });
+    expect(f.rows[0].days[1]).toMatchObject({ value: 1, spot: 'EAST' });
+    expect(f.rows[0].hourly[10]).toBe(2);
   });
   it('covers the BITE score within a phone-friendly time', () => {
     const t0 = Date.now();
@@ -83,31 +85,23 @@ describe('best time', () => {
   // Wind rises through the day, so the calmest two hours are the first ones searched.
   const localH = (ms: number) => (((ms / 36e5 - 6) % 24) + 24) % 24;
   const morning = (): MetricEnv => ({ ...env(), windMs: (_l, _a, ms) => 1 + localH(ms) / 2, sea: () => sea(1) });
+  const wind = [METRIC_BY_ID.get('wind')!];
   it('picks the calm early window for a wind that builds', () => {
     const f = buildForecast(morning(), ['wind'], spots, NOON - 8 * 36e5, 2); // asked at 04:00 local
-    expect(f.bestTime).not.toBeNull();
-    expect(localH(f.bestTime!.startMs)).toBe(5);
-    expect(f.bestTime!.endMs - f.bestTime!.startMs).toBe(2 * 36e5);
+    const w = bestTime(f.rows, wind, 0, f.startMs, NOON - 8 * 36e5);
+    expect(w).not.toBeNull();
+    expect(localH(w!.startMs)).toBe(5);
+    expect(w!.endMs - w!.startMs).toBe(2 * 36e5);
   });
   it('never offers a window that has already passed (J4)', () => {
     const f = buildForecast(morning(), ['wind'], spots, NOON, 2); // asked at noon: 05:00 today is gone
-    expect(f.bestTime!.startMs).toBeGreaterThanOrEqual(NOON - 36e5);
-  });
-  it('lets the 5-day range break a tie between all-green days (J4)', () => {
-    // Bite-free: wind is green every day but falls day by day, so the last day is the calmest.
-    const falling = (): MetricEnv => ({ ...env(), windMs: (_l, _a, ms) => 5 - (ms - NOON) / 864e5 });
-    const f = buildForecast(falling(), ['wind', 'tide'], spots, NOON, 4);
-    expect(f.bestDay).toBe(3);
-  });
-  it('lies inside the best day and the 05 to 19 local window', () => {
-    const f = buildForecast(env(), ['bite', 'wind', 'swell'], spots, NOON, 5);
-    const t0 = f.startMs + f.bestDay! * 864e5;
-    expect(f.bestTime!.startMs).toBeGreaterThanOrEqual(t0 + 5 * 36e5);
-    expect(f.bestTime!.endMs).toBeLessThanOrEqual(t0 + 19 * 36e5);
+    expect(bestTime(f.rows, wind, 0, f.startMs, NOON)!.startMs).toBeGreaterThanOrEqual(NOON - 36e5);
   });
   it('is null when only daily metrics or none are chosen', () => {
-    expect(buildForecast(env(), ['clarity', 'sargassum', 'tide'], spots, NOON, 3).bestTime).toBeNull();
-    expect(buildForecast(env(), [], spots, NOON, 3).bestTime).toBeNull();
+    const ids = ['clarity', 'sargassum', 'tide'];
+    const f = buildForecast(env(), ids, spots, NOON, 3);
+    expect(bestTime(f.rows, ids.map((id) => METRIC_BY_ID.get(id)!), 0, f.startMs)).toBeNull();
+    expect(bestTime([], [], 0, f.startMs)).toBeNull();
   });
 });
 

@@ -2,7 +2,12 @@
  * Custom forecast builder for the WATCH tracker (PLAN 7.13). Pure: no DOM, no timers. For the
  * chosen metrics and every named spot inside the chosen region it folds each local day into one
  * value, then keeps the best spot per metric and day, so the popup can say "SWELL 1.2 m at
- * CAHUITA".
+ * CAHUITA". When the activity's planner (plan.ts) has picked a spot for a day, every metric is read
+ * at that spot instead, so the cards describe the place the BEST DAY line sends you to.
+ *
+ * The best day and time are not decided here: an average over whichever metrics happen to be
+ * ticked says nothing about any one activity (a ticked SWELL, smaller is better, made SURF pick the
+ * flattest day). See plan.ts.
  */
 import { haversineM } from '../geo';
 import { localDayStart } from '../physics/astro';
@@ -27,7 +32,7 @@ export interface DayCell {
   dayMs: number;
   value: number | null;
   tone: Tone;
-  /** The spot the value is for: the best one where the metric has a better end, else the nearest the centre. */
+  /** The spot the value is for: the activity's pick for the day when there is one, else the best one where the metric has a better end, else the nearest the centre. */
   spot: string | null;
 }
 
@@ -45,10 +50,6 @@ export interface WatchForecast {
   days: number;
   spots: string[];
   rows: MetricRow[];
-  /** Index of the best day by tone score across the rows, or null if there is no data. */
-  bestDay: number | null;
-  /** The best two local hours of that day, or null when no metric has hourly values. */
-  bestTime: { startMs: number; endMs: number } | null;
 }
 
 /** Local hours searched for the best time (a window starts at 5 and ends by 19), and its length. */
@@ -63,13 +64,15 @@ function fold(m: Metric, xs: number[]): number | null {
   return xs.reduce((a, b) => a + b, 0) / xs.length;
 }
 
-const TONE_SCORE: Record<Tone, number> = { green: 1, amber: 0, red: -1, none: 0 };
+export const TONE_SCORE: Record<Tone, number> = { green: 1, amber: 0, red: -1, none: 0 };
 
 /**
  * `ids` are metric ids (unknown ones are skipped), `spots` the spots in the region, `fromMs` any
- * moment of the first day (the local day containing it is day 0).
+ * moment of the first day (the local day containing it is day 0). `daySpots[d]`, when given and not
+ * null, is the only spot read on day `d` (the activity's pick for that day); otherwise the best spot
+ * in `spots` per metric.
  */
-export function buildForecast(env: MetricEnv, ids: readonly string[], spots: readonly Spot[], fromMs: number, days = 5): WatchForecast {
+export function buildForecast(env: MetricEnv, ids: readonly string[], spots: readonly Spot[], fromMs: number, days = 5, daySpots?: readonly (Spot | null)[]): WatchForecast {
   const start = localDayStart(fromMs, env.tzOffsetH);
   const metrics = ids.map((id) => METRIC_BY_ID.get(id)).filter((m): m is Metric => !!m);
   const skyMemo = new Map<string, ReturnType<typeof daySky>>();
@@ -86,7 +89,7 @@ export function buildForecast(env: MetricEnv, ids: readonly string[], spots: rea
     for (let d = 0; d < days; d++) {
       const dayMs = start + d * DAY;
       let best: { v: number; spot: Spot } | null = null;
-      const perSpot = spots.map((s) => {
+      const perSpot = (daySpots?.[d] ? [daySpots[d]!] : spots).map((s) => {
         const xs: number[] = [];
         for (const h of hrs) {
           const v = m.at({ env, spot: s.name, lng: s.lngLat[0], lat: s.lngLat[1], ms: dayMs + h * HOUR, sky: sky(dayMs, s) });
@@ -110,28 +113,7 @@ export function buildForecast(env: MetricEnv, ids: readonly string[], spots: rea
     }
     return { id: m.id, unit: m.unit, decimals: m.decimals, days: cells, hourly };
   });
-  // Best day (J4): each metric with a better end votes its tone plus where the day sits in its own
-  // 5-day range (so an all-green week still picks the calmest or bitiest day). Metrics with no better
-  // end (tide height, wind direction) don't vote. Today counts only while it has a window left.
-  const voting = rows.map((r, i) => ({ r, m: metrics[i] })).filter(({ m }) => m.better !== null);
-  const windows = Array.from({ length: days }, (_, d) => bestTime(rows, metrics, d, start, fromMs));
-  let bestDay: number | null = null;
-  let top = -Infinity;
-  for (let d = 0; d < days; d++) {
-    if (!windows[d] && voting.some(({ r }) => r.hourly.slice(d * 24, d * 24 + 24).some((x) => x !== null))) continue;
-    const scored = voting.filter(({ r }) => r.days[d].value !== null);
-    if (!scored.length) continue;
-    const score =
-      scored.reduce((a, { r, m }) => {
-        const vals = r.days.map((c) => c.value).filter((v): v is number => v !== null);
-        const lo = Math.min(...vals), hi = Math.max(...vals);
-        const pos = hi > lo ? (r.days[d].value! - lo) / (hi - lo) : 0.5;
-        return a + TONE_SCORE[r.days[d].tone] + 0.5 * (m.better === 'high' ? pos : 1 - pos);
-      }, 0) / scored.length;
-    if (score > top + 1e-9) (top = score), (bestDay = d);
-  }
-  const bt = bestDay === null ? null : windows[bestDay];
-  return { startMs: start, days, spots: spots.map((s) => s.name), rows, bestDay, bestTime: bt ? { startMs: bt.startMs, endMs: bt.endMs } : null };
+  return { startMs: start, days, spots: spots.map((s) => s.name), rows };
 }
 
 /**
