@@ -115,9 +115,13 @@ export function mountSheets(root: HTMLElement, map: Map, sheets: Sheets) {
     const s = document.documentElement.style;
     if (top) s.setProperty('--top-h', `${Math.round(top.bottom)}px`);
     if (dock) s.setProperty('--dock-h', `${Math.round(window.innerHeight - dock.top)}px`);
+    // Wide screens: the right-hand drawers (LAYERS, BOAT, SPOT...) hang below the search panel, never over it.
+    const seek = root.querySelector<HTMLElement>('.seek')?.getBoundingClientRect();
+    if (seek && seek.height > 0 && !phone.matches) s.setProperty('--seek-b', `${Math.round(seek.bottom)}px`);
+    else s.removeProperty('--seek-b');
   };
   const ro = new ResizeObserver(edges);
-  for (const el of root.querySelectorAll('.top, .bottom')) ro.observe(el);
+  for (const el of root.querySelectorAll('.top, .bottom, .seek')) ro.observe(el);
   window.addEventListener('resize', edges);
   edges();
 }

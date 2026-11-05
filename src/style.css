@@ -821,6 +821,92 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .cf-viewer .tab:disabled { opacity: 0.4; }
 .cf-big { width: 100%; height: 100%; min-height: 200px; max-height: 70vh; object-fit: contain; }
 
+/*
+ * Layout and legibility review (PLAN 7.43), every theme. Nothing may run past a panel's border or sit on another panel.
+ */
+/* Wide screens: one right-hand column. The search panel sits under the top bar; whichever drawer is open (LAYERS,
+   BOAT, CORAL, SPOT, WATCH, CHECK, OBS) hangs below it and stops above the time bar. --seek-b comes from sheets.ts. */
+@media (min-width: 1101px) and (min-height: 701px) {
+  .seek, .layers, .boat, .check, .spot-page, .watch { width: 340px; }
+  .layers, .boat, .check, .spot-page, .watch {
+    top: calc(var(--seek-b, var(--top-h, 62px)) + 8px); bottom: auto;
+    max-height: calc(100% - var(--seek-b, var(--top-h, 62px)) - var(--dock-h, 150px) - 16px);
+    overflow-x: hidden; scrollbar-width: thin; scrollbar-color: var(--amber) transparent;
+  }
+  /* The beach shortcuts show two rows and scroll for the rest, so the drawer below keeps its room. */
+  .seek { --st-h: 30px; }
+  :root[data-theme='modern'] .seek { --st-h: 38px; }
+  .seek-tabs { max-height: calc(2 * var(--st-h) + 4px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--amber) transparent; }
+  .seek-tabs .tab { height: var(--st-h); padding-top: 0; padding-bottom: 0; }
+}
+/* Keys and cards under the top bar start below it, however many rows it wraps to. */
+.mkey { top: calc(var(--top-h, 92px) + 8px); }
+.lnote { top: calc(var(--top-h, 92px) + 36px); }
+.rules-card { top: calc(var(--top-h, 62px) + 8px); max-height: calc(100% - var(--top-h, 62px) - var(--dock-h, 150px) - 16px); }
+
+/* CONDITIONS: the go / no-go chips never run past the panel's edge. Five across only where each chip has room for
+   MARGINAL; otherwise three over two. */
+.vd { container-type: inline-size; min-width: 0; }
+.vd-chips { grid-auto-columns: minmax(0, 1fr); }
+.vd-chip { min-width: 0; }
+@container (max-width: 439px) {
+  .vd-chips { grid-auto-flow: row; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .vd-chip { grid-column: span 2; }
+  .vd-chip:nth-child(n + 4) { grid-column: span 3; }
+}
+@media (min-width: 1101px) and (min-height: 701px) { .side { width: 264px; } }
+
+/* Phone top bar: eight tabs don't fit one row at 360-430 px (LAYERS ran into FIND), so two rows of four. */
+@media (max-width: 600px) {
+  .top-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .top-tabs .tab { min-height: 40px; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* Phone CONDITIONS: one row per reading. In two half-width columns the rows paired up at random (a verdict beside an
+   unrelated note), values broke after every word and long ones (fetch, harbour) ran to the edge. Wider drawers
+   (landscape, half-width windows) keep two columns. */
+@media (max-width: 600px) {
+  body[data-sheet='cond'] .side { grid-template-columns: minmax(0, 1fr); }
+  .side .ro > .lbl:first-child:not(:only-child) { min-width: 96px; }
+}
+
+/* Phone time drawer: it grows up from the strip and stops under the top bar (it covered the tabs on a 360 x 740 phone). */
+@media (max-width: 1100px), (max-height: 700px) {
+  body[data-sheet='time'] .bottom { max-height: calc(100% - var(--top-h, 100px) - 16px); overflow-y: auto; }
+  body[data-sheet='time'] .dock-body { max-height: none; }
+}
+.side, .seek, .layers, .boat, .check, .spot-page, .watch, .settings { overflow-x: hidden; }
+
+/* Phone FIND drawer: every beach shortcut on screen, wrapped, rather than a sideways row cut off at the edge. */
+@media (max-width: 1100px), (max-height: 700px) {
+  .seek-tabs { flex-wrap: wrap; overflow-x: visible; }
+}
+
+/* Buttons break between words, never inside one (MODERN's panel-wide break-word made SNORKE / L / DIVE). */
+.panel .tab, .panel button { overflow-wrap: normal; }
+/* Desktop MODERN: the search hint fits its box (BEACH OR LAT, LO was cut). Phones keep 16 px so iOS doesn't zoom. */
+@media (min-width: 1101px) and (min-height: 701px) { :root[data-theme='modern'] .seek-in { font-size: 14px; letter-spacing: 0.5px; } }
+
+/* Drawer readouts wrap onto a second line instead of ending in an ellipsis. */
+.boat .ro, .check .ro, .spot-page .ro, .watch .ro, .layers .ro { min-width: 0; flex-wrap: wrap; }
+.boat .ro > .seg.sm, .check .ro > .seg.sm, .spot-page .ro > .seg.sm, .watch .ro > .seg.sm, .layers .ro > .seg.sm { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+.boat-btns .seg.sm { flex: 1 0 auto; overflow: visible; text-overflow: clip; }
+
+/* Drawer children may shrink to the drawer's width; long words wrap rather than widen it (CORAL dates, Latin names). */
+.boat > *, .layers > *, .check > *, .spot-page > *, .watch > *, .settings > *, .seek > * { min-width: 0; }
+.coral .seg.sm, .coral .lbl, .coral i.lbl { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+.coral .ph { flex-wrap: wrap; }
+/* SET drawer (phone): each setting's explanation wraps under its name. It was one line and pushed the drawer 500 px
+   past the screen edge, in every theme. */
+.settings-body .tab { white-space: normal; min-width: 0; }
+.gl-vd { white-space: nowrap; }
+.gl-mode { flex: 0 0 auto; min-width: 62px; }
+:root[data-theme='modern'] .gl-vd { font-size: 14px; }
+/* Phone strip: BEST TODAY keeps its "--" whole and lets the reason take a second line instead of an ellipsis. */
+.bt-glance .seg.sm { flex: none; overflow: visible; text-overflow: clip; }
+.bt-glance .bt-at { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.2; }
+@media (max-width: 600px) { .t-day.t-today { letter-spacing: 0; } }
+
 /* ---- Colour themes (src/theme.ts). RETRO is the :root default above. The variable NAMES are roles, not hues:
    --amber = main ink and lines, --green = good / selected, --red = danger, --bg = darkest. Never hard-code colours. ---- */
 
@@ -868,7 +954,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
   border-color: rgb(var(--amber-rgb) / 0.35); background: rgb(255 255 255 / 0.04);
 }
 :root[data-theme='modern'] .tab.on { background: rgb(109 240 138 / 0.16); color: var(--green); border-color: var(--green); border-width: 2px; }
-:root[data-theme='modern'] .mkey { top: calc(var(--top-h, 92px) + 8px); border-radius: 6px; }
+:root[data-theme='modern'] .mkey { border-radius: 6px; }
 @media (pointer: coarse) { :root[data-theme='modern'] .tab, :root[data-theme='modern'] .btn { min-height: 44px; } }
 :root[data-theme='modern'] .tab:focus-visible, :root[data-theme='modern'] button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 :root[data-theme='modern'] .btn { border-radius: 6px; min-height: 44px; font-weight: 700; letter-spacing: 1.5px; background-image: none; box-shadow: none; background: var(--green); }
@@ -900,9 +986,6 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 :root[data-theme='modern'] .vd-chip .seg { font-size: 13px; letter-spacing: 0; }
 :root[data-theme='modern'] .seek-in { min-width: 0; flex: 1; border-radius: 6px; }
 :root[data-theme='modern'] .seek, :root[data-theme='modern'] .layers { overflow-x: hidden; }
-@media (min-width: 1101px) and (min-height: 701px) {
-  :root[data-theme='modern'] .layers { bottom: calc(var(--dock-h, 150px) + 8px); max-height: calc(100% - var(--top-h, 100px) - var(--dock-h, 150px) - 220px); }
-}
 :root[data-theme='modern'] .seek { grid-template-columns: minmax(0, 1fr); }
 :root[data-theme='modern'] .seek-go { flex: none; padding: 8px 12px; }
 :root[data-theme='modern'] .side .seg { font-size: 17px; }
