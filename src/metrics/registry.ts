@@ -161,13 +161,14 @@ export const MAX_TRACKED = 8;
  * Starter cards for each WATCH activity. They only choose what is shown: the BEST DAY line is
  * scored by the activity itself (plan.ts), whatever is ticked. SNORKEL leads with visibility and the
  * things that move a swimmer (current, chop, sargassum, sun); DIVE adds period, which drives surge at depth.
+ * Every activity tracks the UV index, the day's peak in the daily view (Joseph, 2026-11-10).
  */
 export const METRIC_PRESETS: Readonly<Record<'surf' | 'fish' | 'snorkel' | 'dive' | 'boat', readonly string[]>> = {
   surf: ['surfq', 'swell', 'period', 'wind', 'tide', 'sargassum', 'sst', 'uv'],
-  fish: ['bite', 'wind', 'swell', 'rain', 'clarity'],
+  fish: ['bite', 'wind', 'swell', 'rain', 'clarity', 'uv'],
   snorkel: ['clarity', 'swell', 'wind', 'current', 'rain', 'sargassum', 'uv'],
-  dive: ['clarity', 'swell', 'period', 'current', 'wind', 'rain', 'sst'],
-  boat: ['comfort', 'wind', 'wdir', 'gust', 'squall', 'current', 'rain'],
+  dive: ['clarity', 'swell', 'period', 'current', 'wind', 'rain', 'sst', 'uv'],
+  boat: ['comfort', 'wind', 'wdir', 'gust', 'squall', 'current', 'rain', 'uv'],
 };
 
 export { daySky };

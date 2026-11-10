@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseWeather } from './adapters/weather';
-import { biteWeather, heavyRainSoon, pressureChange, nearestStorm, squallLevel, squallSoon, summarise } from './weather';
+import { biteWeather, heavyRainSoon, pressureChange, nearestStorm, squallLevel, squallSoon, summarise, uvBand, uvPeakDay } from './weather';
 import { parseStorms } from './adapters/storms-parse';
 
 const T0 = 1_000_000_000;
@@ -86,5 +86,35 @@ describe('pressureChange', () => {
     expect(pressureChange([w('gfs_seamless', 1008), w('icon_seamless', 1009)], [w('gfs_seamless', 1011), w('icon_seamless', 1011)])).toBeCloseTo(-2.5);
     expect(pressureChange([w('gfs_seamless', 1008)], [w('icon_seamless', 1011)])).toBeNull();
     expect(pressureChange([w('gfs_seamless', NaN)], [w('gfs_seamless', 1011)])).toBeNull();
+  });
+});
+
+describe('UV peak of the day (PLAN 7.53)', () => {
+  // A local day at UTC-6: midnight is 06:00 UTC. UV rises to 11 at local noon.
+  const day0 = Date.UTC(2026, 10, 10, 6);
+  const n = 48;
+  const uvAt = (i: number) => {
+    const h = i % 24;
+    return h >= 6 && h <= 18 ? Math.round(11 * Math.sin(((h - 6) / 12) * Math.PI) * 10) / 10 : 0;
+  };
+  const wx = parseWeather({
+    hourly: {
+      time: Array.from({ length: n }, (_, i) => day0 / 1000 + i * 3600),
+      precipitation_gfs_seamless: Array.from({ length: n }, () => 0),
+      uv_index_gfs_seamless: Array.from({ length: n }, (_, i) => uvAt(i)),
+      uv_index_icon_seamless: Array.from({ length: n }, (_, i) => uvAt(i) - 1),
+      precipitation_icon_seamless: Array.from({ length: n }, () => 0),
+    },
+  }, day0);
+  it('takes the highest hourly model mean over the local day, at local noon', () => {
+    const p = uvPeakDay(wx, day0 + 20 * 3.6e6, -6)!;
+    expect(p.uv).toBeCloseTo(10.5, 6);
+    expect(p.atMs).toBe(day0 + 12 * 3.6e6);
+  });
+  it('is null for a day the forecast does not reach', () => {
+    expect(uvPeakDay(wx, day0 + 5 * 864e5, -6)).toBeNull();
+  });
+  it('uses the WHO bands', () => {
+    expect([0, 2.4, 3, 5, 6, 7, 8, 10, 11].map(uvBand)).toEqual(['low', 'low', 'moderate', 'moderate', 'high', 'high', 'vhigh', 'vhigh', 'extreme']);
   });
 });

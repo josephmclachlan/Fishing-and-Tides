@@ -11,7 +11,8 @@ import { readout } from './hud-kit';
 import type { WeatherData } from './adapters/weather';
 import { MODEL_SHORT } from './adapters/weather-skill';
 import type { Storm } from './adapters/storms';
-import { heavyRainSoon, nearestStorm, squallSoon, summarise, STORM_ALERT_KM } from './weather';
+import { heavyRainSoon, nearestStorm, squallSoon, summarise, uvBand, uvPeakDay, STORM_ALERT_KM } from './weather';
+import { localClock } from './tide-chart';
 
 export interface WeatherHudDeps {
   validMs: () => number;
@@ -29,6 +30,7 @@ export function mountWeatherHud(root: HTMLElement, deps: WeatherHudDeps) {
       ${readout(t('wx.rain24'), 'wx-rain24', t('unit.mm'))}
       ${readout(t('wx.cloud'), 'wx-cloud', t('unit.pct'))}
       ${readout(t('wx.uv'), 'wx-uv', '')}
+      <div class="ro"><span class="lbl">${t('wx.uvPeak')}</span><span class="seg sm" id="wx-uvpeak">--</span></div>
       ${readout(t('wx.air'), 'wx-air', t('unit.degC'))}
       ${readout(t('wx.gust'), 'wx-gust', t('unit.kt'))}
       ${readout(t('wx.cape'), 'wx-cape', t('unit.jkg'))}
@@ -48,6 +50,12 @@ export function mountWeatherHud(root: HTMLElement, deps: WeatherHudDeps) {
     $('wx-rain24').textContent = s ? fmt(s.rain24Mm) : '--';
     $('wx-cloud').textContent = s ? fmt(s.cloudPct) : '--';
     $('wx-uv').textContent = s ? fmt(s.uv, 1) : '--';
+    // The day's peak, so sun protection can be planned from the morning (Joseph, 2026-11-10).
+    const pk = wx ? uvPeakDay(wx, deps.validMs()) : null;
+    const pkEl = $('wx-uvpeak');
+    const band = pk ? uvBand(pk.uv) : null;
+    pkEl.textContent = pk && band ? `${fmt(pk.uv)} ${t(`wx.uvb.${band}`)} ${localClock(pk.atMs)}` : '--';
+    pkEl.className = 'seg sm ' + (band === 'vhigh' || band === 'extreme' ? 'red' : band === 'low' || band === 'moderate' ? 'green' : '');
     $('wx-air').textContent = s ? fmt(s.tempC, 1) : '--';
     $('wx-gust').textContent = s ? fmt(s.gustKt) : '--';
     $('wx-cape').textContent = s ? fmt(s.capeJkg) : '--';

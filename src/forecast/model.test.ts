@@ -7,7 +7,7 @@ import type { SeaState } from '../adapters/waves';
 import { PLUME_RIVERS, SPOTS } from '../region';
 import { daySky } from '../physics/astro';
 import {
-  FC_ACTIVITIES, daysAt, hoursOf, levelFor, likelyFish, parseRoute, readAt, routeHash, spotSlug, spotsForActivity, surfRange, surfSize,
+  FC_ACTIVITIES, beaufort, dayUvPeaks, daysAt, uvLevel, hoursOf, levelFor, likelyFish, parseRoute, readAt, routeHash, spotSlug, spotsForActivity, surfRange, surfSize,
   type FcDeps, type OutingRead,
 } from './model';
 import { heroArt } from './art';
@@ -139,3 +139,32 @@ describe('hero pictures', () => {
   });
 });
 void H;
+
+describe('Beaufort words for sailing', () => {
+  it('cuts at the WMO knot bounds', () => {
+    expect(beaufort(0.4)).toBe(0);
+    expect(beaufort(1)).toBe(1);
+    expect(beaufort(2)).toBe(1);
+    expect(beaufort(7)).toBe(3);
+    expect(beaufort(10.4)).toBe(3);
+    expect(beaufort(11)).toBe(4);
+    expect(beaufort(25)).toBe(6);
+    expect(beaufort(45)).toBe(8);
+  });
+});
+
+describe('UV', () => {
+  it('uses the WHO bands', () => {
+    expect([1, 3, 5, 6, 7, 8, 10, 11, 13].map(uvLevel)).toEqual([4, 3, 3, 2, 2, 1, 1, 0, 0]);
+  });
+  it('gives each day\'s peak at the spot, and nothing before the weather loads', () => {
+    const sunny = env({ weather: (ms) => {
+      const h = (((ms / H - 6) % 24) + 24) % 24;
+      return [{ model: 'gfs_seamless', rainMmH: 0, cloudPct: 30, uv: h >= 6 && h <= 18 ? 11 * Math.sin(((h - 6) / 12) * Math.PI) : 0, tempC: 28, gustKt: 12, capeJkg: 0, pressureHpa: 1012, windKt: 6 }];
+    } });
+    const p = dayUvPeaks(sunny, spot('CAHUITA'), DAY0, 3);
+    expect(p).toHaveLength(3);
+    for (const v of p) expect(v).toBeCloseTo(11, 6);
+    expect(dayUvPeaks(env({ weather: () => [] }), spot('CAHUITA'), DAY0, 2)).toEqual([null, null]);
+  });
+});

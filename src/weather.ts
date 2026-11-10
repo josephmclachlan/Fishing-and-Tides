@@ -52,6 +52,30 @@ function leadOf(sk: WeatherSkill | undefined, now: readonly WeatherNow[]): Weath
   return { model: top, share: w[top] / now.reduce((a, x) => a + w[x.model], 0) };
 }
 
+/** WHO UV index bands: low 0-2, moderate 3-5, high 6-7, very high 8-10, extreme 11+. */
+export type UvBand = 'low' | 'moderate' | 'high' | 'vhigh' | 'extreme';
+export const uvBand = (uv: number): UvBand => {
+  const u = Math.round(uv);
+  return u >= 11 ? 'extreme' : u >= 8 ? 'vhigh' : u >= 6 ? 'high' : u >= 3 ? 'moderate' : 'low';
+};
+
+/**
+ * The day's peak UV index: the highest hourly model mean over the local day holding `ms`, and the hour it
+ * falls in. Null where the forecast does not cover that day's middle hours.
+ */
+export function uvPeakDay(d: WeatherData, ms: number, tzOffsetH: number = REGION.tzOffsetH): { uv: number; atMs: number } | null {
+  const H = 3.6e6;
+  const day0 = Math.floor((ms + tzOffsetH * H) / 864e5) * 864e5 - tzOffsetH * H;
+  let best: { uv: number; atMs: number } | null = null;
+  // UV is zero at night: 06:00-18:00 local holds every peak.
+  for (let h = 6; h <= 18; h++) {
+    const now = weatherAt(d, day0 + h * H);
+    const v = mean(finite(now.map((w) => w.uv)));
+    if (Number.isFinite(v) && (!best || v > best.uv)) best = { uv: v, atMs: day0 + h * H };
+  }
+  return best;
+}
+
 export function summarise(d: WeatherData, ms: number): WeatherSummary | null {
   const now = weatherAt(d, ms);
   if (!now.length) return null;
