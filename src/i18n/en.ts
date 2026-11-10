@@ -1597,6 +1597,7 @@ export const en = {
   'fc.scheme': 'Light or dark',
   'fc.scheme.light': 'Light mode',
   'fc.scheme.dark': 'Dark mode',
+  'fc.coral': 'Coral reefs',
   'fc.lang': 'Español',
   'fc.note': 'Advisory only, not for navigation or safety decisions. The scores are the same ones the map uses.',
   'fc.art.surf': 'Wave {m} m high next to a surfer',
