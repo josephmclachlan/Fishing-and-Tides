@@ -1,5 +1,5 @@
 /**
- * CORAL page (PLAN 7.65): a clean full-screen page for reef restoration teams (Joseph and his partner work
+ * CORAL page (PLAN 7.66): a clean full-screen page for reef restoration teams (Joseph and his partner work
  * with Raising Coral alongside SINAC), covering what the map's CORAL overlay and drawer track, in the
  * FORECAST page's own light and dark look (it reuses `.fc` and its tokens; coral-page.css adds the rest).
  * Its own link, `#coral[/<tab>[/<id>]]` (route.ts), so it can be bookmarked and the phone's back button works.

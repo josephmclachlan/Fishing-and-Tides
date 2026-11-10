@@ -1,5 +1,5 @@
 /**
- * The CORAL page's hero picture (PLAN 7.65): a reef drawn from the reading. Heat pales the coral towards white
+ * The CORAL page's hero picture (PLAN 7.66): a reef drawn from the reading. Heat pales the coral towards white
  * (bleachShare: DHW 1 → 12), murky water (MUD WEEKS) clouds the water and dims the light rays. Kept simple:
  * the full art redo comes later (Joseph, 2026-11-10). Pure: returns an SVG string; colours are the page tokens.
  */

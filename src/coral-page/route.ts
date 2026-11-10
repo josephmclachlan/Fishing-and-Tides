@@ -1,5 +1,5 @@
 /**
- * The CORAL page's own link (PLAN 7.65): `#coral`, `#coral/<tab>`, `#coral/reefs/<reef>` and
+ * The CORAL page's own link (PLAN 7.66): `#coral`, `#coral/<tab>`, `#coral/reefs/<reef>` and
  * `#coral/sites/<site>/<folder tab>`. Pure, so the parsing is tested without a DOM. Any other hash is not
  * this page's: the page hides and the forecast or the map takes over (src/forecast/model.ts `landing`).
  */

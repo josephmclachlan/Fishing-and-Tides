@@ -1,5 +1,5 @@
 /**
- * Charts for the CORAL page (PLAN 7.65), as HTML strings so they are tested without a DOM. The line and the
+ * Charts for the CORAL page (PLAN 7.66), as HTML strings so they are tested without a DOM. The line and the
  * shaded area are an SVG stretched to the box (strokes stay one width with `vector-effect`); labels, the
  * end dot and the thresholds are HTML placed by percentage, so text stays sharp at any width.
  * Colours are the page's tokens (coral-page.css), never inline.

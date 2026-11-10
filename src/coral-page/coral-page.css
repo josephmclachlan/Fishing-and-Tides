@@ -1,5 +1,5 @@
 /*
- * CORAL page (PLAN 7.65). It sits inside `.fc`, so it shares the FORECAST page's light and dark tokens, header,
+ * CORAL page (PLAN 7.66). It sits inside `.fc`, so it shares the FORECAST page's light and dark tokens, header,
  * tab switch and cards (forecast.css); this file adds only the coral parts. Every colour is a `--fc-*` token
  * (Joseph: the forecast page's own look, not the map themes), so the HUD's four-colour rule does not apply here.
  */

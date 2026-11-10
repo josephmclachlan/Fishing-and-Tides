@@ -1,5 +1,5 @@
 /**
- * Pure helpers for the CORAL page (PLAN 7.65): how readings map onto the page's five rating colours, how the
+ * Pure helpers for the CORAL page (PLAN 7.66): how readings map onto the page's five rating colours, how the
  * HUD's caps text reads as sentences, and dates in Costa Rica time. No DOM, so it is tested directly.
  *
  * Levels are the forecast page's (src/forecast/forecast.css `.l0`..`.l4`): 0 red (worst) … 3 green, 4 teal.

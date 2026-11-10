@@ -623,7 +623,7 @@ if (coralPanelEl) {
   map.on('moveend', () => coralHeatUi?.refresh());
   sheets.subscribe(() => sheets.is('coral') && (coralHeatUi?.refresh(), spawnUi.refresh()));
 }
-// CORAL page (PLAN 7.65): reef health, the private field log, spawning, guide and rules on a clean page of its own (#coral).
+// CORAL page (PLAN 7.66): reef health, the private field log, spawning, guide and rules on a clean page of its own (#coral).
 const coralPage = mountCoralPage({
   storage: safeStorage(),
   lang: () => settings.lang(),

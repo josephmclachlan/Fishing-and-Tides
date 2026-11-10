@@ -1657,7 +1657,7 @@ export const en = {
   'fc.unit.chop': 'kt',
   'fc.unit.current': 'kt',
   'fc.depthAt': 'Diving at {d} m',
-  // CORAL page (PLAN 7.65): its own look (src/coral-page), sentence case like the FORECAST page
+  // CORAL page (PLAN 7.66): its own look (src/coral-page), sentence case like the FORECAST page
   'cp.open': 'CORAL PAGE',
   'cp.openTitle': 'Open the coral page: reef health, your sites, spawning, guide and rules',
   'cp.mudShort': 'Mud',
