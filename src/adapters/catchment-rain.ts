@@ -8,6 +8,12 @@
  * (PLAN 7.51, data/forecast/rain-imerg.json, about 5 h behind): what fell over the whole basin, not a
  * model's hindcast at one point. The model fills the hours after the satellite's last and any it
  * missed. Without the satellite file the model alone is used, as before.
+ *
+ * Models (PLAN 7.58b): ECMWF IFS 9 km, UK Met Office 10 km, ICON and GFS, kept as separate `members`. Runoff is
+ * convex in rain (curve number, flow^1.5 mud), so the plume is the mean of each model's own mud
+ * (layers/clarity.ts mudAt), not the mud of the models' mean rain, which would flatten every burst any one model
+ * puts over a catchment. `byRiver` is the members' mean, for the rain readouts. Before 7.58b this was Open-Meteo's
+ * single best-match model.
  */
 import { PLUME_RIVERS } from '../region';
 import { cachedFetch, type CacheDeps } from './cache';
@@ -15,13 +21,15 @@ import { dataAge } from './data-age';
 import { FORECAST_DIR } from './series';
 import { freshness, inRange, type Check } from '../verify/types';
 import { imergHourly, type RainImerg } from './imerg-parse';
-import { toHourStart } from './weather';
+import { toHourStart, WEATHER_MODELS } from './weather';
 
 export interface CatchmentRain {
   /** Hour starts, epoch ms. */
   times: number[];
-  /** River name → rain mm per hour, NaN where missing. */
+  /** River name → rain mm per hour (the members' mean), NaN where missing. */
   byRiver: Record<string, number[]>;
+  /** River name → one hourly series per model (PLAN 7.58b), satellite hours merged into each; absent with one model. */
+  members?: Record<string, number[][]>;
   fetchedAt: number;
   fromCache: boolean;
   /** River name → how many hours of `byRiver` are IMERG satellite rain (PLAN 7.51); absent without it. */
@@ -34,18 +42,41 @@ export interface CatchmentRain {
 export const rainPoints = (): [number, number][] => [...new Map(PLUME_RIVERS.map((r) => [r.rainAt.join(','), r.rainAt])).values()];
 
 export const catchmentRainUrl = (pts = rainPoints()) =>
-  `https://api.open-meteo.com/v1/forecast?latitude=${pts.map((p) => p[1]).join(',')}&longitude=${pts.map((p) => p[0]).join(',')}&hourly=precipitation&past_days=7&forecast_days=16&timeformat=unixtime&timezone=GMT`;
+  `https://api.open-meteo.com/v1/forecast?latitude=${pts.map((p) => p[1]).join(',')}&longitude=${pts.map((p) => p[0]).join(',')}&hourly=precipitation&models=${WEATHER_MODELS.join(',')}&past_days=7&forecast_days=16&timeformat=unixtime&timezone=GMT`;
 
+/** Per hour, the mean of the members that have it; NaN where none does. */
+export const memberMean = (members: readonly number[][], n: number): number[] =>
+  Array.from({ length: n }, (_, i) => {
+    let s = 0, k = 0;
+    for (const m of members) if (Number.isFinite(m[i])) (s += m[i]), k++;
+    return k ? s / k : NaN;
+  });
+
+/**
+ * Open-Meteo's answer, one block per rain point, as rain per river. Model columns (`precipitation_<model>`) become
+ * members; a plain `precipitation` column (one model) is a single member.
+ */
 export function parseCatchmentRain(json: unknown, fetchedAt: number, fromCache = false): CatchmentRain {
   const pts = rainPoints();
-  const arr = (Array.isArray(json) ? json : [json]) as { hourly?: { time?: number[]; precipitation?: (number | null)[] } }[];
+  const arr = (Array.isArray(json) ? json : [json]) as { hourly?: Record<string, (number | null)[]> }[];
   if (arr.length !== pts.length || !arr[0]?.hourly?.time) throw new Error(`catchment rain: expected ${pts.length} points`);
-  const times = arr[0].hourly!.time!.map((s) => s * 1000);
+  const times = (arr[0].hourly!.time as number[]).map((s) => s * 1000);
   // Open-Meteo stamps each hour's rain at its end; IMERG and the runoff model index hours by their start (PLAN 7.57).
-  const series = arr.map((p) => toHourStart(times.map((_, i) => (typeof p.hourly?.precipitation?.[i] === 'number' ? (p.hourly.precipitation[i] as number) : NaN))));
+  const col = (c: (number | null)[] | undefined) => toHourStart(times.map((_, i) => (c && typeof c[i] === 'number' ? (c[i] as number) : NaN)));
+  const perPoint = arr.map((p) => {
+    const h = p.hourly ?? {};
+    const ms = WEATHER_MODELS.map((m) => h[`precipitation_${m}`]).filter((c) => c && c.some((x) => typeof x === 'number')).map(col);
+    return ms.length ? ms : [col(h.precipitation)];
+  });
   const byRiver: Record<string, number[]> = {};
-  for (const r of PLUME_RIVERS) byRiver[r.name] = series[pts.findIndex((p) => p[0] === r.rainAt[0] && p[1] === r.rainAt[1])];
-  return { times, byRiver, fetchedAt, fromCache };
+  const members: Record<string, number[][]> = {};
+  for (const r of PLUME_RIVERS) {
+    const m = perPoint[pts.findIndex((p) => p[0] === r.rainAt[0] && p[1] === r.rainAt[1])];
+    members[r.name] = m;
+    byRiver[r.name] = m.length === 1 ? m[0] : memberMean(m, times.length);
+  }
+  const multi = Object.values(members).some((m) => m.length > 1);
+  return multi ? { times, byRiver, members, fetchedAt, fromCache } : { times, byRiver, fetchedAt, fromCache };
 }
 
 /**
@@ -59,12 +90,15 @@ export function withSatellite(model: CatchmentRain, sat: Pick<RainImerg, 'times'
   const satHours: Record<string, number> = {};
   let satUntil = -Infinity;
   const byRiver: Record<string, number[]> = {};
-  for (const [name, xs] of Object.entries(model.byRiver)) {
+  const satAt = (name: string, i: number) => {
     const s = h.byRiver[name];
+    const k = at.get(model.times[i]);
+    return s && k !== undefined ? s[k] : NaN;
+  };
+  for (const [name, xs] of Object.entries(model.byRiver)) {
     let n = 0;
     byRiver[name] = xs.map((x, i) => {
-      const k = at.get(model.times[i]);
-      const v = s && k !== undefined ? s[k] : NaN;
+      const v = satAt(name, i);
       if (!Number.isFinite(v)) return x;
       n++;
       satUntil = Math.max(satUntil, model.times[i] + 3.6e6);
@@ -72,7 +106,11 @@ export function withSatellite(model: CatchmentRain, sat: Pick<RainImerg, 'times'
     });
     satHours[name] = n;
   }
-  return Number.isFinite(satUntil) ? { ...model, byRiver, satHours, satUntil } : model;
+  // Every model member takes the same satellite past: what fell is not a matter of model.
+  const members = model.members
+    ? Object.fromEntries(Object.entries(model.members).map(([name, ms]) => [name, ms.map((xs) => xs.map((x, i) => (Number.isFinite(satAt(name, i)) ? satAt(name, i) : x)))]))
+    : undefined;
+  return Number.isFinite(satUntil) ? { ...model, byRiver, ...(members ? { members } : {}), satHours, satUntil } : model;
 }
 
 /** The published IMERG catchment rain; reports its age as `rain-imerg`. */

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { rainImergChecks, withSatellite, type CatchmentRain } from './catchment-rain';
+import { catchmentRainUrl, memberMean, parseCatchmentRain, rainImergChecks, rainPoints, withSatellite, type CatchmentRain } from './catchment-rain';
+import { PLUME_RIVERS } from '../region';
+import { mudAt } from '../layers/clarity';
 import type { RainImerg } from './imerg-parse';
 
 const H = 3.6e6;
@@ -38,5 +40,38 @@ describe('rainImergChecks', () => {
   it('flags a stalled satellite and impossible rates', async () => {
     const r = await Promise.all(rainImergChecks(async () => feed(0.5, 20, 400)).map((c) => c.run()));
     expect(r.map((o) => o.status)).toEqual(['pass', 'fail', 'fail']);
+  });
+});
+
+describe('model members (PLAN 7.58b)', () => {
+  const pts = rainPoints();
+  // Open-Meteo stamps rain at the hour's end, so values sit one place later than the hour they belong to.
+  const body = pts.map(() => ({ hourly: { time: [0, 3600, 7200], precipitation_ecmwf_ifs: [null, 4, 0], precipitation_gfs_seamless: [null, 0, null] } }));
+  it('keeps each model as a member and averages them for the readouts', () => {
+    const d = parseCatchmentRain(body, 0);
+    expect(catchmentRainUrl()).toContain('models=ecmwf_ifs,ukmo_global_deterministic_10km,icon_seamless,gfs_seamless');
+    const r = PLUME_RIVERS[0].name;
+    expect(d.members![r]).toHaveLength(2);
+    expect(d.byRiver[r][0]).toBe(2);
+    // GFS has no hour 1: the mean is ECMWF's alone.
+    expect(d.byRiver[r][1]).toBe(0);
+    expect(memberMean([[1, NaN], [3, NaN]], 2)).toEqual([2, NaN]);
+  });
+  it('gives every member the satellite past', () => {
+    const d: CatchmentRain = { ...model(), members: { A: [[1, 1, 1, 1], [5, 5, 5, 5]], B: [[2, 2, 2, 2]] } };
+    const r = withSatellite(d, { times: [t0, t0 + 1800e3], byRiver: { A: [9, 9], B: [null, null] } });
+    expect(r.members!.A.map((m) => m[0])).toEqual([9, 9]);
+    expect(r.members!.A.map((m) => m[1])).toEqual([1, 5]);
+  });
+  it('runs each model through the runoff on its own, so one model\'s burst is not averaged flat', () => {
+    const n = 48;
+    const burst = Array.from({ length: n }, (_, i) => (i >= 6 && i < 9 ? 20 : 0));
+    const dry = Array.from({ length: n }, () => 0);
+    const times = Array.from({ length: n }, (_, i) => t0 + i * H);
+    const r = PLUME_RIVERS[0];
+    const split: CatchmentRain = { times, byRiver: { [r.name]: burst.map((x) => x / 2) }, members: { [r.name]: [burst, dry] }, fetchedAt: t0, fromCache: false };
+    const meanRain: CatchmentRain = { times, byRiver: { [r.name]: burst.map((x) => x / 2) }, fetchedAt: t0, fromCache: false };
+    const at = t0 + 20 * H;
+    expect(mudAt(split, r.name, r.catchmentKm2, at).strength).toBeGreaterThan(mudAt(meanRain, r.name, r.catchmentKm2, at).strength);
   });
 });
