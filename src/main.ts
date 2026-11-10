@@ -11,7 +11,7 @@ import { mockConditions, mockCurrentField, mockWindField } from './mock';
 import { createLockFx, mountZoomTiers } from './zoom-fx';
 import { createEnhancer } from './enhance';
 import { mountSeek } from './seek';
-import { createSettings, safeSession, safeStorage, takeView } from './settings';
+import { createSettings, safeSession, safeStorage, saveView, takeView } from './settings';
 import { windFetchM, windSide, type WindSide } from './physics/fetch';
 import { mountSurfBreaks } from './layers/surf-breaks';
 import { mountSurfHud } from './surf-hud';
@@ -142,6 +142,7 @@ import { mountDiveHud } from './dive-hud';
 import { fetchGauge, type GaugeReading } from './adapters/gauge';
 import { mountTideHud } from './tide-hud';
 import { mountSpotPage } from './spot-page';
+import { mountForecastPage } from './forecast/page';
 import { fetchSargassum, type SargassumData } from './adapters/sargassum';
 import { BEACH_RADIUS_M, beachDay, mountSargassum, mountSargassumHud, sargassumForecast, type SargForecast } from './layers/sargassum';
 
@@ -423,6 +424,7 @@ let depthAt: ((lng: number, lat: number) => number | undefined) | null = null;
 // Spot pages (PLAN 4.1): tide, sky and the spot's physics on one sheet; its tab sits before BOAT.
 const spotPage = mountSpotPage(hud, map, {
   time, sheets, physics: () => spotPhysics, observed: () => gauge, go: (t) => enhancer.go(t),
+  openForecast: (name) => forecastPage.open({ spot: name }),
   // Read at render time: metricEnv and the feeds are defined further down this file.
   metricEnv: () => metricEnv(),
   stripEnv: () => ({
@@ -670,6 +672,35 @@ mountWatchPanel(
     return diveHud ? (spot, m, ms, h) => diveHud!.outingAt((c && watchWater(spot.lngLat[0], spot.lngLat[1], c)) || spot.lngLat, m, ms, h) : undefined;
   },
 );
+// FORECAST page (PLAN 7.52): a clean page per spot and activity, its own link (#forecast/<spot>/<activity>).
+const forecastPage = mountForecastPage({
+  env: metricEnv(),
+  // Snorkel and dive read the outing score at the spot's nearest water, as WATCH does.
+  outing: (spot, m, ms, h) => {
+    const c = clarityCtx();
+    return diveHud ? diveHud.outingDetail((c && watchWater(spot.lngLat[0], spot.lngLat[1], c)) || spot.lngLat, m, ms, h) : null;
+  },
+  storage: safeStorage(),
+  lang: () => settings.lang(),
+  setLang: (l) => {
+    settings.setLang(l);
+    const c = map.getCenter();
+    saveView(safeSession(), { center: [c.lng, c.lat], zoom: map.getZoom() });
+    location.reload();
+  },
+  center: () => {
+    const c = map.getCenter();
+    return [c.lng, c.lat];
+  },
+});
+{
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'tab fc-launch';
+  b.textContent = t('fc.tab');
+  b.addEventListener('click', () => forecastPage.open());
+  hud.querySelector('.top-tabs')?.appendChild(b);
+}
 // SYSTEM CHECK: its tab joins the settings controls on a phone.
 mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeStorage() });
 // LIVE OBS (PLAN 2.13): the newest real reading from the gauge, the airport and the satellite passes, with ages.

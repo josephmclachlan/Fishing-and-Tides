@@ -51,24 +51,30 @@ export const subsetQuery = (b: ReturnType<typeof subsetOf>) => `precipitation%5B
 
 /**
  * An OPeNDAP ASCII answer for `precipitation[0][i0:i1][j0:j1]` to rain rates, mm/h, lon-major
- * (index (i − i0)·nLat + (j − j0)). Lines look like `precipitation[0][3], 0, 0.42, …`, one per lon
- * along lat. Fill values (−9999.9) and anything negative become NaN.
+ * (index (i − i0)·nLat + (j − j0)). Each data line is one lon along lat: a name with bracketed
+ * indices, then the values, e.g. `precipitation[0][3], 0, 0.42, …`. Servers differ in the name
+ * (`precipitation.precipitation`, `/Grid/precipitation`) and in the brackets (indices, or map values
+ * like `[lon=-83.25]`), so the lines are taken in order rather than by what the brackets say. Fill
+ * values (−9999.9) and anything negative become NaN. An answer of the wrong shape throws with its
+ * start, so the build log shows what came back.
  */
 export function parseImergAscii(text: string, nLon: number, nLat: number): Float64Array {
   const out = new Float64Array(nLon * nLat).fill(NaN);
-  const seen = new Set<number>();
-  for (const line of text.split('\n')) {
-    const m = line.match(/^\s*(?:[\w.]*\.)?precipitation\[\d+\]\[(\d+)\]\s*,(.*)$/);
+  let i = 0;
+  for (const line of text.split(/\r?\n/)) {
+    const m = line.match(/^\s*[^\s,\[\]]*precipitation(?:\[[^\]]*\])+\s*,(.*)$/);
     if (!m) continue;
-    const i = Number(m[1]);
-    const v = m[2].split(',').map((x) => Number(x.trim()));
-    if (i >= nLon || v.length !== nLat) throw new Error(`imerg: row ${i} has ${v.length} values, expected ${nLat}`);
+    const v = m[1].split(',').map((x) => Number(x.trim()));
+    if (v.length !== nLat || i >= nLon) throw new Error(`imerg: unexpected answer (row ${i}: ${v.length} values, expected ${nLat}): ${head(text)}`);
     v.forEach((x, j) => (out[i * nLat + j] = Number.isFinite(x) && x >= 0 ? x : NaN));
-    seen.add(i);
+    i++;
   }
-  if (seen.size !== nLon) throw new Error(`imerg: ${seen.size} of ${nLon} rows in the answer`);
+  if (i !== nLon) throw new Error(`imerg: ${i} of ${nLon} rows in the answer: ${head(text)}`);
   return out;
 }
+
+/** The start of an answer on one line, for an error message. */
+const head = (text: string) => JSON.stringify(text.slice(0, 240).replace(/\s+/g, ' '));
 
 /**
  * Mean rain rate over each river's cells, mm/h, from one parsed subset. Null when fewer than half

@@ -1,0 +1,307 @@
+/*
+ * FORECAST page (PLAN 7.52). Its own look, not the map themes (Joseph, 2026-11-10: "build your own highly
+ * sleek theme ... with a light and dark mode"), so the four-colour HUD rule in CLAUDE.md does not apply
+ * inside `.fc`: every colour here is a `--fc-*` token, defined once for light and once for dark.
+ * Rating colours run red → orange → amber → green → teal (levels 0..4), the usual forecast-site order.
+ */
+.fc {
+  --fc-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --fc-bg: #f3f6fa;
+  --fc-card: #ffffff;
+  --fc-ink: #0c1a2b;
+  --fc-sub: #5a6b80;
+  --fc-faint: #8b9aad;
+  --fc-line: #e2e8f0;
+  --fc-chip: #eef2f7;
+  --fc-accent: #0b7de3;
+  --fc-accent-ink: #ffffff;
+  --fc-shadow: 0 1px 2px rgb(15 30 50 / 0.06), 0 8px 24px rgb(15 30 50 / 0.06);
+  --fc-l0: #e5484d; --fc-l1: #f2711c; --fc-l2: #e8a800; --fc-l3: #2fa35a; --fc-l4: #0d9488;
+  --fc-none: #c7d0db;
+  /* Hero art */
+  --fc-sky-a: #e6f4ff; --fc-sky-b: #f6fbff;
+  --fc-sea-a: #49b3f0; --fc-sea-b: #0a5fa8;
+  --fc-night-a: #1d3557; --fc-night-b: #3d6a99;
+  --fc-sand: #ecdcb8;
+  --fc-art-ink: #0c1a2b;
+  --fc-foam: #ffffff;
+  --fc-murk: #7d9a8e;
+  --fc-coral: #ff7f6b;
+  --fc-moon: #fbf6dc;
+  color-scheme: light;
+}
+.fc[data-scheme='dark'] {
+  --fc-bg: #070d16;
+  --fc-card: #101a28;
+  --fc-ink: #eaf1fa;
+  --fc-sub: #9aabbf;
+  --fc-faint: #6b7d93;
+  --fc-line: #1e2b3d;
+  --fc-chip: #172335;
+  --fc-accent: #47a9ff;
+  --fc-accent-ink: #04121f;
+  --fc-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 30px rgb(0 0 0 / 0.35);
+  --fc-l0: #ff6369; --fc-l1: #ff8b3e; --fc-l2: #ffc53d; --fc-l3: #46c770; --fc-l4: #2dd4bf;
+  --fc-none: #2b3a4f;
+  --fc-sky-a: #0d1f36; --fc-sky-b: #14304f;
+  --fc-sea-a: #2a8ad6; --fc-sea-b: #0a3a66;
+  --fc-night-a: #050b16; --fc-night-b: #11274a;
+  --fc-sand: #3a3324;
+  --fc-art-ink: #d9e6f5;
+  --fc-foam: #d8ecff;
+  --fc-murk: #304a45;
+  --fc-coral: #ff8a78;
+  --fc-moon: #f4efcf;
+  color-scheme: dark;
+}
+
+body.fc-open { overflow: hidden; }
+.fc {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  background: var(--fc-bg);
+  color: var(--fc-ink);
+  font-family: var(--fc-font);
+  font-size: 15px;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-transform: none;
+  -webkit-font-smoothing: antialiased;
+}
+.fc[hidden] { display: none; }
+.fc * { text-shadow: none !important; box-sizing: border-box; }
+.fc button { font: inherit; color: inherit; letter-spacing: 0; text-transform: none; cursor: pointer; }
+.fc svg { display: block; }
+.fc-wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  display: grid;
+  gap: 14px;
+}
+.fc-wrap > * { min-width: 0; }
+
+/* Header */
+.fc-head { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; }
+.fc-back {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 40px; padding: 0 14px 0 8px;
+  border: 1px solid var(--fc-line); border-radius: 999px; background: var(--fc-card);
+  font-weight: 600; font-size: 14px;
+}
+.fc-back svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.fc-titles { min-width: 0; }
+.fc-titles h1 { margin: 0; font-size: 26px; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-titles p { margin: 2px 0 0; color: var(--fc-sub); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-tools { display: flex; gap: 8px; }
+.fc-tool {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--fc-line); background: var(--fc-card);
+  display: grid; place-items: center; font-weight: 700; font-size: 13px;
+}
+.fc-tool svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+
+/* Activity switch: a segmented control with a sliding highlight */
+.fc-acts {
+  position: relative;
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  padding: 4px; border-radius: 16px;
+  background: var(--fc-chip);
+}
+.fc-act {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  min-height: 56px; padding: 6px 2px;
+  border: 0; border-radius: 12px; background: none;
+  color: var(--fc-sub); font-weight: 650; font-size: 13px;
+  transition: color 0.25s;
+}
+.fc-act svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.fc-act.on { color: var(--fc-accent-ink); }
+.fc-act:focus-visible, .fc-spot:focus-visible, .fc-day:focus-visible, .fc-back:focus-visible, .fc-tool:focus-visible, .fc-now:focus-visible { outline: 3px solid var(--fc-accent); outline-offset: 2px; }
+.fc-act-ink {
+  position: absolute; top: 4px; bottom: 4px; left: 0;
+  border-radius: 12px; background: var(--fc-accent);
+  box-shadow: 0 4px 14px rgb(11 125 227 / 0.35);
+  transition: transform 0.35s cubic-bezier(0.3, 1.3, 0.5, 1), width 0.35s;
+}
+
+/* Spots: one scrolling row of chips */
+.fc-spots {
+  display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x proximity;
+  margin: 0 -16px; padding: 2px 16px 6px; scrollbar-width: none;
+}
+.fc-spots::-webkit-scrollbar { display: none; }
+.fc-spot {
+  flex: none; scroll-snap-align: center;
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 14px;
+  border: 1px solid var(--fc-line); border-radius: 999px; background: var(--fc-card);
+  font-weight: 600; font-size: 14px; white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s;
+}
+.fc-spot.on { border-color: var(--fc-ink); background: var(--fc-ink); color: var(--fc-bg); }
+.fc-spot-v { color: var(--fc-faint); font-variant-numeric: tabular-nums; font-weight: 600; }
+.fc-spot.on .fc-spot-v { color: inherit; opacity: 0.7; }
+.fc-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--fc-none); }
+
+/* Level colours */
+.fc .l0 { --lc: var(--fc-l0); } .fc .l1 { --lc: var(--fc-l1); } .fc .l2 { --lc: var(--fc-l2); }
+.fc .l3 { --lc: var(--fc-l3); } .fc .l4 { --lc: var(--fc-l4); } .fc .l-none { --lc: var(--fc-none); }
+.fc-dot[class*=' l'] { background: var(--lc); }
+
+/* Hero */
+.fc-hero {
+  display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  border-radius: 22px; overflow: hidden;
+  background: var(--fc-card); box-shadow: var(--fc-shadow);
+}
+.fc-art-box { position: relative; aspect-ratio: 16 / 10; min-height: 100%; background: var(--fc-sky-a); }
+.fc-art { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fc-hero-data { padding: 22px 24px 22px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.fc-k { color: var(--fc-sub); font-weight: 700; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; }
+.fc-big { display: flex; align-items: baseline; gap: 6px; line-height: 0.95; }
+.fc-num { font-size: clamp(56px, 9vw, 84px); font-weight: 800; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.fc-unit { font-size: 24px; font-weight: 700; color: var(--fc-sub); }
+.fc-size { font-size: 18px; font-weight: 650; min-height: 1.2em; }
+.fc-rate { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.fc-word { font-weight: 800; font-size: 18px; color: var(--lc, var(--fc-sub)); }
+.fc-of { color: var(--fc-faint); font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; }
+.fc-bar { display: inline-grid; grid-template-columns: repeat(5, 22px); gap: 4px; }
+.fc-bar i { height: 8px; border-radius: 4px; background: var(--fc-chip); }
+.fc-bar i.on { background: var(--lc); animation: fc-fill 0.45s backwards cubic-bezier(0.3, 1.4, 0.5, 1); animation-delay: calc(var(--i) * 70ms); }
+.fc-why { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.fc-why li { padding: 5px 10px; border-radius: 999px; background: var(--fc-chip); color: var(--fc-ink); font-size: 13px; font-weight: 600; }
+.fc-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: auto 0 0; padding-top: 12px; }
+.fc-stats div { padding: 10px 12px; border-radius: 14px; background: var(--fc-chip); min-width: 0; }
+.fc-stats dt { color: var(--fc-sub); font-size: 12px; font-weight: 650; }
+.fc-stats dd { margin: 2px 0 0; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+/* The hero glows in its level's colour: a soft wash along the top edge. */
+.fc-hero[data-level] .fc-hero-data { background: linear-gradient(180deg, color-mix(in srgb, var(--hl, transparent) 12%, transparent), transparent 60%); }
+.fc-hero[data-level='0'] { --hl: var(--fc-l0); } .fc-hero[data-level='1'] { --hl: var(--fc-l1); } .fc-hero[data-level='2'] { --hl: var(--fc-l2); }
+.fc-hero[data-level='3'] { --hl: var(--fc-l3); } .fc-hero[data-level='4'] { --hl: var(--fc-l4); }
+
+/* Cards */
+.fc-card { border-radius: 22px; background: var(--fc-card); box-shadow: var(--fc-shadow); padding: 16px 16px 14px; }
+.fc-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.fc-card h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+.fc-now { height: 32px; padding: 0 14px; border-radius: 999px; border: 0; background: var(--fc-accent); color: var(--fc-accent-ink); font-weight: 700; font-size: 13px; }
+
+/* Day bubbles */
+.fc-days { display: grid; grid-template-columns: repeat(7, minmax(84px, 1fr)); gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 4px 16px 2px; }
+.fc-days::-webkit-scrollbar { display: none; }
+.fc-day {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 10px 4px 10px; border-radius: 18px;
+  border: 1px solid transparent; background: none;
+  transition: background 0.2s;
+}
+.fc-days.in .fc-day { animation: fc-rise 0.45s backwards cubic-bezier(0.2, 0.9, 0.3, 1); animation-delay: calc(var(--i) * 45ms); }
+.fc-day:hover { background: var(--fc-chip); }
+.fc-day.on { background: var(--fc-chip); border-color: var(--fc-line); }
+.fc-day-name { font-size: 13px; font-weight: 700; color: var(--fc-sub); white-space: nowrap; }
+.fc-bubble {
+  min-width: 64px; height: 64px; padding: 0 8px; border-radius: 32px;
+  display: grid; place-content: center; text-align: center;
+  background: color-mix(in srgb, var(--lc) 16%, transparent);
+  box-shadow: inset 0 0 0 3px var(--lc);
+  line-height: 1;
+}
+.fc-bubble b { font-size: 15px; white-space: nowrap; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.fc-bubble small { font-size: 11px; color: var(--fc-sub); font-weight: 600; margin-top: 2px; }
+.fc-day-win { font-size: 12px; color: var(--fc-faint); font-weight: 600; font-variant-numeric: tabular-nums; }
+.fc-day.best .fc-bubble { animation: fc-pulse 2.4s ease-in-out infinite; }
+.fc-best {
+  margin-top: -2px;
+  padding: 2px 8px; border-radius: 999px;
+  background: var(--fc-accent); color: var(--fc-accent-ink); font-size: 10px; font-weight: 800;
+}
+
+.fc-note { margin: 4px 2px 0; color: var(--fc-faint); font-size: 12px; }
+
+/* Hero art */
+.fc-art .fc-sky { fill: var(--fc-sky-a); }
+.fc-art .fc-night { fill: var(--fc-night-a); }
+.fc-art .fc-sea-top { stop-color: var(--fc-sea-a); }
+.fc-art .fc-sea-deep { stop-color: var(--fc-sea-b); }
+.fc-art .fc-shore { fill: var(--fc-sand); }
+.fc-art .fc-person, .fc-art .fc-diver, .fc-art .fc-hull, .fc-art .fc-mast { fill: var(--fc-art-ink); }
+.fc-art .fc-board { fill: var(--fc-accent); }
+.fc-art .fc-guides text { fill: var(--fc-art-ink); fill-opacity: 0.55; font: 700 10px var(--fc-font); }
+.fc-art .fc-guides line { stroke: var(--fc-art-ink); stroke-opacity: 0.18; stroke-dasharray: 4 5; stroke-width: 1; }
+.fc-art .fc-foam { stroke: var(--fc-foam); stroke-width: 3; stroke-linecap: round; }
+.fc-art .fc-moon-dark { fill: var(--fc-night-b); }
+.fc-art .fc-moon-lit { fill: var(--fc-moon); }
+.fc-art .fc-tide-ico path { fill: var(--fc-foam); }
+.fc-art .fc-surface { stroke: var(--fc-foam); stroke-opacity: 0.6; stroke-width: 2; }
+.fc-art .fc-line { stroke: var(--fc-foam); stroke-opacity: 0.65; stroke-width: 1; }
+.fc-art .fc-hook { stroke: var(--fc-foam); stroke-width: 2; }
+.fc-art .fc-fish { fill: var(--fc-foam); fill-opacity: 0.9; }
+.fc-art .fc-bed { fill: var(--fc-sand); }
+.fc-art .fc-coral { fill: var(--fc-coral); }
+.fc-art .fc-mark text { fill: var(--fc-foam); font: 700 11px var(--fc-font); }
+.fc-art .fc-fan path { stroke: var(--fc-coral); stroke-width: 3; stroke-linecap: round; fill: none; }
+.fc-art .fc-rays path { fill: var(--fc-foam); fill-opacity: 0.08; }
+.fc-art .fc-murk-0 { stop-color: var(--fc-murk); stop-opacity: 0; }
+.fc-art .fc-murk-1 { stop-color: var(--fc-murk); stop-opacity: 0.97; }
+.fc-art .fc-vis-line { stroke: var(--fc-foam); stroke-width: 2; stroke-dasharray: 3 4; }
+.fc-art .fc-sail { fill: var(--fc-foam); stroke: var(--fc-art-ink); stroke-width: 1.5; }
+
+.fc-art .fc-streak { stroke: var(--fc-art-ink); stroke-opacity: 0.3; stroke-width: 2; stroke-linecap: round; }
+
+/* Motion */
+@keyframes fc-fill { from { transform: scaleX(0); opacity: 0; } }
+@keyframes fc-rise { from { transform: translateY(10px); opacity: 0; } }
+@keyframes fc-pulse { 0%, 100% { box-shadow: inset 0 0 0 3px var(--lc), 0 0 0 0 color-mix(in srgb, var(--lc) 45%, transparent); } 50% { box-shadow: inset 0 0 0 3px var(--lc), 0 0 0 8px color-mix(in srgb, var(--lc) 0%, transparent); } }
+@keyframes fc-swell { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-6px); } }
+@keyframes fc-swim { 0% { transform: translateX(0); } 50% { transform: translateX(-14px); } 100% { transform: translateX(0); } }
+@keyframes fc-sway { 0%, 100% { transform: rotate(calc(var(--amp) * -1)); } 50% { transform: rotate(var(--amp)); } }
+@keyframes fc-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+@keyframes fc-streak { from { transform: translateX(-60px); opacity: 0; } 30% { opacity: 1; } to { transform: translateX(240px); opacity: 0; } }
+@keyframes fc-in { from { opacity: 0; transform: scale(0.98); } }
+.fc-swell-anim { animation: fc-swell 4s ease-in-out infinite; }
+.fc-fish { animation: fc-swim 5s ease-in-out infinite; }
+.fc-swim-1 { animation-duration: 6.5s; animation-delay: -2s; }
+.fc-swim-2 { animation-duration: 4.2s; animation-delay: -1s; }
+.fc-fan { transform-box: fill-box; transform-origin: 50% 100%; animation: fc-sway 3s ease-in-out infinite; }
+.fc-boat-bob { animation: fc-bob 3s ease-in-out infinite; }
+.fc-streak { animation: fc-streak 3s linear infinite; }
+.fc-switch .fc-art { animation: fc-in 0.4s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .fc *, .fc *::before, .fc *::after { animation: none !important; transition: none !important; }
+}
+
+/* Phones */
+@media (max-width: 720px) {
+  .fc-wrap { gap: 12px; }
+  .fc-titles h1 { font-size: 22px; }
+  .fc-titles p { font-size: 13px; }
+  .fc-back span { display: none; }
+  .fc-back { padding: 0 8px; width: 40px; justify-content: center; }
+  .fc-hero { grid-template-columns: 1fr; border-radius: 20px; }
+  .fc-art-box { min-height: 0; aspect-ratio: 16 / 10; }
+  .fc-hero-data { padding: 16px 16px 16px; }
+  .fc-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .fc-stats div { padding: 8px 9px; }
+  .fc-stats dd { font-size: 13px; }
+  .fc-act { min-height: 52px; font-size: 12px; }
+}
+@media (max-width: 380px) {
+  .fc-stats { grid-template-columns: 1fr 1fr; }
+  .fc-num { font-size: 52px; }
+}
+
+/* Entry point on the map: FORECAST in the top bar; on the phone layout a pill above the bottom strip. */
+.fc-launch.tab { font-weight: 700; color: var(--green); border-color: var(--green); }
+@media (max-width: 1100px), (max-height: 700px) {
+  .top-tabs .fc-launch.tab {
+    position: fixed; left: 10px; bottom: calc(var(--dock-h, 160px) + 10px); z-index: 6;
+    min-height: 40px; padding: 0 16px; background: var(--bg); pointer-events: auto;
+  }
+  body[data-sheet]:not([data-sheet='']) .top-tabs .fc-launch.tab { display: none; }
+}

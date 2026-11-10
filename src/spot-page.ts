@@ -40,6 +40,8 @@ export interface SpotPageDeps {
   /** Read at render time (the feeds load after this page mounts). */
   metricEnv: () => MetricEnv;
   stripEnv: () => StripEnv;
+  /** Open the FORECAST page on this spot (PLAN 7.52). */
+  openForecast?: (spot: string) => void;
 }
 
 /** Ribbon rows: the activities the page scores, label keys from the activity picker. */
@@ -85,6 +87,7 @@ export function mountSpotPage(root: HTMLElement, map: Map, deps: SpotPageDeps) {
     ${row(t('surf.q'), 'sp-surf')}
     ${row(t('dive.at', { d: 6 }), 'sp-dive')}
     <button type="button" class="tab sp-go" id="sp-go">${t('spot.go')}</button>
+    <button type="button" class="tab sp-go fc-launch" id="sp-fc">${t('fc.open')}</button>
     <p class="rules-advice">${t('spot.note')}</p>`;
   el.querySelector('.ph')!.appendChild(closeButton(() => sheets.close('spot')));
   root.appendChild(el);
@@ -179,6 +182,10 @@ export function mountSpotPage(root: HTMLElement, map: Map, deps: SpotPageDeps) {
   const step = (d: number) => ((i = (i + d + SPOTS.length) % SPOTS.length), render());
   $('sp-prev').addEventListener('click', () => step(-1));
   $('sp-next').addEventListener('click', () => step(1));
+  $('sp-fc').addEventListener('click', () => {
+    sheets.close('spot');
+    deps.openForecast?.(SPOTS[i].name);
+  });
   $('sp-go').addEventListener('click', () => {
     const spot = SPOTS[i];
     sheets.close('spot');

@@ -61,6 +61,9 @@ const NOON = 12 * 3.6e6;
 const weekday = (ms: number) => new Intl.DateTimeFormat(document.documentElement.lang || 'en', { weekday: 'short', timeZone: 'UTC' }).format(new Date(ms + REGION.tzOffsetH * 3.6e6)).toUpperCase().replace('.', '');
 const why = (rs: readonly OutingReason[]) => rs.slice(0, 2).map((r) => t(`dive.r.${r}` as Key)).join(' · ');
 
+/** An outing score with the inputs a reader shows beside it: bed surge, m/s; visibility, m (null before the clarity data); entry surf, m. */
+export interface OutingDetail extends OutingScore { surgeMs: number; visM: number | null; breakerM: number }
+
 export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, time: TimeStore, env: DiveEnv) {
   const side = condSlot(root, 'water', 40);
   if (!side) return;
@@ -139,7 +142,7 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
   };
 
   /** Score for one hour at the reticle's spot; null when the sea or wind forecast has nothing for it. */
-  const scoreAt = (ms: number, localHour: number, vis: number | null, at?: [number, number], m: Mode = mode): OutingScore | null => {
+  const scoreAt = (ms: number, localHour: number, vis: number | null, at?: [number, number], m: Mode = mode): OutingDetail | null => {
     const { c, st } = at ? { c: { lng: at[0], lat: at[1] }, st: spots.byName(nearest(at, SPOTS)!.point.name) } : spotAt();
     const r = st?.result;
     const sea = env.seaAt(st?.pin[0] ?? c.lng, st?.pin[1] ?? c.lat, ms);
@@ -158,7 +161,8 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     const ratio = sea.hs > 0 && hs0 > 0 ? sea.hs / hs0 : 1;
     const breakerM = (r.HbAll ?? r.waves.breaker.Hb) * ratio ** 0.8;
     const rip = Math.abs(ms - time.validMs()) < 0.5 * 3.6e6 ? r.rip.level : undefined;
-    return outingScore({ surgeMs: u, visM: vis ?? NaN, windMs: wind, waterM, localHour, sunAltDeg: sunAltitude(ms, c.lat, c.lng), currentMs: env.currentAt(c.lng, c.lat, ms)?.ms, breakerM, ...(rip ? { rip } : {}), ...(runoff === null ? {} : { runoff }), ...waterTerms(env.waterAt(c.lng, c.lat, ms)), ...env.wxAt(c.lng, c.lat, ms) });
+    const out = outingScore({ surgeMs: u, visM: vis ?? NaN, windMs: wind, waterM, localHour, sunAltDeg: sunAltitude(ms, c.lat, c.lng), currentMs: env.currentAt(c.lng, c.lat, ms)?.ms, breakerM, ...(rip ? { rip } : {}), ...(runoff === null ? {} : { runoff }), ...waterTerms(env.waterAt(c.lng, c.lat, ms)), ...env.wxAt(c.lng, c.lat, ms) });
+    return { ...out, surgeMs: u, visM: vis, breakerM };
   };
 
   let heavyKey = '';
@@ -249,5 +253,8 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     const vis = env.visAt(at[0], at[1], localDayStart(ms, REGION.tzOffsetH) + NOON);
     return scoreAt(ms, localHour, vis, at, m)?.score ?? null;
   };
-  return { refresh: () => ((heavyKey = ''), refresh()), now, outingAt, mode: () => mode, setMode: (m: Mode) => ((mode = m), apply()) };
+  /** The same score with its reasons and the surge, visibility and entry surf behind it (the FORECAST page, src/forecast/). */
+  const outingDetail = (at: [number, number], m: Mode, ms: number, localHour: number): OutingDetail | null =>
+    scoreAt(ms, localHour, env.visAt(at[0], at[1], localDayStart(ms, REGION.tzOffsetH) + NOON), at, m);
+  return { refresh: () => ((heavyKey = ''), refresh()), now, outingAt, outingDetail, mode: () => mode, setMode: (m: Mode) => ((mode = m), apply()) };
 }
