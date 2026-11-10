@@ -45,9 +45,9 @@ Example on the real grid, 1.5 m offshore (`npm test` checks every spot stays pla
 
 The pattern matches local knowledge in broad strokes (Punta Uva sheltered, the reef spots plunging, Limón and Playa Bonita open to the north-east), but the slope and shore normal come from a 460 m grid, so Salsa Brava's true reef shape and its size on big days are beyond it. Per-break orientation and type (6.3, 6.4) will override these where they're known.
 
-### Waves over reef flats (PLAN 7.57, `reef-flat.ts`)
+### Waves over reef flats (PLAN 7.59, `reef-flat.ts`)
 
-The 15″ grid can't see a reef flat a few hundred metres wide, so before 7.57 every reef-fronted beach read the full breaker outside: Punta Cahuita and Playa Chiquita looked as rough as open sand. The Allen Coral Atlas maps the flats at 5 m, so the spot model now uses it for what reaches the water's edge.
+The 15″ grid can't see a reef flat a few hundred metres wide, so before 7.59 every reef-fronted beach read the full breaker outside: Punta Cahuita and Playa Chiquita looked as rough as open sand. The Allen Coral Atlas maps the flats at 5 m, so the spot model now uses it for what reaches the water's edge.
 
 - **Height on the flat:** Ht = γf (dr + η + ηs), γf = 0.55, the largest height-to-depth ratio stable waves hold over a near-flat bed (Nelson 1994; Gourlay 1994 on reef tops). dr = 0.5 m flat depth below mean sea level (**assumed**: the Atlas maps where flats are, not how deep), η the Limón tide above mean sea level, ηs = 0.15 H0′ the wave setup on the flat (0.1 to 0.2 of the incident height on fringing reefs: Vetter et al. 2010, Becker et al. 2014). The reef is a low-pass filter on height (Lowe et al. 2005): nothing changes until the breaker outside is bigger than Ht.
 - **Which beaches it covers:** a fan of lines every 2.5° within ±45° of the shore normal, out to 1.5 km. A line is covered when it crosses at least 150 m of unbroken REEF CREST, OUTER, INNER or TERRESTRIAL REEF FLAT (gaps up to 20 m bridged): about three wavelengths of a 10 s swell on a 2 m flat, and reef-flat width is the main control on what gets through (Quataert et al. 2015). Lines that run into a headland carry nothing and are left out. The share f is covered lines over open lines.
@@ -98,7 +98,7 @@ A transparent score built on the drivers that the NWS rip current guidance, the 
 
 ## 3.6 Physics worker (`worker.ts`, `client.ts`, `spot-model.ts`)
 
-Spot refraction (70 to 300 ms) runs in a Web Worker. The main thread posts the seafloor grids (and the Atlas reef-flat polygons, 7.57) once, then asks for a spot (pin, sea state, tide level, wind). `spot-model.ts` caches the spot geometry per pin and the refraction per period (0.5 s), direction (5°) and spread, so a change in height, tide or wind, or scrubbing the slider through hours with the same swell, only re-runs the breaker and rip formulas (well under a millisecond). The client keeps one request in flight and lets the newest waiting request replace older ones, so a fast scrub never builds a backlog. Without Worker support it runs the same model in-thread.
+Spot refraction (70 to 300 ms) runs in a Web Worker. The main thread posts the seafloor grids (and the Atlas reef-flat polygons, 7.59) once, then asks for a spot (pin, sea state, tide level, wind). `spot-model.ts` caches the spot geometry per pin and the refraction per period (0.5 s), direction (5°) and spread, so a change in height, tide or wind, or scrubbing the slider through hours with the same swell, only re-runs the breaker and rip formulas (well under a millisecond). The client keeps one request in flight and lets the newest waiting request replace older ones, so a fast scrub never builds a backlog. Without Worker support it runs the same model in-thread.
 
 The HUD's RIP readout now comes from this for the spot nearest the map centre, using the live tide and wind and, until the waves adapter (2.2) lands, the mock swell.
 

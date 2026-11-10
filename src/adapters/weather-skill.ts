@@ -1,8 +1,8 @@
 /**
- * Model skill at the Limón airport (PLAN 7.4). Fetches what GFS, ECMWF IFS and ICON said for the
+ * Model skill at the Limón airport (PLAN 7.4). Fetches what the weather models (adapters/weather.ts) said for the
  * airport over the last few days (Open-Meteo `past_days`, stitched from each model's latest runs, so
  * close to their short-range error) and scores each against the METAR reports (adapters/metar.ts)
- * with src/blend.ts. Temperature, mean wind and sea-level pressure are scored; the airport's QNH is
+ * with src/blend.ts. Temperature, dew point (PLAN 7.57), mean wind and sea-level pressure are scored; the airport's QNH is
  * sea-level pressure since the field is 2 m above the sea. The weights and biases ride on WeatherData
  * as `skill` and src/weather.ts blends with them.
  */
@@ -13,7 +13,7 @@ import type { MetarObs } from './metar-parse';
 import { MIN_PAIRS, scoreModel, weightsFrom, type ModelScore, type Pair } from '../blend';
 import type { Check, Outcome } from '../verify/types';
 
-export const HINDCAST_VARS = ['temperature_2m', 'wind_speed_10m', 'pressure_msl'] as const;
+export const HINDCAST_VARS = ['temperature_2m', 'dew_point_2m', 'wind_speed_10m', 'pressure_msl'] as const;
 type HindcastVar = (typeof HINDCAST_VARS)[number];
 /** Days of past model output scored. The METAR relay keeps 96 h, a little more. */
 export const SKILL_PAST_DAYS = 3;
@@ -35,19 +35,20 @@ export async function fetchHindcast(opts: { deps?: Partial<CacheDeps> } = {}): P
   return parseHindcast(await r.response.json(), r.fetchedAt, r.fromCache);
 }
 
-export type SkillVar = 'temp' | 'wind' | 'pressure';
+export type SkillVar = 'temp' | 'dew' | 'wind' | 'pressure';
 const SOURCES: Record<SkillVar, { model: HindcastVar; obs: (o: MetarObs) => number | null; floor: number }> = {
   temp: { model: 'temperature_2m', obs: (o) => o.tempC, floor: 0.5 },
+  dew: { model: 'dew_point_2m', obs: (o) => o.dewC, floor: 0.5 },
   wind: { model: 'wind_speed_10m', obs: (o) => o.windKt, floor: 2 },
   pressure: { model: 'pressure_msl', obs: (o) => o.pressureHpa, floor: 0.5 },
 };
 /** σ floors per variable (°C, kt, hPa): a model this good or better is not trusted more, so one lucky run cannot take the blend. */
-export const SKILL_FLOORS: Record<SkillVar, number> = { temp: SOURCES.temp.floor, wind: SOURCES.wind.floor, pressure: SOURCES.pressure.floor };
+export const SKILL_FLOORS: Record<SkillVar, number> = { temp: SOURCES.temp.floor, dew: SOURCES.dew.floor, wind: SOURCES.wind.floor, pressure: SOURCES.pressure.floor };
 
 export interface WeatherSkill {
   /** Per variable, each model's score against the airport (n = 0 when it had no matching hours). */
   scores: Record<SkillVar, Record<WeatherModel, ModelScore>>;
-  /** Per variable, normalised blend weights over all three models. */
+  /** Per variable, normalised blend weights over all the models. */
   weights: Record<SkillVar, Record<WeatherModel, number>>;
   /** Epoch ms the scores were made. */
   atMs: number;
@@ -77,7 +78,7 @@ export function scoreWeather(h: Hindcast, obs: readonly MetarObs[], nowMs: numbe
 /** Models with enough matched hours to count for a variable. */
 export const scoredModels = (sk: WeatherSkill, v: SkillVar) => WEATHER_MODELS.filter((m) => sk.scores[v][m].n >= MIN_PAIRS && Number.isFinite(sk.scores[v][m].sigma));
 
-export const MODEL_SHORT: Record<WeatherModel, string> = { gfs_seamless: 'GFS', ecmwf_ifs025: 'ECMWF', icon_seamless: 'ICON' };
+export const MODEL_SHORT: Record<WeatherModel, string> = { gfs_seamless: 'GFS', ecmwf_ifs: 'ECMWF', icon_seamless: 'ICON', ukmo_global_deterministic_10km: 'UKMO' };
 
 /** The highest-weighted model for a variable and its share, or null while the weights are equal. */
 export function leadModel(sk: WeatherSkill | undefined, v: SkillVar): { model: WeatherModel; share: number } | null {

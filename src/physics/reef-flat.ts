@@ -1,5 +1,5 @@
 /**
- * Waves over reef flats (PLAN 7.57). Pure: no DOM, SI units.
+ * Waves over reef flats (PLAN 7.59). Pure: no DOM, SI units.
  *
  * A fringing reef breaks the swell at its crest; what crosses the flat behind it is held to the
  * height that the shallow water on the flat can carry, whatever arrived outside. So a beach behind a

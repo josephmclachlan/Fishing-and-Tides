@@ -31,7 +31,7 @@ export function verdictAt(env: MetricEnv, vessel: Vessel, lng: number, lat: numb
   const w = env.windMs(lng, lat, tMs);
   const sea = env.sea(lng, lat, tMs);
   if (w === null && !sea) return null;
-  const wx = env.weather(tMs);
+  const wx = env.weather(tMs, lng, lat);
   const p = feedPartitions(sea);
   const c = env.currentVec?.(lng, lat, tMs);
   const s = p ? seaState(c ? withCurrent(p, { u: c[0], v: c[1] }) : p) : null;

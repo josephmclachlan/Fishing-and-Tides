@@ -146,7 +146,7 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     const heat = env.coralAt(c.lng, c.lat);
     $('coral').textContent = heat && Number.isFinite(heat.dhw) ? `${heat.dhw.toFixed(1)} ${t('dive.coral.unit')} · ${t(`dive.coral.a${heat.alert ?? 0}` as Key)} · ${heat.name}` : '--';
     $('coral').className = 'seg sm ' + (!heat || heat.alert === null ? '' : heat.alert >= 3 ? 'red' : heat.alert >= 1 ? '' : 'green');
-    // What a swimmer meets at the water's edge: the breaker outside, cut by any reef flat in front (PLAN 7.57).
+    // What a swimmer meets at the water's edge: the breaker outside, cut by any reef flat in front (PLAN 7.59).
     const hb = r ? r.shore?.Hb ?? r.waves.breaker.Hb : undefined;
     $('entry').textContent = r && Number.isFinite(hb) ? `${(hb as number).toFixed(1)} ${t('unit.m')} · ${t('dive.rip')} ${t(`dive.rip.${r.rip.level}` as Key)}` : '--';
     $('entry').className = 'seg sm ' + (!r || !Number.isFinite(hb) ? '' : (hb as number) >= 1.2 || r.rip.level === 'HIGH' ? 'red' : (hb as number) >= 0.5 || r.rip.level === 'MOD' ? '' : 'green');
@@ -171,7 +171,7 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     // Breaker height goes as Hs^0.8 (Komar-Gaughan, at a fixed period), not linearly (audit L); every train, not the main one.
     const hs0 = st?.sea.total ?? st?.sea.Hs ?? 0;
     const ratio = sea.hs > 0 && hs0 > 0 ? sea.hs / hs0 : 1;
-    // Behind a reef flat, the height at the water's edge (PLAN 7.57), not the breaker on the reef outside: the
+    // Behind a reef flat, the height at the water's edge (PLAN 7.59), not the breaker on the reef outside: the
     // breaker is scaled first, then cut by the flat at this hour's tide and setup.
     const outer = (r.HbAll ?? r.waves.breaker.Hb) * ratio ** 0.8;
     const breakerM = r.shore ? shoreHeight(outer, r.shore.share, flatHeight(tideM(ms), sea.hs * (r.waves.refraction.Kr || 0))) : outer;

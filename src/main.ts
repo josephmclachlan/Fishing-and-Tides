@@ -19,7 +19,7 @@ import { mountLightningHud } from './lightning-hud';
 import { mountLightning } from './layers/lightning';
 import { fetchLightning } from './adapters/lightning';
 import { nearestFlash, STRIKE_ALERT_KM, type Flash } from './lightning';
-import { biteWeather, blendedGustKt, nearestStorm, pressureTrend, squallLevel, summarise } from './weather';
+import { biteWeather, blendedGustKt, nearestStorm, pressureTrend, squallLevel, summarise, uvAt } from './weather';
 import { crestGrid } from './waves-lines';
 import { mountWavesLayer } from './layers/waves';
 import { mountWeatherHud } from './weather-hud';
@@ -180,22 +180,23 @@ const windAtRef: [number, number] = [0, 0];
 // Rip risk at the spot nearest the map centre, from the physics worker (PLAN 3.6, 4.2) once the seafloor loads.
 let spotPhysics: SpotPhysics | null = null;
 /** Gusts (weather feed, model mean) now and the wind three hours on, for the surf score (PLAN 7.23 B). */
-const uvMean = (ws: readonly { uv: number }[]) => {
-  const xs = ws.map((w) => w.uv).filter(Number.isFinite);
-  return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+/** UV index for the hour (CAMS, else scaled GFS; weather.ts uvAt), null before the weather loads. */
+const uvNow = (ms: number) => {
+  const u = weatherData ? uvAt(weatherData, ms) : NaN;
+  return Number.isFinite(u) ? u : null;
 };
 const windExtras = (ms: number, pin: [number, number], name: string) => {
-  const g = weatherData ? weatherAt(weatherData, ms).map((w) => w.gustKt).filter(Number.isFinite) : [];
+  const g = weatherData ? weatherAt(weatherData, ms, pin).map((w) => w.gustKt).filter(Number.isFinite) : [];
   const f = wind ? windAt(wind, time.band(), ms + 3 * 3.6e6)?.field : null;
   const v: [number, number] = [0, 0];
   // The wind at this place, not one reading for the whole coast (audit F): now from the field on the map, and 3 h on.
   const here = sampleField(flowSources.wind.field, pin[0], pin[1], v) ? { speedMs: Math.hypot(...v), fromDeg: fromDeg(...v) } : null;
   const ahead = f && sampleField(f, pin[0], pin[1], v) ? { speedMs: Math.hypot(...v), fromDeg: fromDeg(...v) } : null;
   const near = Math.abs(ms - Date.now()) < 3.6e6 && nearestFlash(flashes, pin[0], pin[1], Date.now());
-  const wx = weatherData ? biteWeather(weatherAt(weatherData, ms)) : {};
+  const wx = weatherData ? biteWeather(weatherAt(weatherData, ms, pin), weatherData.skill) : {};
   return {
     // Gusts blended with the airport-scored weights, as the GUSTS row shows them (audit J).
-    gustMs: g.length && weatherData ? blendedGustKt(weatherAt(weatherData, ms), weatherData.skill) / KT_PER_MS : null,
+    gustMs: g.length && weatherData ? blendedGustKt(weatherAt(weatherData, ms, pin), weatherData.skill) / KT_PER_MS : null,
     wind: here,
     ahead,
     lightning: !!near && near.km <= STRIKE_ALERT_KM,
@@ -203,7 +204,7 @@ const windExtras = (ms: number, pin: [number, number], name: string) => {
     rainMmH: wx.rainMmH ?? null,
     sarg: sargForecast ? beachDay(sargForecast, name, ms)?.level ?? null : null,
     sstC: satellite ? (sstAt(satellite, pin[0], pin[1], ms)?.value ?? null) : null,
-    uv: weatherData ? uvMean(weatherAt(weatherData, ms)) : null,
+    uv: uvNow(ms),
   };
 };
 const conditionsAt = () => {
@@ -357,8 +358,16 @@ let seaCurrent: () => readonly [number, number] | null = () => null;
 let windSideHere: () => WindSide | null = () => null;
 mountSeaStateHud(hud, conditionsAt, seaHere, { vessel: settings.vessel, safety: () => boatSafety(), current: () => seaCurrent(), windSide: () => windSideHere() });
 // Weather and active tropical storms (PLAN 7.3, 7.5): live feeds, rows stay -- until they load.
-weatherHud = mountWeatherHud(hud, { validMs: () => time.validMs() });
+weatherHud = mountWeatherHud(hud, {
+  validMs: () => time.validMs(),
+  at: () => {
+    const c = map.getCenter();
+    return [c.lng, c.lat];
+  },
+  windMs: (lng, lat, ms) => windMsAt(lng, lat, ms),
+});
 time.subscribe(() => weatherHud?.refresh());
+map.on('moveend', () => weatherHud?.refresh());
 // RAIN BY TOWN (PLAN 7.24): the four towns from the sharpest models, next 3 h from the slider.
 const townRainHud = mountTownRainHud(hud, { validMs: () => time.validMs() });
 time.subscribe(() => townRainHud?.refresh());
@@ -398,7 +407,7 @@ weatherLoad.then((d) => ((weatherData = d), weatherHud?.setWeather(d), diveHud?.
 let stormList: readonly Storm[] = [];
 boatSafety = () => {
   const c = map.getCenter();
-  const w = weatherData ? summarise(weatherData, time.validMs()) : null;
+  const w = weatherData ? summarise(weatherData, time.validMs(), [c.lng, c.lat]) : null;
   const near = nearestFlash(flashes, c.lng, c.lat, Date.now());
   return {
     gustKt: w && Number.isFinite(w.gustKt) ? w.gustKt : undefined,
@@ -648,8 +657,9 @@ const metricEnv = (): MetricEnv => ({
     return v ? Math.hypot(...v) : null;
   },
   sea: (lng, lat, ms) => (waves ? wavesAt(waves, bandAt(ms), ms, lng, lat) : null),
-  weather: (ms) => (weatherData ? weatherAt(weatherData, ms) : []),
+  weather: (ms, lng, lat) => (weatherData ? weatherAt(weatherData, ms, lng !== undefined && lat !== undefined ? [lng, lat] : undefined) : []),
   weatherSkill: () => weatherData?.skill,
+  uv: (_lng, _lat, ms) => uvNow(ms),
   // Clarity is a sea value and the spot pins sit on the shore: read it at the nearest water within ~1.8 km (cached per spot).
   clarityM: (lng, lat, ms) => {
     const c = clarityCtx();
@@ -1046,10 +1056,9 @@ fetchSeafloor()
       // Rain, squall and live lightning for the hour, the same cap fishing uses (physics/safety.ts).
       wxAt: (lng, lat, ms) => {
         const near = Math.abs(ms - Date.now()) < 3.6e6 && nearestFlash(flashes, lng, lat, Date.now());
-        const now = weatherData ? weatherAt(weatherData, ms) : [];
+        const now = weatherData ? weatherAt(weatherData, ms, [lng, lat]) : [];
         const w = biteWeather(now, weatherData?.skill);
-        const uvs = now.map((x) => x.uv).filter((x) => Number.isFinite(x));
-        return { rainMmH: w.rainMmH, cloudPct: w.cloudPct, uv: uvs.length ? uvs.reduce((a, b) => a + b, 0) / uvs.length : undefined, squall: w.squall, lightning: !!near && near.km <= STRIKE_ALERT_KM };
+        return { rainMmH: w.rainMmH, cloudPct: w.cloudPct, uv: uvNow(ms) ?? undefined, squall: w.squall, lightning: !!near && near.km <= STRIKE_ALERT_KM };
       },
       depthAt: (lng, lat) => depthAt?.(lng, lat),
     }) ?? null;
@@ -1090,9 +1099,9 @@ fetchSeafloor()
             return {
               windMs: windMsAt(lng, lat, ms),
               hsM: (waves && wavesAt(waves, bandAt(ms), ms, lng, lat)?.hs) ?? null,
-              ...(weatherData ? biteWeather(weatherAt(weatherData, ms), weatherData.skill) : {}),
+              ...(weatherData ? biteWeather(weatherAt(weatherData, ms, [lng, lat]), weatherData.skill) : {}),
               lightning: !!near && near.km <= STRIKE_ALERT_KM,
-              pressureTrend: weatherData ? pressureTrend(weatherData, ms) : null,
+              pressureTrend: weatherData ? pressureTrend(weatherData, ms, [lng, lat]) : null,
               surgeM: surgeNear(ms),
             };
           },
@@ -1145,14 +1154,14 @@ const verdictInputs = (): VerdictInputs => {
   const cond = conditionsAt();
   const parts = feedPartitions(seaHere());
   const brk = spotPhysics?.byName(nearest([c.lng, c.lat], SURF_BREAKS)!.point.name);
-  const wx = weatherData ? biteWeather(weatherAt(weatherData, ms)) : null;
+  const wx = weatherData ? biteWeather(weatherAt(weatherData, ms, [c.lng, c.lat]), weatherData.skill) : null;
   const storm = nearestStorm(stormList);
   const flash = flashes.length ? nearestFlash(flashes, c.lng, c.lat, now) : null;
   const biteNum = parseInt(hud.querySelector('#fish-bite')?.textContent ?? '', 10);
   return {
     lightningKm: flash && flash.km <= STRIKE_ALERT_KM ? flash.km : null,
     squall: wx?.squall ?? null,
-    heavyRain: weatherData ? heavyRainSoon(weatherData, ms) : null,
+    heavyRain: weatherData ? heavyRainSoon(weatherData, ms, [c.lng, c.lat]) : null,
     stormKm: storm && storm.km <= STORM_ALERT_KM ? storm.km : null,
     windKt: cond.windKt,
     hsM: seaHere()?.hs ?? cond.swellHeightM,

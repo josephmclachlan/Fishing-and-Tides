@@ -34,7 +34,7 @@ export interface SpotResult {
   /** Breaker height of every train together (the main train's from the ray model, the others estimated), m. */
   HbAll: number;
   /**
-   * What reaches the water's edge (PLAN 7.57, reef-flat.ts): the breaker outside cut by any reef flat in front
+   * What reaches the water's edge (PLAN 7.59, reef-flat.ts): the breaker outside cut by any reef flat in front
    * (`Hb` the main train, `HbAll` every train), the share of the approach the flat covers, and the most the flat
    * lets through this hour (`Ht`, m). With no flat in front these equal the breaker outside.
    */
