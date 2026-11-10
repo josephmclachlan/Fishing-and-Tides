@@ -20,6 +20,7 @@ import { buildCurrents } from './forecast/currents.ts';
 import { buildMetar } from './forecast/metar.ts';
 import { buildCoral } from './forecast/coral.ts';
 import { buildMud } from './forecast/mud.ts';
+import { buildRainImerg } from './forecast/rain-imerg.ts';
 import { buildChl, buildChlPass, buildKd490, buildKd490Nrt, buildMld, buildSargassum, buildScatPass, buildSst, buildSstPass } from './forecast/satellite.ts';
 
 const OUT = 'public/data/forecast';
@@ -56,6 +57,9 @@ const FEEDS: Record<string, { build: (dir: string) => Promise<string>; refreshH:
   coral: { build: buildCoral, refreshH: 12 },
   // MUD WEEKS (PLAN 7.39): daily Kd490 at each reef's pixel, CoastWatch ERDDAP (no CORS, so relayed). About 10 days late.
   mud: { build: buildMud, refreshH: 24 },
+  // NASA GPM IMERG satellite rain over the river catchments (PLAN 7.51), half-hourly, about 5 h late; needs the Earthdata account.
+  // Each run reads only the new half hours, so it runs every time.
+  'rain-imerg': { build: buildRainImerg, refreshH: 0.5 },
 };
 
 const wanted = process.argv.slice(2).filter((a) => !a.startsWith('-'));

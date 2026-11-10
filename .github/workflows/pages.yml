@@ -49,6 +49,9 @@ jobs:
           # without them those feeds fail and keep their previous files.
           COPERNICUSMARINE_USERNAME: ${{ secrets.COPERNICUSMARINE_USERNAME }}
           COPERNICUSMARINE_PASSWORD: ${{ secrets.COPERNICUSMARINE_PASSWORD }}
+          # Free NASA Earthdata account for the IMERG satellite rain (rain-imerg, PLAN 7.51); same rule.
+          EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_USERNAME }}
+          EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
       # Hand the fresh feeds to the archive job (PLAN 8.1) so it can save today's history.
       - uses: actions/upload-artifact@v4
         with:

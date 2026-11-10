@@ -175,10 +175,14 @@ export const CORAL_BOX: [[number, number], [number, number]] = [[-83.1, 9.55], [
  * (found 2026-11-10). These are the main-stem cells a few km inland: today's flows of 276, 81 and 22 m³/s
  * match the catchment sizes at this coast's ~0.09 m³/s per km². The Bananito is too small for the grid;
  * its mouth cell answers (about 1.6 m³/s) and is kept.
+ * `rainBox`: the 0.1° cells of NASA's IMERG satellite rain averaged over the catchment (PLAN 7.51),
+ * [[west, south], [east, north]] on the grid's cell edges. Drawn by eye over each basin's rough extent
+ * (Telire, Urén and Yorkín above the Sixaola; the Estrella valley; the Banano and Bananito hills behind
+ * Limón), not traced from a basin outline: 28, 8, 2 and 1 cells, within about 20% of each area.
  */
-export const PLUME_RIVERS: { name: string; mouth: [number, number]; catchmentKm2: number; rainAt: [number, number]; flowAt: [number, number] }[] = [
-  { name: 'RÍO SIXAOLA', mouth: [-82.5649, 9.5724], catchmentKm2: 2890, rainAt: [-82.95, 9.45], flowAt: [-82.625, 9.525] },
-  { name: 'RÍO ESTRELLA', mouth: [-82.8922, 9.7927], catchmentKm2: 1000, rainAt: [-83.1, 9.68], flowAt: [-82.975, 9.775] },
-  { name: 'RÍO BANANO', mouth: [-82.9951, 9.9208], catchmentKm2: 210, rainAt: [-83.12, 9.88], flowAt: [-83.075, 9.925] },
-  { name: 'RÍO BANANITO', mouth: [-82.9573, 9.874], catchmentKm2: 110, rainAt: [-83.12, 9.88], flowAt: [-82.9573, 9.874] },
+export const PLUME_RIVERS: { name: string; mouth: [number, number]; catchmentKm2: number; rainAt: [number, number]; flowAt: [number, number]; rainBox: [[number, number], [number, number]] }[] = [
+  { name: 'RÍO SIXAOLA', mouth: [-82.5649, 9.5724], catchmentKm2: 2890, rainAt: [-82.95, 9.45], flowAt: [-82.625, 9.525], rainBox: [[-83.3, 9.2], [-82.6, 9.6]] },
+  { name: 'RÍO ESTRELLA', mouth: [-82.8922, 9.7927], catchmentKm2: 1000, rainAt: [-83.1, 9.68], flowAt: [-82.975, 9.775], rainBox: [[-83.3, 9.6], [-82.9, 9.8]] },
+  { name: 'RÍO BANANO', mouth: [-82.9951, 9.9208], catchmentKm2: 210, rainAt: [-83.12, 9.88], flowAt: [-83.075, 9.925], rainBox: [[-83.2, 9.9], [-83.0, 10.0]] },
+  { name: 'RÍO BANANITO', mouth: [-82.9573, 9.874], catchmentKm2: 110, rainAt: [-83.12, 9.88], flowAt: [-82.9573, 9.874], rainBox: [[-83.1, 9.8], [-83.0, 9.9]] },
 ];
