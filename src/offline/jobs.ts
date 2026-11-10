@@ -42,7 +42,7 @@ export const JOB_FEEDS: Record<string, readonly string[]> = {
   sst: ['sst', 'sst-coast', 'chl', 'kd490', 'kd490-nrt'],
   passes: ['sst-pass', 'chl-pass', 'scat-pass'],
   weather: ['weather'],
-  rain: ['rain'],
+  rain: ['rain', 'rain-imerg'],
   townrain: ['townrain'],
   raincells: ['raincells'],
   river: ['river'],
@@ -67,7 +67,7 @@ export function tripJobs(base: string = import.meta.env.BASE_URL): SyncJob[] {
     { name: 'sst', run: async () => need(Number.isFinite((await fetchSatellite({ base })).fetchedAt), 'no satellite data') },
     // The airport hindcast that scores the models (PLAN 7.4) rides with the forecast; without it the blend uses equal weights.
     { name: 'weather', run: async () => { live(await fetchWeather(), 'weather'); await fetchHindcast().catch(() => null); } },
-    { name: 'rain', run: async () => live(await fetchCatchmentRain(), 'rain') },
+    { name: 'rain', run: async () => live(await fetchCatchmentRain({ base }), 'rain') },
     { name: 'townrain', run: async () => live(await fetchTownRain(), 'townrain') },
     { name: 'raincells', run: async () => { const d = await fetchRainCells(); if (d) live(d, 'raincells'); } },
     { name: 'river', run: async () => live(await fetchRiverFlow(), 'river') },

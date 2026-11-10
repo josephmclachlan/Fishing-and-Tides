@@ -23,7 +23,7 @@ t,site,source,model,var,value,issued
 | Column | Meaning |
 |---|---|
 | `t` | Valid time (forecast) or observation time, UTC, to the minute |
-| `site` | A `SPOTS` name from `src/region.ts`, a station (`MRLM`, `limon`), an NHC storm id, `SARG_BOX`, or `lng;lat` for a sargassum cell |
+| `site` | A `SPOTS` name from `src/region.ts`, a station (`MRLM`, `limon`), an NHC storm id, a `PLUME_RIVERS` name (`RÍO SIXAOLA`), `SARG_BOX`, or `lng;lat` for a sargassum cell |
 | `source` | The feed (`docs/DATA.md`) or service |
 | `model` | Weather model for `openmeteo` rows (`gfs_seamless`, `ecmwf_ifs025`, `icon_seamless`), else empty |
 | `var` | Variable, below |
@@ -44,6 +44,7 @@ t,site,source,model,var,value,issued
 | `gauge` | `limon` | `levelM` (10-minute mean above MSL), `tideM` (our harmonic prediction at the bin centre) | Last 90 min each run |
 | `openmeteo` | `MRLM` | `temperature_2m` (°C), `wind_speed_10m`, `wind_gusts_10m` (kn), `wind_direction_10m` (°), `pressure_msl` (hPa) per model | Next 24 h hourly, at the 00, 06, 12 and 18 UTC runs |
 | `nhc` | Storm id | `lng`, `lat`, `windKt`, `pressureMb`, `movementDeg`, `movementKt` | Each advisory |
+| `imerg` | Each `PLUME_RIVERS` river | `rainMm` (NASA GPM IMERG Early satellite rain over the river's catchment cells, mm in the UTC day), `halfHours` (how many of the day's 48 it had; the total is their mean rate × 24 h) | Each finished UTC day, saved once 12 h after it ends, when it has at least 44 half hours (PLAN 7.51) |
 
 About 4,000 to 5,000 rows a day, roughly 200 KB of CSV, which git compresses to a few tens of MB a year.
 

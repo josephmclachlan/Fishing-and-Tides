@@ -21,6 +21,7 @@ import {
   byDay, forecastTimes, gaugeRows, mergeDay, metarRows, modelRows, parseIocRows, sampleRows, sargassumRows, stormRows,
   type Row, type Site,
 } from '../src/history/archive.ts';
+import { imergDaily, type RainImerg } from '../src/adapters/imerg-parse.ts';
 
 const IN = 'public/data/forecast';
 const OUT = process.env.HISTORY_DIR ?? 'history';
@@ -103,6 +104,14 @@ await step('metar', () => {
   return metarRows(m.station, m.obs);
 });
 await step('storms', () => stormRows(JSON.parse(readFileSync(`${IN}/storms.json`, 'utf8')).storms));
+// Satellite rain over each river's catchment (PLAN 7.51), per finished UTC day, stamped at the day's start.
+await step('imerg', () => {
+  const f = JSON.parse(readFileSync(`${IN}/rain-imerg.json`, 'utf8')) as RainImerg;
+  return imergDaily(f, now).flatMap((d) => [
+    { t: d.day, site: d.river, source: 'imerg', model: '', v: 'rainMm', value: d.mm },
+    { t: d.day, site: d.river, source: 'imerg', model: '', v: 'halfHours', value: d.halfHours },
+  ]);
+});
 
 // The tide gauge isn't relayed (the phone reads IOC directly), so fetch the last 90 minutes here.
 await step('gauge', async () => {
