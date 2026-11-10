@@ -47,3 +47,10 @@ describe('soften extras', () => {
     expect(soften('YOUR SECCHI READINGS. SATELLITE KD490, AUG–OCT.')).toBe('Your Secchi readings. Satellite Kd490, Aug–Oct.');
   });
 });
+
+describe('soften units', () => {
+  it('keeps °C and ZIP', () => {
+    expect(soften('WATER °C')).toBe('Water °C');
+    expect(soften('BACKUP (ZIP)')).toBe('Backup (ZIP)');
+  });
+});
