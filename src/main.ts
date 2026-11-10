@@ -30,6 +30,7 @@ import { mountRainLayer } from './layers/rain';
 import { fetchRainCells } from './adapters/rain-cells';
 import { mountStorms } from './layers/storms';
 import { fetchWeather, weatherAt, type WeatherData } from './adapters/weather';
+import { fetchSpotWind, spotWindAt, type SpotWind } from './adapters/spot-wind';
 import { LIMON_BIG_TIDE, LIMON_HARMONICS } from './data/tides-limon';
 import { mountWatchPanel } from './watch-panel';
 import { mountBoatWindowHud } from './boat-window-hud';
@@ -128,6 +129,7 @@ import { fetchRiverFlow, flowRatio, type RiverFlow } from './adapters/river-flow
 import { dataAge, describeAge } from './adapters/data-age';
 import { createNet } from './net';
 import { createPhysicsClient } from './physics/client';
+import { flatPolygons } from './physics/reef-flat';
 import { haversineM, nearest } from './geo';
 import { mountVerdictHud } from './verdict-hud';
 import type { VerdictInputs } from './verdict';
@@ -170,6 +172,8 @@ const windField = () => (wind && windAt(wind, time.band(), time.validMs())?.fiel
 let currents: CurrentsData | null = null;
 // Declared up here because HUD modules tick as soon as they mount, before the lines that load these feeds.
 let riverFlow: RiverFlow | null = null;
+// Four-model wind over the water at each spot (PLAN 7.58a); read before the wind map near the spots.
+let spotWind: SpotWind | null = null;
 const currentField = () => (currents && currentsAt(currents, time.band(), time.validMs())?.field) || mockCurrentField(hoursSinceEpoch(time.validMs()));
 const flowSources: { wind: FlowSource; current: FlowSource } = {
   wind: { field: windField(), ...FLOW_STYLE.wind },
@@ -190,8 +194,11 @@ const windExtras = (ms: number, pin: [number, number], name: string) => {
   const f = wind ? windAt(wind, time.band(), ms + 3 * 3.6e6)?.field : null;
   const v: [number, number] = [0, 0];
   // The wind at this place, not one reading for the whole coast (audit F): now from the field on the map, and 3 h on.
-  const here = sampleField(flowSources.wind.field, pin[0], pin[1], v) ? { speedMs: Math.hypot(...v), fromDeg: fromDeg(...v) } : null;
-  const ahead = f && sampleField(f, pin[0], pin[1], v) ? { speedMs: Math.hypot(...v), fromDeg: fromDeg(...v) } : null;
+  // Near a spot, the four-model wind over its water (PLAN 7.58a) for both; elsewhere the wind map.
+  const sw = (t: number) => (spotWind && spotWindAt(spotWind, pin[0], pin[1], t, weatherData?.skill?.weights.wind)) || null;
+  const swNow = sw(ms), swAhead = sw(ms + 3 * 3.6e6);
+  const here = swNow ?? (sampleField(flowSources.wind.field, pin[0], pin[1], v) ? { speedMs: Math.hypot(...v), fromDeg: fromDeg(...v) } : null);
+  const ahead = swAhead ?? (f && sampleField(f, pin[0], pin[1], v) ? { speedMs: Math.hypot(...v), fromDeg: fromDeg(...v) } : null);
   const near = Math.abs(ms - Date.now()) < 3.6e6 && nearestFlash(flashes, pin[0], pin[1], Date.now());
   const wx = weatherData ? biteWeather(weatherAt(weatherData, ms, pin), weatherData.skill) : {};
   return {
@@ -402,6 +409,7 @@ const loadLightning = () =>
 loadLightning();
 setInterval(loadLightning, 5 * 60000);
 let weatherData: WeatherData | null = null;
+fetchSpotWind().then((d) => ((spotWind = d), weatherHud?.refresh(), diveHud?.refresh())).catch((err) => console.warn('spot wind unavailable', err));
 const weatherLoad = fetchWeather();
 weatherLoad.then((d) => ((weatherData = d), weatherHud?.setWeather(d), diveHud?.refresh())).catch((err) => console.warn('weather unavailable', err));
 let stormList: readonly Storm[] = [];
@@ -591,7 +599,14 @@ const watchSea = new globalThis.Map<string, [number, number] | null>();
 const hourWind = new globalThis.Map<number, ReturnType<typeof windAt>>();
 let hourWindFor: WindData | null = null;
 /** Forecast wind speed, m/s, at any place and hour (one wind frame per hour, cached); shared by WATCH and fishing. */
+/**
+ * Forecast wind vector, m/s, at any place and hour. Near a spot it is the four-model blend over the water in front
+ * of the beach (adapters/spot-wind.ts, PLAN 7.58a), weighted by the models' wind skill at the airport; elsewhere,
+ * or past the models, the 0.25° wind map (one frame per hour, cached).
+ */
 const windVecAt = (lng: number, lat: number, ms: number): [number, number] | null => {
+  const sw = spotWind && spotWindAt(spotWind, lng, lat, ms, weatherData?.skill?.weights.wind);
+  if (sw) return sw.vec;
   if (!wind) return null;
   if (hourWindFor !== wind) (hourWind.clear(), (hourWindFor = wind));
   const h = Math.floor(ms / 3.6e6);
@@ -1019,7 +1034,7 @@ fetchSeafloor()
     clarityElevation = data.region;
     clarityLand = data.land;
     refreshClarity();
-    spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land }), baseConditions, () => time.validMs(), windExtras, spotSea);
+    spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land, reefFlats: flatPolygons(data.reefs) }), baseConditions, () => time.validMs(), windExtras, spotSea);
     spotPhysics.subscribe(() => queueVerdict());
     spotPhysics.subscribe(() => {
       ripLayer.update(spotPhysics!.all(), data.land);

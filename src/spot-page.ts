@@ -162,7 +162,9 @@ export function mountSpotPage(root: HTMLElement, map: Map, deps: SpotPageDeps) {
       return;
     }
     const b = r.waves.breaker;
-    set('sp-hb', `${b.Hb.toFixed(1)} ${t('unit.m')}${b.type ? ' ' + t(`sz.type.${b.type}` as Key) : ''}`);
+    // Behind a reef flat, also what reaches the water's edge (PLAN 7.59).
+    const shore = r.shore && r.shore.share >= 0.1 && r.shore.Hb < b.Hb - 0.05 ? ` · ${t('sz.shore')} ${r.shore.Hb.toFixed(1)} ${t('unit.m')}` : '';
+    set('sp-hb', `${b.Hb.toFixed(1)} ${t('unit.m')}${b.type ? ' ' + t(`sz.type.${b.type}` as Key) : ''}${shore}`);
     set('sp-rip', `${t(`rip.${r.rip.level}` as Key)} · ${t(`rip.str.${r.rip.strength}` as Key)} ${r.rip.speedMs.toFixed(1)} ${t('unit.ms')}`, r.rip.level === 'HIGH' ? 'red' : r.rip.level === 'MOD' ? '' : 'green');
     set('sp-drift', `${Math.abs(b.longshoreMs).toFixed(1)} ${t('unit.ms')}`);
     const q = st.surf;

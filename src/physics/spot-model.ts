@@ -10,12 +10,15 @@ import { seafloorDepth, type DepthFn, type RefractionResult } from './refraction
 import { ripRisk, onshoreWind, type Rip } from './rip';
 import { breakerHeight, combinedBreaker, obliqueKr } from './breaking';
 import { defaultSpread, spotGeometry, spotRefraction, spotWavesFrom, type SeaState, type SpotGeometry, type SpotWaves } from './surf-zone';
+import { flatHeight, flatIndex, reefShelter, shoreHeight, type FlatIndex, type ReefShelter, type Rings } from './reef-flat';
 
 export interface SpotRequest {
   pin: [number, number];
   sea: SeaState;
   /** 0 = low water, 1 = high water (3.1 tideState().level). */
   tideLevel: number;
+  /** Tide above mean sea level, m (3.1 tideState().h): sets how much water covers a reef flat. 0 if unknown. */
+  tideM?: number;
   /** Size of this tide, 0..1 (see RipInput.tideSize). */
   tideSize?: number;
   /** Wind speed (m/s) and direction it blows FROM, if known. */
@@ -30,12 +33,20 @@ export interface SpotResult {
   rip: Rip;
   /** Breaker height of every train together (the main train's from the ray model, the others estimated), m. */
   HbAll: number;
+  /**
+   * What reaches the water's edge (PLAN 7.59, reef-flat.ts): the breaker outside cut by any reef flat in front
+   * (`Hb` the main train, `HbAll` every train), the share of the approach the flat covers, and the most the flat
+   * lets through this hour (`Ht`, m). With no flat in front these equal the breaker outside.
+   */
+  shore: { Hb: number; HbAll: number; share: number; Ht: number };
 }
 
-export interface SeafloorGrids { region: Grid; macro: Grid; land?: Grid }
+/** `reefFlats`: Allen Coral Atlas reef crest and flat polygons (reef-flat.ts `flatPolygons`); none = no reef shelter. */
+export interface SeafloorGrids { region: Grid; macro: Grid; land?: Grid; reefFlats?: Rings[] }
 
-export function createSpotModel(depth: DepthFn, opts: { fanStepDeg?: number; maxCache?: number } = {}) {
+export function createSpotModel(depth: DepthFn, opts: { fanStepDeg?: number; maxCache?: number; flats?: FlatIndex } = {}) {
   const geoms = new Map<string, SpotGeometry | null>();
+  const shelters = new Map<string, ReefShelter>();
   const refr = new Map<string, RefractionResult>();
   const maxCache = opts.maxCache ?? 500;
   const pinKey = (p: [number, number]) => `${p[0].toFixed(5)},${p[1].toFixed(5)}`;
@@ -44,6 +55,11 @@ export function createSpotModel(depth: DepthFn, opts: { fanStepDeg?: number; max
     const k = pinKey(pin);
     if (!geoms.has(k)) geoms.set(k, spotGeometry(depth, pin));
     return geoms.get(k)!;
+  };
+  const shelter = (geom: SpotGeometry) => {
+    const k = pinKey(geom.pin);
+    if (!shelters.has(k)) shelters.set(k, opts.flats ? reefShelter(opts.flats, depth, geom.pin, geom.normalDeg) : { share: 0, open: 0, covered: 0 });
+    return shelters.get(k)!;
   };
 
   return {
@@ -78,10 +94,15 @@ export function createSpotModel(depth: DepthFn, opts: { fanStepDeg?: number; max
         onshoreWindMs: req.wind ? onshoreWind(req.wind.speedMs, req.wind.fromDeg, geom.normalDeg) : 0,
         knownChannel: req.knownChannel,
       });
-      return { waves, rip, HbAll };
+      // Over a reef flat the setup comes from the waves arriving at the reef: the refracted height outside.
+      const { share } = shelter(geom);
+      const Ht = flatHeight(req.tideM ?? 0, req.sea.Hs * (r.Kr || 0));
+      const shore = { Hb: shoreHeight(waves.breaker.Hb, share, Ht), HbAll: shoreHeight(HbAll, share, Ht), share, Ht };
+      return { waves, rip, HbAll, shore };
     },
     cacheSize: () => refr.size,
   };
 }
 
-export const spotModelFromGrids = (g: SeafloorGrids, opts?: { fanStepDeg?: number }) => createSpotModel(seafloorDepth(g.region, g.macro, g.land), opts);
+export const spotModelFromGrids = (g: SeafloorGrids, opts?: { fanStepDeg?: number }) =>
+  createSpotModel(seafloorDepth(g.region, g.macro, g.land), { ...opts, flats: g.reefFlats?.length ? flatIndex(g.reefFlats) : undefined });
