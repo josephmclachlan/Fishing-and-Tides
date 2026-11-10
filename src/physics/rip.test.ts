@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { onshoreWind, ripLengthBand, ripLevel, ripRisk, ripStrength, type RipInput } from './rip';
+import { onshoreWind, withOutflow, ripLengthBand, ripLevel, ripRisk, ripStrength, type RipInput } from './rip';
 
 const base: RipInput = { Hb: 1, hb: 1.2, Tp: 10, angleDeg: 0, slope: 0.02, tideLevel: 0.5 };
 
@@ -48,6 +48,21 @@ describe('rip risk score', () => {
     // Steep reef: short; flat sand: long; capped.
     expect(ripRisk({ ...base, slope: 0.1 }).length).toBe('SHORT');
     expect(ripRisk({ ...base, slope: 0.002 }).lengthM).toBe(600);
+  });
+});
+
+describe('river outflow (PLAN 7.63)', () => {
+  it('holds the level at least at the mouth\'s flood level, never lowers it', () => {
+    const calm = ripRisk({ ...base, Hb: 0.3 });
+    expect(calm.level).toBe('LOW');
+    expect(withOutflow(calm, null)).toBe(calm);
+    expect(withOutflow(calm, 'LOW')).toBe(calm);
+    const mod = withOutflow(calm, 'MOD');
+    expect(mod).toMatchObject({ level: 'MOD', score: 0.25, outflow: 'MOD', speedMs: calm.speedMs, lengthM: calm.lengthM });
+    expect(withOutflow(calm, 'HIGH')).toMatchObject({ level: 'HIGH', score: 0.55 });
+    const big = ripRisk({ ...base, Hb: 2, Tp: 14 });
+    expect(big.level).toBe('HIGH');
+    expect(withOutflow(big, 'MOD')).toMatchObject({ level: 'HIGH', score: big.score, outflow: 'MOD' });
   });
 });
 

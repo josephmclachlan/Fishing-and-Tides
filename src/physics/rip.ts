@@ -11,6 +11,8 @@
  *   4. low tide              water over the bars is shallowest, flow concentrates in the channels
  *   5. onshore wind          adds set-up (Lushine: +1 point above ~12 kt onshore)
  *   6. known rip channels    reef gaps, river mouths and structures fix rips in place
+ *   7. river outflow         a river or creek in flood pushes a jet straight out through its mouth,
+ *                            whatever the surf (PLAN 7.63, `withOutflow`)
  *
  *   S = fH · fT · fA · fTide · fW · fC     (≈ 0 calm … ≥ 1 severe)
  *   LOW < 0.25 ≤ MOD < 0.55 ≤ HIGH
@@ -75,6 +77,8 @@ export interface Rip {
   length: RipLength;
   /** Each factor, so the HUD can say why (largest effect first is the caller's job). */
   factors: RipFactors;
+  /** Set when a river or creek mouth in flood near the spot holds the level up (`withOutflow`). */
+  outflow?: RipLevel;
 }
 
 export const RIP_THRESHOLDS = { MOD: 0.25, HIGH: 0.55 } as const;
@@ -121,6 +125,17 @@ export function ripRisk(inp: RipInput): Rip {
   const slope = inp.slope != null && inp.slope > 0 ? inp.slope : 0.03;
   const lengthM = inp.Hb > 0 ? Math.min(600, Math.max(30, (1.5 * inp.hb) / slope)) : 0;
   return { score, level: ripLevel(score), speedMs, strength: ripStrength(speedMs), lengthM, length: ripLengthBand(lengthM), factors: f };
+}
+
+/**
+ * A spot's rip with a nearby river or creek mouth in flood (PLAN 7.63). The flood jet runs whatever the waves do, so
+ * the spot's level is at least the mouth's: the score is raised to that level's threshold. Speed and reach stay the
+ * waves' (the jet's own speed is not modelled). LOW or no level leaves the rip as it is.
+ */
+export function withOutflow(rip: Rip, level: RipLevel | null | undefined): Rip {
+  if (!level || level === 'LOW') return rip;
+  const score = Math.max(rip.score, RIP_THRESHOLDS[level]);
+  return { ...rip, score, level: ripLevel(score), outflow: level };
 }
 
 /** Onshore component of a wind (m/s) blowing FROM `windFromDeg`, for a shore whose seaward normal is `normalDeg`. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseWeather } from './adapters/weather';
-import { biteWeather, uvAt as uvAtWx, uvScale, heavyRainSoon, pressureChange, nearestStorm, squallLevel, squallSoon, summarise, uvBand, uvPeakDay } from './weather';
+import { biteWeather, uvAt as uvAtWx, uvScale, heavyRainSoon, pressureChange, nearestStorm, rainPastMm, squallLevel, squallSoon, summarise, uvBand, uvPeakDay } from './weather';
 import { parseStorms } from './adapters/storms-parse';
 
 const T0 = 1_000_000_000;
@@ -41,6 +41,14 @@ describe('weather summary', () => {
   });
   it('leaves 24 h rain unknown when the series ends sooner', () => {
     expect(summarise(d, T0 + 10 * 3.6e6)!.rain24Mm).toBeNaN();
+  });
+  it('sums the last hours of rain at a place, the mean of the models (PLAN 7.63)', () => {
+    // GFS 1 mm/h, ICON 3 mm/h: 6 h is 6 and 18 mm, mean 12.
+    expect(rainPastMm(d, T0 + 6 * 3.6e6, 6)).toBeCloseTo(12, 9);
+    expect(rainPastMm(d, T0 + 8 * 3.6e6, 3)).toBeCloseTo(6, 9);
+    // The window starts before the data: unknown, not a dry spell.
+    expect(rainPastMm(d, T0 + 5 * 3.6e6, 6)).toBeNull();
+    expect(rainPastMm(d, T0 + 40 * 3.6e6, 6)).toBeNull();
   });
   it('is null outside the series', () => {
     expect(summarise(d, 0)).toBeNull();
