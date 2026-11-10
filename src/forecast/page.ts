@@ -17,9 +17,10 @@ import { compassName } from '../spot-charts';
 import type { Spot } from '../metrics/forecast';
 import type { Plan } from '../metrics/plan';
 import { heroArt } from './art';
+import { ratingStrip, rowSvg, rowsFor, timeAxis, type ChartGeom } from './charts';
 import {
-  FC_ACTIVITIES, daysAt, isFcActivity, parseRoute, readAt, routeHash, spotsForActivity,
-  type FcActivity, type FcDeps, type FcRead, type Level,
+  FC_ACTIVITIES, chopFor, daysAt, driftFor, isFcActivity, parseRoute, readAt, routeHash, spotsForActivity, timeline,
+  type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour,
 } from './model';
 import './forecast.css';
 
@@ -103,7 +104,10 @@ function reasons(r: FcRead): string[] {
     return out;
   }
   if (r.fish) return r.fish.reasons.slice(0, 3).map((k) => sentence(t(`bite.r.${k}` as Key)));
-  if (r.water) return r.water.reasons.length ? r.water.reasons.slice(0, 3).map((k) => sentence(t(`dive.r.${k}` as Key))) : [t('fc.reason.none')];
+  if (r.water) {
+    const why = r.water.reasons.length ? r.water.reasons.slice(0, 3).map((k) => sentence(t(`dive.r.${k}` as Key))) : [t('fc.reason.none')];
+    return r.water.access ? [sentence(t(`snk.access.${r.water.access}` as Key)), ...why] : why;
+  }
   if (r.sail) {
     const s = r.sail, out: string[] = [];
     if (s.squall !== null && s.squall >= 1) out.push(`${t('fc.squall')}: ${t(`fc.squall.${Math.min(2, Math.round(s.squall))}` as Key).toLowerCase()}`);
@@ -136,12 +140,27 @@ function stats(r: FcRead, plan: Plan | null, selDay: number): [string, string][]
       [t('fc.tide'), t(f.tideRising ? 'fc.tide.rising' : 'fc.tide.falling')],
     ];
   }
+  if (r.water && r.activity === 'snorkel') {
+    // Snorkelling happens at the surface over a shallow reef: getting in, chop, drift, how much water, sun, stingers.
+    const w = r.water;
+    const uvWord = (uv: number) => sentence(t(uv >= 8 ? 'dive.uv.cover' : uv >= 6 ? 'dive.uv.high' : 'dive.uv.ok'));
+    return [
+      [t('fc.entry'), `${n1(w.breakerM)} m${w.rip ? ` · ${t('fc.rip')} ${sentence(t(`dive.rip.${w.rip}` as Key)).toLowerCase()}` : ''}`],
+      [t('fc.chop'), w.windKt === null ? dash : `${t(`fc.chop.${chopFor(w.windKt)}` as Key)} · ${n0(w.windKt)} kt`],
+      [t('fc.current'), w.currentKt === null ? dash : `${t(`fc.drift.${driftFor(w.currentKt)}` as Key)} · ${n1(w.currentKt)} kt`],
+      [t('fc.overReef'), w.waterM === null ? dash : `${n1(w.waterM)} m`],
+      [t('fc.uv'), w.uv === null ? dash : `${n0(w.uv)} · ${uvWord(w.uv)}`],
+      [t('fc.stingers'), w.stingers === null ? dash : sentence(t(w.stingers ? 'snk.stingers.maybe' : 'snk.stingers.low'))],
+    ];
+  }
   if (r.water) {
+    // Diving is about the bottom: surge at depth, drift, temperature for the suit.
     const w = r.water;
     return [
-      [t('fc.bestWindow'), winText],
+      [t('fc.surge', { d: w.depthM }), `${t(`fc.surge.${w.surge}` as Key)} · ${w.surgeMs.toFixed(2)} m/s`],
+      [t('fc.current'), w.currentKt === null ? dash : `${t(`fc.drift.${driftFor(w.currentKt)}` as Key)} · ${n1(w.currentKt)} kt`],
       [t('fc.sst'), w.sstC === null ? dash : `${n1(w.sstC)} °C`],
-      [t('fc.score'), r.score === null ? dash : `${n0(r.score)}/100`],
+      [t('fc.bestWindow'), winText],
     ];
   }
   if (r.sail) {
@@ -219,6 +238,12 @@ export function mountForecastPage(deps: ForecastDeps) {
         <div class="fc-card-head"><h2>${t('fc.days')}</h2><button type="button" class="fc-now" id="fc-now" hidden>${t('fc.now')}</button></div>
         <div class="fc-days" id="fc-days"></div>
       </section>
+      <section class="fc-card fc-hours-card">
+        <div class="fc-card-head"><h2>${t('fc.hours')}</h2></div>
+        <ul class="fc-readout" id="fc-readout" aria-live="polite"></ul>
+        <div class="fc-tl" id="fc-tl"><div class="fc-tl-in" id="fc-tl-in"></div><div class="fc-cursor" id="fc-cursor" hidden></div></div>
+        <p class="fc-tl-hint">${t('fc.hoursHint')}</p>
+      </section>
       <p class="fc-note">${t('fc.note')}</p>
     </div>`;
   document.body.appendChild(el);
@@ -264,6 +289,9 @@ export function mountForecastPage(deps: ForecastDeps) {
   /** We pushed the history entry, so closing can step back instead of adding one. */
   let pushed = false;
   let shownSpot = '';
+  let tl: TimelineHour[] = [];
+  let tlKey = '';
+  let geom: ChartGeom = { px: 6, tzOffsetH: REGION.tzOffsetH };
 
   const spots = () => spotsForActivity(act, SPOTS);
   const nearestSpot = (list: Spot[]) => {
@@ -326,13 +354,16 @@ export function mountForecastPage(deps: ForecastDeps) {
     $('fc-k').textContent = t(`fc.metric.${act}` as Key);
     countUp($('fc-num'), hl.value);
     $('fc-unit').textContent = hl.unit;
-    $('fc-size').textContent = r.surf ? t(`fc.size.${r.surf.size}` as Key) : r.water ? `${t('fc.surge', { d: r.water.depthM })}: ${t(`fc.surge.${r.water.surge}` as Key).toLowerCase()} · ${r.water.surgeMs.toFixed(2)} m/s` : r.sail && r.sail.fromDeg !== null ? `${t('fc.wind')} ${cmp(r.sail.fromDeg)}` : '';
+    const dayIdx = plan ? Math.max(0, Math.min(plan.days.length - 1, Math.floor((localDayStart(ms, REGION.tzOffsetH) - plan.startMs) / DAY))) : 0;
+    const win = plan?.days[dayIdx];
+    $('fc-size').textContent = r.fish ? (win ? `${t('fc.bestWindow')} ${t('fc.window', { from: localClock(win.startMs), to: localClock(win.endMs) })}` : '') : r.surf ? t(`fc.size.${r.surf.size}` as Key) : r.water && act === 'snorkel' ? `${t('fc.entry')} ${n1(r.water.breakerM)} m${r.water.windKt === null ? '' : ` · ${t(`fc.chop.${chopFor(r.water.windKt)}` as Key).toLowerCase()}`}` : r.water ? `${t('fc.depthAt', { d: r.water.depthM })}${r.water.currentKt === null ? '' : ` · ${t('fc.current').toLowerCase()} ${t(`fc.drift.${driftFor(r.water.currentKt)}` as Key).toLowerCase()}`}` : r.sail && r.sail.fromDeg !== null ? `${t('fc.wind')} ${cmp(r.sail.fromDeg)}` : '';
     html('fc-rate', r.level === null
       ? `<span class="fc-word">${t('fc.nodata')}</span>`
       : `<span class="fc-word l${r.level}">${r.surf ? sentence(t(`surf.band.${r.surf.band}` as Key)) : t(`fc.lvl.${r.level}` as Key)}</span>${bar(r.level)}${r.surf ? `<span class="fc-of">${n1(r.score!)}/10</span>` : ''}`);
     html('fc-why', reasons(r).map((x) => `<li>${x}</li>`).join(''));
-    const dayIdx = plan ? Math.max(0, Math.min(plan.days.length - 1, Math.floor((localDayStart(ms, REGION.tzOffsetH) - plan.startMs) / DAY))) : 0;
-    html('fc-stats', stats(r, plan, dayIdx).map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join(''));
+    const st = stats(r, plan, dayIdx);
+    $('fc-stats').dataset.n = String(st.length);
+    html('fc-stats', st.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join(''));
     const artLabel =
       act === 'surf' ? t('fc.art.surf', { m: r.surf ? n1(r.surf.hb) : '--' })
       : act === 'fish' ? t('fc.art.fish')
@@ -373,12 +404,56 @@ export function mountForecastPage(deps: ForecastDeps) {
       .join(''));
   };
 
+  /** The hour-by-hour charts: built when the spot, activity, hour or width changes, or while data is missing. */
+  const renderTimeline = () => {
+    const sp = spot();
+    const width = $('fc-tl').clientWidth || 340;
+    const px = Math.max(6, Math.floor((width / (7 * 24)) * 10) / 10);
+    const key = `${act}|${sp.name}|${nowHour()}|${px}`;
+    const missing = !tl.length || tl.every((h) => h.read.level === null);
+    if (key !== tlKey || missing) {
+      const start = plan?.startMs ?? localDayStart(Date.now(), REGION.tzOffsetH);
+      tl = timeline(deps, act, sp, start);
+      tlKey = key;
+      geom = { px, tzOffsetH: REGION.tzOffsetH };
+      const wins = (plan?.days ?? []).flatMap((d) => (d ? [{ startMs: d.startMs, endMs: d.endMs }] : []));
+      const rows = rowsFor(act)
+        .map((r) => `<div class="fc-row"><div class="fc-row-k">${t(`fc.row.${r.id}` as Key)} <span>${t(`fc.unit.${r.id}` as Key)}</span>${tl.some((h) => r.value(h) !== null) ? '' : ` <em>${t('fc.noRow')}</em>`}</div>${rowSvg(r, tl, geom, wins)}</div>`)
+        .join('');
+      html('fc-tl-in', `${timeAxis(tl, geom, (ms, i) => dayLabel(ms, i))}<div class="fc-row fc-row-rating"><div class="fc-row-k">${t('fc.row.rating')}</div>${ratingStrip(tl, geom)}</div>${rows}`);
+    }
+    placeCursor(when());
+  };
+  const tlIndex = (ms: number) => (tl.length ? Math.round((ms - tl[0].ms) / H) : -1);
+  /** Move the cursor line and the readout to an hour (no rebuild: cheap enough for a mouse move). */
+  const placeCursor = (ms: number) => {
+    const i = tlIndex(ms);
+    const c = $('fc-cursor');
+    if (i < 0 || i >= tl.length) return void (c.hidden = true);
+    c.hidden = false;
+    c.style.transform = `translateX(${(i + 0.5) * geom.px}px)`;
+    const h = tl[i];
+    const d = new Date(h.ms + REGION.tzOffsetH * H);
+    const r = h.read;
+    const hl = headline(r);
+    const items = [
+      `<li class="fc-ro-when">${sentence(t(`day.${d.getUTCDay()}` as Key))} ${d.getUTCDate()} · ${localClock(h.ms)}</li>`,
+      `<li><span class="fc-dot ${r.level === null ? '' : `l${r.level}`}"></span>${t(`fc.metric.${act}` as Key)} <b>${hl.value}${hl.unit ? ` ${hl.unit}` : ''}</b>${r.level === null ? '' : ` · ${r.surf ? sentence(t(`surf.band.${r.surf.band}` as Key)) : t(`fc.lvl.${r.level}` as Key)}`}</li>`,
+      h.windKt === null || act === 'sail' ? '' : `<li>${t('fc.wind')} <b>${n0(h.windKt)} kt ${cmp(h.windFromDeg)}</b>${h.gustKt === null ? '' : ` · ${t('fc.gust').toLowerCase()} ${n0(h.gustKt)}`}</li>`,
+      `<li>${t('fc.tide')} <b>${h.tideM.toFixed(2)} m</b></li>`,
+      h.rainMmH !== null && h.rainMmH >= 0.1 ? `<li>${t('fc.row.rain')} <b>${n1(h.rainMmH)} mm/h</b></li>` : '',
+      h.airC === null ? '' : `<li>${t('fc.air')} <b>${n0(h.airC)} °C</b></li>`,
+    ];
+    html('fc-readout', items.join(''));
+  };
+
   const render = () => {
     if (el.hidden) return;
     renderActs();
     renderDays();
     renderSpots();
     renderHero();
+    renderTimeline();
   };
 
   // --- events
@@ -411,8 +486,30 @@ export function mountForecastPage(deps: ForecastDeps) {
     sel = i === 0 && !d ? null : start;
     renderDays();
     renderHero();
+    $('fc-tl').scrollTo({ left: Math.max(0, i * 24 * geom.px - 24), behavior: 'smooth' });
+    placeCursor(when());
   });
-  $('fc-now').addEventListener('click', () => ((sel = null), renderDays(), renderHero()));
+  // Timeline: a tap (or click) picks the hour for the hero; a mouse hovering previews it in the readout.
+  const hourAt = (e: MouseEvent) => {
+    const r = $('fc-tl-in').getBoundingClientRect();
+    const i = Math.floor((e.clientX - r.left) / geom.px);
+    return i >= 0 && i < tl.length ? tl[i].ms : null;
+  };
+  $('fc-tl').addEventListener('click', (e) => {
+    const ms = hourAt(e);
+    if (ms === null) return;
+    sel = ms;
+    renderDays();
+    renderHero();
+    placeCursor(ms);
+  });
+  $('fc-tl').addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    const ms = hourAt(e);
+    if (ms !== null) placeCursor(ms);
+  });
+  $('fc-tl').addEventListener('pointerleave', () => placeCursor(when()));
+  $('fc-now').addEventListener('click', () => ((sel = null), renderDays(), renderHero(), placeCursor(when())));
   $('fc-back').addEventListener('click', () => close());
   el.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') (e.stopPropagation(), close());
@@ -477,7 +574,7 @@ export function mountForecastPage(deps: ForecastDeps) {
       hide();
     }
   };
-  window.addEventListener('resize', () => !el.hidden && renderActs());
+  window.addEventListener('resize', () => !el.hidden && (renderActs(), renderTimeline()));
 
   // After start-up: the deps read feeds and panels main.ts declares further down.
   window.setTimeout(fromHash, 0);

@@ -5,8 +5,9 @@
  *
  *   SURF     the wave face to scale beside a 1.7 m surfer, with knee, waist and head lines
  *   FISH     sky with the moon's real phase over the water, one fish per bite level, the tide arrow
- *   SNORKEL  looking along the reef: markers at 5 m steps fade into the murk beyond the visibility;
- *   DIVE     the sea fan sways as far as the surge swings
+ *   SNORKEL  a snorkeller at the surface: chop from the wind, the reef as deep as the water over it at this
+ *            tide, markers fading into the murk past the visibility
+ *   DIVE     a diver over the reef: markers at 5 m steps fade past the visibility, the sea fan sways with the surge
  *   SAIL     a boat heeling with the wind, streaks as fast as the wind, chop as high as the swell
  */
 import type { FcRead } from './model';
@@ -107,9 +108,7 @@ export function waterArt(r: FcRead, label: string): string {
   const x0 = 64, maxM = 25, pxPerM = (W - x0 - 16) / maxM;
   const visX = vis === null ? W : x0 + clamp(vis, 0, maxM) * pxPerM;
   const floor = 172;
-  const diver = r.activity === 'snorkel'
-    ? `<g class="fc-diver"><ellipse cx="34" cy="40" rx="20" ry="6"/><circle cx="54" cy="37" r="6"/><rect x="56" y="22" width="3" height="14" rx="1.5"/></g>`
-    : `<g class="fc-diver"><ellipse cx="34" cy="104" rx="22" ry="7"/><circle cx="57" cy="101" r="7"/><rect x="18" y="94" width="20" height="6" rx="3"/><path d="M12,104 l-10,-6 l0,12 Z"/></g>`;
+  const diver = `<g class="fc-diver fc-float"><ellipse cx="34" cy="104" rx="22" ry="7"/><circle cx="57" cy="101" r="7"/><rect x="18" y="94" width="20" height="6" rx="3"/><path d="M12,104 l-10,-6 l0,12 Z"/></g>`;
   const marks = [5, 10, 15, 20, 25]
     .map((m) => {
       const x = x0 + m * pxPerM;
@@ -132,6 +131,55 @@ export function waterArt(r: FcRead, label: string): string {
     <rect class="fc-murk" x="${f1(Math.max(x0, visX - 40))}" y="0" width="${f1(W - Math.max(x0, visX - 40) + 2)}" height="${floor + 2}" fill="url(#fc-murk-g)"/>
     ${vis === null ? '' : `<line class="fc-vis-line" x1="${f1(visX)}" x2="${f1(visX)}" y1="18" y2="${floor}"/>`}`;
   return svg(`fc-art-water fc-art-${r.activity}`, body, label);
+}
+
+/**
+ * SNORKEL: seen from beside a snorkeller floating at the surface. The surface chops with the wind, the reef tops
+ * sit as far below as the water over the reef at this tide (40 px per metre), and markers along the reef fade
+ * past the visibility.
+ */
+export function snorkelArt(r: FcRead, label: string): string {
+  const w = r.water;
+  const surf = 52, pxPerM = 40;
+  const over = clamp(w?.waterM ?? 2, 0.4, 3.2);
+  const reefTop = surf + over * pxPerM;
+  const vis = w?.visM ?? null;
+  const x0 = 70, maxM = 25, pxPerVisM = (W - x0 - 12) / maxM;
+  const visX = vis === null ? W : x0 + clamp(vis, 0, maxM) * pxPerVisM;
+  const chop = clamp(((w?.windKt ?? 4) / 16) * 7, 1, 7);
+  const waves = Array.from({ length: 10 }, () => `q16,${f1(-chop)} 32,0`).join(' ');
+  // The reef: a rubble bed with rounded brain-coral heads and a few branching corals on top.
+  const bed = `<path class="fc-bed" d="M0,${f1(reefTop + 12)} q40,-8 80,0 t80,0 t80,0 t80,0 L${W},${HT} L0,${HT} Z"/>`;
+  const heads = [[26, 16], [74, 11], [128, 18], [182, 12], [232, 16], [286, 13]]
+    .map(([x, ry], i) => `<ellipse class="fc-coral${i % 2 ? ' fc-coral-b' : ''}" cx="${x}" cy="${f1(reefTop + 12)}" rx="${ry + 6}" ry="${ry}"/>`)
+    .join('');
+  const branches = [52, 156, 258]
+    .map((x) => `<path class="fc-branch" d="M${x},${f1(reefTop + 12)} l0,-16 m0,6 l-7,-8 m7,14 l7,-10"/>`)
+    .join('');
+  const marks = [5, 10, 15, 20]
+    .map((m) => `<g class="fc-mark"><text x="${f1(x0 + m * pxPerVisM)}" y="${f1(Math.min(HT - 6, reefTop + 2))}" text-anchor="middle">${m} m</text></g>`)
+    .join('');
+  const fish = [[120, surf + 26], [196, surf + 40], [240, surf + 22]]
+    .map(([x, y], i) => `<path class="fc-fish fc-swim-${i}" d="${fishPath(x, y, 0.55)}"/>`)
+    .join('');
+  const body = `
+    <defs>
+      <linearGradient id="fc-sn-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="fc-sea-top"/><stop offset="1" class="fc-sea-deep"/></linearGradient>
+      <linearGradient id="fc-murk2-g" x1="0" y1="0" x2="1" y2="0"><stop offset="0" class="fc-murk-0"/><stop offset="1" class="fc-murk-1"/></linearGradient>
+    </defs>
+    <rect class="fc-sky" width="${W}" height="${surf}"/>
+    <circle class="fc-sun" cx="272" cy="24" r="12"/>
+    <rect y="${surf}" width="${W}" height="${HT - surf}" fill="url(#fc-sn-g)"/>
+    <g class="fc-rays"><path d="M110,${surf} L84,${HT} L104,${HT} L128,${surf} Z"/><path d="M210,${surf} L194,${HT} L210,${HT} L226,${surf} Z"/></g>
+    ${fish}
+    ${bed}${heads}${branches}
+    ${marks}
+    <g class="fc-chop-anim"><path class="fc-surface-fill" d="M-20,${surf} ${waves} L${W + 20},0 L-20,0 Z"/><path class="fc-surface" d="M-20,${surf} ${waves}" fill="none"/></g>
+    <g class="fc-diver fc-float"><ellipse cx="44" cy="${surf + 5}" rx="24" ry="5.5"/><circle cx="70" cy="${surf + 3}" r="6"/><rect x="72" y="${surf - 16}" width="3" height="16" rx="1.5"/><path d="M20,${surf + 5} l-12,-5 l0,10 Z"/></g>
+    <rect class="fc-murk" x="${f1(Math.max(x0, visX - 40))}" y="${surf + 2}" width="${f1(W - Math.max(x0, visX - 40) + 2)}" height="${HT - surf}" fill="url(#fc-murk2-g)"/>
+    ${vis === null ? '' : `<line class="fc-vis-line" x1="${f1(visX)}" x2="${f1(visX)}" y1="${surf + 8}" y2="${f1(reefTop)}"/>`}
+    <g class="fc-depth"><line x1="300" x2="300" y1="${surf + 2}" y2="${f1(reefTop)}"/><text x="294" y="${f1((surf + reefTop) / 2 + 4)}" text-anchor="end">${w?.waterM ? `${f1(w.waterM)} m` : ''}</text></g>`;
+  return svg('fc-art-snorkel', body, label);
 }
 
 export function sailArt(r: FcRead, label: string): string {
@@ -163,7 +211,7 @@ export function heroArt(r: FcRead, label: string, guides?: { knee: string; waist
   switch (r.activity) {
     case 'surf': return surfArt(r, label, guides);
     case 'fish': return fishArt(r, label);
-    case 'snorkel':
+    case 'snorkel': return snorkelArt(r, label);
     case 'dive': return waterArt(r, label);
     case 'sail': return sailArt(r, label);
   }

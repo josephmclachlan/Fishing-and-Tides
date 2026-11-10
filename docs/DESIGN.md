@@ -168,6 +168,13 @@ A clean page beside the map for one spot and one activity, built to read at a gl
 - **Activity switch:** FISH, SURF, SNORKEL, DIVE, SAIL. Each lists only its own spots, as WATCH does: surf breaks for surf and catalog snorkel spots for snorkel and dive. Each spot chip is tinted with its rating now.
 - **Hero.** A picture drawn from the reading sits beside the headline number, a five-step rating bar and why. Surf shows the wave face to scale beside a 1.7 m surfer, with knee, waist and head lines. Fish shows the sky with the moon's real phase, one fish per bite level and the tide arrow. Snorkel and dive look along a reef, with markers every 5 m fading into murk past the visibility and a sea fan swaying with the surge. Sail shows a boat heeling with the wind, with streaks as fast as the wind.
 - **Next 7 days** bubbles: WATCH's best window per day at this spot (`metrics/plan.ts`), the headline value at its start, the best day ringed and pulsing. Tapping a day moves the hero there.
+- **Hour by hour.** All rows share one time axis across the 7 days and sit in one horizontal scroller. At the top is a rating strip coloured by level. Below it are the activity's own rows, each one measure on one scale:
+  - Surf: surf height, wind, tide.
+  - Fish: bite, tide, wind, rain.
+  - Snorkel and dive: visibility, outing score, surge, tide, wind.
+  - Sail: wind with gust ticks, swell, rain, tide.
+
+  Wind rows carry arrows every 3 h. Nights are shaded, and each day's best window is a softly pulsing highlight. Only each day's peak is labelled, along with the tide's highs and lows. Tapping an hour moves the hero and the readout chips there. On a mouse, hovering previews an hour in the chips.
 - **Numbers.** The page has no model of its own. `src/forecast/model.ts` reads the same scores as the map: break score, BITE, the outing score at 2 m and 6 m, and SEA COMFORT. The five levels cut at each score's own tone thresholds.
 - **Motion** (numbers counting up, bars filling, the switch highlight sliding, the best day pulsing, the pictures moving) is off when the phone asks for reduced motion.
 

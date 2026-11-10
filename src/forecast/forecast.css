@@ -160,7 +160,7 @@ body.fc-open { overflow: hidden; }
   border-radius: 22px; overflow: hidden;
   background: var(--fc-card); box-shadow: var(--fc-shadow);
 }
-.fc-art-box { position: relative; aspect-ratio: 16 / 10; min-height: 100%; background: var(--fc-sky-a); }
+.fc-art-box { position: relative; min-height: 300px; background: var(--fc-sky-a); }
 .fc-art { position: absolute; inset: 0; width: 100%; height: 100%; }
 .fc-hero-data { padding: 22px 24px 22px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .fc-k { color: var(--fc-sub); font-weight: 700; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; }
@@ -177,6 +177,7 @@ body.fc-open { overflow: hidden; }
 .fc-why { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .fc-why li { padding: 5px 10px; border-radius: 999px; background: var(--fc-chip); color: var(--fc-ink); font-size: 13px; font-weight: 600; }
 .fc-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: auto 0 0; padding-top: 12px; }
+.fc-stats[data-n='4'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .fc-stats div { padding: 10px 12px; border-radius: 14px; background: var(--fc-chip); min-width: 0; }
 .fc-stats dt { color: var(--fc-sub); font-size: 12px; font-weight: 650; }
 .fc-stats dd { margin: 2px 0 0; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
@@ -222,6 +223,50 @@ body.fc-open { overflow: hidden; }
   background: var(--fc-accent); color: var(--fc-accent-ink); font-size: 10px; font-weight: 800;
 }
 
+/* Hour by hour */
+.fc-readout { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; min-height: 30px; }
+.fc-readout li { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: var(--fc-chip); font-size: 13px; color: var(--fc-sub); }
+.fc-readout li b { color: var(--fc-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.fc-readout .fc-ro-when { background: var(--fc-ink); color: var(--fc-bg); font-weight: 700; }
+.fc-tl { position: relative; overflow-x: auto; margin: 0 -16px; padding: 0 16px 4px; scrollbar-width: thin; cursor: crosshair; touch-action: pan-x pan-y; }
+.fc-tl-in { display: grid; gap: 4px; width: max-content; }
+.fc-row { position: relative; }
+.fc-row-k {
+  position: sticky; left: 0; z-index: 1; display: inline-block;
+  padding: 1px 8px 1px 0; margin-bottom: -12px;
+  background: linear-gradient(90deg, var(--fc-card) 85%, transparent);
+  font-size: 12px; font-weight: 700; color: var(--fc-ink);
+}
+.fc-row-k span { color: var(--fc-faint); font-weight: 600; }
+.fc-row-k em { color: var(--fc-faint); font-weight: 600; font-style: normal; }
+.fc-row-rating .fc-row-k { margin-bottom: 0; }
+.fc-chart { display: block; overflow: visible; }
+.fc-cursor {
+  position: absolute; top: 0; bottom: 4px; left: 16px; width: 2px; margin-left: -1px;
+  background: var(--fc-ink); border-radius: 1px; pointer-events: none;
+  transition: transform 0.12s ease-out;
+}
+.fc-cursor::before { content: ''; position: absolute; top: 0; left: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--fc-ink); box-shadow: 0 0 0 3px var(--fc-card); }
+.fc-tl-hint { margin: 6px 0 0; color: var(--fc-faint); font-size: 12px; }
+.fc-chart .fc-c-night { fill: var(--fc-chip); }
+.fc-chart .fc-c-day { stroke: var(--fc-line); stroke-width: 1; }
+.fc-chart .fc-c-base { stroke: var(--fc-line); stroke-width: 1; }
+.fc-chart .fc-c-win { fill: var(--fc-accent); fill-opacity: 0.12; animation: fc-glow 2.6s ease-in-out infinite; }
+.fc-chart .fc-c-bar { fill: var(--fc-faint); }
+.fc-chart .fc-c-bar[class*=' l'] { fill: var(--lc); }
+.fc-chart .fc-c-tick { fill: var(--fc-ink); fill-opacity: 0.55; }
+.fc-chart .fc-c-line { fill: none; stroke: var(--fc-accent); stroke-width: 2; stroke-linejoin: round; }
+.fc-chart .fc-c-fill { fill: var(--fc-accent); fill-opacity: 0.14; }
+.fc-chart .fc-c-val { fill: var(--fc-ink); font: 700 11px var(--fc-font); font-variant-numeric: tabular-nums; }
+.fc-chart .fc-c-arrow { fill: var(--fc-sub); }
+.fc-chart .fc-c-lv { fill: var(--lc); }
+.fc-chart .fc-c-dname { fill: var(--fc-ink); font: 800 12px var(--fc-font); }
+.fc-chart .fc-c-hr { fill: var(--fc-faint); font: 600 10px var(--fc-font); }
+@keyframes fc-glow { 0%, 100% { fill-opacity: 0.1; } 50% { fill-opacity: 0.22; } }
+/* Bars grow in when the activity or spot changes. */
+.fc-switch .fc-c-bar { transform-box: fill-box; transform-origin: 50% 100%; animation: fc-grow 0.5s backwards cubic-bezier(0.2, 0.9, 0.3, 1); }
+@keyframes fc-grow { from { transform: scaleY(0); } }
+
 .fc-note { margin: 4px 2px 0; color: var(--fc-faint); font-size: 12px; }
 
 /* Hero art */
@@ -252,6 +297,14 @@ body.fc-open { overflow: hidden; }
 .fc-art .fc-vis-line { stroke: var(--fc-foam); stroke-width: 2; stroke-dasharray: 3 4; }
 .fc-art .fc-sail { fill: var(--fc-foam); stroke: var(--fc-art-ink); stroke-width: 1.5; }
 
+.fc-art .fc-coral-b { fill: var(--fc-l2); fill-opacity: 0.85; }
+.fc-art .fc-branch { stroke: var(--fc-coral); stroke-width: 3; stroke-linecap: round; fill: none; }
+.fc-art .fc-sun { fill: var(--fc-moon); }
+.fc-art .fc-surface-fill { fill: var(--fc-sky-a); }
+.fc-art .fc-depth line { stroke: var(--fc-foam); stroke-width: 1.5; stroke-dasharray: 2 3; }
+.fc-art .fc-depth text { fill: var(--fc-foam); font: 700 11px var(--fc-font); }
+.fc-chop-anim { animation: fc-swell 2.4s ease-in-out infinite; }
+.fc-float { animation: fc-bob 3.2s ease-in-out infinite; }
 .fc-art .fc-streak { stroke: var(--fc-art-ink); stroke-opacity: 0.3; stroke-width: 2; stroke-linecap: round; }
 
 /* Motion */

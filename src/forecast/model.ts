@@ -14,14 +14,15 @@
  * map (surf bands, BITE 40/60, outing CAUTION 40 and GO 70, comfort 50/75), with one extra cut each side.
  */
 import { daySky, localDayStart, type DaySky } from '../physics/astro';
-import { tideState } from '../physics/tide';
+import { predict, tideState } from '../physics/tide';
 import { haversineM } from '../geo';
 import { PLUME_RIVERS } from '../region';
 import { SPECIES, type SpeciesId } from '../fishing/species';
 import { seasonFactor } from '../fishing/habitat';
 import { waterTerm } from '../fishing/water';
 import type { BiteReason } from '../fishing/bite';
-import type { OutingReason, OutingScore } from '../physics/outing';
+import { stingerGuess, type OutingReason, type OutingScore } from '../physics/outing';
+import { SNORKEL_SPOTS, type SnorkelAccess } from '../data/snorkel-spots';
 import { surgeBand, type SurgeBand } from '../physics/surge';
 import { METRIC_BY_ID, biteAt, surfHourFor, type MetricEnv } from '../metrics/registry';
 import { surfDetailAt } from '../metrics/surf-estimate';
@@ -37,7 +38,16 @@ export const isFcActivity = (x: unknown): x is FcActivity => typeof x === 'strin
 export const planActivity = (a: FcActivity): PlanActivity => (a === 'sail' ? 'boat' : a);
 
 /** Outing score with its inputs at a spot and hour (dive-hud.ts outingDetail, read at the spot's nearest water). */
-export interface OutingRead extends OutingScore { surgeMs: number; visM: number | null; breakerM: number }
+export interface OutingRead extends OutingScore {
+  surgeMs: number;
+  visM: number | null;
+  breakerM: number;
+  currentMs?: number;
+  windMs?: number;
+  waterM?: number;
+  rip?: 'LOW' | 'MOD' | 'HIGH';
+  uv?: number;
+}
 export type OutingDetailAt = (spot: Spot, mode: 'snorkel' | 'dive', ms: number, localHour: number) => OutingRead | null;
 
 export interface FcDeps {
@@ -117,7 +127,24 @@ export interface WaterRead {
   surge: SurgeBand;
   depthM: number;
   sstC: number | null;
+  /** Surf at the entry, m (the spot model scaled to the hour's swell). */
+  breakerM: number;
+  /** Surface current, kt; wind, kt; null when that feed has nothing. */
+  currentKt: number | null;
+  windKt: number | null;
+  /** Water over the reef at this hour's tide, m (capped at the activity depth on open water). */
+  waterM: number | null;
+  rip: 'LOW' | 'MOD' | 'HIGH' | null;
+  uv: number | null;
+  /** SNORKEL: the catalog spot's access and the on-shore-wind stinger guess (outing.ts stingerGuess). */
+  access: SnorkelAccess | null;
+  stingers: boolean | null;
 }
+/** Words for a snorkeller: chop from the wind, drift from the current. */
+export type Chop = 'flat' | 'light' | 'choppy' | 'rough';
+export const chopFor = (kt: number): Chop => (kt < 6 ? 'flat' : kt < 11 ? 'light' : kt < 16 ? 'choppy' : 'rough');
+export type Drift = 'slack' | 'gentle' | 'strong';
+export const driftFor = (kt: number): Drift => (kt < 0.3 ? 'slack' : kt < 0.9 ? 'gentle' : 'strong');
 export interface SailRead {
   windKt: number | null;
   gustKt: number | null;
@@ -208,10 +235,18 @@ export function readAt(deps: FcDeps, a: FcActivity, spot: Spot, ms: number, sky 
   }
   if (a === 'snorkel' || a === 'dive') {
     const o = deps.outing?.(spot, a, ms, localHour(ms, env.tzOffsetH));
+    const snk = a === 'snorkel' ? SNORKEL_SPOTS.find((x) => x.spot === spot.name) ?? null : null;
+    const windFrom = env.windDirDeg?.(lng, lat, ms) ?? null;
     if (!o || !fin(o.score)) return none;
     return {
       ...base, score: o.score, share: o.score / 100, level: levelFor(a, o.score),
-      water: { reasons: o.reasons, visM: fin(o.visM) ? o.visM : null, surgeMs: o.surgeMs, surge: surgeBand(o.surgeMs), depthM: a === 'snorkel' ? 2 : 6, sstC: env.sstC?.(lng, lat, ms) ?? null },
+      water: {
+        reasons: o.reasons, visM: fin(o.visM) ? o.visM : null, surgeMs: o.surgeMs, surge: surgeBand(o.surgeMs), depthM: a === 'snorkel' ? 2 : 6, sstC: env.sstC?.(lng, lat, ms) ?? null,
+        breakerM: o.breakerM, currentKt: fin(o.currentMs) ? o.currentMs * KT : null, windKt: fin(o.windMs) ? o.windMs * KT : null,
+        waterM: fin(o.waterM) ? o.waterM : null, rip: o.rip ?? null, uv: fin(o.uv) ? o.uv : null,
+        access: snk?.access ?? null,
+        stingers: snk && fin(o.windMs) && fin(windFrom) ? stingerGuess(o.windMs, windFrom, snk.facing) : null,
+      },
     };
   }
   // SAIL: sea comfort is the headline; wind, gusts and squalls ride along.
@@ -252,3 +287,44 @@ export function parseRoute(hash: string, spots: readonly Spot[]): Route | null {
   return { spot, activity: isFcActivity(m[2]) ? m[2] : null };
 }
 export const routeHash = (spot: string, a: FcActivity) => `#forecast/${spotSlug(spot)}/${a}`;
+
+/** One hour of the page's timeline: the activity's reading plus the shared rows (wind, gusts, rain, tide, air). */
+export interface TimelineHour {
+  ms: number;
+  read: FcRead;
+  windKt: number | null;
+  windFromDeg: number | null;
+  gustKt: number | null;
+  rainMmH: number | null;
+  tideM: number;
+  airC: number | null;
+  /** The sun is up. */
+  day: boolean;
+}
+
+/**
+ * `hours` hours from `startMs` (a local midnight): what the page's hour-by-hour charts draw. The tide is the
+ * harmonic prediction (exact in every band), the rest the same metric reads as the WATCH tracker's.
+ */
+export function timeline(deps: FcDeps, a: FcActivity, spot: Spot, startMs: number, hours = 7 * 24): TimelineHour[] {
+  const env = deps.env;
+  const sky = skyMemo(env.tzOffsetH);
+  const [lng, lat] = spot.lngLat;
+  return Array.from({ length: hours }, (_, i) => {
+    const ms = startMs + i * H;
+    const s = sky(ms, lat, lng);
+    const args = { env, spot: spot.name, lng, lat, ms, sky: s };
+    const val = (id: string) => METRIC_BY_ID.get(id)!.at(args);
+    return {
+      ms,
+      read: readAt(deps, a, spot, ms, sky),
+      windKt: val('wind'),
+      windFromDeg: val('wdir'),
+      gustKt: val('gust'),
+      rainMmH: val('rain'),
+      tideM: predict(env.tide, ms),
+      airC: val('air'),
+      day: s.sun.sunrise !== null && s.sun.sunset !== null && ms + H / 2 >= s.sun.sunrise && ms + H / 2 < s.sun.sunset,
+    };
+  });
+}
