@@ -8,7 +8,7 @@
  * Only each day's peak is labelled, and tide highs and lows. Nights are shaded, and the day's best window
  * (WATCH's, from plan.ts) is a soft highlight band that pulses.
  */
-import type { FcActivity, Level, TimelineHour } from './model';
+import { uvLevel, type FcActivity, type Level, type TimelineHour } from './model';
 
 export interface ChartGeom {
   /** Pixels per hour. */
@@ -44,11 +44,13 @@ export function rowsFor(a: FcActivity): RowSpec[] {
   const wind: RowSpec = { id: 'wind', kind: 'bars', value: (h) => h.windKt, minMax: 15, decimals: 0, arrow: (h) => h.windFromDeg, tick: (h) => h.gustKt, label: 'peak' };
   const tide: RowSpec = { id: 'tide', kind: 'area', value: (h) => h.tideM, minMax: 0, decimals: 1, label: 'extrema' };
   const rain: RowSpec = { id: 'rain', kind: 'bars', value: (h) => h.rainMmH, minMax: 5, decimals: 1, label: 'peak' };
+  // Every activity is out in the sun: UV coloured by its WHO band, each day's peak labelled (Joseph, 2026-11-10).
+  const uv: RowSpec = { id: 'uv', kind: 'bars', value: (h) => h.uv, level: (h) => (h.uv === null ? null : uvLevel(h.uv)), minMax: 11, decimals: 0, label: 'peak' };
   switch (a) {
     case 'surf':
-      return [{ id: 'surf', kind: 'bars', value: (h) => h.read.surf?.hb ?? null, level: (h) => h.read.level, minMax: 1.2, decimals: 1, label: 'peak' }, wind, tide];
+      return [{ id: 'surf', kind: 'bars', value: (h) => h.read.surf?.hb ?? null, level: (h) => h.read.level, minMax: 1.2, decimals: 1, label: 'peak' }, wind, tide, uv];
     case 'fish':
-      return [{ id: 'bite', kind: 'bars', value: (h) => h.read.score, level: (h) => h.read.level, minMax: 100, decimals: 0, label: 'peak' }, tide, wind, rain];
+      return [{ id: 'bite', kind: 'bars', value: (h) => h.read.score, level: (h) => h.read.level, minMax: 100, decimals: 0, label: 'peak' }, tide, wind, rain, uv];
     case 'snorkel':
       // At the surface over a shallow reef: getting in through the surf, chop, drift and the water left over the reef.
       return [
@@ -58,6 +60,7 @@ export function rowsFor(a: FcActivity): RowSpec[] {
         { id: 'chop', kind: 'bars', value: (h) => h.windKt, minMax: 15, decimals: 0, arrow: (h) => h.windFromDeg, label: 'peak' },
         { id: 'current', kind: 'bars', value: (h) => h.read.water?.currentKt ?? null, minMax: 1, decimals: 1, label: 'peak' },
         tide,
+        uv,
       ];
     case 'dive':
       return [
@@ -67,6 +70,7 @@ export function rowsFor(a: FcActivity): RowSpec[] {
         { id: 'current', kind: 'bars', value: (h) => h.read.water?.currentKt ?? null, minMax: 1, decimals: 1, label: 'peak' },
         tide,
         wind,
+        uv,
       ];
     case 'sail':
       return [
@@ -74,6 +78,7 @@ export function rowsFor(a: FcActivity): RowSpec[] {
         { id: 'swell', kind: 'bars', value: (h) => h.read.sail?.swellM ?? null, minMax: 1.5, decimals: 1, label: 'peak' },
         rain,
         tide,
+        uv,
       ];
   }
 }
@@ -118,6 +123,46 @@ export function timeAxis(hours: readonly TimelineHour[], g: ChartGeom, dayName: 
     else if (lh % 6 === 0 && g.px * 6 >= 22) out += `<text class="fc-c-hr" x="${x}" y="29" text-anchor="middle">${lh}</text>`;
   });
   return `<svg class="fc-chart fc-c-axis" width="${f1(w)}" height="${ht}" viewBox="0 0 ${f1(w)} ${ht}" aria-hidden="true">${out}</svg>`;
+}
+
+export type SkyKind = 'sun' | 'moon' | 'partly-sun' | 'partly-moon' | 'cloud' | 'rain' | 'storm';
+/** One weather word per hour from cloud, rain and squall risk; null before the weather loads. */
+export function skyKind(h: Pick<TimelineHour, 'cloudPct' | 'rainMmH' | 'squall' | 'day'>): SkyKind | null {
+  if (!fin(h.cloudPct) && !fin(h.rainMmH)) return null;
+  if (fin(h.squall) && h.squall >= 2) return 'storm';
+  if (fin(h.rainMmH) && h.rainMmH >= 0.5) return fin(h.squall) && h.squall >= 1 ? 'storm' : 'rain';
+  const c = h.cloudPct ?? 0;
+  if (c >= 75) return 'cloud';
+  if (c >= 35) return h.day ? 'partly-sun' : 'partly-moon';
+  return h.day ? 'sun' : 'moon';
+}
+
+const CLOUD = 'M-5.5,4 a3.5,3.5 0 0 1 0.4,-7 a4.6,4.6 0 0 1 8.8,-0.6 a3.4,3.4 0 0 1 1.8,7.6 Z';
+const SKY_ICON: Record<SkyKind, string> = {
+  sun: `<circle class="fc-i-sun" r="3.6"/><path class="fc-i-ray" d="M0,-7v2M0,5v2M-7,0h2M5,0h2M-4.9,-4.9l1.4,1.4M3.5,3.5l1.4,1.4M-4.9,4.9l1.4,-1.4M3.5,-3.5l1.4,-1.4"/>`,
+  moon: `<path class="fc-i-moon" d="M2.5,-5.5 a6,6 0 1 0 3,10 a5,5 0 0 1 -3,-10 Z"/>`,
+  'partly-sun': `<g transform="translate(-3 -3) scale(0.8)"><circle class="fc-i-sun" r="3.6"/><path class="fc-i-ray" d="M0,-7v2M-7,0h2M-4.9,-4.9l1.4,1.4M3.5,-3.5l1.4,-1.4"/></g><path class="fc-i-cloud" transform="translate(1.5 2)" d="${CLOUD}"/>`,
+  'partly-moon': `<path class="fc-i-moon" transform="translate(-3 -3) scale(0.75)" d="M2.5,-5.5 a6,6 0 1 0 3,10 a5,5 0 0 1 -3,-10 Z"/><path class="fc-i-cloud" transform="translate(1.5 2)" d="${CLOUD}"/>`,
+  cloud: `<path class="fc-i-cloud" d="${CLOUD}"/>`,
+  rain: `<path class="fc-i-cloud" transform="translate(0 -2)" d="${CLOUD}"/><path class="fc-i-drop" d="M-3,4.5l-1,2.5M0.5,4.5l-1,2.5M4,4.5l-1,2.5"/>`,
+  storm: `<path class="fc-i-cloud" transform="translate(0 -2)" d="${CLOUD}"/><path class="fc-i-bolt" d="M1,2.5 L-1.5,6.5 H0.8 L-0.6,9.5 L3,5 H0.8 L2.2,2.5 Z"/>`,
+};
+
+/** The sky row: one weather icon per 3 h (the worst hour of the three wins, so a squall is never hidden). */
+export function skyRow(hours: readonly TimelineHour[], g: ChartGeom): string {
+  const w = hours.length * g.px, ht = 24;
+  const order: SkyKind[] = ['sun', 'moon', 'partly-sun', 'partly-moon', 'cloud', 'rain', 'storm'];
+  let out = '';
+  for (let i = 0; i < hours.length; i += 3) {
+    const kinds = hours.slice(i, i + 3).map(skyKind).filter((k): k is SkyKind => k !== null);
+    if (!kinds.length) continue;
+    // Day or night from the middle hour; the worst weather of the block.
+    const worst = kinds.reduce((a, b) => (order.indexOf(b) > order.indexOf(a) ? b : a));
+    const mid = hours[Math.min(hours.length - 1, i + 1)];
+    const k = worst === 'sun' || worst === 'moon' ? (mid.day ? 'sun' : 'moon') : worst.startsWith('partly') ? (mid.day ? 'partly-sun' : 'partly-moon') : worst;
+    out += `<g class="fc-i fc-i-${k}" transform="translate(${f1((i + 1.5) * g.px)} 12) scale(${g.px * 3 >= 24 ? 1 : 0.8})">${SKY_ICON[k]}</g>`;
+  }
+  return `<svg class="fc-chart fc-c-sky" width="${f1(w)}" height="${ht}" viewBox="0 0 ${f1(w)} ${ht}" aria-hidden="true">${out}</svg>`;
 }
 
 const fmt = (v: number, d: number) => (d === 0 ? String(Math.round(v)) : v.toFixed(d));

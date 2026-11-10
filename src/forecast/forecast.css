@@ -96,7 +96,8 @@ body.fc-open { overflow: hidden; }
 .fc-back svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .fc-titles { min-width: 0; }
 .fc-titles h1 { margin: 0; font-size: 26px; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fc-titles p { margin: 2px 0 0; color: var(--fc-sub); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The subtitle wraps to a second line rather than cutting the time off (Spanish runs longer). */
+.fc-titles p { margin: 2px 0 0; color: var(--fc-sub); font-size: 14px; line-height: 1.25; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .fc-tools { display: flex; gap: 8px; }
 .fc-tool {
   width: 40px; height: 40px; border-radius: 50%;
@@ -130,24 +131,41 @@ body.fc-open { overflow: hidden; }
   transition: transform 0.35s cubic-bezier(0.3, 1.3, 0.5, 1), width 0.35s;
 }
 
-/* Spots: one scrolling row of chips */
+/* Spots: a thumb-scrolled row of mini forecasts. Light cards washed in the rating colour, the next 12 hours as a strip. */
 .fc-spots {
-  display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x proximity;
-  margin: 0 -16px; padding: 2px 16px 6px; scrollbar-width: none;
+  display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x proximity; scroll-padding: 0 16px;
+  margin: 0 -16px; padding: 4px 16px 8px; scrollbar-width: none;
+  /* Cards fade out at the edges instead of being cut, a hint that the row scrolls. */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 28px), transparent);
 }
 .fc-spots::-webkit-scrollbar { display: none; }
 .fc-spot {
-  flex: none; scroll-snap-align: center;
-  display: inline-flex; align-items: center; gap: 8px;
-  height: 40px; padding: 0 14px;
-  border: 1px solid var(--fc-line); border-radius: 999px; background: var(--fc-card);
-  font-weight: 600; font-size: 14px; white-space: nowrap;
-  transition: background 0.2s, border-color 0.2s;
+  position: relative; overflow: hidden; flex: none; scroll-snap-align: start;
+  width: 156px; padding: 11px 12px 10px;
+  display: grid; grid-template-rows: auto auto auto auto auto; justify-items: start; gap: 1px;
+  border: 1px solid var(--fc-line); border-radius: 18px; text-align: left;
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--lc) 22%, transparent), transparent 70%),
+    var(--fc-card);
+  box-shadow: 0 1px 2px rgb(15 30 50 / 0.05);
+  transition: transform 0.25s cubic-bezier(0.3, 1.3, 0.5, 1), box-shadow 0.25s, border-color 0.2s;
 }
-.fc-spot.on { border-color: var(--fc-ink); background: var(--fc-ink); color: var(--fc-bg); }
-.fc-spot-v { color: var(--fc-faint); font-variant-numeric: tabular-nums; font-weight: 600; }
-.fc-spot.on .fc-spot-v { color: inherit; opacity: 0.7; }
-.fc-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--fc-none); }
+.fc-spot:hover { transform: translateY(-2px); box-shadow: var(--fc-shadow); }
+.fc-spot.on { border-color: var(--fc-accent); box-shadow: 0 0 0 2px var(--fc-accent), var(--fc-shadow); }
+.fc-spot-name { max-width: 100%; font-weight: 750; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 22px; }
+.fc-spot-big { display: flex; align-items: baseline; gap: 3px; margin-top: 2px; line-height: 1.05; }
+.fc-spot-big b { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.fc-spot-big small { font-size: 12px; font-weight: 700; color: var(--fc-sub); }
+.fc-spot-word { font-size: 13px; font-weight: 750; color: var(--lc); filter: brightness(0.85); }
+.fc[data-scheme='dark'] .fc-spot-word { filter: none; }
+.fc-spot-strip { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; width: 100%; margin-top: 6px; }
+.fc-spot-strip i { height: 6px; border-radius: 2px; background: var(--lc); }
+.fc-spot-strip i:first-child { border-radius: 3px 2px 2px 3px; }
+.fc-spot-cap { display: flex; justify-content: space-between; width: 100%; font-size: 11px; font-weight: 600; color: var(--fc-faint); }
+.fc-spot-ico { position: absolute; top: 9px; right: 9px; opacity: 0.35; }
+.fc-spot-ico svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.fc-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--fc-none); flex: none; }
 
 /* Level colours */
 .fc .l0 { --lc: var(--fc-l0); } .fc .l1 { --lc: var(--fc-l1); } .fc .l2 { --lc: var(--fc-l2); }
@@ -160,8 +178,66 @@ body.fc-open { overflow: hidden; }
   border-radius: 22px; overflow: hidden;
   background: var(--fc-card); box-shadow: var(--fc-shadow);
 }
-.fc-art-box { position: relative; min-height: 300px; background: var(--fc-sky-a); }
-.fc-art { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fc-art-box { position: relative; min-height: 300px; background: var(--fc-sky-a); overflow: hidden; }
+.fc-art-in { position: absolute; inset: 0; }
+.fc-art-in.fc-fade .fc-art { animation: fc-xfade 0.45s ease-out; }
+@keyframes fc-xfade { from { opacity: 0.35; } }
+.fc-hero { touch-action: pan-y; }
+
+/* Direction dial over the picture (surf: swell, wind, the land side of the beach; sail: wind) */
+.fc-compass {
+  position: absolute; top: 12px; left: 12px; z-index: 1;
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px 6px 6px; border-radius: 999px;
+  background: color-mix(in srgb, var(--fc-card) 78%, transparent);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.08);
+}
+.fc-compass[hidden] { display: none; }
+.fc-compass svg { width: 58px; height: 58px; overflow: visible; }
+.fc-cp-ring { fill: var(--fc-card); stroke: var(--fc-line); stroke-width: 2; }
+.fc-cp-ticks { stroke: var(--fc-faint); stroke-width: 2; stroke-linecap: round; }
+.fc-cp-n { fill: var(--fc-sub); font: 800 9px var(--fc-font); }
+.fc-cp-shore { fill: none; stroke: var(--fc-sand); stroke-width: 7; stroke-linecap: round; }
+.fc-cp-swell path { fill: var(--fc-accent); }
+.fc-cp-wind path { fill: var(--fc-ink); }
+.fc-cp-hub { fill: var(--fc-ink); }
+.fc-cp-swell, .fc-cp-wind, .fc-cp-shore { transform-origin: 0 0; transition: transform 0.8s cubic-bezier(0.3, 1.25, 0.5, 1), opacity 0.3s; }
+.fc-compass .off { opacity: 0; }
+.fc-cp-key { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 12px; font-weight: 700; color: var(--fc-ink); }
+.fc-cp-key li { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.fc-cp-key li:empty { display: none; }
+.fc-cp-key li::before { content: ''; width: 10px; height: 4px; border-radius: 2px; }
+.fc-cp-k-swell::before { background: var(--fc-accent); }
+.fc-cp-k-wind::before { background: var(--fc-ink); }
+
+/* The week's best window, one tap away; a light sheen runs across it now and then */
+.fc-best-time {
+  position: relative; overflow: hidden;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: 'k v c' 'b v c'; align-items: center; column-gap: 10px; row-gap: 1px;
+  margin-top: 6px; padding: 9px 12px; border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--lc, var(--fc-accent)) 45%, var(--fc-line));
+  background: color-mix(in srgb, var(--lc, var(--fc-accent)) 10%, var(--fc-card));
+  text-align: left; font-size: 14px;
+}
+.fc-best-time[hidden] { display: none; }
+.fc-best-time .fc-bt-k { grid-area: k; color: var(--fc-sub); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+.fc-best-time b { grid-area: b; font-weight: 800; font-variant-numeric: tabular-nums; }
+.fc-best-time .fc-bt-v { grid-area: v; padding: 2px 9px; border-radius: 999px; background: color-mix(in srgb, var(--lc, var(--fc-accent)) 26%, var(--fc-card)); color: var(--fc-ink); font-weight: 800; font-size: 13px; font-variant-numeric: tabular-nums; }
+.fc-best-time svg { grid-area: c; width: 16px; height: 16px; fill: none; stroke: var(--fc-sub); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.fc-best-time:not(.none):not(.chance)::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--fc-card) 70%, transparent) 50%, transparent 65%);
+  transform: translateX(-100%); animation: fc-sheen 5s ease-in-out 1s infinite;
+}
+.fc-best-time.none { cursor: default; border-color: var(--fc-line); background: var(--fc-chip); }
+.fc-best-time.none b { font-weight: 650; color: var(--fc-sub); }
+.fc-best-time:focus-visible { outline: 3px solid var(--fc-accent); outline-offset: 2px; }
+@keyframes fc-sheen { 0% { transform: translateX(-100%); } 30%, 100% { transform: translateX(100%); } }
+/* The hero lights up briefly when it jumps to the best time. */
+.fc-hero.fc-flash { animation: fc-flash 0.9s ease-out; }
+@keyframes fc-flash { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--hl, var(--fc-accent)) 60%, transparent), var(--fc-shadow); } 100% { box-shadow: 0 0 0 14px transparent, var(--fc-shadow); } }
+.fc-art { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .fc-hero-data { padding: 22px 24px 22px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .fc-k { color: var(--fc-sub); font-weight: 700; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; }
 .fc-big { display: flex; align-items: baseline; gap: 6px; line-height: 0.95; }
@@ -216,11 +292,16 @@ body.fc-open { overflow: hidden; }
 .fc-bubble b { font-size: 15px; white-space: nowrap; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 .fc-bubble small { font-size: 11px; color: var(--fc-sub); font-weight: 600; margin-top: 2px; }
 .fc-day-win { font-size: 12px; color: var(--fc-faint); font-weight: 600; font-variant-numeric: tabular-nums; }
+.fc-day-uv {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 700; color: var(--fc-sub); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.fc-day-uv::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--lc); }
 .fc-day.best .fc-bubble { animation: fc-pulse 2.4s ease-in-out infinite; }
 .fc-best {
   margin-top: -2px;
   padding: 2px 8px; border-radius: 999px;
-  background: var(--fc-accent); color: var(--fc-accent-ink); font-size: 10px; font-weight: 800;
+  background: var(--fc-accent); color: var(--fc-accent-ink); font-size: 11px; font-weight: 800;
 }
 
 /* Hour by hour */
@@ -228,7 +309,7 @@ body.fc-open { overflow: hidden; }
 .fc-readout li { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: var(--fc-chip); font-size: 13px; color: var(--fc-sub); }
 .fc-readout li b { color: var(--fc-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
 .fc-readout .fc-ro-when { background: var(--fc-ink); color: var(--fc-bg); font-weight: 700; }
-.fc-tl { position: relative; overflow-x: auto; margin: 0 -16px; padding: 0 16px 4px; scrollbar-width: thin; cursor: crosshair; touch-action: pan-x pan-y; }
+.fc-tl { position: relative; overflow-x: auto; margin: 0 -16px; padding: 0 16px 22px; scrollbar-width: thin; cursor: crosshair; touch-action: pan-x pan-y; }
 .fc-tl-in { display: grid; gap: 4px; width: max-content; }
 .fc-row { position: relative; }
 .fc-row-k {
@@ -242,11 +323,31 @@ body.fc-open { overflow: hidden; }
 .fc-row-rating .fc-row-k { margin-bottom: 0; }
 .fc-chart { display: block; overflow: visible; }
 .fc-cursor {
-  position: absolute; top: 0; bottom: 4px; left: 16px; width: 2px; margin-left: -1px;
+  position: absolute; top: 34px; bottom: 22px; left: 16px; width: 2px; margin-left: -1px;
   background: var(--fc-ink); border-radius: 1px; pointer-events: none;
   transition: transform 0.12s ease-out;
 }
 .fc-cursor::before { content: ''; position: absolute; top: 0; left: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--fc-ink); box-shadow: 0 0 0 3px var(--fc-card); }
+.fc-nowline {
+  position: absolute; top: 34px; bottom: 22px; left: 16px; width: 0; pointer-events: none;
+  border-left: 2px dashed var(--fc-accent);
+}
+.fc-nowline[hidden] { display: none; }
+.fc-nowline span {
+  position: absolute; bottom: -17px; left: -1px; transform: translateX(-50%);
+  padding: 1px 7px; border-radius: 999px; background: var(--fc-accent); color: var(--fc-accent-ink);
+  font-size: 10px; font-weight: 800; white-space: nowrap;
+  animation: fc-beacon 2.2s ease-in-out infinite;
+}
+@keyframes fc-beacon { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--fc-accent) 50%, transparent); } 50% { box-shadow: 0 0 0 5px transparent; } }
+.fc-row-sky { height: 24px; }
+.fc-i-sun { fill: var(--fc-l2); }
+.fc-i-ray { stroke: var(--fc-l2); stroke-width: 1.4; stroke-linecap: round; }
+.fc-i-moon { fill: var(--fc-faint); }
+.fc-i-cloud { fill: var(--fc-chip); stroke: var(--fc-sub); stroke-width: 1.2; }
+.fc-i-drop { stroke: var(--fc-accent); stroke-width: 1.5; stroke-linecap: round; }
+.fc-i-bolt { fill: var(--fc-l1); }
+.fc-cursor.is-now, .fc-cursor.is-now::before { background: var(--fc-accent); }
 .fc-tl-hint { margin: 6px 0 0; color: var(--fc-faint); font-size: 12px; }
 .fc-chart .fc-c-night { fill: var(--fc-chip); }
 .fc-chart .fc-c-day { stroke: var(--fc-line); stroke-width: 1; }
@@ -261,11 +362,21 @@ body.fc-open { overflow: hidden; }
 .fc-chart .fc-c-arrow { fill: var(--fc-sub); }
 .fc-chart .fc-c-lv { fill: var(--lc); }
 .fc-chart .fc-c-dname { fill: var(--fc-ink); font: 800 12px var(--fc-font); }
-.fc-chart .fc-c-hr { fill: var(--fc-faint); font: 600 10px var(--fc-font); }
+.fc-chart .fc-c-hr { fill: var(--fc-faint); font: 600 11px var(--fc-font); }
 @keyframes fc-glow { 0%, 100% { fill-opacity: 0.1; } 50% { fill-opacity: 0.22; } }
 /* Bars grow in when the activity or spot changes. */
 .fc-switch .fc-c-bar { transform-box: fill-box; transform-origin: 50% 100%; animation: fc-grow 0.5s backwards cubic-bezier(0.2, 0.9, 0.3, 1); }
 @keyframes fc-grow { from { transform: scaleY(0); } }
+
+/* Loading: soft shimmer where numbers will be, so the page never shows a wall of dashes. */
+.fc-loading .fc-num, .fc-loading .fc-bubble, .fc-loading .fc-stats dd, .fc-loading .fc-spot-big b {
+  color: transparent !important; border-radius: 12px;
+  background: linear-gradient(90deg, var(--fc-chip) 25%, var(--fc-line) 50%, var(--fc-chip) 75%) 0 0 / 200% 100%;
+  box-shadow: none; animation: fc-shimmer 1.4s linear infinite;
+}
+.fc-loading .fc-num { min-width: 2.4em; }
+.fc-loading .fc-bubble * { visibility: hidden; }
+@keyframes fc-shimmer { to { background-position: -200% 0; } }
 
 .fc-note { margin: 4px 2px 0; color: var(--fc-faint); font-size: 12px; }
 
@@ -327,6 +438,12 @@ body.fc-open { overflow: hidden; }
 .fc-switch .fc-art { animation: fc-in 0.4s ease-out; }
 @media (prefers-reduced-motion: reduce) {
   .fc *, .fc *::before, .fc *::after { animation: none !important; transition: none !important; }
+}
+
+@media (min-width: 721px) {
+  .fc-compass { top: 16px; left: 16px; padding: 8px 14px 8px 8px; }
+  .fc-compass svg { width: 72px; height: 72px; }
+  .fc-cp-key { font-size: 13px; }
 }
 
 /* Phones */

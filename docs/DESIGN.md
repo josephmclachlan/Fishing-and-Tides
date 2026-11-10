@@ -165,18 +165,20 @@ Built after the core app (PLAN Phase 7).
 A clean page beside the map for one spot and one activity, built to read at a glance (PLAN 7.52). Joseph gave Surfline's spot forecast as the layout reference: the most important number shown big, with a picture, then the days ahead. Its look is its own and does not follow the map themes. It uses sans-serif type, white cards and soft shadows, and has a light and a dark mode. Dark mode follows the phone until the user picks one, and the choice is saved on the device. The CLAUDE.md four-colour rule covers the map HUD, not this page. Here every colour is a `--fc-*` token in `src/forecast/forecast.css`.
 
 - **Opening.** The FORECAST button (top bar on wide screens, a pill above the bottom strip on phones), or FULL FORECAST on a spot page. It has its own link, `#forecast/<spot>/<activity>`, so it can be bookmarked and the back button returns to the map. EN/ES switches language and keeps the page open.
-- **Activity switch:** FISH, SURF, SNORKEL, DIVE, SAIL. Each lists only its own spots, as WATCH does: surf breaks for surf and catalog snorkel spots for snorkel and dive. Each spot chip is tinted with its rating now.
-- **Hero.** A picture drawn from the reading sits beside the headline number, a five-step rating bar and why. Surf shows the wave face to scale beside a 1.7 m surfer, with knee, waist and head lines. Fish shows the sky with the moon's real phase, one fish per bite level and the tide arrow. Snorkel and dive look along a reef, with markers every 5 m fading into murk past the visibility and a sea fan swaying with the surge. Sail shows a boat heeling with the wind, with streaks as fast as the wind.
-- **Next 7 days** bubbles: WATCH's best window per day at this spot (`metrics/plan.ts`), the headline value at its start, the best day ringed and pulsing. Tapping a day moves the hero there.
+- **Activity switch:** FISH, SURF, SNORKEL, DIVE, SAIL. Each lists only its own spots, as WATCH does: surf breaks for surf and catalog snorkel spots for snorkel and dive. The spots are a thumb-scrolled row of mini forecasts: name, the headline value now, its rating word, and the next 12 hours as a strip of rating colours. Tapping one switches the page to it. They are light cards washed in the rating colour, not Surfline's dark map tiles. A sideways swipe across the hero picture also steps through the activities, and arrow keys move along the tabs.
+- **Hero.** A picture drawn from the reading sits beside the headline number, a five-step rating bar and why. Surf shows the wave face to scale beside a 1.7 m surfer, with knee, waist and head lines. Fish shows the sky with the moon's real phase, one fish per bite level and the tide arrow. Snorkel and dive look along a reef, with markers every 5 m fading into murk past the visibility and a sea fan swaying with the surge. Sail shows a boat heeling with the wind, with streaks as fast as the wind, and the wind's Beaufort name under the number. Surf and sail carry a direction dial over the picture: swell (blue) and wind arrows pointing where they travel, and for surf the land side of the beach. The pictures fit whole in any box shape, so labels at the edges are never cropped.
+- **Best time.** A callout under the rating names the week's best window at this spot, with its value, and one tap moves the hero there. When no day is good enough it names the best chance instead.
+- **Next 7 days** bubbles: WATCH's best window per day at this spot (`metrics/plan.ts`), the headline value at its start, the best day ringed and pulsing. Each day also shows its UV peak. Tapping a day moves the hero there.
 - **Hour by hour.** All rows share one time axis across the 7 days and sit in one horizontal scroller. At the top is a rating strip coloured by level. Below it are the activity's own rows, each one measure on one scale:
-  - Surf: surf height, wind, tide.
-  - Fish: bite, tide, wind, rain.
-  - Snorkel and dive: visibility, outing score, surge, tide, wind.
-  - Sail: wind with gust ticks, swell, rain, tide.
+  - Surf: surf height, wind, tide, UV.
+  - Fish: bite, tide, wind, rain, UV.
+  - Snorkel: visibility, outing score, entry surf, wind chop, current, tide, UV.
+  - Dive: visibility, outing score, surge, current, tide, wind, UV.
+  - Sail: wind with gust ticks, swell, rain, tide, UV.
 
-  Wind rows carry arrows every 3 h. Nights are shaded, and each day's best window is a softly pulsing highlight. Only each day's peak is labelled, along with the tide's highs and lows. Tapping an hour moves the hero and the readout chips there. On a mouse, hovering previews an hour in the chips.
+  Above the rating strip, a sky row shows one weather icon per 3 h (sun or moon, partly cloudy, cloud, rain, storm), and the worst hour of the three wins. UV bars are coloured by the WHO band. A dashed "now" line marks the present once another hour is picked. Wind rows carry arrows every 3 h. Nights are shaded, and each day's best window is a softly pulsing highlight. Only each day's peak is labelled, along with the tide's highs and lows. Tapping an hour moves the hero and the readout chips there. On a mouse, hovering previews an hour in the chips.
 - **Numbers.** The page has no model of its own. `src/forecast/model.ts` reads the same scores as the map: break score, BITE, the outing score at 2 m and 6 m, and SEA COMFORT. The five levels cut at each score's own tone thresholds.
-- **Motion** (numbers counting up, bars filling, the switch highlight sliding, the best day pulsing, the pictures moving) is off when the phone asks for reduced motion.
+- **Motion** (numbers counting up, bars filling, the switch highlight sliding, the best day pulsing, the pictures moving, the dial needles turning the short way round, a sheen across the best-time callout, the picture cross-fading between hours, shimmer placeholders while the feeds load) is off when the phone asks for reduced motion.
 
 ## 10. Verify tool (SYSTEM CHECK)
 

@@ -13,10 +13,17 @@
 import type { FcRead } from './model';
 
 const W = 320, HT = 200;
+/**
+ * Bleed: backgrounds run this far past the 320×200 frame. The picture is fitted whole (`meet`, so labels at the
+ * edges are never cropped) and the box shows the bleed wherever its shape differs from 16:10.
+ */
+const B = 240;
+/** Repeat a relative wave segment across the frame plus the bleed on both sides. */
+const across = (seg: string, step: number) => Array.from({ length: Math.ceil((W + 2 * B) / step) + 1 }, () => seg).join(' ');
 const f1 = (x: number) => Math.round(x * 10) / 10;
 const clamp = (x: number, a: number, b: number) => Math.min(b, Math.max(a, x));
 const svg = (cls: string, body: string, label: string) =>
-  `<svg class="fc-art ${cls}" viewBox="0 0 ${W} ${HT}" role="img" aria-label="${label}" preserveAspectRatio="xMidYMax slice">${body}</svg>`;
+  `<svg class="fc-art ${cls}" viewBox="0 0 ${W} ${HT}" role="img" aria-label="${label}" preserveAspectRatio="xMidYMax meet">${body}</svg>`;
 
 /** A standing surfer, feet at (x, ground), `h` px tall. */
 function person(x: number, ground: number, h: number): string {
@@ -43,19 +50,19 @@ export function surfArt(r: FcRead, label: string, guides: { knee: string; waist:
   // A plunging crest: the face rises from the right, curls over to the left.
   const x0 = 150, x1 = 304;
   const lip = Math.min(40, face * 0.55);
-  const wave = `M${x1 + 16},${ground} L${x1 + 16},${f1(ground - face * 0.25)} C${x1 - 10},${f1(ground - face * 0.4)} ${x0 + 70},${f1(top - 2)} ${x0 + 30},${f1(top)}
+  const wave = `M${W + B},${ground} L${W + B},${f1(ground - face * 0.25)} L${x1 + 16},${f1(ground - face * 0.25)} C${x1 - 10},${f1(ground - face * 0.4)} ${x0 + 70},${f1(top - 2)} ${x0 + 30},${f1(top)}
     C${x0 + 10},${f1(top + 1)} ${x0 - 4},${f1(top + lip * 0.35)} ${f1(x0 - lip * 0.25)},${f1(top + lip * 0.8)}
     C${x0 + 10},${f1(top + lip * 0.6)} ${x0 + 22},${f1(top + lip * 0.9)} ${x0 + 18},${f1(ground - face * 0.35)}
     C${x0 + 10},${f1(ground - face * 0.12)} ${x0 - 30},${ground} ${x0 - 60},${ground} Z`;
   const body = `
     <defs><linearGradient id="fc-sea-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="fc-sea-top"/><stop offset="1" class="fc-sea-deep"/></linearGradient></defs>
-    <rect class="fc-sky" width="${W}" height="${HT}"/>
+    <rect class="fc-sky" x="${-B}" y="${-B}" width="${W + 2 * B}" height="${HT + B}"/>
     <g class="fc-guides">${lines
       .map((l) => `<line x1="12" x2="${W - 8}" y1="${f1(ground - l.m * pxPerM)}" y2="${f1(ground - l.m * pxPerM)}"/><text x="${W - 10}" y="${f1(ground - l.m * pxPerM - 4)}" text-anchor="end">${guides[l.k as 'knee' | 'waist' | 'head']}</text>`)
       .join('')}</g>
     <g class="fc-swell-anim"><path class="fc-wave" d="${wave}" fill="url(#fc-sea-g)"/>
       <path class="fc-foam" d="M${f1(x0 - lip * 0.25)},${f1(top + lip * 0.8)} C${x0 + 4},${f1(top + lip * 0.3)} ${x0 + 18},${f1(top)} ${x0 + 34},${f1(top)}" fill="none"/></g>
-    <rect class="fc-shore" x="0" y="${ground}" width="${W}" height="${HT - ground}"/>
+    <rect class="fc-shore" x="${-B}" y="${ground}" width="${W + 2 * B}" height="${HT - ground + B}"/>
     ${person(64, ground, personH)}`;
   return svg('fc-art-surf', body, label);
 }
@@ -90,12 +97,12 @@ export function fishArt(r: FcRead, label: string): string {
   const phase = f?.moonPhase ?? 0;
   const tide = f ? `<g class="fc-tide-ico" transform="translate(286 ${waterY - 22})"><path d="${f.tideRising ? 'M0,10 L8,0 L16,10 Z' : 'M0,0 L8,10 L16,0 Z'}"/></g>` : '';
   const body = `
-    <defs><linearGradient id="fc-deep-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="fc-sea-top"/><stop offset="1" class="fc-sea-deep"/></linearGradient></defs>
-    <rect class="${f?.daylight === false ? 'fc-night' : 'fc-sky'}" width="${W}" height="${waterY}"/>
+    <defs><linearGradient id="fc-deep-g" gradientUnits="userSpaceOnUse" x1="0" y1="${waterY}" x2="0" y2="${HT}"><stop offset="0" class="fc-sea-top"/><stop offset="1" class="fc-sea-deep"/></linearGradient></defs>
+    <rect class="${f?.daylight === false ? 'fc-night' : 'fc-sky'}" x="${-B}" y="${-B}" width="${W + 2 * B}" height="${waterY + B}"/>
     ${moon(60, 38, 20, f?.moonIllum ?? 0, phase >= 1 && phase <= 3)}
     ${tide}
-    <rect y="${waterY}" width="${W}" height="${HT - waterY}" fill="url(#fc-deep-g)"/>
-    <path class="fc-surface" d="M0,${waterY} q20,-5 40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0" fill="none"/>
+    <rect x="${-B}" y="${waterY}" width="${W + 2 * B}" height="${HT - waterY + B}" fill="url(#fc-deep-g)"/>
+    <path class="fc-surface" d="M${-B},${waterY} q20,-5 40,0 ${across('t40,0', 40)}" fill="none"/>
     <line class="fc-line" x1="160" y1="0" x2="160" y2="${waterY + 52}"/><path class="fc-hook" d="M160,${waterY + 52} q0,9 -7,6" fill="none"/>
     ${fish}`;
   return svg('fc-art-fish', body, label);
@@ -119,16 +126,16 @@ export function waterArt(r: FcRead, label: string): string {
   const amp = clamp(((w?.surgeMs ?? 0) / 0.6) * 18, 2, 18);
   const body = `
     <defs>
-      <linearGradient id="fc-uw-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="fc-sea-top"/><stop offset="1" class="fc-sea-deep"/></linearGradient>
-      <linearGradient id="fc-murk-g" x1="0" y1="0" x2="1" y2="0"><stop offset="0" class="fc-murk-0"/><stop offset="1" class="fc-murk-1"/></linearGradient>
+      <linearGradient id="fc-uw-g" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="${HT}"><stop offset="0" class="fc-sea-top"/><stop offset="1" class="fc-sea-deep"/></linearGradient>
+      <linearGradient id="fc-murk-g" gradientUnits="userSpaceOnUse" x1="${f1(Math.max(x0, visX - 40))}" y1="0" x2="${W}" y2="0"><stop offset="0" class="fc-murk-0"/><stop offset="1" class="fc-murk-1"/></linearGradient>
     </defs>
-    <rect width="${W}" height="${HT}" fill="url(#fc-uw-g)"/>
+    <rect x="${-B}" y="${-B}" width="${W + 2 * B}" height="${HT + 2 * B}" fill="url(#fc-uw-g)"/>
     <g class="fc-rays"><path d="M70,0 L40,${floor} L60,${floor} L90,0 Z"/><path d="M170,0 L150,${floor} L166,${floor} L184,0 Z"/></g>
-    <path class="fc-bed" d="M0,${floor} q40,-6 80,0 t80,0 t80,0 t80,0 L${W},${HT} L0,${HT} Z"/>
+    <path class="fc-bed" d="M${-B},${floor} q40,-6 80,0 ${across('t80,0', 80)} L${W + B},${HT + B} L${-B},${HT + B} Z"/>
     ${marks}
     <g class="fc-fan" style="--amp:${f1(amp)}deg"><path d="M${x0 - 34},${floor} l0,-34 m0,10 l-8,-10 m8,18 l8,-12"/></g>
     ${diver}
-    <rect class="fc-murk" x="${f1(Math.max(x0, visX - 40))}" y="0" width="${f1(W - Math.max(x0, visX - 40) + 2)}" height="${floor + 2}" fill="url(#fc-murk-g)"/>
+    <rect class="fc-murk" x="${f1(Math.max(x0, visX - 40))}" y="${-B}" width="${f1(W - Math.max(x0, visX - 40) + B)}" height="${floor + 2 + B}" fill="url(#fc-murk-g)"/>
     ${vis === null ? '' : `<line class="fc-vis-line" x1="${f1(visX)}" x2="${f1(visX)}" y1="18" y2="${floor}"/>`}`;
   return svg(`fc-art-water fc-art-${r.activity}`, body, label);
 }
@@ -147,9 +154,9 @@ export function snorkelArt(r: FcRead, label: string): string {
   const x0 = 70, maxM = 25, pxPerVisM = (W - x0 - 12) / maxM;
   const visX = vis === null ? W : x0 + clamp(vis, 0, maxM) * pxPerVisM;
   const chop = clamp(((w?.windKt ?? 4) / 16) * 7, 1, 7);
-  const waves = Array.from({ length: 10 }, () => `q16,${f1(-chop)} 32,0`).join(' ');
+  const waves = across(`q16,${f1(-chop)} 32,0`, 32);
   // The reef: a rubble bed with rounded brain-coral heads and a few branching corals on top.
-  const bed = `<path class="fc-bed" d="M0,${f1(reefTop + 12)} q40,-8 80,0 t80,0 t80,0 t80,0 L${W},${HT} L0,${HT} Z"/>`;
+  const bed = `<path class="fc-bed" d="M${-B},${f1(reefTop + 12)} q40,-8 80,0 ${across('t80,0', 80)} L${W + B},${HT + B} L${-B},${HT + B} Z"/>`;
   const heads = [[26, 16], [74, 11], [128, 18], [182, 12], [232, 16], [286, 13]]
     .map(([x, ry], i) => `<ellipse class="fc-coral${i % 2 ? ' fc-coral-b' : ''}" cx="${x}" cy="${f1(reefTop + 12)}" rx="${ry + 6}" ry="${ry}"/>`)
     .join('');
@@ -164,19 +171,19 @@ export function snorkelArt(r: FcRead, label: string): string {
     .join('');
   const body = `
     <defs>
-      <linearGradient id="fc-sn-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="fc-sea-top"/><stop offset="1" class="fc-sea-deep"/></linearGradient>
-      <linearGradient id="fc-murk2-g" x1="0" y1="0" x2="1" y2="0"><stop offset="0" class="fc-murk-0"/><stop offset="1" class="fc-murk-1"/></linearGradient>
+      <linearGradient id="fc-sn-g" gradientUnits="userSpaceOnUse" x1="0" y1="${surf}" x2="0" y2="${HT}"><stop offset="0" class="fc-sea-top"/><stop offset="1" class="fc-sea-deep"/></linearGradient>
+      <linearGradient id="fc-murk2-g" gradientUnits="userSpaceOnUse" x1="${f1(Math.max(x0, visX - 40))}" y1="0" x2="${W}" y2="0"><stop offset="0" class="fc-murk-0"/><stop offset="1" class="fc-murk-1"/></linearGradient>
     </defs>
-    <rect class="fc-sky" width="${W}" height="${surf}"/>
+    <rect class="fc-sky" x="${-B}" y="${-B}" width="${W + 2 * B}" height="${surf + B}"/>
     <circle class="fc-sun" cx="272" cy="24" r="12"/>
-    <rect y="${surf}" width="${W}" height="${HT - surf}" fill="url(#fc-sn-g)"/>
+    <rect x="${-B}" y="${surf}" width="${W + 2 * B}" height="${HT - surf + B}" fill="url(#fc-sn-g)"/>
     <g class="fc-rays"><path d="M110,${surf} L84,${HT} L104,${HT} L128,${surf} Z"/><path d="M210,${surf} L194,${HT} L210,${HT} L226,${surf} Z"/></g>
     ${fish}
     ${bed}${heads}${branches}
     ${marks}
-    <g class="fc-chop-anim"><path class="fc-surface-fill" d="M-20,${surf} ${waves} L${W + 20},0 L-20,0 Z"/><path class="fc-surface" d="M-20,${surf} ${waves}" fill="none"/></g>
+    <g class="fc-chop-anim"><path class="fc-surface-fill" d="M${-B},${surf} ${waves} L${W + B},${-B} L${-B},${-B} Z"/><path class="fc-surface" d="M${-B},${surf} ${waves}" fill="none"/></g>
     <g class="fc-diver fc-float"><ellipse cx="44" cy="${surf + 5}" rx="24" ry="5.5"/><circle cx="70" cy="${surf + 3}" r="6"/><rect x="72" y="${surf - 16}" width="3" height="16" rx="1.5"/><path d="M20,${surf + 5} l-12,-5 l0,10 Z"/></g>
-    <rect class="fc-murk" x="${f1(Math.max(x0, visX - 40))}" y="${surf + 2}" width="${f1(W - Math.max(x0, visX - 40) + 2)}" height="${HT - surf}" fill="url(#fc-murk2-g)"/>
+    <rect class="fc-murk" x="${f1(Math.max(x0, visX - 40))}" y="${surf + 2}" width="${f1(W - Math.max(x0, visX - 40) + B)}" height="${HT - surf + B}" fill="url(#fc-murk2-g)"/>
     ${vis === null ? '' : `<line class="fc-vis-line" x1="${f1(visX)}" x2="${f1(visX)}" y1="${surf + 8}" y2="${f1(reefTop)}"/>`}
     <g class="fc-depth"><line x1="300" x2="300" y1="${surf + 2}" y2="${f1(reefTop)}"/><text x="294" y="${f1((surf + reefTop) / 2 + 4)}" text-anchor="end">${w?.waterM ? `${f1(w.waterM)} m` : ''}</text></g>`;
   return svg('fc-art-snorkel', body, label);
@@ -192,10 +199,10 @@ export function sailArt(r: FcRead, label: string): string {
   const streaks = [40, 66, 92, 112]
     .map((y, i) => `<line class="fc-streak" x1="${20 + i * 30}" x2="${70 + i * 30}" y1="${y}" y2="${y}" style="animation-duration:${f1(speed + i * 0.4)}s"/>`)
     .join('');
-  const waves = Array.from({ length: 9 }, () => `q20,${-chop} 40,0`).join(' ');
+  const waves = across(`q20,${f1(-chop)} 40,0`, 40);
   const body = `
-    <defs><linearGradient id="fc-sea2-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="fc-sea-top"/><stop offset="1" class="fc-sea-deep"/></linearGradient></defs>
-    <rect class="fc-sky" width="${W}" height="${HT}"/>
+    <defs><linearGradient id="fc-sea2-g" gradientUnits="userSpaceOnUse" x1="0" y1="${waterY}" x2="0" y2="${HT}"><stop offset="0" class="fc-sea-top"/><stop offset="1" class="fc-sea-deep"/></linearGradient></defs>
+    <rect class="fc-sky" x="${-B}" y="${-B}" width="${W + 2 * B}" height="${HT + 2 * B}"/>
     ${streaks}
     <g class="fc-boat-bob"><g transform="rotate(${f1(heel)} 180 ${waterY})">
       <path class="fc-hull" d="M128,${waterY - 6} L234,${waterY - 6} L220,${waterY + 8} L140,${waterY + 8} Z"/>
@@ -203,7 +210,7 @@ export function sailArt(r: FcRead, label: string): string {
       <path class="fc-sail" d="M183,${waterY - 100} L183,${waterY - 12} L236,${waterY - 12} Z"/>
       <path class="fc-sail fc-jib" d="M176,${waterY - 92} L176,${waterY - 12} L136,${waterY - 12} Z"/>
     </g></g>
-    <path class="fc-chop" d="M-20,${waterY + 4} ${waves} L${W + 20},${HT} L-20,${HT} Z" fill="url(#fc-sea2-g)"/>`;
+    <path class="fc-chop" d="M${-B},${waterY + 4} ${waves} L${W + B},${HT + B} L${-B},${HT + B} Z" fill="url(#fc-sea2-g)"/>`;
   return svg('fc-art-sail', body, label);
 }
 

@@ -288,6 +288,41 @@ export function parseRoute(hash: string, spots: readonly Spot[]): Route | null {
 }
 export const routeHash = (spot: string, a: FcActivity) => `#forecast/${spotSlug(spot)}/${a}`;
 
+const meanCloud = (w: readonly { cloudPct: number }[]) => {
+  const v = w.map((x) => x.cloudPct).filter((x) => Number.isFinite(x));
+  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+};
+
+/** UV index on the page's five levels, worst (extreme, 11+) to best (low, 0-2), the WHO bands. */
+export const uvLevel = (uv: number): Level => {
+  const u = Math.round(uv);
+  return u >= 11 ? 0 : u >= 8 ? 1 : u >= 6 ? 2 : u >= 3 ? 3 : 4;
+};
+
+/** Each day's peak UV index at a spot (06:00-18:00 local), null where the weather does not reach. */
+export function dayUvPeaks(env: MetricEnv, spot: Spot, startMs: number, days = 7): (number | null)[] {
+  const uv = METRIC_BY_ID.get('uv')!;
+  const [lng, lat] = spot.lngLat;
+  const sky = skyMemo(env.tzOffsetH);
+  return Array.from({ length: days }, (_, d) => {
+    let best: number | null = null;
+    for (let h = 6; h <= 18; h++) {
+      const ms = startMs + d * 864e5 + h * H;
+      const v = uv.at({ env, spot: spot.name, lng, lat, ms, sky: sky(ms, lat, lng) });
+      if (v !== null && Number.isFinite(v) && (best === null || v > best)) best = v;
+    }
+    return best;
+  });
+}
+
+/** Beaufort force from the mean wind in knots (WMO: force 0 under 1 kt, then tops 3, 6, 10, 16, 21, 27, 33 kt), capped at 8. */
+export function beaufort(kt: number): number {
+  const tops = [0, 3, 6, 10, 16, 21, 27, 33];
+  const k = Math.round(kt);
+  const i = tops.findIndex((x) => k <= x);
+  return i < 0 ? 8 : i;
+}
+
 /** One hour of the page's timeline: the activity's reading plus the shared rows (wind, gusts, rain, tide, air). */
 export interface TimelineHour {
   ms: number;
@@ -298,6 +333,12 @@ export interface TimelineHour {
   rainMmH: number | null;
   tideM: number;
   airC: number | null;
+  /** Cloud cover, %, the mean of the weather models; null before they load. */
+  cloudPct: number | null;
+  /** Squall risk 0..2 (the SQUALL metric). */
+  squall: number | null;
+  /** UV index (the UV metric: the models' mean). */
+  uv: number | null;
   /** The sun is up. */
   day: boolean;
 }
@@ -324,6 +365,9 @@ export function timeline(deps: FcDeps, a: FcActivity, spot: Spot, startMs: numbe
       rainMmH: val('rain'),
       tideM: predict(env.tide, ms),
       airC: val('air'),
+      cloudPct: meanCloud(env.weather(ms)),
+      squall: val('squall'),
+      uv: val('uv'),
       day: s.sun.sunrise !== null && s.sun.sunset !== null && ms + H / 2 >= s.sun.sunrise && ms + H / 2 < s.sun.sunset,
     };
   });

@@ -15,11 +15,11 @@ import { REGION, SPOTS } from '../region';
 import { localClock } from '../tide-chart';
 import { compassName } from '../spot-charts';
 import type { Spot } from '../metrics/forecast';
-import type { Plan } from '../metrics/plan';
+import type { Plan, PlanDay } from '../metrics/plan';
 import { heroArt } from './art';
-import { ratingStrip, rowSvg, rowsFor, timeAxis, type ChartGeom } from './charts';
+import { ratingStrip, rowSvg, rowsFor, skyRow, timeAxis, type ChartGeom } from './charts';
 import {
-  FC_ACTIVITIES, chopFor, daysAt, driftFor, isFcActivity, parseRoute, readAt, routeHash, spotsForActivity, timeline,
+  FC_ACTIVITIES, beaufort, chopFor, dayUvPeaks, daysAt, uvLevel, driftFor, isFcActivity, parseRoute, readAt, routeHash, spotsForActivity, timeline,
   type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour,
 } from './model';
 import './forecast.css';
@@ -160,7 +160,8 @@ function stats(r: FcRead, plan: Plan | null, selDay: number): [string, string][]
       [t('fc.surge', { d: w.depthM }), `${t(`fc.surge.${w.surge}` as Key)} · ${w.surgeMs.toFixed(2)} m/s`],
       [t('fc.current'), w.currentKt === null ? dash : `${t(`fc.drift.${driftFor(w.currentKt)}` as Key)} · ${n1(w.currentKt)} kt`],
       [t('fc.sst'), w.sstC === null ? dash : `${n1(w.sstC)} °C`],
-      [t('fc.bestWindow'), winText],
+      // A shore dive starts by swimming out through the break; the week's best time is in its own callout above.
+      [t('fc.entry'), `${n1(w.breakerM)} m${w.rip ? ` · ${t('fc.rip')} ${sentence(t(`dive.rip.${w.rip}` as Key)).toLowerCase()}` : ''}`],
     ];
   }
   if (r.sail) {
@@ -224,12 +225,23 @@ export function mountForecastPage(deps: ForecastDeps) {
       </nav>
       <div class="fc-spots" id="fc-spots" role="listbox" aria-label="${t('fc.spots')}"></div>
       <section class="fc-hero" id="fc-hero" aria-live="polite">
-        <div class="fc-art-box" id="fc-art"></div>
+        <div class="fc-art-box"><div class="fc-art-in" id="fc-art"></div>
+          <div class="fc-compass" id="fc-compass" hidden aria-hidden="true">
+            <svg viewBox="-40 -40 80 80"><circle class="fc-cp-ring" r="34"/>
+              <path class="fc-cp-shore" d="M-30.5,-15 A34,34 0 0 1 30.5,-15"/>
+              <path class="fc-cp-ticks" d="M0,-34v6M34,0h-5M0,34v-5M-34,0h5"/><text class="fc-cp-n" y="-18" text-anchor="middle">N</text>
+              <g class="fc-cp-swell"><path d="M0,-24 L7,-6 L2.5,-8 L2.5,22 L-2.5,22 L-2.5,-8 L-7,-6 Z"/></g>
+              <g class="fc-cp-wind"><path d="M0,-28 L4.5,-17 L1.2,-18.5 L1.2,16 L-1.2,16 L-1.2,-18.5 L-4.5,-17 Z"/></g>
+              <circle class="fc-cp-hub" r="3"/></svg>
+            <ul class="fc-cp-key"><li class="fc-cp-k-swell" id="fc-cp-swell"></li><li class="fc-cp-k-wind" id="fc-cp-wind"></li></ul>
+          </div>
+        </div>
         <div class="fc-hero-data">
           <div class="fc-k" id="fc-k">--</div>
           <div class="fc-big"><span class="fc-num" id="fc-num">--</span><span class="fc-unit" id="fc-unit"></span></div>
           <div class="fc-size" id="fc-size"></div>
           <div class="fc-rate" id="fc-rate"></div>
+          <button type="button" class="fc-best-time" id="fc-best-time" hidden></button>
           <ul class="fc-why" id="fc-why"></ul>
           <dl class="fc-stats" id="fc-stats"></dl>
         </div>
@@ -241,7 +253,7 @@ export function mountForecastPage(deps: ForecastDeps) {
       <section class="fc-card fc-hours-card">
         <div class="fc-card-head"><h2>${t('fc.hours')}</h2></div>
         <ul class="fc-readout" id="fc-readout" aria-live="polite"></ul>
-        <div class="fc-tl" id="fc-tl"><div class="fc-tl-in" id="fc-tl-in"></div><div class="fc-cursor" id="fc-cursor" hidden></div></div>
+        <div class="fc-tl" id="fc-tl"><div class="fc-tl-in" id="fc-tl-in"></div><div class="fc-nowline" id="fc-nowline" hidden><span>${t('fc.now')}</span></div><div class="fc-cursor" id="fc-cursor" hidden></div></div>
         <p class="fc-tl-hint">${t('fc.hoursHint')}</p>
       </section>
       <p class="fc-note">${t('fc.note')}</p>
@@ -251,8 +263,18 @@ export function mountForecastPage(deps: ForecastDeps) {
   /** Replace a block's markup only when it changed, so the periodic redraw does not replay its animations. */
   const html = (id: string, markup: string) => {
     const e = $(id);
-    if (e.dataset.html !== markup) (e.innerHTML = markup), (e.dataset.html = markup);
+    if (e.dataset.html === markup) return false;
+    e.innerHTML = markup;
+    e.dataset.html = markup;
+    return true;
   };
+  /** Restart a one-shot CSS animation class on an element. */
+  const replay = (e: Element, cls: string) => {
+    e.classList.remove(cls);
+    void (e as HTMLElement).offsetWidth;
+    e.classList.add(cls);
+  };
+  const reduceMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
   // --- light / dark: the OS setting until the user picks one here
   const media = window.matchMedia?.('(prefers-color-scheme: dark)');
@@ -292,6 +314,10 @@ export function mountForecastPage(deps: ForecastDeps) {
   let tl: TimelineHour[] = [];
   let tlKey = '';
   let geom: ChartGeom = { px: 6, tzOffsetH: REGION.tzOffsetH };
+  /** The spot and activity the timeline was last scrolled to "now" for. */
+  let scrolledFor = '';
+  let openedAt = 0;
+  let artFor = '';
 
   const spots = () => spotsForActivity(act, SPOTS);
   const nearestSpot = (list: Spot[]) => {
@@ -329,17 +355,86 @@ export function mountForecastPage(deps: ForecastDeps) {
     }
   };
 
+  /** Each spot's next 12 hours as levels, for the mini forecast cards; kept for the hour, rebuilt while empty. */
+  const strips = new Map<string, (Level | null)[]>();
+  const stripOf = (sp: Spot, now: number) => {
+    const k = `${act}|${now}|${sp.name}`;
+    let v = strips.get(k);
+    if (!v || v.every((x) => x === null)) {
+      if (strips.size > 120) strips.clear();
+      v = Array.from({ length: 12 }, (_, i) => readAt(deps, act, sp, now + i * H).level);
+      strips.set(k, v);
+    }
+    return v;
+  };
+  const levelWord = (r: FcRead) => (r.level === null ? t('fc.nodata') : r.surf ? sentence(t(`surf.band.${r.surf.band}` as Key)) : t(`fc.lvl.${r.level}` as Key));
+
+  /** The spots as mini forecasts: name, the headline now, its rating, and the next 12 hours as a strip. Thumb-scroll, tap to switch. */
   const renderSpots = () => {
     const now = nowHour();
     const cur = spot().name;
     html('fc-spots', spots()
       .map((s) => {
         const r = readAt(deps, act, s, now);
-        return `<button type="button" role="option" class="fc-spot${s.name === cur ? ' on' : ''}" data-spot="${s.name}" aria-selected="${s.name === cur}">
-          <span class="fc-dot ${r.level === null ? '' : `l${r.level}`}"></span><span>${titleCase(s.name)}</span><span class="fc-spot-v">${headline(r).value}</span></button>`;
+        const hl = headline(r);
+        const strip = stripOf(s, now).map((l) => `<i class="${l === null ? 'l-none' : `l${l}`}"></i>`).join('');
+        return `<button type="button" role="option" class="fc-spot ${r.level === null ? 'l-none' : `l${r.level}`}${s.name === cur ? ' on' : ''}" data-spot="${s.name}" aria-selected="${s.name === cur}">
+          <span class="fc-spot-name">${titleCase(s.name)}</span>
+          <span class="fc-spot-big"><b>${hl.value}</b><small>${hl.unit}</small></span>
+          <span class="fc-spot-word">${levelWord(r)}</span>
+          <span class="fc-spot-strip" aria-hidden="true">${strip}</span>
+          <span class="fc-spot-cap" aria-hidden="true"><span>${t('fc.now')}</span><span>${t('fc.plus12')}</span></span>
+          <span class="fc-spot-ico" aria-hidden="true">${icon(act)}</span></button>`;
       })
       .join(''));
-    if (cur !== shownSpot) (shownSpot = cur), $('fc-spots').querySelector<HTMLElement>('.on')?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
+    if (cur !== shownSpot) (shownSpot = cur), $('fc-spots').querySelector<HTMLElement>('.on')?.scrollIntoView?.({ block: 'nearest', inline: 'center', behavior: reduceMotion() ? 'auto' : 'smooth' });
+  };
+
+  /** Turn a compass needle the short way round, so 350° → 10° swings 20°, not 340°. */
+  const turn = (sel: string, deg: number | null) => {
+    const g = $('fc-compass').querySelector<SVGElement>(sel)!;
+    if (deg === null || !Number.isFinite(deg)) return void g.classList.add('off');
+    const prev = Number(g.dataset.r);
+    const next = Number.isFinite(prev) ? prev + ((((deg - prev) % 360) + 540) % 360) - 180 : deg;
+    g.dataset.r = String(next);
+    g.classList.remove('off');
+    g.style.transform = `rotate(${next}deg)`;
+  };
+  /** SURF: swell and wind on a dial with the beach's land side; SAIL: the wind. Arrows point where they travel. */
+  const renderCompass = (r: FcRead) => {
+    const c = r.surf ? { swell: r.surf.dir, wind: r.surf.windFromDeg, shore: r.surf.facing } : r.sail ? { swell: null, wind: r.sail.fromDeg, shore: null } : null;
+    $('fc-compass').hidden = !c || r.score === null;
+    if (!c) return;
+    turn('.fc-cp-swell', c.swell === null ? null : c.swell + 180);
+    turn('.fc-cp-wind', c.wind === null ? null : c.wind + 180);
+    turn('.fc-cp-shore', c.shore === null ? null : c.shore + 180);
+    $('fc-cp-swell').textContent = c.swell === null ? '' : `${t('fc.swell')} ${cmp(c.swell)}`;
+    $('fc-cp-wind').textContent = c.wind === null ? '' : `${t('fc.wind')} ${cmp(c.wind)}`;
+  };
+  /** The week's best window as one tappable line, hidden while the hero already shows it. */
+  const renderBestTime = (sp: Spot) => {
+    const b = $('fc-best-time') as HTMLButtonElement;
+    const p = plan;
+    if (!p || p.none === 'nodata' || p.none === 'nospot') return void (b.hidden = true);
+    // No window good enough to call it a best day: still point at the least bad one, as "best chance".
+    const chance = p.days.reduce<PlanDay | null>((acc, x) => (x && x.value !== null && (!acc || x.value > acc.value!) ? x : acc), null);
+    const d = p.bestDay === null ? chance : p.days[p.bestDay];
+    const k = t(p.bestDay === null ? 'fc.bestChance' : 'fc.bestTime');
+    if (!d) {
+      b.hidden = false;
+      b.disabled = true;
+      b.className = 'fc-best-time none';
+      html('fc-best-time', `<span class="fc-bt-k">${t('fc.bestTime')}</span><b>${t('fc.noGood')}</b>`);
+      return;
+    }
+    const ms = when();
+    b.hidden = sel !== null && ms >= d.startMs && ms < d.endMs;
+    b.disabled = false;
+    b.dataset.ms = String(d.startMs);
+    const r = readAt(deps, act, sp, d.startMs);
+    const hl = headline(r);
+    b.className = `fc-best-time${r.level === null ? '' : ` l${r.level}`}${p.bestDay === null ? ' chance' : ''}`;
+    html('fc-best-time', `<span class="fc-bt-k">${k}</span><b>${dayLabel(d.dayMs, d.day)} · ${t('fc.window', { from: localClock(d.startMs), to: localClock(d.endMs) })}</b><span class="fc-bt-v">${hl.value}${hl.unit ? ` ${hl.unit}` : ''}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>`);
   };
 
   const renderHero = () => {
@@ -356,7 +451,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     $('fc-unit').textContent = hl.unit;
     const dayIdx = plan ? Math.max(0, Math.min(plan.days.length - 1, Math.floor((localDayStart(ms, REGION.tzOffsetH) - plan.startMs) / DAY))) : 0;
     const win = plan?.days[dayIdx];
-    $('fc-size').textContent = r.fish ? (win ? `${t('fc.bestWindow')} ${t('fc.window', { from: localClock(win.startMs), to: localClock(win.endMs) })}` : '') : r.surf ? t(`fc.size.${r.surf.size}` as Key) : r.water && act === 'snorkel' ? `${t('fc.entry')} ${n1(r.water.breakerM)} m${r.water.windKt === null ? '' : ` · ${t(`fc.chop.${chopFor(r.water.windKt)}` as Key).toLowerCase()}`}` : r.water ? `${t('fc.depthAt', { d: r.water.depthM })}${r.water.currentKt === null ? '' : ` · ${t('fc.current').toLowerCase()} ${t(`fc.drift.${driftFor(r.water.currentKt)}` as Key).toLowerCase()}`}` : r.sail && r.sail.fromDeg !== null ? `${t('fc.wind')} ${cmp(r.sail.fromDeg)}` : '';
+    $('fc-size').textContent = r.fish ? (win ? `${t('fc.bestWindow')} ${t('fc.window', { from: localClock(win.startMs), to: localClock(win.endMs) })}` : '') : r.surf ? t(`fc.size.${r.surf.size}` as Key) : r.water && act === 'snorkel' ? `${t('fc.entry')} ${n1(r.water.breakerM)} m${r.water.windKt === null ? '' : ` · ${t(`fc.chop.${chopFor(r.water.windKt)}` as Key).toLowerCase()}`}` : r.water ? `${t('fc.depthAt', { d: r.water.depthM })}${r.water.currentKt === null ? '' : ` · ${t('fc.current').toLowerCase()} ${t(`fc.drift.${driftFor(r.water.currentKt)}` as Key).toLowerCase()}`}` : r.sail && r.sail.windKt !== null ? `${t(`fc.bft.${beaufort(r.sail.windKt)}` as Key)} · ${t('fc.force', { n: beaufort(r.sail.windKt) })}` : '';
     html('fc-rate', r.level === null
       ? `<span class="fc-word">${t('fc.nodata')}</span>`
       : `<span class="fc-word l${r.level}">${r.surf ? sentence(t(`surf.band.${r.surf.band}` as Key)) : t(`fc.lvl.${r.level}` as Key)}</span>${bar(r.level)}${r.surf ? `<span class="fc-of">${n1(r.score!)}/10</span>` : ''}`);
@@ -369,8 +464,15 @@ export function mountForecastPage(deps: ForecastDeps) {
       : act === 'fish' ? t('fc.art.fish')
       : act === 'sail' ? t('fc.art.sail', { kt: r.sail?.windKt === null || !r.sail ? '--' : n0(r.sail.windKt) })
       : t('fc.art.water', { m: r.water?.visM ? n1(r.water.visM) : '--' });
-    html('fc-art', heroArt(r, artLabel, { knee: t('fc.g.knee'), waist: t('fc.g.waist'), head: t('fc.g.head') }));
+    const artKey = `${act}|${sp.name}`;
+    // A new hour at the same spot cross-fades the picture; a new spot or activity has its own entrance.
+    if (html('fc-art', heroArt(r, artLabel, { knee: t('fc.g.knee'), waist: t('fc.g.waist'), head: t('fc.g.head') })) && artFor === artKey) replay($('fc-art'), 'fc-fade');
+    artFor = artKey;
+    renderCompass(r);
+    renderBestTime(sp);
     $('fc-hero').dataset.level = r.level === null ? '' : String(r.level);
+    // Shimmer placeholders while the feeds load (first 20 s); after that a plain "no data".
+    el.classList.toggle('fc-loading', r.level === null && Date.now() - openedAt < 20_000);
     $('fc-now').hidden = sel === null;
   };
 
@@ -387,6 +489,7 @@ export function mountForecastPage(deps: ForecastDeps) {
       planKey = key;
     }
     const p = plan!;
+    const uvs = dayUvPeaks(deps.env, sp, p.startMs, p.days.length);
     const selDay = Math.floor((localDayStart(when(), REGION.tzOffsetH) - p.startMs) / DAY);
     html('fc-days', p.days
       .map((d, i) => {
@@ -399,6 +502,7 @@ export function mountForecastPage(deps: ForecastDeps) {
           <span class="fc-day-name">${dayLabel(dayMs, i)}</span>
           <span class="fc-bubble ${lvl === null ? 'l-none' : `l${lvl}`}"><b>${hl.value}</b><small>${hl.unit}</small></span>
           <span class="fc-day-win">${d ? `${localClock(d.startMs)}` : '—'}</span>
+          ${uvs[i] === null ? '' : `<span class="fc-day-uv l${uvLevel(uvs[i]!)}" title="${t('fc.uvPeak')}: ${t(`fc.uvw.${uvLevel(uvs[i]!)}` as Key)}">UV ${n0(uvs[i]!)}</span>`}
           ${best ? `<span class="fc-best">${t('fc.bestDay')}</span>` : ''}</button>`;
       })
       .join(''));
@@ -410,7 +514,8 @@ export function mountForecastPage(deps: ForecastDeps) {
     const width = $('fc-tl').clientWidth || 340;
     const px = Math.max(6, Math.floor((width / (7 * 24)) * 10) / 10);
     const key = `${act}|${sp.name}|${nowHour()}|${px}`;
-    const missing = !tl.length || tl.every((h) => h.read.level === null);
+    // Feeds arrive one by one after start-up: rebuild while any row is still empty.
+    const missing = tlPartial();
     if (key !== tlKey || missing) {
       const start = plan?.startMs ?? localDayStart(Date.now(), REGION.tzOffsetH);
       tl = timeline(deps, act, sp, start);
@@ -420,10 +525,25 @@ export function mountForecastPage(deps: ForecastDeps) {
       const rows = rowsFor(act)
         .map((r) => `<div class="fc-row"><div class="fc-row-k">${t(`fc.row.${r.id}` as Key)} <span>${t(`fc.unit.${r.id}` as Key)}</span>${tl.some((h) => r.value(h) !== null) ? '' : ` <em>${t('fc.noRow')}</em>`}</div>${rowSvg(r, tl, geom, wins)}</div>`)
         .join('');
-      html('fc-tl-in', `${timeAxis(tl, geom, (ms, i) => dayLabel(ms, i))}<div class="fc-row fc-row-rating"><div class="fc-row-k">${t('fc.row.rating')}</div>${ratingStrip(tl, geom)}</div>${rows}`);
+      html('fc-tl-in', `${timeAxis(tl, geom, (ms, i) => dayLabel(ms, i))}<div class="fc-row fc-row-sky">${skyRow(tl, geom)}</div><div class="fc-row fc-row-rating"><div class="fc-row-k">${t('fc.row.rating')}</div>${ratingStrip(tl, geom)}</div>${rows}`);
+    }
+    const ni = tlIndex(nowHour());
+    const nl = $('fc-nowline');
+    // While the hero shows now, the cursor is the now line; the dashed marker appears once another hour is picked.
+    nl.hidden = sel === null || ni < 0 || ni >= tl.length;
+    nl.style.transform = `translateX(${(ni + 0.5) * geom.px}px)`;
+    // Open (or switch) with the present in view, not last midnight.
+    const sk = `${act}|${sp.name}`;
+    if (sk !== scrolledFor && ni >= 0) {
+      scrolledFor = sk;
+      // From midnight while now still sits in the first part of the view (the day's name stays readable), else just before now.
+      const tlw = $('fc-tl').clientWidth || 340;
+      $('fc-tl').scrollLeft = ni * geom.px < tlw * 0.6 ? 0 : Math.max(0, ni * geom.px - 48);
     }
     placeCursor(when());
   };
+  const tlPartial = () =>
+    !tl.length || tl.every((h) => h.read.level === null) || tl.every((h) => h.windKt === null) || tl.every((h) => h.rainMmH === null && h.cloudPct === null);
   const tlIndex = (ms: number) => (tl.length ? Math.round((ms - tl[0].ms) / H) : -1);
   /** Move the cursor line and the readout to an hour (no rebuild: cheap enough for a mouse move). */
   const placeCursor = (ms: number) => {
@@ -431,6 +551,8 @@ export function mountForecastPage(deps: ForecastDeps) {
     const c = $('fc-cursor');
     if (i < 0 || i >= tl.length) return void (c.hidden = true);
     c.hidden = false;
+    c.classList.toggle('is-now', ms === nowHour());
+    $('fc-nowline').hidden = sel === null || tlIndex(nowHour()) < 0;
     c.style.transform = `translateX(${(i + 0.5) * geom.px}px)`;
     const h = tl[i];
     const d = new Date(h.ms + REGION.tzOffsetH * H);
@@ -443,6 +565,7 @@ export function mountForecastPage(deps: ForecastDeps) {
       `<li>${t('fc.tide')} <b>${h.tideM.toFixed(2)} m</b></li>`,
       h.rainMmH !== null && h.rainMmH >= 0.1 ? `<li>${t('fc.row.rain')} <b>${n1(h.rainMmH)} mm/h</b></li>` : '',
       h.airC === null ? '' : `<li>${t('fc.air')} <b>${n0(h.airC)} °C</b></li>`,
+      h.uv === null || h.uv < 0.5 ? '' : `<li><span class="fc-dot l${uvLevel(h.uv)}"></span>UV <b>${n0(h.uv)}</b> · ${t(`fc.uvw.${uvLevel(h.uv)}` as Key)}</li>`,
     ];
     html('fc-readout', items.join(''));
   };
@@ -457,17 +580,50 @@ export function mountForecastPage(deps: ForecastDeps) {
   };
 
   // --- events
-  el.querySelector('.fc-acts')!.addEventListener('click', (e) => {
-    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-act]');
-    if (!b || b.dataset.act === act) return;
-    act = b.dataset.act as FcActivity;
+  const setAct = (a: FcActivity) => {
+    if (a === act) return;
+    act = a;
     put(storage, ACT_KEY, act);
     sel = null;
-    el.classList.remove('fc-switch');
-    void el.offsetWidth; // restart the switch animation
-    el.classList.add('fc-switch');
+    replay(el, 'fc-switch');
     syncHash();
     render();
+  };
+  const stepAct = (dir: 1 | -1) => setAct(FC_ACTIVITIES[(FC_ACTIVITIES.indexOf(act) + dir + FC_ACTIVITIES.length) % FC_ACTIVITIES.length]);
+  el.querySelector('.fc-acts')!.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-act]');
+    if (b) setAct(b.dataset.act as FcActivity);
+  });
+  // Arrow keys move along the tabs, as in any tab list.
+  el.querySelector('.fc-acts')!.addEventListener('keydown', (e) => {
+    const k = (e as KeyboardEvent).key;
+    if (k !== 'ArrowLeft' && k !== 'ArrowRight') return;
+    e.preventDefault();
+    stepAct(k === 'ArrowRight' ? 1 : -1);
+    el.querySelector<HTMLElement>(`.fc-act[data-act="${act}"]`)?.focus();
+  });
+  // A sideways swipe across the hero picture switches activity on a phone.
+  let swipe: { x: number; y: number; id: number } | null = null;
+  $('fc-hero').addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'touch') swipe = { x: e.clientX, y: e.clientY, id: e.pointerId };
+  });
+  $('fc-hero').addEventListener('pointerup', (e) => {
+    if (!swipe || swipe.id !== e.pointerId) return;
+    const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+    swipe = null;
+    if (Math.abs(dx) > 60 && Math.abs(dy) < 45) stepAct(dx < 0 ? 1 : -1);
+  });
+  $('fc-hero').addEventListener('pointercancel', () => (swipe = null));
+  $('fc-best-time').addEventListener('click', () => {
+    const ms = Number($('fc-best-time').dataset.ms);
+    if (!Number.isFinite(ms) || !plan) return;
+    sel = ms;
+    renderDays();
+    renderHero();
+    const i = tlIndex(ms);
+    if (i >= 0) $('fc-tl').scrollTo({ left: Math.max(0, i * geom.px - 48), behavior: reduceMotion() ? 'auto' : 'smooth' });
+    placeCursor(ms);
+    replay($('fc-hero'), 'fc-flash');
   });
   $('fc-spots').addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-spot]');
@@ -486,7 +642,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     sel = i === 0 && !d ? null : start;
     renderDays();
     renderHero();
-    $('fc-tl').scrollTo({ left: Math.max(0, i * 24 * geom.px - 24), behavior: 'smooth' });
+    $('fc-tl').scrollTo({ left: Math.max(0, i * 24 * geom.px - 24), behavior: reduceMotion() ? 'auto' : 'smooth' });
     placeCursor(when());
   });
   // Timeline: a tap (or click) picks the hour for the hero; a mouse hovering previews it in the readout.
@@ -525,13 +681,16 @@ export function mountForecastPage(deps: ForecastDeps) {
     if (!el.hidden) return;
     el.hidden = false;
     document.body.classList.add('fc-open');
+    openedAt = Date.now();
+    scrolledFor = '';
     applyScheme();
     themeMeta();
     render();
     // Feeds load after start-up and age by the hour: redraw while open, every 3 s until the hero has data.
     const tick = () => {
       render();
-      timer = window.setTimeout(tick, $('fc-hero').dataset.level ? 60_000 : 3000);
+      const waiting = !$('fc-hero').dataset.level || (tlPartial() && Date.now() - openedAt < 60_000);
+      timer = window.setTimeout(tick, waiting ? 3000 : 60_000);
     };
     timer = window.setTimeout(tick, 3000);
   };
