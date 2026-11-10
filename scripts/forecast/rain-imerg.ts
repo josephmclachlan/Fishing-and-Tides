@@ -80,6 +80,8 @@ export async function buildRainImerg(dir: string, now = Date.now(), ed?: Earthda
   };
   // The first one alone, so the login happens once and a bad login stops the run.
   if (todo.length) await read(todo[0]);
+  // The first read failing means the rest would too (a login or format problem): stop and say why.
+  if (todo.length && !got.length) throw new Error(`rain-imerg: the first half hour failed (${firstErr})`);
   let k = 1;
   for (; k < todo.length && Date.now() < deadline; k += PARALLEL) await Promise.all(todo.slice(k, k + PARALLEL).map(read));
   const left = Math.max(0, todo.length - k);

@@ -45,6 +45,17 @@ describe('parseImergAscii', () => {
     expect([...v.slice(3)]).toEqual([2, 0.25, 4]);
   });
 
+  it('reads the other line styles servers use', () => {
+    const grid = ['Dataset: x', 'precipitation.lon, -83.25, -83.15', 'precipitation.precipitation[precipitation.time=1.7e9][precipitation.lon=-83.25], 0, 1.5, 2',
+      'precipitation.precipitation[precipitation.time=1.7e9][precipitation.lon=-83.15], 3, 0, 0'].join('\r\n');
+    expect([...parseImergAscii(grid, 2, 3)]).toEqual([0, 1.5, 2, 3, 0, 0]);
+    expect([...parseImergAscii('/Grid/precipitation[0][0], 1, 2\n/Grid/precipitation[0][1], 3, 4', 2, 2)]).toEqual([1, 2, 3, 4]);
+  });
+
+  it('shows the start of an answer it cannot read', () => {
+    expect(() => parseImergAscii('<html><title>Error</title></html>', 2, 3)).toThrow(/0 of 2 rows.*<html><title>Error/);
+  });
+
   it('refuses an answer of the wrong shape', () => {
     expect(() => parseImergAscii(text, 3, 3)).toThrow(/rows/);
     expect(() => parseImergAscii(text, 2, 4)).toThrow(/expected 4/);
