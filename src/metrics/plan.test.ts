@@ -87,7 +87,8 @@ describe('planDays: windows', () => {
       for (const d of planDays(env(), a, coast, DAY0, 3).days.filter(Boolean)) {
         expect(localH(d!.startMs)).toBeGreaterThanOrEqual(5);
         expect(localH(d!.endMs - 1)).toBeLessThan(19);
-        expect(d!.endMs - d!.startMs).toBe(2 * H);
+        if (a !== 'fish') expect(d!.endMs - d!.startMs).toBe(2 * H);
+        else expect(d!.endMs - d!.startMs).toBeGreaterThanOrEqual(0.5 * H);
       }
     }
   });

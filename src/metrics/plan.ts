@@ -12,7 +12,7 @@
  * Each day's window at each spot is found exactly as the app's other "best" readouts find it, so
  * they never disagree on a day: the BEST TIME button's search for surf, fish and boat
  * (best-today.ts votersFor + forecast.ts bestTime: two hours from 05:00, ending by 18:00 for surf and
- * boat and 19:00 for fish), and the
+ * boat; fish uses the 10-minute BITE window of fish-window.ts), and the
  * DIVE & SNORKEL panel's for snorkel and dive (outing.ts bestWindow: 07:00 to 17:00, in daylight).
  * Windows already over are never offered.
  *
@@ -32,6 +32,7 @@ import { SURF_BREAKS } from '../data/surf-breaks';
 import { SNORKEL_SPOTS } from '../data/snorkel-spots';
 import { BEST_LEN_H, TONE_SCORE, bestTime, buildForecast, type Spot } from './forecast';
 import { toHFor, votersFor } from './best-today';
+import { biteTone, fishWindow } from './fish-window';
 import { METRIC_BY_ID, type MetricEnv, type Tone } from './registry';
 
 export type PlanActivity = 'surf' | 'fish' | 'snorkel' | 'dive' | 'boat';
@@ -91,8 +92,25 @@ export function spotsFor(activity: PlanActivity, spots: readonly Spot[]): Spot[]
 
 const outingTone = (score: number): Tone => ({ GO: 'green', CAUTION: 'amber', AVOID: 'red' } as const)[ratingFor(score)];
 
+/** Fish at one spot: each day's 10-minute-grid bite window (fish-window.ts), ranked like the other metric activities. */
+function fishDays(env: MetricEnv, spot: Spot, nowMs: number, days: number): (PlanDay | null)[] {
+  const start = localDayStart(nowMs, env.tzOffsetH);
+  return Array.from({ length: days }, (_, d) => {
+    const dayMs = start + d * DAY;
+    const w = fishWindow(env, spot, dayMs, nowMs);
+    if (!w) return null;
+    const tone = biteTone(w.mean);
+    return {
+      day: d, dayMs, spot: spot.name, startMs: w.startMs, endMs: w.endMs,
+      value: w.mean, tone, good: w.mean >= 40,
+      rank: TONE_SCORE[tone] + 0.5 * Math.min(1, Math.max(0, w.mean / 100)),
+    };
+  });
+}
+
 /** Surf, fish or boat at one spot: each day's window by the BEST TIME button's search, ranked on the absolute scale above. */
 function metricDays(env: MetricEnv, activity: 'surf' | 'fish' | 'boat', spot: Spot, nowMs: number, days: number): (PlanDay | null)[] {
+  if (activity === 'fish') return fishDays(env, spot, nowMs, days);
   const ids = votersFor(activity, spot);
   const f = buildForecast(env, ids, [spot], nowMs, days);
   const metrics = ids.map((id) => METRIC_BY_ID.get(id)!);
