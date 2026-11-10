@@ -1,8 +1,9 @@
 /**
  * FORECAST page (PLAN 7.52): a clean full-screen page beside the map for one spot and one activity, built
  * for reading at a glance rather than for the HUD. It has its own look (forecast.css: light and dark mode,
- * not the map themes, per Joseph) and its own link, `#forecast/<spot>/<activity>`, so it can be bookmarked
- * and the phone's back button returns to the map.
+ * not the map themes, per Joseph) and its own link, `#forecast/<spot>/<activity>`, so it can be bookmarked.
+ * It is the app's main page (PLAN 7.65): the bare address opens it, and the map is a page under it at `#map`;
+ * the phone's back button moves between the two.
  *
  * Top to bottom: the activity switch, the spots (each tinted with its rating now), the hero (a picture drawn
  * from the reading beside the one number that matters, its rating and why), then the next 7 days as bubbles
@@ -20,7 +21,7 @@ import { heroArt } from './art';
 import { ratingStrip, rowSvg, rowsFor, skyKind, skyRow, timeAxis, SKY_ICON, type ChartGeom } from './charts';
 import { miniIcon, skyIcon, tileIcon, tipBand, type TileKind } from './tiles';
 import {
-  FC_ACTIVITIES, beaufort, chopFor, dayUvPeaks, dayWeather, daysAt, hourWeather, waterAt, surfSize as surfSizeOf, uvLevel, driftFor, isFcActivity, parseRoute, readAt, routeHash, spotsForActivity, timeline,
+  FC_ACTIVITIES, beaufort, chopFor, dayUvPeaks, dayWeather, daysAt, hourWeather, waterAt, surfSize as surfSizeOf, uvLevel, driftFor, isFcActivity, landing, MAP_HASH, parseRoute, readAt, routeHash, spotsForActivity, timeline,
   type DayWeather, type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour,
 } from './model';
 import './forecast.css';
@@ -840,8 +841,12 @@ export function mountForecastPage(deps: ForecastDeps) {
     if (location.hash !== h) history.replaceState(history.state, '', h);
   };
   let timer = 0;
+  // The main page: cover the map from the start, so it does not flash up before the first render.
+  let booting = landing(location.hash) === 'forecast';
+  if (booting) (el.hidden = false), document.body.classList.add('fc-open');
   const show = () => {
-    if (!el.hidden) return;
+    if (!el.hidden && !booting) return;
+    booting = false;
     el.hidden = false;
     document.body.classList.add('fc-open');
     openedAt = Date.now();
@@ -865,8 +870,9 @@ export function mountForecastPage(deps: ForecastDeps) {
     if (mapMeta !== null) meta?.setAttribute('content', mapMeta);
   };
   const fromHash = () => {
-    const r = parseRoute(location.hash, SPOTS);
-    if (!r) return hide();
+    // The forecast is the main page: the bare address opens it; #map (or an old map link) shows the map.
+    if (landing(location.hash) === 'map') return hide();
+    const r = parseRoute(location.hash, SPOTS) ?? { spot: null, activity: null };
     if (r.activity) act = r.activity;
     if (r.spot) spotName = r.spot;
     if (el.hidden) show();
@@ -880,19 +886,20 @@ export function mountForecastPage(deps: ForecastDeps) {
     if (opts.activity) act = opts.activity;
     if (opts.spot) spotName = opts.spot;
     sel = null;
-    if (!parseRoute(location.hash, SPOTS)) {
+    if (landing(location.hash) === 'map') {
       history.pushState({ fc: 1 }, '', routeHash(spot().name, act));
       pushed = true;
     }
     show();
     syncHash();
   };
+  /** Go to the map. Back from the map returns here: to the page that pushed the forecast, or by its own entry. */
   const close = () => {
     if (pushed && history.state?.fc) {
       pushed = false;
       history.back(); // hashchange hides it
     } else {
-      history.replaceState(null, '', location.pathname + location.search);
+      history.pushState({ map: 1 }, '', location.pathname + location.search + MAP_HASH);
       hide();
     }
   };
