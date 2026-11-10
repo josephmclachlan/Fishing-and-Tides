@@ -8,9 +8,9 @@
  *    cloudier with murky water), NOAA Coral Reef Watch heat stress (DHW) and MUD WEEKS on gauges, the best
  *    time in the water this week (a link to the snorkel forecast), today's stresses as tiles, the 12-week
  *    build-ups and each year's peaks, and your own sites at that reef.
- *  - MY SITES: the private field log on this device: totals, missions coming up across every site, and
- *    every site grouped by reef with its last visit and next mission. Editing stays in the map's CORAL drawer
- *    for now (its folder opens from here).
+ *  - MY SITES (sites.ts): the private field log on this device, edited here: totals, missions coming up, new
+ *    sites by GPS, photo or map, backup and import, and each site's folder (overview, visits, photos,
+ *    missions, conditions), the same store and actions as the map's CORAL drawer.
  *  - SPAWNING, GUIDE, RULES: the drawer's calendar, species and disease cards, and SINAC rules and contacts.
  *
  * Privacy: logged sites come only from the on-device store (src/coral/store.ts) and are drawn only here and
@@ -25,8 +25,7 @@ import { MUD_HIGH, MUD_WATCH } from '../physics/mud';
 import type { CoralHistory } from '../coral/history';
 import { peakFor } from '../coral/history';
 import { coralRisks, type RiskId, type RiskInputs } from '../coral/risks';
-import type { CoralSite, CoralStore } from '../coral/store';
-import { lastVisit, nextMission, overdue } from '../coral/folder-view';
+import type { Conditions, CoralSite, CoralStore } from '../coral/store';
 import { nextSeasons, SIGHTINGS, SPAWNERS, spawnWindows } from '../coral/spawning';
 import { CORAL_SPECIES, CORAL_THREATS, type CoralSpecies } from '../coral/species';
 import { CORAL_CONTACTS, CORAL_ETIQUETTE, CORAL_RULES } from '../coral/conduct';
@@ -35,7 +34,9 @@ import { routeHash } from '../forecast/model';
 import { CP_TABS, coralHash, parseCoralRoute, type CpTab } from './route';
 import { reefArt } from './art';
 import { trendChart, yearBars } from './charts';
-import { alertLevelOf, bleachShare, clockCR, dayDate, gaugePct, lc, logTotals, monthName, murkShare, riskLevelOf, shortDate, sitesByReef, soften, statusLevelOf, titleCase, upcomingMissions, type Level } from './view';
+import { alertLevelOf, bleachShare, clockCR, dayDate, gaugePct, lc, monthName, murkShare, riskLevelOf, shortDate, soften, statusLevelOf, titleCase, type Level } from './view';
+import { isFolderTab, mountSites } from './sites';
+import type { FolderTab, SiteHistory } from '../coral-panel';
 import '../forecast/forecast.css';
 import './coral-page.css';
 
@@ -109,13 +110,19 @@ export interface CoralPageDeps {
   /** Best day this week in the water at a reef, with the forecast spot it was read at. */
   visit: (reefId: string) => (ReefVisit & { spot: string }) | null;
   /** The private field log on this device. */
-  store: Pick<CoralStore, 'list' | 'subscribe'>;
+  store: CoralStore;
+  /** Conditions at a place now (frozen with each visit) and a site's reef history (CONDITIONS tab). */
+  conditionsAt: (lng: number, lat: number, depthM?: number) => Conditions | null;
+  historyAt: (s: CoralSite) => SiteHistory | null;
+  depthAt: () => ((lng: number, lat: number) => number | undefined) | null;
+  /** Where a site goes when there is no GPS (the map centre). */
+  centre: () => { lng: number; lat: number };
   /** The tracked reef nearest a logged site. */
   reefOf: (s: CoralSite) => string;
   /** The reef to start on when none is remembered (the one nearest the map). */
   startReef: () => string | null;
-  /** Leave for the map: a reef to fly to, a site whose folder to open, or the CORAL drawer to add a site. */
-  openOnMap: (o: { reef?: string; site?: string; add?: boolean }) => void;
+  /** Leave for the map: a site to show in its folder there, or place a new site with the next map tap. */
+  openOnMap: (o: { site?: string; place?: boolean }) => void;
 }
 
 export function mountCoralPage(deps: CoralPageDeps) {
@@ -317,7 +324,7 @@ export function mountCoralPage(deps: CoralPageDeps) {
     const sites = deps.store.list().filter((s) => deps.reefOf(s) === id);
     if (!sites.length) return '';
     return `<section class="fc-card cp-private-card"><div class="fc-card-head"><h2>${t('cp.yourSites')}</h2><span class="cp-badge">${LOCK}${t('cp.private')}</span></div>
-      <div class="cp-sites">${sites.map(siteCard).join('')}</div></section>`;
+      <div class="cp-sites">${sites.map((x) => sites_.siteCard(x)).join('')}</div></section>`;
   }
 
   function reefsHtml() {
@@ -335,44 +342,9 @@ export function mountCoralPage(deps: CoralPageDeps) {
       <div class="cp-grid2">${chartsHtml(r.id)}</div>`;
   }
 
-  // --- MY SITES
-  function siteCard(s: CoralSite) {
-    const now = Date.now();
-    const last = lastVisit(s);
-    const next = nextMission(s, now);
-    const lv = statusLevelOf(last?.status);
-    return `<article class="cp-site ${lc(lv)}">
-      <div class="cp-site-top"><h3>${esc(s.name || t('cp.unnamed'))}</h3><span class="cp-kind cp-kind-${s.kind}">${esc(soften(t(`coral.kind.${s.kind}` as Key)))}</span></div>
-      <p class="cp-site-last">${last ? `<span class="cp-pill ${lc(lv)}">${esc(soften(t(`coral.st.${last.status}` as Key)))}</span> ${t('cp.lastVisit', { d: shortDate(last.t, lang) })}${last.bleachPct !== undefined ? ` · ${t('cp.bleached', { n: last.bleachPct })}` : ''}` : `<span class="cp-pill l-none">${t('cp.never')}</span>`}</p>
-      ${next ? `<p class="cp-site-next${overdue(next, now) ? ' late' : ''}">${t('cp.next', { d: shortDate(next.t, lang), goal: esc(next.goal) })}</p>` : ''}
-      <p class="cp-site-meta">${s.depthM !== undefined ? `${Math.round(s.depthM)} m · ` : ''}${t('cp.counts', { v: s.visits.length, p: s.photos.length })}</p>
-      <button type="button" class="cp-link" data-site="${esc(s.id)}">${t('cp.openFolder')} ${CHEVRON}</button>
-    </article>`;
-  }
-
-  function sitesHtml() {
-    const sites = deps.store.list();
-    const now = Date.now();
-    const banner = `<section class="cp-privacy">${LOCK}<div><b>${t('cp.private')}</b><p>${t('cp.privateNote')}</p></div></section>`;
-    if (!sites.length) {
-      return `${banner}<section class="fc-card cp-empty"><h2>${t('cp.noSites')}</h2><p>${t('cp.noSitesNote')}</p><button type="button" class="fc-now cp-add" data-add="1">${t('cp.editOnMap')} ${LINK_OUT}</button></section>`;
-    }
-    const tot = logTotals(sites, now);
-    const ups = upcomingMissions(sites, now).slice(0, 8);
-    const groups = sitesByReef(sites, deps.reefOf, CORAL_REEFS.map((r) => r.id));
-    const reefName = (id: string) => titleCase(CORAL_REEFS.find((r) => r.id === id)?.name ?? id);
-    return `${banner}
-      <div class="cp-totals">
-        <div class="cp-total"><b>${tot.sites}</b><span>${t('cp.t.sites')}</span><small>${t('cp.t.kinds', { r: tot.reef, n: tot.nursery, g: tot.garden })}</small></div>
-        <div class="cp-total"><b>${tot.visits30}</b><span>${t('cp.t.visits30')}</span></div>
-        <div class="cp-total"><b>${tot.outplanted}</b><span>${t('cp.t.outplanted')}</span></div>
-        <div class="cp-total${tot.overdue ? ' late' : ''}"><b>${tot.open}</b><span>${t('cp.t.missions')}</span><small>${tot.overdue ? t('cp.t.overdue', { n: tot.overdue }) : t('cp.t.none')}</small></div>
-      </div>
-      <section class="fc-card"><div class="fc-card-head"><h2>${t('cp.coming')}</h2><button type="button" class="fc-now cp-add" data-add="1">${t('cp.editOnMap')} ${LINK_OUT}</button></div>
-        ${ups.length ? `<ul class="cp-missions">${ups.map((u) => `<li class="${u.overdue ? 'late' : ''}"><button type="button" data-site="${esc(u.site.id)}"><span class="cp-m-date">${esc(dayDate(u.mission.t, lang))}</span><span class="cp-m-goal"><b>${esc(u.mission.goal || '--')}</b><small>${esc(u.site.name || t('cp.unnamed'))}${u.mission.actions.length ? ` · ${u.mission.actions.map((a) => esc(soften(t(`coral.act.${a}` as Key)))).join(', ')}` : ''}</small></span>${u.overdue ? `<span class="cp-pill l0">${t('cp.overdue')}</span>` : ''}${CHEVRON}</button></li>`).join('')}</ul>` : `<p class="cp-cap">${t('cp.noMissions')}</p>`}
-      </section>
-      ${groups.map((g) => `<section class="fc-card"><div class="fc-card-head"><h2>${esc(t('cp.near', { reef: reefName(g.reefId) }))}</h2><button type="button" class="cp-link" data-reef-go="${esc(g.reefId)}">${t('cp.tab.reefs')} ${CHEVRON}</button></div><div class="cp-sites">${g.sites.map(siteCard).join('')}</div></section>`).join('')}`;
-  }
+  // --- MY SITES: the private field log (sites.ts), its folders at #coral/sites/<id>/<tab>
+  let siteRoute: { id: string | null; sub: FolderTab | null } = { id: null, sub: null };
+  const banner = () => `<section class="cp-privacy">${LOCK}<div><b>${t('cp.private')}</b><p>${t('cp.privateNote')}</p></div></section>`;
 
   // --- SPAWNING
   function spawningHtml() {
@@ -443,16 +415,32 @@ export function mountCoralPage(deps: CoralPageDeps) {
   }
 
   const body = $('cp-body');
+  /** Open a site's folder on this page. */
+  const openSite = (id: string | null, sub: FolderTab = 'overview') => {
+    siteRoute = { id, sub: id ? sub : null };
+    if (tab !== 'sites') (tab = 'sites'), put(storage, TAB_KEY, tab), el.scrollTo?.({ top: 0 });
+    else if (!id || id !== sites_.current()) el.scrollTo?.({ top: 0 });
+    syncHash();
+    render();
+  };
+  const sites_ = mountSites(el, body, {
+    store: deps.store, lang, reefOf: deps.reefOf, conditionsAt: deps.conditionsAt, historyAt: deps.historyAt, depthAt: deps.depthAt, centre: deps.centre, openOnMap: deps.openOnMap,
+  }, (id, sub) => openSite(id, sub));
   const render = () => {
     if (el.hidden) return;
     renderTabs();
-    const changed = html(body, tab === 'reefs' ? reefsHtml() : tab === 'sites' ? sitesHtml() : tab === 'spawning' ? spawningHtml() : tab === 'guide' ? guideHtml() : rulesHtml());
+    body.dataset.tab = tab;
+    const changed = html(body, tab === 'reefs' ? reefsHtml() : tab === 'sites' ? sites_.html(siteRoute.id, siteRoute.sub, banner()) : tab === 'spawning' ? spawningHtml() : tab === 'guide' ? guideHtml() : rulesHtml());
+    if (changed && (tab === 'sites' || tab === 'reefs')) void sites_.after();
+    // A folder whose site is gone (deleted here or in the drawer): back to the front.
+    if (tab === 'sites' && siteRoute.id && sites_.current() === null) (siteRoute = { id: null, sub: null }), syncHash();
     // Keep the chosen reef card in view in its scrolling row.
     if (changed && tab === 'reefs') el.querySelector<HTMLElement>('.cp-reef.on')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
   };
 
   // --- events
   const setTab = (k: CpTab) => {
+    if (k === 'sites' && tab === 'sites') siteRoute = { id: null, sub: null };
     tab = k;
     put(storage, TAB_KEY, k);
     syncHash();
@@ -485,8 +473,7 @@ export function mountCoralPage(deps: CoralPageDeps) {
       syncHash();
       render();
     } else if ((b = hit('[data-forecast]'))) location.hash = routeHash(b.dataset.forecast!, 'snorkel');
-    else if ((b = hit('[data-site]'))) deps.openOnMap({ site: b.dataset.site! });
-    else if (hit('[data-add]')) deps.openOnMap({ add: true });
+    else if ((b = hit('[data-x-open]')) && tab !== 'sites') openSite(b.dataset.xOpen!);
     else if ((b = hit('[data-reef-go]'))) {
       reefId = b.dataset.reefGo!;
       put(storage, REEF_KEY, reefId);
@@ -504,12 +491,15 @@ export function mountCoralPage(deps: CoralPageDeps) {
   $('cp-back').addEventListener('click', () => close());
   // Escape closes it wherever focus is (after the forecast's back step focus is on the body).
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !el.hidden) (e.stopPropagation(), close());
+    if (e.key !== 'Escape' || el.hidden) return;
+    e.stopPropagation();
+    if (sites_.isViewing()) sites_.closeViewer();
+    else close();
   });
 
   // --- routing: #coral/<tab>/<id>
   const syncHash = () => {
-    const h = coralHash({ tab, id: tab === 'reefs' ? reef().id : null });
+    const h = coralHash(tab === 'sites' ? { tab, id: siteRoute.id, sub: siteRoute.id ? siteRoute.sub ?? 'overview' : null } : { tab, id: tab === 'reefs' ? reef().id : null });
     if (location.hash !== h) history.replaceState(history.state, '', h);
   };
   let timer = 0;
@@ -542,6 +532,7 @@ export function mountCoralPage(deps: CoralPageDeps) {
     if (el.hidden && e?.oldURL) cameFrom = /#forecast/.test(e.oldURL) ? 'forecast' : 'map';
     tab = r.tab;
     if (r.tab === 'reefs' && r.id && CORAL_REEFS.some((x) => x.id === r.id)) reefId = r.id;
+    if (r.tab === 'sites') siteRoute = { id: r.id, sub: isFolderTab(r.sub) ? r.sub : null };
     if (el.hidden) show();
     else render();
   };
