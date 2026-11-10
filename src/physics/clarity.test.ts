@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clarity, clarityLevel, effectiveRain, kdFromChl, plumeKd, resuspensionKd, secchiFromKd, KD_PLUME, PLUME_DECAY_S, PLUME_SATURATION_MM, flowPlumeMm } from './clarity';
+import { clarity, clarityLevel, effectiveRain, kdFromChl, plumeKd, resuspensionKd, secchiFromKd, KD_PLUME, PLUME_DECAY_S, PLUME_SATURATION_MM, PLUME_RAIN_FROM_MM, flowPlumeMm, runoffMm } from './clarity';
 import { clarityAt, clarityGrid, riverRain, type ClarityContext } from '../layers/clarity';
 import { PLUME_RIVERS, REGION } from '../region';
 import { parseCatchmentRain, rainPoints, catchmentRainChecks } from '../adapters/catchment-rain';
@@ -50,6 +50,10 @@ describe('resuspension', () => {
     expect(resuspensionKd(0.1, 5, 4)).toBe(0);
     expect(resuspensionKd(NaN, 10, 4)).toBe(0);
   });
+  it('barely clouds the water in small swell and fully in a big swell over the reef', () => {
+    expect(resuspensionKd(0.3, 6.5, 2)).toBeLessThan(0.1);
+    expect(resuspensionKd(1.5, 10, 4)).toBeGreaterThan(0.9);
+  });
 });
 
 describe('clarity', () => {
@@ -67,6 +71,10 @@ describe('clarity', () => {
   });
   it('names the swell in shallow water in big surf', () => {
     expect(clarity({ ...calm, hs: 2, tp: 12, depthM: 3 }).cause).toBe('swell');
+  });
+  it('adds the current to the waves when stirring the bed', () => {
+    const calmish = { ...calm, hs: 0.6, tp: 8, depthM: 4 };
+    expect(clarity({ ...calmish, currentMs: 0.5 }).kd).toBeGreaterThan(clarity(calmish).kd);
   });
   it('falls back to chlorophyll, then to a background', () => {
     expect(clarity({ ...calm, kd490: NaN, chl: 5 }).kd).toBeCloseTo(kdFromChl(5));
@@ -156,6 +164,23 @@ describe('measured river flow in the plume', () => {
     fromCache: false,
   });
   const at: [number, number] = [sixaola.mouth[0] + 0.01, sixaola.mouth[1] + 0.01];
+  it('runoffMm: the soil takes the first rain, a saturating storm still saturates', () => {
+    expect(runoffMm(0)).toBe(0);
+    expect(runoffMm(PLUME_RAIN_FROM_MM)).toBe(0);
+    expect(runoffMm(PLUME_SATURATION_MM)).toBeCloseTo(PLUME_SATURATION_MM);
+    expect(runoffMm(30)).toBeGreaterThan(0);
+    expect(runoffMm(30)).toBeLessThan(30);
+  });
+  it('a few mm of drizzle over three days makes no plume, even carried down the coast', () => {
+    // About 2 mm a day in every catchment, the current running north-west at 0.3 m/s.
+    const times = Array.from({ length: 72 }, (_, i) => t0 - (72 - i) * H);
+    const c: ClarityContext = { ...ctx(0), rain: { times, byRiver: Object.fromEntries(PLUME_RIVERS.map((r) => [r.name, times.map(() => 0.09)])), fetchedAt: t0, fromCache: false }, currentAt: () => [-0.21, 0.21] };
+    const rivers = riverRain(c.rain, t0, c.currentAt);
+    expect(rivers[0].rainMm).toBeGreaterThan(1);
+    expect(rivers.every((r) => r.plumeMm === 0)).toBe(true);
+    const [lng, lat] = [sixaola.mouth[0] - 0.15, sixaola.mouth[1] + 0.08]; // ~19 km up the coast, Cocles side
+    expect(clarityAt(c, lng, lat)!.visM).toBeCloseTo(clarityAt({ ...c, rain: ctx(0).rain }, lng, lat)!.visM, 6);
+  });
   it('flowPlumeMm: none at the median, saturated at ten times', () => {
     expect(flowPlumeMm(1)).toBe(0);
     expect(flowPlumeMm(0.4)).toBe(0);
@@ -169,5 +194,41 @@ describe('measured river flow in the plume', () => {
   it('a calm river changes nothing, and never clears a rain-made plume', () => {
     expect(clarityAt({ ...ctx(0), flow: flow(1) }, ...at)!.visM).toBe(clarityAt(ctx(0), ...at)!.visM);
     expect(clarityAt({ ...ctx(80), flow: flow(0.5) }, ...at)!.visM).toBe(clarityAt(ctx(80), ...at)!.visM);
+  });
+});
+
+describe('satellite term near the shore (PLAN 7.45)', () => {
+  // A 0.02° Kd490 grid over the region, land west of -83.1 like the depth grid above: the column next
+  // to the land reads muddy (0.6/m), the rest of the sea 0.2/m on the maps, 0.08/m in the clear baseline.
+  const d = 0.02;
+  const gc = Math.round((e - w) / d) + 1, gr = Math.round((n - s) / d) + 1;
+  const frame = (shore: number, sea: number) => {
+    const f = new Float32Array(gc * gr);
+    for (let r = 0; r < gr; r++)
+      for (let c = 0; c < gc; c++) {
+        const lng = w + c * d;
+        f[r * gc + c] = lng < -83.1 ? NaN : lng < -83.1 + d ? shore : sea;
+      }
+    return f;
+  };
+  const meta = (feed: string, times: number[]) => ({ feed, kind: 'observed' as const, fetchedAt: '', grid: { cols: gc, rows: gr, lon0: w, lat0: n, dlon: d, dlat: d }, times, vars: [{ name: 'kd490', unit: '1/m', scale: 0.0002, offset: 0 }], sources: [], licence: '', file: '' });
+  const mapTimes = [t0 - 13 * 864e5, t0 - 12 * 864e5];
+  const kd490 = { meta: meta('kd490', mapTimes), values: { kd490: mapTimes.map(() => frame(0.6, 0.2)) } };
+  const climTimes = [...Array(12)].map((_, m) => Date.UTC(2000, m, 15, 12));
+  const kd490Clim = { meta: { ...meta('kd490-clim', climTimes), kind: 'climatology' as const }, values: { kd490: climTimes.map(() => frame(0.3, 0.08)) } };
+  const quiet = (sat: ClarityContext['satellite']): ClarityContext => ({ ...ctx(0), satellite: sat, seaAt: () => ({ hs: 0.3, tp: 6 }) });
+  const shore: [number, number] = [-83.1 + d / 2, 9.8]; // in the land-touching column
+  it('reads a land-touching pixel from the water just offshore', () => {
+    const sat = { sst: null, sstCoast: null, chl: null, kd490, fetchedAt: 0 };
+    // Twelve days after the newest map and no baseline: the recent median, the offshore 0.2 not the shore 0.6.
+    expect(clarityAt(quiet(sat), ...shore)!.kd).toBeCloseTo(0.2, 2);
+  });
+  it('relaxes to the clear baseline once the maps are old', () => {
+    const sat = { sst: null, sstCoast: null, chl: null, kd490, kd490Clim, fetchedAt: 0 };
+    const x = clarityAt(quiet(sat), ...shore)!;
+    expect(x.kd).toBeCloseTo(0.08, 2);
+    expect(x.visM).toBeGreaterThan(10);
+    // On the day of the newest map it is still that map.
+    expect(clarityAt({ ...quiet(sat), ms: mapTimes[1] }, ...shore)!.kd).toBeCloseTo(0.2, 2);
   });
 });

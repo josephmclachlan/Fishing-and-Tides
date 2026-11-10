@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  clarityBand, distToSegment, plumeAge, plumeDrift, satKdAt, satState, waveSpread,
-  PLUME_MAX_DRIFT_M, SIGMA_RETRIEVAL, TAU_SAT_D, TREND_MAX_D,
+  clarityBand, distToSegment, driftedPlumeKd, plumeAge, segmentFraction, plumeDrift, satKdAt, satState, satWeight, waveSpread,
+  KD_WATER, PLUME_MAX_DRIFT_M, SAT_FRESH_TAU_D, SAT_MAX_AGE_D, SIGMA_CELL_DEFAULT, SIGMA_RETRIEVAL,
 } from './clarity-forecast';
 import { plumeKd, secchiFromKd, KD_BACKGROUND } from './clarity';
 import { noonAhead } from '../layers/clarity';
@@ -11,44 +11,59 @@ const t0 = Date.UTC(2026, 9, 20, 12);
 const days = (n: number) => Array.from({ length: n }, (_, i) => t0 + i * DAY);
 
 describe('satellite history', () => {
-  it('reduces daily Kd to median, newest, trend and spread in ln space', () => {
+  it('reduces daily Kd to median, newest and spread in ln space', () => {
     const s = satState(days(5), [0.1, 0.1, 0.1, 0.2, 0.4])!;
     expect(Math.exp(s.median)).toBeCloseTo(0.1);
     expect(Math.exp(s.last)).toBeCloseTo(0.4);
     expect(s.lastMs).toBe(t0 + 4 * DAY);
-    expect(s.slope).toBeCloseTo(Math.log(2)); // doubling per day over the last three
     expect(s.spread).toBeGreaterThan(0);
   });
   it('skips gaps and returns null with nothing', () => {
     expect(satState(days(3), [NaN, 0, -1])).toBeNull();
     const s = satState(days(3), [NaN, 0.2, NaN])!;
     expect(Math.exp(s.last)).toBeCloseTo(0.2);
-    expect(s.slope).toBe(0);
   });
 });
 
-describe('satellite forecast', () => {
+describe('satellite forecast (PLAN 7.45)', () => {
   const s = satState(days(7), [0.1, 0.1, 0.1, 0.1, 0.1, 0.15, 0.3])!;
-  it('is the newest map up to its day', () => {
-    expect(satKdAt(s, s.lastMs).kd).toBeCloseTo(0.3);
-    expect(satKdAt(s, s.lastMs - DAY).kd).toBeCloseTo(0.3);
-    expect(satKdAt(s, s.lastMs).sigma).toBeCloseTo(SIGMA_RETRIEVAL);
+  const clear = { kd: 0.05, med: 0.08 };
+  it('weighs a map by its age: whole when new, gone past the cut-off', () => {
+    expect(satWeight(0)).toBe(1);
+    expect(satWeight(SAT_FRESH_TAU_D)).toBeCloseTo(Math.exp(-1));
+    expect(satWeight(SAT_MAX_AGE_D)).toBe(0);
+    expect(satWeight(12)).toBe(0);
   });
-  it('follows the trend briefly, then relaxes to the usual value with widening spread', () => {
-    const at = (d: number) => satKdAt(s, s.lastMs + d * DAY);
-    // The anomaly (ln 3 above the median, rising) first keeps some of its rise ...
-    const x1 = Math.log(0.1) + (Math.log(0.3) + s.slope * 1 - Math.log(0.1)) * Math.exp(-1 / TAU_SAT_D);
-    expect(Math.log(at(1).kd)).toBeCloseTo(x1);
-    // ... the trend stops after TREND_MAX_D days, and far ahead it is the median.
-    const x5 = Math.log(0.1) + (Math.log(0.3) + s.slope * TREND_MAX_D - Math.log(0.1)) * Math.exp(-5 / TAU_SAT_D);
-    expect(Math.log(at(5).kd)).toBeCloseTo(x5);
-    expect(at(60).kd).toBeCloseTo(0.1, 3);
+  it('is the newest map on its day, with the retrieval error', () => {
+    expect(satKdAt(s, s.lastMs, clear).kd).toBeCloseTo(0.3);
+    expect(satKdAt(s, s.lastMs - DAY, clear).kd).toBeCloseTo(0.3);
+    expect(satKdAt(s, s.lastMs, clear).sigma).toBeCloseTo(SIGMA_RETRIEVAL);
+  });
+  it('relaxes to the clear baseline as the map ages, its spread growing to the month\'s own', () => {
+    const at = (d: number) => satKdAt(s, s.lastMs + d * DAY, clear);
+    expect(at(1).kd).toBeCloseTo(0.05 + (0.3 - 0.05) * Math.exp(-1 / SAT_FRESH_TAU_D));
+    expect(at(3).kd).toBeLessThan(at(1).kd);
+    expect(at(SAT_MAX_AGE_D).kd).toBe(0.05);
     expect(at(1).sigma).toBeGreaterThan(SIGMA_RETRIEVAL);
-    expect(at(10).sigma).toBeGreaterThan(at(1).sigma);
-    expect(at(60).sigma).toBeCloseTo(Math.hypot(SIGMA_RETRIEVAL, s.spread), 3);
+    expect(at(12).sigma).toBeCloseTo(Math.log(0.08 / 0.05));
   });
-  it('falls back to the background with no history', () => {
+  it('counts only the murk the causes on the map day leave unexplained', () => {
+    // A plume and swell gave 0.2/m of the 0.3/m that day: the map adds 0.05 over the clear 0.05, not 0.25.
+    expect(satKdAt(s, s.lastMs, clear, 0.2).kd).toBeCloseTo(0.1);
+    // A cause bigger than the map can only clear the term down to pure water.
+    expect(satKdAt(s, s.lastMs, clear, 5).kd).toBe(KD_WATER);
+  });
+  it('no longer carries a muddy week 12 days on (Puerto Viejo, maps of 2026-10-21 to 10-29)', () => {
+    const t = [0, 1, 2, 3, 6, 7, 8].map((d) => t0 + d * DAY);
+    const muddy = satState(t, [0.378, 0.447, 0.474, 0.54, 1.262, 2.072, 0.795])!;
+    const today = muddy.lastMs + 12 * DAY;
+    expect(satKdAt(muddy, today).kd).toBeGreaterThan(0.5); // without a baseline: the week's median
+    expect(satKdAt(muddy, today, { kd: 0.102, med: 0.14 }).kd).toBe(0.102);
+  });
+  it('falls back to the background with no history, or to the clear baseline when there is one', () => {
     expect(satKdAt(null, t0).kd).toBe(KD_BACKGROUND);
+    expect(satKdAt(null, t0).sigma).toBe(SIGMA_CELL_DEFAULT);
+    expect(satKdAt(null, t0, clear).kd).toBe(0.05);
   });
 });
 
@@ -72,8 +87,18 @@ describe('plume transport', () => {
     expect(distToSegment(-4, 3, 10, 0)).toBeCloseTo(5);
     expect(distToSegment(13, 4, 10, 0)).toBeCloseTo(5);
     expect(distToSegment(3, 4, 0, 0)).toBeCloseTo(5);
-    // A plume drifted 10 km south-east is as brown at its tip as an undrifted one at its mouth.
+    expect(segmentFraction(5, 3, 10, 0)).toBeCloseTo(0.5);
+    expect(segmentFraction(13, 4, 10, 0)).toBe(1);
+    // A plume drifted 10 km south-east is as brown on its axis at the tip as at the mouth without ageing ...
     expect(plumeKd(1000, 60, distToSegment(7071, -7071, 7071, -7071))).toBeCloseTo(plumeKd(1000, 60, 0));
+  });
+  it('thins the plume along its drift with the age of the water (PLAN 7.45)', () => {
+    const day = 864e2;
+    const tip = driftedPlumeKd(1000, 60, 7071, -7071, [7071, -7071], day);
+    const mouth = driftedPlumeKd(1000, 60, 0, 0, [7071, -7071], day);
+    expect(mouth).toBeCloseTo(plumeKd(1000, 60, 0));
+    expect(tip).toBeCloseTo(mouth * Math.exp(-1));
+    expect(driftedPlumeKd(1000, 60, 7071, -7071, [7071, -7071])).toBeCloseTo(mouth);
   });
 });
 
