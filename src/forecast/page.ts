@@ -11,7 +11,7 @@
  */
 import { t, type Key } from '../i18n';
 import { localDayStart } from '../physics/astro';
-import { REGION, SPOTS } from '../region';
+import { REGION, SPOTS, SPOT_RENAMES } from '../region';
 import { localClock } from '../tide-chart';
 import { compassName } from '../spot-charts';
 import type { Spot } from '../metrics/forecast';
@@ -303,7 +303,8 @@ export function mountForecastPage(deps: ForecastDeps) {
     const v = get(storage, ACT_KEY);
     return isFcActivity(v) ? v : 'surf';
   })();
-  let spotName: string = get(storage, SPOT_KEY) ?? '';
+  // A spot saved under an old name (SPOT_RENAMES) opens under its new one.
+  let spotName: string = ((n) => SPOT_RENAMES[n] ?? n)(get(storage, SPOT_KEY) ?? '');
   /** The hour the hero shows; null = now. */
   let sel: number | null = null;
   let plan: Plan | null = null;

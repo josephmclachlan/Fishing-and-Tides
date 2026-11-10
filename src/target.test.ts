@@ -5,7 +5,7 @@ describe('matchSpots', () => {
   it('ignores case and accents and ranks prefix matches first', () => {
     expect(matchSpots('límon', [{ name: 'LIMÓN', lngLat: [0, 0] }])[0].name).toBe('LIMÓN');
     expect(matchSpots('punta cáhuita')[0].name).toBe('PUNTA CAHUITA');
-    expect(matchSpots('playa').map((s) => s.name)).toEqual(['PLAYA NEGRA CAHUITA', 'PLAYA NEGRA', 'PLAYA COCLES', 'PLAYA CHIQUITA', 'PLAYA GRANDE']);
+    expect(matchSpots('playa').map((s) => s.name)).toEqual(['PLAYA NEGRA CAHUITA', 'PLAYA BLANCA', 'PLAYA NEGRA', 'PLAYA COCLES', 'PLAYA CHIQUITA WEST', 'PLAYA CHIQUITA EAST', 'PLAYA GRANDE']);
     expect(matchSpots('negra').map((s) => s.name)).toEqual(['PLAYA NEGRA CAHUITA', 'PLAYA NEGRA']);
     expect(matchSpots('cahuita').map((s) => s.name)).toEqual(['PLAYA NEGRA CAHUITA', 'PUNTA CAHUITA']);
   });

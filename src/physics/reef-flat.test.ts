@@ -103,7 +103,7 @@ describe('reef shelter at the real spots', () => {
   const at = (name: string, tideM = 0) => m.spot({ pin: SPOTS.find((s) => s.name === name)!.lngLat, sea, tideLevel: 0.5, tideM })!;
 
   it('cuts the waves inside the Cahuita reef and the Chiquita and Punta Uva flats', () => {
-    for (const name of ['PUNTA CAHUITA', 'PLAYA CHIQUITA', 'PUNTA UVA']) {
+    for (const name of ['PUNTA CAHUITA', 'PLAYA CHIQUITA WEST', 'PLAYA CHIQUITA EAST', 'PUNTA UVA']) {
       const r = at(name);
       expect(r.shore.share, name).toBeGreaterThan(0.7);
       expect(r.shore.Hb, name).toBeLessThan(0.6 * r.waves.breaker.Hb);

@@ -16,7 +16,7 @@
 import { daySky, localDayStart, type DaySky } from '../physics/astro';
 import { predict, tideState } from '../physics/tide';
 import { haversineM } from '../geo';
-import { PLUME_RIVERS } from '../region';
+import { PLUME_RIVERS, SPOT_RENAMES } from '../region';
 import { SPECIES, type SpeciesId } from '../fishing/species';
 import { seasonFactor } from '../fishing/habitat';
 import { waterTerm } from '../fishing/water';
@@ -283,7 +283,9 @@ export interface Route { spot: string | null; activity: FcActivity | null }
 export function parseRoute(hash: string, spots: readonly Spot[]): Route | null {
   const m = /^#forecast(?:\/([^/]*))?(?:\/([^/]*))?\/?$/.exec(hash);
   if (!m) return null;
-  const spot = m[1] ? spots.find((s) => spotSlug(s.name) === m[1])?.name ?? null : null;
+  // A renamed spot's old link still opens it (SPOT_RENAMES, e.g. #forecast/playa-chiquita).
+  const old = m[1] ? Object.entries(SPOT_RENAMES).find(([from]) => spotSlug(from) === m[1])?.[1] : undefined;
+  const spot = m[1] ? spots.find((s) => spotSlug(s.name) === m[1] || s.name === old)?.name ?? null : null;
   return { spot, activity: isFcActivity(m[2]) ? m[2] : null };
 }
 export const routeHash = (spot: string, a: FcActivity) => `#forecast/${spotSlug(spot)}/${a}`;
