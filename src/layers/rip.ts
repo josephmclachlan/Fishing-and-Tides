@@ -10,7 +10,10 @@
  * - **Fixed rip sites.** Places where rips form again and again because something holds the
  *   channel in place: river and creek mouths (water draining seaward cuts a gap in the bar) and
  *   surf breaks whose guides list rips as a hazard (reef gaps, points). Shown as rings at every
- *   risk level; they turn amber or red when the risk around them is up.
+ *   risk level; they turn amber or red when the risk around them is up. A mouth of a river GloFAS
+ *   forecasts (PLAN 7.58c) also turns up with the river's own flow, whatever the surf: a flooding river
+ *   pushes a jet straight out through its channel. Flow twice the river's median raises the ring to MOD,
+ *   four times to HIGH (rules of thumb, not calibrated), and the ring says RIVER IN FLOOD.
  * - **The model's reading at each spot**, as a text label offshore of the spot (MOD and HIGH
  *   only): strength, speed and expected reach. No arrows: an arrow from the spot pin pretended
  *   to know where the rip would be.
@@ -175,6 +178,16 @@ export function riskAt(p: [number, number], states: readonly SpotState[]): { sco
   return { score: sum / w, conf };
 }
 
+/** River flow over its median at which a mouth's ring rises to MOD and to HIGH (PLAN 7.58c). */
+export const FLOOD_RATIO = { MOD: 2, HIGH: 4 } as const;
+const RANK = { LOW: 0, MOD: 1, HIGH: 2 } as const;
+
+/** The level a river's flow alone gives its mouth, or null when the flow is unknown. */
+export function floodLevel(ratio: number | null | undefined): 'LOW' | 'MOD' | 'HIGH' | null {
+  if (ratio === null || ratio === undefined || !Number.isFinite(ratio)) return null;
+  return ratio >= FLOOD_RATIO.HIGH ? 'HIGH' : ratio >= FLOOD_RATIO.MOD ? 'MOD' : 'LOW';
+}
+
 /** A place where rips keep forming: a river mouth or a break whose guides list rips. */
 export interface RipSite {
   name: string;
@@ -198,7 +211,7 @@ export function ripSites(mouths: readonly { name: string; rank: number; at: [num
  * GeoJSON for the overlay. Pure, so it's tested without a map. `stations` are the coast
  * stations (none until the coastline mask loads: then only the sites and labels show).
  */
-export function ripFeatures(states: readonly SpotState[], stations: readonly Station[] = [], sites: readonly RipSite[] = [], land?: Grid | null): FeatureCollection {
+export function ripFeatures(states: readonly SpotState[], stations: readonly Station[] = [], sites: readonly RipSite[] = [], land?: Grid | null, flowAt?: (at: [number, number]) => number | null): FeatureCollection {
   const features: Feature[] = [];
   for (const st of stations) {
     const r = riskAt(st.p, states);
@@ -209,8 +222,11 @@ export function ripFeatures(states: readonly SpotState[], stations: readonly Sta
   }
   for (const site of sites) {
     const r = riskAt(site.at, states);
-    const level = r ? ripLevel(r.score) : 'LOW';
-    features.push({ type: 'Feature', properties: { kind: 'site', level, site: site.kind, name: site.name }, geometry: { type: 'Point', coordinates: site.at } });
+    const surf = r ? ripLevel(r.score) : 'LOW';
+    const flood = site.kind === 'mouth' ? floodLevel(flowAt?.(site.at)) : null;
+    const flooding = !!flood && flood !== 'LOW' && RANK[flood] >= RANK[surf];
+    const level = flooding ? flood : surf;
+    features.push({ type: 'Feature', properties: { kind: 'site', level, site: flooding ? 'flood' : site.kind, name: site.name }, geometry: { type: 'Point', coordinates: site.at } });
   }
   for (const s of states) {
     const r = s.result;
@@ -248,6 +264,8 @@ export function glowRadius(): ExpressionSpecification {
 export interface RipLayer {
   update(states: readonly SpotState[], land?: Grid | null): void;
   setSites(sites: readonly RipSite[]): void;
+  /** River flow over its median at a mouth for the slider's hour (PLAN 7.58c); null where no river is forecast. */
+  setFlow(flowAt: (at: [number, number]) => number | null): void;
 }
 
 export function mountRip(map: Map): RipLayer {
@@ -258,6 +276,7 @@ export function mountRip(map: Map): RipLayer {
   let stationsFor: Grid | null = null;
   let sites: readonly RipSite[] = [];
   let landGrid: Grid | null = null;
+  let flowAt: ((at: [number, number]) => number | null) | undefined;
   const add = () => {
     if (map.getSource('rp')) return;
     const below = firstSymbolId(map);
@@ -286,7 +305,7 @@ export function mountRip(map: Map): RipLayer {
     map.addLayer({
       id: 'rp-site-label', type: 'symbol', source: 'rp', minzoom: 12.5, filter: ['==', ['get', 'kind'], 'site'],
       layout: {
-        'text-field': ['match', ['get', 'site'], 'mouth', t('rip.siteMouth'), t('rip.siteBreak')],
+        'text-field': ['match', ['get', 'site'], 'mouth', t('rip.siteMouth'), 'flood', t('rip.siteFlood'), t('rip.siteBreak')],
         'text-font': FONT, 'text-size': 10, 'text-letter-spacing': 0.1, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-optional': true,
       },
       paint: { 'text-color': colour, 'text-halo-color': '#000', 'text-halo-width': 1.5, 'text-opacity': ['match', ['get', 'level'], 'LOW', 0.6, 1] },
@@ -308,7 +327,7 @@ export function mountRip(map: Map): RipLayer {
       stations = coastStations(landGrid);
       stationsFor = landGrid;
     }
-    data = ripFeatures(states, stations, sites, landGrid);
+    data = ripFeatures(states, stations, sites, landGrid, flowAt);
     (map.getSource('rp') as GeoJSONSource | undefined)?.setData(data);
   };
   return {
@@ -319,6 +338,10 @@ export function mountRip(map: Map): RipLayer {
     },
     setSites(next) {
       sites = next;
+      render();
+    },
+    setFlow(f) {
+      flowAt = f;
       render();
     },
   };

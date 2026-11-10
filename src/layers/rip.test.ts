@@ -4,10 +4,20 @@ import { createSpotModel } from '../physics/spot-model';
 import { land, realDepth } from '../physics/fixtures/seafloor';
 import { cellAt } from '../physics/bathy';
 import { SPOTS } from '../region';
-import { coastStations, maskNormal, offset, ripFeatures, ripSites, riskAt, surfZoneWidth } from './rip';
+import { coastStations, floodLevel, maskNormal, offset, ripFeatures, ripSites, riskAt, surfZoneWidth } from './rip';
 import { SURF_BREAKS } from '../data/surf-breaks';
 
 describe('rip overlay geometry', () => {
+  it('raises a river mouth ring with the river\'s own flow, whatever the surf (PLAN 7.58c)', () => {
+    expect([null, NaN, 1, 2, 3.9, 4, 9].map(floodLevel)).toEqual([null, null, 'LOW', 'MOD', 'MOD', 'HIGH', 'HIGH']);
+    const sites = ripSites([{ name: 'Río Estrella', rank: 2, at: [-82.8922, 9.7927] }], []);
+    const ring = (ratio: number | null) => ripFeatures([], [], sites, null, () => ratio).features.find((f) => f.properties!.kind === 'site')!.properties!;
+    expect(ring(null)).toMatchObject({ level: 'LOW', site: 'mouth' });
+    expect(ring(1.2)).toMatchObject({ level: 'LOW', site: 'mouth' });
+    expect(ring(2.5)).toMatchObject({ level: 'MOD', site: 'flood' });
+    expect(ring(5)).toMatchObject({ level: 'HIGH', site: 'flood' });
+  });
+
   it('offsets by distance and bearing', () => {
     const p: [number, number] = [-82.84, 9.74];
     const q = offset(p, 45, 1000);

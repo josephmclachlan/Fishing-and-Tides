@@ -19,6 +19,16 @@ describe('verdict', () => {
     expect(verdict('snorkel', calm).reasons).toEqual([{ key: 'vd.r.outingGood', level: 'GO', value: reef.score }]);
   });
 
+  it('turns the sun activities MARGINAL in dangerous heat, not the swims (PLAN 7.58d)', () => {
+    const hot = { ...calm, feelsC: 40.4 };
+    expect(verdict('surf', hot).level).toBe('MARGINAL');
+    expect(verdict('fish', hot).reasons[0]).toEqual({ key: 'vd.r.heat', level: 'MARGINAL', value: 40 });
+    expect(verdict('snorkel', hot).level).toBe('GO');
+    expect(verdict('dive', hot).level).toBe('GO');
+    expect(verdict('surf', { ...calm, feelsC: 36 }).level).toBe('GO');
+    expect(verdict('surf', { ...calm, feelsC: null }).level).toBe('GO');
+  });
+
   it('reads snorkel and dive from the outing score, each at its own depth', () => {
     // Surge that is fine at 2 m for a snorkeller but not at 6 m for a diver, say: the two can differ.
     const surgy = outingScore({ surgeMs: 0.5, visM: 12, windMs: 3, waterM: 3, localHour: 10 });
