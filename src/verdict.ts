@@ -14,6 +14,9 @@
  * Weather hazards use the shared safety cap (physics/safety.ts) so every activity agrees on them:
  * a cap of 0.25 or less (lightning, squall likely) is NO-GO, any cap below 1 (squall watch) MARGINAL.
  * A tropical storm is NO-GO inside 500 km and MARGINAL out to the 1500 km alert radius.
+ * Heat (PLAN 7.58d): a real feel in the shade of 39 °C or more (the US NWS heat-index "danger" level, where
+ * heat exhaustion is likely with exposure) is MARGINAL for the activities spent out of the water in the sun
+ * (surf, fish); snorkel and dive keep the swimmer in the sea and already show UV with a cover-up hint.
  *
  * The verdict is the worst level any rule gives; reasons are listed worst first, then the pluses,
  * three at most. A missing input (feed not loaded) is skipped, not guessed. Advisory only: not for
@@ -25,6 +28,7 @@ import type { Confidence } from './physics/clarity-forecast';
 import { SMALL_BOAT_HS_M, SMALL_BOAT_WIND_KT, STORM_MARGINAL_KM, STORM_NOGO_KM, safetyTerm, type SquallLevel } from './physics/safety';
 import { ratingFor, type OutingScore } from './physics/outing';
 import type { Band } from './time';
+import { FEELS_DANGER_C } from './weather';
 
 export type Level = 'GO' | 'MARGINAL' | 'NO-GO';
 /** The activities judged here. BOAT is the sailing audit's (verdict-hud.ts reads it). */
@@ -38,6 +42,8 @@ export interface VerdictInputs {
   heavyRain?: boolean | null;
   /** Nearest active tropical storm within the alert radius, km. */
   stormKm?: number | null;
+  /** Real feel in the shade at the place and hour, °C (weather.ts feelsLikeC, PLAN 7.57). */
+  feelsC?: number | null;
   windKt?: number | null;
   /** Significant wave height offshore, m. */
   hsM?: number | null;
@@ -98,6 +104,10 @@ const HAZARD: Rule = (i) => {
 export { STORM_NOGO_KM };
 const STORM: Rule = (i) => (!has(i.stormKm) || i.stormKm > STORM_MARGINAL_KM ? null : i.stormKm < STORM_NOGO_KM ? R('storm', 'NO-GO', i.stormKm) : R('stormFar', 'MARGINAL', i.stormKm));
 
+/** Real feel at which the sun activities turn MARGINAL, °C: the same danger band the WEATHER panel shows red. */
+export const HEAT_MARGINAL_C = FEELS_DANGER_C;
+const HEAT: Rule = (i) => (has(i.feelsC) && i.feelsC >= HEAT_MARGINAL_C ? R('heat', 'MARGINAL', Math.round(i.feelsC)) : null);
+
 const OUTING_LEVEL = { GO: 'GO', CAUTION: 'MARGINAL', AVOID: 'NO-GO' } as const;
 /** The outing score's rating, its reasons as `dive.r.*`. Its weather cap is already in the score. */
 const OUTING = (m: 'snorkel' | 'dive'): Rule => (i) => {
@@ -113,14 +123,14 @@ const OUTING = (m: 'snorkel' | 'dive'): Rule => (i) => {
 export const RULES: Record<Activity, readonly Rule[]> = {
   // Worth paddling out: the break's quality, and not too big or rippy for most.
   surf: [
-    HAZARD, STORM,
+    HAZARD, STORM, HEAT,
     (i) => (i.surf === 'FLAT' || i.surf === 'POOR' ? R('surfFlat', 'NO-GO') : i.surf === 'FAIR' ? R('surfFair', 'MARGINAL') : i.surf ? R('surfGood', 'GO') : null),
     (i) => (has(i.breakerM) && i.breakerM > 3 ? R('surfBig', 'MARGINAL', i.breakerM) : null),
     (i) => (i.rip === 'HIGH' ? R('ripHigh', 'MARGINAL') : null),
   ],
   // Small open boat or shore: wind over 20 kt or seas over 2 m keep pangas in.
   fish: [
-    HAZARD, STORM,
+    HAZARD, STORM, HEAT,
     (i) => (i.heavyRain ? R('rain', 'MARGINAL') : null),
     (i) => above(i.windKt, ...SMALL_BOAT_WIND_KT, 'wind', 'windHigh'),
     (i) => above(i.hsM, ...SMALL_BOAT_HS_M, 'seas', 'seasHigh'),

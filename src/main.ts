@@ -19,7 +19,7 @@ import { mountLightningHud } from './lightning-hud';
 import { mountLightning } from './layers/lightning';
 import { fetchLightning } from './adapters/lightning';
 import { nearestFlash, STRIKE_ALERT_KM, type Flash } from './lightning';
-import { biteWeather, blendedGustKt, nearestStorm, pressureTrend, squallLevel, summarise, uvAt } from './weather';
+import { biteWeather, blendedGustKt, feelsLikeC, nearestStorm, pressureTrend, squallLevel, summarise, uvAt } from './weather';
 import { crestGrid } from './waves-lines';
 import { mountWavesLayer } from './layers/waves';
 import { mountWeatherHud } from './weather-hud';
@@ -138,7 +138,7 @@ import { seaState as seaComfort } from './physics/sea-state';
 import { feedPartitions } from './sea-state-hud';
 import { createSpotPhysics, shoreBase, type SpotPhysics } from './spot-physics';
 import { shoreAt } from './physics/swim';
-import { mountRip, ripSites } from './layers/rip';
+import { floodLevel, mountRip, ripSites } from './layers/rip';
 import { SURF_BREAKS } from './data/surf-breaks';
 import { mountSurfZoneHud } from './surf-zone-hud';
 import { mountDiveHud } from './dive-hud';
@@ -838,7 +838,7 @@ const refreshClarity = () => {
 time.subscribe(refreshClarity);
 // River flow at the mouths (PLAN 7.15): GloFAS discharge against its median, for fishing near the mouths.
 fetchRiverFlow()
-  .then((d) => ((riverFlow = d), refreshClarity()))
+  .then((d) => ((riverFlow = d), refreshClarity(), ripFlow()))
   .catch((err) => console.warn('river flow unavailable', err));
 // BOAT daylight, pressure, next GO window and flood debris (PLAN 7.23 items 4, 5).
 mountBoatWindowHud(hud, map, { env: metricEnv, vessel: settings.vessel, validMs: () => time.validMs(), riverFlow: () => riverFlow });
@@ -948,6 +948,21 @@ fetchZones()
 // overlay, the SURF ZONE readouts and the RIP readout. Sea state from the waves adapter at each
 // spot (the mock swell until it loads); tide and wind are live.
 const ripLayer = mountRip(map);
+/** A forecast river's flow over its median at its mouth (within 2 km) for the slider's hour, for the rip rings (PLAN 7.58c). */
+let ripFlowKey = '';
+const ripFlow = () => {
+  const ms = time.validMs();
+  const ratio = (name: string) => (riverFlow ? flowRatio(riverFlow, name, ms) : null);
+  // Only redraw when a river's flood level changes: the slider moves this every frame.
+  const key = PLUME_RIVERS.map((r) => floodLevel(ratio(r.name)) ?? '-').join();
+  if (key === ripFlowKey) return;
+  ripFlowKey = key;
+  ripLayer.setFlow((at) => {
+    const r = PLUME_RIVERS.find((x) => haversineM(x.mouth, at) < 2000);
+    return r ? ratio(r.name) : null;
+  });
+};
+time.subscribe(ripFlow);
 // Fixed rip sites: river mouths and the breaks whose guides list rips. Tap a site or the shaded shore to read what it means.
 fetchMouths()
   .then(({ data }) => ripLayer.setSites(ripSites(data, SURF_BREAKS)))
@@ -1195,6 +1210,7 @@ const verdictInputs = (): VerdictInputs => {
     squall: wx?.squall ?? null,
     heavyRain: weatherData ? heavyRainSoon(weatherData, ms, [c.lng, c.lat]) : null,
     stormKm: storm && storm.km <= STORM_ALERT_KM ? storm.km : null,
+    feelsC: weatherData ? (() => { const f = feelsLikeC(weatherAt(weatherData, ms, [c.lng, c.lat]), weatherData.skill, windMsAt(c.lng, c.lat, ms)); return Number.isFinite(f) ? f : null; })() : null,
     windKt: cond.windKt,
     hsM: seaHere()?.hs ?? cond.swellHeightM,
     comfort: parts ? seaComfort(parts).comfort : null,
