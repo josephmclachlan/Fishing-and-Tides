@@ -218,3 +218,15 @@ export const PLUME_RIVERS: { name: string; mouth: [number, number]; catchmentKm2
   { name: 'RÍO BANANO', mouth: [-82.9951, 9.9208], catchmentKm2: 210, rainAt: [-83.12, 9.88], flowAt: [-83.075, 9.925], rainBox: [[-83.2, 9.9], [-83.0, 10.0]] },
   { name: 'RÍO BANANITO', mouth: [-82.9573, 9.874], catchmentKm2: 110, rainAt: [-83.12, 9.88], flowAt: [-82.9573, 9.874], rainBox: [[-83.1, 9.8], [-83.0, 9.9]] },
 ];
+
+/**
+ * Creeks that blow out through the sand after heavy rain and pull a jet offshore (Joseph, 2026-11-10), but that
+ * OSM tags as streams, which the rip rings otherwise leave out with the culverts (PLAN 7.63). Mouths from
+ * data/fishing/mouths.geojson. Río Cocles is tagged a river and is ringed already.
+ */
+export const RIP_CREEKS: { name: string; at: [number, number] }[] = [
+  // At the Puerto Viejo entrance, ~200 m west of the town centre.
+  { name: 'Quebrada Joe Gyal', at: [-82.75604, 9.6555] },
+  // At the Playa Negra (Puerto Viejo) bridge.
+  { name: 'Quebrada Honta', at: [-82.76308, 9.65474] },
+];

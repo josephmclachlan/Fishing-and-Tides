@@ -234,6 +234,7 @@ export const es: Dict = {
   'rip.reachShort': 'ALCANCE',
   'rip.siteMouth': 'DESEMBOCADURA · RESACAS',
   'rip.siteFlood': 'RÍO CRECIDO · SALIDA FUERTE',
+  'rip.siteCreek': 'QUEBRADA CRECIDA · SALIDA FUERTE',
   'rip.siteBreak': 'ROMPIENTE CON RESACAS',
   'rip.strength': 'FUERZA',
   'rip.reach': 'ALCANCE',

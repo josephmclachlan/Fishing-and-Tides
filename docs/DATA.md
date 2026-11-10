@@ -253,7 +253,7 @@ A logged coral site uses the nearest reef's series at the site's own depth.
 
 Open-Meteo stamps rain and its probability at the end of the hour they fell in. Every rain series here (weather, town rain, catchment rain) is moved back an hour so it is indexed by the hour's start like the IMERG satellite rain and the rest of the app; until PLAN 7.57 the model rain ran an hour late and met IMERG off by one at the join.
 
-**Call cost.** The weather call is 10 spots × 11 variables × 16 days, roughly a dozen or more Open-Meteo calls on each refresh (Open-Meteo weights requests by location, variables and days), from the phone's own address (the 10,000 a day limit is per address, so the data build's budget is untouched). CAMS UV is one more.
+**Call cost.** The weather call is 13 spots × 11 variables × 16 days plus one day back (`past_days=1`, PLAN 7.63, so the creek mouths can read the last 6 h of rain at any hour), roughly a dozen or more Open-Meteo calls on each refresh (Open-Meteo weights requests by location, variables and days), from the phone's own address (the 10,000 a day limit is per address, so the data build's budget is untouched). CAMS UV is one more.
 
 **Rain by town (PLAN 7.24).** `src/adapters/town-rain.ts` asks Open-Meteo for hourly rain at the four `RAIN_TOWNS` (Cahuita, Playa Negra, Puerto Viejo, Manzanillo) in one multi-location call, from the sharpest free global models: ECMWF IFS HRES 9 km (open data since October 2025), UK Met Office global 10 km, ICON and GFS (~13 km here). 7 days, through the offline cache, feed `townrain`. Checks: every town answers with all four models (amber at two or three), fresh within 3 h, hourly rain within 0..200 mm.
 

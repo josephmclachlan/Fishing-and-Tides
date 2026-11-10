@@ -19,7 +19,7 @@ import { mountLightningHud } from './lightning-hud';
 import { mountLightning } from './layers/lightning';
 import { fetchLightning } from './adapters/lightning';
 import { nearestFlash, STRIKE_ALERT_KM, type Flash } from './lightning';
-import { biteWeather, blendedGustKt, feelsLikeC, nearestStorm, pressureTrend, squallLevel, summarise, uvAt } from './weather';
+import { biteWeather, blendedGustKt, feelsLikeC, nearestStorm, pressureTrend, rainPastMm, squallLevel, summarise, uvAt } from './weather';
 import { crestGrid } from './waves-lines';
 import { mountWavesLayer } from './layers/waves';
 import { mountWeatherHud } from './weather-hud';
@@ -136,9 +136,10 @@ import type { VerdictInputs } from './verdict';
 import { heavyRainSoon, STORM_ALERT_KM } from './weather';
 import { seaState as seaComfort } from './physics/sea-state';
 import { feedPartitions } from './sea-state-hud';
-import { createSpotPhysics, shoreBase, type SpotPhysics } from './spot-physics';
+import { withOutflow, type RipLevel } from './physics/rip';
+import { CHANNEL_MOUTH_KM, createSpotPhysics, shoreBase, type SpotPhysics } from './spot-physics';
 import { shoreAt } from './physics/swim';
-import { floodLevel, mountRip, ripSites } from './layers/rip';
+import { creekLevel, CREEK_RAIN_H, floodLevel, mountRip, ripSites, type MouthFlood, type RipSite } from './layers/rip';
 import { SURF_BREAKS } from './data/surf-breaks';
 import { mountSurfZoneHud } from './surf-zone-hud';
 import { mountDiveHud } from './dive-hud';
@@ -189,6 +190,29 @@ const uvNow = (ms: number) => {
   const u = weatherData ? uvAt(weatherData, ms) : NaN;
   return Number.isFinite(u) ? u : null;
 };
+/**
+ * A mouth's own flood level at `ms` (PLAN 7.58c, 7.63): a river GloFAS forecasts (its mouth within 2 km) by its flow
+ * over the median; any other mouth, a small creek, by the rain on it over the last CREEK_RAIN_H hours.
+ */
+function mouthFlood(at: [number, number], ms: number): MouthFlood | null {
+  const river = PLUME_RIVERS.find((x) => haversineM(x.mouth, at) < 2000);
+  if (river) {
+    const level = floodLevel(riverFlow ? flowRatio(riverFlow, river.name, ms) : null);
+    return level ? { level, by: 'river' } : null;
+  }
+  const level = creekLevel(weatherData ? rainPastMm(weatherData, ms, CREEK_RAIN_H, at) : null);
+  return level ? { level, by: 'rain' } : null;
+}
+/** The worst flood level of a mouth within CHANNEL_MOUTH_KM of a place at `ms`: its rip is at least this (PLAN 7.63). */
+function outflowAt(pin: [number, number], ms: number): RipLevel | null {
+  let worst: RipLevel | null = null;
+  for (const m of ripMouths) {
+    if (haversineM(m.at, pin) > CHANNEL_MOUTH_KM * 1000) continue;
+    const l = mouthFlood(m.at, ms)?.level;
+    if (l === 'HIGH' || (l === 'MOD' && worst !== 'HIGH')) worst = l;
+  }
+  return worst;
+}
 const windExtras = (ms: number, pin: [number, number], name: string) => {
   const g = weatherData ? weatherAt(weatherData, ms, pin).map((w) => w.gustKt).filter(Number.isFinite) : [];
   const f = wind ? windAt(wind, time.band(), ms + 3 * 3.6e6)?.field : null;
@@ -212,6 +236,7 @@ const windExtras = (ms: number, pin: [number, number], name: string) => {
     sarg: sargForecast ? beachDay(sargForecast, name, ms)?.level ?? null : null,
     sstC: satellite ? (sstAt(satellite, pin[0], pin[1], ms)?.value ?? null) : null,
     uv: uvNow(ms),
+    outflow: outflowAt(pin, ms),
   };
 };
 const conditionsAt = () => {
@@ -409,9 +434,11 @@ const loadLightning = () =>
 loadLightning();
 setInterval(loadLightning, 5 * 60000);
 let weatherData: WeatherData | null = null;
+/** The river and creek mouths among the rip sites (set when the mouths file loads), for their flood levels (PLAN 7.63). */
+let ripMouths: readonly RipSite[] = [];
 fetchSpotWind().then((d) => ((spotWind = d), weatherHud?.refresh(), diveHud?.refresh())).catch((err) => console.warn('spot wind unavailable', err));
 const weatherLoad = fetchWeather();
-weatherLoad.then((d) => ((weatherData = d), weatherHud?.setWeather(d), diveHud?.refresh())).catch((err) => console.warn('weather unavailable', err));
+weatherLoad.then((d) => ((weatherData = d), weatherHud?.setWeather(d), diveHud?.refresh(), ripFlow(), spotPhysics?.update())).catch((err) => console.warn('weather unavailable', err));
 let stormList: readonly Storm[] = [];
 boatSafety = () => {
   const c = map.getCenter();
@@ -699,10 +726,12 @@ const metricEnv = (): MetricEnv => ({
     if (!Number.isFinite(tp)) return null;
     const ts = tideState(LIMON_HARMONICS, ms);
     const v = windVecAt(st.pin[0], st.pin[1], ms);
-    return shoreAt(b, {
+    const sh = shoreAt(b, {
       hs: w.hs, tp, tideLevel: ts.level, tideSize: Math.min(1, ts.range / LIMON_BIG_TIDE.rangeM),
       windMs: v ? Math.hypot(...v) : null, windFromDeg: v ? fromDeg(...v) : null,
     });
+    // A river or creek mouth in flood within 1 km holds the rip up whatever the waves (PLAN 7.63).
+    return { ...sh, rip: withOutflow(sh.rip, outflowAt(st.pin, ms)) };
   },
   tide: LIMON_HARMONICS,
   tzOffsetH: REGION.tzOffsetH,
@@ -948,24 +977,28 @@ fetchZones()
 // overlay, the SURF ZONE readouts and the RIP readout. Sea state from the waves adapter at each
 // spot (the mock swell until it loads); tide and wind are live.
 const ripLayer = mountRip(map);
-/** A forecast river's flow over its median at its mouth (within 2 km) for the slider's hour, for the rip rings (PLAN 7.58c). */
 let ripFlowKey = '';
 const ripFlow = () => {
   const ms = time.validMs();
-  const ratio = (name: string) => (riverFlow ? flowRatio(riverFlow, name, ms) : null);
-  // Only redraw when a river's flood level changes: the slider moves this every frame.
-  const key = PLUME_RIVERS.map((r) => floodLevel(ratio(r.name)) ?? '-').join();
+  const levels = ripMouths.map((m) => mouthFlood(m.at, ms));
+  // Only redraw when a mouth's flood level changes: the slider moves this every frame.
+  const key = levels.map((f) => f?.level ?? '-').join();
   if (key === ripFlowKey) return;
   ripFlowKey = key;
-  ripLayer.setFlow((at) => {
-    const r = PLUME_RIVERS.find((x) => haversineM(x.mouth, at) < 2000);
-    return r ? ratio(r.name) : null;
-  });
+  const byName = new Map(ripMouths.map((m, i) => [m.name, levels[i]]));
+  ripLayer.setFlood((site) => byName.get(site.name) ?? null);
 };
 time.subscribe(ripFlow);
-// Fixed rip sites: river mouths and the breaks whose guides list rips. Tap a site or the shaded shore to read what it means.
+// Fixed rip sites: river mouths, the named creeks and the breaks whose guides list rips. Tap a site or the shaded shore to read what it means.
 fetchMouths()
-  .then(({ data }) => ripLayer.setSites(ripSites(data, SURF_BREAKS)))
+  .then(({ data }) => {
+    const sites = ripSites(data, SURF_BREAKS);
+    ripMouths = sites.filter((x) => x.kind === 'mouth');
+    ripLayer.setSites(sites);
+    ripFlowKey = '';
+    ripFlow();
+    spotPhysics?.update();
+  })
   .catch((err) => console.warn('rip sites unavailable', err));
 // Tap a lightning flash, storm, observation or wave crest for what it is (registered first so the rip and sargassum cards below win where marks overlap).
 /** Logged coral sites within 1 km of a tap: open their folder from the card the tap opened (PLAN 7.40). */
@@ -995,7 +1028,7 @@ mountHere(map, (lng, lat) => {
 }, (title, rows, at) => (explain.showRows(title, rows, at), siteLinks(at)));
 map.on('click', 'rp-site', (e) => {
   const f = e.features?.[0]?.properties;
-  if (f) explain.show(`${f.name}`, f.site === 'mouth' ? 'ripMouth' : 'ripBreak', e.point);
+  if (f) explain.show(`${f.name}`, f.site === 'break' ? 'ripBreak' : 'ripMouth', e.point);
 });
 map.on('click', 'sg-mat', (e) => (explain.show(t('sarg.short'), 'sargMat', e.point), siteLinks(e.point)));
 map.on('click', 'sg-beach', (e) => (explain.show(t('sarg.short'), 'sargBeach', e.point), siteLinks(e.point)));

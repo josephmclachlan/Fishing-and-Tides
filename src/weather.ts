@@ -197,6 +197,18 @@ export function heavyRainSoon(d: WeatherData, ms: number, at?: readonly [number,
 }
 
 /**
+ * Rain over the `hours` before `ms` at the spot nearest `at`, mm: the mean of the models that cover that window
+ * (PLAN 7.63, for the creek mouths' rip rings). The weather call starts a day back (`past_days=1`), so the window
+ * is covered at any hour from now on; null before the data starts or when no model has the place.
+ */
+export function rainPastMm(d: WeatherData, ms: number, hours: number, at?: readonly [number, number]): number | null {
+  const from = ms - hours * 3.6e6;
+  if (!d.times.length || from < d.times[0] || ms > d.times[d.times.length - 1] + 3.6e6) return null;
+  const xs = WEATHER_MODELS.map((m) => rainAccumMm(d, m, from, ms, at)).filter((x): x is number => x !== null);
+  return xs.length ? xs.reduce((p, x) => p + x, 0) / xs.length : null;
+}
+
+/**
  * Squall flag. A heuristic, not a forecast of a specific storm: convective energy (mean CAPE of the
  * models) high enough for deep thunderstorms, together with either strong gusts or heavy rain in the
  * same hour. CAPE >= 1000 J/kg is moderately unstable and >= 2500 very unstable (common usage);

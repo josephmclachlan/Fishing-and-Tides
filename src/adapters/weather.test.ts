@@ -61,6 +61,8 @@ describe('weather', () => {
     expect(u).toContain('models=ecmwf_ifs,ukmo_global_deterministic_10km,icon_seamless,gfs_seamless');
     expect(u).toContain('dew_point_2m');
     expect(u).toContain('precipitation_probability');
+    // A day back, so the creek mouths can read the last 6 h of rain at any hour (PLAN 7.63).
+    expect(u).toContain('past_days=1');
     expect(u.split('latitude=')[1].split('&')[0].split(',')).toHaveLength(SPOTS.length);
   });
 });

@@ -4,18 +4,41 @@ import { createSpotModel } from '../physics/spot-model';
 import { land, realDepth } from '../physics/fixtures/seafloor';
 import { cellAt } from '../physics/bathy';
 import { SPOTS } from '../region';
-import { coastStations, floodLevel, maskNormal, offset, ripFeatures, ripSites, riskAt, surfZoneWidth } from './rip';
+import { coastStations, creekLevel, floodLevel, maskNormal, offset, ripFeatures, ripSites, riskAt, surfZoneWidth } from './rip';
 import { SURF_BREAKS } from '../data/surf-breaks';
 
 describe('rip overlay geometry', () => {
   it('raises a river mouth ring with the river\'s own flow, whatever the surf (PLAN 7.58c)', () => {
     expect([null, NaN, 1, 2, 3.9, 4, 9].map(floodLevel)).toEqual([null, null, 'LOW', 'MOD', 'MOD', 'HIGH', 'HIGH']);
-    const sites = ripSites([{ name: 'Río Estrella', rank: 2, at: [-82.8922, 9.7927] }], []);
-    const ring = (ratio: number | null) => ripFeatures([], [], sites, null, () => ratio).features.find((f) => f.properties!.kind === 'site')!.properties!;
+    const sites = ripSites([{ name: 'Río Estrella', rank: 2, at: [-82.8922, 9.7927] }], [], []);
+    const ring = (ratio: number | null) => {
+      const level = floodLevel(ratio);
+      return ripFeatures([], [], sites, null, () => (level ? { level, by: 'river' } : null)).features.find((f) => f.properties!.kind === 'site')!.properties!;
+    };
     expect(ring(null)).toMatchObject({ level: 'LOW', site: 'mouth' });
     expect(ring(1.2)).toMatchObject({ level: 'LOW', site: 'mouth' });
     expect(ring(2.5)).toMatchObject({ level: 'MOD', site: 'flood' });
     expect(ring(5)).toMatchObject({ level: 'HIGH', site: 'flood' });
+  });
+
+  it('raises a creek mouth ring with the last 6 hours of rain on it (PLAN 7.63)', () => {
+    expect([null, NaN, 0, 24.9, 25, 49, 50, 120].map(creekLevel)).toEqual([null, null, 'LOW', 'LOW', 'MOD', 'MOD', 'HIGH', 'HIGH']);
+    const sites = ripSites([], [], [{ name: 'Quebrada Joe Gyal', at: [-82.75604, 9.6555] }]);
+    const ring = (mm: number | null) => {
+      const level = creekLevel(mm);
+      return ripFeatures([], [], sites, null, () => (level ? { level, by: 'rain' } : null)).features.find((f) => f.properties!.kind === 'site')!.properties!;
+    };
+    expect(ring(10)).toMatchObject({ level: 'LOW', site: 'mouth', name: 'Quebrada Joe Gyal' });
+    expect(ring(30)).toMatchObject({ level: 'MOD', site: 'creek' });
+    expect(ring(60)).toMatchObject({ level: 'HIGH', site: 'creek' });
+  });
+
+  it('rings the named Puerto Viejo creeks that OSM tags as streams', () => {
+    const sites = ripSites([{ name: 'Quebrada Joe Gyal Bridge', rank: 0.5, at: [-82.75604, 9.6555] }], SURF_BREAKS);
+    const mouths = sites.filter((s) => s.kind === 'mouth').map((s) => s.name);
+    expect(mouths).toEqual(['Quebrada Joe Gyal', 'Quebrada Honta']);
+    // Joe Gyal is ~500 m from the Salsa Brava break ring, so both stay.
+    expect(sites.map((s) => s.name)).toContain('SALSA BRAVA');
   });
 
   it('offsets by distance and bearing', () => {
@@ -95,6 +118,7 @@ describe('rip overlay geometry', () => {
         { name: 'Culvert', rank: 0.5, at: [-82.8, 9.7] },
       ],
       SURF_BREAKS,
+      [],
     );
     expect(sites.filter((s) => s.kind === 'mouth').map((s) => s.name)).toEqual(['Río Estrella']);
     expect(sites.filter((s) => s.kind === 'break').map((s) => s.name)).toContain('SALSA BRAVA');
