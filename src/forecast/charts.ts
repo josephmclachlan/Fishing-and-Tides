@@ -25,6 +25,8 @@ export interface RowSpec {
   level?: (h: TimelineHour) => Level | null;
   /** Smallest top of the scale, so a calm week is not drawn as a storm. */
   minMax: number;
+  /** Bottom of the scale (default 0): temperatures start at 20 °C so a hot day stands out from a warm one. */
+  floor?: number;
   decimals: number;
   /** Wind arrows every 3 h (degrees FROM). */
   arrow?: (h: TimelineHour) => number | null;
@@ -72,6 +74,20 @@ export function rowsFor(a: FcActivity): RowSpec[] {
         wind,
         uv,
       ];
+    case 'swim': {
+      // A beach day: the score, then what decides it, safety first (rip, shore break), then sun, heat and weather.
+      const ripLv = { LOW: 3, MOD: 2, HIGH: 0 } as const;
+      return [
+        { id: 'swim', kind: 'bars', value: (h) => h.read.score, level: (h) => h.read.level, minMax: 100, decimals: 0, label: 'peak' },
+        { id: 'rip', kind: 'bars', value: (h) => h.read.swim?.ripScore ?? null, level: (h) => (h.read.swim ? ripLv[h.read.swim.rip] : null), minMax: 0.8, decimals: 2, label: 'peak' },
+        { id: 'shorebreak', kind: 'bars', value: (h) => h.read.swim?.breakerM ?? null, minMax: 1, decimals: 1, label: 'peak' },
+        uv,
+        { id: 'feels', kind: 'area', value: (h) => h.read.swim?.feelsC ?? null, minMax: 38, floor: 20, decimals: 0, label: 'peak' },
+        wind,
+        rain,
+        tide,
+      ];
+    }
     case 'sail':
       return [
         { ...wind, level: (h) => h.read.level },
@@ -174,8 +190,9 @@ export function rowSvg(spec: RowSpec, hours: readonly TimelineHour[], g: ChartGe
   const top = 14, base = spec.arrow ? 60 : ht - 4;
   const vals = hours.map(spec.value);
   const ticks = spec.tick ? hours.map(spec.tick) : [];
+  const lo = spec.floor ?? 0;
   const max = Math.max(spec.minMax, ...vals.filter(fin), ...ticks.filter(fin)) || 1;
-  const y = (v: number) => base - (Math.max(0, v) / max) * (base - top);
+  const y = (v: number) => base - (Math.max(0, v - lo) / (max - lo || 1)) * (base - top);
   let marks = '';
   if (spec.kind === 'bars') {
     const bw = Math.max(1.5, g.px - 2);

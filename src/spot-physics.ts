@@ -15,6 +15,7 @@ import { SURF_BREAKS, type SurfBreak } from './data/surf-breaks';
 import type { SquallLevel } from './physics/safety';
 import type { SargLevel } from './physics/drift';
 import { surfQuality, type SurfQuality, type Train } from './surf-quality';
+import type { ShoreBase } from './physics/swim';
 
 /** Every place we model: the named spots plus catalog surf breaks that aren't one of them. */
 export const PLACES: readonly { name: string; lngLat: [number, number]; brk?: SurfBreak }[] = [
@@ -38,6 +39,18 @@ export function knownChannel(place: { lngLat: [number, number]; brk?: Pick<SurfB
   return mouths.some((m) => haversineM(place.lngLat, m.mouth) / 1000 <= CHANNEL_MOUTH_KM);
 }
 const KNOWN_CHANNEL = PLACES.map((p) => knownChannel(p));
+
+/** The seafloor's part of a place's shore from its last spot-model run (physics/swim.ts `shoreAt`), or null before one. */
+export function shoreBase(st: SpotState): ShoreBase | null {
+  const r = st.result;
+  if (!r) return null;
+  const i = PLACES.findIndex((p) => p.name === st.name);
+  const b = r.waves.breaker;
+  return {
+    HbAll: r.HbAll ?? b.Hb, Hb: b.Hb, hb: b.hb, breakAngleDeg: r.waves.breakAngleDeg, slope: r.waves.slope,
+    normalDeg: r.waves.normalDeg, hs0: st.sea.total ?? st.sea.Hs, knownChannel: i >= 0 && KNOWN_CHANNEL[i],
+  };
+}
 
 /** Per-hour, per-place extras the surf score reads besides the sea and wind (wired in main.ts). */
 export interface HourExtras {

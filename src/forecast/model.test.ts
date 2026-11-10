@@ -168,3 +168,27 @@ describe('UV', () => {
     expect(dayUvPeaks(env({ weather: () => [] }), spot('PUNTA CAHUITA'), DAY0, 2)).toEqual([null, null]);
   });
 });
+
+describe('SWIM: a beach day', () => {
+  const rip = (level: 'LOW' | 'MOD' | 'HIGH', score: number) => ({ score, level, speedMs: 0.3, strength: 'WEAK' as const, lengthM: 60, length: 'SHORT' as const, factors: { height: 1, period: 1, angle: 1, tide: 1, wind: 1, channel: 1 } });
+  const shore = (level: 'LOW' | 'MOD' | 'HIGH') => () => ({ breakerM: 0.4, rip: rip(level, level === 'LOW' ? 0.1 : level === 'MOD' ? 0.4 : 0.7) });
+  const noon = DAY0 + 18 * H; // 12:00 local
+  it('reads the swim score from the spot\'s shore, the weather and the water, and nothing before the spot model runs', () => {
+    const r = readAt({ env: env({ shore: shore('LOW') }) }, 'swim', spot('PLAYA COCLES'), noon);
+    expect(r.score).not.toBeNull();
+    expect(r.swim!.rip).toBe('LOW');
+    expect(r.swim!.breakerM).toBe(0.4);
+    expect(r.swim!.uv).toBe(5);
+    expect(r.swim!.sstC).toBe(28.5);
+    expect(readAt({ env: env() }, 'swim', spot('PLAYA COCLES'), noon).score).toBeNull();
+  });
+  it('rates a high rip risk poor and a night zero', () => {
+    expect(readAt({ env: env({ shore: shore('HIGH') }) }, 'swim', spot('PLAYA COCLES'), noon).level).toBe(0);
+    expect(readAt({ env: env({ shore: shore('LOW') }) }, 'swim', spot('PLAYA COCLES'), DAY0 + 2 * H).score).toBe(0);
+  });
+  it('plans the week at every spot, as WATCH does', () => {
+    const p = daysAt({ env: env({ shore: shore('LOW') }) }, 'swim', spot('PLAYA COCLES'), DAY0 + 6 * H, 5);
+    expect(p.days.filter(Boolean).length).toBeGreaterThan(0);
+    expect(spotsForActivity('swim', SPOTS)).toHaveLength(SPOTS.length);
+  });
+});

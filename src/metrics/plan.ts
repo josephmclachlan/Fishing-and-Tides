@@ -8,6 +8,8 @@
  *   SNORKEL  the outing score (0..100) at 2 m: surge, visibility, chop, current, entry surf, daylight
  *   DIVE     the same at 6 m. Both only at the catalog snorkel spots (data/snorkel-spots.ts)
  *   BOAT     SEA COMFORT (0..100) with wind, gusts, squalls and rain, at every spot
+ *   SWIM     the beach-day score SWIM (0..100: rip risk and shore break at the spot, UV, heat, wind, rain,
+ *            water), at every spot
  *
  * Each day's window at each spot is found exactly as the app's other "best" readouts find it, so
  * they never disagree on a day: the BEST TIME button's search for surf, fish and boat
@@ -35,8 +37,8 @@ import { toHFor, votersFor } from './best-today';
 import { biteTone, fishWindow } from './fish-window';
 import { METRIC_BY_ID, type MetricEnv, type Tone } from './registry';
 
-export type PlanActivity = 'surf' | 'fish' | 'snorkel' | 'dive' | 'boat';
-export const PLAN_ACTIVITIES: readonly PlanActivity[] = ['surf', 'fish', 'snorkel', 'dive', 'boat'];
+export type PlanActivity = 'surf' | 'fish' | 'snorkel' | 'dive' | 'boat' | 'swim';
+export const PLAN_ACTIVITIES: readonly PlanActivity[] = ['surf', 'fish', 'snorkel', 'dive', 'boat', 'swim'];
 export const isPlanActivity = (x: unknown): x is PlanActivity => typeof x === 'string' && (PLAN_ACTIVITIES as readonly string[]).includes(x);
 
 /** The headline score each activity is shown and ranked by, and its full scale. */
@@ -46,6 +48,7 @@ export const HEADLINE: Readonly<Record<PlanActivity, { id: string; max: number }
   snorkel: { id: 'outing', max: 100 },
   dive: { id: 'outing', max: 100 },
   boat: { id: 'comfort', max: 100 },
+  swim: { id: 'swim', max: 100 },
 };
 
 /** Outing score 0..100 at a spot and hour, SNORKEL at 2 m or DIVE at 6 m (the DIVE & SNORKEL panel's), or null without data. */
@@ -109,7 +112,7 @@ function fishDays(env: MetricEnv, spot: Spot, nowMs: number, days: number): (Pla
 }
 
 /** Surf, fish or boat at one spot: each day's window by the BEST TIME button's search, ranked on the absolute scale above. */
-function metricDays(env: MetricEnv, activity: 'surf' | 'fish' | 'boat', spot: Spot, nowMs: number, days: number): (PlanDay | null)[] {
+function metricDays(env: MetricEnv, activity: 'surf' | 'fish' | 'boat' | 'swim', spot: Spot, nowMs: number, days: number): (PlanDay | null)[] {
   if (activity === 'fish') return fishDays(env, spot, nowMs, days);
   const ids = votersFor(activity, spot);
   const f = buildForecast(env, ids, [spot], nowMs, days);

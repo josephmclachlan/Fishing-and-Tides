@@ -30,7 +30,7 @@ import { mountRainLayer } from './layers/rain';
 import { fetchRainCells } from './adapters/rain-cells';
 import { mountStorms } from './layers/storms';
 import { fetchWeather, weatherAt, type WeatherData } from './adapters/weather';
-import { LIMON_HARMONICS } from './data/tides-limon';
+import { LIMON_BIG_TIDE, LIMON_HARMONICS } from './data/tides-limon';
 import { mountWatchPanel } from './watch-panel';
 import { mountBoatWindowHud } from './boat-window-hud';
 import { debrisAt } from './boat/debris';
@@ -96,7 +96,7 @@ import { worstSarg, type RiskInputs } from './coral/risks';
 import { buildConditions } from './coral/conditions';
 import { fetchMud, mudNow, type MudData, type MudHistory } from './adapters/mud';
 import { MUD_HIGH, MUD_WATCH, MUD_WINDOW_D, REEF_DEPTH_M } from './physics/mud';
-import { predictSeries } from './physics/tide';
+import { predictSeries, tideState } from './physics/tide';
 import { mountLayersPanel } from './layers-panel';
 import { FLOW_STYLE, mountFlow } from './layers/flow';
 import type { FlowSource } from './layers/flow-sim';
@@ -134,7 +134,8 @@ import type { VerdictInputs } from './verdict';
 import { heavyRainSoon, STORM_ALERT_KM } from './weather';
 import { seaState as seaComfort } from './physics/sea-state';
 import { feedPartitions } from './sea-state-hud';
-import { createSpotPhysics, type SpotPhysics } from './spot-physics';
+import { createSpotPhysics, shoreBase, type SpotPhysics } from './spot-physics';
+import { shoreAt } from './physics/swim';
 import { mountRip, ripSites } from './layers/rip';
 import { SURF_BREAKS } from './data/surf-breaks';
 import { mountSurfZoneHud } from './surf-zone-hud';
@@ -671,6 +672,23 @@ const metricEnv = (): MetricEnv => ({
     return at && satellite ? sstAt(satellite, at[0], at[1], ms)?.value ?? null : null;
   },
   sargassumKm2: (spot, ms) => (sargForecast ? beachDay(sargForecast, spot, ms)?.km2 ?? null : null),
+  // SWIM: the spot model's shore at the place (normal, slope, breaking angle), with this hour's swell, period, tide and wind.
+  shore: (spot, ms) => {
+    const st = spotPhysics?.byName(spot);
+    const b = st ? shoreBase(st) : null;
+    const w = b && st && waves ? wavesAt(waves, bandAt(ms), ms, st.pin[0], st.pin[1]) : null;
+    if (!b || !st || !w || !Number.isFinite(w.hs)) return null;
+    // The leading train's period, as the spot model is run with (spotSea above).
+    const swellLeads = Number.isFinite(w.swellHs) && w.swellHs >= (Number.isFinite(w.windSeaHs) ? w.windSeaHs : 0);
+    const tp = swellLeads && Number.isFinite(w.swellT) ? w.swellT : Number.isFinite(w.windSeaT) ? w.windSeaT : w.tm;
+    if (!Number.isFinite(tp)) return null;
+    const ts = tideState(LIMON_HARMONICS, ms);
+    const v = windVecAt(st.pin[0], st.pin[1], ms);
+    return shoreAt(b, {
+      hs: w.hs, tp, tideLevel: ts.level, tideSize: Math.min(1, ts.range / LIMON_BIG_TIDE.rangeM),
+      windMs: v ? Math.hypot(...v) : null, windFromDeg: v ? fromDeg(...v) : null,
+    });
+  },
   tide: LIMON_HARMONICS,
   tzOffsetH: REGION.tzOffsetH,
 });
