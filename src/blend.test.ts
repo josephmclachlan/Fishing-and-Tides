@@ -77,7 +77,7 @@ describe('blend', () => {
 
 /** Open-Meteo-shaped hindcast: GFS runs 1.5 °C warm and noisy, ECMWF close, ICON 1 °C cold. */
 const hourly: Record<string, number[]> = { time: times.map((t) => t / 1000) };
-const models = { gfs_seamless: [1.5, 2.5], ecmwf_ifs025: [0, 0.3], icon_seamless: [-1, 1.5] } as const;
+const models = { gfs_seamless: [1.5, 2.5], ecmwf_ifs: [0, 0.3], icon_seamless: [-1, 1.5] } as const;
 for (const [m, [off, amp]] of Object.entries(models)) {
   hourly[`temperature_2m_${m}`] = times.map((_, i) => truth(i) + off + amp * noise(i, 1));
   hourly[`wind_speed_10m_${m}`] = times.map((_, i) => 10 + 3 * amp * noise(i, 2));
@@ -98,23 +98,23 @@ describe('model skill at the airport', () => {
     expect(scoredModels(sk, 'temp')).toHaveLength(3);
     expect(sk.scores.temp.gfs_seamless.bias).toBeGreaterThan(1.2);
     expect(sk.scores.temp.icon_seamless.bias).toBeLessThan(-0.7);
-    expect(sk.weights.temp.ecmwf_ifs025).toBeGreaterThan(sk.weights.temp.icon_seamless);
+    expect(sk.weights.temp.ecmwf_ifs).toBeGreaterThan(sk.weights.temp.icon_seamless);
     expect(sk.weights.temp.icon_seamless).toBeGreaterThan(sk.weights.temp.gfs_seamless);
-    expect(leadModel(sk, 'wind')!.model).toBe('ecmwf_ifs025');
+    expect(leadModel(sk, 'wind')!.model).toBe('ecmwf_ifs');
   });
   it('ignores reports after now and keeps equal weights with too few', () => {
     const early = scoreWeather(parseHindcast({ hourly }, T0), obs, T0 + 14 * H);
     expect(scoredModels(early, 'temp')).toHaveLength(0);
-    expect(early.weights.temp.gfs_seamless).toBeCloseTo(1 / 3);
+    expect(early.weights.temp.gfs_seamless).toBeCloseTo(1 / 4);
     expect(leadModel(early, 'wind')).toBeNull();
   });
   it('blends the forecast with the skill: corrected temperature, a confidence and the lead model', () => {
     const f = parseWeather({ hourly: {
       time: [T0 / 1000 + 100 * 3600],
-      temperature_2m_gfs_seamless: [30], temperature_2m_ecmwf_ifs025: [28.5], temperature_2m_icon_seamless: [27.5],
-      precipitation_gfs_seamless: [0], precipitation_ecmwf_ifs025: [0], precipitation_icon_seamless: [0],
-      wind_speed_10m_gfs_seamless: [10], wind_speed_10m_ecmwf_ifs025: [11], wind_speed_10m_icon_seamless: [10],
-      wind_gusts_10m_gfs_seamless: [30], wind_gusts_10m_ecmwf_ifs025: [16], wind_gusts_10m_icon_seamless: [20],
+      temperature_2m_gfs_seamless: [30], temperature_2m_ecmwf_ifs: [28.5], temperature_2m_icon_seamless: [27.5],
+      precipitation_gfs_seamless: [0], precipitation_ecmwf_ifs: [0], precipitation_icon_seamless: [0],
+      wind_speed_10m_gfs_seamless: [10], wind_speed_10m_ecmwf_ifs: [11], wind_speed_10m_icon_seamless: [10],
+      wind_gusts_10m_gfs_seamless: [30], wind_gusts_10m_ecmwf_ifs: [16], wind_gusts_10m_icon_seamless: [20],
     } }, T0);
     const plain = summarise(f, T0 + 100 * H)!;
     expect(plain.tempC).toBeCloseTo(28.667, 2);
@@ -124,7 +124,7 @@ describe('model skill at the airport', () => {
     expect(s.tempC).toBeCloseTo(28.5, 0);
     expect(s.tempSigmaC).toBeLessThan(1);
     expect(s.confidence).toBe('HIGH');
-    expect(s.lead!.model).toBe('ecmwf_ifs025');
+    expect(s.lead!.model).toBe('ecmwf_ifs');
     // Gusts lean toward ECMWF's 16 kt.
     expect(s.gustKt).toBeLessThan(plain.gustKt);
     expect(blendedTempC([], sk)).toBeNaN();

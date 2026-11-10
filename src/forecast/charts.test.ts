@@ -7,7 +7,7 @@ const T0 = Date.UTC(2026, 10, 10, 6); // local midnight at UTC-6
 const g = { px: 6, tzOffsetH: -6 };
 const hour = (i: number, over: Partial<TimelineHour> = {}): TimelineHour => {
   const read: FcRead = { activity: 'surf', ms: T0 + i * H, score: 5, share: 0.5, level: 2, surf: { hb: 0.5 + 0.3 * Math.sin(i / 6), range: [0.4, 0.7], size: 'knee', band: 'FAIR', windKind: 'offshore', hs: 1, tp: 10, dir: 60, facing: 30, windKt: 8, windFromDeg: 240, tideKind: 'mid' } };
-  return { ms: T0 + i * H, read, windKt: 8 + (i % 5), windFromDeg: 60, gustKt: 14, rainMmH: i % 7 ? 0 : 3, tideM: 0.2 * Math.sin((i / 12.42) * 2 * Math.PI), airC: 28, cloudPct: 20, squall: 0, uv: (i % 24) >= 6 && (i % 24) < 18 ? 9 * Math.sin((((i % 24) - 6) / 12) * Math.PI) : 0, day: (i % 24) >= 6 && (i % 24) < 18, ...over };
+  return { ms: T0 + i * H, read, windKt: 8 + (i % 5), windFromDeg: 60, gustKt: 14, rainMmH: i % 7 ? 0 : 3, tideM: 0.2 * Math.sin((i / 12.42) * 2 * Math.PI), airC: 28, cloudPct: 20, squall: 0, rainPct: 10, feelsC: 31, humidityPct: 80, uv: (i % 24) >= 6 && (i % 24) < 18 ? 9 * Math.sin((((i % 24) - 6) / 12) * Math.PI) : 0, day: (i % 24) >= 6 && (i % 24) < 18, ...over };
 };
 const week = Array.from({ length: 168 }, (_, i) => hour(i));
 

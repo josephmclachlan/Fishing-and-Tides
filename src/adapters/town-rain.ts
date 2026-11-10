@@ -11,6 +11,7 @@ import { RAIN_TOWNS } from '../region';
 import { cachedFetch, type CacheDeps } from './cache';
 import { dataAge } from './data-age';
 import { freshness, inRange, type Check } from '../verify/types';
+import { toHourStart } from './weather';
 
 export const TOWN_RAIN_MODELS = ['ecmwf_ifs', 'ukmo_global_deterministic_10km', 'icon_seamless', 'gfs_seamless'] as const;
 export type TownRainModel = (typeof TOWN_RAIN_MODELS)[number];
@@ -40,7 +41,8 @@ export function parseTownRain(json: unknown, fetchedAt: number, fromCache = fals
     for (const m of TOWN_RAIN_MODELS) {
       const col = h[`precipitation_${m}`];
       if (!col || !col.some((x) => typeof x === 'number')) continue;
-      models[m] = times.map((_, i) => (typeof col[i] === 'number' ? (col[i] as number) : NaN));
+      // Open-Meteo stamps each hour's rain at its end; moved to the hour it fell in (PLAN 7.57).
+      models[m] = toHourStart(times.map((_, i) => (typeof col[i] === 'number' ? (col[i] as number) : NaN)));
     }
     byTown[t.id] = models;
   });
