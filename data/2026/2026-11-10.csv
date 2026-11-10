@@ -2860,3 +2860,12 @@ t,site,source,model,var,value,issued
 2026-11-10T22:00Z,PUNTA MONA,currents,,v,-0.32921,2026-11-10T16:14Z
 2026-11-10T19:45Z,limon,gauge,,levelM,0.2014,
 2026-11-10T19:45Z,limon,gauge,,tideM,0.20213,
+2026-11-10T20:00Z,MRLM,metar,,windFromDeg,80,
+2026-11-10T20:00Z,MRLM,metar,,windKt,6,
+2026-11-10T20:00Z,MRLM,metar,,tempC,31,
+2026-11-10T20:00Z,MRLM,metar,,dewC,25,
+2026-11-10T20:00Z,MRLM,metar,,pressureHpa,1010.2,
+2026-11-10T19:55Z,limon,gauge,,levelM,0.1985,
+2026-11-10T19:55Z,limon,gauge,,tideM,0.19713,
+2026-11-10T20:05Z,limon,gauge,,levelM,0.1912,
+2026-11-10T20:05Z,limon,gauge,,tideM,0.19139,
