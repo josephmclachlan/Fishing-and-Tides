@@ -9,6 +9,8 @@
 import { UA, sleep } from './common.ts';
 
 const URS = 'urs.earthdata.nasa.gov';
+/** Per request, ms. */
+const TIMEOUT_MS = 60e3;
 /** Path only, so an error never carries a query string or a login code. */
 const short = (url: string) => {
   const u = new URL(url);
@@ -43,7 +45,8 @@ export function earthdata(user: string, pass: string, fetchImpl: typeof fetch = 
       const c = jar.get(u.host);
       if (c?.size) headers.Cookie = [...c].map(([k, v]) => `${k}=${v}`).join('; ');
       if (u.host === URS && u.protocol === 'https:') headers.Authorization = basic;
-      const res = await fetchImpl(at, { headers, redirect: 'manual' });
+      // A stuck request must not hold up the whole data build.
+      const res = await fetchImpl(at, { headers, redirect: 'manual', signal: AbortSignal.timeout(TIMEOUT_MS) });
       keep(u.host, res);
       if (res.status >= 300 && res.status < 400) {
         const loc = res.headers.get('location');

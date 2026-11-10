@@ -65,6 +65,15 @@ describe('buildRainImerg', () => {
     expect(f.byRiver['RÍO BANANO'].slice(-3)).toEqual([1, 3, 3]);
   });
 
+  it('reads the newest first and leaves the rest for later runs when out of time', async () => {
+    dir = mkdtempSync(join(tmpdir(), 'imerg-'));
+    const msg = await buildRainImerg(dir, now, fakeGesdisc(), null, 0);
+    const f = JSON.parse(readFileSync(join(dir, 'rain-imerg.json'), 'utf8')) as RainImerg;
+    // With no time left, only the first (the login) read: the newest half hour.
+    expect(f.times).toEqual([Date.UTC(2026, 10, 10, 13, 0)]);
+    expect(msg).toMatch(/1 new, 362 left for the next runs/);
+  });
+
   it('stops when no half hour can be read', async () => {
     dir = mkdtempSync(join(tmpdir(), 'imerg-'));
     const g = fakeGesdisc();
