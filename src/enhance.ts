@@ -11,8 +11,7 @@
  *
  * Motion grammar: smooth moves cover ground we've already seen ("known data"); stepped moves
  * (steppedEase, like old tracking optics) are new detail loading.
- * ENHANCE off flies the same route (zoom out, pan to centre, zoom in) as three smooth moves, with
- * none of the overlay, box, pixelation or stepping.
+ * ENHANCE off glides straight to the target in one smooth move at a low zoom: no zoom out and back in.
  * Any touch, drag or wheel on the map cancels it and hands control back.
  */
 import type { Map as MapLibreMap } from 'maplibre-gl';
@@ -20,7 +19,7 @@ import type { LockFx } from './zoom-fx';
 import type { Target } from './target';
 import { REGION } from './region';
 import { t } from './i18n';
-import { ENHANCE_WIDE_ZOOM, ENHANCE_ZOOM, planHops, plainPanMs, plainZoomMs, steppedEase, zoomOutToFit } from './zoom';
+import { ENHANCE_WIDE_ZOOM, ENHANCE_ZOOM, planHops, plainPanMs, steppedEase, zoomOutToFit } from './zoom';
 import { haversineM } from './geo';
 import { sizeOf } from './layout-size';
 
@@ -28,6 +27,9 @@ import { sizeOf } from './layout-size';
 const T = { wide: 1400, designate: 800, center: 1000, zoom: 1300, tiles: 3000, resolve: 1000, settle: 400, hold: 1500 };
 /** Discrete camera jumps per stepped zoom-in. */
 const ZOOM_STEPS = 9;
+/** Zoom band the ENHANCE-off glide keeps to. */
+const PLAIN_ZOOM_MIN = 10.5;
+const PLAIN_ZOOM_MAX = 12;
 const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
 
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -63,10 +65,17 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx, enabled: () => bool
       await done;
     };
 
-    // ENHANCE off keeps the same journey (pull back, pan, zoom in) as smooth moves only: no overlay,
-    // box, pixelation or stepped zoom. Detail fades in as the zoom tiers are crossed (style.css).
+    // ENHANCE off: no zoom out and back in. Glide straight across at a low zoom (the current one,
+    // nudged into the 10.5-12 band so the beaches stay readable), one smooth move.
     const fancy = enabled();
-    if (fancy) fx.start(target.name);
+    if (!fancy) {
+      const c = map.getCenter();
+      const z = Math.min(PLAIN_ZOOM_MAX, Math.max(PLAIN_ZOOM_MIN, map.getZoom()));
+      await moveTo({ center: target.lngLat, zoom: z, duration: plainPanMs(haversineM([c.lng, c.lat], target.lngLat)) * k, easing: easeInOut });
+      if (alive()) active = false;
+      return;
+    }
+    fx.start(target.name);
 
     // 1. Smooth pull-back to the wide view, never panning; further if the target is still off screen.
     const z0 = map.getZoom();
@@ -76,23 +85,10 @@ export function createEnhancer(map: MapLibreMap, fx: LockFx, enabled: () => bool
     const regionFit = map.cameraForBounds(REGION.bounds)?.zoom ?? ENHANCE_WIDE_ZOOM;
     const wide = Math.min(z0, ENHANCE_WIDE_ZOOM, regionFit, z0 - zoomOutToFit(p.x - w / 2, p.y - h / 2, w, h));
     if (z0 - wide > 0.05) {
-      if (fancy) fx.state(t('fx.wideScan'));
+      fx.state(t('fx.wideScan'));
       await moveTo({ zoom: wide, duration: T.wide * k, easing: easeInOut });
     }
     if (!alive()) return;
-
-    if (!fancy) {
-      // 2. Smooth pan to centre the target, then 3. a smooth zoom in onto it.
-      const c = map.getCenter();
-      const m = map.project(target.lngLat);
-      if (Math.hypot(m.x - w / 2, m.y - h / 2) > 2) {
-        await moveTo({ center: target.lngLat, duration: plainPanMs(haversineM([c.lng, c.lat], target.lngLat)) * k, easing: easeInOut });
-        if (!alive()) return;
-      }
-      await moveTo({ center: target.lngLat, zoom: ENHANCE_ZOOM, duration: plainZoomMs(ENHANCE_ZOOM - map.getZoom()) * k, easing: easeInOut });
-      if (alive()) active = false;
-      return;
-    }
 
     // 2. Box the target where it sits, centre it, step into the box, resolve; repeat.
     const hops = planHops(map.getZoom(), ENHANCE_ZOOM);
