@@ -12,6 +12,12 @@ describe('river flow (PLAN 7.15)', () => {
     expect(u).toContain('flood-api.open-meteo.com');
     expect(u.split('latitude=')[1].split('&')[0].split(',')).toHaveLength(PLUME_RIVERS.length);
   });
+  it('asks at the main-stem cells, not the mouths (the mouth cells have no river in GloFAS)', () => {
+    const lats = riverFlowUrl().split('latitude=')[1].split('&')[0].split(',').map(Number);
+    expect(lats).toEqual(PLUME_RIVERS.map((r) => r.flowAt[1]));
+    const sixaola = PLUME_RIVERS.find((r) => r.name === 'RÍO SIXAOLA')!;
+    expect(sixaola.flowAt).not.toEqual(sixaola.mouth);
+  });
   it('parses per river and gives the ratio to the median', () => {
     const d = parseRiverFlow(sample(), 1);
     const r = PLUME_RIVERS[0].name;
@@ -25,11 +31,11 @@ describe('river flow (PLAN 7.15)', () => {
   it('rejects a short answer', () => {
     expect(() => parseRiverFlow([point([1], [1])], 1)).toThrow();
   });
-  it('checks pass on sane data and flag a river with no median', async () => {
+  it('checks pass on sane data and fail a river with no median', async () => {
     const good = riverFlowChecks(async () => parseRiverFlow(sample(), 1));
     for (const c of good) expect((await c.run()).status).toBe('pass');
     const bad = sample();
     bad[0] = point([5, 5, 5], [null, null, null]);
-    expect((await riverFlowChecks(async () => parseRiverFlow(bad, 1))[0].run()).status).toBe('warn');
+    expect((await riverFlowChecks(async () => parseRiverFlow(bad, 1))[0].run()).status).toBe('fail');
   });
 });
