@@ -78,6 +78,6 @@ describe('buildRainImerg', () => {
     dir = mkdtempSync(join(tmpdir(), 'imerg-'));
     const g = fakeGesdisc();
     const broken = { text: (u: string) => (u.includes('/opendap/') ? Promise.reject(new Error('500 from x')) : g.text(u)) };
-    await expect(buildRainImerg(dir, now, broken, null)).rejects.toThrow(/none of/);
+    await expect(buildRainImerg(dir, now, broken, null)).rejects.toThrow(/first half hour failed \(500 from x\)/);
   });
 });
