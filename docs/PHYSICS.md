@@ -45,9 +45,9 @@ Example on the real grid, 1.5 m offshore (`npm test` checks every spot stays pla
 
 The pattern matches local knowledge in broad strokes (Punta Uva sheltered, the reef spots plunging, Limón and Playa Bonita open to the north-east), but the slope and shore normal come from a 460 m grid, so Salsa Brava's true reef shape and its size on big days are beyond it. Per-break orientation and type (6.3, 6.4) will override these where they're known.
 
-### Waves over reef flats (PLAN 7.57, `reef-flat.ts`)
+### Waves over reef flats (PLAN 7.59, `reef-flat.ts`)
 
-The 15″ grid can't see a reef flat a few hundred metres wide, so before 7.57 every reef-fronted beach read the full breaker outside: Punta Cahuita and Playa Chiquita looked as rough as open sand. The Allen Coral Atlas maps the flats at 5 m, so the spot model now uses it for what reaches the water's edge.
+The 15″ grid can't see a reef flat a few hundred metres wide, so before 7.59 every reef-fronted beach read the full breaker outside: Punta Cahuita and Playa Chiquita looked as rough as open sand. The Allen Coral Atlas maps the flats at 5 m, so the spot model now uses it for what reaches the water's edge.
 
 - **Height on the flat:** Ht = γf (dr + η + ηs), γf = 0.55, the largest height-to-depth ratio stable waves hold over a near-flat bed (Nelson 1994; Gourlay 1994 on reef tops). dr = 0.5 m flat depth below mean sea level (**assumed**: the Atlas maps where flats are, not how deep), η the Limón tide above mean sea level, ηs = 0.15 H0′ the wave setup on the flat (0.1 to 0.2 of the incident height on fringing reefs: Vetter et al. 2010, Becker et al. 2014). The reef is a low-pass filter on height (Lowe et al. 2005): nothing changes until the breaker outside is bigger than Ht.
 - **Which beaches it covers:** a fan of lines every 2.5° within ±45° of the shore normal, out to 1.5 km. A line is covered when it crosses at least 150 m of unbroken REEF CREST, OUTER, INNER or TERRESTRIAL REEF FLAT (gaps up to 20 m bridged): about three wavelengths of a 10 s swell on a 2 m flat, and reef-flat width is the main control on what gets through (Quataert et al. 2015). Lines that run into a headland carry nothing and are left out. The share f is covered lines over open lines.
@@ -55,20 +55,22 @@ The 15″ grid can't see a reef flat a few hundred metres wide, so before 7.57 e
 - **Who reads it:** the dive and snorkel entry (SURF AT ENTRY and the outing score's surf term, re-cut each hour at that hour's tide), AT THE BEACH in SURF ZONE, and the spot page. The surf score keeps the breaker outside, since that is where the waves are ridden. Rips keep it too: at a reef the water the breaking crest pumps over the flat drains out through the channels.
 - **Why only wide flats:** the Atlas also draws 60 to 150 m strips of flat along sand beaches (Playa Cocles, Salsa Brava, Playa Chino, Manzanillo village), where foam and rubble in the surf zone can read as flat. Counting them put Cocles at 0.35 m in a 1.5 m swell. Leaving them out errs on the safe side: telling a swimmer the surf is smaller than it is is the dangerous mistake.
 
-1.5 m, 10 s from 040° at mean sea level, breaker outside → at the beach (the share covered in brackets):
+10 s from 040°, breaker outside → at the beach (the share covered in brackets), surf beat included:
 
-| Spot | Breaker | At the beach | Low tide (−0.25 m) | High tide (+0.25 m) |
-|---|---|---|---|---|
-| PLAYA NEGRA CAHUITA | 1.98 | 1.98 (0) | 1.98 | 1.98 |
-| PUNTA CAHUITA | 1.94 | 0.38 (1.0) | 0.25 | 0.52 |
-| PLAYA NEGRA | 1.66 | 1.66 (0) | 1.66 | 1.66 |
-| SALSA BRAVA | 1.90 | 1.87 (0.03) | 1.87 | 1.88 |
-| PLAYA COCLES | 1.49 | 1.47 (0.03) | 1.47 | 1.47 |
-| PLAYA CHIQUITA | 1.89 | 0.89 (0.81) | 0.85 | 0.94 |
-| PUNTA UVA | 1.14 | 0.58 (0.81) | 0.53 | 0.65 |
-| PLAYA GRANDE | 2.02 | 1.51 (0.46) | 1.50 | 1.53 |
-| MANZANILLO | 2.59 | 2.34 (0.19) | 2.33 | 2.34 |
-| GANDOCA | 1.50 | 1.50 (0) | 1.50 | 1.50 |
+| Spot | Breaker, 1.5 m | At the beach, mean tide | Low tide (−0.25 m) | High tide (+0.25 m) | 0.6 m swell | 3 m swell |
+|---|---|---|---|---|---|---|
+| PLAYA NEGRA CAHUITA | 1.98 | 1.98 (0) | 1.98 | 1.98 | 0.95 | 3.45 |
+| PUNTA CAHUITA | 1.94 | 0.47 (1.0) | 0.36 | 0.59 | 0.34 | 0.73 |
+| PLAYA NEGRA | 1.66 | 1.66 (0) | 1.66 | 1.66 | 0.80 | 2.88 |
+| SALSA BRAVA | 1.90 | 1.88 (0.03) | 1.87 | 1.88 | 0.90 | 3.26 |
+| PLAYA COCLES | 1.49 | 1.47 (0.03) | 1.47 | 1.47 | 0.71 | 2.56 |
+| PLAYA CHIQUITA | 1.89 | 0.92 (0.81) | 0.88 | 0.97 | 0.50 | 1.56 |
+| PUNTA UVA | 1.14 | 0.59 (0.81) | 0.54 | 0.66 | 0.36 | 0.97 |
+| PLAYA GRANDE | 2.02 | 1.52 (0.46) | 1.51 | 1.54 | 0.75 | 2.64 |
+| MANZANILLO | 2.59 | 2.34 (0.19) | 2.34 | 2.35 | 1.13 | 4.08 |
+| GANDOCA | 1.50 | 1.50 (0) | 1.50 | 1.50 | 0.72 | 2.61 |
+
+**Surf beat (PLAN 7.60).** On big days the swell breaking on the reef slope makes long surges, 25 s to minutes, that the flat's depth doesn't hold back. Masselink et al. (2019) find them averaging 20 to 30% of the incident height across a reef platform when its water depth is −0.25 to 0.75 of that height, which a 0.5 m flat is in any swell over 0.7 m. The model adds Hig = 0.2 H0′ (the low end) to what gets through, energies added: Hf = √(Ht² + Hig²). Without it a 3 m day behind Punta Cahuita read 0.55 m, hardly more than a 0.6 m day; with it, 0.73 m against 0.34 m. Joseph (2026-11-10): reef flats outside the sheltered pools are still rougher on rough days.
 
 Within a beach the share moves with the pin: along Playa Chiquita it runs 0.8 to 1.0 (0.4 to 0.9 m at the beach), with the east end consistently the calmest (about 0.5 m). Playa Chino and Manzanillo village stay unsheltered, because the Atlas only gives them narrow strips. If they are calm in reality, the reef there is narrower or deeper than the flat this rule needs, and only a local check or a survey can say which.
 
@@ -98,7 +100,7 @@ A transparent score built on the drivers that the NWS rip current guidance, the 
 
 ## 3.6 Physics worker (`worker.ts`, `client.ts`, `spot-model.ts`)
 
-Spot refraction (70 to 300 ms) runs in a Web Worker. The main thread posts the seafloor grids (and the Atlas reef-flat polygons, 7.57) once, then asks for a spot (pin, sea state, tide level, wind). `spot-model.ts` caches the spot geometry per pin and the refraction per period (0.5 s), direction (5°) and spread, so a change in height, tide or wind, or scrubbing the slider through hours with the same swell, only re-runs the breaker and rip formulas (well under a millisecond). The client keeps one request in flight and lets the newest waiting request replace older ones, so a fast scrub never builds a backlog. Without Worker support it runs the same model in-thread.
+Spot refraction (70 to 300 ms) runs in a Web Worker. The main thread posts the seafloor grids (and the Atlas reef-flat polygons, 7.59) once, then asks for a spot (pin, sea state, tide level, wind). `spot-model.ts` caches the spot geometry per pin and the refraction per period (0.5 s), direction (5°) and spread, so a change in height, tide or wind, or scrubbing the slider through hours with the same swell, only re-runs the breaker and rip formulas (well under a millisecond). The client keeps one request in flight and lets the newest waiting request replace older ones, so a fast scrub never builds a backlog. Without Worker support it runs the same model in-thread.
 
 The HUD's RIP readout now comes from this for the spot nearest the map centre, using the live tide and wind and, until the waves adapter (2.2) lands, the mock swell.
 

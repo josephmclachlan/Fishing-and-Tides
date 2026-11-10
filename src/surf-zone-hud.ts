@@ -1,6 +1,6 @@
 /**
  * SURF ZONE readouts in the side panel at the spot tier (PLAN 4.2): breaker height and type, the height
- * left at the water's edge behind a reef flat (PLAN 7.57),
+ * left at the water's edge behind a reef flat (PLAN 7.59),
  * wave power, longshore drift and the rip band at the spot nearest the reticle.
  */
 import { condSlot } from './cond-groups';
@@ -39,7 +39,7 @@ export function mountSurfZoneHud(root: HTMLElement, map: Map, spots: SpotPhysics
     }
     const b = r.waves.breaker;
     $('sz-hb').textContent = b.Hb.toFixed(1);
-    // Behind a reef flat, what still reaches the water's edge (PLAN 7.57); on an open beach the same as the breaker.
+    // Behind a reef flat, what still reaches the water's edge (PLAN 7.59); on an open beach the same as the breaker.
     $('sz-shore').textContent = (r.shore?.Hb ?? b.Hb).toFixed(1);
     $('sz-type').textContent = b.type ? t(`sz.type.${b.type}` as Key) : '--';
     $('sz-pow').textContent = b.powerKWm.toFixed(0);
