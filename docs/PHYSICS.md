@@ -24,7 +24,7 @@ Rays bend toward slower (shallower) water. `traceRay` integrates the ray equatio
 - **Breaking depth:** hb = Hb/γ, with Weggel's slope-dependent breaker index γ (0.78 when the slope is unknown).
 - **Breaker type:** Iribarren number ξ0 = tan β / √(H0/L0) with Battjes' classes: spilling below 0.5, plunging to 3.3, surging above.
 - **Energy and force:** E = ρgHs²/16, wave power P = E·Cg (kW per metre of beach, conserved to the break and spread by Kr²), crest speed √(g(hb + Hb)), impact pressure ½ρc² (kPa), and the Longuet-Higgins longshore current.
-- `spotWaves(pin, sea)` ties it together for a shoreline pin: finds the 10 m read point and the shore normal, the mean slope from pin to read point, refraction, then the breaker.
+- `spotWaves(pin, sea)` ties it together for a shoreline pin: finds the 10 m read point and the shore normal, the mean slope from pin to read point (over at least half a grid cell, 230 m: the steepest the grid resolves), refraction, then the breaker.
 
 Example on the real grid, 1.5 m offshore (`npm test` checks every spot stays plausible):
 
@@ -32,16 +32,16 @@ Example on the real grid, 1.5 m offshore (`npm test` checks every spot stays pla
 |---|---|---|---|---|---|
 | PLAYA NEGRA CAHUITA | 34° | 0.009 | 1.9 m spilling, Kr 0.87 | 1.9 m spilling, Kr 0.82 | 1.2 m spilling, Kr 0.55 |
 | PUNTA CAHUITA | 9° | 0.023 | 2.0 m spilling, Kr 0.90 | 2.0 m spilling, Kr 0.87 | 1.8 m spilling, Kr 0.85 |
-| PLAYA NEGRA | 42° | 0.065 | 1.6 m plunging, Kr 0.67 | 2.0 m plunging, Kr 0.86 | 1.2 m plunging, Kr 0.53 |
-| SALSA BRAVA | 333° | 16.5 † | 1.6 m surging, Kr 0.68 | 1.6 m surging, Kr 0.62 | 1.1 m surging, Kr 0.48 |
-| PLAYA COCLES | 47° | 0.052 | 1.4 m plunging, Kr 0.57 | 1.5 m plunging, Kr 0.58 | 1.1 m plunging, Kr 0.50 |
+| PLAYA NEGRA | 42° | 0.043 † | 1.6 m plunging, Kr 0.67 | 2.0 m plunging, Kr 0.86 | 1.2 m spilling, Kr 0.53 |
+| SALSA BRAVA | 333° | 0.056 † | 1.6 m plunging, Kr 0.68 | 1.6 m plunging, Kr 0.62 | 1.1 m plunging, Kr 0.48 |
+| PLAYA COCLES | 47° | 0.044 † | 1.4 m plunging, Kr 0.57 | 1.5 m plunging, Kr 0.58 | 1.1 m spilling, Kr 0.50 |
 | PLAYA CHIQUITA | 7° | 0.043 | 1.8 m spilling, Kr 0.81 | 2.6 m plunging, Kr 1.21 | 1.4 m spilling, Kr 0.62 |
-| PUNTA UVA | 341° | 16.6 † | 1.9 m surging, Kr 0.83 | 1.9 m surging, Kr 0.78 | 0.8 m surging, Kr 0.34 |
+| PUNTA UVA | 341° | 0.057 † | 1.9 m plunging, Kr 0.83 | 1.9 m plunging, Kr 0.78 | 0.8 m plunging, Kr 0.34 |
 | PLAYA GRANDE | 14° | 0.034 | 2.0 m spilling, Kr 0.91 | 1.9 m plunging, Kr 0.82 | 1.5 m spilling, Kr 0.69 |
 | MANZANILLO | 334° | 0.020 | 2.6 m spilling, Kr 1.25 | 3.1 m spilling, Kr 1.48 | 1.6 m spilling, Kr 0.73 |
 | GANDOCA | 33° | 0.006 | 1.5 m spilling, Kr 0.62 | 1.3 m spilling, Kr 0.49 | 1.0 m spilling, Kr 0.45 |
 
-† Re-run 2026-11-10 with the new spot list. At Salsa Brava and Punta Uva the 460 m grid already has 13 to 14 m of water at the pin, so the 10 m read point is the pin itself and the "slope" is meaningless (the real reefs are a metre or two deep). The breaker type there is not to be trusted until the slope is measured over at least a grid cell (follow-up).
+† Slope floored at the grid's resolution (2026-11-10). The 15″ grid holds each cell's depth at its centre, so it cannot put the 10 m read-point depth closer to the shore than about half a cell. At Salsa Brava and Punta Uva the shore cell averages in the deep water beyond the reef, so the grid already has 13 to 14 m at the pin and depth over distance came out at 16.5, which read every breaker as SURGING. The slope is now measured over at least `MIN_SLOPE_RUN_M` = 230 m (half a cell), the steepest slope the grid can resolve: 0.056 and 0.057, plunging, as reef breaks should. Playa Negra and Playa Cocles, whose 10 m depth sat 150 to 190 m out (inside the same half cell), ease from 0.065 and 0.052 to 0.043 and 0.044. The real reefs are steeper still; only a survey would tell how much.
 
 The pattern matches local knowledge in broad strokes (Punta Uva sheltered, the reef spots plunging, Limón and Playa Bonita open to the north-east), but the slope and shore normal come from a 460 m grid, so Salsa Brava's true reef shape and its size on big days are beyond it. Per-break orientation and type (6.3, 6.4) will override these where they're known.
 

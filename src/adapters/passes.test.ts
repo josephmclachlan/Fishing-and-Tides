@@ -142,7 +142,8 @@ describe('passChecks', () => {
   });
   it('warns, not fails, on a week of cloud', async () => {
     const cloudy = { ...data, sst: { ...pass(16), values: { sst: frames.map(() => new Float32Array(N).fill(NaN)) } } };
-    const r = await runChecks(passChecks(async () => cloudy));
+    // The model-wind fetch is stubbed: left to the default it called Open-Meteo for real and timed out on a slow network.
+    const r = await runChecks(passChecks(async () => cloudy, undefined, agreeing));
     const clear = r.find((x) => x.label.startsWith('A clear pass') && x.feed === 'sst-pass')!;
     expect(clear.status).toBe('warn');
     expect(clear.detail).toContain('no clear pass');
