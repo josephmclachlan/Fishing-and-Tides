@@ -870,6 +870,7 @@ const forecastPage = mountForecastPage({
       };
       wait();
     }),
+  openCoral: ([lng, lat]) => coralPage.open({ reef: nearestCoralReef(lng, lat).id }),
 });
 // The way back to the forecast from the map (PLAN 7.67; Joseph: "make returning to forecast page more obviously
 // apparent on maps page"): a large button with the spot and activity it returns to, which pulses when the map opens.

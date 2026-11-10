@@ -1601,6 +1601,7 @@ export const es: Dict = {
   'fc.scheme': 'Claro u oscuro',
   'fc.scheme.light': 'Modo claro',
   'fc.scheme.dark': 'Modo oscuro',
+  'fc.coral': 'Arrecifes de coral',
   'fc.lang': 'English',
   'fc.note': 'Solo orientativo, no para navegación ni decisiones de seguridad. Los puntajes son los mismos del mapa.',
   'fc.art.surf': 'Ola de {m} m junto a un surfista',
