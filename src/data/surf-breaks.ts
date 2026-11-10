@@ -44,7 +44,7 @@ export const SURF_BREAKS: readonly SurfBreak[] = [
     lngLat: [-82.7524, 9.6582],
     type: 'reef',
     shape: 'right',
-    facing: 350,
+    facing: 340,
     hazards: ['reef', 'urchin', 'rip', 'crowd'],
     swellFrom: [45, 135],
     tidePref: 'high', // shallow reef: more water over it is safer and cleaner (physical reasoning, no guide agrees)
@@ -78,7 +78,7 @@ export const SURF_BREAKS: readonly SurfBreak[] = [
     lngLat: [-82.7789, 9.6633],
     type: 'beach',
     shape: 'peaks',
-    facing: 35,
+    facing: 40,
     hazards: ['rip'],
     confidence: 'check', // only one guide mentions it, as mellow on small swell
     sources: [{ name: 'Costa Rica Journeys', url: 'https://costaricajourneys.com/?p=4812' }],
@@ -86,7 +86,7 @@ export const SURF_BREAKS: readonly SurfBreak[] = [
   {
     id: 'playa-grande',
     name: 'PLAYA GRANDE',
-    lngLat: [-82.6698, 9.6326], // snapped to the land-mask shoreline 2026-11-04; OSM has no node for this beach
+    lngLat: [-82.6698, 9.6325], // on the OSM shoreline (2026-11-10: the old pin sat 1 m in the sea); OSM has no node for this beach
     type: 'beach',
     shape: 'peaks',
     facing: 15,
@@ -95,15 +95,18 @@ export const SURF_BREAKS: readonly SurfBreak[] = [
     sources: [{ name: 'Mondo Surf', url: 'https://www.mondo.surf/surf-spot/playa-grande-2/guide/11908' }],
   },
   {
-    id: 'playa-bonita',
-    name: 'PLAYA BONITA',
-    lngLat: [-83.0634, 10.0099],
-    type: 'reef',
-    shape: 'left',
-    facing: 10,
-    hazards: ['reef', 'rip'],
-    swellFrom: [45, 90],
-    confidence: 'check', // one guide (Surfnerd); the other sources only name the beach
-    sources: [{ name: 'Surfnerd', url: 'https://www.surfnerd.com/surf-forecast/playa-bonita' }],
+    id: 'playa-negra-cahuita',
+    name: 'PLAYA NEGRA CAHUITA',
+    lngLat: [-82.8535, 9.744],
+    type: 'beach',
+    shape: 'peaks',
+    facing: 45,
+    hazards: ['rip', 'reef'],
+    tidePref: 'high', // Surfnerd: rising tide better, easy rollers at high tide; Surf-Forecast gives no tide
+    confidence: 'check', // two guides agree on a NE-swell beach break, lefts and rights, SW wind offshore; tide and reef patches from Surfnerd only
+    sources: [
+      { name: 'Surfnerd', url: 'https://surfnerd.com/surf-forecast/playa-negra-limon' },
+      { name: 'Surf-Forecast', url: 'https://www.surf-forecast.com/breaks/Playa-Negra_1' },
+    ],
   },
 ];

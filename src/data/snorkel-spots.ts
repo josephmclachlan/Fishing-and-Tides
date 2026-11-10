@@ -6,9 +6,8 @@
  *
  * - `spot`: the SPOTS name whose swell, wind and tide the rating uses; `lngLat` is that spot's pin.
  * - `access`: 'shore' swim from the beach, 'guide' a licensed guide is required, 'boat' reached by boat.
- * - `facing`: bearing in degrees true that the shore faces. APPROXIMATE (the coast runs NW to SE, so
- *   it faces about north-east); copied from the nearest measured beach in surf-breaks.ts, not measured here.
- *   It only feeds the on-shore wind stinger guess, which is wide (±60°) anyway.
+ * - `facing`: bearing in degrees true that the shore faces: the spot's measured `facing` (region.ts, from the
+ *   OSM coastline, 2026-11-10). It feeds the on-shore wind stinger guess (±60°).
  * - Text is in i18n (`snk.<id>.note`). Sources are the guides it came from (searched 2026-11-04).
  */
 export type SnorkelAccess = 'shore' | 'guide' | 'boat';
@@ -26,10 +25,10 @@ export interface SnorkelSpot {
 export const SNORKEL_SPOTS: readonly SnorkelSpot[] = [
   {
     id: 'cahuita',
-    spot: 'CAHUITA',
-    lngLat: [-82.84, 9.7397],
+    spot: 'PUNTA CAHUITA',
+    lngLat: [-82.8156, 9.7495],
     access: 'guide',
-    facing: 35,
+    facing: 347,
     confidence: 'check', // sources disagree: one says walk in from Punta Cahuita, most say a licensed guide is required
     sources: [
       { name: 'Vamos Rent-A-Car', url: 'https://vamosrentacar.com/blog/cahuita-national-park-caribbean/' },
@@ -41,7 +40,7 @@ export const SNORKEL_SPOTS: readonly SnorkelSpot[] = [
     spot: 'PLAYA CHIQUITA',
     lngLat: [-82.711, 9.6413],
     access: 'shore',
-    facing: 20,
+    facing: 18,
     confidence: 'check', // reef pools and coves described as calm, but no guide gives depth or best tide; unconfirmed
     sources: [{ name: 'Only Beaches', url: 'https://onlybeaches.com/costa-rica/limon/puerto-viejo-de-talamanca/playa-chiquita-puerto-viejo-de-talamanca' }],
   },
@@ -50,7 +49,7 @@ export const SNORKEL_SPOTS: readonly SnorkelSpot[] = [
     spot: 'PUNTA UVA',
     lngLat: [-82.6871, 9.6432],
     access: 'shore',
-    facing: 40,
+    facing: 355,
     confidence: 'check', // one guide: reef close enough to snorkel from the beach on flat days
     sources: [{ name: 'Tico Travel', url: 'https://ticotravel.com/diving-the-caribbean-coast-of-costa-rica/' }],
   },
@@ -59,16 +58,16 @@ export const SNORKEL_SPOTS: readonly SnorkelSpot[] = [
     spot: 'MANZANILLO',
     lngLat: [-82.6569, 9.634],
     access: 'boat',
-    facing: 40,
+    facing: 335,
     confidence: 'check', // reef is offshore; sources do not say how far
     sources: [{ name: 'Culture Trip', url: 'https://theculturetrip.com/central-america/costa-rica/articles/the-best-snorkeling-and-diving-spots-in-costa-rica/' }],
   },
   {
     id: 'gandoca',
     spot: 'GANDOCA',
-    lngLat: [-82.6128, 9.6075],
+    lngLat: [-82.6045, 9.5965],
     access: 'boat',
-    facing: 40,
+    facing: 45,
     confidence: 'check', // refuge reefs; dive boats run there from Punta Uva
     sources: [{ name: 'Tico Travel', url: 'https://ticotravel.com/diving-the-caribbean-coast-of-costa-rica/' }],
   },

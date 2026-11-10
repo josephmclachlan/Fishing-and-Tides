@@ -606,13 +606,19 @@ const currentVecAt = (lng: number, lat: number, ms: number): [number, number] | 
   const out: [number, number] = [0, 0];
   return f && sampleField(f, lng, lat, out) ? out : null;
 };
-/** The nearest water point within ~1.8 km of a shore pin (cached per spot): clarity and sea temperature are sea values. */
+/** Each named spot's sea read point (region.ts `sea`): the water in front of its own beach. */
+const SPOT_SEA = new globalThis.Map<string, [number, number]>(SPOTS.map((s) => [`${s.lngLat[0]},${s.lngLat[1]}`, s.sea]));
+/**
+ * Where a shore pin reads its sea values (cached per pin): clarity and sea temperature are sea values. A named spot
+ * reads its `sea` point; any other pin, or a spot whose point the clarity grid has as land, the nearest water within ~1.8 km.
+ */
 const watchWater = (lng: number, lat: number, c: ClarityContext): [number, number] | null => {
   const key = `${lng},${lat}`;
   let at = watchSea.get(key);
   if (at === undefined) {
-    at = null;
-    search: for (const r of [0.004, 0.008, 0.016])
+    const own = SPOT_SEA.get(key);
+    at = own && clarityAt(c, own[0], own[1]) ? own : null;
+    if (!at) search: for (const r of [0.004, 0.008, 0.016])
       for (let k = 0; k < 8; k++) {
         const p: [number, number] = [lng + r * Math.cos((k * Math.PI) / 4), lat + r * Math.sin((k * Math.PI) / 4)];
         if (clarityAt(c, p[0], p[1])) {

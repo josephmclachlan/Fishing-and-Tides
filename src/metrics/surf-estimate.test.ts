@@ -11,7 +11,7 @@ const hour = (over: Partial<SurfHour> = {}): SurfHour => ({ brk: salsa, sea: sea
 describe('breakFor', () => {
   it('matches a break by name, else the nearest within 25 km, else none', () => {
     expect(breakFor('SALSA BRAVA', [0, 0])?.id).toBe('salsa-brava');
-    expect(breakFor('CAHUITA', [-82.84, 9.7397])?.id).toBe('playa-negra');
+    expect(breakFor('PUNTA CAHUITA', [-82.8156, 9.7495])?.id).toBe('playa-negra-cahuita');
     expect(breakFor('FAR AWAY', [-84.5, 10.5])).toBeNull();
   });
 });

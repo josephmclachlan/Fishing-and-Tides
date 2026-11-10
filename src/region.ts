@@ -40,19 +40,31 @@ export function tierForZoom(z: number): Tier {
   return 'SPOT';
 }
 
-/** Named coastal spots, [lng, lat] (MapLibre order). Keep each on the shoreline (re-checked 2026-11-02 against OpenFreeMap z14 `ocean` polygons, ignoring tile-edge segments; each pin is on land within ~20 m of the sea). */
-export const SPOTS: { name: string; lngLat: [number, number] }[] = [
-  { name: 'LIMÓN', lngLat: [-83.0235, 9.9927] },
-  { name: 'PLAYA BONITA', lngLat: [-83.0634, 10.0099] },
-  { name: 'CAHUITA', lngLat: [-82.84, 9.7397] },
-  { name: 'PLAYA NEGRA', lngLat: [-82.7789, 9.6633] },
-  { name: 'SALSA BRAVA', lngLat: [-82.7524, 9.6582] },
-  { name: 'PLAYA COCLES', lngLat: [-82.7368, 9.6507] },
-  { name: 'PLAYA CHIQUITA', lngLat: [-82.711, 9.6413] },
-  { name: 'PUNTA UVA', lngLat: [-82.6871, 9.6432] },
-  { name: 'PLAYA GRANDE', lngLat: [-82.6698, 9.6326] },
-  { name: 'MANZANILLO', lngLat: [-82.6569, 9.634] },
-  { name: 'GANDOCA', lngLat: [-82.6128, 9.6075] },
+/**
+ * Named coastal spots, north to south (Joseph's list, 2026-11-10: Gandoca to Playa Negra Cahuita; Salsa Brava is
+ * Puerto Viejo's spot; Playa Chiquita kept for its snorkel pools). [lng, lat] (MapLibre order).
+ *
+ * - `lngLat`: on land 10 to 40 m from the sea (checked 2026-11-10 against OpenFreeMap z14 `ocean` polygons, ignoring
+ *   tile-edge segments). The wave physics finds its own read point and shore normal from here.
+ * - `facing`: bearing in degrees true the shore faces (seaward normal), the mean direction to the OSM sea on rings of
+ *   300, 600 and 1000 m around the nearest shore point. Good to about ±10° on a beach; on a point (Punta Cahuita,
+ *   Punta Uva) it is the bisector of the open water.
+ * - `sea`: where the sea values for the spot are read (clarity, sea temperature, the snorkel and dive score): the
+ *   first point along `facing`, from 300 m out in 50 m steps, where the depth grid has real water (3 m or more,
+ *   not its 2 m shore fill). So each spot reads the water in front of its own beach, not the first wet point a
+ *   ring search finds.
+ */
+export const SPOTS: { name: string; lngLat: [number, number]; facing: number; sea: [number, number] }[] = [
+  { name: 'PLAYA NEGRA CAHUITA', lngLat: [-82.8535, 9.744], facing: 43, sea: [-82.8506, 9.7471] },
+  { name: 'PUNTA CAHUITA', lngLat: [-82.8156, 9.7495], facing: 347, sea: [-82.8163, 9.7524] },
+  { name: 'PLAYA NEGRA', lngLat: [-82.7789, 9.6633], facing: 40, sea: [-82.7771, 9.6654] },
+  { name: 'SALSA BRAVA', lngLat: [-82.7524, 9.6582], facing: 342, sea: [-82.7532, 9.6608] },
+  { name: 'PLAYA COCLES', lngLat: [-82.7368, 9.6507], facing: 38, sea: [-82.7351, 9.6528] },
+  { name: 'PLAYA CHIQUITA', lngLat: [-82.711, 9.6413], facing: 18, sea: [-82.7102, 9.6439] },
+  { name: 'PUNTA UVA', lngLat: [-82.6871, 9.6432], facing: 355, sea: [-82.6873, 9.6459] },
+  { name: 'PLAYA GRANDE', lngLat: [-82.6698, 9.6325], facing: 13, sea: [-82.6692, 9.6351] },
+  { name: 'MANZANILLO', lngLat: [-82.6569, 9.634], facing: 335, sea: [-82.6581, 9.6365] },
+  { name: 'GANDOCA', lngLat: [-82.6045, 9.5965], facing: 45, sea: [-82.6006, 9.6003] },
 ];
 
 /**

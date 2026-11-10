@@ -30,14 +30,18 @@ Example on the real grid, 1.5 m offshore (`npm test` checks every spot stays pla
 
 | Spot | Faces | Slope | 10 s from 045° | 14 s from 020° | 7 s from 080° |
 |---|---|---|---|---|---|
-| LIMÓN | 10° | 0.017 | 2.2 m spilling, Kr 1.02 | 2.6 m spilling, Kr 1.10 | 1.5 m spilling, Kr 0.74 |
-| PLAYA BONITA | 10° | 0.014 | 2.1 m spilling, Kr 0.97 | 2.5 m spilling, Kr 1.05 | 1.7 m spilling, Kr 0.87 |
-| CAHUITA | 25° | 0.009 | 1.4 m spilling, Kr 0.60 | 2.0 m spilling, Kr 0.78 | 1.6 m spilling, Kr 0.81 |
-| PLAYA NEGRA | 45° | 0.065 | 1.6 m plunging, Kr 0.68 | 2.0 m plunging, Kr 0.77 | 1.2 m plunging, Kr 0.57 |
-| SALSA BRAVA | 330° | 0.080 | 1.5 m plunging, Kr 0.63 | 1.6 m plunging, Kr 0.58 | 1.0 m plunging, Kr 0.48 |
-| PUNTA UVA | 300° | 0.142 | 1.2 m plunging, Kr 0.51 | 1.1 m surging, Kr 0.37 | 0.5 m plunging, Kr 0.22 |
-| MANZANILLO | 335° | 0.020 | 2.6 m spilling, Kr 1.27 | 3.1 m spilling, Kr 1.34 | 1.6 m spilling, Kr 0.80 |
-| GANDOCA | 65° | 0.006 | 1.7 m spilling, Kr 0.73 | 1.3 m spilling, Kr 0.48 | 1.2 m spilling, Kr 0.56 |
+| PLAYA NEGRA CAHUITA | 34° | 0.009 | 1.9 m spilling, Kr 0.87 | 1.9 m spilling, Kr 0.82 | 1.2 m spilling, Kr 0.55 |
+| PUNTA CAHUITA | 9° | 0.023 | 2.0 m spilling, Kr 0.90 | 2.0 m spilling, Kr 0.87 | 1.8 m spilling, Kr 0.85 |
+| PLAYA NEGRA | 42° | 0.065 | 1.6 m plunging, Kr 0.67 | 2.0 m plunging, Kr 0.86 | 1.2 m plunging, Kr 0.53 |
+| SALSA BRAVA | 333° | 16.5 † | 1.6 m surging, Kr 0.68 | 1.6 m surging, Kr 0.62 | 1.1 m surging, Kr 0.48 |
+| PLAYA COCLES | 47° | 0.052 | 1.4 m plunging, Kr 0.57 | 1.5 m plunging, Kr 0.58 | 1.1 m plunging, Kr 0.50 |
+| PLAYA CHIQUITA | 7° | 0.043 | 1.8 m spilling, Kr 0.81 | 2.6 m plunging, Kr 1.21 | 1.4 m spilling, Kr 0.62 |
+| PUNTA UVA | 341° | 16.6 † | 1.9 m surging, Kr 0.83 | 1.9 m surging, Kr 0.78 | 0.8 m surging, Kr 0.34 |
+| PLAYA GRANDE | 14° | 0.034 | 2.0 m spilling, Kr 0.91 | 1.9 m plunging, Kr 0.82 | 1.5 m spilling, Kr 0.69 |
+| MANZANILLO | 334° | 0.020 | 2.6 m spilling, Kr 1.25 | 3.1 m spilling, Kr 1.48 | 1.6 m spilling, Kr 0.73 |
+| GANDOCA | 33° | 0.006 | 1.5 m spilling, Kr 0.62 | 1.3 m spilling, Kr 0.49 | 1.0 m spilling, Kr 0.45 |
+
+† Re-run 2026-11-10 with the new spot list. At Salsa Brava and Punta Uva the 460 m grid already has 13 to 14 m of water at the pin, so the 10 m read point is the pin itself and the "slope" is meaningless (the real reefs are a metre or two deep). The breaker type there is not to be trusted until the slope is measured over at least a grid cell (follow-up).
 
 The pattern matches local knowledge in broad strokes (Punta Uva sheltered, the reef spots plunging, Limón and Playa Bonita open to the north-east), but the slope and shore normal come from a 460 m grid, so Salsa Brava's true reef shape and its size on big days are beyond it. Per-break orientation and type (6.3, 6.4) will override these where they're known.
 
