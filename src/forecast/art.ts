@@ -103,7 +103,7 @@ export function fishArt(r: FcRead, label: string): string {
     ${tide}
     <rect x="${-B}" y="${waterY}" width="${W + 2 * B}" height="${HT - waterY + B}" fill="url(#fc-deep-g)"/>
     <path class="fc-surface" d="M${-B},${waterY} q20,-5 40,0 ${across('t40,0', 40)}" fill="none"/>
-    <line class="fc-line" x1="160" y1="0" x2="160" y2="${waterY + 52}"/><path class="fc-hook" d="M160,${waterY + 52} q0,9 -7,6" fill="none"/>
+    <line class="fc-line" x1="160" y1="${-B}" x2="160" y2="${waterY + 52}"/><path class="fc-hook" d="M160,${waterY + 52} q0,9 -7,6" fill="none"/>
     ${fish}`;
   return svg('fc-art-fish', body, label);
 }
