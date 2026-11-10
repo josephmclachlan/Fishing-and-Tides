@@ -824,13 +824,30 @@ const forecastPage = mountForecastPage({
     return [c.lng, c.lat];
   },
 });
+// The way back to the forecast from the map (PLAN 7.67; Joseph: "make returning to forecast page more obviously
+// apparent on maps page"): a large button with the spot and activity it returns to, which pulses when the map opens.
 {
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'tab fc-launch';
-  b.textContent = t('fc.tab');
+  b.title = t('fc.returnTitle');
+  const label = () => {
+    const w = forecastPage.where();
+    b.innerHTML = `<svg class="fc-ret-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span class="fc-ret-k">${t('fc.tab')}</span><span class="fc-ret-s">${w.spot} · ${t(`fc.act.${w.activity}` as Key).toUpperCase()}</span>`;
+  };
+  label();
   b.addEventListener('click', () => forecastPage.open());
   hud.querySelector('.top-tabs')?.appendChild(b);
+  const onMap = () => {
+    if (forecastPage.isOpen()) return;
+    label();
+    b.classList.remove('fc-ret-pulse');
+    void b.offsetWidth;
+    b.classList.add('fc-ret-pulse');
+  };
+  window.addEventListener('hashchange', () => window.setTimeout(onMap, 0));
+  window.addEventListener('fc-hide', onMap);
+  window.setTimeout(onMap, 0);
 }
 // SYSTEM CHECK: its tab joins the settings controls on a phone.
 mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeStorage() });

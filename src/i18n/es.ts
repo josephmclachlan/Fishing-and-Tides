@@ -1485,6 +1485,8 @@ export const es: Dict = {
   'swim.r.overcast': 'Nublado',
   'swim.r.sargassum': 'Sargazo',
   'swim.r.lowsun': 'Sol bajo',
+  'fc.swapped': '{asked} no tiene pronóstico de {act}; se muestra el más cercano, {shown}.',
+  'fc.returnTitle': 'Volver al pronóstico de este lugar',
   'fc.uvPeakShort': 'UV máx.',
   'fc.windPeak': 'Viento máx.',
   'fc.conditions': 'Condiciones',

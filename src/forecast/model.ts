@@ -277,6 +277,23 @@ export function hoursOf(deps: FcDeps, a: FcActivity, spot: Spot, dayStartMs: num
 /** The spots an activity is forecast at (surf breaks for SURF, catalog snorkel spots for SNORKEL and DIVE). */
 export const spotsForActivity = (a: FcActivity, spots: readonly Spot[]): Spot[] => spotsFor(planActivity(a), spots);
 
+/** The spot an unknown or missing name opens: Playa Cocles, mid-coast (the coordinator's ask, 2026-11-10). */
+export const DEFAULT_SPOT = 'PLAYA COCLES';
+const nearestTo = (list: readonly Spot[], [x, y]: readonly [number, number]) =>
+  list.reduce((b, s) => (Math.hypot(s.lngLat[0] - x, s.lngLat[1] - y) < Math.hypot(b.lngLat[0] - x, b.lngLat[1] - y) ? s : b), list[0]);
+/**
+ * The spot the page shows for a name: that spot where it has a forecast for the activity; otherwise (Salsa Brava has
+ * no dive forecast) the nearest spot that has one, with `asked` set so the page can say so. An unknown or missing
+ * name opens DEFAULT_SPOT, or the spot with this activity nearest to it.
+ */
+export function chooseSpot(name: string, a: FcActivity, all: readonly Spot[]): { spot: Spot; asked: string | null } {
+  const list = spotsForActivity(a, all);
+  const known = all.find((s) => s.name === name);
+  const want = known ?? all.find((s) => s.name === DEFAULT_SPOT) ?? all[0];
+  const spot = list.find((s) => s.name === want.name) ?? (list.length ? nearestTo(list, want.lngLat) : all[0]);
+  return { spot, asked: known && known.name !== spot.name ? known.name : null };
+}
+
 /** Each day's best window at this one spot, as WATCH's BEST DAY FOR finds it. */
 export function daysAt(deps: FcDeps, a: FcActivity, spot: Spot, nowMs: number, days = 7): Plan {
   const outingAt = deps.outing ? (s: Spot, m: 'snorkel' | 'dive', ms: number, h: number) => deps.outing!(s, m, ms, h)?.score ?? null : undefined;
