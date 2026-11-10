@@ -16,7 +16,7 @@ import { projectMonthly, scalarAt } from '../adapters/frames';
 import type { GridSeries } from '../adapters/pack';
 import { landOf, offshoreFill, touchesLand } from '../physics/clarity-baseline';
 import { coastTest, rgbaWord, seaImage, type SeaImage } from './sea-image';
-import type { CatchmentRain } from '../adapters/catchment-rain';
+import { memberMean, type CatchmentRain } from '../adapters/catchment-rain';
 import { flowRatio, type RiverFlow } from '../adapters/river-flow';
 import { readout } from '../hud-kit';
 import { t, type Key } from '../i18n';
@@ -87,6 +87,26 @@ export const riverRain = (rain: CatchmentRain | null, ms: number, currentAt?: Cl
 
 /** River mud per catchment-rain load and river, computed once (the grid asks for every hour it shows). */
 const mudMemo = new WeakMap<CatchmentRain, globalThis.Map<string, MudSeries>>();
+
+/**
+ * The river's mud from every model member (PLAN 7.58b): each member's rain through the runoff model on its own,
+ * then the mean strength, with the age weighted by strength. One member is that member's mud.
+ */
+function memberMud(series: readonly number[][], areaKm2: number): MudSeries {
+  // A model past its horizon (UK ~7 days, ICON 7.5) takes the others' mean rather than going dry.
+  const mean = memberMean(series, series[0]?.length ?? 0);
+  const runs = series.map((xs) => riverMud([...xs.map((x, i) => (Number.isFinite(x) ? x : mean[i])), ...Array(MUD_TAIL_H).fill(0)], areaKm2));
+  if (runs.length === 1) return runs[0];
+  const n = runs[0].strength.length;
+  const strength = new Float64Array(n), ageS = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    let s = 0, a = 0;
+    for (const r of runs) (s += r.strength[i]), (a += r.strength[i] * r.ageS[i]);
+    strength[i] = s / runs.length;
+    ageS[i] = s > 0 ? a / s : 0;
+  }
+  return { strength, ageS };
+}
 /** Dry hours added after the rain series, so a time past its end still sees the river drain and the sea clear. */
 const MUD_TAIL_H = 240;
 
@@ -99,7 +119,7 @@ export function mudAt(rain: CatchmentRain, river: string, areaKm2: number, ms: n
   let byRiver = mudMemo.get(rain);
   if (!byRiver) mudMemo.set(rain, (byRiver = new globalThis.Map()));
   let m = byRiver.get(river);
-  if (!m) byRiver.set(river, (m = riverMud([...(rain.byRiver[river] ?? []), ...Array(MUD_TAIL_H).fill(0)], areaKm2)));
+  if (!m) byRiver.set(river, (m = rain.members?.[river]?.length ? memberMud(rain.members[river], areaKm2) : riverMud([...(rain.byRiver[river] ?? []), ...Array(MUD_TAIL_H).fill(0)], areaKm2)));
   const t = rain.times;
   if (!t.length) return { strength: 0, ageS: 0 };
   const f = (ms - t[0]) / 3.6e6 - 1;
