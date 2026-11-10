@@ -419,7 +419,7 @@ export function timeline(deps: FcDeps, a: FcActivity, spot: Spot, startMs: numbe
 /** The day's sky in one word, for the weather tile's picture (Joseph, 2026-11-10: "sunny, light rain cloud, heavy rain cloud"). */
 export type WxSky = 'sun' | 'partly' | 'cloud' | 'showers' | 'rain' | 'storm';
 
-/** A traditional day forecast at a spot, from the page's timeline hours (PLAN 7.65). Nulls where the weather has not loaded. */
+/** A traditional day forecast at a spot, from the page's timeline hours (PLAN 7.64). Nulls where the weather has not loaded. */
 export interface DayWeather {
   sky: WxSky | null;
   hiC: number | null;

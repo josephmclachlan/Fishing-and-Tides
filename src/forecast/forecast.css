@@ -658,7 +658,7 @@ body.fc-open { overflow: hidden; }
 }
 
 /*
- * The way back to the forecast on the map (PLAN 7.66): HUD colours (the map keeps its four-colour rule), but larger than
+ * The way back to the forecast on the map (PLAN 7.67): HUD colours (the map keeps its four-colour rule), but larger than
  * the other tabs, filled, with a back arrow and the spot and activity it returns to. It pulses three times when the
  * map opens. In the top bar on wide screens; on the phone layout a large button above the bottom strip.
  */

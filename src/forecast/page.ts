@@ -865,7 +865,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     el.hidden = true;
     document.body.classList.remove('fc-open');
     window.clearTimeout(timer);
-    // The map's way back reads where the forecast was (PLAN 7.66).
+    // The map's way back reads where the forecast was (PLAN 7.67).
     window.dispatchEvent(new CustomEvent('fc-hide'));
     if (mapMeta !== null) meta?.setAttribute('content', mapMeta);
   };
@@ -907,7 +907,7 @@ export function mountForecastPage(deps: ForecastDeps) {
 
   // After start-up: the deps read feeds and panels main.ts declares further down.
   window.setTimeout(fromHash, 0);
-  /** Where the forecast is, for the map's way back to it (PLAN 7.66). */
+  /** Where the forecast is, for the map's way back to it (PLAN 7.67). */
   const where = () => ({ spot: spot().name, activity: act });
   return { open, close, isOpen: () => !el.hidden, refresh: render, where };
 }
