@@ -314,6 +314,7 @@ export const en = {
   'sz.title': 'SURF ZONE',
   'sz.brk': 'BRK',
   'sz.breaker': 'BREAKER',
+  'sz.shore': 'AT THE BEACH',
   'sz.type': 'TYPE',
   'sz.type.spilling': 'SPILLING',
   'sz.type.plunging': 'PLUNGING',

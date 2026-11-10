@@ -103,7 +103,7 @@ export function createSpotPhysics(
     const seasX = PLACES.map((p) => seaAt(p.lngLat));
     const seas: Sea[] = seasX.map((x) => (x ? { Hs: x.Hs, Tp: x.Tp, fromDeg: x.fromDeg, total: x.total ?? x.Hs } : sea));
     client
-      .latestMany(PLACES.map((p, i) => ({ pin: p.lngLat, sea: { Hs: seas[i].Hs, Tp: seas[i].Tp, fromDeg: seas[i].fromDeg }, others: seasX[i]?.others, tideLevel, tideSize, wind: winds[i], knownChannel: KNOWN_CHANNEL[i] })))
+      .latestMany(PLACES.map((p, i) => ({ pin: p.lngLat, sea: { Hs: seas[i].Hs, Tp: seas[i].Tp, fromDeg: seas[i].fromDeg }, others: seasX[i]?.others, tideLevel, tideM: ts.h, tideSize, wind: winds[i], knownChannel: KNOWN_CHANNEL[i] })))
       .then((rs) => {
         states = PLACES.map((s, i) => {
           const r = rs[i];
