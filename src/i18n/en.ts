@@ -1485,6 +1485,8 @@ export const en = {
   'swim.r.overcast': 'Overcast',
   'swim.r.sargassum': 'Sargassum',
   'swim.r.lowsun': 'Low sun',
+  'fc.swapped': '{asked} has no {act} forecast; showing the nearest, {shown}.',
+  'fc.returnTitle': 'Back to the forecast for this spot',
   'fc.uvPeakShort': 'UV, peak',
   'fc.windPeak': 'Wind, peak',
   'fc.conditions': 'Conditions',

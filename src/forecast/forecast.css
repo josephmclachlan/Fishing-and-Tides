@@ -99,6 +99,8 @@ body.fc-open { overflow: hidden; }
 .fc-titles { min-width: 0; }
 .fc-titles h1 { margin: 0; font-size: 26px; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 /* The subtitle wraps to a second line rather than cutting the time off (Spanish runs longer). */
+.fc-titles .fc-swap[hidden] { display: none; }
+.fc-titles .fc-swap { margin-top: 3px; color: var(--fc-l1); font-weight: 650; font-size: 13px; }
 .fc-titles p { margin: 2px 0 0; color: var(--fc-sub); font-size: 14px; line-height: 1.25; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .fc-tools { display: flex; gap: 8px; }
 .fc-tool {
@@ -655,12 +657,30 @@ body.fc-open { overflow: hidden; }
   .fc-num { font-size: 52px; }
 }
 
-/* Entry point on the map: FORECAST in the top bar; on the phone layout a pill above the bottom strip. */
-.fc-launch.tab { font-weight: 700; color: var(--green); border-color: var(--green); }
+/*
+ * The way back to the forecast on the map (PLAN 7.67): HUD colours (the map keeps its four-colour rule), but larger than
+ * the other tabs, filled, with a back arrow and the spot and activity it returns to. It pulses three times when the
+ * map opens. In the top bar on wide screens; on the phone layout a large button above the bottom strip.
+ */
+.fc-launch.tab {
+  display: inline-flex; align-items: center; gap: 8px; flex-wrap: nowrap;
+  font-weight: 700; color: var(--bg); background: var(--green); border-color: var(--green);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--green) 35%, transparent); text-shadow: none;
+}
+.fc-launch .fc-ret-ico { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.fc-launch .fc-ret-k { letter-spacing: 0.08em; }
+.fc-launch .fc-ret-s { font-size: 11px; font-weight: 600; opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.fc-launch:hover, .fc-launch:focus-visible { filter: brightness(1.1); box-shadow: 0 0 18px color-mix(in srgb, var(--green) 60%, transparent); }
+.fc-launch.fc-ret-pulse { animation: fc-ret-pulse 1.1s ease-out 3; }
+@keyframes fc-ret-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 70%, transparent); } 100% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--green) 0%, transparent); } }
 @media (max-width: 1100px), (max-height: 700px) {
   .top-tabs .fc-launch.tab {
     position: fixed; left: 10px; bottom: calc(var(--dock-h, 160px) + 10px); z-index: 6;
-    min-height: 40px; padding: 0 16px; background: var(--bg); pointer-events: auto;
+    display: grid; grid-template-columns: auto minmax(0, auto); grid-template-rows: auto auto; column-gap: 8px; row-gap: 0;
+    flex: none; min-height: 52px; max-width: calc(100% - 76px); padding: 6px 16px 6px 10px; text-align: left; pointer-events: auto;
   }
+  .top-tabs .fc-launch .fc-ret-ico { grid-row: span 2; width: 22px; height: 22px; }
+  .top-tabs .fc-launch .fc-ret-k { font-size: 14px; }
   body[data-sheet]:not([data-sheet='']) .top-tabs .fc-launch.tab { display: none; }
 }
+@media (prefers-reduced-motion: reduce) { .fc-launch.fc-ret-pulse { animation: none; } }

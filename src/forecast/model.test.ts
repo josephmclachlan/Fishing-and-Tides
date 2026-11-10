@@ -9,7 +9,7 @@ import { daySky } from '../physics/astro';
 import {
   FC_ACTIVITIES, beaufort, dayUvPeaks, daysAt, uvLevel, hoursOf, levelFor, likelyFish, landing, MAP_HASH, parseRoute, readAt, routeHash, spotSlug, spotsForActivity, surfRange, surfSize,
   type FcDeps, type OutingRead,
-  dayWeather, wxSky, type TimelineHour,
+  dayWeather, wxSky, type TimelineHour, chooseSpot, DEFAULT_SPOT,
 } from './model';
 import { heroArt } from './art';
 
@@ -240,5 +240,25 @@ describe('the forecast is the main page (PLAN 7.65)', () => {
     expect(landing(MAP_HASH)).toBe('map');
     expect(landing('#something-old')).toBe('map');
     expect(landing('#forecaster')).toBe('map');
+  });
+});
+
+describe('chooseSpot', () => {
+  it('shows the spot asked for where it has the activity', () => {
+    expect(chooseSpot('SALSA BRAVA', 'surf', SPOTS)).toEqual({ spot: SPOTS.find((s) => s.name === 'SALSA BRAVA'), asked: null });
+  });
+  it('shows the nearest spot with the activity, and says which was asked for', () => {
+    const r = chooseSpot('SALSA BRAVA', 'dive', SPOTS);
+    expect(spotsForActivity('dive', SPOTS).map((s) => s.name)).toContain(r.spot.name);
+    expect(r.spot.name).not.toBe('SALSA BRAVA');
+    expect(r.asked).toBe('SALSA BRAVA');
+  });
+  it('opens Playa Cocles for an unknown or missing name, without a note', () => {
+    expect(chooseSpot('NOWHERE', 'surf', SPOTS)).toEqual({ spot: SPOTS.find((s) => s.name === DEFAULT_SPOT), asked: null });
+    expect(chooseSpot('', 'surf', SPOTS).spot.name).toBe(DEFAULT_SPOT);
+    expect(chooseSpot('NOWHERE', 'dive', SPOTS).asked).toBeNull();
+  });
+  it('gives every spot a slug that opens it', () => {
+    for (const s of SPOTS) expect(parseRoute(routeHash(s.name, 'surf'), SPOTS)?.spot).toBe(s.name);
   });
 });

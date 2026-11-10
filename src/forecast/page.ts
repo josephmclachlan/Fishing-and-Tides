@@ -21,7 +21,7 @@ import { heroArt } from './art';
 import { ratingStrip, rowSvg, rowsFor, skyKind, skyRow, timeAxis, SKY_ICON, type ChartGeom } from './charts';
 import { miniIcon, skyIcon, tileIcon, tipBand, type TileKind } from './tiles';
 import {
-  FC_ACTIVITIES, beaufort, chopFor, dayUvPeaks, dayWeather, daysAt, hourWeather, waterAt, surfSize as surfSizeOf, uvLevel, driftFor, isFcActivity, landing, MAP_HASH, parseRoute, readAt, routeHash, spotsForActivity, timeline,
+  FC_ACTIVITIES, beaufort, chopFor, dayUvPeaks, dayWeather, daysAt, hourWeather, waterAt, surfSize as surfSizeOf, uvLevel, driftFor, isFcActivity, landing, MAP_HASH, parseRoute, readAt, routeHash, spotsForActivity, chooseSpot, timeline,
   type DayWeather, type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour,
 } from './model';
 import './forecast.css';
@@ -310,7 +310,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     <div class="fc-wrap">
       <header class="fc-head">
         <button type="button" class="fc-back" id="fc-back" title="${t('fc.backTitle')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span>${t('fc.back')}</span></button>
-        <div class="fc-titles"><h1 id="fc-name">--</h1><p id="fc-sub">--</p></div>
+        <div class="fc-titles"><h1 id="fc-name">--</h1><p id="fc-sub">--</p><p class="fc-swap" id="fc-swap" hidden></p></div>
         <div class="fc-tools">
           <button type="button" class="fc-tool" id="fc-lang" title="${t('fc.lang')}">${deps.lang() === 'es' ? 'EN' : 'ES'}</button>
           <button type="button" class="fc-tool" id="fc-scheme" aria-label="${t('fc.scheme')}" title="${t('fc.scheme')}"></button>
@@ -425,14 +425,9 @@ export function mountForecastPage(deps: ForecastDeps) {
   const openTiles = new Set<string>();
 
   const spots = () => spotsForActivity(act, SPOTS);
-  const nearestSpot = (list: Spot[]) => {
-    const [x, y] = deps.center();
-    return list.reduce((b, s) => (Math.hypot(s.lngLat[0] - x, s.lngLat[1] - y) < Math.hypot(b.lngLat[0] - x, b.lngLat[1] - y) ? s : b), list[0]);
-  };
-  const spot = (): Spot => {
-    const list = spots();
-    return list.find((s) => s.name === spotName) ?? (list.length ? nearestSpot(list) : SPOTS[0]);
-  };
+  /** The spot shown, and the one asked for when it has no forecast for this activity (`chooseSpot`). */
+  const spot = (): Spot => chooseSpot(spotName, act, SPOTS).spot;
+  const swapped = () => chooseSpot(spotName, act, SPOTS).asked;
   const nowHour = () => Math.floor(Date.now() / H) * H;
   const when = () => sel ?? nowHour();
 
@@ -555,6 +550,9 @@ export function mountForecastPage(deps: ForecastDeps) {
     const ms = when();
     const r = readAt(deps, act, sp, ms);
     $('fc-name').textContent = titleCase(sp.name);
+    const asked = swapped();
+    $('fc-swap').hidden = !asked;
+    $('fc-swap').textContent = asked ? t('fc.swapped', { asked: titleCase(asked), act: t(`fc.act.${act}` as Key).toLowerCase(), shown: titleCase(sp.name) }) : '';
     const d = new Date(ms + REGION.tzOffsetH * H);
     const day = sel === null ? t('fc.now') : `${sentence(t(`day.${d.getUTCDay()}` as Key))} ${d.getUTCDate()}`;
     $('fc-sub').textContent = `${sentence(t('fc.sub', { act: t(`fc.act.${act}` as Key).toLowerCase() }))} · ${t('fc.at', { day, time: localClock(ms) })}`;
@@ -867,6 +865,8 @@ export function mountForecastPage(deps: ForecastDeps) {
     el.hidden = true;
     document.body.classList.remove('fc-open');
     window.clearTimeout(timer);
+    // The map's way back reads where the forecast was (PLAN 7.67).
+    window.dispatchEvent(new CustomEvent('fc-hide'));
     if (mapMeta !== null) meta?.setAttribute('content', mapMeta);
   };
   const fromHash = () => {
@@ -907,5 +907,7 @@ export function mountForecastPage(deps: ForecastDeps) {
 
   // After start-up: the deps read feeds and panels main.ts declares further down.
   window.setTimeout(fromHash, 0);
-  return { open, close, isOpen: () => !el.hidden, refresh: render };
+  /** Where the forecast is, for the map's way back to it (PLAN 7.67). */
+  const where = () => ({ spot: spot().name, activity: act });
+  return { open, close, isOpen: () => !el.hidden, refresh: render, where };
 }
