@@ -19,6 +19,7 @@ import type { CatchmentRain } from '../adapters/catchment-rain';
 import { flowRatio, type RiverFlow } from '../adapters/river-flow';
 import { readout } from '../hud-kit';
 import { t, type Key } from '../i18n';
+import { parseSeen, seenCSV, seenStats, seenStore, type VisApp } from '../vis-seen';
 
 const RAD = Math.PI / 180;
 /** Layer grid: REGION.bounds every 0.004° (~440 m), about 210 × 160 cells. */
@@ -177,9 +178,23 @@ export interface ClarityAtOptions {
   riversAt?: (ms: number) => Rivers;
   /** Sea state and current speed at a point at another time, memoised by the grid per block. */
   seaThen?: (lng: number, lat: number, ms: number) => { sea: SeaHere; cur: number };
+  /** Also return the terms behind the value (VIS SEEN, PLAN 7.48). */
+  terms?: boolean;
 }
 
-export type ClarityAt = Clarity & ClarityBand;
+/** The model's terms at a point, 1/m, and what drove them; the satellite map's age in days (NaN without one). */
+export interface ClarityTerms {
+  satKd: number;
+  plumeKd: number;
+  resKd: number;
+  satAgeD: number;
+  hs: number;
+  tp: number;
+  depthM: number;
+  currentMs: number;
+}
+
+export type ClarityAt = Clarity & ClarityBand & { terms?: ClarityTerms };
 
 /** Clarity at one sea point, with its band; null on land. */
 export function clarityAt(
@@ -209,7 +224,9 @@ export function clarityAt(
     sat, plumeKd: plume, leadDays,
     res: { lo: resuspensionKd(hs * (1 - w), tp, depthM, cur), mid: resuspensionKd(hs, tp, depthM, cur), hi: resuspensionKd(hs * (1 + w), tp, depthM, cur) },
   });
-  return { ...mid, ...band };
+  if (!opts.terms) return { ...mid, ...band };
+  const terms = { satKd: sat.kd, plumeKd: plume, resKd: resuspensionKd(hs, tp, depthM, cur), satAgeD: hist ? (c.ms - hist.lastMs) / 864e5 : NaN, hs, tp, depthM, currentMs: cur };
+  return { ...mid, ...band, terms };
 }
 
 export interface ClarityGrid {
@@ -348,6 +365,47 @@ export function noonAhead(ms: number, k: number, tzOffsetH: number = REGION.tzOf
 const visText = (v: number) => (v >= 20 ? '20+' : v.toFixed(v < 3 ? 1 : 0));
 
 /**
+ * VIS SEEN row (PLAN 7.48): LOG asks for the visibility you saw at the cross-hair and stores it with what the
+ * app says there now and the terms behind it; the row then shows how many, the median seen / app factor and
+ * how many fell in the app's range. CSV downloads them. On this device only.
+ */
+function mountSeen(side: HTMLElement, map: Map, ctx: () => ClarityContext | null) {
+  const store = seenStore();
+  const stat = side.querySelector<HTMLElement>('#vis-stat')!;
+  const show = () => {
+    const s = seenStats(store.list());
+    const n = store.list().length;
+    const v = s ? { n: s.n, f: s.factor.toFixed(1), k: s.inRange } : null;
+    stat.textContent = v ? t('clarity.seen.stat', v) : n ? String(n) : '--';
+    stat.title = v ? t('clarity.seen.statTitle', v) : '';
+  };
+  side.querySelector('#vis-log')!.addEventListener('click', () => {
+    const p = map.getCenter();
+    const c = ctx();
+    const now = Date.now();
+    const x = c ? clarityAt({ ...c, ms: now }, p.lng, p.lat, undefined, undefined, { terms: true }) : null;
+    const said = x ? `${visText(x.visM)} ${t('unit.m')} (${visText(x.visLo)}–${visText(x.visHi)})` : '--';
+    const typed = window.prompt(t('clarity.seen.ask', { app: said }));
+    if (typed === null) return;
+    const seen = parseSeen(typed);
+    if (!seen) return void window.alert(t('clarity.seen.bad'));
+    const app: VisApp | null = x ? { visM: x.visM, visLo: x.visLo, visHi: x.visHi, cause: x.cause, confidence: x.confidence, ...x.terms } : null;
+    store.add({ id: crypto.randomUUID?.() ?? String(now), t: now, lng: p.lng, lat: p.lat, ...seen, app });
+    show();
+  });
+  side.querySelector('#vis-csv')!.addEventListener('click', () => {
+    const xs = store.list();
+    if (!xs.length) return void window.alert(t('clarity.seen.empty'));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([seenCSV(xs)], { type: 'text/csv' }));
+    a.download = `vis-seen-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  show();
+}
+
+/**
  * VIS readout in the side panel under SST: visibility at the cross-hair, coloured by level, with
  * its likely range and the main cause (PLAN 6.1, 7.2). Under it, VIS DAYS: midday visibility for
  * the next three days, with how sure each is.
@@ -358,8 +416,10 @@ export function mountClarityHud(root: HTMLElement, map: Map, ctx: () => ClarityC
   if (!side || !sst) return null;
   sst.insertAdjacentHTML(
     'afterend',
-    `${readout(t('clarity.vis'), 'vis', t('unit.m'))}<div class="ro"><span class="lbl">${t('clarity.days')}</span><span class="seg sm" id="vis-days">--</span></div>`,
+    `${readout(t('clarity.vis'), 'vis', t('unit.m'))}<div class="ro"><span class="lbl">${t('clarity.days')}</span><span class="seg sm" id="vis-days">--</span></div>`
+      + `<div class="ro"><span class="lbl">${t('clarity.seen')}</span><span class="seg sm" id="vis-seen"><button type="button" class="tab" id="vis-log">${t('clarity.seen.log')}</button><span id="vis-stat">--</span><button type="button" class="tab" id="vis-csv">${t('clarity.seen.csv')}</button></span></div>`,
   );
+  mountSeen(side, map, ctx);
   const el = side.querySelector<HTMLElement>('#vis')!;
   const unit = el.nextElementSibling as HTMLElement;
   const days = side.querySelector<HTMLElement>('#vis-days')!;

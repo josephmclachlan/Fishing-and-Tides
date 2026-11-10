@@ -110,6 +110,14 @@ describe('clarity layer maths', () => {
     expect(wet.cause).toBe('river');
     expect(riverRain(ctx(80).rain, t0)[0].rainMm).toBeGreaterThan(70);
   });
+  it('can hand back the terms behind a value (VIS SEEN)', () => {
+    const [lng, lat] = [sixaola.mouth[0] + 0.01, sixaola.mouth[1] + 0.01];
+    expect(clarityAt(ctx(80), lng, lat)!.terms).toBeUndefined();
+    const x = clarityAt(ctx(80), lng, lat, undefined, undefined, { terms: true })!;
+    expect(x.terms!.satKd + x.terms!.plumeKd + x.terms!.resKd).toBeCloseTo(x.kd, 6);
+    expect(x.terms!.plumeKd).toBeGreaterThan(1);
+    expect(x.terms!.hs).toBe(0.5);
+  });
   it('carries the plume down-current (PLAN 7.2)', () => {
     // 40 mm/h ten hours ago; the current sets north-west at 0.4 m/s, so the plume runs up the coast ~14 km.
     const c = { ...ctx(0), rain: { times: [t0 - 10 * H], byRiver: Object.fromEntries(PLUME_RIVERS.map((r) => [r.name, [40]])), fetchedAt: t0, fromCache: false } };
