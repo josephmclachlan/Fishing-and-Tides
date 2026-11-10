@@ -8,12 +8,17 @@
  * Secchi depth from Lee et al. (2015, Remote Sensing of Environment 169: 139-149), see `secchiFromKd`;
  * Secchi depth is a fair stand-in for horizontal diver visibility in clear water.
  *
- * The plume and resuspension terms are rules of thumb with round-number constants, not fitted to
- * local observations: they say "after heavy rain the water near the Sixaola is brown", with the
- * right shape in space and time. The forecast past the newest data and its confidence band are in
- * clarity-forecast.ts (PLAN 7.2); no local dive or turbidity records exist yet to calibrate against.
+ * The plume and resuspension terms are rules of thumb with round-number constants: they say "after
+ * heavy rain the water near the Sixaola is brown", with the right shape in space and time. The
+ * forecast past the newest data and its confidence band are in clarity-forecast.ts (PLAN 7.2); the
+ * clear-water baseline and the shoreline-pixel fix are in clarity-baseline.ts (PLAN 7.45).
+ *
+ * PLAN 7.45 rebuilt it as a clear-water baseline plus the causes of murk, each from its physics:
+ * runoff after the soil is wet, the river plume carried by the current, and the bed stirred by waves
+ * and currents (sediment.ts). Satellite maps count only while fresh, and only for murk those causes
+ * don't already explain (clarity-forecast.ts). Nothing is fitted to a sighting.
  */
-import { bottomOrbitalVelocitySea } from './waves';
+import { bedStirring } from './sediment';
 
 /**
  * Secchi depth, m, from Lee et al. (2015): Zsd = ln(|0.14 − Rrs_tr| / 0.013) / (2.5 · Kd_tr), where Kd_tr is the
@@ -38,6 +43,19 @@ export const kdFromChl = (chlMgM3: number) => 0.0166 + 0.0773 * Math.pow(Math.ma
 export const KD_PLUME = 3;
 /** Rain over a catchment (e-folding-weighted mm) that makes a full-strength plume. */
 export const PLUME_SATURATION_MM = 60;
+/**
+ * Rain the catchment soaks up before the rivers run brown, mm (PLAN 7.45): the SCS curve-number initial
+ * abstraction Ia = 0.2·S (USDA TR-55, 1986), with S = 25.4·(1000/CN − 10) mm, is 13 to 17 mm for CN 75 to 80
+ * (forest, plantations and pasture on these clay soils). Without it a few mm of drizzle over three days
+ * made a faint plume that the current then carried 30 km down the coast.
+ */
+export const PLUME_RAIN_FROM_MM = 15;
+/**
+ * Plume rain-equivalent from catchment rain, mm: none up to PLUME_RAIN_FROM_MM, then rising so that
+ * PLUME_SATURATION_MM still makes a full plume.
+ */
+export const runoffMm = (rainMm: number): number =>
+  (PLUME_SATURATION_MM * Math.max(0, rainMm - PLUME_RAIN_FROM_MM)) / (PLUME_SATURATION_MM - PLUME_RAIN_FROM_MM);
 /**
  * Plume rain-equivalent from the measured river (GloFAS discharge as a share of its own median), mm:
  * median flow or below gives none, 10 times the median is a saturated plume. The plume uses the larger of this and the
@@ -81,18 +99,16 @@ export function plumeKd(catchmentKm2: number, rainMm: number, dM: number): numbe
   return KD_PLUME * strength * Math.exp(-((dM / L) ** 2));
 }
 
-/** Bed velocity where waves start lifting fine sand and silt, m/s, and where it is fully stirred. */
-export const RESUSPEND_FROM = 0.15;
-export const RESUSPEND_FULL = 0.5;
-/** Extra Kd from fully stirred sediment, 1/m (about 1.5 m visibility on its own). */
+/** Extra Kd from fully stirred sediment, 1/m (under 1 m visibility on its own; a rule of thumb). */
 export const KD_RESUSPENSION = 1.1;
 
-/** Extra Kd from waves stirring the bottom at depth `depthM`, from the bed orbital velocity (Soulsby 1997). */
-export function resuspensionKd(hs: number, tp: number, depthM: number): number {
-  if (!(hs > 0 && tp > 0 && depthM > 0)) return 0;
-  const ub = bottomOrbitalVelocitySea(hs, tp, depthM);
-  const f = Math.min(1, Math.max(0, (ub - RESUSPEND_FROM) / (RESUSPEND_FULL - RESUSPEND_FROM)));
-  return KD_RESUSPENSION * f;
+/**
+ * Extra Kd from waves and the current stirring the bottom at depth `depthM` (PLAN 7.45): KD_RESUSPENSION
+ * times the stirring of sediment.ts, which is zero until the bed sand moves (Soulsby 1997 threshold) and
+ * full once it is suspended. `currentMs`: depth-mean current speed, 0 when unknown.
+ */
+export function resuspensionKd(hs: number, tp: number, depthM: number, currentMs = 0): number {
+  return KD_RESUSPENSION * bedStirring(hs, tp, depthM, currentMs);
 }
 
 export type ClarityLevel = 'GOOD' | 'FAIR' | 'POOR';
@@ -111,6 +127,8 @@ export interface ClarityInputs {
   hs: number;
   tp: number;
   depthM: number;
+  /** Depth-mean current speed, m/s, for bed stirring; omitted or NaN when unknown. */
+  currentMs?: number;
 }
 
 export interface Clarity {
@@ -121,12 +139,12 @@ export interface Clarity {
   cause: 'clear' | 'plankton' | 'river' | 'swell';
 }
 
-/** Background Kd when no satellite value exists: clear-ish Caribbean coastal water (~15 m). */
+/** Background satellite Kd490 when no satellite value or baseline exists, 1/m: clear-ish coastal water here (about 8.5 m). */
 export const KD_BACKGROUND = 0.11;
 
 export function clarity(i: ClarityInputs): Clarity {
   const sat = Number.isFinite(i.kd490) ? i.kd490 : Number.isFinite(i.chl) ? kdFromChl(i.chl) : KD_BACKGROUND;
-  const res = resuspensionKd(i.hs, i.tp, i.depthM);
+  const res = resuspensionKd(i.hs, i.tp, i.depthM, i.currentMs);
   const plume = Math.max(0, i.plumeKd || 0);
   const kd = sat + plume + res;
   const visM = secchiFromKd(kd);

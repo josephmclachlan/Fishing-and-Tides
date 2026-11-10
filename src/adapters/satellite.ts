@@ -5,6 +5,8 @@
  *  - `sst` (0.05°, macro view) and `sst-coast` (0.01°, Gandoca–Limón): MUR SST, °C.
  *  - `chl`: chlorophyll-a, mg/m³, gap-filled VIIRS, 9 km.
  *  - `kd490`: diffuse attenuation at 490 nm, 1/m, gap-filled VIIRS + OLCI, 2 km over the coast.
+ *  - `kd490-clim` (static, data/climatology/): each pixel's clear-water Kd490 per calendar month,
+ *    the 20th percentile of the whole record (PLAN 7.45, scripts/fetch-kd490-clim.ts).
  *
  * These are observations, not forecasts: a valid time inside the week blends the two days
  * either side, and any later time (the whole forecast) uses the newest map, which is how the
@@ -13,7 +15,7 @@
  */
 import { scalarAt } from './frames';
 import { validateMeta, type GridSeries } from './pack';
-import { loadSeries, type LoadOptions } from './series';
+import { CLIMATOLOGY_DIR, loadSeries, type LoadOptions } from './series';
 import { freshness, inRange, type Check, type Outcome } from '../verify/types';
 
 export interface SatelliteData {
@@ -21,16 +23,21 @@ export interface SatelliteData {
   sstCoast: GridSeries | null;
   chl: GridSeries | null;
   kd490: GridSeries | null;
+  /** Clear-water Kd490 by calendar month (12 frames), same grid as `kd490`; optional so older callers and tests can leave it out. */
+  kd490Clim?: GridSeries | null;
   /** Oldest build fetch time of what loaded, epoch ms; NaN if nothing did. */
   fetchedAt: number;
 }
 
 export async function fetchSatellite(opts: LoadOptions = {}): Promise<SatelliteData> {
   const names = ['sst', 'sst-coast', 'chl', 'kd490'] as const;
-  const got = await Promise.allSettled(names.map((n) => loadSeries(n, opts)));
+  const [got, clim] = await Promise.all([
+    Promise.allSettled(names.map((n) => loadSeries(n, opts))),
+    loadSeries('kd490-clim', { ...opts, dir: CLIMATOLOGY_DIR, report: false }).then((r) => r.series, () => null),
+  ]);
   const s = (i: number) => (got[i].status === 'fulfilled' ? got[i].value.series : null);
   const ages = got.flatMap((g) => (g.status === 'fulfilled' ? [g.value.fetchedAt] : []));
-  return { sst: s(0), sstCoast: s(1), chl: s(2), kd490: s(3), fetchedAt: ages.length ? Math.min(...ages) : NaN };
+  return { sst: s(0), sstCoast: s(1), chl: s(2), kd490: s(3), kd490Clim: clim, fetchedAt: ages.length ? Math.min(...ages) : NaN };
 }
 
 export interface Reading {

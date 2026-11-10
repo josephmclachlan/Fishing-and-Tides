@@ -17,6 +17,7 @@
     "data:climatology": "node scripts/fetch-climatology.ts",
     "data:coral-history": "node scripts/fetch-coral-history.ts",
     "data:mud-history": "node scripts/fetch-mud-history.ts",
+    "data:kd490-clim": "node scripts/fetch-kd490-clim.ts",
     "data:archive": "node scripts/archive.ts",
     "verify": "vitest run --config vitest.verify.config.ts"
   },

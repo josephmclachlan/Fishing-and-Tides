@@ -8,9 +8,12 @@
 import type { Map } from 'maplibre-gl';
 import { PLUME_RIVERS, REGION } from '../region';
 import { cellAt, M_PER_DEG_LAT, M_PER_DEG_LNG, sample, type Grid } from '../physics/bathy';
-import { CLARITY_BANDS, clarity, effectiveRain, flowPlumeMm, kdFromChl, resuspensionKd, type Clarity, type ClarityLevel } from '../physics/clarity';
-import { clarityBand, driftedPlumeKd, plumeAge, plumeDrift, satKdAt, satState, waveSpread, type ClarityBand, type SatState } from '../physics/clarity-forecast';
+import { CLARITY_BANDS, clarity, effectiveRain, flowPlumeMm, kdFromChl, resuspensionKd, runoffMm, type Clarity, type ClarityLevel } from '../physics/clarity';
+import { clarityBand, driftedPlumeKd, plumeAge, plumeDrift, satKdAt, satState, satWeight, waveSpread, type ClarityBand, type ClearKd, type SatState } from '../physics/clarity-forecast';
 import { observedAt, type SatelliteData } from '../adapters/satellite';
+import { projectMonthly, scalarAt } from '../adapters/frames';
+import type { GridSeries } from '../adapters/pack';
+import { landOf, offshoreFill, touchesLand } from '../physics/clarity-baseline';
 import { coastTest, rgbaWord, seaImage, type SeaImage } from './sea-image';
 import type { CatchmentRain } from '../adapters/catchment-rain';
 import { flowRatio, type RiverFlow } from '../adapters/river-flow';
@@ -52,15 +55,21 @@ export interface ClarityContext {
 /**
  * Plume rain per river at `ms`, and how far the surface current has carried the plume (PLAN 7.2):
  * the mean current at the mouth over the plume's rain-weighted age, sampled at four times.
+ * `rainMm` is the weighted catchment rain (or the flow's equivalent), as the coral and runoff rows read it;
+ * `plumeMm` is what makes the plume, after the rain the soil soaks up (PLAN 7.45).
  */
 export const riverRain = (rain: CatchmentRain | null, ms: number, currentAt?: ClarityContext['currentAt'], flow?: RiverFlow | null) =>
   PLUME_RIVERS.map((r) => {
     const mm = rain?.byRiver[r.name];
     const ratio = flow ? flowRatio(flow, r.name, ms) : null;
-    const rainMm = Math.max(mm ? effectiveRain(rain.times, mm, ms) : 0, ratio === null ? 0 : flowPlumeMm(ratio));
+    const wet = mm ? effectiveRain(rain.times, mm, ms) : 0;
+    const flowMm = ratio === null ? 0 : flowPlumeMm(ratio);
+    const rainMm = Math.max(wet, flowMm);
+    const plumeMm = Math.max(runoffMm(wet), flowMm);
     let drift: [number, number] = [0, 0];
-    if (mm && rainMm > 0 && currentAt) {
-      const age = plumeAge(rain.times, mm, ms);
+    const ageS = mm && plumeMm > 0 ? plumeAge(rain.times, mm, ms) : 0;
+    if (mm && plumeMm > 0 && currentAt) {
+      const age = ageS;
       let u = 0, v = 0, n = 0;
       for (let k = 0; k < 4; k++) {
         const c = currentAt(r.mouth[0], r.mouth[1], ms - (k / 3) * age * 1000);
@@ -68,7 +77,7 @@ export const riverRain = (rain: CatchmentRain | null, ms: number, currentAt?: Cl
       }
       if (n) drift = plumeDrift(age, [u / n, v / n]);
     }
-    return { ...r, rainMm, drift };
+    return { ...r, rainMm, plumeMm, drift, ageS };
   });
 
 /** Water depth at a sea point, m; null on land. The coastline mask decides where it covers. */
@@ -80,13 +89,42 @@ export function seaDepthAt(c: Pick<ClarityContext, 'elevation' | 'land'>, lng: n
   return z < 0 ? -z : null;
 }
 
-/** Ocean-colour history per point, worked out once per satellite load (the grid asks for every cell). */
-const satMemo = new WeakMap<SatelliteData, globalThis.Map<string, SatState | null>>();
+/**
+ * A Kd490 series with every land-touching pixel replaced by the nearest pixel offshore of it, frame by
+ * frame (PLAN 7.45, physics/clarity-baseline.ts): the 2 km pixels on the shore also hold beach, surf and
+ * reef flat and read 2 to 4 times murkier than the water a step out. Land is where no frame has a value.
+ */
+export function offshoreSeries(s: GridSeries): GridSeries {
+  const { cols, rows } = s.meta.grid;
+  const values: Record<string, Float32Array[]> = {};
+  for (const k in s.values) {
+    const coast = touchesLand(landOf(s.values[k], cols * rows), cols, rows);
+    values[k] = s.values[k].map((f) => offshoreFill(f, coast, cols, rows));
+  }
+  return { meta: s.meta, values };
+}
 
-/** A point's satellite Kd history: Kd490 where the coast map has it, else chlorophyll through Morel et al. (2007). */
+/** Per satellite load: the shore-corrected Kd490 and baseline, and each point's history (the grid asks for every cell). */
+interface SatPrep {
+  kd490: GridSeries | null;
+  clim: GridSeries | null;
+  /** The monthly baseline re-stamped around a year, by that year. */
+  climByYear: globalThis.Map<number, GridSeries>;
+  history: globalThis.Map<string, SatState | null>;
+}
+const satMemo = new WeakMap<SatelliteData, SatPrep>();
+function prep(sat: SatelliteData): SatPrep {
+  let p = satMemo.get(sat);
+  if (!p) {
+    p = { kd490: sat.kd490 && offshoreSeries(sat.kd490), clim: sat.kd490Clim ? offshoreSeries(sat.kd490Clim) : null, climByYear: new globalThis.Map(), history: new globalThis.Map() };
+    satMemo.set(sat, p);
+  }
+  return p;
+}
+
+/** A point's satellite Kd history: shore-corrected Kd490 where the coast map has it, else chlorophyll through Morel et al. (2007). */
 export function satHistory(sat: SatelliteData, lng: number, lat: number): SatState | null {
-  let memo = satMemo.get(sat);
-  if (!memo) satMemo.set(sat, (memo = new globalThis.Map()));
+  const memo = prep(sat).history;
   const key = `${lng.toFixed(4)},${lat.toFixed(4)}`;
   if (memo.has(key)) return memo.get(key)!;
   const from = (s: SatelliteData['kd490'], name: string, toKd: (x: number) => number) => {
@@ -94,28 +132,75 @@ export function satHistory(sat: SatelliteData, lng: number, lat: number): SatSta
     const t = s.meta.times;
     return satState(t, t.map((ms) => toKd(observedAt(s, name, lng, lat, ms)?.value ?? NaN)));
   };
-  const st = from(sat.kd490, 'kd490', (x) => x) ?? from(sat.chl, 'chl', (x) => (Number.isFinite(x) ? kdFromChl(x) : NaN));
+  const st = from(prep(sat).kd490, 'kd490', (x) => x) ?? from(sat.chl, 'chl', (x) => (Number.isFinite(x) ? kdFromChl(x) : NaN));
   memo.set(key, st);
   return st;
+}
+
+/** Clear-water baseline at a point for the time of year of `ms` (blended between mid-months); null without the file or off its grid. */
+export function clearKdAt(sat: SatelliteData, lng: number, lat: number, ms: number): ClearKd | null {
+  const p = prep(sat);
+  if (!p.clim) return null;
+  const y = new Date(ms).getUTCFullYear();
+  let s = p.climByYear.get(y);
+  if (!s) p.climByYear.set(y, (s = projectMonthly(p.clim, ms)));
+  const kd = scalarAt(s, 'kd490', lng, lat, ms);
+  if (!(kd > 0)) return null;
+  const med = s.values.kd490Med ? scalarAt(s, 'kd490Med', lng, lat, ms) : NaN;
+  return { kd, med: med > 0 ? med : NaN };
+}
+
+type Rivers = ReturnType<typeof riverRain>;
+type SeaHere = { hs: number; tp: number } | null;
+
+/** Plume Kd at a point from every river. */
+function plumeHere(rivers: Rivers, lng: number, lat: number): number {
+  const mx = M_PER_DEG_LNG * Math.cos(lat * RAD);
+  let plume = 0;
+  for (const r of rivers) if (r.plumeMm > 0) plume += driftedPlumeKd(r.catchmentKm2, r.plumeMm, (lng - r.mouth[0]) * mx, (lat - r.mouth[1]) * M_PER_DEG_LAT, r.drift, r.ageS);
+  return plume;
+}
+
+const speed = (v: readonly [number, number] | null | undefined) => (v ? Math.hypot(v[0], v[1]) : 0);
+
+export interface ClarityAtOptions {
+  /** Current speed here at the context's time, m/s (the grid samples it per block). */
+  currentMs?: number;
+  /** River plumes at another time (the newest satellite map's), memoised by the grid. */
+  riversAt?: (ms: number) => Rivers;
+  /** Sea state and current speed at a point at another time, memoised by the grid per block. */
+  seaThen?: (lng: number, lat: number, ms: number) => { sea: SeaHere; cur: number };
 }
 
 export type ClarityAt = Clarity & ClarityBand;
 
 /** Clarity at one sea point, with its band; null on land. */
-export function clarityAt(c: ClarityContext, lng: number, lat: number, rivers = riverRain(c.rain, c.ms, c.currentAt, c.flow), sea = c.seaAt(lng, lat, c.ms)): ClarityAt | null {
+export function clarityAt(
+  c: ClarityContext, lng: number, lat: number,
+  rivers = riverRain(c.rain, c.ms, c.currentAt, c.flow), sea: SeaHere = c.seaAt(lng, lat, c.ms), opts: ClarityAtOptions = {},
+): ClarityAt | null {
   const depthM = seaDepthAt(c, lng, lat);
   if (depthM === null) return null;
-  const mx = M_PER_DEG_LNG * Math.cos(lat * RAD);
-  let plume = 0;
-  for (const r of rivers) if (r.rainMm > 0) plume += driftedPlumeKd(r.catchmentKm2, r.rainMm, (lng - r.mouth[0]) * mx, (lat - r.mouth[1]) * M_PER_DEG_LAT, r.drift);
-  const sat = satKdAt(c.satellite ? satHistory(c.satellite, lng, lat) : null, c.ms);
-  const leadDays = Math.max(0, (c.ms - (c.nowMs ?? Date.now())) / 864e5);
+  const plume = plumeHere(rivers, lng, lat);
+  const cur = opts.currentMs ?? speed(c.currentAt?.(lng, lat, c.ms));
   const hs = sea?.hs ?? NaN, tp = sea?.tp ?? NaN;
+  // Satellite term (PLAN 7.45): the clear baseline, plus the newest map's murk while it is fresh and only the part
+  // that the plume and bed stirring on the map's day don't explain.
+  const hist = c.satellite ? satHistory(c.satellite, lng, lat) : null;
+  let causes = 0;
+  if (hist && satWeight((c.ms - hist.lastMs) / 864e5) > 0) {
+    const then = hist.lastMs;
+    const x = opts.seaThen ? opts.seaThen(lng, lat, then) : { sea: c.seaAt(lng, lat, then), cur: speed(c.currentAt?.(lng, lat, then)) };
+    causes = plumeHere(opts.riversAt ? opts.riversAt(then) : riverRain(c.rain, then, c.currentAt, c.flow), lng, lat)
+      + (x.sea ? resuspensionKd(x.sea.hs, x.sea.tp, depthM, x.cur) : 0);
+  }
+  const sat = satKdAt(hist, c.ms, c.satellite ? clearKdAt(c.satellite, lng, lat, c.ms) : null, causes);
+  const leadDays = Math.max(0, (c.ms - (c.nowMs ?? Date.now())) / 864e5);
   const w = waveSpread(leadDays);
-  const mid = clarity({ kd490: sat.kd, chl: NaN, plumeKd: plume, hs, tp, depthM });
+  const mid = clarity({ kd490: sat.kd, chl: NaN, plumeKd: plume, hs, tp, depthM, currentMs: cur });
   const band = clarityBand({
     sat, plumeKd: plume, leadDays,
-    res: { lo: resuspensionKd(hs * (1 - w), tp, depthM), mid: resuspensionKd(hs, tp, depthM), hi: resuspensionKd(hs * (1 + w), tp, depthM) },
+    res: { lo: resuspensionKd(hs * (1 - w), tp, depthM, cur), mid: resuspensionKd(hs, tp, depthM, cur), hi: resuspensionKd(hs * (1 + w), tp, depthM, cur) },
   });
   return { ...mid, ...band };
 }
@@ -136,17 +221,28 @@ export function clarityGrid(c: ClarityContext): ClarityGrid {
   const cols = Math.round((e - w) / CLARITY_STEP) + 1, rows = Math.round((n - s) / CLARITY_STEP) + 1;
   const vis = new Float32Array(cols * rows).fill(NaN);
   const rivers = riverRain(c.rain, c.ms, c.currentAt, c.flow);
-  // The wave grid is 0.25° (nest 1/12°), so one sea state per 0.05° block is plenty.
-  const seaMemo = new globalThis.Map<string, { hs: number; tp: number } | null>();
-  const seaFor = (lng: number, lat: number) => {
-    const k = `${Math.round(lng * 20)},${Math.round(lat * 20)}`;
-    if (!seaMemo.has(k)) seaMemo.set(k, c.seaAt(Math.round(lng * 20) / 20, Math.round(lat * 20) / 20));
-    return seaMemo.get(k)!;
+  const riversMemo = new globalThis.Map<number, Rivers>();
+  const riversAt = (ms: number) => {
+    let x = riversMemo.get(ms);
+    if (!x) riversMemo.set(ms, (x = riverRain(c.rain, ms, c.currentAt, c.flow)));
+    return x;
+  };
+  // The wave grid is 0.25° (nest 1/12°) and the currents are coarser than the layer, so one sea state and current per 0.05° block is plenty.
+  const seaMemo = new globalThis.Map<string, { sea: SeaHere; cur: number }>();
+  const seaFor = (lng: number, lat: number, ms?: number) => {
+    const k = `${Math.round(lng * 20)},${Math.round(lat * 20)},${ms ?? ''}`;
+    let x = seaMemo.get(k);
+    if (!x) {
+      const [bl, bt] = [Math.round(lng * 20) / 20, Math.round(lat * 20) / 20];
+      seaMemo.set(k, (x = { sea: ms === undefined ? c.seaAt(bl, bt) : c.seaAt(bl, bt, ms), cur: speed(c.currentAt?.(bl, bt, ms ?? c.ms)) }));
+    }
+    return x;
   };
   for (let r = 0; r < rows; r++)
     for (let col = 0; col < cols; col++) {
       const lng = w + col * CLARITY_STEP, lat = n - r * CLARITY_STEP;
-      const x = clarityAt(c, lng, lat, rivers, seaFor(lng, lat));
+      const here = seaFor(lng, lat);
+      const x = clarityAt(c, lng, lat, rivers, here.sea, { currentMs: here.cur, riversAt, seaThen: seaFor });
       if (x) vis[r * cols + col] = x.visM;
     }
   return { cols, rows, lon0: w, lat0: n, step: CLARITY_STEP, vis };

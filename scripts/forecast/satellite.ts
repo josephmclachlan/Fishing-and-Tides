@@ -75,8 +75,11 @@ export async function buildChl(dir: string): Promise<string> {
   return `chl: ${g.grid.cols}×${g.grid.rows}, ${day(g.times[0])}..${day(g.times[g.times.length - 1])}, ${kb(size)}`;
 }
 
+/** Gap-filled Kd490 at 2 km; also the record behind the clear baseline (scripts/fetch-kd490-clim.ts). */
+export const KD490_DATASET = 'noaacwNPPN20S3AkdSCIDINEOF2kmDaily';
+
 export async function buildKd490(dir: string): Promise<string> {
-  const id = 'noaacwNPPN20S3AkdSCIDINEOF2kmDaily';
+  const id = KD490_DATASET;
   // valid_max is 6 m⁻¹; the files also carry +6.5534 where the fill should be.
   const g = await fetchGrid(query(CW, id, 'kd_490', COAST_BOX, 1, { altitude: true, latDesc: true }), 0.01, 6);
   const size = writeSeries(dir, {

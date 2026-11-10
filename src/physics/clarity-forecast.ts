@@ -4,15 +4,18 @@
  * This module forecasts each term past the newest data and says how far to trust it. Pure, SI
  * units apart from days for satellite trends, no DOM.
  *
- * 1. Satellite term. Ocean-colour maps arrive daily but days late (the gap-filled Kd490 runs
- *    about a week behind). Work in ln Kd, where retrieval errors and natural changes are roughly
- *    symmetric. From the cell's recent days, take the median (its usual state), the newest value
- *    and the trend over the last three days. Ahead of the newest map, the trend carries on for at
- *    most TREND_MAX_D days and the departure from the median then fades with e-folding time
- *    TAU_SAT_D (anomalies in coastal ocean colour last a few days):
- *      x(L) = median + (x_last + s·min(L, TREND_MAX_D) − median)·exp(−L / TAU_SAT_D)
- *    Its 1σ spread grows from the retrieval error to the cell's own day-to-day spread:
- *      σ(L)² = SIGMA_RETRIEVAL² + σ_cell²·(1 − exp(−2L / TAU_SAT_D))
+ * 1. Satellite term (rebuilt in PLAN 7.45). The satellite says how murky the water was on the day of
+ *    its newest map, not today; the gap-filled Kd490 runs about 10 days late. So the term is the
+ *    cell's clear-water baseline for the time of year (clarity-baseline.ts), plus what the newest map
+ *    adds to it, but only while that map is fresh and only for the murk the model's own causes
+ *    (plume and bed stirring on that day) don't already explain, so a flood or a swell is not counted twice:
+ *      r = Kd_map − causes(t_map) − Kd_clear
+ *      Kd_sat(t) = max(KD_WATER, Kd_clear + w(L)·r),   w(L) = exp(−L / SAT_FRESH_TAU_D), 0 past SAT_MAX_AGE_D
+ *    with L the map's age in days at t. Coastal ocean-colour anomalies last a few days. Past
+ *    SAT_MAX_AGE_D the map says nothing about today, and the term is the baseline alone. Its ln-space
+ *    1σ moves from the retrieval error (fresh map) to the cell's own spread for the month,
+ *    ln(median / clear):  σ² = w²·SIGMA_RETRIEVAL² + (1 − w²)·σ_clear².
+ *    Without a baseline (file missing) the anchor is the median of the recent maps, as before.
  * 2. River plume transport. A plume is carried along the coast by the surface current. Its tip is
  *    the mouth plus the mean current over the plume's rain-weighted age times that age, capped at
  *    PLUME_MAX_DRIFT_M; the plume is the Gaussian of physics/clarity.ts around the segment from
@@ -27,8 +30,12 @@
 import { plumeKd, secchiFromKd, KD_BACKGROUND } from './clarity';
 
 const DAY_MS = 864e5;
-export const TAU_SAT_D = 3;
-export const TREND_MAX_D = 2;
+/** E-folding time of a satellite anomaly, days. */
+export const SAT_FRESH_TAU_D = 2;
+/** Maps older than this, days, no longer count. */
+export const SAT_MAX_AGE_D = 6;
+/** Pure seawater Kd490, 1/m (Morel et al. 2007): no water is clearer. */
+export const KD_WATER = 0.0166;
 /** ln-space retrieval error of satellite Kd490 in coastal water (about ±30%). */
 export const SIGMA_RETRIEVAL = 0.3;
 /** Day-to-day spread to assume where a cell has fewer than three days. */
@@ -45,8 +52,6 @@ export interface SatState {
   median: number;
   last: number;
   lastMs: number;
-  /** ln Kd per day over the last three days (0 with fewer). */
-  slope: number;
   /** Day-to-day spread of ln Kd. */
   spread: number;
 }
@@ -60,30 +65,35 @@ export function satState(times: readonly number[], kd: readonly number[]): SatSt
   const m = xs.length >> 1;
   const median = xs.length % 2 ? xs[m] : (xs[m - 1] + xs[m]) / 2;
   const [lastMs, last] = pts[pts.length - 1];
-  // Least-squares slope over the last three days.
-  const tail = pts.slice(-3);
-  let slope = 0;
-  if (tail.length >= 2) {
-    const tm = tail.reduce((s, p) => s + p[0], 0) / tail.length;
-    const xm = tail.reduce((s, p) => s + p[1], 0) / tail.length;
-    let num = 0;
-    let den = 0;
-    for (const [t, x] of tail) (num += (t - tm) * (x - xm)), (den += (t - tm) ** 2);
-    slope = den > 0 ? (num / den) * DAY_MS : 0;
-  }
   const mean = xs.reduce((s, x) => s + x, 0) / xs.length;
   const spread = xs.length >= 3 ? Math.sqrt(xs.reduce((s, x) => s + (x - mean) ** 2, 0) / (xs.length - 1)) : SIGMA_CELL_DEFAULT;
-  return { median, last, lastMs, slope, spread };
+  return { median, last, lastMs, spread };
 }
 
-/** Satellite Kd at `ms` (1/m) and its ln-space 1σ. Up to the newest map it is that map's value. */
-export function satKdAt(s: SatState | null, ms: number): { kd: number; sigma: number } {
-  if (!s) return { kd: KD_BACKGROUND, sigma: SIGMA_CELL_DEFAULT };
-  const L = Math.max(0, (ms - s.lastMs) / DAY_MS);
-  const decay = Math.exp(-L / TAU_SAT_D);
-  const x = s.median + (s.last + s.slope * Math.min(L, TREND_MAX_D) - s.median) * decay;
-  const sigma = Math.sqrt(SIGMA_RETRIEVAL ** 2 + s.spread ** 2 * (1 - Math.exp((-2 * L) / TAU_SAT_D)));
-  return { kd: Math.exp(x), sigma };
+/** Weight of a satellite map `ageD` days old against the baseline: 1 when new, 0 past SAT_MAX_AGE_D. */
+export const satWeight = (ageD: number) => (ageD >= SAT_MAX_AGE_D ? 0 : Math.exp(-Math.max(0, ageD) / SAT_FRESH_TAU_D));
+
+/** A cell's clear-water baseline for the time of year: the clear state and the usual (median) state, 1/m. */
+export interface ClearKd {
+  kd: number;
+  med: number;
+}
+
+/**
+ * Satellite Kd at `ms` (1/m) and its ln-space 1σ. `clear`: the cell's baseline (null: none, anchor on
+ * the recent median). `causesAtMap`: the model's plume plus bed-stirring Kd at the point on the day of
+ * the newest map, 1/m (what the map's murk is already explained by).
+ */
+export function satKdAt(s: SatState | null, ms: number, clear: ClearKd | null = null, causesAtMap = 0): { kd: number; sigma: number } {
+  const ok = clear && clear.kd > 0 && Number.isFinite(clear.kd);
+  const sigmaClear = ok && clear.med > clear.kd ? Math.log(clear.med / clear.kd) : s ? s.spread : SIGMA_CELL_DEFAULT;
+  if (!s) return { kd: ok ? clear.kd : KD_BACKGROUND, sigma: sigmaClear };
+  const anchor = ok ? clear.kd : Math.exp(s.median);
+  const w = satWeight((ms - s.lastMs) / DAY_MS);
+  const r = Math.exp(s.last) - Math.max(0, causesAtMap) - anchor;
+  const kd = Math.max(KD_WATER, anchor + w * r);
+  const sigma = Math.sqrt(w * w * SIGMA_RETRIEVAL ** 2 + (1 - w * w) * sigmaClear ** 2);
+  return { kd, sigma };
 }
 
 /**
@@ -116,19 +126,33 @@ export function plumeDrift(ageS: number, meanCurrent: readonly [number, number] 
   return [dx, dy];
 }
 
+/** Where along the segment (0,0)–(dx, dy) the nearest point to (px, py) lies, 0 (mouth) to 1 (tip). */
+export function segmentFraction(px: number, py: number, dx: number, dy: number): number {
+  const len2 = dx * dx + dy * dy;
+  return len2 > 0 ? Math.min(1, Math.max(0, (px * dx + py * dy) / len2)) : 0;
+}
+
 /** Distance, m, from point (px, py) to the segment (0,0)–(dx, dy), all in metres. */
 export function distToSegment(px: number, py: number, dx: number, dy: number): number {
-  const len2 = dx * dx + dy * dy;
-  const u = len2 > 0 ? Math.min(1, Math.max(0, (px * dx + py * dy) / len2)) : 0;
+  const u = segmentFraction(px, py, dx, dy);
   return Math.hypot(px - u * dx, py - u * dy);
 }
 
-/** Plume Kd at a point (pxM, pyM east and north of the mouth) for a plume drifted by (dx, dy). */
-export const driftedPlumeKd = (catchmentKm2: number, rainMm: number, pxM: number, pyM: number, drift: readonly [number, number]) =>
-  plumeKd(catchmentKm2, rainMm, distToSegment(pxM, pyM, drift[0], drift[1]));
+/** E-folding time of plume water once it has left the mouth (mixing and settling), s. */
+export const PLUME_DILUTE_S = 24 * 3600;
+
+/**
+ * Plume Kd at a point (pxM, pyM east and north of the mouth) for a plume drifted by (dx, dy). Water
+ * a fraction u of the way to the tip left the mouth u·ageS ago, so it has thinned by
+ * exp(−u·ageS / PLUME_DILUTE_S) (PLAN 7.45): the tip of a day-old plume carries about a third of the
+ * mouth's murk, where it used to carry all of it the whole 30 km. `ageS` 0 keeps the old uniform plume.
+ */
+export const driftedPlumeKd = (catchmentKm2: number, rainMm: number, pxM: number, pyM: number, drift: readonly [number, number], ageS = 0) =>
+  plumeKd(catchmentKm2, rainMm, distToSegment(pxM, pyM, drift[0], drift[1])) *
+  Math.exp(-(segmentFraction(pxM, pyM, drift[0], drift[1]) * Math.max(0, ageS)) / PLUME_DILUTE_S);
 
 export interface BandInputs {
-  /** Satellite Kd forecast and its ln-space σ. */
+  /** Satellite Kd490 forecast and its ln-space σ. */
   sat: { kd: number; sigma: number };
   plumeKd: number;
   /** Resuspension Kd for the wave height scaled down and up by the wave error. */
@@ -154,9 +178,10 @@ export const waveSpread = (leadDays: number) => WAVE_REL_ERR + WAVE_REL_ERR_PER_
 export function clarityBand(i: BandInputs): ClarityBand {
   const pf = PLUME_FACTOR + PLUME_FACTOR_PER_DAY * Math.max(0, i.leadDays);
   const plume = Math.max(0, i.plumeKd);
-  const kd = i.sat.kd + plume + i.res.mid;
-  const kdLo = i.sat.kd * Math.exp(-i.sat.sigma) + plume / pf + i.res.lo;
-  const kdHi = i.sat.kd * Math.exp(i.sat.sigma) + plume * pf + i.res.hi;
+  const sat = i.sat.kd;
+  const kd = sat + plume + i.res.mid;
+  const kdLo = sat * Math.exp(-i.sat.sigma) + plume / pf + i.res.lo;
+  const kdHi = sat * Math.exp(i.sat.sigma) + plume * pf + i.res.hi;
   const visM = secchiFromKd(kd);
   const visLo = secchiFromKd(kdHi);
   const visHi = secchiFromKd(kdLo);
