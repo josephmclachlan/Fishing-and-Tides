@@ -4,7 +4,7 @@ import { M_PER_DEG_LNG } from './bathy';
 import { breakerHeight } from './breaking';
 import { realDepth } from './fixtures/seafloor';
 import type { DepthFn } from './refraction';
-import { defaultSpread, spotWaves } from './surf-zone';
+import { defaultSpread, MIN_SLOPE_RUN_M, spotGeometry, spotWaves } from './surf-zone';
 
 const RAD = Math.PI / 180;
 const LNG0 = -82.8;
@@ -39,6 +39,23 @@ describe('spot surf zone', () => {
   it('no water nearby gives null', () => {
     expect(spotWaves(() => 0, pin, { Hs: 1, Tp: 10, fromDeg: 90 })).toBeNull();
   });
+
+  it('measures the slope over at least half a grid cell when the grid has deep water right at the pin', () => {
+    // A shore cell that averages in the water beyond a reef: 14 m from the waterline out.
+    const cliff: DepthFn = (lng) => (lng > LNG0 ? 14 : -1);
+    const g = spotGeometry(cliff, [LNG0 - 5 / mx, 9.7])!;
+    expect(g.slope!).toBeCloseTo(14 / MIN_SLOPE_RUN_M, 6);
+    // A run the grid does resolve is left alone.
+    expect(spotGeometry(planar, pin)!.slope!).toBeCloseTo(0.02, 2);
+  });
+
+  it('gives no spot on the real grid a slope steeper than the grid can resolve (Salsa Brava and Punta Uva read 16 before)', () => {
+    for (const s of SPOTS) expect(spotGeometry(realDepth, s.lngLat)!.slope!, s.name).toBeLessThan(0.1);
+    for (const name of ['SALSA BRAVA', 'PUNTA UVA']) {
+      const w = spotWaves(realDepth, SPOTS.find((s) => s.name === name)!.lngLat, { Hs: 1.5, Tp: 10, fromDeg: 45 }, { fanStepDeg: 1 })!;
+      expect(w.breaker.type, name).toBe('plunging');
+    }
+  }, 20_000);
 
   it('spread defaults narrow for swell, broad for wind sea', () => {
     expect(defaultSpread(14)).toBeLessThan(defaultSpread(9));

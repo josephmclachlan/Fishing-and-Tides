@@ -8,6 +8,15 @@ import { nearshorePoint, refractAt, type DepthFn, type RefractionResult, type Re
 
 const RAD = Math.PI / 180;
 
+/**
+ * Shortest run the nearshore slope is measured over, m: half a cell of the 15″ GEBCO grid (~460 m). The grid
+ * holds each cell's depth at its centre, so it cannot put the read-point depth closer to the shore than about
+ * half a cell. Where it already has that depth within a few metres of the pin (Salsa Brava and Punta Uva, whose
+ * shore cells average in the deep water beyond the reef), depth over distance came out at 16 or more and every
+ * breaker read SURGING. Below this run the slope is depth / MIN_SLOPE_RUN_M: the steepest the grid can resolve.
+ */
+export const MIN_SLOPE_RUN_M = 230;
+
 /** Offshore sea state (one swell partition, or the total sea). */
 export interface SeaState {
   /** Significant height, m. */
@@ -55,7 +64,7 @@ export interface SpotGeometry {
   point: [number, number];
   /** Seaward shore normal, compass degrees (from the coastline around the pin; see `shoreNormal`). */
   normalDeg: number;
-  /** Mean nearshore slope tan β between the pin and the read point. */
+  /** Mean nearshore slope tan β between the pin and the read point, over at least MIN_SLOPE_RUN_M. */
   slope: number | null;
 }
 
@@ -65,7 +74,7 @@ export function spotGeometry(depth: DepthFn, pin: [number, number], readDepth = 
   const mx = M_PER_DEG_LNG * Math.cos(pin[1] * RAD);
   const dx = (point[0] - pin[0]) * mx;
   const dy = (point[1] - pin[1]) * M_PER_DEG_LAT;
-  return { pin, point, normalDeg: shoreNormal(depth, pin) ?? (((Math.atan2(dx, dy) / RAD) % 360) + 360) % 360, slope: meanSlope(depth(point[0], point[1]), Math.hypot(dx, dy)) };
+  return { pin, point, normalDeg: shoreNormal(depth, pin) ?? (((Math.atan2(dx, dy) / RAD) % 360) + 360) % 360, slope: meanSlope(depth(point[0], point[1]), Math.max(MIN_SLOPE_RUN_M, Math.hypot(dx, dy))) };
 }
 
 /**
