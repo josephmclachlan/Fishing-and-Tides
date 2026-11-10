@@ -50,11 +50,21 @@ export function rowsFor(a: FcActivity): RowSpec[] {
     case 'fish':
       return [{ id: 'bite', kind: 'bars', value: (h) => h.read.score, level: (h) => h.read.level, minMax: 100, decimals: 0, label: 'peak' }, tide, wind, rain];
     case 'snorkel':
+      // At the surface over a shallow reef: getting in through the surf, chop, drift and the water left over the reef.
+      return [
+        { id: 'vis', kind: 'area', value: (h) => h.read.water?.visM ?? null, minMax: 15, decimals: 0, label: 'peak' },
+        { id: 'score', kind: 'bars', value: (h) => h.read.score, level: (h) => h.read.level, minMax: 100, decimals: 0, label: 'peak' },
+        { id: 'entry', kind: 'bars', value: (h) => h.read.water?.breakerM ?? null, minMax: 1, decimals: 1, label: 'peak' },
+        { id: 'chop', kind: 'bars', value: (h) => h.windKt, minMax: 15, decimals: 0, arrow: (h) => h.windFromDeg, label: 'peak' },
+        { id: 'current', kind: 'bars', value: (h) => h.read.water?.currentKt ?? null, minMax: 1, decimals: 1, label: 'peak' },
+        tide,
+      ];
     case 'dive':
       return [
         { id: 'vis', kind: 'area', value: (h) => h.read.water?.visM ?? null, minMax: 15, decimals: 0, label: 'peak' },
         { id: 'score', kind: 'bars', value: (h) => h.read.score, level: (h) => h.read.level, minMax: 100, decimals: 0, label: 'peak' },
         { id: 'surge', kind: 'bars', value: (h) => h.read.water?.surgeMs ?? null, minMax: 0.6, decimals: 2, label: 'peak' },
+        { id: 'current', kind: 'bars', value: (h) => h.read.water?.currentKt ?? null, minMax: 1, decimals: 1, label: 'peak' },
         tide,
         wind,
       ];

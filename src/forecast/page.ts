@@ -19,7 +19,7 @@ import type { Plan } from '../metrics/plan';
 import { heroArt } from './art';
 import { ratingStrip, rowSvg, rowsFor, timeAxis, type ChartGeom } from './charts';
 import {
-  FC_ACTIVITIES, daysAt, isFcActivity, parseRoute, readAt, routeHash, spotsForActivity, timeline,
+  FC_ACTIVITIES, chopFor, daysAt, driftFor, isFcActivity, parseRoute, readAt, routeHash, spotsForActivity, timeline,
   type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour,
 } from './model';
 import './forecast.css';
@@ -104,7 +104,10 @@ function reasons(r: FcRead): string[] {
     return out;
   }
   if (r.fish) return r.fish.reasons.slice(0, 3).map((k) => sentence(t(`bite.r.${k}` as Key)));
-  if (r.water) return r.water.reasons.length ? r.water.reasons.slice(0, 3).map((k) => sentence(t(`dive.r.${k}` as Key))) : [t('fc.reason.none')];
+  if (r.water) {
+    const why = r.water.reasons.length ? r.water.reasons.slice(0, 3).map((k) => sentence(t(`dive.r.${k}` as Key))) : [t('fc.reason.none')];
+    return r.water.access ? [sentence(t(`snk.access.${r.water.access}` as Key)), ...why] : why;
+  }
   if (r.sail) {
     const s = r.sail, out: string[] = [];
     if (s.squall !== null && s.squall >= 1) out.push(`${t('fc.squall')}: ${t(`fc.squall.${Math.min(2, Math.round(s.squall))}` as Key).toLowerCase()}`);
@@ -137,12 +140,27 @@ function stats(r: FcRead, plan: Plan | null, selDay: number): [string, string][]
       [t('fc.tide'), t(f.tideRising ? 'fc.tide.rising' : 'fc.tide.falling')],
     ];
   }
+  if (r.water && r.activity === 'snorkel') {
+    // Snorkelling happens at the surface over a shallow reef: getting in, chop, drift, how much water, sun, stingers.
+    const w = r.water;
+    const uvWord = (uv: number) => sentence(t(uv >= 8 ? 'dive.uv.cover' : uv >= 6 ? 'dive.uv.high' : 'dive.uv.ok'));
+    return [
+      [t('fc.entry'), `${n1(w.breakerM)} m${w.rip ? ` · ${t('fc.rip')} ${sentence(t(`dive.rip.${w.rip}` as Key)).toLowerCase()}` : ''}`],
+      [t('fc.chop'), w.windKt === null ? dash : `${t(`fc.chop.${chopFor(w.windKt)}` as Key)} · ${n0(w.windKt)} kt`],
+      [t('fc.current'), w.currentKt === null ? dash : `${t(`fc.drift.${driftFor(w.currentKt)}` as Key)} · ${n1(w.currentKt)} kt`],
+      [t('fc.overReef'), w.waterM === null ? dash : `${n1(w.waterM)} m`],
+      [t('fc.uv'), w.uv === null ? dash : `${n0(w.uv)} · ${uvWord(w.uv)}`],
+      [t('fc.stingers'), w.stingers === null ? dash : sentence(t(w.stingers ? 'snk.stingers.maybe' : 'snk.stingers.low'))],
+    ];
+  }
   if (r.water) {
+    // Diving is about the bottom: surge at depth, drift, temperature for the suit.
     const w = r.water;
     return [
-      [t('fc.bestWindow'), winText],
+      [t('fc.surge', { d: w.depthM }), `${t(`fc.surge.${w.surge}` as Key)} · ${w.surgeMs.toFixed(2)} m/s`],
+      [t('fc.current'), w.currentKt === null ? dash : `${t(`fc.drift.${driftFor(w.currentKt)}` as Key)} · ${n1(w.currentKt)} kt`],
       [t('fc.sst'), w.sstC === null ? dash : `${n1(w.sstC)} °C`],
-      [t('fc.score'), r.score === null ? dash : `${n0(r.score)}/100`],
+      [t('fc.bestWindow'), winText],
     ];
   }
   if (r.sail) {
@@ -336,13 +354,16 @@ export function mountForecastPage(deps: ForecastDeps) {
     $('fc-k').textContent = t(`fc.metric.${act}` as Key);
     countUp($('fc-num'), hl.value);
     $('fc-unit').textContent = hl.unit;
-    $('fc-size').textContent = r.surf ? t(`fc.size.${r.surf.size}` as Key) : r.water ? `${t('fc.surge', { d: r.water.depthM })}: ${t(`fc.surge.${r.water.surge}` as Key).toLowerCase()} · ${r.water.surgeMs.toFixed(2)} m/s` : r.sail && r.sail.fromDeg !== null ? `${t('fc.wind')} ${cmp(r.sail.fromDeg)}` : '';
+    const dayIdx = plan ? Math.max(0, Math.min(plan.days.length - 1, Math.floor((localDayStart(ms, REGION.tzOffsetH) - plan.startMs) / DAY))) : 0;
+    const win = plan?.days[dayIdx];
+    $('fc-size').textContent = r.fish ? (win ? `${t('fc.bestWindow')} ${t('fc.window', { from: localClock(win.startMs), to: localClock(win.endMs) })}` : '') : r.surf ? t(`fc.size.${r.surf.size}` as Key) : r.water && act === 'snorkel' ? `${t('fc.entry')} ${n1(r.water.breakerM)} m${r.water.windKt === null ? '' : ` · ${t(`fc.chop.${chopFor(r.water.windKt)}` as Key).toLowerCase()}`}` : r.water ? `${t('fc.depthAt', { d: r.water.depthM })}${r.water.currentKt === null ? '' : ` · ${t('fc.current').toLowerCase()} ${t(`fc.drift.${driftFor(r.water.currentKt)}` as Key).toLowerCase()}`}` : r.sail && r.sail.fromDeg !== null ? `${t('fc.wind')} ${cmp(r.sail.fromDeg)}` : '';
     html('fc-rate', r.level === null
       ? `<span class="fc-word">${t('fc.nodata')}</span>`
       : `<span class="fc-word l${r.level}">${r.surf ? sentence(t(`surf.band.${r.surf.band}` as Key)) : t(`fc.lvl.${r.level}` as Key)}</span>${bar(r.level)}${r.surf ? `<span class="fc-of">${n1(r.score!)}/10</span>` : ''}`);
     html('fc-why', reasons(r).map((x) => `<li>${x}</li>`).join(''));
-    const dayIdx = plan ? Math.max(0, Math.min(plan.days.length - 1, Math.floor((localDayStart(ms, REGION.tzOffsetH) - plan.startMs) / DAY))) : 0;
-    html('fc-stats', stats(r, plan, dayIdx).map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join(''));
+    const st = stats(r, plan, dayIdx);
+    $('fc-stats').dataset.n = String(st.length);
+    html('fc-stats', st.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join(''));
     const artLabel =
       act === 'surf' ? t('fc.art.surf', { m: r.surf ? n1(r.surf.hb) : '--' })
       : act === 'fish' ? t('fc.art.fish')

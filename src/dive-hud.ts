@@ -62,7 +62,17 @@ const weekday = (ms: number) => new Intl.DateTimeFormat(document.documentElement
 const why = (rs: readonly OutingReason[]) => rs.slice(0, 2).map((r) => t(`dive.r.${r}` as Key)).join(' · ');
 
 /** An outing score with the inputs a reader shows beside it: bed surge, m/s; visibility, m (null before the clarity data); entry surf, m. */
-export interface OutingDetail extends OutingScore { surgeMs: number; visM: number | null; breakerM: number }
+export interface OutingDetail extends OutingScore {
+  surgeMs: number;
+  visM: number | null;
+  breakerM: number;
+  /** Surface current, m/s; wind, m/s; water over the bed at this hour's tide, m; rip level at the entry (only for the slider hour); UV index. */
+  currentMs?: number;
+  windMs: number;
+  waterM: number;
+  rip?: 'LOW' | 'MOD' | 'HIGH';
+  uv?: number;
+}
 
 export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, time: TimeStore, env: DiveEnv) {
   const side = condSlot(root, 'water', 40);
@@ -161,8 +171,10 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     const ratio = sea.hs > 0 && hs0 > 0 ? sea.hs / hs0 : 1;
     const breakerM = (r.HbAll ?? r.waves.breaker.Hb) * ratio ** 0.8;
     const rip = Math.abs(ms - time.validMs()) < 0.5 * 3.6e6 ? r.rip.level : undefined;
-    const out = outingScore({ surgeMs: u, visM: vis ?? NaN, windMs: wind, waterM, localHour, sunAltDeg: sunAltitude(ms, c.lat, c.lng), currentMs: env.currentAt(c.lng, c.lat, ms)?.ms, breakerM, ...(rip ? { rip } : {}), ...(runoff === null ? {} : { runoff }), ...waterTerms(env.waterAt(c.lng, c.lat, ms)), ...env.wxAt(c.lng, c.lat, ms) });
-    return { ...out, surgeMs: u, visM: vis, breakerM };
+    const currentMs = env.currentAt(c.lng, c.lat, ms)?.ms;
+    const wx = env.wxAt(c.lng, c.lat, ms);
+    const out = outingScore({ surgeMs: u, visM: vis ?? NaN, windMs: wind, waterM, localHour, sunAltDeg: sunAltitude(ms, c.lat, c.lng), currentMs, breakerM, ...(rip ? { rip } : {}), ...(runoff === null ? {} : { runoff }), ...waterTerms(env.waterAt(c.lng, c.lat, ms)), ...wx });
+    return { ...out, surgeMs: u, visM: vis, breakerM, currentMs, windMs: wind, waterM, rip, uv: wx.uv };
   };
 
   let heavyKey = '';
