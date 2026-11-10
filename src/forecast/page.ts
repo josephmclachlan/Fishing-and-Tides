@@ -912,7 +912,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     const r = parseRoute(location.hash, SPOTS) ?? { spot: null, activity: null };
     if (r.activity) act = r.activity;
     if (r.spot) spotName = r.spot;
-    if (el.hidden) show();
+    if (el.hidden || booting) show();
     else render();
     syncHash();
   };
