@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { clarity, clarityLevel, effectiveRain, kdFromChl, plumeKd, resuspensionKd, secchiFromKd, KD_PLUME, PLUME_DECAY_S, PLUME_SATURATION_MM, PLUME_RAIN_FROM_MM, flowPlumeMm, runoffMm } from './clarity';
-import { clarityAt, clarityGrid, riverRain, type ClarityContext } from '../layers/clarity';
+import { clarityAt, clarityGrid, riverRain, satHistory, type ClarityContext } from '../layers/clarity';
+import type { SatelliteData } from '../adapters/satellite';
+import type { GridSeries } from '../adapters/pack';
 import { PLUME_RIVERS, REGION } from '../region';
 import { parseCatchmentRain, rainPoints, catchmentRainChecks } from '../adapters/catchment-rain';
 import { runChecks } from '../verify/types';
@@ -230,5 +232,26 @@ describe('satellite term near the shore (PLAN 7.45)', () => {
     expect(x.visM).toBeGreaterThan(10);
     // On the day of the newest map it is still that map.
     expect(clarityAt({ ...quiet(sat), ms: mapTimes[1] }, ...shore)!.kd).toBeCloseTo(0.2, 2);
+  });
+});
+
+describe('satellite history at a point (PLAN 7.47)', () => {
+  const D = 864e5;
+  const now = Date.UTC(2026, 10, 10, 12);
+  const g = { cols: 3, rows: 3, lon0: -83, lat0: 10, dlon: 0.1, dlat: 0.1 };
+  const one = (feed: string, v: string, value: number, times: number[]): GridSeries => ({
+    meta: { feed, kind: 'observed', fetchedAt: new Date(now).toISOString(), grid: g, times, vars: [{ name: v, unit: '', scale: 0.001, offset: 0 }], sources: [], licence: '', file: 'x' },
+    values: { [v]: times.map(() => new Float32Array(9).fill(value)) },
+  });
+  const base: SatelliteData = { sst: null, sstCoast: null, chl: one('chl', 'chl', 1, [now - 3 * D]), kd490: one('kd490', 'kd490', 0.3, [now - 10 * D]), fetchedAt: now };
+  it('reads GlobColour first, then NOAA, then chlorophyll', () => {
+    const nrt = one('kd490-nrt', 'kd490', 0.05, [now - 2 * D, now - D]);
+    const a = satHistory({ ...base, kd490Nrt: nrt }, -82.9, 9.9)!;
+    expect(Math.exp(a.last)).toBeCloseTo(0.05, 4);
+    expect(a.lastMs).toBe(now - D);
+    expect(Math.exp(satHistory(base, -82.9, 9.9)!.last)).toBeCloseTo(0.3, 4);
+    expect(Math.exp(satHistory({ ...base, kd490: null }, -82.9, 9.9)!.last)).toBeCloseTo(kdFromChl(1), 4);
+    // A point the GlobColour map has no value for falls through to NOAA.
+    expect(Math.exp(satHistory({ ...base, kd490Nrt: one('kd490-nrt', 'kd490', NaN, [now - D]) }, -82.9, 9.9)!.last)).toBeCloseTo(0.3, 4);
   });
 });

@@ -2,19 +2,20 @@
  * Satellite clarity near the shore (PLAN 7.45): two corrections to the Kd490 maps before
  * physics/clarity.ts turns them into visibility. Pure, no DOM.
  *
- * 1. Clear baseline. The gap-filled Kd490 runs about 10 days late, so for today the model has to
+ * 1. Clear baseline. Every Kd490 map runs late (NOAA's gap-filled 2 km about 10 days, GlobColour's
+ *    about 1 since PLAN 7.47), so for today the model has to
  *    guess where the satellite term has gone since the newest map. It used to fall back to the median
  *    of the last week of maps. When that week was muddy (late October 2026: three days at 1 to 2.3/m
  *    off Puerto Viejo), the muddy week was carried forward for days after the water had cleared.
  *    Rain plumes and swell are already separate terms in the model, so the satellite term should
  *    fall back to the water's clear state for the time of year. That clear state is each pixel's
  *    CLEAR_QUANTILE (20th percentile) of daily Kd490 in that calendar month over the whole record
- *    (2018 on), the same statistic MUD WEEKS uses for a reef's clear baseline.
+ *    (GlobColour, 1997 on), the same statistic MUD WEEKS uses for a reef's clear baseline.
  *
- * 2. Shoreline pixels. A 2 km pixel that touches land also holds the beach, the surf and the reef
+ * 2. Shoreline pixels. A pixel that touches land also holds the beach, the surf and the reef
  *    flat. Bright sand and coral, and light scattered off the land, raise the green reflectance that
- *    the Kd490 algorithm reads as murk. Along this coast the land-touching pixels read 2 to 4 times
- *    the pixel one step offshore, even on calm dry days. A pixel with land among its 8 neighbours
+ *    the Kd490 algorithm reads as murk. Along this coast NOAA's 2 km land-touching pixels read 2 to 4 times
+ *    the pixel one step offshore, even on calm dry days (GlobColour's 4 km about 1.1 times). A pixel with land among its 8 neighbours
  *    therefore takes the value of the nearest pixel that has none, in the same frame.
  */
 

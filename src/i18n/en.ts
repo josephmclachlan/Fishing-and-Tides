@@ -139,6 +139,7 @@ export const en = {
   'check.feed.sst': 'SEA TEMP',
   'check.feed.chl': 'CHLOROPHYLL',
   'check.feed.kd490': 'CLARITY KD490',
+  'check.feed.kd490-nrt': 'CLARITY KD490 NRT',
   'check.feed.rain': 'CATCHMENT RAIN',
   'check.feed.river': 'RIVER FLOW',
   'check.feed.mld': 'MIXED LAYER DEPTH',

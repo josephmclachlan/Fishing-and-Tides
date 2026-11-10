@@ -4,9 +4,13 @@
  *
  *  - `sst` (0.05°, macro view) and `sst-coast` (0.01°, Gandoca–Limón): MUR SST, °C.
  *  - `chl`: chlorophyll-a, mg/m³, gap-filled VIIRS, 9 km.
- *  - `kd490`: diffuse attenuation at 490 nm, 1/m, gap-filled VIIRS + OLCI, 2 km over the coast.
+ *  - `kd490`: diffuse attenuation at 490 nm, 1/m, gap-filled VIIRS + OLCI, 2 km over the coast,
+ *    about 10 days late.
+ *  - `kd490-nrt`: the same quantity from Copernicus GlobColour, gap-free 4 km, about 1 day late, the
+ *    last 10 daily maps (PLAN 7.47, scripts/oc.py). Clarity prefers it.
  *  - `kd490-clim` (static, data/climatology/): each pixel's clear-water Kd490 per calendar month,
- *    the 20th percentile of the whole record (PLAN 7.45, scripts/fetch-kd490-clim.ts).
+ *    the 20th percentile of the GlobColour record since 1997, on the `kd490-nrt` grid (PLAN 7.45,
+ *    7.47, scripts/fetch-kd490-clim.ts).
  *
  * These are observations, not forecasts: a valid time inside the week blends the two days
  * either side, and any later time (the whole forecast) uses the newest map, which is how the
@@ -23,21 +27,23 @@ export interface SatelliteData {
   sstCoast: GridSeries | null;
   chl: GridSeries | null;
   kd490: GridSeries | null;
-  /** Clear-water Kd490 by calendar month (12 frames), same grid as `kd490`; optional so older callers and tests can leave it out. */
+  /** GlobColour Kd490, about a day late; optional so older callers and tests can leave it out. */
+  kd490Nrt?: GridSeries | null;
+  /** Clear-water Kd490 by calendar month (12 frames), same grid as `kd490Nrt`; optional like it. */
   kd490Clim?: GridSeries | null;
   /** Oldest build fetch time of what loaded, epoch ms; NaN if nothing did. */
   fetchedAt: number;
 }
 
 export async function fetchSatellite(opts: LoadOptions = {}): Promise<SatelliteData> {
-  const names = ['sst', 'sst-coast', 'chl', 'kd490'] as const;
+  const names = ['sst', 'sst-coast', 'chl', 'kd490', 'kd490-nrt'] as const;
   const [got, clim] = await Promise.all([
     Promise.allSettled(names.map((n) => loadSeries(n, opts))),
     loadSeries('kd490-clim', { ...opts, dir: CLIMATOLOGY_DIR, report: false }).then((r) => r.series, () => null),
   ]);
   const s = (i: number) => (got[i].status === 'fulfilled' ? got[i].value.series : null);
   const ages = got.flatMap((g) => (g.status === 'fulfilled' ? [g.value.fetchedAt] : []));
-  return { sst: s(0), sstCoast: s(1), chl: s(2), kd490: s(3), kd490Clim: clim, fetchedAt: ages.length ? Math.min(...ages) : NaN };
+  return { sst: s(0), sstCoast: s(1), chl: s(2), kd490: s(3), kd490Nrt: s(4), kd490Clim: clim, fetchedAt: ages.length ? Math.min(...ages) : NaN };
 }
 
 export interface Reading {
@@ -64,11 +70,16 @@ export const chlAt = (d: SatelliteData, lng: number, lat: number, ms: number) =>
 export const kd490At = (d: SatelliteData, lng: number, lat: number, ms: number) => observedAt(d.kd490, 'kd490', lng, lat, ms);
 
 /** How late each product normally is, and when to call it stale (days): amber past `warn`, red past `fail`. */
-export const OBS_LAG_DAYS: Record<'sst' | 'chl' | 'kd490', { warn: number; fail: number }> = {
+type ObsFeed = 'sst' | 'chl' | 'kd490' | 'kd490-nrt';
+const KEY = { sst: 'sst', chl: 'chl', kd490: 'kd490', 'kd490-nrt': 'kd490Nrt' } as const;
+
+export const OBS_LAG_DAYS: Record<ObsFeed, { warn: number; fail: number }> = {
   sst: { warn: 4, fail: 8 },
   chl: { warn: 6, fail: 12 },
   // Science-quality gap-filled Kd490 runs about 10 days behind.
   kd490: { warn: 16, fail: 24 },
+  // GlobColour near real time: yesterday's map arrives the next morning.
+  'kd490-nrt': { warn: 3, fail: 6 },
 };
 
 export function obsLag(s: GridSeries, warn: number, fail: number, now = Date.now()): Outcome {
@@ -80,29 +91,31 @@ export function obsLag(s: GridSeries, warn: number, fail: number, now = Date.now
 /** Verify checks: build freshness, how old the newest map is, schema and physical ranges. */
 export function satelliteChecks(load: () => Promise<SatelliteData>): Check[] {
   let cached: Promise<SatelliteData> | null = null;
-  const need = async (k: 'sst' | 'chl' | 'kd490') => {
-    const s = (await (cached ??= load()))[k];
+  const need = async (k: ObsFeed) => {
+    const s = (await (cached ??= load()))[KEY[k]];
     if (!s) throw new Error(`no ${k} published`);
     return s;
   };
   const values = (s: GridSeries, v: string) => s.values[v].flatMap((f) => Array.from(f));
-  const schema = (k: 'sst' | 'chl' | 'kd490') => async (): Promise<Outcome> => {
+  const varOf = (k: ObsFeed) => (k === 'kd490-nrt' ? 'kd490' : k);
+  const schema = (k: ObsFeed) => async (): Promise<Outcome> => {
     const p = validateMeta((await need(k)).meta);
     return p.length ? { status: 'fail', detail: p.join('; ') } : { status: 'pass', detail: 'ok' };
   };
   const checks: Check[] = [];
-  const add = (k: 'sst' | 'chl' | 'kd490', range: [number, number, string]) => {
+  const add = (k: ObsFeed, range: [number, number, string]) => {
     checks.push(
       { feed: k, kind: 'schema', label: 'Manifest is well formed', run: schema(k) },
       { feed: k, kind: 'fresh', label: 'Relayed within the last day', run: async () => freshness(Date.now() - Date.parse((await need(k)).meta.fetchedAt), 12 * 3.6e6) },
       { feed: k, kind: 'fresh', label: `Newest map under ${OBS_LAG_DAYS[k].warn} days old`, run: async () => obsLag(await need(k), OBS_LAG_DAYS[k].warn, OBS_LAG_DAYS[k].fail) },
       // Land is no data in every map; past 80% missing the sea is gone too.
-      { feed: k, kind: 'range', label: `Values within ${range[0]}..${range[1]} ${range[2]}`, run: async () => inRange(values(await need(k), k), range[0], range[1], range[2], 0.8) },
+      { feed: k, kind: 'range', label: `Values within ${range[0]}..${range[1]} ${range[2]}`, run: async () => inRange(values(await need(k), varOf(k)), range[0], range[1], range[2], 0.8) },
     );
   };
   add('sst', [15, 35, '°C']);
   add('chl', [0, 100, 'mg/m³']);
   add('kd490', [0.01, 6, '1/m']);
+  add('kd490-nrt', [0.01, 6, '1/m']);
   checks.push({ feed: 'sst', kind: 'agree', label: 'Coast nest matches the macro grid', run: async () => {
     const d = await (cached ??= load());
     if (!d.sst || !d.sstCoast) return { status: 'warn', detail: 'coast nest missing' };

@@ -138,6 +138,7 @@ export const es: Dict = {
   'check.feed.sst': 'TEMP. MAR',
   'check.feed.chl': 'CLOROFILA',
   'check.feed.kd490': 'CLARIDAD KD490',
+  'check.feed.kd490-nrt': 'CLARIDAD KD490 NRT',
   'check.feed.rain': 'LLUVIA EN CUENCAS',
   'check.feed.river': 'CAUDAL DE RÍOS',
   'check.feed.mld': 'CAPA DE MEZCLA',

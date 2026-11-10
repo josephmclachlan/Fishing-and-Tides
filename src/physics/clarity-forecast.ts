@@ -5,7 +5,7 @@
  * units apart from days for satellite trends, no DOM.
  *
  * 1. Satellite term (rebuilt in PLAN 7.45). The satellite says how murky the water was on the day of
- *    its newest map, not today; the gap-filled Kd490 runs about 10 days late. So the term is the
+ *    its newest map, not today; GlobColour's Kd490 runs about a day late, NOAA's about 10 (PLAN 7.47). So the term is the
  *    cell's clear-water baseline for the time of year (clarity-baseline.ts), plus what the newest map
  *    adds to it, but only while that map is fresh and only for the murk the model's own causes
  *    (plume and bed stirring on that day) don't already explain, so a flood or a swell is not counted twice:

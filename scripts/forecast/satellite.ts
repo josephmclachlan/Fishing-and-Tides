@@ -7,7 +7,9 @@
  *    late. 0.05° over the macro view, full 0.01° over Gandoca–Limón.
  *  - `chl`: chlorophyll-a, gap-filled (DINEOF) VIIRS NOAA-20/S-NPP, 9 km, about 3 days late.
  *  - `kd490`: diffuse attenuation at 490 nm, gap-filled VIIRS + OLCI, 2 km over the coast,
- *    science quality so about 10 days late. Clarity (PLAN 6.1) builds on it.
+ *    science quality so about 10 days late. MUD WEEKS (PLAN 7.39) builds on it.
+ *  - `kd490-nrt`: Kd490 from Copernicus Marine GlobColour, gap-free 4 km, about 1 day late (PLAN 7.47,
+ *    scripts/oc.py). Clarity (PLAN 6.1) builds on it, against a baseline from the same product family.
  *
  * Gap-filled products are used because cloud hides this coast most afternoons; the raw passes
  * with their holes come with PLAN 2.12.
@@ -21,6 +23,7 @@ import type { GridGeom, SourceSpan } from '../../src/adapters/pack.ts';
 import { erddapToGrid, type ErddapGrid } from '../../src/adapters/erddap-parse.ts';
 import { scatFrames, type ScatJson } from '../../src/adapters/scat-parse.ts';
 import { mldFrames, type MldJson } from '../../src/adapters/mld-parse.ts';
+import { ocFrames, type OcJson } from '../../src/adapters/oc-parse.ts';
 import { aggregateCover, detectSargassum, SARG } from '../../src/adapters/sargassum-parse.ts';
 import { depthGrid, get, seaMask, writeSeries } from './common.ts';
 
@@ -204,6 +207,27 @@ export async function buildMld(dir: string): Promise<string> {
   }, { mld: f.mld });
   return `mld: ${f.grid.cols}×${f.grid.rows}, ${f.times.length} days to ${day(f.times[f.times.length - 1])}, ${kb(size)}`;
 }
+
+/** Days of GlobColour Kd490 relayed: enough to cover a few late or missing days before SAT_MAX_AGE_D. */
+const OC_DAYS = 10;
+
+/**
+ * Kd490 from Copernicus Marine GlobColour (PLAN 7.47): gap-free daily L4 at 4 km, near real time
+ * (OCEANCOLOUR_GLO_BGC_L4_NRT_009_102), about a day late, last OC_DAYS days over COAST_BOX.
+ * scripts/oc.py fetches, this packs. Same account and toolbox as the ASCAT passes.
+ */
+export async function buildKd490Nrt(dir: string): Promise<string> {
+  const f = ocFrames(copernicus<OcJson>('oc.py', COAST_BOX, OC_DAYS));
+  const size = writeSeries(dir, {
+    feed: 'kd490-nrt', kind: 'observed', fetchedAt: new Date().toISOString(), grid: f.grid, times: f.times,
+    vars: [{ name: 'kd490', unit: '1/m', scale: 0.0002, offset: 0 }],
+    sources: f.sources,
+    licence: OC_LICENCE,
+  }, { kd490: f.kd490 });
+  return `kd490-nrt: ${f.grid.cols}×${f.grid.rows}, ${f.times.length} days to ${day(f.times[f.times.length - 1])}, ${kb(size)}`;
+}
+
+export const OC_LICENCE = 'E.U. Copernicus Marine Service Information (OCEANCOLOUR_GLO_BGC_L4_NRT_009_102, OCEANCOLOUR_GLO_BGC_L4_MY_009_104); ACRI-ST GlobColour';
 
 /**
  * Sargassum detections (PLAN 7.1): the USF Alternative Floating Algae Index, daily, from NOAA AOML's
