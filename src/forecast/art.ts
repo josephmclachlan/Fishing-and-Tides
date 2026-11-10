@@ -9,6 +9,8 @@
  *            tide, markers fading into the murk past the visibility
  *   DIVE     a diver over the reef: markers at 5 m steps fade past the visibility, the sea fan sways with the surge
  *   SAIL     a boat heeling with the wind, streaks as fast as the wind, chop as high as the swell
+ *   SWIM     a beach: the lifeguard flag in the rip risk's colour, the shore break to scale, the sun's rays as
+ *            long as the UV index, cloud and rain when there are, a swimmer and an umbrella
  */
 import type { FcRead } from './model';
 
@@ -214,6 +216,41 @@ export function sailArt(r: FcRead, label: string): string {
   return svg('fc-art-sail', body, label);
 }
 
+const RIP_FLAG = { LOW: 'l3', MOD: 'l2', HIGH: 'l0' } as const;
+
+export function swimArt(r: FcRead, label: string): string {
+  const w = r.swim;
+  const horizon = 92, shore = 148, pxPerM = 30;
+  const crest = clamp((w?.breakerM ?? 0.3) * pxPerM, 2, 40);
+  const uv = clamp(w?.uv ?? 6, 0, 12);
+  const rays = Array.from({ length: 12 }, (_, i) => {
+    const a = (i / 12) * Math.PI * 2, r0 = 19, r1 = 19 + 3 + uv * 1.2;
+    return `M${f1(258 + r0 * Math.cos(a))},${f1(40 + r0 * Math.sin(a))} L${f1(258 + r1 * Math.cos(a))},${f1(40 + r1 * Math.sin(a))}`;
+  }).join(' ');
+  const cloudy = (w?.cloudPct ?? 0) >= 60;
+  const rain = (w?.rainMmH ?? 0) >= 0.2;
+  const cloud = (x: number, y: number, k: number) => `<path class="fc-cloud" transform="translate(${x} ${y}) scale(${k})" d="M-22,8 a10,10 0 0 1 2,-19 a14,14 0 0 1 26,-3 a10,10 0 0 1 16,22 Z"/>`;
+  const drops = rain ? Array.from({ length: 9 }, (_, i) => `<line class="fc-rain" x1="${200 + i * 9}" y1="${62 + (i % 3) * 6}" x2="${196 + i * 9}" y2="${76 + (i % 3) * 6}"/>`).join('') : '';
+  const flag = w ? RIP_FLAG[w.rip] : 'l-none';
+  const waves = across(`q20,${f1(-crest)} 40,0`, 40);
+  const body = `
+    <defs><linearGradient id="fc-sw-g" gradientUnits="userSpaceOnUse" x1="0" y1="${horizon}" x2="0" y2="${shore}"><stop offset="0" class="fc-sea-deep"/><stop offset="1" class="fc-sea-top"/></linearGradient></defs>
+    <rect class="fc-sky" x="${-B}" y="${-B}" width="${W + 2 * B}" height="${horizon + B}"/>
+    <g class="fc-sun-g"><path class="fc-ray" d="${rays}"/><circle class="fc-sun" cx="258" cy="40" r="16"/></g>
+    ${cloudy || rain ? `<g class="fc-cloud-drift">${cloud(226, 50, 1.1)}${cloud(120, 34, 0.8)}</g>` : ''}
+    ${drops}
+    <rect x="${-B}" y="${horizon}" width="${W + 2 * B}" height="${shore - horizon + 6}" fill="url(#fc-sw-g)"/>
+    <g class="fc-diver fc-float"><circle cx="214" cy="${horizon + 22}" r="5.5"/><path d="M206,${horizon + 26} q8,-6 16,0" class="fc-arm"/></g>
+    <g class="fc-swell-anim"><path class="fc-shorewave" d="M${-B},${shore} ${waves} L${W + B},${shore + 8} L${-B},${shore + 8} Z"/>
+      <path class="fc-foam" d="M${-B},${shore} ${waves}" fill="none"/></g>
+    <path class="fc-shore" d="M${-B},${shore + 4} Q160,${shore - 2} ${W + B},${shore + 6} L${W + B},${HT + B} L${-B},${HT + B} Z"/>
+    <g class="fc-umbrella"><rect class="fc-towel" x="34" y="${shore + 26}" width="56" height="12" rx="3"/><line class="fc-pole" x1="70" y1="${shore + 30}" x2="70" y2="${shore - 26}"/>
+      <path class="fc-canopy" d="M36,${shore - 18} Q70,${shore - 52} 104,${shore - 18} Q87,${shore - 26} 70,${shore - 18} Q53,${shore - 26} 36,${shore - 18} Z"/></g>
+    <g class="fc-flagpole"><line class="fc-pole" x1="150" y1="${shore + 34}" x2="150" y2="${shore - 50}"/>
+      <path class="fc-flag ${flag}" d="M151,${shore - 50} q14,4 26,0 l0,18 q-12,4 -26,0 Z"/></g>`;
+  return svg('fc-art-swim', body, label);
+}
+
 export function heroArt(r: FcRead, label: string, guides?: { knee: string; waist: string; head: string }): string {
   switch (r.activity) {
     case 'surf': return surfArt(r, label, guides);
@@ -221,5 +258,6 @@ export function heroArt(r: FcRead, label: string, guides?: { knee: string; waist
     case 'snorkel': return snorkelArt(r, label);
     case 'dive': return waterArt(r, label);
     case 'sail': return sailArt(r, label);
+    case 'swim': return swimArt(r, label);
   }
 }

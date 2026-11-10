@@ -11,7 +11,7 @@
  */
 import { t, type Key } from '../i18n';
 import { localDayStart } from '../physics/astro';
-import { REGION, SPOTS } from '../region';
+import { REGION, SPOTS, SPOT_RENAMES } from '../region';
 import { localClock } from '../tide-chart';
 import { compassName } from '../spot-charts';
 import type { Spot } from '../metrics/forecast';
@@ -19,7 +19,7 @@ import type { Plan, PlanDay } from '../metrics/plan';
 import { heroArt } from './art';
 import { ratingStrip, rowSvg, rowsFor, skyRow, timeAxis, type ChartGeom } from './charts';
 import {
-  FC_ACTIVITIES, beaufort, chopFor, dayUvPeaks, daysAt, uvLevel, driftFor, isFcActivity, parseRoute, readAt, routeHash, spotsForActivity, timeline,
+  FC_ACTIVITIES, beaufort, chopFor, dayUvPeaks, daysAt, surfSize as surfSizeOf, uvLevel, driftFor, isFcActivity, parseRoute, readAt, routeHash, spotsForActivity, timeline,
   type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour,
 } from './model';
 import './forecast.css';
@@ -59,6 +59,7 @@ const ICONS: Record<FcActivity, string> = {
   snorkel: '<rect x="3" y="8" width="13" height="7" rx="3.5"/><path d="M19 4v10a3 3 0 0 1-3 3h-2"/>',
   dive: '<rect x="9" y="3" width="6" height="15" rx="3"/><path d="M12 18v3M9 7h6"/>',
   sail: '<path d="M12 3v14M12 4l7 12h-7M11 6l-6 10h6"/><path d="M3 19h18l-2 2H5z"/>',
+  swim: '<circle cx="16" cy="6" r="2.2"/><path d="M4 12l5-3 3 3 4-2"/><path d="M2 17c2 0 3-1.5 5-1.5S10 17 12 17s3-1.5 5-1.5 3 1.5 5 1.5"/>',
 };
 const icon = (a: FcActivity) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[a]}</svg>`;
 
@@ -80,6 +81,7 @@ export function headline(r: FcRead): { value: string; unit: string } {
       return { value: hi < 0.15 ? '0' : lo === hi ? n1(lo) : `${n1(lo)}–${n1(hi)}`, unit: t('unit.m').toLowerCase() };
     }
     case 'fish':
+    case 'swim':
       return { value: n0(r.score), unit: '/100' };
     case 'snorkel':
     case 'dive': {
@@ -107,6 +109,12 @@ function reasons(r: FcRead): string[] {
   if (r.water) {
     const why = r.water.reasons.length ? r.water.reasons.slice(0, 3).map((k) => sentence(t(`dive.r.${k}` as Key))) : [t('fc.reason.none')];
     return r.water.access ? [sentence(t(`snk.access.${r.water.access}` as Key)), ...why] : why;
+  }
+  if (r.swim) {
+    const w = r.swim;
+    const why = w.reasons.length ? w.reasons.slice(0, 3).map((k) => t(`swim.r.${k}` as Key)) : [t('fc.reason.none')];
+    // The rip risk itself is on the line above; these are what hold the day back.
+    return why;
   }
   if (r.sail) {
     const s = r.sail, out: string[] = [];
@@ -162,6 +170,19 @@ function stats(r: FcRead, plan: Plan | null, selDay: number): [string, string][]
       [t('fc.sst'), w.sstC === null ? dash : `${n1(w.sstC)} °C`],
       // A shore dive starts by swimming out through the break; the week's best time is in its own callout above.
       [t('fc.entry'), `${n1(w.breakerM)} m${w.rip ? ` · ${t('fc.rip')} ${sentence(t(`dive.rip.${w.rip}` as Key)).toLowerCase()}` : ''}`],
+    ];
+  }
+  if (r.swim) {
+    // A beach day: safety in the water first, then the sun, the heat and the water.
+    const w = r.swim;
+    const uvWord = (uv: number) => t(`fc.uvw.${uvLevel(uv)}` as Key);
+    return [
+      [t('fc.ripRisk'), t(`fc.ripw.${w.rip}` as Key)],
+      [t('fc.shorebreak'), `${n1(w.breakerM)} m · ${t(`fc.size.${surfSizeOf(w.breakerM)}` as Key).toLowerCase()}`],
+      [t('fc.uv'), w.uv === null ? dash : `${n0(w.uv)} · ${uvWord(w.uv)}`],
+      [t('fc.feels'), w.feelsC === null ? dash : `${n0(w.feelsC)} °C${w.airC === null ? '' : ` · ${t('fc.airIs', { c: n0(w.airC) })}`}`],
+      [t('fc.water'), w.sstC === null ? dash : `${n1(w.sstC)} °C`],
+      [t('fc.wind'), w.windKt === null ? dash : `${n0(w.windKt)} kt${w.rainMmH !== null && w.rainMmH >= 0.2 ? ` · ${t('fc.row.rain').toLowerCase()} ${n1(w.rainMmH)} mm/h` : ''}`],
     ];
   }
   if (r.sail) {
@@ -303,7 +324,8 @@ export function mountForecastPage(deps: ForecastDeps) {
     const v = get(storage, ACT_KEY);
     return isFcActivity(v) ? v : 'surf';
   })();
-  let spotName: string = get(storage, SPOT_KEY) ?? '';
+  // A spot saved under an old name (SPOT_RENAMES) opens under its new one.
+  let spotName: string = ((n) => SPOT_RENAMES[n] ?? n)(get(storage, SPOT_KEY) ?? '');
   /** The hour the hero shows; null = now. */
   let sel: number | null = null;
   let plan: Plan | null = null;
@@ -451,7 +473,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     $('fc-unit').textContent = hl.unit;
     const dayIdx = plan ? Math.max(0, Math.min(plan.days.length - 1, Math.floor((localDayStart(ms, REGION.tzOffsetH) - plan.startMs) / DAY))) : 0;
     const win = plan?.days[dayIdx];
-    $('fc-size').textContent = r.fish ? (win ? `${t('fc.bestWindow')} ${t('fc.window', { from: localClock(win.startMs), to: localClock(win.endMs) })}` : '') : r.surf ? t(`fc.size.${r.surf.size}` as Key) : r.water && act === 'snorkel' ? `${t('fc.entry')} ${n1(r.water.breakerM)} m${r.water.windKt === null ? '' : ` · ${t(`fc.chop.${chopFor(r.water.windKt)}` as Key).toLowerCase()}`}` : r.water ? `${t('fc.depthAt', { d: r.water.depthM })}${r.water.currentKt === null ? '' : ` · ${t('fc.current').toLowerCase()} ${t(`fc.drift.${driftFor(r.water.currentKt)}` as Key).toLowerCase()}`}` : r.sail && r.sail.windKt !== null ? `${t(`fc.bft.${beaufort(r.sail.windKt)}` as Key)} · ${t('fc.force', { n: beaufort(r.sail.windKt) })}` : '';
+    $('fc-size').textContent = r.swim ? `${t('fc.ripRisk')} ${t(`fc.ripw.${r.swim.rip}` as Key).toLowerCase()} · ${t('fc.shorebreak').toLowerCase()} ${n1(r.swim.breakerM)} m` : r.fish ? (win ? `${t('fc.bestWindow')} ${t('fc.window', { from: localClock(win.startMs), to: localClock(win.endMs) })}` : '') : r.surf ? t(`fc.size.${r.surf.size}` as Key) : r.water && act === 'snorkel' ? `${t('fc.entry')} ${n1(r.water.breakerM)} m${r.water.windKt === null ? '' : ` · ${t(`fc.chop.${chopFor(r.water.windKt)}` as Key).toLowerCase()}`}` : r.water ? `${t('fc.depthAt', { d: r.water.depthM })}${r.water.currentKt === null ? '' : ` · ${t('fc.current').toLowerCase()} ${t(`fc.drift.${driftFor(r.water.currentKt)}` as Key).toLowerCase()}`}` : r.sail && r.sail.windKt !== null ? `${t(`fc.bft.${beaufort(r.sail.windKt)}` as Key)} · ${t('fc.force', { n: beaufort(r.sail.windKt) })}` : '';
     html('fc-rate', r.level === null
       ? `<span class="fc-word">${t('fc.nodata')}</span>`
       : `<span class="fc-word l${r.level}">${r.surf ? sentence(t(`surf.band.${r.surf.band}` as Key)) : t(`fc.lvl.${r.level}` as Key)}</span>${bar(r.level)}${r.surf ? `<span class="fc-of">${n1(r.score!)}/10</span>` : ''}`);
@@ -462,6 +484,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     const artLabel =
       act === 'surf' ? t('fc.art.surf', { m: r.surf ? n1(r.surf.hb) : '--' })
       : act === 'fish' ? t('fc.art.fish')
+      : act === 'swim' ? t('fc.art.swim', { flag: r.swim ? t(`fc.flag.${r.swim.rip}` as Key) : '--' })
       : act === 'sail' ? t('fc.art.sail', { kt: r.sail?.windKt === null || !r.sail ? '--' : n0(r.sail.windKt) })
       : t('fc.art.water', { m: r.water?.visM ? n1(r.water.visM) : '--' });
     const artKey = `${act}|${sp.name}`;
