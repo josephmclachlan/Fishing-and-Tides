@@ -506,6 +506,9 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .side .ro > .seg.sm { overflow: visible; text-overflow: clip; }
 /* Pickers (‹ TARPON ›) keep their value on one line between the buttons. */
 .side .ro:has(button) > .seg { flex: 0 0 auto; overflow-wrap: normal; white-space: nowrap; }
+/* VIS SEEN (PLAN 7.48): LOG, the tally and CSV wrap as whole pieces rather than run past the column. */
+.side .ro > #vis-seen { flex: 0 1 auto; display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; white-space: normal; }
+.side .ro > #vis-seen > * { white-space: nowrap; }
 .side .ro > .lbl { flex: 0 0 auto; }
 .side .ro > .lbl:only-child, .side .ro > .lbl:last-child:not(:first-child) { flex: 1 1 auto; min-width: 0; white-space: normal; }
 @media (max-width: 1100px), (max-height: 700px) {
