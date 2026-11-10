@@ -288,11 +288,6 @@ export function parseRoute(hash: string, spots: readonly Spot[]): Route | null {
 }
 export const routeHash = (spot: string, a: FcActivity) => `#forecast/${spotSlug(spot)}/${a}`;
 
-const meanCloud = (w: readonly { cloudPct: number }[]) => {
-  const v = w.map((x) => x.cloudPct).filter((x) => Number.isFinite(x));
-  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
-};
-
 /** UV index on the page's five levels, worst (extreme, 11+) to best (low, 0-2), the WHO bands. */
 export const uvLevel = (uv: number): Level => {
   const u = Math.round(uv);
@@ -337,8 +332,13 @@ export interface TimelineHour {
   cloudPct: number | null;
   /** Squall risk 0..2 (the SQUALL metric). */
   squall: number | null;
-  /** UV index (the UV metric: the models' mean). */
+  /** UV index (the UV metric: CAMS, else scaled GFS). */
   uv: number | null;
+  /** Chance of rain in the hour, % (the RAIN CHANCE metric: four ensembles pooled; PLAN 7.57). */
+  rainPct: number | null;
+  /** Real feel in the shade, °C, and relative humidity, % (the FEELS and HUMIDITY metrics). */
+  feelsC: number | null;
+  humidityPct: number | null;
   /** The sun is up. */
   day: boolean;
 }
@@ -365,9 +365,12 @@ export function timeline(deps: FcDeps, a: FcActivity, spot: Spot, startMs: numbe
       rainMmH: val('rain'),
       tideM: predict(env.tide, ms),
       airC: val('air'),
-      cloudPct: meanCloud(env.weather(ms)),
+      cloudPct: val('cloud'),
       squall: val('squall'),
       uv: val('uv'),
+      rainPct: val('rainpct'),
+      feelsC: val('feels'),
+      humidityPct: val('humidity'),
       day: s.sun.sunrise !== null && s.sun.sunset !== null && ms + H / 2 >= s.sun.sunrise && ms + H / 2 < s.sun.sunset,
     };
   });

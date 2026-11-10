@@ -17,8 +17,9 @@ describe('town rain adapter', () => {
     expect(u).toContain(`latitude=${RAIN_TOWNS.map((t) => t.lngLat[1]).join(',')}`);
     expect(u).toContain(`models=${TOWN_RAIN_MODELS.join(',')}`);
   });
-  it('parses one block per town, drops empty models and keeps gaps as NaN', () => {
-    const block = (x: number) => ({ hourly: { time: [t0 / 1000, t0 / 1000 + 3600], precipitation_ecmwf_ifs: [x, null], precipitation_gfs_seamless: [null, null] } });
+  it('parses one block per town, drops empty models, moves rain to the hour it fell in and keeps gaps as NaN', () => {
+    // Open-Meteo stamps an hour's rain at its end: x at t0 + 1 h fell in the hour from t0.
+    const block = (x: number) => ({ hourly: { time: [t0 / 1000, t0 / 1000 + 3600], precipitation_ecmwf_ifs: [null, x], precipitation_gfs_seamless: [null, null] } });
     const d = parseTownRain(RAIN_TOWNS.map((_, k) => block(k)), 5);
     expect(d.times).toEqual([t0, t0 + H]);
     expect(Object.keys(d.byTown)).toEqual(RAIN_TOWNS.map((t) => t.id));

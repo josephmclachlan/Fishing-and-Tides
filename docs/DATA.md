@@ -234,7 +234,26 @@ A logged coral site uses the nearest reef's series at the site's own depth.
 
 ## Weather (PLAN 7.3)
 
-`src/adapters/weather.ts` fetches rain, cloud, UV and air temperature live from Open-Meteo's multi-model endpoint (GFS, ECMWF IFS, ICON) for one point at the region centre, through the offline cache, and keeps the models separate for the ensemble blend (PLAN 7.4). Models reach different horizons and ECMWF has no UV, so missing hours are NaN. A point is enough for HUD readouts; a gridded radar and cloud layer comes with PLAN 7.5. Storms are relayed by the data build (table above) because NHC sends no CORS headers; the forecast cone needs NHC's GIS files and is left to 7.5. Both feeds have verify checks.
+`src/adapters/weather.ts` fetches a full traditional forecast live from Open-Meteo's multi-model endpoint at every spot in `SPOTS` (PLAN 7.57; until then one point off Cahuita served the whole coast), in one call through the offline cache, and keeps the models separate for the ensemble blend (PLAN 7.4). Storms are relayed by the data build (table above) because NHC sends no CORS headers; the forecast cone needs NHC's GIS files and is left to 7.5. Both feeds have verify checks.
+
+**Which source for which number (PLAN 7.57 audit, 2026-11-10).**
+
+| Number | Source | Why |
+|---|---|---|
+| Air temperature | Blend of ECMWF IFS 9 km, UK Met Office 10 km, ICON, GFS, weighted and bias-corrected against the Limón airport (METAR MRLM) | The history archive's 50 daytime pairs at MRLM (2026-11-04 to 10): GFS bias +0.0 °C (RMSE 1.4), ICON +0.1 (1.2), the 25 km ECMWF grid the app used before −1.2 (1.9). The 9 km ECMWF replaces it; the archive now stores both so they can be compared |
+| Dew point | Same blend, scored against the airport's dew point | Feeds humidity and real feel |
+| Humidity | From the blended temperature and dew point (Magnus, `src/physics/heat.ts`) | Keeps humidity consistent with the corrected temperature |
+| Real feel | Steadman apparent temperature in the shade (BoM form) from the blends and the wind at the spot | Counts humidity and wind; sun on the sand adds more |
+| Chance of rain | The four centres' ensembles pooled by member count: ECMWF ENS 51, ICON-EPS 40, GFS GEFS 31, UK MOGREPS-G 18 (Open-Meteo `precipitation_probability`, ≥ 0.1 mm in the hour) | ~140 runs; no single ensemble is trusted alone. A day's chance is its likeliest hour |
+| Rain amount | Mean of the four models at the spot | The airport sends no rain amount, so no skill weights; IMERG history (`imerg` rows) can score them later |
+| Cloud, CAPE | Mean of the four models | As above |
+| Gusts | Blend with the wind weights | As PLAN 7.4 |
+| UV index | CAMS global (ECMWF atmosphere service) via Open-Meteo air quality, 0.4°, ~5 days (`src/adapters/uv.ts`, feed `uv`); past it GFS × (CAMS ÷ GFS clear-sky UV over the shared hours) | Only GFS of the four has UV. On 2026-11-10 its clear-sky noon was 8.2 where CAMS gave 11.2, which matches 12.5·μ^2.42·(Ω/300)^−1.23 for 9.6° N in November with ~260 DU of ozone; GFS also barely dimmed it under 60% cloud |
+| Wind at a spot | Unchanged: the 0.25° best-match wind map, scaled to ASCAT passes (PLAN 7.10) | Open question: every model ran 2 to 4 kt under the airport's daytime wind in the same 50 pairs (sea breeze); see PLAN 7.58 |
+
+Open-Meteo stamps rain and its probability at the end of the hour they fell in. Every rain series here (weather, town rain, catchment rain) is moved back an hour so it is indexed by the hour's start like the IMERG satellite rain and the rest of the app; until PLAN 7.57 the model rain ran an hour late and met IMERG off by one at the join.
+
+**Call cost.** The weather call is 10 spots × 11 variables × 16 days, roughly a dozen or more Open-Meteo calls on each refresh (Open-Meteo weights requests by location, variables and days), from the phone's own address (the 10,000 a day limit is per address, so the data build's budget is untouched). CAMS UV is one more.
 
 **Rain by town (PLAN 7.24).** `src/adapters/town-rain.ts` asks Open-Meteo for hourly rain at the four `RAIN_TOWNS` (Cahuita, Playa Negra, Puerto Viejo, Manzanillo) in one multi-location call, from the sharpest free global models: ECMWF IFS HRES 9 km (open data since October 2025), UK Met Office global 10 km, ICON and GFS (~13 km here). 7 days, through the offline cache, feed `townrain`. Checks: every town answers with all four models (amber at two or three), fresh within 3 h, hourly rain within 0..200 mm.
 

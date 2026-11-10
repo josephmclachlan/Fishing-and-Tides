@@ -1,11 +1,14 @@
 /**
  * Weather summary for the HUD (PLAN 7.5). Pure. Turns the per-model series from adapters/weather.ts into
- * the numbers the panel shows. Air temperature and gusts are the ensemble blend (PLAN 7.4, src/blend.ts):
- * weighted by how well each model matched the Limón airport over the last few days, temperature also
- * corrected by each model's local bias. Rain, cloud, UV and CAPE are the plain mean, since the airport
- * does not measure them. Before the models are scored, every weight is equal.
+ * the numbers the panel shows, at the spot nearest the place asked (PLAN 7.57). Air temperature, dew point
+ * and gusts are the ensemble blend (PLAN 7.4, src/blend.ts): weighted by how well each model matched the
+ * Limón airport over the last few days, temperature and dew point also corrected by each model's local bias.
+ * Humidity and real feel come from those blends (physics/heat.ts). Rain, cloud and CAPE are the plain mean,
+ * since the airport does not measure them; chance of rain pools the four centres' ensembles; UV is CAMS
+ * (uvAt). Before the models are scored, every weight is equal.
  */
-import { weatherAt, rainAccumMm, WEATHER_MODELS, type WeatherData, type WeatherModel, type WeatherNow } from './adapters/weather';
+import { hourIndex, pointNear, weatherAt, rainAccumMm, ENSEMBLE_MEMBERS, WEATHER_MODELS, type WeatherData, type WeatherModel, type WeatherNow } from './adapters/weather';
+import { apparentTempC, relHumidityPct } from './physics/heat';
 import { leadModel, type SkillVar, type WeatherSkill } from './adapters/weather-skill';
 import { blend, confidence, type Confidence } from './blend';
 import { stormCategory, type Storm } from './adapters/storms';
@@ -24,6 +27,14 @@ export interface WeatherSummary {
   rainSpreadMmH: number;
   /** Rain over the 24 h from the valid time, mm (mean of the models that cover all of it). */
   rain24Mm: number;
+  /** Chance of at least 0.1 mm in the hour, %, the four ensembles pooled (PLAN 7.57). NaN when none covers it. */
+  rainChancePct: number;
+  /** Dew point, °C, blended and bias-corrected like the air temperature. */
+  dewC: number;
+  /** Relative humidity, %, from the blended temperature and dew point. */
+  humidityPct: number;
+  /** Real feel in the shade, °C: Steadman's apparent temperature from the blends and the mean wind. */
+  feelsC: number;
   /** Expected error of the blended air temperature (°C) and mean wind (kt): model disagreement plus their recent error at the airport. NaN when unknown. */
   tempSigmaC: number;
   windSigmaKt: number;
@@ -69,38 +80,109 @@ export function uvPeakDay(d: WeatherData, ms: number, tzOffsetH: number = REGION
   let best: { uv: number; atMs: number } | null = null;
   // UV is zero at night: 06:00-18:00 local holds every peak.
   for (let h = 6; h <= 18; h++) {
-    const now = weatherAt(d, day0 + h * H);
-    const v = mean(finite(now.map((w) => w.uv)));
+    const v = uvAt(d, day0 + h * H);
     if (Number.isFinite(v) && (!best || v > best.uv)) best = { uv: v, atMs: day0 + h * H };
   }
   return best;
 }
 
-export function summarise(d: WeatherData, ms: number): WeatherSummary | null {
-  const now = weatherAt(d, ms);
+/**
+ * UV index for the hour containing `ms` (PLAN 7.57). CAMS where it reaches (about 5 days). Past it, GFS's UV
+ * scaled by CAMS over GFS clear-sky UV across the hours both cover (GFS runs about a quarter low here);
+ * unscaled GFS with no CAMS at all. NaN when nothing covers the hour.
+ */
+export function uvAt(d: WeatherData, ms: number): number {
+  const u = d.uv;
+  const i = u ? hourIndex(u.times, ms) : -1;
+  if (u && i >= 0 && Number.isFinite(u.uv[i])) return u.uv[i];
+  const gfs = pointNear(d)?.models.gfs_seamless;
+  const j = hourIndex(d.times, ms);
+  if (!gfs || j < 0 || !Number.isFinite(gfs.uv_index[j])) return NaN;
+  return gfs.uv_index[j] * uvScale(d);
+}
+
+const scaleCache = new WeakMap<WeatherData, number>();
+/** CAMS ÷ GFS clear-sky UV summed over the daylight hours both cover, clamped to 0.8..1.6; 1 without CAMS. */
+export function uvScale(d: WeatherData): number {
+  const hit = scaleCache.get(d);
+  if (hit !== undefined) return hit;
+  const u = d.uv, gfs = pointNear(d)?.models.gfs_seamless;
+  let a = 0, b = 0;
+  if (u && gfs) {
+    u.times.forEach((t, i) => {
+      const j = hourIndex(d.times, t);
+      const g = j >= 0 ? gfs.uv_index_clear_sky[j] : NaN;
+      if (Number.isFinite(u.clear[i]) && Number.isFinite(g) && g > 1 && u.clear[i] > 1) (a += u.clear[i]), (b += g);
+    });
+  }
+  const k = b > 0 ? Math.min(1.6, Math.max(0.8, a / b)) : 1;
+  scaleCache.set(d, k);
+  return k;
+}
+
+/** Pooled ensemble chance of rain, %: each model's chance weighted by its ensemble's members. NaN when none has one. */
+export function rainChancePct(now: readonly WeatherNow[]): number {
+  let num = 0, den = 0;
+  for (const w of now) {
+    const p = w.rainChancePct;
+    if (p === undefined || !Number.isFinite(p)) continue;
+    num += p * ENSEMBLE_MEMBERS[w.model];
+    den += ENSEMBLE_MEMBERS[w.model];
+  }
+  return den ? num / den : NaN;
+}
+
+/** Blended dew point, °C, bias-corrected against the airport; NaN when no model has one. Equal weights without `skill`. */
+export const blendedDewC = (now: readonly WeatherNow[], skill?: WeatherSkill) =>
+  blend(Object.fromEntries(now.flatMap((w) => (w.dewC !== undefined && Number.isFinite(w.dewC) ? [[w.model, w.dewC]] : []))), weightsOf(skill, 'dew'), skill?.scores.dew)?.value ?? NaN;
+
+/** Relative humidity, %, from the blended temperature and dew point. */
+export const humidityPct = (now: readonly WeatherNow[], skill?: WeatherSkill) => relHumidityPct(blendedTempC(now, skill), blendedDewC(now, skill));
+
+/**
+ * Real feel in the shade, °C (physics/heat.ts apparentTempC) from the blended temperature and dew point.
+ * `windMs` is the wind at the place (the wind map); without it the models' mean wind is used.
+ */
+export function feelsLikeC(now: readonly WeatherNow[], skill?: WeatherSkill, windMs?: number | null): number {
+  const kt = mean(finite(now.map((w) => w.windKt)));
+  const ws = windMs !== undefined && windMs !== null && Number.isFinite(windMs) ? windMs : kt / KT_PER_MS;
+  return apparentTempC(blendedTempC(now, skill), blendedDewC(now, skill), ws);
+}
+const KT_PER_MS = 1.94384;
+/** Real-feel bands, °C: the US NWS heat-index "extreme caution" (32) and "danger" (39) levels. */
+export const FEELS_CAUTION_C = 32;
+export const FEELS_DANGER_C = 39;
+
+export function summarise(d: WeatherData, ms: number, at?: readonly [number, number]): WeatherSummary | null {
+  const now = weatherAt(d, ms, at);
   if (!now.length) return null;
   const sk = d.skill;
   const rains = now.map((w) => w.rainMmH);
   const end = d.times[d.times.length - 1] + 3.6e6;
   const acc = WEATHER_MODELS.filter((m) => now.some((w) => w.model === m) && ms + 24 * 3.6e6 <= end)
-    .map((m) => rainAccumMm(d, m, ms, ms + 24 * 3.6e6))
+    .map((m) => rainAccumMm(d, m, ms, ms + 24 * 3.6e6, at))
     .filter((x): x is number => x !== null);
   const temp = blend(byModel(now, (w) => w.tempC), weightsOf(sk, 'temp'), sk?.scores.temp);
   const wind = blend(byModel(now, (w) => w.windKt), weightsOf(sk, 'wind'), sk?.scores.wind);
   const gust = blend(byModel(now, (w) => w.gustKt), weightsOf(sk, 'wind'));
   const tempSigmaC = temp?.sigma ?? NaN, windSigmaKt = wind?.sigma ?? NaN;
+  const dewC = blendedDewC(now, sk);
   // A single model has no spread to judge it by: LOW unless the airport has scored it.
   const conf = (b: typeof temp, band: { good: number; fair: number }) => (!b || (b.models < 2 && !sk) ? 'LOW' : confidence(b.sigma, band.good, band.fair));
   return {
     models: now.length,
     rainMmH: mean(rains),
     cloudPct: mean(finite(now.map((w) => w.cloudPct))),
-    uv: mean(finite(now.map((w) => w.uv))),
+    uv: uvAt(d, ms),
     tempC: temp?.value ?? NaN,
     gustKt: gust?.value ?? NaN,
     capeJkg: mean(finite(now.map((w) => w.capeJkg))),
     rainSpreadMmH: Math.max(...rains) - Math.min(...rains),
     rain24Mm: mean(acc),
+    rainChancePct: rainChancePct(now),
+    dewC,
+    humidityPct: relHumidityPct(temp?.value ?? NaN, dewC),
+    feelsC: apparentTempC(temp?.value ?? NaN, dewC, (wind?.value ?? NaN) / KT_PER_MS),
     tempSigmaC,
     windSigmaKt,
     confidence: wind ? worse(conf(temp, CONF_TEMP_C), conf(wind, CONF_WIND_KT)) : conf(temp, CONF_TEMP_C),
@@ -110,8 +192,8 @@ export function summarise(d: WeatherData, ms: number): WeatherSummary | null {
 
 /** Heavy rain in the next 3 h: mean rate over the models. mm/h threshold is a flash-flood-ish 10. */
 export const HEAVY_RAIN_MM_H = 10;
-export function heavyRainSoon(d: WeatherData, ms: number): boolean {
-  return [0, 1, 2].some((h) => (summarise(d, ms + h * 3.6e6)?.rainMmH ?? 0) >= HEAVY_RAIN_MM_H);
+export function heavyRainSoon(d: WeatherData, ms: number, at?: readonly [number, number]): boolean {
+  return [0, 1, 2].some((h) => (summarise(d, ms + h * 3.6e6, at)?.rainMmH ?? 0) >= HEAVY_RAIN_MM_H);
 }
 
 /**
@@ -130,10 +212,10 @@ export function squallLevel(s: Pick<WeatherSummary, 'capeJkg' | 'gustKt' | 'rain
 }
 
 /** The worst squall level in the 6 hours from `ms`. */
-export function squallSoon(d: WeatherData, ms: number): Squall {
+export function squallSoon(d: WeatherData, ms: number, at?: readonly [number, number]): Squall {
   let worst: Squall = 'none';
   for (let h = 0; h < 6; h++) {
-    const s = summarise(d, ms + h * 3.6e6);
+    const s = summarise(d, ms + h * 3.6e6, at);
     const l = s ? squallLevel(s) : 'none';
     if (l === 'high') return 'high';
     if (l === 'watch') worst = 'watch';
@@ -157,7 +239,7 @@ export function nearestStorm(storms: readonly Storm[]): { storm: Storm; km: numb
  * Pressure tendency, hPa per 3 h ending at `ms`: mean over the models that have both ends. Null when none do.
  * Falling pressure ahead of a front is the classic angler's feeding cue (folklore-grade evidence).
  */
-export const pressureTrend = (d: WeatherData, ms: number): number | null => pressureChange(weatherAt(d, ms), weatherAt(d, ms - 3 * 3.6e6));
+export const pressureTrend = (d: WeatherData, ms: number, at?: readonly [number, number]): number | null => pressureChange(weatherAt(d, ms, at), weatherAt(d, ms - 3 * 3.6e6, at));
 
 /** Mean pressure change between two hours' model readings, hPa, over the models in both; null if none. */
 export function pressureChange(now: readonly WeatherNow[], before: readonly WeatherNow[]): number | null {
