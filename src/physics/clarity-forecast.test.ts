@@ -50,8 +50,16 @@ describe('satellite forecast (PLAN 7.45)', () => {
   it('counts only the murk the causes on the map day leave unexplained', () => {
     // A plume and swell gave 0.2/m of the 0.3/m that day: the map adds 0.05 over the clear 0.05, not 0.25.
     expect(satKdAt(s, s.lastMs, clear, 0.2).kd).toBeCloseTo(0.1);
-    // A cause bigger than the map can only clear the term down to pure water.
-    expect(satKdAt(s, s.lastMs, clear, 5).kd).toBe(KD_WATER);
+    // A cause bigger than the map's murk explains all of it, and no more: the term stays at the baseline.
+    expect(satKdAt(s, s.lastMs, clear, 5).kd).toBeCloseTo(0.05);
+  });
+  it('keeps a map clearer than the baseline, whatever the causes (Playa Cocles, 2026-11-10)', () => {
+    const clearDay = satState([t0], [0.03])!;
+    expect(satKdAt(clearDay, t0, clear).kd).toBeCloseTo(0.03);
+    expect(satKdAt(clearDay, t0, clear, 0.3).kd).toBeCloseTo(0.03);
+    expect(satKdAt(clearDay, t0 + DAY, clear).kd).toBeCloseTo(0.05 - 0.02 * Math.exp(-1 / SAT_FRESH_TAU_D));
+    // Never clearer than pure water.
+    expect(satKdAt(satState([t0], [0.001])!, t0, clear).kd).toBe(KD_WATER);
   });
   it('no longer carries a muddy week 12 days on (Puerto Viejo, maps of 2026-10-21 to 10-29)', () => {
     const t = [0, 1, 2, 3, 6, 7, 8].map((d) => t0 + d * DAY);
