@@ -34,6 +34,8 @@ export interface RowSpec {
   tick?: (h: TimelineHour) => number | null;
   /** Label each day's peak (bars) or the highs and lows (area). */
   label: 'peak' | 'extrema' | 'none';
+  /** The shared weather rows, drawn under a WEATHER heading after the activity's own. */
+  wx?: boolean;
 }
 
 const H = 3.6e6;
@@ -41,18 +43,32 @@ const f1 = (x: number) => Math.round(x * 10) / 10;
 const fin = (x: number | null | undefined): x is number => typeof x === 'number' && Number.isFinite(x);
 const localHour = (ms: number, tz: number) => Math.round(((((ms + tz * H) % 864e5) + 864e5) % 864e5) / H) % 24;
 
-/** The rows each activity shows, top to bottom (the rating strip is drawn separately). */
+/**
+ * The rows each activity shows, top to bottom (the rating strip is drawn separately): the activity's own rows,
+ * then the same weather rows for every activity (Joseph, 2026-11-10: "weather should be a fully traditional
+ * forecast"): temperature, real feel, humidity, chance of rain, rain and UV.
+ */
 export function rowsFor(a: FcActivity): RowSpec[] {
+  return [...activityRows(a), ...WEATHER_ROWS];
+}
+const WEATHER_ROWS: RowSpec[] = [
+  // Temperatures from 20 °C, so a hot afternoon stands out from a warm one; each day's peak labelled.
+  { id: 'air', kind: 'area', value: (h) => h.airC, minMax: 34, floor: 20, decimals: 0, label: 'peak', wx: true },
+  { id: 'feels', kind: 'area', value: (h) => h.feelsC, minMax: 38, floor: 20, decimals: 0, label: 'peak', wx: true },
+  { id: 'humidity', kind: 'area', value: (h) => h.humidityPct, minMax: 100, floor: 40, decimals: 0, label: 'peak', wx: true },
+  { id: 'rainpct', kind: 'bars', value: (h) => h.rainPct, minMax: 100, decimals: 0, label: 'peak', wx: true },
+  { id: 'rain', kind: 'bars', value: (h) => h.rainMmH, minMax: 5, decimals: 1, label: 'peak', wx: true },
+  // Every activity is out in the sun: UV coloured by its WHO band, each day's peak labelled (Joseph, 2026-11-10).
+  { id: 'uv', kind: 'bars', value: (h) => h.uv, level: (h) => (h.uv === null ? null : uvLevel(h.uv)), minMax: 11, decimals: 0, label: 'peak', wx: true },
+];
+function activityRows(a: FcActivity): RowSpec[] {
   const wind: RowSpec = { id: 'wind', kind: 'bars', value: (h) => h.windKt, minMax: 15, decimals: 0, arrow: (h) => h.windFromDeg, tick: (h) => h.gustKt, label: 'peak' };
   const tide: RowSpec = { id: 'tide', kind: 'area', value: (h) => h.tideM, minMax: 0, decimals: 1, label: 'extrema' };
-  const rain: RowSpec = { id: 'rain', kind: 'bars', value: (h) => h.rainMmH, minMax: 5, decimals: 1, label: 'peak' };
-  // Every activity is out in the sun: UV coloured by its WHO band, each day's peak labelled (Joseph, 2026-11-10).
-  const uv: RowSpec = { id: 'uv', kind: 'bars', value: (h) => h.uv, level: (h) => (h.uv === null ? null : uvLevel(h.uv)), minMax: 11, decimals: 0, label: 'peak' };
   switch (a) {
     case 'surf':
-      return [{ id: 'surf', kind: 'bars', value: (h) => h.read.surf?.hb ?? null, level: (h) => h.read.level, minMax: 1.2, decimals: 1, label: 'peak' }, wind, tide, uv];
+      return [{ id: 'surf', kind: 'bars', value: (h) => h.read.surf?.hb ?? null, level: (h) => h.read.level, minMax: 1.2, decimals: 1, label: 'peak' }, wind, tide];
     case 'fish':
-      return [{ id: 'bite', kind: 'bars', value: (h) => h.read.score, level: (h) => h.read.level, minMax: 100, decimals: 0, label: 'peak' }, tide, wind, rain, uv];
+      return [{ id: 'bite', kind: 'bars', value: (h) => h.read.score, level: (h) => h.read.level, minMax: 100, decimals: 0, label: 'peak' }, tide, wind];
     case 'snorkel':
       // At the surface over a shallow reef: getting in through the surf, chop, drift and the water left over the reef.
       return [
@@ -62,7 +78,6 @@ export function rowsFor(a: FcActivity): RowSpec[] {
         { id: 'chop', kind: 'bars', value: (h) => h.windKt, minMax: 15, decimals: 0, arrow: (h) => h.windFromDeg, label: 'peak' },
         { id: 'current', kind: 'bars', value: (h) => h.read.water?.currentKt ?? null, minMax: 1, decimals: 1, label: 'peak' },
         tide,
-        uv,
       ];
     case 'dive':
       return [
@@ -72,19 +87,15 @@ export function rowsFor(a: FcActivity): RowSpec[] {
         { id: 'current', kind: 'bars', value: (h) => h.read.water?.currentKt ?? null, minMax: 1, decimals: 1, label: 'peak' },
         tide,
         wind,
-        uv,
       ];
     case 'swim': {
-      // A beach day: the score, then what decides it, safety first (rip, shore break), then sun, heat and weather.
+      // A beach day: the score, then what decides it, safety first (rip, shore break); sun, heat and rain are in the weather rows.
       const ripLv = { LOW: 3, MOD: 2, HIGH: 0 } as const;
       return [
         { id: 'swim', kind: 'bars', value: (h) => h.read.score, level: (h) => h.read.level, minMax: 100, decimals: 0, label: 'peak' },
         { id: 'rip', kind: 'bars', value: (h) => h.read.swim?.ripScore ?? null, level: (h) => (h.read.swim ? ripLv[h.read.swim.rip] : null), minMax: 0.8, decimals: 2, label: 'peak' },
         { id: 'shorebreak', kind: 'bars', value: (h) => h.read.swim?.breakerM ?? null, minMax: 1, decimals: 1, label: 'peak' },
-        uv,
-        { id: 'feels', kind: 'area', value: (h) => h.read.swim?.feelsC ?? null, minMax: 38, floor: 20, decimals: 0, label: 'peak' },
         wind,
-        rain,
         tide,
       ];
     }
@@ -92,9 +103,7 @@ export function rowsFor(a: FcActivity): RowSpec[] {
       return [
         { ...wind, level: (h) => h.read.level },
         { id: 'swell', kind: 'bars', value: (h) => h.read.sail?.swellM ?? null, minMax: 1.5, decimals: 1, label: 'peak' },
-        rain,
         tide,
-        uv,
       ];
   }
 }
@@ -154,7 +163,7 @@ export function skyKind(h: Pick<TimelineHour, 'cloudPct' | 'rainMmH' | 'squall' 
 }
 
 const CLOUD = 'M-5.5,4 a3.5,3.5 0 0 1 0.4,-7 a4.6,4.6 0 0 1 8.8,-0.6 a3.4,3.4 0 0 1 1.8,7.6 Z';
-const SKY_ICON: Record<SkyKind, string> = {
+export const SKY_ICON: Record<SkyKind, string> = {
   sun: `<circle class="fc-i-sun" r="3.6"/><path class="fc-i-ray" d="M0,-7v2M0,5v2M-7,0h2M5,0h2M-4.9,-4.9l1.4,1.4M3.5,3.5l1.4,1.4M-4.9,4.9l1.4,-1.4M3.5,-3.5l1.4,-1.4"/>`,
   moon: `<path class="fc-i-moon" d="M2.5,-5.5 a6,6 0 1 0 3,10 a5,5 0 0 1 -3,-10 Z"/>`,
   'partly-sun': `<g transform="translate(-3 -3) scale(0.8)"><circle class="fc-i-sun" r="3.6"/><path class="fc-i-ray" d="M0,-7v2M-7,0h2M-4.9,-4.9l1.4,1.4M3.5,-3.5l1.4,-1.4"/></g><path class="fc-i-cloud" transform="translate(1.5 2)" d="${CLOUD}"/>`,

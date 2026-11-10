@@ -77,4 +77,13 @@ describe('sky row (PLAN 7.52 part 3)', () => {
     expect(skyRow(week.map((h) => ({ ...h, cloudPct: null, rainMmH: null })), g)).not.toContain('fc-i ');
     expect(skyRow(week, g)).not.toMatch(/NaN|undefined/);
   });
+  it('gives every activity the same weather rows, once each, after its own', () => {
+    for (const a of FC_ACTIVITIES) {
+      const ids = rowsFor(a).map((r) => r.id);
+      expect(new Set(ids).size).toBe(ids.length);
+      const wx = rowsFor(a).filter((r) => r.wx).map((r) => r.id);
+      expect(wx).toEqual(['air', 'feels', 'humidity', 'rainpct', 'rain', 'uv']);
+      expect(ids.slice(-wx.length)).toEqual(wx);
+    }
+  });
 });

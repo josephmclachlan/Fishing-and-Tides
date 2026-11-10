@@ -17,10 +17,11 @@ import { compassName } from '../spot-charts';
 import type { Spot } from '../metrics/forecast';
 import type { Plan, PlanDay } from '../metrics/plan';
 import { heroArt } from './art';
-import { ratingStrip, rowSvg, rowsFor, skyRow, timeAxis, type ChartGeom } from './charts';
+import { ratingStrip, rowSvg, rowsFor, skyKind, skyRow, timeAxis, SKY_ICON, type ChartGeom } from './charts';
+import { miniIcon, skyIcon, tileIcon, tipBand, type TileKind } from './tiles';
 import {
-  FC_ACTIVITIES, beaufort, chopFor, dayUvPeaks, daysAt, surfSize as surfSizeOf, uvLevel, driftFor, isFcActivity, parseRoute, readAt, routeHash, spotsForActivity, timeline,
-  type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour,
+  FC_ACTIVITIES, beaufort, chopFor, dayUvPeaks, dayWeather, daysAt, hourWeather, waterAt, surfSize as surfSizeOf, uvLevel, driftFor, isFcActivity, parseRoute, readAt, routeHash, spotsForActivity, timeline,
+  type DayWeather, type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour,
 } from './model';
 import './forecast.css';
 
@@ -127,73 +128,147 @@ function reasons(r: FcRead): string[] {
   return [];
 }
 
-/** The three stat tiles under the headline. */
-function stats(r: FcRead, plan: Plan | null, selDay: number): [string, string][] {
+/** One picture tile: what it shows, its value, the picture's input and the tip it opens to. */
+export interface TileSpec {
+  kind: TileKind;
+  k: string;
+  v: string;
+  val: number | null;
+  tip: string | null;
+  lv?: Level | null;
+  opt?: Parameters<typeof tileIcon>[2];
+}
+
+const tipOf = (kind: Parameters<typeof tipBand>[0], v: number | null, vars?: Record<string, string>) => {
+  const b = tipBand(kind, v);
+  return b === null ? null : t(`tip.${kind}.${b}` as Key, vars);
+};
+
+/** The picture tiles under the hero: each activity's own conditions, safety first. */
+function stats(r: FcRead, plan: Plan | null, selDay: number): TileSpec[] {
   const dash = '--';
   const win = plan?.days[selDay];
   const winText = win ? t('fc.window', { from: localClock(win.startMs), to: localClock(win.endMs) }) : t('fc.noWindow');
+  const hourOf = (ms: number) => new Date(ms + REGION.tzOffsetH * H).getUTCHours();
+  const clock = (k: string): TileSpec => ({
+    kind: 'clock', k, v: winText, val: null,
+    tip: win ? t('tip.clock', { from: localClock(win.startMs) }) : null,
+    opt: win ? { from: hourOf(win.startMs), to: hourOf(win.endMs) } : {},
+  });
+  const uvTile = (uv: number | null): TileSpec => ({
+    kind: 'uv', k: t('fc.uv'), v: uv === null ? dash : `${n0(uv)} · ${t(`fc.uvw.${uvLevel(uv)}` as Key)}`, val: uv, tip: tipOf('uv', uv), lv: uv === null ? null : uvLevel(uv),
+  });
+  const entry = (m: number, rip: 'LOW' | 'MOD' | 'HIGH' | null): TileSpec => ({
+    kind: 'breaker', k: t('fc.entry'), v: `${n1(m)} m${rip ? ` · ${t('fc.rip')} ${sentence(t(`dive.rip.${rip}` as Key)).toLowerCase()}` : ''}`, val: m,
+    tip: rip === 'HIGH' ? t('tip.rip.HIGH') : tipOf('breaker', m),
+  });
+  const water = (c: number | null, k = t('fc.water')): TileSpec => ({ kind: 'water', k, v: c === null ? dash : `${n1(c)} °C`, val: c, tip: tipOf('water', c) });
+  const current = (kt: number | null): TileSpec => ({
+    kind: 'current', k: t('fc.current'), v: kt === null ? dash : `${t(`fc.drift.${driftFor(kt)}` as Key)} · ${n1(kt)} kt`, val: kt, tip: tipOf('current', kt),
+  });
   if (r.surf) {
     const s = r.surf;
     return [
-      [t('fc.swell'), `${n1(s.hs)} m · ${n0(s.tp)} s · ${cmp(s.dir)}`],
-      [t('fc.wind'), s.windKt === null ? dash : `${n0(s.windKt)} kt ${cmp(s.windFromDeg)} · ${t(`fc.wind.${s.windKind}` as Key)}`],
-      [t('fc.bestWindow'), winText],
+      { kind: 'swell', k: t('fc.swell'), v: `${n1(s.hs)} m · ${n0(s.tp)} s · ${cmp(s.dir)}`, val: s.hs, tip: tipOf('swell', s.hs) },
+      { kind: 'wind', k: t('fc.wind'), v: s.windKt === null ? dash : `${n0(s.windKt)} kt ${cmp(s.windFromDeg)} · ${t(`fc.wind.${s.windKind}` as Key)}`, val: s.windKt, tip: t(`tip.surfwind.${s.windKind}` as Key) },
+      clock(t('fc.bestWindow')),
     ];
   }
   if (r.fish) {
     const f = r.fish;
     return [
-      [t('fc.catch'), f.species.map((id) => titleCase(t(`fish.${id}` as Key))).join(' · ')],
-      [t('fc.moon'), `${sentence(t(`astro.moon.${f.moonPhase}` as Key))} · ${n0(f.moonIllum * 100)}%`],
-      [t('fc.tide'), t(f.tideRising ? 'fc.tide.rising' : 'fc.tide.falling')],
+      { kind: 'fish', k: t('fc.catch'), v: f.species.map((id) => titleCase(t(`fish.${id}` as Key))).join(' · '), val: null, tip: t('tip.fish') },
+      { kind: 'moon', k: t('fc.moon'), v: `${sentence(t(`astro.moon.${f.moonPhase}` as Key))} · ${n0(f.moonIllum * 100)}%`, val: f.moonIllum, tip: tipOf('moon', f.moonIllum), opt: { waxing: f.moonPhase <= 4 } },
+      { kind: 'tide', k: t('fc.tide'), v: t(f.tideRising ? 'fc.tide.rising' : 'fc.tide.falling'), val: f.tideLevel, tip: t(f.tideRising ? 'tip.tide.up' : 'tip.tide.down'), opt: { rising: f.tideRising } },
     ];
   }
   if (r.water && r.activity === 'snorkel') {
     // Snorkelling happens at the surface over a shallow reef: getting in, chop, drift, how much water, sun, stingers.
     const w = r.water;
-    const uvWord = (uv: number) => sentence(t(uv >= 8 ? 'dive.uv.cover' : uv >= 6 ? 'dive.uv.high' : 'dive.uv.ok'));
     return [
-      [t('fc.entry'), `${n1(w.breakerM)} m${w.rip ? ` · ${t('fc.rip')} ${sentence(t(`dive.rip.${w.rip}` as Key)).toLowerCase()}` : ''}`],
-      [t('fc.chop'), w.windKt === null ? dash : `${t(`fc.chop.${chopFor(w.windKt)}` as Key)} · ${n0(w.windKt)} kt`],
-      [t('fc.current'), w.currentKt === null ? dash : `${t(`fc.drift.${driftFor(w.currentKt)}` as Key)} · ${n1(w.currentKt)} kt`],
-      [t('fc.overReef'), w.waterM === null ? dash : `${n1(w.waterM)} m`],
-      [t('fc.uv'), w.uv === null ? dash : `${n0(w.uv)} · ${uvWord(w.uv)}`],
-      [t('fc.stingers'), w.stingers === null ? dash : sentence(t(w.stingers ? 'snk.stingers.maybe' : 'snk.stingers.low'))],
+      entry(w.breakerM, w.rip),
+      { kind: 'chop', k: t('fc.chop'), v: w.windKt === null ? dash : `${t(`fc.chop.${chopFor(w.windKt)}` as Key)} · ${n0(w.windKt)} kt`, val: w.windKt, tip: tipOf('chop', w.windKt) },
+      current(w.currentKt),
+      { kind: 'reef', k: t('fc.overReef'), v: w.waterM === null ? dash : `${n1(w.waterM)} m`, val: w.waterM, tip: tipOf('reef', w.waterM) },
+      uvTile(w.uv),
+      { kind: 'stingers', k: t('fc.stingers'), v: w.stingers === null ? dash : sentence(t(w.stingers ? 'snk.stingers.maybe' : 'snk.stingers.low')), val: w.stingers === null ? null : w.stingers ? 1 : 0, tip: w.stingers === null ? null : tipOf('stingers', w.stingers ? 1 : 0) },
     ];
   }
   if (r.water) {
     // Diving is about the bottom: surge at depth, drift, temperature for the suit.
     const w = r.water;
     return [
-      [t('fc.surge', { d: w.depthM }), `${t(`fc.surge.${w.surge}` as Key)} · ${w.surgeMs.toFixed(2)} m/s`],
-      [t('fc.current'), w.currentKt === null ? dash : `${t(`fc.drift.${driftFor(w.currentKt)}` as Key)} · ${n1(w.currentKt)} kt`],
-      [t('fc.sst'), w.sstC === null ? dash : `${n1(w.sstC)} °C`],
+      { kind: 'surge', k: t('fc.surge', { d: w.depthM }), v: `${t(`fc.surge.${w.surge}` as Key)} · ${w.surgeMs.toFixed(2)} m/s`, val: w.surgeMs, tip: t(`tip.surge.${w.surge}` as Key) },
+      current(w.currentKt),
+      water(w.sstC, t('fc.sst')),
       // A shore dive starts by swimming out through the break; the week's best time is in its own callout above.
-      [t('fc.entry'), `${n1(w.breakerM)} m${w.rip ? ` · ${t('fc.rip')} ${sentence(t(`dive.rip.${w.rip}` as Key)).toLowerCase()}` : ''}`],
+      entry(w.breakerM, w.rip),
     ];
   }
   if (r.swim) {
     // A beach day: safety in the water first, then the sun, the heat and the water.
     const w = r.swim;
-    const uvWord = (uv: number) => t(`fc.uvw.${uvLevel(uv)}` as Key);
+    const ripLv = { LOW: 3, MOD: 2, HIGH: 0 } as const;
     return [
-      [t('fc.ripRisk'), t(`fc.ripw.${w.rip}` as Key)],
-      [t('fc.shorebreak'), `${n1(w.breakerM)} m · ${t(`fc.size.${surfSizeOf(w.breakerM)}` as Key).toLowerCase()}`],
-      [t('fc.uv'), w.uv === null ? dash : `${n0(w.uv)} · ${uvWord(w.uv)}`],
-      [t('fc.feels'), w.feelsC === null ? dash : `${n0(w.feelsC)} °C${w.airC === null ? '' : ` · ${t('fc.airIs', { c: n0(w.airC) })}`}`],
-      [t('fc.water'), w.sstC === null ? dash : `${n1(w.sstC)} °C`],
-      [t('fc.wind'), w.windKt === null ? dash : `${n0(w.windKt)} kt${w.rainMmH !== null && w.rainMmH >= 0.2 ? ` · ${t('fc.row.rain').toLowerCase()} ${n1(w.rainMmH)} mm/h` : ''}`],
+      { kind: 'rip', k: t('fc.ripRisk'), v: t(`fc.ripw.${w.rip}` as Key), val: w.ripScore, tip: t(`tip.rip.${w.rip}` as Key), lv: ripLv[w.rip] },
+      { kind: 'breaker', k: t('fc.shorebreak'), v: `${n1(w.breakerM)} m · ${t(`fc.size.${surfSizeOf(w.breakerM)}` as Key).toLowerCase()}`, val: w.breakerM, tip: tipOf('breaker', w.breakerM) },
+      uvTile(w.uv),
+      { kind: 'feels', k: t('fc.feels'), v: w.feelsC === null ? dash : `${n0(w.feelsC)} °C${w.airC === null ? '' : ` · ${t('fc.airIs', { c: n0(w.airC) })}`}`, val: w.feelsC, tip: tipOf('feels', w.feelsC) },
+      water(w.sstC),
+      { kind: 'wind', k: t('fc.wind'), v: w.windKt === null ? dash : `${n0(w.windKt)} kt`, val: w.windKt, tip: tipOf('wind', w.windKt) },
     ];
   }
   if (r.sail) {
     const s = r.sail;
     return [
-      [t('fc.gust'), s.gustKt === null ? dash : `${n0(s.gustKt)} kt`],
-      [t('fc.comfort'), r.score === null ? dash : `${n0(r.score)}/100`],
-      [t('fc.swell'), s.swellM === null ? dash : `${n1(s.swellM)} m`],
+      { kind: 'gust', k: t('fc.gust'), v: s.gustKt === null ? dash : `${n0(s.gustKt)} kt`, val: s.gustKt, tip: tipOf('gust', s.gustKt) },
+      { kind: 'boat', k: t('fc.comfort'), v: r.score === null ? dash : `${n0(r.score)}/100`, val: r.score, tip: tipOf('boat', r.score) },
+      { kind: 'swell', k: t('fc.swell'), v: s.swellM === null ? dash : `${n1(s.swellM)} m`, val: s.swellM, tip: tipOf('swell', s.swellM) },
     ];
   }
   return [];
+}
+
+const SKY_WORD: Record<NonNullable<DayWeather['sky']>, Key> = {
+  sun: 'fc.sky.sun', partly: 'fc.sky.partly', cloud: 'fc.sky.cloud', showers: 'fc.sky.showers', rain: 'fc.sky.rain', storm: 'fc.sky.storm',
+};
+/** The weather tip: when the rain comes, or what the sun asks for. */
+function weatherTip(w: DayWeather): string | null {
+  const at = (ms: number | null) => (ms === null ? '' : localClock(ms));
+  let tip: string | null = null;
+  switch (w.sky) {
+    case 'storm': tip = t('tip.wx.storm', { h: at(w.wettestMs ?? w.rainPeakMs) }); break;
+    case 'rain': tip = t('tip.wx.rain', { mm: n0(w.rainMm ?? 0), h: at(w.wettestMs) }); break;
+    case 'showers': tip = t('tip.wx.showers', { h: at(w.rainPeakMs ?? w.wettestMs) }); break;
+    case 'cloud': tip = t('tip.wx.cloud'); break;
+    case 'sun': case 'partly': tip = w.uvMax !== null && w.uvMax >= 7.5 ? t('tip.wx.sunUv', { uv: n0(w.uvMax) }) : t('tip.wx.sun'); break;
+    default: return null;
+  }
+  const heat = w.feelsMaxC !== null && w.feelsMaxC >= 32 ? ` ${t(w.feelsMaxC >= 39 ? 'tip.feels.danger' : 'tip.feels.hot')}` : '';
+  return tip + heat;
+}
+/** The weather tile: the day's sky as a picture, high and low, real feel, then rain, humidity, water, UV and wind. */
+function weatherTile(w: DayWeather, sstC: number | null, dayName: string, open: boolean, id: string): string {
+  const dash = '--';
+  const deg = (c: number | null) => (c === null ? dash : `${n0(c)}°`);
+  const facts = [
+    ['rain', t('fc.rainChance'), w.rainPct === null ? dash : `${n0(w.rainPct)}%${w.rainMm === null ? '' : ` · ${n1(w.rainMm)} mm`}`],
+    ['humid', t('fc.humidity'), w.humidityPct === null ? dash : `${n0(w.humidityPct)}%`],
+    ['water', t('fc.water'), sstC === null ? dash : `${n1(sstC)} °C`],
+    ['uv', t('fc.uvPeakShort'), w.uvMax === null ? dash : `${n0(w.uvMax)} · ${t(`fc.uvw.${uvLevel(w.uvMax)}` as Key)}`],
+    ['wind', t('fc.windPeak'), w.windKt === null ? dash : `${n0(w.windKt)} kt${w.gustKt === null ? '' : ` · ${t('fc.gust').toLowerCase()} ${n0(w.gustKt)}`}`],
+  ] as const;
+  const tip = weatherTip(w);
+  return `<div class="fc-tile fc-wx fc-wx-${w.sky ?? 'none'}" role="button" tabindex="0" data-tile="${id}" aria-expanded="${open}"${tip ? '' : ' data-notip=""'}>
+    <span class="fc-wx-ico">${skyIcon(w.sky)}</span>
+    <span class="fc-wx-main">
+      <span class="fc-tile-k">${t('fc.weather')} · ${dayName}</span>
+      <span class="fc-wx-word">${w.sky ? t(SKY_WORD[w.sky]) : t('fc.nodata')}</span>
+      <span class="fc-wx-temp"><b>${deg(w.hiC)}</b><span>${deg(w.loC)}</span></span>
+      <span class="fc-wx-feels">${miniIcon('feels')}${t('fc.feels')} ${deg(w.feelsMaxC)}</span>
+    </span>
+    <ul class="fc-wx-facts">${facts.map(([ic, k, v]) => `<li>${miniIcon(ic)}<span>${k}</span><b>${v}</b></li>`).join('')}</ul>
+    ${tip ? `<span class="fc-tile-tip"><span>${tip}</span></span>` : ''}</div>`;
 }
 
 /** Animate a number in `el` from what it shows to `to` (ranges "a–b" animate both ends). Instant under reduced motion. */
@@ -264,8 +339,11 @@ export function mountForecastPage(deps: ForecastDeps) {
           <div class="fc-rate" id="fc-rate"></div>
           <button type="button" class="fc-best-time" id="fc-best-time" hidden></button>
           <ul class="fc-why" id="fc-why"></ul>
-          <dl class="fc-stats" id="fc-stats"></dl>
         </div>
+      </section>
+      <section class="fc-card fc-cond-card">
+        <div class="fc-card-head"><h2>${t('fc.conditions')}</h2><span class="fc-cond-when" id="fc-cond-when"></span></div>
+        <div class="fc-tiles" id="fc-tiles"></div>
       </section>
       <section class="fc-card fc-days-card">
         <div class="fc-card-head"><h2>${t('fc.days')}</h2><button type="button" class="fc-now" id="fc-now" hidden>${t('fc.now')}</button></div>
@@ -340,6 +418,10 @@ export function mountForecastPage(deps: ForecastDeps) {
   let scrolledFor = '';
   let openedAt = 0;
   let artFor = '';
+  /** What the hero shows, for the tiles under it; and which tiles are open (kept across redraws). */
+  let heroRead: FcRead | null = null;
+  let heroDay = 0;
+  const openTiles = new Set<string>();
 
   const spots = () => spotsForActivity(act, SPOTS);
   const nearestSpot = (list: Spot[]) => {
@@ -391,6 +473,13 @@ export function mountForecastPage(deps: ForecastDeps) {
   };
   const levelWord = (r: FcRead) => (r.level === null ? t('fc.nodata') : r.surf ? sentence(t(`surf.band.${r.surf.band}` as Key)) : t(`fc.lvl.${r.level}` as Key));
 
+  /** A spot card's weather now: the sky, the air and the chance of rain. */
+  const spotWx = (s: Spot, ms: number) => {
+    const w = hourWeather(deps.env, s, ms);
+    const k = skyKind(w);
+    if (!k && w.airC === null) return '';
+    return `<span class="fc-spot-wx">${k ? `<svg class="fc-spot-sky fc-i fc-i-${k}" viewBox="-9 -9 18 19" aria-hidden="true">${SKY_ICON[k]}</svg>` : ''}${w.airC === null ? '' : `<b>${n0(w.airC)}°</b>`}${w.rainPct === null ? '' : `<span class="fc-spot-rain">${miniIcon('rain')}${n0(w.rainPct)}%</span>`}</span>`;
+  };
   /** The spots as mini forecasts: name, the headline now, its rating, and the next 12 hours as a strip. Thumb-scroll, tap to switch. */
   const renderSpots = () => {
     const now = nowHour();
@@ -404,6 +493,7 @@ export function mountForecastPage(deps: ForecastDeps) {
           <span class="fc-spot-name">${titleCase(s.name)}</span>
           <span class="fc-spot-big"><b>${hl.value}</b><small>${hl.unit}</small></span>
           <span class="fc-spot-word">${levelWord(r)}</span>
+          ${spotWx(s, now)}
           <span class="fc-spot-strip" aria-hidden="true">${strip}</span>
           <span class="fc-spot-cap" aria-hidden="true"><span>${t('fc.now')}</span><span>${t('fc.plus12')}</span></span>
           <span class="fc-spot-ico" aria-hidden="true">${icon(act)}</span></button>`;
@@ -478,9 +568,8 @@ export function mountForecastPage(deps: ForecastDeps) {
       ? `<span class="fc-word">${t('fc.nodata')}</span>`
       : `<span class="fc-word l${r.level}">${r.surf ? sentence(t(`surf.band.${r.surf.band}` as Key)) : t(`fc.lvl.${r.level}` as Key)}</span>${bar(r.level)}${r.surf ? `<span class="fc-of">${n1(r.score!)}/10</span>` : ''}`);
     html('fc-why', reasons(r).map((x) => `<li>${x}</li>`).join(''));
-    const st = stats(r, plan, dayIdx);
-    $('fc-stats').dataset.n = String(st.length);
-    html('fc-stats', st.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join(''));
+    heroRead = r;
+    heroDay = dayIdx;
     const artLabel =
       act === 'surf' ? t('fc.art.surf', { m: r.surf ? n1(r.surf.hb) : '--' })
       : act === 'fish' ? t('fc.art.fish')
@@ -546,7 +635,7 @@ export function mountForecastPage(deps: ForecastDeps) {
       geom = { px, tzOffsetH: REGION.tzOffsetH };
       const wins = (plan?.days ?? []).flatMap((d) => (d ? [{ startMs: d.startMs, endMs: d.endMs }] : []));
       const rows = rowsFor(act)
-        .map((r) => `<div class="fc-row"><div class="fc-row-k">${t(`fc.row.${r.id}` as Key)} <span>${t(`fc.unit.${r.id}` as Key)}</span>${tl.some((h) => r.value(h) !== null) ? '' : ` <em>${t('fc.noRow')}</em>`}</div>${rowSvg(r, tl, geom, wins)}</div>`)
+        .map((r, i, all) => `${r.wx && !all[i - 1]?.wx ? `<div class="fc-row fc-row-group"><div class="fc-row-k">${t('fc.row.wxgroup')}</div></div>` : ''}<div class="fc-row"><div class="fc-row-k">${t(`fc.row.${r.id}` as Key)} <span>${t(`fc.unit.${r.id}` as Key)}</span>${tl.some((h) => r.value(h) !== null) ? '' : ` <em>${t('fc.noRow')}</em>`}</div>${rowSvg(r, tl, geom, wins)}</div>`)
         .join('');
       html('fc-tl-in', `${timeAxis(tl, geom, (ms, i) => dayLabel(ms, i))}<div class="fc-row fc-row-sky">${skyRow(tl, geom)}</div><div class="fc-row fc-row-rating"><div class="fc-row-k">${t('fc.row.rating')}</div>${ratingStrip(tl, geom)}</div>${rows}`);
     }
@@ -587,12 +676,43 @@ export function mountForecastPage(deps: ForecastDeps) {
       h.windKt === null || act === 'sail' ? '' : `<li>${t('fc.wind')} <b>${n0(h.windKt)} kt ${cmp(h.windFromDeg)}</b>${h.gustKt === null ? '' : ` · ${t('fc.gust').toLowerCase()} ${n0(h.gustKt)}`}</li>`,
       `<li>${t('fc.tide')} <b>${h.tideM.toFixed(2)} m</b></li>`,
       h.rainMmH !== null && h.rainMmH >= 0.1 ? `<li>${t('fc.row.rain')} <b>${n1(h.rainMmH)} mm/h</b></li>` : '',
-      h.airC === null ? '' : `<li>${t('fc.air')} <b>${n0(h.airC)} °C</b></li>`,
+      h.airC === null ? '' : `<li>${t('fc.air')} <b>${n0(h.airC)} °C</b>${h.feelsC === null ? '' : ` · ${t('fc.feels').toLowerCase()} ${n0(h.feelsC)}`}</li>`,
+      h.rainPct === null ? '' : `<li>${t('fc.row.rainpct')} <b>${n0(h.rainPct)}%</b></li>`,
+      h.humidityPct === null ? '' : `<li>${t('fc.humidity')} <b>${n0(h.humidityPct)}%</b></li>`,
       h.uv === null || h.uv < 0.5 ? '' : `<li><span class="fc-dot l${uvLevel(h.uv)}"></span>UV <b>${n0(h.uv)}</b> · ${t(`fc.uvw.${uvLevel(h.uv)}` as Key)}</li>`,
     ];
     html('fc-readout', items.join(''));
   };
 
+  /** The weather tile (the selected day at this spot, a traditional forecast) and the activity's picture tiles. */
+  const renderConditions = () => {
+    const r = heroRead;
+    if (!r) return;
+    const sp = spot();
+    const ms = when();
+    const d0 = localDayStart(ms, REGION.tzOffsetH);
+    const i0 = tlIndex(d0);
+    const dayHours = i0 >= 0 ? tl.slice(i0, i0 + 24) : [];
+    const wx = dayWeather(dayHours);
+    const sst = waterAt(deps.env, sp, d0);
+    const d = new Date(ms + REGION.tzOffsetH * H);
+    const today = d0 === localDayStart(Date.now(), REGION.tzOffsetH);
+    const dayName = today ? t('fc.today') : `${sentence(t(`day.${d.getUTCDay()}` as Key))} ${d.getUTCDate()}`;
+    $('fc-cond-when').textContent = `${dayName} · ${localClock(ms)}`;
+    const tiles = stats(r, plan, heroDay);
+    const tileHtml = (x: TileSpec, i: number) => {
+      const id = `${act}:${x.kind}:${i}`;
+      const open = openTiles.has(id);
+      return `<div class="fc-tile${x.lv === null || x.lv === undefined ? '' : ` l${x.lv}`}" role="button" tabindex="0" data-tile="${id}" aria-expanded="${open}"${x.tip ? '' : ' data-notip=""'}>
+        <span class="fc-tile-ico">${tileIcon(x.kind, x.val, { ...x.opt, lv: x.lv })}</span>
+        <span class="fc-tile-k">${x.k}</span>
+        <span class="fc-tile-v">${x.v}</span>
+        ${x.tip ? `<span class="fc-tile-tip"><span>${x.tip}</span></span>` : ''}</div>`;
+    };
+    const wid = `${act}:wx`;
+    html('fc-tiles', `${weatherTile(wx, sst, dayName, openTiles.has(wid), wid)}${tiles.map(tileHtml).join('')}`);
+    $('fc-tiles').dataset.n = String(tiles.length);
+  };
   const render = () => {
     if (el.hidden) return;
     renderActs();
@@ -600,6 +720,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     renderSpots();
     renderHero();
     renderTimeline();
+    renderConditions();
   };
 
   // --- events
@@ -674,6 +795,25 @@ export function mountForecastPage(deps: ForecastDeps) {
     const i = Math.floor((e.clientX - r.left) / geom.px);
     return i >= 0 && i < tl.length ? tl[i].ms : null;
   };
+  // Tiles open on tap or Enter (hover opens them on a mouse); the open set survives redraws.
+  const toggleTile = (e: Event) => {
+    const tile = (e.target as HTMLElement).closest<HTMLElement>('[data-tile]');
+    if (!tile) return;
+    const id = tile.dataset.tile!;
+    const open = !openTiles.has(id);
+    if (open) openTiles.add(id);
+    else openTiles.delete(id);
+    tile.setAttribute('aria-expanded', String(open));
+    // Keep the cached markup in step, so the next redraw does not undo the toggle.
+    delete $('fc-tiles').dataset.html;
+  };
+  $('fc-tiles').addEventListener('click', toggleTile);
+  $('fc-tiles').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleTile(e);
+    }
+  });
   $('fc-tl').addEventListener('click', (e) => {
     const ms = hourAt(e);
     if (ms === null) return;
