@@ -9,7 +9,7 @@
  *    cell's clear-water baseline for the time of year (clarity-baseline.ts), plus what the newest map
  *    adds to it, but only while that map is fresh and only for the murk the model's own causes
  *    (plume and bed stirring on that day) don't already explain, so a flood or a swell is not counted twice:
- *      r = Kd_map − causes(t_map) − Kd_clear
+ *      a = Kd_map − Kd_clear,   r = max(0, a − causes(t_map)) if a > 0, else a
  *      Kd_sat(t) = max(KD_WATER, Kd_clear + w(L)·r),   w(L) = exp(−L / SAT_FRESH_TAU_D), 0 past SAT_MAX_AGE_D
  *    with L the map's age in days at t. Coastal ocean-colour anomalies last a few days. Past
  *    SAT_MAX_AGE_D the map says nothing about today, and the term is the baseline alone. Its ln-space
@@ -82,7 +82,11 @@ export interface ClearKd {
 /**
  * Satellite Kd at `ms` (1/m) and its ln-space 1σ. `clear`: the cell's baseline (null: none, anchor on
  * the recent median). `causesAtMap`: the model's plume plus bed-stirring Kd at the point on the day of
- * the newest map, 1/m (what the map's murk is already explained by).
+ * the newest map, 1/m (what the map's murk is already explained by). Causes only explain murk: they take
+ * a map's excess over the baseline down to zero at most, and leave a map clearer than the baseline as it is
+ * (PLAN 7.49). Subtracting them past zero read 55 m at Playa Cocles on 2026-11-10, the bed stirring the
+ * model gave a 2 m deep point on the map day pushing the term down to pure water, though the 4 km pixel's
+ * water was never stirred like that.
  */
 export function satKdAt(s: SatState | null, ms: number, clear: ClearKd | null = null, causesAtMap = 0): { kd: number; sigma: number } {
   const ok = clear && clear.kd > 0 && Number.isFinite(clear.kd);
@@ -90,7 +94,8 @@ export function satKdAt(s: SatState | null, ms: number, clear: ClearKd | null = 
   if (!s) return { kd: ok ? clear.kd : KD_BACKGROUND, sigma: sigmaClear };
   const anchor = ok ? clear.kd : Math.exp(s.median);
   const w = satWeight((ms - s.lastMs) / DAY_MS);
-  const r = Math.exp(s.last) - Math.max(0, causesAtMap) - anchor;
+  const a = Math.exp(s.last) - anchor;
+  const r = a > 0 ? Math.max(0, a - Math.max(0, causesAtMap)) : a;
   const kd = Math.max(KD_WATER, anchor + w * r);
   const sigma = Math.sqrt(w * w * SIGMA_RETRIEVAL ** 2 + (1 - w * w) * sigmaClear ** 2);
   return { kd, sigma };
