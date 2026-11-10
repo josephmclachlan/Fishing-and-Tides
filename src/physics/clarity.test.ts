@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clarity, clarityLevel, effectiveRain, kdFromChl, plumeKd, resuspensionKd, secchiFromKd, KD_PLUME, PLUME_DECAY_S, PLUME_SATURATION_MM, PLUME_RAIN_FROM_MM, flowPlumeMm, runoffMm } from './clarity';
+import { clarity, clarityLevel, effectiveRain, kdFromChl, plumeKd, resuspensionKd, secchiFromKd, KD_PLUME, PLUME_DECAY_S, PLUME_SATURATION_MM, flowPlumeMm } from './clarity';
 import { clarityAt, clarityGrid, riverRain, satHistory, type ClarityContext } from '../layers/clarity';
 import type { SatelliteData } from '../adapters/satellite';
 import type { GridSeries } from '../adapters/pack';
@@ -115,12 +115,14 @@ describe('clarity layer maths', () => {
     expect(clarityAt(ctx(80), lng, lat)!.terms).toBeUndefined();
     const x = clarityAt(ctx(80), lng, lat, undefined, undefined, { terms: true })!;
     expect(x.terms!.satKd + x.terms!.plumeKd + x.terms!.resKd).toBeCloseTo(x.kd, 6);
-    expect(x.terms!.plumeKd).toBeGreaterThan(1);
+    // The Sixaola takes hours to bring the mud down (lag about 10 h), so an hour after the burst it is only starting.
+    expect(x.terms!.plumeKd).toBeGreaterThan(0.3);
     expect(x.terms!.hs).toBe(0.5);
   });
   it('carries the plume down-current (PLAN 7.2)', () => {
-    // 40 mm/h ten hours ago; the current sets north-west at 0.4 m/s, so the plume runs up the coast ~14 km.
-    const c = { ...ctx(0), rain: { times: [t0 - 10 * H], byRiver: Object.fromEntries(PLUME_RIVERS.map((r) => [r.name, [40]])), fetchedAt: t0, fromCache: false } };
+    // 40 mm/h a day and a half ago; the current sets north-west at 0.4 m/s. The mud reached the sea over the
+    // Sixaola's lag (about 10 h) and has been drifting since, so the plume runs well up the coast.
+    const c = { ...ctx(0), rain: { times: [t0 - 36 * H], byRiver: Object.fromEntries(PLUME_RIVERS.map((r) => [r.name, [40]])), fetchedAt: t0, fromCache: false } };
     const drifting: ClarityContext = { ...c, currentAt: () => [-0.28, 0.28] };
     const [lng, lat] = sixaola.mouth;
     const up = [lng - 0.06, lat + 0.06] as const; // down-current, ~9 km
@@ -174,13 +176,6 @@ describe('measured river flow in the plume', () => {
     fromCache: false,
   });
   const at: [number, number] = [sixaola.mouth[0] + 0.01, sixaola.mouth[1] + 0.01];
-  it('runoffMm: the soil takes the first rain, a saturating storm still saturates', () => {
-    expect(runoffMm(0)).toBe(0);
-    expect(runoffMm(PLUME_RAIN_FROM_MM)).toBe(0);
-    expect(runoffMm(PLUME_SATURATION_MM)).toBeCloseTo(PLUME_SATURATION_MM);
-    expect(runoffMm(30)).toBeGreaterThan(0);
-    expect(runoffMm(30)).toBeLessThan(30);
-  });
   it('a few mm of drizzle over three days makes no plume, even carried down the coast', () => {
     // About 2 mm a day in every catchment, the current running north-west at 0.3 m/s.
     const times = Array.from({ length: 72 }, (_, i) => t0 - (72 - i) * H);

@@ -1,6 +1,6 @@
 /**
  * Rain over the river catchments (PLAN 6.1), for the clarity layer's plume term: hourly rainfall
- * for the last 3 days and the next 16 at one point inside each PLUME_RIVERS catchment, from
+ * for the last 7 days (5 of them say how wet the ground is, PLAN 7.50) and the next 16 at one point inside each PLUME_RIVERS catchment, from
  * Open-Meteo's best-match forecast (CORS allowed; one call for all the points, so the phone fetches
  * it directly through the offline cache, like the weather adapter).
  */
@@ -22,7 +22,7 @@ export interface CatchmentRain {
 export const rainPoints = (): [number, number][] => [...new Map(PLUME_RIVERS.map((r) => [r.rainAt.join(','), r.rainAt])).values()];
 
 export const catchmentRainUrl = (pts = rainPoints()) =>
-  `https://api.open-meteo.com/v1/forecast?latitude=${pts.map((p) => p[1]).join(',')}&longitude=${pts.map((p) => p[0]).join(',')}&hourly=precipitation&past_days=3&forecast_days=16&timeformat=unixtime&timezone=GMT`;
+  `https://api.open-meteo.com/v1/forecast?latitude=${pts.map((p) => p[1]).join(',')}&longitude=${pts.map((p) => p[0]).join(',')}&hourly=precipitation&past_days=7&forecast_days=16&timeformat=unixtime&timezone=GMT`;
 
 export function parseCatchmentRain(json: unknown, fetchedAt: number, fromCache = false): CatchmentRain {
   const pts = rainPoints();

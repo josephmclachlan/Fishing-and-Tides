@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  clarityBand, distToSegment, driftedPlumeKd, plumeAge, segmentFraction, plumeDrift, satKdAt, satState, satWeight, waveSpread,
+  clarityBand, distToSegment, driftedPlumeKd, segmentFraction, plumeDrift, satKdAt, satState, satWeight, waveSpread,
   KD_WATER, PLUME_MAX_DRIFT_M, SAT_FRESH_TAU_D, SAT_MAX_AGE_D, SIGMA_CELL_DEFAULT, SIGMA_RETRIEVAL,
 } from './clarity-forecast';
 import { plumeKd, secchiFromKd, KD_BACKGROUND } from './clarity';
@@ -76,14 +76,6 @@ describe('satellite forecast (PLAN 7.45)', () => {
 });
 
 describe('plume transport', () => {
-  it('ages a plume by its rain, newest weighted most', () => {
-    const H = 3.6e6;
-    expect(plumeAge([t0], [10], t0 + 6 * H)).toBeCloseTo(6 * 3600);
-    const a = plumeAge([t0, t0 + 24 * H], [10, 10], t0 + 24 * H);
-    expect(a).toBeGreaterThan(0);
-    expect(a).toBeLessThan(12 * 3600); // the fresh rain pulls the mean age under the midpoint
-    expect(plumeAge([t0], [0], t0 + H)).toBe(0);
-  });
   it('drifts with the current for its age, capped', () => {
     expect(plumeDrift(3600, [0.5, -0.2])).toEqual([1800, -720]);
     const far = plumeDrift(5 * 86400, [1, 0]);
