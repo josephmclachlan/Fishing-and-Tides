@@ -17,9 +17,10 @@ import { compassName } from '../spot-charts';
 import type { Spot } from '../metrics/forecast';
 import type { Plan } from '../metrics/plan';
 import { heroArt } from './art';
+import { ratingStrip, rowSvg, rowsFor, timeAxis, type ChartGeom } from './charts';
 import {
-  FC_ACTIVITIES, daysAt, isFcActivity, parseRoute, readAt, routeHash, spotsForActivity,
-  type FcActivity, type FcDeps, type FcRead, type Level,
+  FC_ACTIVITIES, daysAt, isFcActivity, parseRoute, readAt, routeHash, spotsForActivity, timeline,
+  type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour,
 } from './model';
 import './forecast.css';
 
@@ -219,6 +220,12 @@ export function mountForecastPage(deps: ForecastDeps) {
         <div class="fc-card-head"><h2>${t('fc.days')}</h2><button type="button" class="fc-now" id="fc-now" hidden>${t('fc.now')}</button></div>
         <div class="fc-days" id="fc-days"></div>
       </section>
+      <section class="fc-card fc-hours-card">
+        <div class="fc-card-head"><h2>${t('fc.hours')}</h2></div>
+        <ul class="fc-readout" id="fc-readout" aria-live="polite"></ul>
+        <div class="fc-tl" id="fc-tl"><div class="fc-tl-in" id="fc-tl-in"></div><div class="fc-cursor" id="fc-cursor" hidden></div></div>
+        <p class="fc-tl-hint">${t('fc.hoursHint')}</p>
+      </section>
       <p class="fc-note">${t('fc.note')}</p>
     </div>`;
   document.body.appendChild(el);
@@ -264,6 +271,9 @@ export function mountForecastPage(deps: ForecastDeps) {
   /** We pushed the history entry, so closing can step back instead of adding one. */
   let pushed = false;
   let shownSpot = '';
+  let tl: TimelineHour[] = [];
+  let tlKey = '';
+  let geom: ChartGeom = { px: 6, tzOffsetH: REGION.tzOffsetH };
 
   const spots = () => spotsForActivity(act, SPOTS);
   const nearestSpot = (list: Spot[]) => {
@@ -373,12 +383,56 @@ export function mountForecastPage(deps: ForecastDeps) {
       .join(''));
   };
 
+  /** The hour-by-hour charts: built when the spot, activity, hour or width changes, or while data is missing. */
+  const renderTimeline = () => {
+    const sp = spot();
+    const width = $('fc-tl').clientWidth || 340;
+    const px = Math.max(6, Math.floor((width / (7 * 24)) * 10) / 10);
+    const key = `${act}|${sp.name}|${nowHour()}|${px}`;
+    const missing = !tl.length || tl.every((h) => h.read.level === null);
+    if (key !== tlKey || missing) {
+      const start = plan?.startMs ?? localDayStart(Date.now(), REGION.tzOffsetH);
+      tl = timeline(deps, act, sp, start);
+      tlKey = key;
+      geom = { px, tzOffsetH: REGION.tzOffsetH };
+      const wins = (plan?.days ?? []).flatMap((d) => (d ? [{ startMs: d.startMs, endMs: d.endMs }] : []));
+      const rows = rowsFor(act)
+        .map((r) => `<div class="fc-row"><div class="fc-row-k">${t(`fc.row.${r.id}` as Key)} <span>${t(`fc.unit.${r.id}` as Key)}</span>${tl.some((h) => r.value(h) !== null) ? '' : ` <em>${t('fc.noRow')}</em>`}</div>${rowSvg(r, tl, geom, wins)}</div>`)
+        .join('');
+      html('fc-tl-in', `${timeAxis(tl, geom, (ms, i) => dayLabel(ms, i))}<div class="fc-row fc-row-rating"><div class="fc-row-k">${t('fc.row.rating')}</div>${ratingStrip(tl, geom)}</div>${rows}`);
+    }
+    placeCursor(when());
+  };
+  const tlIndex = (ms: number) => (tl.length ? Math.round((ms - tl[0].ms) / H) : -1);
+  /** Move the cursor line and the readout to an hour (no rebuild: cheap enough for a mouse move). */
+  const placeCursor = (ms: number) => {
+    const i = tlIndex(ms);
+    const c = $('fc-cursor');
+    if (i < 0 || i >= tl.length) return void (c.hidden = true);
+    c.hidden = false;
+    c.style.transform = `translateX(${(i + 0.5) * geom.px}px)`;
+    const h = tl[i];
+    const d = new Date(h.ms + REGION.tzOffsetH * H);
+    const r = h.read;
+    const hl = headline(r);
+    const items = [
+      `<li class="fc-ro-when">${sentence(t(`day.${d.getUTCDay()}` as Key))} ${d.getUTCDate()} · ${localClock(h.ms)}</li>`,
+      `<li><span class="fc-dot ${r.level === null ? '' : `l${r.level}`}"></span>${t(`fc.metric.${act}` as Key)} <b>${hl.value}${hl.unit ? ` ${hl.unit}` : ''}</b>${r.level === null ? '' : ` · ${r.surf ? sentence(t(`surf.band.${r.surf.band}` as Key)) : t(`fc.lvl.${r.level}` as Key)}`}</li>`,
+      h.windKt === null || act === 'sail' ? '' : `<li>${t('fc.wind')} <b>${n0(h.windKt)} kt ${cmp(h.windFromDeg)}</b>${h.gustKt === null ? '' : ` · ${t('fc.gust').toLowerCase()} ${n0(h.gustKt)}`}</li>`,
+      `<li>${t('fc.tide')} <b>${h.tideM.toFixed(2)} m</b></li>`,
+      h.rainMmH !== null && h.rainMmH >= 0.1 ? `<li>${t('fc.row.rain')} <b>${n1(h.rainMmH)} mm/h</b></li>` : '',
+      h.airC === null ? '' : `<li>${t('fc.air')} <b>${n0(h.airC)} °C</b></li>`,
+    ];
+    html('fc-readout', items.join(''));
+  };
+
   const render = () => {
     if (el.hidden) return;
     renderActs();
     renderDays();
     renderSpots();
     renderHero();
+    renderTimeline();
   };
 
   // --- events
@@ -411,8 +465,30 @@ export function mountForecastPage(deps: ForecastDeps) {
     sel = i === 0 && !d ? null : start;
     renderDays();
     renderHero();
+    $('fc-tl').scrollTo({ left: Math.max(0, i * 24 * geom.px - 24), behavior: 'smooth' });
+    placeCursor(when());
   });
-  $('fc-now').addEventListener('click', () => ((sel = null), renderDays(), renderHero()));
+  // Timeline: a tap (or click) picks the hour for the hero; a mouse hovering previews it in the readout.
+  const hourAt = (e: MouseEvent) => {
+    const r = $('fc-tl-in').getBoundingClientRect();
+    const i = Math.floor((e.clientX - r.left) / geom.px);
+    return i >= 0 && i < tl.length ? tl[i].ms : null;
+  };
+  $('fc-tl').addEventListener('click', (e) => {
+    const ms = hourAt(e);
+    if (ms === null) return;
+    sel = ms;
+    renderDays();
+    renderHero();
+    placeCursor(ms);
+  });
+  $('fc-tl').addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    const ms = hourAt(e);
+    if (ms !== null) placeCursor(ms);
+  });
+  $('fc-tl').addEventListener('pointerleave', () => placeCursor(when()));
+  $('fc-now').addEventListener('click', () => ((sel = null), renderDays(), renderHero(), placeCursor(when())));
   $('fc-back').addEventListener('click', () => close());
   el.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') (e.stopPropagation(), close());
@@ -477,7 +553,7 @@ export function mountForecastPage(deps: ForecastDeps) {
       hide();
     }
   };
-  window.addEventListener('resize', () => !el.hidden && renderActs());
+  window.addEventListener('resize', () => !el.hidden && (renderActs(), renderTimeline()));
 
   // After start-up: the deps read feeds and panels main.ts declares further down.
   window.setTimeout(fromHash, 0);

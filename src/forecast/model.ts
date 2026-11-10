@@ -14,7 +14,7 @@
  * map (surf bands, BITE 40/60, outing CAUTION 40 and GO 70, comfort 50/75), with one extra cut each side.
  */
 import { daySky, localDayStart, type DaySky } from '../physics/astro';
-import { tideState } from '../physics/tide';
+import { predict, tideState } from '../physics/tide';
 import { haversineM } from '../geo';
 import { PLUME_RIVERS } from '../region';
 import { SPECIES, type SpeciesId } from '../fishing/species';
@@ -252,3 +252,44 @@ export function parseRoute(hash: string, spots: readonly Spot[]): Route | null {
   return { spot, activity: isFcActivity(m[2]) ? m[2] : null };
 }
 export const routeHash = (spot: string, a: FcActivity) => `#forecast/${spotSlug(spot)}/${a}`;
+
+/** One hour of the page's timeline: the activity's reading plus the shared rows (wind, gusts, rain, tide, air). */
+export interface TimelineHour {
+  ms: number;
+  read: FcRead;
+  windKt: number | null;
+  windFromDeg: number | null;
+  gustKt: number | null;
+  rainMmH: number | null;
+  tideM: number;
+  airC: number | null;
+  /** The sun is up. */
+  day: boolean;
+}
+
+/**
+ * `hours` hours from `startMs` (a local midnight): what the page's hour-by-hour charts draw. The tide is the
+ * harmonic prediction (exact in every band), the rest the same metric reads as the WATCH tracker's.
+ */
+export function timeline(deps: FcDeps, a: FcActivity, spot: Spot, startMs: number, hours = 7 * 24): TimelineHour[] {
+  const env = deps.env;
+  const sky = skyMemo(env.tzOffsetH);
+  const [lng, lat] = spot.lngLat;
+  return Array.from({ length: hours }, (_, i) => {
+    const ms = startMs + i * H;
+    const s = sky(ms, lat, lng);
+    const args = { env, spot: spot.name, lng, lat, ms, sky: s };
+    const val = (id: string) => METRIC_BY_ID.get(id)!.at(args);
+    return {
+      ms,
+      read: readAt(deps, a, spot, ms, sky),
+      windKt: val('wind'),
+      windFromDeg: val('wdir'),
+      gustKt: val('gust'),
+      rainMmH: val('rain'),
+      tideM: predict(env.tide, ms),
+      airC: val('air'),
+      day: s.sun.sunrise !== null && s.sun.sunset !== null && ms + H / 2 >= s.sun.sunrise && ms + H / 2 < s.sun.sunset,
+    };
+  });
+}
