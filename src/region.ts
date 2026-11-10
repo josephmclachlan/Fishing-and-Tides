@@ -9,6 +9,12 @@ export const REGION = {
   // zooming out never hits a wall (the camera only stops well beyond the analysed area).
   viewBounds: [[-90, 4.5], [-75, 16]] as [[number, number], [number, number]],
   initialZoom: 9.3,
+  /** Resting view: centred on Playa Cocles, framing every activity from Punta Mona (south) to Punta Cahuita (north). */
+  home: {
+    center: [-82.7368, 9.6507] as [number, number],
+    /** Half-height in degrees of latitude kept on screen each side of the centre (Cahuita is ~0.09° north; Gandoca ~0.04° south). */
+    halfLat: 0.1,
+  },
   /** Costa Rica is UTC-6 all year (no daylight saving). Used for local sun, moon and solunar days. */
   tzOffsetH: -6,
 };

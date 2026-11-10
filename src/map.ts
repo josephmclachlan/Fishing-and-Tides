@@ -125,7 +125,7 @@ export function createMap(container: string, view?: { center: [number, number]; 
   const map = new maplibregl.Map({
     container,
     style: STYLE_URL,
-    center: view?.center ?? REGION.center,
+    center: view?.center ?? REGION.home.center,
     zoom: view?.zoom ?? REGION.initialZoom,
     maxBounds: REGION.viewBounds,
     attributionControl: { compact: true },
@@ -136,6 +136,13 @@ export function createMap(container: string, view?: { center: [number, number]; 
     touchPitch: false,
     maxPitch: 0,
   });
+  if (!view) {
+    // Resting view: Playa Cocles centred, Cahuita (north) and Gandoca (south) both in frame.
+    const [lng, lat] = REGION.home.center;
+    const h = REGION.home.halfLat;
+    const cam = map.cameraForBounds([[lng - h * 1.2, lat - h], [lng + h * 1.2, lat + h]]);
+    if (cam) map.jumpTo({ center: REGION.home.center, zoom: cam.zoom });
+  }
   map.touchZoomRotate.disableRotation();
   map.keyboard.disableRotation();
   // Compact credits open themselves when the first source brings its credits (after 'load', so folding once at load
