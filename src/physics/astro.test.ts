@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { REGION, SPOTS } from '../region';
+import { REGION } from '../region';
 import { MAJOR_HALF_MS, MINOR_HALF_MS, daySky, localDayStart, moonPhase, moonTimes, solunarRating, solunarWindows, sunTimes } from './astro';
 
 /**
  * Ground truth from PyEphem 4.1 (same lat/lng, local-midnight day starts, sun at -0:34 horizon and
  * moon at +0:07.5 with use_center) for Limón. Epoch ms.
  */
-const [LNG, LAT] = SPOTS[0].lngLat;
+const [LNG, LAT] = [-83.0235, 9.9927]; // the Limón pin the truth was computed at
 interface Day { start: number; sunrise: number; sunset: number; solarNoon: number; moonrise: number; moonset: number; transit: number; underfoot: number }
 const DAYS: Record<string, Day> = {
   '2024-01-01': { start: 1704088800000, sunrise: 1704109805062, sunset: 1704151259260, solarNoon: 1704130531208, moonrise: 1704168807773, moonset: 1704124582525, transit: 1704102240158, underfoot: 1704146637068 },

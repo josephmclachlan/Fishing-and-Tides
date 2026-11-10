@@ -32,7 +32,7 @@ describe('mock wind', () => {
 describe('mock current', () => {
   const f = mockCurrentField();
   it('runs south-east along the Cahuita–Gandoca shore at a plausible speed', () => {
-    const cahuita = SPOTS.find((s) => s.name === 'CAHUITA')!.lngLat;
+    const cahuita = SPOTS.find((s) => s.name === 'PUNTA CAHUITA')!.lngLat;
     const c = at(f, cahuita[0] + 0.05, cahuita[1] + 0.05); // a few km offshore
     expect(c.toward).toBeGreaterThan(100);
     expect(c.toward).toBeLessThan(200);

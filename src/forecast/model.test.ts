@@ -50,16 +50,16 @@ describe('forecast page readings agree with the map (PLAN 7.52)', () => {
   });
   it('reads SNORKEL and DIVE from the outing score, and nothing without it', () => {
     const deps = { env: env(), outing: outing(80) };
-    const r = readAt(deps, 'snorkel', spot('CAHUITA'), DAY0 + 10 * H);
+    const r = readAt(deps, 'snorkel', spot('PUNTA CAHUITA'), DAY0 + 10 * H);
     expect(r.score).toBe(80);
     expect(r.level).toBe(3);
     expect(r.water!.visM).toBe(12);
     expect(r.water!.depthM).toBe(2);
-    expect(readAt(deps, 'dive', spot('CAHUITA'), DAY0 + 10 * H).water!.depthM).toBe(6);
-    expect(readAt({ env: env() }, 'dive', spot('CAHUITA'), DAY0 + 10 * H).score).toBeNull();
+    expect(readAt(deps, 'dive', spot('PUNTA CAHUITA'), DAY0 + 10 * H).water!.depthM).toBe(6);
+    expect(readAt({ env: env() }, 'dive', spot('PUNTA CAHUITA'), DAY0 + 10 * H).score).toBeNull();
   });
   it('reads SAIL from sea comfort, with wind in knots', () => {
-    const r = readAt({ env: env() }, 'sail', spot('LIMÓN'), DAY0 + 10 * H);
+    const r = readAt({ env: env() }, 'sail', spot('PLAYA COCLES'), DAY0 + 10 * H);
     expect(r.score).not.toBeNull();
     expect(r.sail!.windKt).toBeCloseTo(3 * 1.94384, 3);
   });
@@ -76,7 +76,7 @@ describe('forecast page readings agree with the map (PLAN 7.52)', () => {
     expect(p.days.map((d) => d?.startMs)).toEqual(watch.days.map((d) => d?.startMs));
   });
   it('gives 24 hours a day', () => {
-    expect(hoursOf({ env: env() }, 'fish', spot('CAHUITA'), DAY0)).toHaveLength(24);
+    expect(hoursOf({ env: env() }, 'fish', spot('PUNTA CAHUITA'), DAY0)).toHaveLength(24);
   });
 });
 
@@ -107,7 +107,7 @@ describe('levels and words', () => {
 describe('spots and links', () => {
   it('forecasts surf at the surf breaks and snorkel at the snorkel spots only', () => {
     expect(spotsForActivity('surf', SPOTS).map((s) => s.name)).toContain('SALSA BRAVA');
-    expect(spotsForActivity('surf', SPOTS).map((s) => s.name)).not.toContain('LIMÓN');
+    expect(spotsForActivity('surf', SPOTS).map((s) => s.name)).not.toContain('PUNTA UVA');
     expect(spotsForActivity('fish', SPOTS)).toHaveLength(SPOTS.length);
   });
   it('round-trips the link', () => {
@@ -126,14 +126,14 @@ describe('hero pictures', () => {
     const none = { env: env({ sea: () => null, windMs: () => null, weather: () => [], clarityM: () => null }) };
     for (const a of FC_ACTIVITIES)
       for (const d of [deps, none]) {
-        const svg = heroArt(readAt(d, a, spot('CAHUITA'), DAY0 + 10 * H), 'x');
+        const svg = heroArt(readAt(d, a, spot('PUNTA CAHUITA'), DAY0 + 10 * H), 'x');
         expect(svg.startsWith('<svg')).toBe(true);
         expect(svg).not.toMatch(/NaN|undefined|Infinity/);
       }
   });
   it('fades the reef past the visibility', () => {
-    const clear = heroArt(readAt({ env: env(), outing: (...a) => ({ ...outing(80)!(...a)!, visM: 20 }) }, 'snorkel', spot('CAHUITA'), DAY0 + 10 * H), 'x');
-    const murky = heroArt(readAt({ env: env(), outing: (...a) => ({ ...outing(80)!(...a)!, visM: 3 }) }, 'snorkel', spot('CAHUITA'), DAY0 + 10 * H), 'x');
+    const clear = heroArt(readAt({ env: env(), outing: (...a) => ({ ...outing(80)!(...a)!, visM: 20 }) }, 'snorkel', spot('PUNTA CAHUITA'), DAY0 + 10 * H), 'x');
+    const murky = heroArt(readAt({ env: env(), outing: (...a) => ({ ...outing(80)!(...a)!, visM: 3 }) }, 'snorkel', spot('PUNTA CAHUITA'), DAY0 + 10 * H), 'x');
     const x = (s: string) => Number(/class="fc-vis-line" x1="([\d.]+)"/.exec(s)![1]);
     expect(x(murky)).toBeLessThan(x(clear));
   });
@@ -162,9 +162,9 @@ describe('UV', () => {
       const h = (((ms / H - 6) % 24) + 24) % 24;
       return [{ model: 'gfs_seamless', rainMmH: 0, cloudPct: 30, uv: h >= 6 && h <= 18 ? 11 * Math.sin(((h - 6) / 12) * Math.PI) : 0, tempC: 28, gustKt: 12, capeJkg: 0, pressureHpa: 1012, windKt: 6 }];
     } });
-    const p = dayUvPeaks(sunny, spot('CAHUITA'), DAY0, 3);
+    const p = dayUvPeaks(sunny, spot('PUNTA CAHUITA'), DAY0, 3);
     expect(p).toHaveLength(3);
     for (const v of p) expect(v).toBeCloseTo(11, 6);
-    expect(dayUvPeaks(env({ weather: () => [] }), spot('CAHUITA'), DAY0, 2)).toEqual([null, null]);
+    expect(dayUvPeaks(env({ weather: () => [] }), spot('PUNTA CAHUITA'), DAY0, 2)).toEqual([null, null]);
   });
 });

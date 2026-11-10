@@ -5,7 +5,7 @@ import { land, macro, realDepth, region } from './fixtures/seafloor';
 import { createSpotModel } from './spot-model';
 import { spotWaves } from './surf-zone';
 
-const cahuita = SPOTS.find((s) => s.name === 'CAHUITA')!.lngLat;
+const cahuita = SPOTS.find((s) => s.name === 'PUNTA CAHUITA')!.lngLat;
 const sea = { Hs: 1.4, Tp: 11, fromDeg: 40 };
 
 describe('spot model', () => {
