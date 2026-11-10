@@ -12,7 +12,14 @@
  *                          η   tide above mean sea level
  *                          ηs  wave setup on the flat = 0.15 · H0′ (0.1 to 0.2 of the incident height on
  *                              fringing reefs: Vetter et al. 2010, Becker et al. 2014)
- *   At the beach           Hs = √((1 − f) Hb² + f · min(Hb, Ht)²)   energies of the open and the reef-covered
+ *   Surf beat (PLAN 7.60)  Hig = 0.2 · H0′                           Masselink et al. (2019)
+ *                          long (infragravity, 25 s to minutes) surges made where the swell breaks on the reef
+ *                          slope; the flat's depth doesn't hold them back and they grow with the swell. Over a
+ *                          platform they average 20 to 30% of the incident height when its water depth is −0.25
+ *                          to 0.75 of the incident height, which a 0.5 m flat is in any swell over 0.7 m;
+ *                          0.2 is the low end. It is why reef flats still get rough on big days.
+ *   Through the flat       Hf = √(Ht² + Hig²)                       the short and the long waves' energies add
+ *   At the beach           Hs = √((1 − f) Hb² + f · min(Hb, Hf)²)   energies of the open and the reef-covered
  *                          share of the beach's approach f add (H² is energy)
  *
  * The reef acts as a low-pass filter on wave height (Lowe et al. 2005): it only changes anything once
@@ -26,7 +33,8 @@
  *
  * References: Nelson (1994) Coastal Engineering 23, 43–59; Gourlay (1994) Coastal Engineering 23,
  * 17–42; Lowe et al. (2005) JGR 110, C04001; Vetter et al. (2010) JGR 115, C12066; Becker et al.
- * (2014) Coral Reefs 33, 1155–1163; Quataert et al. (2015) GRL 42, 6407–6415.
+ * (2014) Coral Reefs 33, 1155–1163; Quataert et al. (2015) GRL 42, 6407–6415; Masselink et al. (2019)
+ * JGR Oceans 124, 1410–1433.
  */
 import type { FeatureCollection } from 'geojson';
 import type { DepthFn } from './refraction';
@@ -41,6 +49,8 @@ export const GAMMA_FLAT = 0.55;
 export const REEF_FLAT_DEPTH_M = 0.5;
 /** Wave setup on the flat as a share of the incident (refracted) height. */
 export const SETUP_RATIO = 0.15;
+/** Surf beat (infragravity) height on the flat as a share of the incident (refracted) height (Masselink et al. 2019: 0.2 to 0.3). */
+export const IG_RATIO = 0.2;
 /**
  * A line counts as covered only where it crosses at least this much unbroken flat, m: about three wavelengths of a
  * 10 s swell on a 2 m flat (L = T√(gh) ≈ 44 m), what breaking waves need to settle to the flat's limit. Narrower
@@ -175,9 +185,14 @@ export function reefShelter(idx: FlatIndex, depth: DepthFn, pin: [number, number
   return { share: open ? covered / open : 0, open, covered };
 }
 
-/** Height the water on the flat can carry, m: γf (dr + η + ηs), at least 0. */
+/**
+ * Height that gets through the flat, m: the short waves the water on it can carry, γf (dr + η + ηs), and the surf
+ * beat the breaking makes, IG_RATIO · H0′, their energies added. `incidentM` is the refracted height arriving at the reef.
+ */
 export function flatHeight(tideM: number, incidentM: number, flatDepthM = REEF_FLAT_DEPTH_M): number {
-  return GAMMA_FLAT * Math.max(0, flatDepthM + tideM + SETUP_RATIO * Math.max(0, incidentM));
+  const h0 = Math.max(0, incidentM);
+  const short = GAMMA_FLAT * Math.max(0, flatDepthM + tideM + SETUP_RATIO * h0);
+  return Math.hypot(short, IG_RATIO * h0);
 }
 
 /** Wave height at the beach from the breaker outside, the covered share and the flat's limit: energies add. */

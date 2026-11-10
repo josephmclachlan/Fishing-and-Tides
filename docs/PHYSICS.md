@@ -55,20 +55,22 @@ The 15″ grid can't see a reef flat a few hundred metres wide, so before 7.59 e
 - **Who reads it:** the dive and snorkel entry (SURF AT ENTRY and the outing score's surf term, re-cut each hour at that hour's tide), AT THE BEACH in SURF ZONE, and the spot page. The surf score keeps the breaker outside, since that is where the waves are ridden. Rips keep it too: at a reef the water the breaking crest pumps over the flat drains out through the channels.
 - **Why only wide flats:** the Atlas also draws 60 to 150 m strips of flat along sand beaches (Playa Cocles, Salsa Brava, Playa Chino, Manzanillo village), where foam and rubble in the surf zone can read as flat. Counting them put Cocles at 0.35 m in a 1.5 m swell. Leaving them out errs on the safe side: telling a swimmer the surf is smaller than it is is the dangerous mistake.
 
-1.5 m, 10 s from 040° at mean sea level, breaker outside → at the beach (the share covered in brackets):
+10 s from 040°, breaker outside → at the beach (the share covered in brackets), surf beat included:
 
-| Spot | Breaker | At the beach | Low tide (−0.25 m) | High tide (+0.25 m) |
-|---|---|---|---|---|
-| PLAYA NEGRA CAHUITA | 1.98 | 1.98 (0) | 1.98 | 1.98 |
-| PUNTA CAHUITA | 1.94 | 0.38 (1.0) | 0.25 | 0.52 |
-| PLAYA NEGRA | 1.66 | 1.66 (0) | 1.66 | 1.66 |
-| SALSA BRAVA | 1.90 | 1.87 (0.03) | 1.87 | 1.88 |
-| PLAYA COCLES | 1.49 | 1.47 (0.03) | 1.47 | 1.47 |
-| PLAYA CHIQUITA | 1.89 | 0.89 (0.81) | 0.85 | 0.94 |
-| PUNTA UVA | 1.14 | 0.58 (0.81) | 0.53 | 0.65 |
-| PLAYA GRANDE | 2.02 | 1.51 (0.46) | 1.50 | 1.53 |
-| MANZANILLO | 2.59 | 2.34 (0.19) | 2.33 | 2.34 |
-| GANDOCA | 1.50 | 1.50 (0) | 1.50 | 1.50 |
+| Spot | Breaker, 1.5 m | At the beach, mean tide | Low tide (−0.25 m) | High tide (+0.25 m) | 0.6 m swell | 3 m swell |
+|---|---|---|---|---|---|---|
+| PLAYA NEGRA CAHUITA | 1.98 | 1.98 (0) | 1.98 | 1.98 | 0.95 | 3.45 |
+| PUNTA CAHUITA | 1.94 | 0.47 (1.0) | 0.36 | 0.59 | 0.34 | 0.73 |
+| PLAYA NEGRA | 1.66 | 1.66 (0) | 1.66 | 1.66 | 0.80 | 2.88 |
+| SALSA BRAVA | 1.90 | 1.88 (0.03) | 1.87 | 1.88 | 0.90 | 3.26 |
+| PLAYA COCLES | 1.49 | 1.47 (0.03) | 1.47 | 1.47 | 0.71 | 2.56 |
+| PLAYA CHIQUITA | 1.89 | 0.92 (0.81) | 0.88 | 0.97 | 0.50 | 1.56 |
+| PUNTA UVA | 1.14 | 0.59 (0.81) | 0.54 | 0.66 | 0.36 | 0.97 |
+| PLAYA GRANDE | 2.02 | 1.52 (0.46) | 1.51 | 1.54 | 0.75 | 2.64 |
+| MANZANILLO | 2.59 | 2.34 (0.19) | 2.34 | 2.35 | 1.13 | 4.08 |
+| GANDOCA | 1.50 | 1.50 (0) | 1.50 | 1.50 | 0.72 | 2.61 |
+
+**Surf beat (PLAN 7.60).** On big days the swell breaking on the reef slope makes long surges, 25 s to minutes, that the flat's depth doesn't hold back. Masselink et al. (2019) find them averaging 20 to 30% of the incident height across a reef platform when its water depth is −0.25 to 0.75 of that height, which a 0.5 m flat is in any swell over 0.7 m. The model adds Hig = 0.2 H0′ (the low end) to what gets through, energies added: Hf = √(Ht² + Hig²). Without it a 3 m day behind Punta Cahuita read 0.55 m, hardly more than a 0.6 m day; with it, 0.73 m against 0.34 m. Joseph (2026-11-10): reef flats outside the sheltered pools are still rougher on rough days.
 
 Within a beach the share moves with the pin: along Playa Chiquita it runs 0.8 to 1.0 (0.4 to 0.9 m at the beach), with the east end consistently the calmest (about 0.5 m). Playa Chino and Manzanillo village stay unsheltered, because the Atlas only gives them narrow strips. If they are calm in reality, the reef there is narrower or deeper than the flat this rule needs, and only a local check or a survey can say which.
 

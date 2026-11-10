@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import reefsRaw from '../../public/data/seafloor/reefs.geojson?raw';
 import { SPOTS } from '../region';
 import { land, macro, region } from './fixtures/seafloor';
-import { GAMMA_FLAT, REEF_FLAT_DEPTH_M, SETUP_RATIO, flatHeight, flatIndex, flatPolygons, onFlat, reefShelter, shoreHeight, type Rings } from './reef-flat';
+import { GAMMA_FLAT, IG_RATIO, REEF_FLAT_DEPTH_M, SETUP_RATIO, flatHeight, flatIndex, flatPolygons, onFlat, reefShelter, shoreHeight, type Rings } from './reef-flat';
 import type { DepthFn } from './refraction';
 import { spotModelFromGrids } from './spot-model';
 
@@ -73,10 +73,19 @@ describe('reef shelter', () => {
 });
 
 describe('waves over a flat', () => {
-  it('holds waves to 0.55 of the water on the flat, setup included', () => {
+  it('holds the short waves to 0.55 of the water on the flat, setup included, and adds the surf beat', () => {
     expect(flatHeight(0, 0)).toBeCloseTo(GAMMA_FLAT * REEF_FLAT_DEPTH_M, 12);
-    expect(flatHeight(0.3, 2)).toBeCloseTo(GAMMA_FLAT * (REEF_FLAT_DEPTH_M + 0.3 + SETUP_RATIO * 2), 12);
+    expect(flatHeight(0.3, 2)).toBeCloseTo(Math.hypot(GAMMA_FLAT * (REEF_FLAT_DEPTH_M + 0.3 + SETUP_RATIO * 2), IG_RATIO * 2), 12);
     expect(flatHeight(-5, 0)).toBe(0);
+    // A dry flat still lets the surf beat through.
+    expect(flatHeight(-5, 1)).toBeCloseTo(IG_RATIO, 12);
+  });
+
+  it('gets rougher on big days much faster than the depth alone allows', () => {
+    const calm = flatHeight(0, 0.6), rough = flatHeight(0, 3);
+    expect(rough / calm).toBeGreaterThan(2);
+    const depthOnly = (h0: number) => GAMMA_FLAT * (REEF_FLAT_DEPTH_M + SETUP_RATIO * h0);
+    expect(rough - calm).toBeGreaterThan(depthOnly(3) - depthOnly(0.6));
   });
 
   it('adds the energies of the open and the covered approach', () => {
