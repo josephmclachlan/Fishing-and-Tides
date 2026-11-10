@@ -41,28 +41,19 @@ export const kdFromChl = (chlMgM3: number) => 0.0166 + 0.0773 * Math.pow(Math.ma
 
 /** Kd of the core of a fresh river plume, 1/m: brown water, about 0.3 m visibility. */
 export const KD_PLUME = 3;
-/** Rain over a catchment (e-folding-weighted mm) that makes a full-strength plume. */
+/**
+ * Plume strength scale, as rain-equivalent mm: this much makes a full-strength plume. Since PLAN 7.50 the
+ * rain side is physics/runoff.ts (wet ground, intensity, river lag, clearing at sea), whose strength 1 is
+ * REF_STORM_MM (60 mm in a day on normal ground); the flow side is flowPlumeMm.
+ */
 export const PLUME_SATURATION_MM = 60;
-/**
- * Rain the catchment soaks up before the rivers run brown, mm (PLAN 7.45): the SCS curve-number initial
- * abstraction Ia = 0.2·S (USDA TR-55, 1986), with S = 25.4·(1000/CN − 10) mm, is 13 to 17 mm for CN 75 to 80
- * (forest, plantations and pasture on these clay soils). Without it a few mm of drizzle over three days
- * made a faint plume that the current then carried 30 km down the coast.
- */
-export const PLUME_RAIN_FROM_MM = 15;
-/**
- * Plume rain-equivalent from catchment rain, mm: none up to PLUME_RAIN_FROM_MM, then rising so that
- * PLUME_SATURATION_MM still makes a full plume.
- */
-export const runoffMm = (rainMm: number): number =>
-  (PLUME_SATURATION_MM * Math.max(0, rainMm - PLUME_RAIN_FROM_MM)) / (PLUME_SATURATION_MM - PLUME_RAIN_FROM_MM);
 /**
  * Plume rain-equivalent from the measured river (GloFAS discharge as a share of its own median), mm:
  * median flow or below gives none, 10 times the median is a saturated plume. The plume uses the larger of this and the
  * rain proxy, so a river in spate still muddies the water when the catchment-rain model missed the storm.
  */
 export const flowPlumeMm = (ratio: number): number => PLUME_SATURATION_MM * Math.min(1, Math.max(0, (ratio - 1) / 9));
-/** How fast a plume clears after the rain stops: e-folding time, s (about a day). */
+/** Weighting of recent rain for the coral and runoff rows' effective rain: e-folding time, s (about a day). */
 export const PLUME_DECAY_S = 24 * 3600;
 /** Plume radius for a 1000 km² catchment after saturating rain, m. Scales with √(area × rain). */
 export const PLUME_RADIUS_M = 6000;

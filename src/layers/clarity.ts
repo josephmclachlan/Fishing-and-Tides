@@ -8,8 +8,9 @@
 import type { Map } from 'maplibre-gl';
 import { PLUME_RIVERS, REGION } from '../region';
 import { cellAt, M_PER_DEG_LAT, M_PER_DEG_LNG, sample, type Grid } from '../physics/bathy';
-import { CLARITY_BANDS, clarity, effectiveRain, flowPlumeMm, kdFromChl, resuspensionKd, runoffMm, type Clarity, type ClarityLevel } from '../physics/clarity';
-import { clarityBand, driftedPlumeKd, plumeAge, plumeDrift, satKdAt, satState, satWeight, waveSpread, type ClarityBand, type ClearKd, type SatState } from '../physics/clarity-forecast';
+import { CLARITY_BANDS, clarity, effectiveRain, flowPlumeMm, kdFromChl, resuspensionKd, PLUME_SATURATION_MM, type Clarity, type ClarityLevel } from '../physics/clarity';
+import { riverMud, type MudSeries } from '../physics/runoff';
+import { clarityBand, driftedPlumeKd, plumeDrift, satKdAt, satState, satWeight, waveSpread, type ClarityBand, type ClearKd, type SatState } from '../physics/clarity-forecast';
 import { observedAt, type SatelliteData } from '../adapters/satellite';
 import { projectMonthly, scalarAt } from '../adapters/frames';
 import type { GridSeries } from '../adapters/pack';
@@ -57,7 +58,9 @@ export interface ClarityContext {
  * Plume rain per river at `ms`, and how far the surface current has carried the plume (PLAN 7.2):
  * the mean current at the mouth over the plume's rain-weighted age, sampled at four times.
  * `rainMm` is the weighted catchment rain (or the flow's equivalent), as the coral and runoff rows read it;
- * `plumeMm` is what makes the plume, after the rain the soil soaks up (PLAN 7.45).
+ * `plumeMm` is what makes the plume: the river mud of physics/runoff.ts (wet ground, intensity, the river's
+ * lag, clearing at sea; PLAN 7.50) on the PLUME_SATURATION_MM scale, or the measured flow's, whichever is more.
+ * `ageS` is the mean age of that mud, for the drift.
  */
 export const riverRain = (rain: CatchmentRain | null, ms: number, currentAt?: ClarityContext['currentAt'], flow?: RiverFlow | null) =>
   PLUME_RIVERS.map((r) => {
@@ -66,10 +69,11 @@ export const riverRain = (rain: CatchmentRain | null, ms: number, currentAt?: Cl
     const wet = mm ? effectiveRain(rain.times, mm, ms) : 0;
     const flowMm = ratio === null ? 0 : flowPlumeMm(ratio);
     const rainMm = Math.max(wet, flowMm);
-    const plumeMm = Math.max(runoffMm(wet), flowMm);
+    const mud = mm ? mudAt(rain, r.name, r.catchmentKm2, ms) : { strength: 0, ageS: 0 };
+    const plumeMm = Math.max(PLUME_SATURATION_MM * mud.strength, flowMm);
     let drift: [number, number] = [0, 0];
-    const ageS = mm && plumeMm > 0 ? plumeAge(rain.times, mm, ms) : 0;
-    if (mm && plumeMm > 0 && currentAt) {
+    const ageS = plumeMm > 0 ? mud.ageS : 0;
+    if (mm && plumeMm > 0 && ageS > 0 && currentAt) {
       const age = ageS;
       let u = 0, v = 0, n = 0;
       for (let k = 0; k < 4; k++) {
@@ -80,6 +84,30 @@ export const riverRain = (rain: CatchmentRain | null, ms: number, currentAt?: Cl
     }
     return { ...r, rainMm, plumeMm, drift, ageS };
   });
+
+/** River mud per catchment-rain load and river, computed once (the grid asks for every hour it shows). */
+const mudMemo = new WeakMap<CatchmentRain, globalThis.Map<string, MudSeries>>();
+/** Dry hours added after the rain series, so a time past its end still sees the river drain and the sea clear. */
+const MUD_TAIL_H = 240;
+
+/**
+ * River mud at `ms` (strength 1 = full plume, and its mean age in s), from physics/runoff.ts on the river's
+ * hourly catchment rain. Each value is the state at the end of its hour; between, it is interpolated. Past
+ * the series the rain is taken as stopped, for MUD_TAIL_H hours.
+ */
+export function mudAt(rain: CatchmentRain, river: string, areaKm2: number, ms: number): { strength: number; ageS: number } {
+  let byRiver = mudMemo.get(rain);
+  if (!byRiver) mudMemo.set(rain, (byRiver = new globalThis.Map()));
+  let m = byRiver.get(river);
+  if (!m) byRiver.set(river, (m = riverMud([...(rain.byRiver[river] ?? []), ...Array(MUD_TAIL_H).fill(0)], areaKm2)));
+  const t = rain.times;
+  if (!t.length) return { strength: 0, ageS: 0 };
+  const f = (ms - t[0]) / 3.6e6 - 1;
+  if (f < 0) return { strength: 0, ageS: 0 };
+  const last = m.strength.length - 1;
+  const i = Math.min(Math.floor(f), last), j = Math.min(i + 1, last), w = Math.min(1, f - i);
+  return { strength: m.strength[i] + (m.strength[j] - m.strength[i]) * w, ageS: m.ageS[i] + (m.ageS[j] - m.ageS[i]) * w };
+}
 
 /** Water depth at a sea point, m; null on land. The coastline mask decides where it covers. */
 export function seaDepthAt(c: Pick<ClarityContext, 'elevation' | 'land'>, lng: number, lat: number): number | null {

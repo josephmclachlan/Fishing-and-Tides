@@ -102,23 +102,6 @@ export function satKdAt(s: SatState | null, ms: number, clear: ClearKd | null = 
 }
 
 /**
- * Rain-weighted mean age of a plume at `ms`, s, with the same weights as `effectiveRain`
- * (exp(−age / decayS)); 0 with no rain.
- */
-export function plumeAge(times: readonly number[], rainMmH: readonly number[], ms: number, decayS = 24 * 3600): number {
-  let w = 0;
-  let wa = 0;
-  for (let i = 0; i < times.length; i++) {
-    const age = (ms - times[i]) / 1000;
-    if (age < 0 || age > 5 * decayS || !(rainMmH[i] > 0)) continue;
-    const k = rainMmH[i] * Math.exp(-age / decayS);
-    w += k;
-    wa += k * age;
-  }
-  return w > 0 ? wa / w : 0;
-}
-
-/**
  * Plume tip offset from the mouth, metres east and north: mean surface current (m/s, east and
  * north) over the plume's age, times that age, capped at PLUME_MAX_DRIFT_M.
  */
