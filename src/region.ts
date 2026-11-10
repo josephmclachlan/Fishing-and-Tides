@@ -79,6 +79,12 @@ export const RAIN_TOWNS: { id: string; name: string; lngLat: [number, number] }[
 ];
 
 /**
+ * Where the CAMS UV forecast is read (PLAN 7.57): Puerto Viejo, mid-coast. CAMS runs at 0.4° (~45 km), so one
+ * point covers Cahuita to Gandoca; the weather models are read at every spot instead.
+ */
+export const UV_POINT: [number, number] = [-82.7543, 9.656];
+
+/**
  * Rain-cell nowcast box (PLAN 7.24 item 3), [[w, s], [e, n]]: the coast plus ~60 km of sea to the east
  * and north, where the trade-wind showers come from, and the Talamanca foothills they run into.
  * 80 x 70 cells at 0.02°.

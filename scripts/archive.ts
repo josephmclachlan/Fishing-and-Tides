@@ -121,9 +121,10 @@ await step('gauge', async () => {
 });
 
 // Each weather model at the airport, next 24 h, four times a day (one Open-Meteo call each),
-// for the model scoring and bias correction in PLAN 7.4 / 7.10.
-const MODELS = ['gfs_seamless', 'ecmwf_ifs025', 'icon_seamless'];
-const MODEL_VARS = ['temperature_2m', 'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m', 'pressure_msl'];
+// for the model scoring and bias correction in PLAN 7.4 / 7.10. The app's four (PLAN 7.57) plus the 25 km
+// ECMWF grid it used before, so the two ECMWF resolutions can be compared on the same days.
+const MODELS = ['ecmwf_ifs', 'ukmo_global_deterministic_10km', 'icon_seamless', 'gfs_seamless', 'ecmwf_ifs025'];
+const MODEL_VARS = ['temperature_2m', 'dew_point_2m', 'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m', 'pressure_msl'];
 if (process.argv.includes('--models') || new Date(now).getUTCHours() % 6 === 0) {
   await step('models', async () => {
     const [x, y] = METAR_STATION.lngLat;

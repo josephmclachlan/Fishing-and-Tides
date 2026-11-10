@@ -41,7 +41,7 @@ export const JOB_FEEDS: Record<string, readonly string[]> = {
   currents: ['currents'],
   sst: ['sst', 'sst-coast', 'chl', 'kd490', 'kd490-nrt'],
   passes: ['sst-pass', 'chl-pass', 'scat-pass'],
-  weather: ['weather'],
+  weather: ['weather', 'uv'],
   rain: ['rain', 'rain-imerg'],
   townrain: ['townrain'],
   raincells: ['raincells'],

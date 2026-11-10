@@ -16,6 +16,7 @@ import { fetchPasses, passChecks } from '../adapters/passes';
 import { fetchSargassum, sargassumChecks } from '../adapters/sargassum';
 import { weatherChecks } from '../adapters/weather';
 import { townRainChecks } from '../adapters/town-rain';
+import { uvChecks } from '../adapters/uv';
 import { correctionChecks } from '../adapters/wind-fix';
 import { coralChecks, fetchCoral } from '../adapters/coral';
 import { fetchMud, mudChecks } from '../adapters/mud';
@@ -41,6 +42,7 @@ export function allChecks(base: string = import.meta.env.BASE_URL): Check[] {
     ...sargassumChecks(() => fetchSargassum({ base })),
     ...mldChecks(() => fetchMld({ base })),
     ...weatherChecks(),
+    ...uvChecks(),
     ...townRainChecks(),
     ...correctionChecks(async () => (await fetchPasses({ base })).scat, async () => (await fetchGauge({ hours: 30 })).readings),
     ...weatherSkillChecks(() => fetchHindcast(), () => fetchMetar({ base })),

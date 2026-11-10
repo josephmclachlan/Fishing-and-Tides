@@ -15,6 +15,7 @@ import { dataAge } from './data-age';
 import { FORECAST_DIR } from './series';
 import { freshness, inRange, type Check } from '../verify/types';
 import { imergHourly, type RainImerg } from './imerg-parse';
+import { toHourStart } from './weather';
 
 export interface CatchmentRain {
   /** Hour starts, epoch ms. */
@@ -40,7 +41,8 @@ export function parseCatchmentRain(json: unknown, fetchedAt: number, fromCache =
   const arr = (Array.isArray(json) ? json : [json]) as { hourly?: { time?: number[]; precipitation?: (number | null)[] } }[];
   if (arr.length !== pts.length || !arr[0]?.hourly?.time) throw new Error(`catchment rain: expected ${pts.length} points`);
   const times = arr[0].hourly!.time!.map((s) => s * 1000);
-  const series = arr.map((p) => times.map((_, i) => (typeof p.hourly?.precipitation?.[i] === 'number' ? (p.hourly.precipitation[i] as number) : NaN)));
+  // Open-Meteo stamps each hour's rain at its end; IMERG and the runoff model index hours by their start (PLAN 7.57).
+  const series = arr.map((p) => toHourStart(times.map((_, i) => (typeof p.hourly?.precipitation?.[i] === 'number' ? (p.hourly.precipitation[i] as number) : NaN))));
   const byRiver: Record<string, number[]> = {};
   for (const r of PLUME_RIVERS) byRiver[r.name] = series[pts.findIndex((p) => p[0] === r.rainAt[0] && p[1] === r.rainAt[1])];
   return { times, byRiver, fetchedAt, fromCache };

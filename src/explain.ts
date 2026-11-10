@@ -20,7 +20,7 @@ export const HELP_BY_ID: Readonly<Record<string, HelpId>> = {
   'sw-hs': 'totalHs', 'sw-0': 'swellTrains', 'sw-1': 'swellTrains', 'sw-2': 'swellTrains',
   'ss-comfort': 'seaState', 'ss-score': 'comfort', 'ss-detail': 'seaState', 'bv-verdict': 'verdict', 'ss-curr': 'seaCurrent', 'bw-light': 'bwLight', 'bw-moon': 'bwMoon', 'bw-press': 'bwPress', 'bw-window': 'bwWindow', 'bw-debris': 'bwDebris', 'bw-bar': 'bwBar', 'b-depth': 'shoal', 'rt-leg': 'route', 'rt-eta': 'route', 'rt-sail': 'route', 'rt-worst': 'route', 'bv-why': 'verdict',
   'an-name': 'harbour', 'an-dist': 'harbourRange', 'an-shelter': 'shelter', 'an-fetch': 'shelter',
-  'wx-rain': 'rain', 'wx-rain24': 'rain24', 'wx-cloud': 'cloud', 'wx-uv': 'uv', 'wx-air': 'air', 'wx-storm': 'storm',
+  'wx-rain': 'rain', 'wx-rain24': 'rain24', 'wx-cloud': 'cloud', 'wx-uv': 'uv', 'wx-air': 'air', 'wx-feels': 'feels', 'wx-humid': 'humid', 'wx-rainpct': 'rainPct', 'wx-storm': 'storm',
   'rn-cahuita': 'rainNow', 'rn-playanegra': 'rainNow', 'rn-puertoviejo': 'rainNow', 'rn-manzanillo': 'rainNow', 'rn-move': 'rainNow', 'rn-src': 'rainNow',
   'tr-cahuita': 'townRain', 'tr-playanegra': 'townRain', 'tr-puertoviejo': 'townRain', 'tr-manzanillo': 'townRain',
   depth: 'depth', dsrc: 'depthSource', dzone: 'reef', dbottom: 'bottom', zone: 'zone', 'fish-score': 'habitat', 'fish-bite': 'bite', 'fish-reach': 'reach', 'fish-times': 'times',
