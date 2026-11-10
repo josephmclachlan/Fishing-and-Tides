@@ -17,6 +17,10 @@ import { seaState, withCurrent } from '../physics/sea-state';
 import { feedPartitions } from '../sea-partitions';
 import { squallLevel } from '../weather';
 import { breakFor, surfScoreAt, type SurfHour } from './surf-estimate';
+import type { Rip, RipLevel } from '../physics/rip';
+import { RIP_THRESHOLDS } from '../physics/rip';
+import { swimScore, swimTone, type SwimScore } from '../physics/swim';
+import { sargLevel } from '../physics/drift';
 
 export type Tone = 'green' | 'amber' | 'red' | 'none';
 export type MetricGroup = 'waves' | 'weather' | 'water' | 'fishing';
@@ -43,6 +47,11 @@ export interface MetricEnv {
   sstC?(lng: number, lat: number, ms: number): number | null;
   /** Sargassum expected to reach the named beach on the day containing `ms`, km² (the SARGASSUM outlook), or null. */
   sargassumKm2(spot: string, ms: number): number | null;
+  /**
+   * Shore at a named spot and hour from the spot model (physics/swim.ts `shoreAt`): breaker height at the waterline
+   * and the rip risk there. Optional: SWIM, RIP RISK and SHORE BREAK read null without it (before the model runs).
+   */
+  shore?(spot: string, ms: number): { breakerM: number; rip: Rip } | null;
   tide: Harmonics;
   tzOffsetH: number;
 }
@@ -116,6 +125,50 @@ export const biteAt = (a: MetricArgs): BiteTerms =>
     pressureTrend: pressureChange(wxOf(a), a.env.weather(a.ms - 3 * 3.6e6, a.lng, a.lat)),
   });
 
+/** A beach day's score with the readings behind it (physics/swim.ts), or null before the spot model has run there. */
+export interface SwimDetail extends SwimScore {
+  rip: RipLevel;
+  ripScore: number;
+  breakerM: number;
+  windKt: number | null;
+  rainMmH: number | null;
+  airC: number | null;
+  feelsC: number | null;
+  humidityPct: number | null;
+  sstC: number | null;
+  uv: number | null;
+  cloudPct: number | null;
+  daylight: boolean;
+  sunHours: number | null;
+}
+export function swimAt(a: MetricArgs): SwimDetail | null {
+  const sh = a.env.shore?.(a.spot, a.ms);
+  if (!sh) return null;
+  const wx = wxOf(a);
+  const skill = a.env.weatherSkill?.();
+  const w = a.env.windMs(a.lng, a.lat, a.ms);
+  const airC = orNull(blendedTempC(wx, skill));
+  // Real feel is the 'feels' metric's (Steadman apparent temperature, PLAN 7.57); the air itself when the dew point is missing.
+  const feelsC = orNull(feelsLikeC(wx, skill, w)) ?? airC;
+  const humidity = orNull(humidityPct(wx, skill));
+  const uvMetric = a.env.uv ? a.env.uv(a.lng, a.lat, a.ms) : null;
+  const mean = (f: (x: WeatherNow) => number) => meanOf(wx.map(f).filter(finite));
+  const sun = a.sky.sun;
+  const mid = a.ms + 1.8e6;
+  const daylight = sun.sunrise !== null && sun.sunset !== null && mid >= sun.sunrise && mid < sun.sunset;
+  const sunHours = daylight ? Math.min(mid - sun.sunrise!, sun.sunset! - mid) / 3.6e6 : null;
+  const sargKm2 = a.env.sargassumKm2(a.spot, a.ms);
+  const r = {
+    rip: sh.rip.level, ripScore: sh.rip.score, breakerM: sh.breakerM, daylight, sunHours,
+    windKt: w === null ? null : w * KT, rainMmH: mean((x) => x.rainMmH), airC, feelsC, humidityPct: humidity,
+    sstC: a.env.sstC?.(a.lng, a.lat, a.ms) ?? null, uv: uvMetric ?? mean((x) => x.uv), cloudPct: mean((x) => x.cloudPct),
+  };
+  return {
+    ...r,
+    ...swimScore({ ...r, squall: wx.length ? squallLevel(weatherSummary(wx)) : undefined, sarg: sargKm2 === null ? null : sargLevel(sargKm2) }),
+  };
+}
+
 export const METRICS: readonly Metric[] = [
   // Sea comfort for a boat (PLAN 6.6): wind sea + swells, 0 worst to 100 flat. Null where the forecast has no wave split.
   { id: 'comfort', group: 'waves', unit: '/100', decimals: 0, better: 'high', agg: 'mean', at: (a) => { const p = feedPartitions(a.env.sea(a.lng, a.lat, a.ms)); if (!p) return null; const c = a.env.currentVec?.(a.lng, a.lat, a.ms); return seaState(c ? withCurrent(p, { u: c[0], v: c[1] }) : p).score; }, tone: (v) => (v >= 75 ? 'green' : v >= 50 ? 'amber' : 'red') },
@@ -167,6 +220,11 @@ export const METRICS: readonly Metric[] = [
     at: (a) => biteAt(a).bite,
     tone: (v) => (v >= 60 ? 'green' : v >= 40 ? 'amber' : 'red'),
   },
+  // A beach day (Joseph, 2026-11-10): swimming and sunbathing, 0..100; rip risk and shore break at the spot, UV, heat, wind, rain, water.
+  { id: 'swim', group: 'water', unit: '/100', decimals: 0, better: 'high', agg: 'max', at: (a) => swimAt(a)?.score ?? null, tone: swimTone },
+  // Rip risk at the waterline, the score of physics/rip.ts (LOW under 0.25, HIGH from 0.55), from the spot model scaled to the hour.
+  { id: 'rip', group: 'water', unit: '', decimals: 2, better: 'low', agg: 'max', at: (a) => a.env.shore?.(a.spot, a.ms)?.rip.score ?? null, tone: band(RIP_THRESHOLDS.MOD, RIP_THRESHOLDS.HIGH) },
+  { id: 'shorebreak', group: 'waves', unit: 'm', decimals: 1, better: 'low', agg: 'max', at: (a) => a.env.shore?.(a.spot, a.ms)?.breakerM ?? null, tone: band(0.5, 1.0) },
 ];
 
 export const METRIC_BY_ID: ReadonlyMap<string, Metric> = new Map(METRICS.map((m) => [m.id, m]));
@@ -178,7 +236,8 @@ export const MAX_TRACKED = 8;
  * things that move a swimmer (current, chop, sargassum, sun); DIVE adds period, which drives surge at depth.
  * Every activity tracks the UV index, the day's peak in the daily view (Joseph, 2026-11-10).
  */
-export const METRIC_PRESETS: Readonly<Record<'surf' | 'fish' | 'snorkel' | 'dive' | 'boat', readonly string[]>> = {
+export const METRIC_PRESETS: Readonly<Record<'surf' | 'fish' | 'snorkel' | 'dive' | 'boat' | 'swim', readonly string[]>> = {
+  swim: ['swim', 'rip', 'shorebreak', 'uv', 'feels', 'sst', 'wind', 'rain'],
   surf: ['surfq', 'swell', 'period', 'wind', 'tide', 'sargassum', 'sst', 'uv'],
   fish: ['bite', 'wind', 'swell', 'rain', 'clarity', 'uv'],
   snorkel: ['clarity', 'swell', 'wind', 'current', 'rain', 'sargassum', 'uv'],

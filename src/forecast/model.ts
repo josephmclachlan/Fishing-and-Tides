@@ -8,6 +8,8 @@
  *   SNORKEL  the DIVE & SNORKEL outing score at 2 m, with its surge and visibility
  *   DIVE     the same at 6 m
  *   SAIL     SEA COMFORT with wind, gusts and squalls (metrics/registry.ts)
+ *   SWIM     the beach-day score SWIM (physics/swim.ts via registry swimAt): rip risk and shore break at the
+ *            spot from the spot model, UV, feels-like, wind, rain, water
  * The day bubbles are plan.ts planDays for this one spot, so a best day here is WATCH's best day there.
  *
  * Levels 0..4 (very poor to great) use each score's own thresholds: the same cut points as its tone on the
@@ -24,15 +26,15 @@ import type { BiteReason } from '../fishing/bite';
 import { stingerGuess, type OutingReason, type OutingScore } from '../physics/outing';
 import { SNORKEL_SPOTS, type SnorkelAccess } from '../data/snorkel-spots';
 import { surgeBand, type SurgeBand } from '../physics/surge';
-import { METRIC_BY_ID, biteAt, surfHourFor, type MetricEnv } from '../metrics/registry';
+import { METRIC_BY_ID, biteAt, surfHourFor, swimAt, type MetricEnv, type SwimDetail } from '../metrics/registry';
 import { surfDetailAt } from '../metrics/surf-estimate';
 import { planDays, spotsFor, type Plan, type PlanActivity } from '../metrics/plan';
 import type { Spot } from '../metrics/forecast';
 import type { SurfBand, SurfQuality } from '../surf-quality';
 
-export type FcActivity = 'fish' | 'surf' | 'snorkel' | 'dive' | 'sail';
-/** In Joseph's order. */
-export const FC_ACTIVITIES: readonly FcActivity[] = ['fish', 'surf', 'snorkel', 'dive', 'sail'];
+export type FcActivity = 'fish' | 'surf' | 'swim' | 'snorkel' | 'dive' | 'sail';
+/** In Joseph's order, SWIM (a beach day) beside SURF. */
+export const FC_ACTIVITIES: readonly FcActivity[] = ['fish', 'surf', 'swim', 'snorkel', 'dive', 'sail'];
 export const isFcActivity = (x: unknown): x is FcActivity => typeof x === 'string' && (FC_ACTIVITIES as readonly string[]).includes(x);
 /** plan.ts calls sailing BOAT. */
 export const planActivity = (a: FcActivity): PlanActivity => (a === 'sail' ? 'boat' : a);
@@ -66,6 +68,7 @@ export const LEVEL_CUTS: Readonly<Record<Exclude<FcActivity, 'surf'>, readonly [
   snorkel: [20, 40, 70, 85],
   dive: [20, 40, 70, 85],
   sail: [25, 50, 75, 90],
+  swim: [20, 40, 70, 85],
 };
 const SURF_LEVEL: Record<SurfBand, Level> = { FLAT: 0, POOR: 1, FAIR: 2, GOOD: 3, EPIC: 4 };
 
@@ -165,6 +168,7 @@ export interface FcRead {
   fish?: FishRead;
   water?: WaterRead;
   sail?: SailRead;
+  swim?: SwimDetail;
 }
 
 const localHour = (ms: number, tz: number) => ((((ms + tz * H) % 864e5) + 864e5) % 864e5) / H;
@@ -248,6 +252,11 @@ export function readAt(deps: FcDeps, a: FcActivity, spot: Spot, ms: number, sky 
         stingers: snk && fin(o.windMs) && fin(windFrom) ? stingerGuess(o.windMs, windFrom, snk.facing) : null,
       },
     };
+  }
+  if (a === 'swim') {
+    const d = swimAt({ env, spot: spot.name, lng, lat, ms, sky: sky(ms, lat, lng) });
+    if (!d) return none;
+    return { ...base, score: d.score, share: d.score / 100, level: levelFor('swim', d.score), swim: d };
   }
   // SAIL: sea comfort is the headline; wind, gusts and squalls ride along.
   const s = sky(ms, lat, lng);

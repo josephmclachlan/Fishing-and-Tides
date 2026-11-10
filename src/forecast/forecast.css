@@ -95,7 +95,7 @@ body.fc-open { overflow: hidden; }
 }
 .fc-back svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .fc-titles { min-width: 0; }
-.fc-titles h1 { margin: 0; font-size: 26px; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-titles h1 { margin: 0; font-size: 26px; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 /* The subtitle wraps to a second line rather than cutting the time off (Spanish runs longer). */
 .fc-titles p { margin: 2px 0 0; color: var(--fc-sub); font-size: 14px; line-height: 1.25; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .fc-tools { display: flex; gap: 8px; }
@@ -109,11 +109,12 @@ body.fc-open { overflow: hidden; }
 /* Activity switch: a segmented control with a sliding highlight */
 .fc-acts {
   position: relative;
-  display: grid; grid-template-columns: repeat(5, 1fr);
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
   padding: 4px; border-radius: 16px;
   background: var(--fc-chip);
 }
-.fc-act {
+/* .fc .fc-act: the button reset above (.fc button { font: inherit }) would otherwise win over the tab's own size and weight. */
+.fc .fc-act {
   position: relative; z-index: 1;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
   min-height: 56px; padding: 6px 2px;
@@ -153,7 +154,11 @@ body.fc-open { overflow: hidden; }
 }
 .fc-spot:hover { transform: translateY(-2px); box-shadow: var(--fc-shadow); }
 .fc-spot.on { border-color: var(--fc-accent); box-shadow: 0 0 0 2px var(--fc-accent), var(--fc-shadow); }
-.fc-spot-name { max-width: 100%; font-weight: 750; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 22px; }
+.fc-spot-name {
+  max-width: 100%; font-weight: 750; font-size: 14px; line-height: 1.2; padding-right: 22px;
+  /* Long names (Playa Negra Cahuita) wrap to a second line rather than losing their end. */
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere;
+}
 .fc-spot-big { display: flex; align-items: baseline; gap: 3px; margin-top: 2px; line-height: 1.05; }
 .fc-spot-big b { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .fc-spot-big small { font-size: 12px; font-weight: 700; color: var(--fc-sub); }
@@ -416,6 +421,20 @@ body.fc-open { overflow: hidden; }
 .fc-art .fc-depth text { fill: var(--fc-foam); font: 700 11px var(--fc-font); }
 .fc-chop-anim { animation: fc-swell 2.4s ease-in-out infinite; }
 .fc-float { animation: fc-bob 3.2s ease-in-out infinite; }
+.fc-art .fc-ray { stroke: var(--fc-l2); stroke-width: 3; stroke-linecap: round; }
+.fc-art .fc-cloud { fill: var(--fc-card); fill-opacity: 0.92; stroke: var(--fc-line); stroke-width: 1; }
+.fc-art .fc-rain { stroke: var(--fc-accent); stroke-width: 2; stroke-linecap: round; }
+.fc-art .fc-shorewave { fill: var(--fc-sea-a); }
+.fc-art .fc-arm { fill: none; stroke: var(--fc-art-ink); stroke-width: 3; stroke-linecap: round; }
+.fc-art .fc-towel { fill: var(--fc-accent); fill-opacity: 0.8; }
+.fc-art .fc-pole { stroke: var(--fc-art-ink); stroke-width: 3; stroke-linecap: round; }
+.fc-art .fc-canopy { fill: var(--fc-coral); }
+.fc-art .fc-flag { fill: var(--lc); stroke: var(--fc-art-ink); stroke-width: 1; stroke-opacity: 0.4; }
+.fc-flag { transform-box: fill-box; transform-origin: 0 50%; animation: fc-wave-flag 1.6s ease-in-out infinite; }
+@keyframes fc-wave-flag { 0%, 100% { transform: skewY(0deg) scaleX(1); } 50% { transform: skewY(-6deg) scaleX(0.92); } }
+.fc-sun-g { transform-box: fill-box; transform-origin: 50% 50%; animation: fc-sun-spin 40s linear infinite; }
+@keyframes fc-sun-spin { to { transform: rotate(360deg); } }
+.fc-cloud-drift { animation: fc-swell 9s ease-in-out infinite; }
 .fc-art .fc-streak { stroke: var(--fc-art-ink); stroke-opacity: 0.3; stroke-width: 2; stroke-linecap: round; }
 
 /* Motion */
@@ -459,9 +478,13 @@ body.fc-open { overflow: hidden; }
   .fc-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
   .fc-stats div { padding: 8px 9px; }
   .fc-stats dd { font-size: 13px; }
-  .fc-act { min-height: 52px; font-size: 12px; }
+  .fc .fc-act { min-height: 52px; font-size: 12px; }
 }
 @media (max-width: 380px) {
+  .fc-titles h1 { font-size: 20px; }
+  /* Six tabs on a small phone: a touch smaller so Snorkel keeps its padding. */
+  .fc .fc-act { padding: 6px 0; letter-spacing: -0.01em; }
+  .fc-act svg { width: 22px; height: 22px; }
   .fc-stats { grid-template-columns: 1fr 1fr; }
   .fc-num { font-size: 52px; }
 }
