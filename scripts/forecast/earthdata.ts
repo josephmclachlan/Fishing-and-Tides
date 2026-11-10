@@ -17,6 +17,12 @@ const short = (url: string) => {
   return `${u.host}${u.pathname}`.slice(0, 160);
 };
 
+/** An OAuth `error` (and its description) on a hop, which says why a login was refused; empty when none. Nothing else of the query is shown. */
+function loginError(u: URL): string {
+  const e = u.searchParams.get('error'), d = u.searchParams.get('error_description') ?? u.searchParams.get('error_msg');
+  return e || d ? ` [error=${(e ?? '').slice(0, 60)}${d ? `: ${d.slice(0, 120)}` : ''}]` : '';
+}
+
 export interface Earthdata {
   /** GET a URL as text, logging in on the way when asked. Retries server errors. */
   text(url: string): Promise<string>;
@@ -39,6 +45,8 @@ export function earthdata(user: string, pass: string, fetchImpl: typeof fetch = 
 
   async function once(url: string): Promise<string> {
     let at = url;
+    // Where the request went, for an error: status, host and path of each hop, and any error a login hop passed on.
+    const chain: string[] = [];
     for (let hop = 0; hop < 10; hop++) {
       const u = new URL(at);
       const headers: Record<string, string> = { 'User-Agent': UA };
@@ -48,6 +56,7 @@ export function earthdata(user: string, pass: string, fetchImpl: typeof fetch = 
       // A stuck request must not hold up the whole data build.
       const res = await fetchImpl(at, { headers, redirect: 'manual', signal: AbortSignal.timeout(TIMEOUT_MS) });
       keep(u.host, res);
+      chain.push(`${res.status} ${short(at)}${loginError(u)}`);
       if (res.status >= 300 && res.status < 400) {
         const loc = res.headers.get('location');
         await res.body?.cancel();
@@ -63,7 +72,13 @@ export function earthdata(user: string, pass: string, fetchImpl: typeof fetch = 
       // A page from the login host itself means it stopped there (usually: the application isn't approved yet).
       if (u.host === URS) {
         await res.body?.cancel();
-        throw Object.assign(new Error('Earthdata login did not hand back to GES DISC: approve the "NASA GESDISC DATA ARCHIVE" application in the Earthdata profile'), { fatal: true });
+        throw Object.assign(new Error(`Earthdata login did not hand back to GES DISC (approve the "NASA GESDISC DATA ARCHIVE" application in the Earthdata profile): ${chain.join(' > ')}`), { fatal: true });
+      }
+      // After a login the last hop must be the file asked for; anywhere else is a page about what went wrong.
+      const want = new URL(url);
+      if (chain.length > 1 && (u.host !== want.host || u.pathname !== want.pathname)) {
+        await res.body?.cancel();
+        throw Object.assign(new Error(`login ended at a page, not the data: ${chain.join(' > ')}`), { fatal: true });
       }
       return res.text();
     }

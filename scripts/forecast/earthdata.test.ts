@@ -4,8 +4,8 @@ import { earthdata } from './earthdata.ts';
 type Seen = { url: string; headers: Record<string, string> };
 
 /** GES DISC and Earthdata Login as they answer: data → login (Basic) → back with a code → cookie → data. */
-function fakeNasa(opts: { goodLogin?: boolean; approved?: boolean } = {}) {
-  const { goodLogin = true, approved = true } = opts;
+function fakeNasa(opts: { goodLogin?: boolean; approved?: boolean; denied?: boolean } = {}) {
+  const { goodLogin = true, approved = true, denied = false } = opts;
   const seen: Seen[] = [];
   const res = (status: number, headers: Record<string, string> = {}, body = '', cookies: string[] = []) => {
     const h = new Headers(headers);
@@ -18,6 +18,10 @@ function fakeNasa(opts: { goodLogin?: boolean; approved?: boolean } = {}) {
     seen.push({ url, headers });
     expect(init?.redirect).toBe('manual');
     const u = new URL(url);
+    if (u.host === 'disc.gsfc.nasa.gov') return res(200, { 'content-type': 'text/html' }, '<html ng-app="uuiApp">');
+    if (u.host === 'gpm1.gesdisc.eosdis.nasa.gov' && u.pathname.startsWith('/data-redirect') && u.searchParams.get('error')) {
+      return res(302, { location: 'https://disc.gsfc.nasa.gov/information/howto?error=1' });
+    }
     if (u.host === 'gpm1.gesdisc.eosdis.nasa.gov' && u.pathname.startsWith('/data-redirect')) {
       return res(302, { location: u.searchParams.get('state')! }, '', ['nasa_gesdisc_data_archive=abc123; Path=/; Secure; HttpOnly']);
     }
@@ -28,6 +32,7 @@ function fakeNasa(opts: { goodLogin?: boolean; approved?: boolean } = {}) {
     if (u.host === 'urs.earthdata.nasa.gov') {
       if (!goodLogin || headers.Authorization !== `Basic ${Buffer.from('joe:pw').toString('base64')}`) return res(401);
       if (!approved) return res(200, {}, '<html>Approve application</html>');
+      if (denied) return res(302, { location: `https://gpm1.gesdisc.eosdis.nasa.gov/data-redirect?error=access_denied&error_description=app+not+authorized&state=x` });
       return res(302, { location: `https://gpm1.gesdisc.eosdis.nasa.gov/data-redirect?code=c&state=${encodeURIComponent(u.searchParams.get('state')!)}` }, '', ['urs_user_already_logged=yes; Path=/']);
     }
     return res(404);
@@ -50,6 +55,12 @@ describe('earthdata', () => {
     const n = fakeNasa();
     await earthdata('joe', 'pw', n.fetchImpl, 1).text('https://gpm1.gesdisc.eosdis.nasa.gov/opendap/a.ascii?x');
     for (const s of n.seen) expect(Boolean(s.headers.Authorization), s.url).toBe(new URL(s.url).host === 'urs.earthdata.nasa.gov');
+  });
+
+  it('names the hops when a login ends on a page instead of the file', async () => {
+    const r = earthdata('joe', 'pw', fakeNasa({ denied: true }).fetchImpl, 1).text('https://gpm1.gesdisc.eosdis.nasa.gov/opendap/a.ascii?secret=1');
+    await expect(r).rejects.toThrow(/ended at a page.*302 gpm1\.gesdisc\.eosdis\.nasa\.gov\/opendap\/a\.ascii > 302 urs.*error=access_denied: app not authorized.*200 disc\.gsfc\.nasa\.gov\/information\/howto/);
+    await expect(r).rejects.not.toThrow(/secret|pw/);
   });
 
   it('says which setting is wrong, without the password', async () => {
