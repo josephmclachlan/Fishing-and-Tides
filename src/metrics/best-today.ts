@@ -9,6 +9,7 @@ import { localDayStart } from '../physics/astro';
 import { breakFor } from './surf-estimate';
 import { METRIC_BY_ID, type MetricEnv } from './registry';
 import { clarityLevel } from '../physics/clarity';
+import { fishWindow } from './fish-window';
 
 export type Activity = 'surf' | 'fish' | 'dive' | 'boat';
 
@@ -45,7 +46,7 @@ export interface BestToday {
  * Last hour a window may run to, local. Sunset on this coast is 17:10 to 17:50 all year and dusk is
  * short this close to the equator. Diving and snorkelling need daylight in the water, so their
  * windows end by 17:00; surfing and boating need to see the sets and the reefs, so by 18:00. Fishing
- * runs to 19:00: the dusk bite is one of the best times for it.
+ * reads the bite on a 10-minute grid (fish-window.ts) up to 19:00, so the window follows the dusk peak.
  */
 export const DIVE_TO_H = 17, DUSK_TO_H = 18;
 export const toHFor = (activity: Activity) => (activity === 'dive' ? DIVE_TO_H : activity === 'fish' ? BEST_TO_H : DUSK_TO_H);
@@ -58,6 +59,7 @@ export const spotNear = (at: [number, number], spots: readonly Spot[]): Spot | n
 /** True once the last window of the local day (BEST_TO_H) has started: an empty BEST TODAY then means none left, not missing data. */
 export function todayOver(tzOffsetH: number, nowMs: number, activity?: Activity): boolean {
   const toH = activity ? toHFor(activity) : BEST_TO_H;
+  if (activity === 'fish') return nowMs >= localDayStart(nowMs, tzOffsetH) + toH * 3.6e6;
   return nowMs >= localDayStart(nowMs, tzOffsetH) + (toH - BEST_LEN_H + 1) * 3.6e6;
 }
 
@@ -67,6 +69,11 @@ export function todayOver(tzOffsetH: number, nowMs: number, activity?: Activity)
  */
 export function bestOnDay(env: MetricEnv, activity: Activity, spot: Spot, nowMs: number, day: number): BestToday | null {
   if (day < 0 || day > BEST_MAX_DAY) return null;
+  if (activity === 'fish') {
+    // Fishing follows the bite peak on a 10-minute grid (a 2-hour block read "6 PM", after sunset).
+    const w = fishWindow(env, spot, localDayStart(nowMs, env.tzOffsetH) + day * 864e5, nowMs);
+    return w ? { spot: spot.name, startMs: w.startMs, endMs: w.endMs, good: w.mean >= 40, score: w.mean / 50 - 1 } : null;
+  }
   const ids = votersFor(activity, spot);
   const f = buildForecast(env, ids, [spot], nowMs, day + 1);
   const metrics = ids.map((id) => METRIC_BY_ID.get(id)!);

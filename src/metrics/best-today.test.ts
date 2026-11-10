@@ -107,6 +107,15 @@ describe('bestOnDay (J3)', () => {
     expect(todayOver(-6, DAY0 + 17 * H + 1, 'surf')).toBe(true);
     expect(todayOver(-6, DAY0 + 17 * H + 1, 'fish')).toBe(false);
   });
+  it('fishing follows the dusk bite peak on a 10-minute grid, not a 2-hour block ending at 19:00', () => {
+    const w = bestToday(env(), 'fish', spot, DAY0 + 4 * H)!;
+    expect(w).not.toBeNull();
+    expect(w.startMs % (10 * 60_000)).toBe(0);
+    expect(w.endMs - w.startMs).toBeLessThan(2 * H);
+    expect(w.endMs - w.startMs).toBeGreaterThanOrEqual(0.5 * H);
+    // Sunset is about 17:10: the peak sits at dusk, so the window starts before 17:30 and never runs on into the dark evening.
+    expect(w.startMs).toBeLessThan(DAY0 + 17.5 * H);
+  });
   it('flags a day where even the best hours are mostly bad', () => {
     const storm = { ...env(), windMs: () => 20, weather: () => [{ model: 'gfs_seamless', rainMmH: 15, cloudPct: 100, uv: 1, tempC: 25, gustKt: 40, capeJkg: 3000, pressureHpa: 1000, windKt: 38 }] as ReturnType<MetricEnv['weather']> };
     const w = bestToday(storm, 'boat', spot, DAY0 + 6 * H);
