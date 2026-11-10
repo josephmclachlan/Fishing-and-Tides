@@ -81,7 +81,7 @@ import { fetchZones, mountZones } from './layers/zones';
 import { mountZonesHud } from './zones-hud';
 import { fetchMouths, fetchOccurrences, mountFishing } from './layers/fishing';
 import { loadSpecies, mountFishingHud } from './fishing-hud';
-import { layers } from './layers/registry';
+import { layers, type ActivityId } from './layers/registry';
 import { mountMotionKey } from './layers/motion-key';
 import { bindMapLayers } from './layers/visibility';
 import { mountLayerNotes } from './layers/layer-notes';
@@ -148,6 +148,7 @@ import { mountTideHud } from './tide-hud';
 import { mountSpotPage } from './spot-page';
 import { mountForecastPage } from './forecast/page';
 import { mountCoralPage } from './coral-page/page';
+import type { FcActivity } from './forecast/model';
 import { fetchSargassum, type SargassumData } from './adapters/sargassum';
 import { BEACH_RADIUS_M, beachDay, mountSargassum, mountSargassumHud, sargassumForecast, type SargForecast } from './layers/sargassum';
 
@@ -804,6 +805,8 @@ mountWatchPanel(
   },
 );
 // FORECAST page (PLAN 7.52): a clean page per spot and activity, its own link (#forecast/<spot>/<activity>).
+/** The map's LAYERS preset for each forecast activity (snorkel and dive share DIVE). */
+const MAP_PRESET: Record<FcActivity, ActivityId> = { fish: 'fishing', surf: 'surf', swim: 'swim', snorkel: 'dive', dive: 'dive', sail: 'sail' };
 const forecastPage = mountForecastPage({
   env: metricEnv(),
   // Snorkel and dive read the outing score at the spot's nearest water, as WATCH does.
@@ -823,6 +826,50 @@ const forecastPage = mountForecastPage({
     const c = map.getCenter();
     return [c.lng, c.lat];
   },
+  // The live-map tile (PLAN 7.68): the activity's LAYERS preset, zoomed to the spot with the crosshair on it.
+  openMap: (spot, a) => {
+    forecastPage.close();
+    coralMode.set(false);
+    layers.setActivity(MAP_PRESET[a]);
+    map.jumpTo({ center: spot.lngLat, zoom: Math.max(map.getZoom(), 13) });
+  },
+  // A picture of the live map at the spot. Only while the forecast covers the map: the camera moves to the spot, waits
+  // for its tiles, takes the frame from the canvas inside a render (while its buffer still holds it) and goes back.
+  // Null where the browser refuses (a tainted canvas) or the tiles do not come within 5 s.
+  mapPreview: (spot) =>
+    new Promise((resolve) => {
+      if (!forecastPage.isOpen()) return resolve(null);
+      const prev = { center: map.getCenter(), zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() };
+      const t0 = Date.now();
+      let done = false;
+      const finish = (v: { url: string; x: number; y: number } | null) => {
+        if (done) return;
+        done = true;
+        map.jumpTo(prev);
+        resolve(v);
+      };
+      map.jumpTo({ center: spot.lngLat, zoom: 12.5, bearing: 0, pitch: 0 });
+      const wait = () => {
+        if (!forecastPage.isOpen()) return finish(null);
+        const ready = Date.now() - t0 > 600 && map.isStyleLoaded() && map.areTilesLoaded();
+        if (!ready && Date.now() - t0 < 5000) return void window.setTimeout(wait, 200);
+        map.once('render', () => {
+          try {
+            const src = map.getCanvas();
+            const cw = Math.min(src.width, src.height * 2), ch = cw / 2;
+            const out = document.createElement('canvas');
+            out.width = 720;
+            out.height = 360;
+            out.getContext('2d')!.drawImage(src, (src.width - cw) / 2, (src.height - ch) / 2, cw, ch, 0, 0, out.width, out.height);
+            finish({ url: out.toDataURL('image/jpeg', 0.75), x: 0.5, y: 0.5 });
+          } catch {
+            finish(null);
+          }
+        });
+        map.triggerRepaint();
+      };
+      wait();
+    }),
   openCoral: ([lng, lat]) => coralPage.open({ reef: nearestCoralReef(lng, lat).id }),
 });
 // The way back to the forecast from the map (PLAN 7.67; Joseph: "make returning to forecast page more obviously

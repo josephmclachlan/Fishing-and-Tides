@@ -43,7 +43,7 @@ export const LAYERS: readonly LayerDef[] = [
   { id: 'anchorages', group: 'USE', mapPrefixes: ['an-'] },
 ];
 
-export type ActivityId = 'all' | 'fishing' | 'dive' | 'surf' | 'sail';
+export type ActivityId = 'all' | 'fishing' | 'dive' | 'surf' | 'swim' | 'sail';
 export interface Activity { id: ActivityId; layers: readonly LayerId[] }
 
 const ALL_IDS = LAYERS.map((l) => l.id);
@@ -54,6 +54,9 @@ export const ACTIVITIES: readonly Activity[] = [
   { id: 'fishing', layers: ['fishing', 'sst', 'fronts', 'clarity', 'weather', 'lightning', 'obs', 'currents', 'wind', 'depth', 'reefs', 'zones'] },
   { id: 'dive', layers: ['lightning', 'clarity', 'sargassum', 'waves', 'currents', 'rip', 'depth', 'reefs', 'zones', 'seamarks'] },
   { id: 'surf', layers: ['lightning', 'sargassum', 'waves', 'wind', 'rip', 'surf', 'depth', 'reefs'] },
+  // A beach day (PLAN 7.68): rip channels and the waves that feed them, the water itself (clarity, temperature, sargassum),
+  // rain and storms.
+  { id: 'swim', layers: ['lightning', 'weather', 'sargassum', 'clarity', 'sst', 'waves', 'rip', 'reefs'] },
   { id: 'sail', layers: ['wind', 'weather', 'lightning', 'obs', 'waves', 'currents', 'depth', 'seamarks', 'anchorages', 'reefs'] },
 ];
 
