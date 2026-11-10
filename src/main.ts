@@ -147,6 +147,7 @@ import { fetchGauge, type GaugeReading } from './adapters/gauge';
 import { mountTideHud } from './tide-hud';
 import { mountSpotPage } from './spot-page';
 import { mountForecastPage } from './forecast/page';
+import { mountCoralPage } from './coral-page/page';
 import { fetchSargassum, type SargassumData } from './adapters/sargassum';
 import { BEACH_RADIUS_M, beachDay, mountSargassum, mountSargassumHud, sargassumForecast, type SargForecast } from './layers/sargassum';
 
@@ -587,6 +588,15 @@ fetch(`${import.meta.env.BASE_URL}data/climatology/coral-history.json`)
   .then((r) => (r.ok ? (r.json() as Promise<CoralHistory>) : null))
   .then((h) => ((coralHistory = h), coralHeatUi?.refresh()))
   .catch((err) => console.warn('coral history unavailable', err));
+/** Best day this week in the water at a reef (persona review J9): snorkel windows at the nearest spot, ranked with the reef's visibility. */
+const reefVisit = (at: [number, number], caps = true) => {
+  const spot = nearest(at, SPOTS)?.point;
+  const v = spot ? bestVisitDay(metricEnv(), spot, at, Date.now()) : null;
+  if (!spot || !v) return null;
+  const tz = REGION.tzOffsetH;
+  const word = v.day === 0 ? t('bt.today') : v.day === 1 ? t('bt.tomorrow') : t(`day.${new Date(v.startMs + tz * 3.6e6).getUTCDay()}` as Key);
+  return { when: caps ? word : word.charAt(0) + word.slice(1).toLocaleLowerCase(), hours: `${clock(v.startMs)}–${clock(v.endMs)}`, visM: v.visM, spot: spot.name };
+};
 const coralPanelEl = document.getElementById('coral-panel');
 if (coralPanelEl) {
   coralHeatUi = mountCoralHeat(coralPanelEl, {
@@ -602,15 +612,7 @@ if (coralPanelEl) {
     // The user's own sites whose nearest reef is this one, opened at their CONDITIONS tab (PLAN 7.40).
     sitesFor: (id) => coralStore.list().filter((s) => nearestCoralReef(s.lng, s.lat).id === id).map((s) => ({ id: s.id, name: s.name })),
     openSite: (id) => coralPanel.openSite(id, 'conditions'),
-    // Best day this week in the water at the reef (persona review J9): snorkel windows at the nearest spot, ranked with the reef's visibility.
-    visit: (reef) => {
-      const spot = nearest(reef.lngLat, SPOTS)?.point;
-      const v = spot ? bestVisitDay(metricEnv(), spot, reef.lngLat, Date.now()) : null;
-      if (!v) return null;
-      const tz = REGION.tzOffsetH;
-      const when = v.day === 0 ? t('bt.today') : v.day === 1 ? t('bt.tomorrow') : t(`day.${new Date(v.startMs + tz * 3.6e6).getUTCDay()}` as Key);
-      return { when, hours: `${clock(v.startMs)}–${clock(v.endMs)}`, visM: v.visM };
-    },
+    visit: (reef) => reefVisit(reef.lngLat),
     goTo: (reef) => map.flyTo({ center: reef.lngLat, zoom: Math.max(map.getZoom(), 12) }),
   });
   // Spawning calendar (PLAN 7.33), worked out on the device; redone once a day.
@@ -620,6 +622,53 @@ if (coralPanelEl) {
   mountCoralConduct(coralPanelEl);
   map.on('moveend', () => coralHeatUi?.refresh());
   sheets.subscribe(() => sheets.is('coral') && (coralHeatUi?.refresh(), spawnUi.refresh()));
+}
+// CORAL page (PLAN 7.66): reef health, the private field log, spawning, guide and rules on a clean page of its own (#coral).
+const coralPage = mountCoralPage({
+  storage: safeStorage(),
+  lang: () => settings.lang(),
+  setLang: (l) => {
+    settings.setLang(l);
+    const c = map.getCenter();
+    saveView(safeSession(), { center: [c.lng, c.lat], zoom: map.getZoom() });
+    location.reload();
+  },
+  heat: () => coralHeat,
+  history: () => coralHistory,
+  mud: (id) => (mudData ? mudNow(mudData, mudHistory, id) : null),
+  mudHistory: () => mudHistory,
+  mudDays: () => mudData?.days ?? [],
+  risks: reefRisks,
+  visit: (id) => {
+    const reef = CORAL_REEFS.find((r) => r.id === id);
+    return reef ? reefVisit(reef.lngLat, false) : null;
+  },
+  store: coralStore,
+  reefOf: (s) => nearestCoralReef(s.lng, s.lat).id,
+  startReef: () => {
+    const c = map.getCenter();
+    return nearestCoralReef(c.lng, c.lat).id;
+  },
+  // Editing stays in the CORAL drawer for now: go to the map (a new history entry, so back returns here) and open it there.
+  openOnMap: ({ site, reef, add }) => {
+    location.hash = '#map';
+    setTimeout(() => {
+      if (site) coralPanel.openSite(site, 'overview', true);
+      else if (!sheets.is('coral')) sheets.toggle('coral');
+      const r = reef && CORAL_REEFS.find((x) => x.id === reef);
+      if (r) map.flyTo({ center: r.lngLat, zoom: Math.max(map.getZoom(), 12) });
+      void add;
+    }, 0);
+  },
+});
+if (coralPanelEl) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'tab cp-launch';
+  b.textContent = `${t('cp.open')} ↗`;
+  b.title = t('cp.openTitle');
+  b.addEventListener('click', () => coralPage.open({ reef: (() => { const c = map.getCenter(); return nearestCoralReef(c.lng, c.lat).id; })() }));
+  coralPanelEl.querySelector('.ph')?.after(b);
 }
 // WATCH (PLAN 7.13): the metric tracker reads the same wind, wave, weather and tide data as the HUD, at any hour of the next days.
 const watchSea = new globalThis.Map<string, [number, number] | null>();
