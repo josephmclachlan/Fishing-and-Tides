@@ -72,6 +72,10 @@ export interface ForecastDeps extends FcDeps {
   setLang: (l: 'en' | 'es') => void;
   /** Where the map is, for the first spot when none is remembered. */
   center: () => [number, number];
+  /** Open the map for an activity at a spot: its layer preset, zoomed in with the crosshair on the spot (PLAN 7.68). */
+  openMap?: (spot: Spot, a: FcActivity) => void;
+  /** A picture of the live map around a spot, and where the spot sits in it (0..1 across and down); null if it cannot be taken. */
+  mapPreview?: (spot: Spot) => Promise<{ url: string; x: number; y: number } | null>;
 }
 
 /** Headline value as [text, unit] for the hero and the day bubbles. */
@@ -346,6 +350,13 @@ export function mountForecastPage(deps: ForecastDeps) {
         <div class="fc-card-head"><h2>${t('fc.conditions')}</h2><span class="fc-cond-when" id="fc-cond-when"></span></div>
         <div class="fc-tiles" id="fc-tiles"></div>
       </section>
+      <button type="button" class="fc-radar" id="fc-radar">
+        <span class="fc-radar-img" id="fc-radar-img"></span>
+        <span class="fc-radar-sweep" aria-hidden="true"></span>
+        <span class="fc-radar-ping" id="fc-radar-ping" aria-hidden="true" hidden></span>
+        <span class="fc-radar-txt"><b>${t('fc.radar')}</b><span id="fc-radar-sub"></span><small id="fc-radar-hint"></small></span>
+        <svg class="fc-radar-go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
       <section class="fc-card fc-days-card">
         <div class="fc-card-head"><h2>${t('fc.days')}</h2><button type="button" class="fc-now" id="fc-now" hidden>${t('fc.now')}</button></div>
         <div class="fc-days" id="fc-days"></div>
@@ -712,6 +723,31 @@ export function mountForecastPage(deps: ForecastDeps) {
     html('fc-tiles', `${weatherTile(wx, sst, dayName, openTiles.has(wid), wid)}${tiles.map(tileHtml).join('')}`);
     $('fc-tiles').dataset.n = String(tiles.length);
   };
+  /** The live-map tile: a picture of the map around the spot, retaken when the spot changes and every two minutes. */
+  let previewFor = '';
+  let previewAt = 0;
+  const renderRadar = () => {
+    const sp = spot();
+    const a = t(`fc.act.${act}` as Key).toLowerCase();
+    $('fc-radar-sub').textContent = t('fc.radarSub', { act: a, spot: titleCase(sp.name) });
+    $('fc-radar-hint').textContent = t('fc.radarHint', { act: a });
+    if (!deps.mapPreview || (previewFor === sp.name && Date.now() - previewAt < 120_000)) return;
+    previewFor = sp.name;
+    previewAt = Date.now();
+    void deps.mapPreview(sp).then((p) => {
+      if (!p || previewFor !== sp.name) return;
+      $('fc-radar-img').style.backgroundImage = `url(${p.url})`;
+      $('fc-radar').classList.add('has-img');
+      const ping = $('fc-radar-ping');
+      ping.hidden = !(p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1);
+      ping.style.left = `${(p.x * 100).toFixed(1)}%`;
+      ping.style.top = `${(p.y * 100).toFixed(1)}%`;
+    });
+  };
+  $('fc-radar').addEventListener('click', () => {
+    if (deps.openMap) deps.openMap(spot(), act);
+    else close();
+  });
   const render = () => {
     if (el.hidden) return;
     renderActs();
@@ -720,6 +756,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     renderHero();
     renderTimeline();
     renderConditions();
+    renderRadar();
   };
 
   // --- events

@@ -218,7 +218,7 @@ body[data-enhance='off'] .from-spot > * { animation: tier-in 0.9s ease-out both;
 .layers { right: 8px; bottom: 150px; width: 330px; max-height: calc(100% - 400px); overflow-y: auto; display: none; gap: 6px; }
 .layers.open { display: grid; }
 .lay-acts, .lay-grid { display: grid; gap: 4px; }
-.lay-acts { grid-template-columns: repeat(5, 1fr); }
+.lay-acts { grid-template-columns: repeat(6, 1fr); }
 .lay-grid { grid-template-columns: 1fr 1fr; }
 .lay-cell { display: flex; gap: 2px; min-width: 0; }
 .lay-cell .tab.lay { flex: 1; min-width: 0; }

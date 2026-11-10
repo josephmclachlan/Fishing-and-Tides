@@ -40,6 +40,15 @@ describe('layer store', () => {
     for (const a of ACTIVITIES) for (const l of a.layers) expect(ids.has(l)).toBe(true);
   });
 
+  it('has a SWIM preset with the beach-day layers (PLAN 7.68)', () => {
+    const swim = ACTIVITIES.find((a) => a.id === 'swim')!;
+    for (const l of ['rip', 'waves', 'sargassum', 'clarity', 'sst', 'lightning'] as const) expect(swim.layers).toContain(l);
+    const s = createLayerStore(mem());
+    s.setActivity('swim');
+    expect(s.isOn('rip')).toBe(true);
+    expect(s.isOn('fishing')).toBe(false);
+  });
+
   it('persists, and ignores unknown ids or corrupt data', () => {
     const st = mem();
     const a = createLayerStore(st);
