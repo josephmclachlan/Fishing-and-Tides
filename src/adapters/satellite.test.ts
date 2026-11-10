@@ -29,7 +29,8 @@ const sst = series('sst', 'sst', macroGrid, [(c) => 28 + c, (c) => 28.2 + c]);
 const sstCoast = series('sst-coast', 'sst', coastGrid, [(c) => (c === 0 ? NaN : 28.1 + c * 0.25), (c) => (c === 0 ? NaN : 28.3 + c * 0.25)]);
 const chl = series('chl', 'chl', macroGrid, [() => 0.2, () => 0.4]);
 const kd490 = series('kd490', 'kd490', coastGrid, [() => 0.1, () => 0.12]);
-const data: SatelliteData = { sst, sstCoast, chl, kd490, fetchedAt: now - 3.6e6 };
+const kd490Nrt = series('kd490-nrt', 'kd490', coastGrid, [() => 0.05, () => 0.06], [now - 2 * D, now - D]);
+const data: SatelliteData = { sst, sstCoast, chl, kd490, kd490Nrt, fetchedAt: now - 3.6e6 };
 
 describe('observedAt', () => {
   it('blends days inside the week and holds the newest map after it', () => {
@@ -68,12 +69,19 @@ describe('satellite checks', () => {
   it('passes good data', async () => {
     const r = await runChecks(satelliteChecks(async () => data));
     expect(r.filter((x) => x.status !== 'pass')).toEqual([]);
-    expect(r.length).toBe(13);
+    expect(r.length).toBe(17);
   });
   it('fails a feed that is missing or out of range', async () => {
     const r = await runChecks(satelliteChecks(async () => ({ ...data, chl: null, sst: series('sst', 'sst', macroGrid, [() => 50]) })));
     expect(r.filter((x) => x.feed === 'chl').every((x) => x.status === 'fail')).toBe(true);
     expect(r.find((x) => x.feed === 'sst' && x.kind === 'range')!.status).toBe('fail');
+  });
+  it('holds the GlobColour feed to a day or two late', async () => {
+    const old = series('kd490-nrt', 'kd490', coastGrid, [() => 0.05], [now - 7 * D]);
+    const r = await runChecks(satelliteChecks(async () => ({ ...data, kd490Nrt: old })));
+    expect(r.find((x) => x.feed === 'kd490-nrt' && x.label.startsWith('Newest map'))!.status).toBe('fail');
+    const none = await runChecks(satelliteChecks(async () => ({ ...data, kd490Nrt: null })));
+    expect(none.filter((x) => x.feed === 'kd490-nrt').every((x) => x.status === 'fail')).toBe(true);
   });
 });
 

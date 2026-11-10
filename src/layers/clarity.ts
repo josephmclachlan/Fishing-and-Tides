@@ -91,8 +91,9 @@ export function seaDepthAt(c: Pick<ClarityContext, 'elevation' | 'land'>, lng: n
 
 /**
  * A Kd490 series with every land-touching pixel replaced by the nearest pixel offshore of it, frame by
- * frame (PLAN 7.45, physics/clarity-baseline.ts): the 2 km pixels on the shore also hold beach, surf and
- * reef flat and read 2 to 4 times murkier than the water a step out. Land is where no frame has a value.
+ * frame (PLAN 7.45, physics/clarity-baseline.ts): pixels on the shore also hold beach, surf and reef flat
+ * (NOAA's 2 km pixels read 2 to 4 times murkier than the water a step out; GlobColour's 4 km about 1.1
+ * times). Land is where no frame has a value.
  */
 export function offshoreSeries(s: GridSeries): GridSeries {
   const { cols, rows } = s.meta.grid;
@@ -104,8 +105,13 @@ export function offshoreSeries(s: GridSeries): GridSeries {
   return { meta: s.meta, values };
 }
 
-/** Per satellite load: the shore-corrected Kd490 and baseline, and each point's history (the grid asks for every cell). */
+/**
+ * Per satellite load: the shore-corrected Kd490 and baseline, and each point's history (the grid asks for every cell).
+ * `nrt` is GlobColour's Kd490, about a day late (PLAN 7.47); `kd490` NOAA's, about 10 days late, which is past
+ * SAT_MAX_AGE_D and so only anchors a point with no baseline.
+ */
 interface SatPrep {
+  nrt: GridSeries | null;
   kd490: GridSeries | null;
   clim: GridSeries | null;
   /** The monthly baseline re-stamped around a year, by that year. */
@@ -116,13 +122,13 @@ const satMemo = new WeakMap<SatelliteData, SatPrep>();
 function prep(sat: SatelliteData): SatPrep {
   let p = satMemo.get(sat);
   if (!p) {
-    p = { kd490: sat.kd490 && offshoreSeries(sat.kd490), clim: sat.kd490Clim ? offshoreSeries(sat.kd490Clim) : null, climByYear: new globalThis.Map(), history: new globalThis.Map() };
+    p = { nrt: sat.kd490Nrt ? offshoreSeries(sat.kd490Nrt) : null, kd490: sat.kd490 && offshoreSeries(sat.kd490), clim: sat.kd490Clim ? offshoreSeries(sat.kd490Clim) : null, climByYear: new globalThis.Map(), history: new globalThis.Map() };
     satMemo.set(sat, p);
   }
   return p;
 }
 
-/** A point's satellite Kd history: shore-corrected Kd490 where the coast map has it, else chlorophyll through Morel et al. (2007). */
+/** A point's satellite Kd history: shore-corrected Kd490 from the freshest map that has the point, else chlorophyll through Morel et al. (2007). */
 export function satHistory(sat: SatelliteData, lng: number, lat: number): SatState | null {
   const memo = prep(sat).history;
   const key = `${lng.toFixed(4)},${lat.toFixed(4)}`;
@@ -132,7 +138,8 @@ export function satHistory(sat: SatelliteData, lng: number, lat: number): SatSta
     const t = s.meta.times;
     return satState(t, t.map((ms) => toKd(observedAt(s, name, lng, lat, ms)?.value ?? NaN)));
   };
-  const st = from(prep(sat).kd490, 'kd490', (x) => x) ?? from(sat.chl, 'chl', (x) => (Number.isFinite(x) ? kdFromChl(x) : NaN));
+  const p = prep(sat);
+  const st = from(p.nrt, 'kd490', (x) => x) ?? from(p.kd490, 'kd490', (x) => x) ?? from(sat.chl, 'chl', (x) => (Number.isFinite(x) ? kdFromChl(x) : NaN));
   memo.set(key, st);
   return st;
 }
