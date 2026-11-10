@@ -312,6 +312,7 @@ export const es: Dict = {
   'sz.title': 'ROMPIENTE',
   'sz.brk': 'ROMP',
   'sz.breaker': 'ROMPIENTE',
+  'sz.shore': 'EN LA ORILLA',
   'sz.type': 'TIPO',
   'sz.type.spilling': 'DERRAME',
   'sz.type.plunging': 'VOLUTA',

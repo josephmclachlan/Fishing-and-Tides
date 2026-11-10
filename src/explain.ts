@@ -13,7 +13,7 @@ export type HelpId = string;
 export const HELP_BY_ID: Readonly<Record<string, HelpId>> = {
   sarg: 'sargassum', swell: 'swell', period: 'period', sdir: 'swellDir', wind: 'wind', wdir: 'windDir', sst: 'sst', vis: 'vis', tide: 'tide',
   rip: 'rip', ripgauge: 'rip', curr: 'current', cset: 'set', tgt: 'target', tgtrng: 'range', tgtbrg: 'bearing',
-  'sz-hb': 'breaker', 'sz-type': 'wavetype', 'sz-pow': 'power', 'sz-drift': 'drift', 'sz-rips': 'ripStrength', 'sz-ripl': 'ripReach',
+  'sz-hb': 'breaker', 'sz-shore': 'shore', 'sz-type': 'wavetype', 'sz-pow': 'power', 'sz-drift': 'drift', 'sz-rips': 'ripStrength', 'sz-ripl': 'ripReach',
   'dv-3': 'surge', 'dv-6': 'surge', 'dv-12': 'surge',
   'tc-hi': 'tide', 'tc-lo': 'tide', 'sp-hb': 'breaker', 'sp-rip': 'rip', 'sp-drift': 'drift', 'sp-surf': 'surfScore', 'sp-dive': 'surge',
   'sb-name': 'break', 'sb-q': 'surfScore', 'sb-type': 'breakType', 'sb-haz': 'hazard',

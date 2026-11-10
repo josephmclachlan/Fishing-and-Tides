@@ -1,5 +1,6 @@
 /**
- * SURF ZONE readouts in the side panel at the spot tier (PLAN 4.2): breaker height and type,
+ * SURF ZONE readouts in the side panel at the spot tier (PLAN 4.2): breaker height and type, the height
+ * left at the water's edge behind a reef flat (PLAN 7.57),
  * wave power, longshore drift and the rip band at the spot nearest the reticle.
  */
 import { condSlot } from './cond-groups';
@@ -18,6 +19,7 @@ export function mountSurfZoneHud(root: HTMLElement, map: Map, spots: SpotPhysics
     `<div class="from-spot">
       ${panelHeader(t('sz.title'))}
       ${readout(t('sz.breaker'), 'sz-hb', t('unit.m'))}
+      ${readout(t('sz.shore'), 'sz-shore', t('unit.m'))}
       <div class="ro"><span class="lbl">${t('sz.type')}</span><span class="seg sm" id="sz-type">--</span></div>
       ${readout(t('sz.power'), 'sz-pow', t('unit.kwm'))}
       ${readout(t('sz.drift'), 'sz-drift', t('unit.ms'))}
@@ -32,11 +34,13 @@ export function mountSurfZoneHud(root: HTMLElement, map: Map, spots: SpotPhysics
     const name = nearest([c.lng, c.lat], SPOTS)!.point.name;
     const r = spots.byName(name)?.result;
     if (!r) {
-      for (const id of ['sz-hb', 'sz-type', 'sz-pow', 'sz-drift', 'sz-rips', 'sz-ripl']) $(id).textContent = '--';
+      for (const id of ['sz-hb', 'sz-shore', 'sz-type', 'sz-pow', 'sz-drift', 'sz-rips', 'sz-ripl']) $(id).textContent = '--';
       return;
     }
     const b = r.waves.breaker;
     $('sz-hb').textContent = b.Hb.toFixed(1);
+    // Behind a reef flat, what still reaches the water's edge (PLAN 7.57); on an open beach the same as the breaker.
+    $('sz-shore').textContent = (r.shore?.Hb ?? b.Hb).toFixed(1);
     $('sz-type').textContent = b.type ? t(`sz.type.${b.type}` as Key) : '--';
     $('sz-pow').textContent = b.powerKWm.toFixed(0);
     $('sz-drift').textContent = Math.abs(b.longshoreMs).toFixed(1);

@@ -128,6 +128,7 @@ import { fetchRiverFlow, flowRatio, type RiverFlow } from './adapters/river-flow
 import { dataAge, describeAge } from './adapters/data-age';
 import { createNet } from './net';
 import { createPhysicsClient } from './physics/client';
+import { flatPolygons } from './physics/reef-flat';
 import { haversineM, nearest } from './geo';
 import { mountVerdictHud } from './verdict-hud';
 import type { VerdictInputs } from './verdict';
@@ -991,7 +992,7 @@ fetchSeafloor()
     clarityElevation = data.region;
     clarityLand = data.land;
     refreshClarity();
-    spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land }), baseConditions, () => time.validMs(), windExtras, spotSea);
+    spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land, reefFlats: flatPolygons(data.reefs) }), baseConditions, () => time.validMs(), windExtras, spotSea);
     spotPhysics.subscribe(() => queueVerdict());
     spotPhysics.subscribe(() => {
       ripLayer.update(spotPhysics!.all(), data.land);

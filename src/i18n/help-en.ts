@@ -24,6 +24,7 @@ export const helpEn = {
   'help.target': 'The named beach or spot nearest to the cross-hair in the middle of the map.',
   'help.range': 'Distance from the cross-hair to the nearest named spot, in kilometres.',
   'help.bearing': 'The compass direction from the cross-hair to that spot, in degrees true (0 north, 90 east, 180 south, 270 west).',
+  'help.shore': 'How tall the waves still are when they reach the water\'s edge, in metres. On an open beach this is the breaker. Behind a wide reef flat (Punta Cahuita, Playa Chiquita, Punta Uva) the swell breaks on the reef first, and only what the shallow water on the flat can carry gets through: about half its depth, so more at high tide and in big swell. Narrow reef strips along a sand beach are not counted. The flat depth is an estimate, not a survey.',
   'help.breaker': 'How tall the waves are expected to be as they break at this spot, in metres. It is not the offshore swell height: waves grow in shallow water and shrink where a reef or bar takes their energy first.',
   'help.wavetype': 'How the wave breaks. SPILLING: foam tumbles gently down the face, mellow, good for learning. PLUNGING: the lip throws forward over a hollow, powerful and the best for surfing but the harshest on you. SURGING: the wave surges up a steep beach without really breaking.',
   'help.power': 'POWER is the energy in the breaking wave in kilowatts per metre of crest. Under about 10 is gentle, 30 or more is heavy, and 100 or more is dangerous. Two waves of the same height can differ a lot: the longer-period one hits harder.',
