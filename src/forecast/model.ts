@@ -386,3 +386,102 @@ export function timeline(deps: FcDeps, a: FcActivity, spot: Spot, startMs: numbe
     };
   });
 }
+
+/** The day's sky in one word, for the weather tile's picture (Joseph, 2026-11-10: "sunny, light rain cloud, heavy rain cloud"). */
+export type WxSky = 'sun' | 'partly' | 'cloud' | 'showers' | 'rain' | 'storm';
+
+/** A traditional day forecast at a spot, from the page's timeline hours (PLAN 7.63). Nulls where the weather has not loaded. */
+export interface DayWeather {
+  sky: WxSky | null;
+  hiC: number | null;
+  loC: number | null;
+  /** Highest real feel of the day, °C. */
+  feelsMaxC: number | null;
+  /** Mean relative humidity in daylight, %. */
+  humidityPct: number | null;
+  /** Highest hourly chance of rain, %, and the local hour it peaks. */
+  rainPct: number | null;
+  rainPeakMs: number | null;
+  /** Rain over the 24 hours, mm, and the wettest hour. */
+  rainMm: number | null;
+  wettestMs: number | null;
+  /** Mean cloud in daylight, %. */
+  cloudPct: number | null;
+  uvMax: number | null;
+  /** Strongest mean wind and gust in daylight, kt. */
+  windKt: number | null;
+  gustKt: number | null;
+  /** Squall risk 0..2 at its worst. */
+  squall: number | null;
+}
+
+const vals = (hs: readonly TimelineHour[], f: (h: TimelineHour) => number | null) => hs.map(f).filter(fin);
+const maxOf = (xs: number[]) => (xs.length ? Math.max(...xs) : null);
+const minOf = (xs: number[]) => (xs.length ? Math.min(...xs) : null);
+const avgOf = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+const argMax = (hs: readonly TimelineHour[], f: (h: TimelineHour) => number | null) => {
+  let best: TimelineHour | null = null;
+  for (const h of hs) {
+    const v = f(h);
+    if (fin(v) && v > 0 && (best === null || v > f(best)!)) best = h;
+  }
+  return best?.ms ?? null;
+};
+
+/**
+ * The sky word for a day: thunderstorms when a squall is likely (or rain with a squall watch); rain from 10 mm in
+ * the day or 4 mm in an hour; showers from 1 mm, or a 50 % chance in any hour; else the daylight cloud (cloudy from
+ * 75 %, partly from 35 %).
+ */
+export function wxSky(d: Pick<DayWeather, 'rainMm' | 'rainPct' | 'cloudPct' | 'squall'> & { wettestMmH?: number | null }): WxSky | null {
+  if (d.rainMm === null && d.cloudPct === null) return null;
+  const mm = d.rainMm ?? 0, sq = d.squall ?? 0;
+  if (sq >= 2 || (sq >= 1 && mm >= 2)) return 'storm';
+  if (mm >= 10 || (d.wettestMmH ?? 0) >= 4) return 'rain';
+  if (mm >= 1 || (d.rainPct ?? 0) >= 50) return 'showers';
+  const c = d.cloudPct ?? 0;
+  return c >= 75 ? 'cloud' : c >= 35 ? 'partly' : 'sun';
+}
+
+export function dayWeather(day: readonly TimelineHour[]): DayWeather {
+  const lit = day.some((h) => h.day) ? day.filter((h) => h.day) : day;
+  const rain = vals(day, (h) => h.rainMmH);
+  const d: DayWeather = {
+    sky: null,
+    hiC: maxOf(vals(day, (h) => h.airC)),
+    loC: minOf(vals(day, (h) => h.airC)),
+    feelsMaxC: maxOf(vals(day, (h) => h.feelsC)),
+    humidityPct: avgOf(vals(lit, (h) => h.humidityPct)),
+    rainPct: maxOf(vals(day, (h) => h.rainPct)),
+    rainPeakMs: argMax(day, (h) => h.rainPct),
+    rainMm: rain.length ? rain.reduce((a, b) => a + b, 0) : null,
+    wettestMs: argMax(day, (h) => h.rainMmH),
+    cloudPct: avgOf(vals(lit, (h) => h.cloudPct)),
+    uvMax: maxOf(vals(lit, (h) => h.uv)),
+    windKt: maxOf(vals(lit, (h) => h.windKt)),
+    gustKt: maxOf(vals(lit, (h) => h.gustKt)),
+    squall: maxOf(vals(day, (h) => h.squall)),
+  };
+  d.sky = wxSky({ ...d, wettestMmH: maxOf(rain) });
+  return d;
+}
+
+/** Sea temperature at a spot around midday, °C (the SST metric), for the weather tile. */
+export function waterAt(env: MetricEnv, spot: Spot, dayStartMs: number): number | null {
+  const [lng, lat] = spot.lngLat;
+  const ms = dayStartMs + 12 * H;
+  const v = METRIC_BY_ID.get('sst')!.at({ env, spot: spot.name, lng, lat, ms, sky: skyMemo(env.tzOffsetH)(ms, lat, lng) });
+  return fin(v) ? v : null;
+}
+
+/** The weather at one spot and hour, for the spot cards: the sky word, air temperature and chance of rain. */
+export function hourWeather(env: MetricEnv, spot: Spot, ms: number): { airC: number | null; rainPct: number | null; cloudPct: number | null; rainMmH: number | null; squall: number | null; day: boolean } {
+  const [lng, lat] = spot.lngLat;
+  const s = skyMemo(env.tzOffsetH)(ms, lat, lng);
+  const args = { env, spot: spot.name, lng, lat, ms, sky: s };
+  const val = (id: string) => { const v = METRIC_BY_ID.get(id)!.at(args); return fin(v) ? v : null; };
+  return {
+    airC: val('air'), rainPct: val('rainpct'), cloudPct: val('cloud'), rainMmH: val('rain'), squall: val('squall'),
+    day: s.sun.sunrise !== null && s.sun.sunset !== null && ms + H / 2 >= s.sun.sunrise && ms + H / 2 < s.sun.sunset,
+  };
+}

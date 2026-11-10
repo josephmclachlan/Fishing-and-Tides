@@ -28,6 +28,7 @@
   --fc-murk: #7d9a8e;
   --fc-coral: #ff7f6b;
   --fc-moon: #fbf6dc;
+  --fc-jelly: #b06ee8;
   color-scheme: light;
 }
 .fc[data-scheme='dark'] {
@@ -52,6 +53,7 @@
   --fc-murk: #304a45;
   --fc-coral: #ff8a78;
   --fc-moon: #f4efcf;
+  --fc-jelly: #c99bff;
   color-scheme: dark;
 }
 
@@ -257,17 +259,179 @@ body.fc-open { overflow: hidden; }
 .fc-bar i.on { background: var(--lc); animation: fc-fill 0.45s backwards cubic-bezier(0.3, 1.4, 0.5, 1); animation-delay: calc(var(--i) * 70ms); }
 .fc-why { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .fc-why li { padding: 5px 10px; border-radius: 999px; background: var(--fc-chip); color: var(--fc-ink); font-size: 13px; font-weight: 600; }
-.fc-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: auto 0 0; padding-top: 12px; }
-.fc-stats[data-n='4'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.fc-stats div { padding: 10px 12px; border-radius: 14px; background: var(--fc-chip); min-width: 0; }
-.fc-stats dt { color: var(--fc-sub); font-size: 12px; font-weight: 650; }
-.fc-stats dd { margin: 2px 0 0; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 /* The hero glows in its level's colour: a soft wash along the top edge. */
 .fc-hero[data-level] .fc-hero-data { background: linear-gradient(180deg, color-mix(in srgb, var(--hl, transparent) 12%, transparent), transparent 60%); }
 .fc-hero[data-level='0'] { --hl: var(--fc-l0); } .fc-hero[data-level='1'] { --hl: var(--fc-l1); } .fc-hero[data-level='2'] { --hl: var(--fc-l2); }
 .fc-hero[data-level='3'] { --hl: var(--fc-l3); } .fc-hero[data-level='4'] { --hl: var(--fc-l4); }
 
 /* Cards */
+/*
+ * Conditions: the weather tile and the activity's picture tiles (PLAN 7.63). A tile lifts and opens to a tip on hover
+ * (a mouse), focus or tap, and its picture moves while it is open; nothing moves under reduced motion.
+ */
+.fc-cond-when { color: var(--fc-sub); font-size: 13px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.fc-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 10px; align-items: start; }
+.fc-tile {
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 2px;
+  min-height: 124px; padding: 14px 14px 12px; border-radius: 18px; min-width: 0;
+  background:
+    radial-gradient(130% 100% at 100% 0%, color-mix(in srgb, var(--lc, var(--fc-accent)) 14%, transparent), transparent 65%),
+    var(--fc-chip);
+  border: 1px solid transparent; cursor: pointer; outline: none;
+  transition: transform 0.25s cubic-bezier(0.3, 1.3, 0.5, 1), box-shadow 0.25s, border-color 0.2s, background-color 0.2s;
+}
+.fc-tile-ico { display: block; width: 46px; height: 46px; margin-bottom: 6px; }
+.fc-tile-ico svg, .fc-wx-ico svg { display: block; width: 100%; height: 100%; overflow: visible; }
+/* Waves are drawn twice as wide so they can slide; the tile's picture keeps them inside its box. */
+.fc-tile-ico svg { overflow: hidden; border-radius: 10px; }
+.fc-tile-k { color: var(--fc-sub); font-size: 12px; font-weight: 700; letter-spacing: 0.02em; }
+.fc-tile-v { font-size: 15px; font-weight: 750; line-height: 1.25; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.fc-tile-tip { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease, margin 0.3s ease; }
+.fc-tile-tip > span { overflow: hidden; color: var(--fc-ink); font-size: 13px; font-weight: 600; line-height: 1.35; opacity: 0; transition: opacity 0.25s; }
+.fc-tile[aria-expanded='true'], .fc-tile:focus-visible { border-color: color-mix(in srgb, var(--lc, var(--fc-accent)) 55%, transparent); box-shadow: var(--fc-shadow); transform: translateY(-2px) scale(1.02); z-index: 1; }
+.fc-tile:focus-visible { outline: 3px solid var(--fc-accent); outline-offset: 2px; }
+.fc-tile[aria-expanded='true'] .fc-tile-tip, .fc-tile:focus-visible .fc-tile-tip { grid-template-rows: 1fr; margin-top: 6px; }
+.fc-tile[aria-expanded='true'] .fc-tile-tip > span, .fc-tile:focus-visible .fc-tile-tip > span { opacity: 1; }
+@media (hover: hover) {
+  .fc-tile:hover { border-color: color-mix(in srgb, var(--lc, var(--fc-accent)) 55%, transparent); box-shadow: var(--fc-shadow); transform: translateY(-2px) scale(1.02); z-index: 1; }
+  .fc-tile:hover .fc-tile-tip { grid-template-rows: 1fr; margin-top: 6px; }
+  .fc-tile:hover .fc-tile-tip > span { opacity: 1; }
+}
+.fc-tile.l0 { --lc: var(--fc-l0); } .fc-tile.l1 { --lc: var(--fc-l1); } .fc-tile.l2 { --lc: var(--fc-l2); } .fc-tile.l3 { --lc: var(--fc-l3); } .fc-tile.l4 { --lc: var(--fc-l4); }
+
+/* The weather tile: two columns wide, the day's sky as a big picture beside the temperatures. */
+.fc-wx { grid-column: span 2; grid-template-columns: 96px minmax(0, 1fr); column-gap: 14px; align-items: center; --lc: var(--fc-accent); }
+.fc-wx-sun, .fc-wx-partly { --lc: var(--fc-l2); }
+.fc-wx-storm { --lc: var(--fc-l1); }
+.fc-wx-ico { width: 96px; height: 96px; }
+.fc-wx-main { display: grid; gap: 1px; min-width: 0; }
+.fc-wx-word { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
+.fc-wx-temp { display: flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+.fc-wx-temp b { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+.fc-wx-temp span { font-size: 18px; font-weight: 700; color: var(--fc-sub); }
+.fc-wx-feels { display: flex; align-items: center; gap: 4px; color: var(--fc-sub); font-size: 13px; font-weight: 650; }
+.fc-wx-facts { grid-column: 1 / -1; list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(138px, 1fr)); gap: 6px; }
+.fc-wx-facts li { display: grid; grid-template-columns: 18px auto; grid-template-rows: auto auto; column-gap: 6px; align-items: center; padding: 6px 8px; border-radius: 12px; background: var(--fc-card); min-width: 0; }
+.fc-wx-facts li .fc-mi { grid-row: span 2; }
+.fc-wx-facts li span { color: var(--fc-sub); font-size: 11px; font-weight: 700; }
+.fc-wx-facts li b { font-size: 13px; font-weight: 750; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.fc-wx .fc-tile-tip { grid-column: 1 / -1; }
+.fc-mi { width: 18px; height: 18px; flex: none; overflow: visible; }
+
+/* Tile pictures: one stroke weight, the page's tokens, the level colour where the value has one. */
+.fc-ti { --ti-ink: var(--fc-sub); }
+.fc-ti .fc-ti-water { fill: none; stroke: var(--fc-sea-a); stroke-width: 2.4; stroke-linecap: round; }
+.fc-ti .fc-ti-fillwater { fill: color-mix(in srgb, var(--fc-sea-a) 30%, transparent); }
+.fc-ti .fc-ti-pole, .fc-mi .fc-ti-pole { fill: none; stroke: var(--ti-ink); stroke-width: 2; stroke-linecap: round; }
+.fc-ti .fc-ti-sock { fill: var(--fc-l1); }
+.fc-ti .fc-ti-band { stroke: var(--fc-card); stroke-width: 2.2; }
+.fc-ti .fc-ti-foam { stroke: var(--fc-foam); stroke-width: 2; stroke-linecap: round; }
+.fc-ti .fc-ti-gust, .fc-mi .fc-ti-gust { fill: none; stroke: var(--fc-accent); stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 34 8; }
+.fc-ti .fc-ti-face { fill: var(--fc-card); stroke: var(--ti-ink); stroke-width: 2; }
+.fc-ti .fc-ti-arc { fill: none; stroke: var(--fc-l3); stroke-width: 5; stroke-linecap: round; }
+.fc-ti .fc-ti-hand { stroke: var(--fc-ink); stroke-width: 2.2; stroke-linecap: round; }
+.fc-ti .fc-ti-hub { fill: var(--fc-ink); }
+.fc-ti .fc-ti-fish { fill: var(--fc-accent); }
+.fc-ti .fc-ti-eye { fill: var(--fc-card); }
+.fc-ti .fc-ti-bub { fill: none; stroke: var(--fc-sea-a); stroke-width: 1.2; }
+.fc-ti .fc-ti-moondark { fill: color-mix(in srgb, var(--fc-night-a) 70%, var(--fc-chip)); }
+.fc-ti .fc-ti-moonlit { fill: var(--fc-moon); stroke: color-mix(in srgb, var(--fc-l2) 40%, transparent); stroke-width: 0.8; }
+.fc-ti .fc-ti-arrow { fill: var(--fc-ink); }
+.fc-ti .fc-ti-face2 { fill: var(--fc-sea-a); stroke: var(--fc-foam); stroke-width: 1.4; }
+.fc-ti .fc-ti-sand { fill: var(--fc-sand); }
+.fc-ti .fc-ti-stream { fill: none; stroke: var(--fc-sea-a); stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: 10 6; }
+.fc-ti .fc-ti-coral { fill: var(--fc-coral); }
+.fc-ti .fc-ti-sun, .fc-mi .fc-ti-sun { fill: var(--fc-l2); }
+.fc-ti .fc-ti-ray, .fc-mi .fc-ti-ray { fill: none; stroke: var(--fc-l2); stroke-width: 2.4; stroke-linecap: round; }
+.fc-ti-uv.l0 .fc-ti-sun, .fc-ti-uv.l1 .fc-ti-sun { fill: var(--lc); }
+.fc-ti-uv.l0 .fc-ti-ray, .fc-ti-uv.l1 .fc-ti-ray { stroke: var(--lc); }
+.fc-ti .fc-ti-jelly { fill: color-mix(in srgb, var(--fc-jelly) 55%, var(--fc-chip)); }
+.fc-ti .fc-ti-tent { fill: none; stroke: color-mix(in srgb, var(--fc-jelly) 70%, var(--fc-sub)); stroke-width: 1.6; stroke-linecap: round; }
+.fc-ti .fc-ti-faint { opacity: 0.4; }
+.fc-ti .fc-ti-glass, .fc-mi .fc-ti-glass { fill: var(--fc-card); stroke: var(--ti-ink); stroke-width: 1.8; }
+.fc-mi .fc-ti-glass { stroke: var(--fc-sub); stroke-width: 1.4; }
+.fc-ti .fc-ti-merc, .fc-mi .fc-ti-merc { fill: var(--fc-l0); }
+.fc-ti .fc-ti-heat { fill: none; stroke: var(--fc-l1); stroke-width: 1.8; stroke-linecap: round; }
+.fc-ti .fc-ti-flag { fill: var(--lc, var(--fc-l3)); }
+.fc-ti .fc-ti-hull { fill: var(--fc-ink); }
+.fc-ti .fc-ti-sail { fill: var(--fc-card); stroke: var(--ti-ink); stroke-width: 1.4; stroke-linejoin: round; }
+.fc-ti .fc-ti-cloud { fill: var(--fc-card); stroke: var(--fc-sub); stroke-width: 1.6; }
+.fc-ti .fc-ti-cloud2 { fill: var(--fc-line); }
+.fc-ti .fc-ti-cloudd { fill: color-mix(in srgb, var(--fc-sub) 55%, var(--fc-chip)); stroke: var(--fc-sub); stroke-width: 1.2; }
+.fc-ti .fc-ti-rain { stroke: var(--fc-accent); stroke-width: 2.2; stroke-linecap: round; }
+.fc-ti .fc-ti-bolt { fill: var(--fc-l2); stroke: var(--fc-l1); stroke-width: 0.8; }
+.fc-mi .fc-ti-umb { fill: var(--fc-accent); }
+.fc-mi .fc-ti-water { fill: none; stroke: var(--fc-sea-a); stroke-width: 1.8; stroke-linecap: round; }
+.fc-mi .fc-ti-fillwater { fill: var(--fc-sea-a); }
+.fc-mi .fc-ti-gust { stroke-dasharray: none; stroke-width: 1.8; }
+.fc-mi .fc-ti-ray { stroke-width: 1.6; }
+
+/* Tile motion, only while a tile is open (the weather picture drifts gently all the time). */
+.fc-ta { transform-box: view-box; transform-origin: 0 0; }
+.fc-ta-slide { animation: fc-ta-slide 2.4s linear infinite; }
+.fc-ti-chop .fc-ta-slide, .fc-ti-water .fc-ta-slide { animation-duration: 1.8s; }
+@keyframes fc-ta-slide { to { transform: translateX(16px); } }
+.fc-ti-chop .fc-ta-slide { animation-name: fc-ta-slide12; }
+@keyframes fc-ta-slide12 { to { transform: translateX(12px); } }
+.fc-ta-flutter { animation: fc-ta-flutter 0.7s ease-in-out infinite alternate; }
+@keyframes fc-ta-flutter { from { transform: rotate(-5deg) scaleY(0.92); } to { transform: rotate(5deg) scaleY(1.06); } }
+.fc-ta-dash { animation: fc-ta-dash 1.2s linear infinite; }
+.fc-ta-dash path { stroke-dashoffset: 0; animation: fc-ta-dashoff 1.2s linear infinite; }
+@keyframes fc-ta-dash { 50% { transform: translateX(2px); } }
+@keyframes fc-ta-dashoff { to { stroke-dashoffset: -42; } }
+.fc-ta-tick { animation: fc-ta-tick 3s cubic-bezier(0.5, 0, 0.5, 1) infinite; }
+@keyframes fc-ta-tick { 50% { transform: rotate(30deg); } }
+.fc-ta-swim { animation: fc-ta-swim 1.6s ease-in-out infinite alternate; }
+@keyframes fc-ta-swim { to { transform: translate(-3px, -1px); } }
+.fc-ta-tail { transform-box: fill-box; transform-origin: 0% 50%; animation: fc-ta-tail 0.4s ease-in-out infinite alternate; }
+@keyframes fc-ta-tail { from { transform: rotate(-12deg); } to { transform: rotate(12deg); } }
+.fc-ta-bubble { animation: fc-ta-bubble 1.8s ease-in infinite; }
+@keyframes fc-ta-bubble { from { transform: translateY(6px); opacity: 0; } 30% { opacity: 1; } to { transform: translateY(-4px); opacity: 0; } }
+.fc-ta-glow { animation: fc-ta-glow 2.4s ease-in-out infinite alternate; }
+@keyframes fc-ta-glow { to { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--fc-moon) 90%, transparent)); } }
+.fc-ta-bob { animation: fc-ta-bob 2.2s ease-in-out infinite alternate; }
+@keyframes fc-ta-bob { to { transform: translateY(-2.5px); } }
+.fc-ta-curl { transform-box: fill-box; transform-origin: 30% 100%; animation: fc-ta-curl 1.4s ease-in-out infinite alternate; }
+@keyframes fc-ta-curl { from { transform: scale(0.94, 0.9); } to { transform: scale(1.04, 1.06); } }
+.fc-ta-flow { animation: fc-ta-flow 1.4s linear infinite; }
+@keyframes fc-ta-flow { from { transform: translateX(-8px); } to { transform: translateX(8px); } }
+.fc-ta-spin { animation: fc-ta-spin 14s linear infinite; }
+@keyframes fc-ta-spin { to { transform: rotate(360deg); } }
+.fc-tile:is([aria-expanded='true'], :focus-visible) .fc-ti-uv .fc-ta-spin { animation-duration: 6s; }
+.fc-ta-sway { transform-box: fill-box; transform-origin: 50% 0%; animation: fc-ta-sway 1.6s ease-in-out infinite alternate; }
+@keyframes fc-ta-sway { from { transform: skewX(-8deg); } to { transform: skewX(8deg); } }
+.fc-ta-sway2 { animation: fc-ta-sway2 1.6s ease-in-out infinite alternate; }
+@keyframes fc-ta-sway2 { from { transform: translateX(-4px); } to { transform: translateX(4px); } }
+.fc-ta-rise { transform-box: fill-box; transform-origin: 50% 100%; animation: fc-ta-rise 1.6s ease-in-out infinite alternate; }
+@keyframes fc-ta-rise { from { transform: scaleY(0.85); } }
+.fc-ta-shimmer { animation: fc-ta-shimmer 1.2s ease-in-out infinite alternate; }
+@keyframes fc-ta-shimmer { from { transform: translateY(1.5px); opacity: 0.5; } to { transform: translateY(-1.5px); opacity: 1; } }
+.fc-ta-flag { transform-box: fill-box; transform-origin: 0% 50%; animation: fc-ta-flag 0.9s ease-in-out infinite alternate; }
+@keyframes fc-ta-flag { from { transform: skewY(-6deg) scaleX(0.94); } to { transform: skewY(5deg) scaleX(1.04); } }
+.fc-ta-rock { transform-box: fill-box; transform-origin: 50% 100%; animation: fc-ta-rock 1.8s ease-in-out infinite alternate; }
+@keyframes fc-ta-rock { from { transform: rotate(calc(var(--amp, 4deg) * -1)); } to { transform: rotate(var(--amp, 4deg)); } }
+.fc-ta-drift { animation: fc-ta-drift 5s ease-in-out infinite alternate; }
+@keyframes fc-ta-drift { from { transform: translateX(-1.5px); } to { transform: translateX(2px); } }
+.fc-ta-fall { animation: fc-ta-fall 0.9s linear infinite; }
+@keyframes fc-ta-fall { from { transform: translateY(-3px); opacity: 0; } 25% { opacity: 1; } to { transform: translateY(5px); opacity: 0; } }
+.fc-ta-flash { animation: fc-ta-flash 2.6s steps(1) infinite; }
+@keyframes fc-ta-flash { 0%, 100% { opacity: 1; } 80% { opacity: 0.25; } 86% { opacity: 1; } 90% { opacity: 0.4; } }
+
+/* Paused until the tile opens; after the shorthands above, which would otherwise set them running. */
+.fc .fc-ta, .fc .fc-ta path { animation-play-state: paused; }
+.fc .fc-tile:is([aria-expanded='true'], :focus-visible) .fc-ta, .fc .fc-tile:is([aria-expanded='true'], :focus-visible) .fc-ta path, .fc .fc-wx .fc-ta-drift, .fc .fc-wx .fc-ta-spin { animation-play-state: running; }
+@media (hover: hover) { .fc .fc-tile:hover .fc-ta, .fc .fc-tile:hover .fc-ta path { animation-play-state: running; } }
+
+/* The spot cards' weather now: sky, air and chance of rain. */
+.fc-spot-wx { display: flex; align-items: center; gap: 5px; margin-top: 3px; font-size: 12px; font-weight: 650; color: var(--fc-sub); font-variant-numeric: tabular-nums; }
+.fc-spot-wx b { color: var(--fc-ink); font-weight: 750; }
+.fc-spot-sky { width: 18px; height: 18px; overflow: visible; }
+.fc-spot-rain { display: inline-flex; align-items: center; gap: 2px; }
+.fc-spot-rain .fc-mi { width: 13px; height: 13px; }
+
+/* The weather heading in the hour charts. */
+.fc-row-group { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--fc-line); }
+.fc-row-group .fc-row-k { margin-bottom: 0; font-size: 12px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fc-sub); }
 .fc-card { border-radius: 22px; background: var(--fc-card); box-shadow: var(--fc-shadow); padding: 16px 16px 14px; }
 .fc-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .fc-card h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
@@ -374,7 +538,7 @@ body.fc-open { overflow: hidden; }
 @keyframes fc-grow { from { transform: scaleY(0); } }
 
 /* Loading: soft shimmer where numbers will be, so the page never shows a wall of dashes. */
-.fc-loading .fc-num, .fc-loading .fc-bubble, .fc-loading .fc-stats dd, .fc-loading .fc-spot-big b {
+.fc-loading .fc-num, .fc-loading .fc-bubble, .fc-loading .fc-tile-v, .fc-loading .fc-spot-big b {
   color: transparent !important; border-radius: 12px;
   background: linear-gradient(90deg, var(--fc-chip) 25%, var(--fc-line) 50%, var(--fc-chip) 75%) 0 0 / 200% 100%;
   box-shadow: none; animation: fc-shimmer 1.4s linear infinite;
@@ -475,9 +639,12 @@ body.fc-open { overflow: hidden; }
   .fc-hero { grid-template-columns: 1fr; border-radius: 20px; }
   .fc-art-box { min-height: 0; aspect-ratio: 16 / 10; }
   .fc-hero-data { padding: 16px 16px 16px; }
-  .fc-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-  .fc-stats div { padding: 8px 9px; }
-  .fc-stats dd { font-size: 13px; }
+  .fc-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .fc-tile { padding: 12px 12px 11px; min-height: 112px; }
+  .fc-tile-ico { width: 40px; height: 40px; }
+  .fc-wx { grid-template-columns: 76px minmax(0, 1fr); }
+  .fc-wx-ico { width: 76px; height: 76px; }
+  .fc-wx-facts { grid-column: 1 / -1; }
   .fc .fc-act { min-height: 52px; font-size: 12px; }
 }
 @media (max-width: 380px) {
@@ -485,7 +652,6 @@ body.fc-open { overflow: hidden; }
   /* Six tabs on a small phone: a touch smaller so Snorkel keeps its padding. */
   .fc .fc-act { padding: 6px 0; letter-spacing: -0.01em; }
   .fc-act svg { width: 22px; height: 22px; }
-  .fc-stats { grid-template-columns: 1fr 1fr; }
   .fc-num { font-size: 52px; }
 }
 

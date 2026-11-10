@@ -9,6 +9,7 @@ import { daySky } from '../physics/astro';
 import {
   FC_ACTIVITIES, beaufort, dayUvPeaks, daysAt, uvLevel, hoursOf, levelFor, likelyFish, parseRoute, readAt, routeHash, spotSlug, spotsForActivity, surfRange, surfSize,
   type FcDeps, type OutingRead,
+  dayWeather, wxSky, type TimelineHour,
 } from './model';
 import { heroArt } from './art';
 
@@ -192,5 +193,38 @@ describe('SWIM: a beach day', () => {
     const p = daysAt({ env: env({ shore: shore('LOW') }) }, 'swim', spot('PLAYA COCLES'), DAY0 + 6 * H, 5);
     expect(p.days.filter(Boolean).length).toBeGreaterThan(0);
     expect(spotsForActivity('swim', SPOTS)).toHaveLength(SPOTS.length);
+  });
+});
+
+describe('day weather (the weather tile)', () => {
+  const T0 = Date.UTC(2026, 10, 12, 6);
+  const hour = (i: number, o: Partial<TimelineHour> = {}): TimelineHour => ({
+    ms: T0 + i * 3.6e6, read: { activity: 'swim', ms: T0, score: null, share: null, level: null },
+    windKt: 6 + (i % 4), windFromDeg: 80, gustKt: 12, rainMmH: 0, tideM: 0, airC: 24 + Math.sin(((i - 9) / 24) * 2 * Math.PI) * 4,
+    cloudPct: 20, squall: 0, uv: i >= 6 && i < 18 ? 9 * Math.sin(((i - 6) / 12) * Math.PI) : 0, rainPct: 5, feelsC: 30, humidityPct: 75,
+    day: i >= 6 && i < 18, ...o,
+  });
+  const day = (o: (i: number) => Partial<TimelineHour> = () => ({})) => Array.from({ length: 24 }, (_, i) => hour(i, o(i)));
+  it('sums the rain, finds the high and low, the peak UV and the wettest hour', () => {
+    const d = dayWeather(day((i) => (i === 15 ? { rainMmH: 3, rainPct: 70 } : {})));
+    expect(d.rainMm).toBeCloseTo(3, 9);
+    expect(d.hiC).toBeCloseTo(28, 0);
+    expect(d.loC).toBeCloseTo(20, 0);
+    expect(d.uvMax).toBeCloseTo(9, 0);
+    expect(d.rainPct).toBe(70);
+    expect(d.wettestMs).toBe(T0 + 15 * 3.6e6);
+    expect(d.sky).toBe('showers');
+  });
+  it('calls the sky from rain, squalls and cloud', () => {
+    expect(dayWeather(day()).sky).toBe('sun');
+    expect(dayWeather(day(() => ({ cloudPct: 50 }))).sky).toBe('partly');
+    expect(dayWeather(day(() => ({ cloudPct: 90 }))).sky).toBe('cloud');
+    expect(dayWeather(day((i) => ({ rainMmH: i < 4 ? 3 : 0 }))).sky).toBe('rain');
+    expect(dayWeather(day((i) => ({ rainMmH: i === 14 ? 3 : 0, squall: i === 14 ? 1 : 0 }))).sky).toBe('storm');
+    expect(wxSky({ rainMm: null, rainPct: null, cloudPct: null, squall: null })).toBeNull();
+  });
+  it('reads nothing before the weather loads', () => {
+    const d = dayWeather(day(() => ({ airC: null, rainMmH: null, cloudPct: null, uv: null, rainPct: null, feelsC: null, humidityPct: null, windKt: null, gustKt: null, squall: null })));
+    expect(d).toMatchObject({ sky: null, hiC: null, rainMm: null, uvMax: null, humidityPct: null });
   });
 });
