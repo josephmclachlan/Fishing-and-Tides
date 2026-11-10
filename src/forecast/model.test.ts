@@ -115,6 +115,8 @@ describe('spots and links', () => {
     for (const s of SPOTS) for (const a of FC_ACTIVITIES) expect(parseRoute(routeHash(s.name, a), SPOTS)).toEqual({ spot: s.name, activity: a });
     expect(parseRoute('#forecast', SPOTS)).toEqual({ spot: null, activity: null });
     expect(parseRoute('#forecast/nowhere/kite', SPOTS)).toEqual({ spot: null, activity: null });
+    // The spot split in PLAN 7.62: an old Playa Chiquita link opens the west half.
+    expect(parseRoute('#forecast/playa-chiquita/snorkel', SPOTS)).toEqual({ spot: 'PLAYA CHIQUITA WEST', activity: 'snorkel' });
     expect(parseRoute('', SPOTS)).toBeNull();
     expect(parseRoute('#map', SPOTS)).toBeNull();
   });

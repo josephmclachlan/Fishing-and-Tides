@@ -37,7 +37,7 @@ export const SNORKEL_SPOTS: readonly SnorkelSpot[] = [
   },
   {
     id: 'playa-chiquita',
-    spot: 'PLAYA CHIQUITA',
+    spot: 'PLAYA CHIQUITA WEST',
     lngLat: [-82.711, 9.6413],
     access: 'shore',
     facing: 18,

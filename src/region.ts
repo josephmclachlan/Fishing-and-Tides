@@ -42,7 +42,9 @@ export function tierForZoom(z: number): Tier {
 
 /**
  * Named coastal spots, north to south (Joseph's list, 2026-11-10: Gandoca to Playa Negra Cahuita; Salsa Brava is
- * Puerto Viejo's spot; Playa Chiquita kept for its snorkel pools). [lng, lat] (MapLibre order).
+ * Puerto Viejo's spot; Playa Chiquita kept for its snorkel pools). After the coastline review and the reef-flat model
+ * (PLAN 7.59) Joseph added Playa Blanca (Cahuita park, behind the point) and Punta Mona (faces east), and split Playa
+ * Chiquita into west (the old pin) and east (behind the wider flat) (PLAN 7.62). [lng, lat] (MapLibre order).
  *
  * - `lngLat`: on land 10 to 40 m from the sea (checked 2026-11-10 against OpenFreeMap z14 `ocean` polygons, ignoring
  *   tile-edge segments). The wave physics finds its own read point and shore normal from here.
@@ -56,16 +58,22 @@ export function tierForZoom(z: number): Tier {
  */
 export const SPOTS: { name: string; lngLat: [number, number]; facing: number; sea: [number, number] }[] = [
   { name: 'PLAYA NEGRA CAHUITA', lngLat: [-82.8535, 9.744], facing: 43, sea: [-82.8506, 9.7471] },
+  { name: 'PLAYA BLANCA', lngLat: [-82.836, 9.7351], facing: 20, sea: [-82.8351, 9.7376] },
   { name: 'PUNTA CAHUITA', lngLat: [-82.8156, 9.7495], facing: 347, sea: [-82.8163, 9.7524] },
   { name: 'PLAYA NEGRA', lngLat: [-82.7789, 9.6633], facing: 40, sea: [-82.7771, 9.6654] },
   { name: 'SALSA BRAVA', lngLat: [-82.7524, 9.6582], facing: 342, sea: [-82.7532, 9.6608] },
   { name: 'PLAYA COCLES', lngLat: [-82.7368, 9.6507], facing: 38, sea: [-82.7351, 9.6528] },
-  { name: 'PLAYA CHIQUITA', lngLat: [-82.711, 9.6413], facing: 18, sea: [-82.7102, 9.6439] },
+  { name: 'PLAYA CHIQUITA WEST', lngLat: [-82.711, 9.6413], facing: 18, sea: [-82.7102, 9.6439] },
+  { name: 'PLAYA CHIQUITA EAST', lngLat: [-82.7016, 9.6385], facing: 12, sea: [-82.701, 9.6412] },
   { name: 'PUNTA UVA', lngLat: [-82.6871, 9.6432], facing: 355, sea: [-82.6873, 9.6459] },
   { name: 'PLAYA GRANDE', lngLat: [-82.6698, 9.6325], facing: 13, sea: [-82.6692, 9.6351] },
   { name: 'MANZANILLO', lngLat: [-82.6569, 9.634], facing: 335, sea: [-82.6581, 9.6365] },
+  { name: 'PUNTA MONA', lngLat: [-82.6198, 9.6251], facing: 93, sea: [-82.6171, 9.625] },
   { name: 'GANDOCA', lngLat: [-82.6045, 9.5965], facing: 45, sea: [-82.6006, 9.6003] },
 ];
+
+/** Old spot names (saved pages, shared #forecast links) and the spot each now opens. */
+export const SPOT_RENAMES: Readonly<Record<string, string>> = { 'PLAYA CHIQUITA': 'PLAYA CHIQUITA WEST' };
 
 /**
  * Town rain points (PLAN 7.24): the four towns Joseph asked to tell apart, [lng, lat] at each town centre.
