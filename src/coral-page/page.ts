@@ -30,7 +30,7 @@ import { nextSeasons, SIGHTINGS, SPAWNERS, spawnWindows } from '../coral/spawnin
 import { CORAL_SPECIES, CORAL_THREATS, type CoralSpecies } from '../coral/species';
 import { CORAL_CONTACTS, CORAL_ETIQUETTE, CORAL_RULES } from '../coral/conduct';
 import type { ReefVisit } from '../coral-heat-ui';
-import { routeHash } from '../forecast/model';
+import { landing, MAP_HASH, routeHash } from '../forecast/model';
 import { CP_TABS, coralHash, parseCoralRoute, type CpTab } from './route';
 import { reefArt } from './art';
 import { trendChart, yearBars } from './charts';
@@ -529,7 +529,7 @@ export function mountCoralPage(deps: CoralPageDeps) {
   const fromHash = (e?: HashChangeEvent) => {
     const r = parseCoralRoute(location.hash);
     if (!r) return hide();
-    if (el.hidden && e?.oldURL) cameFrom = /#forecast/.test(e.oldURL) ? 'forecast' : 'map';
+    if (el.hidden && e?.oldURL) cameFrom = landing(new URL(e.oldURL).hash);
     tab = r.tab;
     if (r.tab === 'reefs' && r.id && CORAL_REEFS.some((x) => x.id === r.id)) reefId = r.id;
     if (r.tab === 'sites') siteRoute = { id: r.id, sub: isFolderTab(r.sub) ? r.sub : null };
@@ -542,13 +542,16 @@ export function mountCoralPage(deps: CoralPageDeps) {
   const open = (opts: { tab?: CpTab; reef?: string } = {}) => {
     if (opts.tab) tab = opts.tab;
     if (opts.reef) reefId = opts.reef;
-    cameFrom = /^#forecast/.test(location.hash) ? 'forecast' : 'map';
+    cameFrom = landing(location.hash);
+    const from = location.href;
     if (!parseCoralRoute(location.hash)) {
       history.pushState({ cp: 1 }, '', coralHash({ tab, id: tab === 'reefs' ? opts.reef ?? null : null }));
       pushed = true;
     }
     show();
     syncHash();
+    // pushState fires no hashchange, so tell the other pages (the forecast hides on any hash but its own).
+    if (location.href !== from) window.dispatchEvent(new HashChangeEvent('hashchange', { oldURL: from, newURL: location.href }));
   };
   /** Back where it was opened from: a step back if we pushed the entry, else the map (or the forecast). */
   const close = () => {
@@ -557,7 +560,7 @@ export function mountCoralPage(deps: CoralPageDeps) {
       history.back(); // hashchange hides it
     } else {
       pushed = false;
-      location.hash = cameFrom === 'forecast' ? '#forecast' : '#map';
+      location.hash = cameFrom === 'forecast' ? '#forecast' : MAP_HASH;
     }
   };
   window.addEventListener('resize', () => !el.hidden && renderTabs());

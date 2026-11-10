@@ -72,7 +72,10 @@ export interface ForecastDeps extends FcDeps {
   setLang: (l: 'en' | 'es') => void;
   /** Where the map is, for the first spot when none is remembered. */
   center: () => [number, number];
+  /** Open the CORAL page at the reef nearest this spot (PLAN 7.66); no button when left out. */
+  openCoral?: (at: [number, number]) => void;
 }
+const CORAL_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-9M12 15l-4-4V7M12 12l4-4V5M8 11l-3-2M16 8l3-1M6 21h12"/></svg>';
 
 /** Headline value as [text, unit] for the hero and the day bubbles. */
 export function headline(r: FcRead): { value: string; unit: string } {
@@ -312,6 +315,7 @@ export function mountForecastPage(deps: ForecastDeps) {
         <button type="button" class="fc-back" id="fc-back" title="${t('fc.backTitle')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span>${t('fc.back')}</span></button>
         <div class="fc-titles"><h1 id="fc-name">--</h1><p id="fc-sub">--</p><p class="fc-swap" id="fc-swap" hidden></p></div>
         <div class="fc-tools">
+          ${deps.openCoral ? `<button type="button" class="fc-tool" id="fc-coral" aria-label="${t('fc.coral')}" title="${t('fc.coral')}">${CORAL_ICON}</button>` : ''}
           <button type="button" class="fc-tool" id="fc-lang" title="${t('fc.lang')}">${deps.lang() === 'es' ? 'EN' : 'ES'}</button>
           <button type="button" class="fc-tool" id="fc-scheme" aria-label="${t('fc.scheme')}" title="${t('fc.scheme')}"></button>
         </div>
@@ -391,6 +395,7 @@ export function mountForecastPage(deps: ForecastDeps) {
   };
   media?.addEventListener?.('change', applyScheme);
   $('fc-scheme').addEventListener('click', () => (put(storage, SCHEME_KEY, scheme() === 'dark' ? 'light' : 'dark'), applyScheme()));
+  el.querySelector('#fc-coral')?.addEventListener('click', () => deps.openCoral?.(spot().lngLat));
   $('fc-lang').addEventListener('click', () => deps.setLang(deps.lang() === 'es' ? 'en' : 'es'));
 
   // The browser bar follows the page while it is open, the map's theme otherwise.
