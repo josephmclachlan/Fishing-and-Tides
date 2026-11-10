@@ -19,6 +19,7 @@ import { fetchSatellite } from '../adapters/satellite';
 import { fetchStorms } from '../adapters/storms';
 import { fetchWaves } from '../adapters/waves';
 import { fetchWeather } from '../adapters/weather';
+import { fetchSpotWind } from '../adapters/spot-wind';
 import { fetchTownRain } from '../adapters/town-rain';
 import { fetchWindFix } from '../adapters/wind-fix';
 import { fetchRainCells } from '../adapters/rain-cells';
@@ -41,7 +42,7 @@ export const JOB_FEEDS: Record<string, readonly string[]> = {
   currents: ['currents'],
   sst: ['sst', 'sst-coast', 'chl', 'kd490', 'kd490-nrt'],
   passes: ['sst-pass', 'chl-pass', 'scat-pass'],
-  weather: ['weather', 'uv'],
+  weather: ['weather', 'uv', 'spotwind'],
   rain: ['rain', 'rain-imerg'],
   townrain: ['townrain'],
   raincells: ['raincells'],
@@ -66,7 +67,7 @@ export function tripJobs(base: string = import.meta.env.BASE_URL): SyncJob[] {
     { name: 'currents', run: async () => need((await fetchCurrents({ base })).forecast, 'no current forecast') },
     { name: 'sst', run: async () => need(Number.isFinite((await fetchSatellite({ base })).fetchedAt), 'no satellite data') },
     // The airport hindcast that scores the models (PLAN 7.4) rides with the forecast; without it the blend uses equal weights.
-    { name: 'weather', run: async () => { live(await fetchWeather(), 'weather'); await fetchHindcast().catch(() => null); } },
+    { name: 'weather', run: async () => { live(await fetchWeather(), 'weather'); await fetchSpotWind().catch(() => null); await fetchHindcast().catch(() => null); } },
     { name: 'rain', run: async () => live(await fetchCatchmentRain({ base }), 'rain') },
     { name: 'townrain', run: async () => live(await fetchTownRain(), 'townrain') },
     { name: 'raincells', run: async () => { const d = await fetchRainCells(); if (d) live(d, 'raincells'); } },
