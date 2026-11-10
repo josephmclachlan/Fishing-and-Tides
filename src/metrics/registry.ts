@@ -5,7 +5,7 @@
  * `MetricEnv`, so the whole thing is testable without a DOM. A new metric added here is selectable
  * in the tracker straight away.
  */
-import { bite } from '../fishing/bite';
+import { bite, type BiteTerms } from '../fishing/bite';
 import { daySky, type DaySky } from '../physics/astro';
 import { clarityLevel } from '../physics/clarity';
 import { predict, type Harmonics } from '../physics/tide';
@@ -16,7 +16,7 @@ import type { SeaState } from '../adapters/waves';
 import { seaState, withCurrent } from '../physics/sea-state';
 import { feedPartitions } from '../sea-partitions';
 import { squallLevel } from '../weather';
-import { breakFor, surfScoreAt } from './surf-estimate';
+import { breakFor, surfScoreAt, type SurfHour } from './surf-estimate';
 
 export type Tone = 'green' | 'amber' | 'red' | 'none';
 export type MetricGroup = 'waves' | 'weather' | 'water' | 'fishing';
@@ -85,6 +85,33 @@ const weatherSummary = (now: WeatherNow[]) => ({
   rainMmH: meanOf(now.map((w) => w.rainMmH).filter(finite)) ?? NaN,
 });
 
+/** The inputs of the surf score at a spot and hour (its own break, or the nearest within 25 km), or null without a break or sea. */
+export function surfHourFor(a: Omit<MetricArgs, 'sky'>): SurfHour | null {
+  const brk = breakFor(a.spot, [a.lng, a.lat]);
+  const sea = brk ? a.env.sea(a.lng, a.lat, a.ms) : null;
+  if (!brk || !sea) return null;
+  const wx = a.env.weather(a.ms);
+  const gust = blendedGustKt(wx, a.env.weatherSkill?.());
+  const rain = meanOf(wx.map((w) => w.rainMmH).filter(finite));
+  return {
+    brk, sea, tide: a.env.tide, ms: a.ms,
+    windMs: a.env.windMs(a.lng, a.lat, a.ms), windFromDeg: a.env.windDirDeg?.(a.lng, a.lat, a.ms) ?? null,
+    gustMs: Number.isFinite(gust) ? gust / KT : null,
+    rainMmH: rain,
+    squall: wx.length ? squallLevel(weatherSummary(wx)) : undefined,
+    sargKm2: a.env.sargassumKm2(a.spot, a.ms),
+  };
+}
+
+/** BITE at a spot and hour with its terms and reasons (the BITE metric is its `.bite`). */
+export const biteAt = (a: MetricArgs): BiteTerms =>
+  bite({
+    tMs: a.ms, lat: a.lat, lng: a.lng, tide: a.env.tide, tzOffsetH: a.env.tzOffsetH, sky: a.sky,
+    windMs: a.env.windMs(a.lng, a.lat, a.ms), hsM: a.env.sea(a.lng, a.lat, a.ms)?.hs ?? null,
+    ...biteWeather(a.env.weather(a.ms), a.env.weatherSkill?.()),
+    pressureTrend: pressureChange(a.env.weather(a.ms), a.env.weather(a.ms - 3 * 3.6e6)),
+  });
+
 export const METRICS: readonly Metric[] = [
   // Sea comfort for a boat (PLAN 6.6): wind sea + swells, 0 worst to 100 flat. Null where the forecast has no wave split.
   { id: 'comfort', group: 'waves', unit: '/100', decimals: 0, better: 'high', agg: 'mean', at: (a) => { const p = feedPartitions(a.env.sea(a.lng, a.lat, a.ms)); if (!p) return null; const c = a.env.currentVec?.(a.lng, a.lat, a.ms); return seaState(c ? withCurrent(p, { u: c[0], v: c[1] }) : p).score; }, tone: (v) => (v >= 75 ? 'green' : v >= 50 ? 'amber' : 'red') },
@@ -115,32 +142,14 @@ export const METRICS: readonly Metric[] = [
   {
     id: 'surfq', group: 'waves', unit: '/10', decimals: 1, better: 'high', agg: 'max',
     at: (a) => {
-      const brk = breakFor(a.spot, [a.lng, a.lat]);
-      const sea = brk ? a.env.sea(a.lng, a.lat, a.ms) : null;
-      if (!brk || !sea) return null;
-      const wx = a.env.weather(a.ms);
-      const gust = blendedGustKt(wx, a.env.weatherSkill?.());
-      const rain = meanOf(wx.map((w) => w.rainMmH).filter(finite));
-      return surfScoreAt({
-        brk, sea, tide: a.env.tide, ms: a.ms,
-        windMs: a.env.windMs(a.lng, a.lat, a.ms), windFromDeg: a.env.windDirDeg?.(a.lng, a.lat, a.ms) ?? null,
-        gustMs: Number.isFinite(gust) ? gust / KT : null,
-        rainMmH: rain,
-        squall: wx.length ? squallLevel(weatherSummary(wx)) : undefined,
-        sargKm2: a.env.sargassumKm2(a.spot, a.ms),
-      });
+      const h = surfHourFor(a);
+      return h ? surfScoreAt(h) : null;
     },
     tone: (v) => (v >= 5.5 ? 'green' : v >= 3 ? 'amber' : 'red'),
   },
   {
     id: 'bite', group: 'fishing', unit: '/100', decimals: 0, better: 'high', agg: 'max',
-    at: (a) =>
-      bite({
-        tMs: a.ms, lat: a.lat, lng: a.lng, tide: a.env.tide, tzOffsetH: a.env.tzOffsetH, sky: a.sky,
-        windMs: a.env.windMs(a.lng, a.lat, a.ms), hsM: a.env.sea(a.lng, a.lat, a.ms)?.hs ?? null,
-        ...biteWeather(a.env.weather(a.ms), a.env.weatherSkill?.()),
-        pressureTrend: pressureChange(a.env.weather(a.ms), a.env.weather(a.ms - 3 * 3.6e6)),
-      }).bite,
+    at: (a) => biteAt(a).bite,
     tone: (v) => (v >= 60 ? 'green' : v >= 40 ? 'amber' : 'red'),
   },
 ];
