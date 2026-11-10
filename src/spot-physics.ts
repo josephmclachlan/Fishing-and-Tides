@@ -8,6 +8,7 @@ import type { Conditions } from './mock';
 import type { PhysicsClient } from './physics/client';
 import { KT_PER_MS } from './physics/flow';
 import type { SpotResult } from './physics/spot-model';
+import { withOutflow, type RipLevel } from './physics/rip';
 import { tideState } from './physics/tide';
 import { PLUME_RIVERS, SPOTS } from './region';
 import { haversineM } from './geo';
@@ -65,6 +66,8 @@ export interface HourExtras {
   /** Sea temperature °C and UV index for the readout (not scored). */
   sstC?: number | null;
   uv?: number | null;
+  /** The flood level of a river or creek mouth within CHANNEL_MOUTH_KM (PLAN 7.63): the spot's rip is at least this. */
+  outflow?: RipLevel | null;
 }
 
 export interface SpotState {
@@ -119,8 +122,9 @@ export function createSpotPhysics(
       .latestMany(PLACES.map((p, i) => ({ pin: p.lngLat, sea: { Hs: seas[i].Hs, Tp: seas[i].Tp, fromDeg: seas[i].fromDeg }, others: seasX[i]?.others, tideLevel, tideM: ts.h, tideSize, wind: winds[i], knownChannel: KNOWN_CHANNEL[i] })))
       .then((rs) => {
         states = PLACES.map((s, i) => {
-          const r = rs[i];
           const wx = wxs[i];
+          const r0 = rs[i];
+          const r = r0 && wx.outflow ? { ...r0, rip: withOutflow(r0.rip, wx.outflow) } : r0;
           const wind = winds[i];
           const surf0 = s.brk && r
             ? surfQuality({ brk: s.brk, Hb: r.waves.breaker.Hb, Tp: seas[i].Tp, swellFromDeg: seas[i].fromDeg, windMs: wind.speedMs, windFromDeg: wind.fromDeg, swellHs: seasX[i]?.swellHs, swell2: seasX[i]?.swell2, windSeaHs: seasX[i]?.windSeaHs, tide: { level: ts.level, rising: ts.rising }, gustMs: wx.gustMs, windAhead: wx.ahead, lightning: wx.lightning, squall: wx.squall, rainMmH: wx.rainMmH, sarg: wx.sarg, info: { sstC: wx.sstC, uv: wx.uv } })

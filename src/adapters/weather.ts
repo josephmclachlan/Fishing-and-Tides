@@ -71,7 +71,7 @@ export interface WeatherData {
 export const weatherPoints = () => SPOTS.map((s) => ({ name: s.name, lngLat: s.lngLat }));
 
 export const weatherUrl = (pts: readonly { lngLat: readonly [number, number] }[] = weatherPoints(), days = 16) =>
-  `https://api.open-meteo.com/v1/forecast?latitude=${pts.map((p) => p.lngLat[1]).join(',')}&longitude=${pts.map((p) => p.lngLat[0]).join(',')}&hourly=${WEATHER_VARS.join(',')}&models=${WEATHER_MODELS.join(',')}&forecast_days=${days}&timeformat=unixtime&timezone=GMT&wind_speed_unit=kn`;
+  `https://api.open-meteo.com/v1/forecast?latitude=${pts.map((p) => p.lngLat[1]).join(',')}&longitude=${pts.map((p) => p.lngLat[0]).join(',')}&hourly=${WEATHER_VARS.join(',')}&models=${WEATHER_MODELS.join(',')}&forecast_days=${days}&past_days=1&timeformat=unixtime&timezone=GMT&wind_speed_unit=kn`;
 
 /** An hour-ending series as hour-starting: the value stamped at i + 1 belongs to the hour that starts at i. */
 export const toHourStart = (xs: readonly number[]): number[] => xs.map((_, i) => (i + 1 < xs.length ? xs[i + 1] : NaN));

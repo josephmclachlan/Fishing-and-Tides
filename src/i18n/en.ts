@@ -236,6 +236,7 @@ export const en = {
   'rip.reachShort': 'REACH',
   'rip.siteMouth': 'RIVER MOUTH · RIPS',
   'rip.siteFlood': 'RIVER IN FLOOD · STRONG OUTFLOW',
+  'rip.siteCreek': 'CREEK IN FLOOD · STRONG OUTFLOW',
   'rip.siteBreak': 'RIP-PRONE BREAK',
   'rip.strength': 'RIP STR',
   'rip.reach': 'RIP REACH',

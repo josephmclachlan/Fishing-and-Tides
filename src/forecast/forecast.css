@@ -266,7 +266,7 @@ body.fc-open { overflow: hidden; }
 
 /* Cards */
 /*
- * Conditions: the weather tile and the activity's picture tiles (PLAN 7.63). A tile lifts and opens to a tip on hover
+ * Conditions: the weather tile and the activity's picture tiles (PLAN 7.64). A tile lifts and opens to a tip on hover
  * (a mouse), focus or tap, and its picture moves while it is open; nothing moves under reduced motion.
  */
 .fc-cond-when { color: var(--fc-sub); font-size: 13px; font-weight: 650; font-variant-numeric: tabular-nums; }
