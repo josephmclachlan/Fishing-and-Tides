@@ -44,7 +44,7 @@ export function tierForZoom(z: number): Tier {
  * Named coastal spots, north to south (Joseph's list, 2026-11-10: Gandoca to Playa Negra Cahuita; Salsa Brava is
  * Puerto Viejo's spot; Playa Chiquita kept for its snorkel pools). After the coastline review and the reef-flat model
  * (PLAN 7.59) Joseph added Playa Blanca (Cahuita park, behind the point) and Punta Mona (faces east), and split Playa
- * Chiquita into west (the old pin) and east (behind the wider flat) (PLAN 7.61). [lng, lat] (MapLibre order).
+ * Chiquita into west (the old pin) and east (behind the wider flat) (PLAN 7.62). [lng, lat] (MapLibre order).
  *
  * - `lngLat`: on land 10 to 40 m from the sea (checked 2026-11-10 against OpenFreeMap z14 `ocean` polygons, ignoring
  *   tile-edge segments). The wave physics finds its own read point and shore normal from here.

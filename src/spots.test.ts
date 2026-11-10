@@ -14,7 +14,7 @@ const bearing = (from: [number, number], to: [number, number]) => {
 };
 
 describe('named spots (Joseph, 2026-11-10)', () => {
-  it("are Joseph's list after the coastline review (PLAN 7.61), north to south", () => {
+  it("are Joseph's list after the coastline review (PLAN 7.62), north to south", () => {
     expect(SPOTS.map((s) => s.name)).toEqual([
       'PLAYA NEGRA CAHUITA', 'PLAYA BLANCA', 'PUNTA CAHUITA', 'PLAYA NEGRA', 'SALSA BRAVA', 'PLAYA COCLES',
       'PLAYA CHIQUITA WEST', 'PLAYA CHIQUITA EAST', 'PUNTA UVA', 'PLAYA GRANDE', 'MANZANILLO', 'PUNTA MONA', 'GANDOCA',
