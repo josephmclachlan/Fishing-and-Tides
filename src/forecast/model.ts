@@ -299,6 +299,18 @@ export function parseRoute(hash: string, spots: readonly Spot[]): Route | null {
 }
 export const routeHash = (spot: string, a: FcActivity) => `#forecast/${spotSlug(spot)}/${a}`;
 
+/** The map's own link (PLAN 7.65): the forecast is the main page, the map a page under it. */
+export const MAP_HASH = '#map';
+/**
+ * Which page a link opens (Joseph, 2026-11-10: "make the main page the spot forecast and the map is a sub page").
+ * No hash, the bare app address that old bookmarks and the installed app use, opens the forecast. `#map` opens the
+ * map. `#forecast...` opens the forecast at its spot and activity. Any other hash, from an old map link, opens the map.
+ */
+export function landing(hash: string): 'forecast' | 'map' {
+  if (hash === '' || hash === '#' || /^#forecast(?:\/|$)/.test(hash)) return 'forecast';
+  return 'map';
+}
+
 /** UV index on the page's five levels, worst (extreme, 11+) to best (low, 0-2), the WHO bands. */
 export const uvLevel = (uv: number): Level => {
   const u = Math.round(uv);
@@ -390,7 +402,7 @@ export function timeline(deps: FcDeps, a: FcActivity, spot: Spot, startMs: numbe
 /** The day's sky in one word, for the weather tile's picture (Joseph, 2026-11-10: "sunny, light rain cloud, heavy rain cloud"). */
 export type WxSky = 'sun' | 'partly' | 'cloud' | 'showers' | 'rain' | 'storm';
 
-/** A traditional day forecast at a spot, from the page's timeline hours (PLAN 7.64). Nulls where the weather has not loaded. */
+/** A traditional day forecast at a spot, from the page's timeline hours (PLAN 7.65). Nulls where the weather has not loaded. */
 export interface DayWeather {
   sky: WxSky | null;
   hiC: number | null;

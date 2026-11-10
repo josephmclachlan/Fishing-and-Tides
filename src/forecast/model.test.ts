@@ -7,7 +7,7 @@ import type { SeaState } from '../adapters/waves';
 import { PLUME_RIVERS, SPOTS } from '../region';
 import { daySky } from '../physics/astro';
 import {
-  FC_ACTIVITIES, beaufort, dayUvPeaks, daysAt, uvLevel, hoursOf, levelFor, likelyFish, parseRoute, readAt, routeHash, spotSlug, spotsForActivity, surfRange, surfSize,
+  FC_ACTIVITIES, beaufort, dayUvPeaks, daysAt, uvLevel, hoursOf, levelFor, likelyFish, landing, MAP_HASH, parseRoute, readAt, routeHash, spotSlug, spotsForActivity, surfRange, surfSize,
   type FcDeps, type OutingRead,
   dayWeather, wxSky, type TimelineHour,
 } from './model';
@@ -226,5 +226,19 @@ describe('day weather (the weather tile)', () => {
   it('reads nothing before the weather loads', () => {
     const d = dayWeather(day(() => ({ airC: null, rainMmH: null, cloudPct: null, uv: null, rainPct: null, feelsC: null, humidityPct: null, windKt: null, gustKt: null, squall: null })));
     expect(d).toMatchObject({ sky: null, hiC: null, rainMm: null, uvMax: null, humidityPct: null });
+  });
+});
+
+describe('the forecast is the main page (PLAN 7.65)', () => {
+  it('opens the forecast at the bare address and at every forecast link', () => {
+    expect(landing('')).toBe('forecast');
+    expect(landing('#')).toBe('forecast');
+    expect(landing('#forecast')).toBe('forecast');
+    for (const s of SPOTS) expect(landing(routeHash(s.name, 'surf'))).toBe('forecast');
+  });
+  it('opens the map at #map and at any other old hash', () => {
+    expect(landing(MAP_HASH)).toBe('map');
+    expect(landing('#something-old')).toBe('map');
+    expect(landing('#forecaster')).toBe('map');
   });
 });
