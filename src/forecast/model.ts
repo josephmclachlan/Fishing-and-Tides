@@ -1,0 +1,254 @@
+/**
+ * The FORECAST page's readings (PLAN 7.52): one activity at one spot and hour, in the shape the page
+ * shows. Pure: no DOM, no timers. It adds no model of its own. Each activity is read from the score the
+ * rest of the app already uses, so the page never disagrees with the map:
+ *   SURF     the break score (surf-estimate.ts surfDetailAt, the WATCH / BEST TODAY estimate) and its
+ *            estimated breaker height
+ *   FISH     BITE (fishing/bite.ts) with its reasons, plus the likely local eating fish at the spot
+ *   SNORKEL  the DIVE & SNORKEL outing score at 2 m, with its surge and visibility
+ *   DIVE     the same at 6 m
+ *   SAIL     SEA COMFORT with wind, gusts and squalls (metrics/registry.ts)
+ * The day bubbles are plan.ts planDays for this one spot, so a best day here is WATCH's best day there.
+ *
+ * Levels 0..4 (very poor to great) use each score's own thresholds: the same cut points as its tone on the
+ * map (surf bands, BITE 40/60, outing CAUTION 40 and GO 70, comfort 50/75), with one extra cut each side.
+ */
+import { daySky, localDayStart, type DaySky } from '../physics/astro';
+import { tideState } from '../physics/tide';
+import { haversineM } from '../geo';
+import { PLUME_RIVERS } from '../region';
+import { SPECIES, type SpeciesId } from '../fishing/species';
+import { seasonFactor } from '../fishing/habitat';
+import { waterTerm } from '../fishing/water';
+import type { BiteReason } from '../fishing/bite';
+import type { OutingReason, OutingScore } from '../physics/outing';
+import { surgeBand, type SurgeBand } from '../physics/surge';
+import { METRIC_BY_ID, biteAt, surfHourFor, type MetricEnv } from '../metrics/registry';
+import { surfDetailAt } from '../metrics/surf-estimate';
+import { planDays, spotsFor, type Plan, type PlanActivity } from '../metrics/plan';
+import type { Spot } from '../metrics/forecast';
+import type { SurfBand, SurfQuality } from '../surf-quality';
+
+export type FcActivity = 'fish' | 'surf' | 'snorkel' | 'dive' | 'sail';
+/** In Joseph's order. */
+export const FC_ACTIVITIES: readonly FcActivity[] = ['fish', 'surf', 'snorkel', 'dive', 'sail'];
+export const isFcActivity = (x: unknown): x is FcActivity => typeof x === 'string' && (FC_ACTIVITIES as readonly string[]).includes(x);
+/** plan.ts calls sailing BOAT. */
+export const planActivity = (a: FcActivity): PlanActivity => (a === 'sail' ? 'boat' : a);
+
+/** Outing score with its inputs at a spot and hour (dive-hud.ts outingDetail, read at the spot's nearest water). */
+export interface OutingRead extends OutingScore { surgeMs: number; visM: number | null; breakerM: number }
+export type OutingDetailAt = (spot: Spot, mode: 'snorkel' | 'dive', ms: number, localHour: number) => OutingRead | null;
+
+export interface FcDeps {
+  env: MetricEnv;
+  /** Needed for SNORKEL and DIVE; without it they read no data. */
+  outing?: OutingDetailAt;
+}
+
+export type Level = 0 | 1 | 2 | 3 | 4;
+const H = 3.6e6;
+const KT = 1.94384;
+
+/** Cut points between levels 0|1, 1|2, 2|3, 3|4 on each headline's own scale. */
+export const LEVEL_CUTS: Readonly<Record<Exclude<FcActivity, 'surf'>, readonly [number, number, number, number]>> = {
+  fish: [20, 40, 60, 80],
+  snorkel: [20, 40, 70, 85],
+  dive: [20, 40, 70, 85],
+  sail: [25, 50, 75, 90],
+};
+const SURF_LEVEL: Record<SurfBand, Level> = { FLAT: 0, POOR: 1, FAIR: 2, GOOD: 3, EPIC: 4 };
+
+export function levelFor(a: FcActivity, score: number, surfBand?: SurfBand): Level {
+  if (a === 'surf') return surfBand ? SURF_LEVEL[surfBand] : 0;
+  const c = LEVEL_CUTS[a];
+  return (score >= c[3] ? 4 : score >= c[2] ? 3 : score >= c[1] ? 2 : score >= c[0] ? 1 : 0) as Level;
+}
+
+/** Plain size words for a breaker height, m, against an adult surfer (about 1.7 m). */
+export type SurfSize = 'flat' | 'ankle' | 'knee' | 'waist' | 'chest' | 'head' | 'overhead' | 'double';
+export function surfSize(hb: number): SurfSize {
+  // Flat below 0.3 m, as the surf score's FLAT band (surf-quality.ts surfBand).
+  if (hb < 0.3) return 'flat';
+  if (hb < 0.5) return 'ankle';
+  if (hb < 0.8) return 'knee';
+  if (hb < 1.1) return 'waist';
+  if (hb < 1.5) return 'chest';
+  if (hb < 2) return 'head';
+  if (hb < 3) return 'overhead';
+  return 'double';
+}
+/**
+ * The range shown for a breaker height: the estimate is the significant breaker (the mean of the highest third),
+ * so the sets run up to about 1.3 times it and the smaller waves down to about 0.75. Rounded to 0.1 m.
+ */
+export const surfRange = (hb: number): [number, number] => [Math.round(hb * 7.5) / 10, Math.max(Math.round(hb * 7.5) / 10, Math.round(hb * 13) / 10)];
+
+export interface SurfRead {
+  hb: number;
+  range: [number, number];
+  size: SurfSize;
+  band: SurfBand;
+  windKind: SurfQuality['windKind'];
+  /** Main swell train: height m, period s, direction FROM °T. */
+  hs: number;
+  tp: number;
+  dir: number;
+  facing: number;
+  windKt: number | null;
+  windFromDeg: number | null;
+  tideKind: SurfQuality['tideKind'];
+}
+export interface FishRead {
+  reasons: BiteReason[];
+  /** Likely eating fish at the spot this month, best first (no ciguatera-risk species). */
+  species: SpeciesId[];
+  moonPhase: number;
+  moonIllum: number;
+  tideRising: boolean;
+  tideLevel: number;
+  /** The sun is up at the hour (between the day's sunrise and sunset). */
+  daylight: boolean;
+}
+export interface WaterRead {
+  reasons: OutingReason[];
+  visM: number | null;
+  surgeMs: number;
+  surge: SurgeBand;
+  depthM: number;
+  sstC: number | null;
+}
+export interface SailRead {
+  windKt: number | null;
+  gustKt: number | null;
+  fromDeg: number | null;
+  squall: number | null;
+  swellM: number | null;
+}
+
+export interface FcRead {
+  activity: FcActivity;
+  ms: number;
+  /** The headline score on its own scale (surf /10, the rest /100), or null without data. */
+  score: number | null;
+  /** score as 0..1 of its scale. */
+  share: number | null;
+  level: Level | null;
+  surf?: SurfRead;
+  fish?: FishRead;
+  water?: WaterRead;
+  sail?: SailRead;
+}
+
+const localHour = (ms: number, tz: number) => ((((ms + tz * H) % 864e5) + 864e5) % 864e5) / H;
+const fin = (x: number | null | undefined): x is number => typeof x === 'number' && Number.isFinite(x);
+
+/** A per-day sky memo: daySky is a few hundred µs and a week of hours asks for it 168 times. */
+export function skyMemo(tz: number) {
+  const m = new Map<string, DaySky>();
+  return (ms: number, lat: number, lng: number): DaySky => {
+    const d = localDayStart(ms, tz);
+    const k = `${d}|${lat}|${lng}`;
+    let s = m.get(k);
+    if (!s) m.set(k, (s = daySky(d, lat, lng)));
+    return s;
+  };
+}
+
+/**
+ * Eating fish likely at a spot in a month: season × how well the water suits it (fishing/water.ts) × the spot's
+ * structure (a river mouth within 3 km favours mouth feeders, otherwise reef and drop-off feeders). A rule of
+ * thumb for the hero line, not the habitat map. Species with a ciguatera warning are left out of it.
+ */
+export function likelyFish(lngLat: [number, number], month: number, water: { visM?: number | null; sstC?: number | null }, n = 3): SpeciesId[] {
+  const mouthKm = Math.min(...PLUME_RIVERS.map((r) => haversineM(lngLat, r.mouth) / 1000));
+  const nearMouth = mouthKm <= 3;
+  return SPECIES.filter((s) => s.ciguatera !== true)
+    .map((s) => ({ id: s.id, v: seasonFactor(s, month) * waterTerm(s, water).factor * (0.5 + 0.5 * (nearMouth ? s.w.mouth : s.w.reef + s.w.drop)) }))
+    .sort((a, b) => b.v - a.v)
+    .slice(0, n)
+    .map((x) => x.id);
+}
+
+/** One activity at one spot and hour. */
+export function readAt(deps: FcDeps, a: FcActivity, spot: Spot, ms: number, sky = skyMemo(deps.env.tzOffsetH)): FcRead {
+  const env = deps.env;
+  const [lng, lat] = spot.lngLat;
+  const base = { activity: a, ms };
+  const none: FcRead = { ...base, score: null, share: null, level: null };
+  if (a === 'surf') {
+    const h = surfHourFor({ env, spot: spot.name, lng, lat, ms });
+    const d = h && surfDetailAt(h);
+    if (!h || !d) return none;
+    const windMs = h.windMs;
+    return {
+      ...base, score: d.q.score, share: d.q.score / 10, level: levelFor('surf', d.q.score, d.q.band),
+      surf: {
+        hb: d.Hb, range: surfRange(d.Hb), size: surfSize(d.Hb), band: d.q.band, windKind: d.q.windKind,
+        hs: d.hs, tp: d.tp, dir: d.dir, facing: h.brk.facing,
+        windKt: fin(windMs) ? windMs * KT : null, windFromDeg: h.windFromDeg, tideKind: d.q.tideKind,
+      },
+    };
+  }
+  if (a === 'fish') {
+    const s = sky(ms, lat, lng);
+    const b = biteAt({ env, spot: spot.name, lng, lat, ms, sky: s });
+    if (!fin(b.bite)) return none;
+    const ts = tideState(env.tide, ms);
+    const month = new Date(ms + env.tzOffsetH * H).getUTCMonth();
+    return {
+      ...base, score: b.bite, share: b.bite / 100, level: levelFor('fish', b.bite),
+      fish: {
+        reasons: b.reasons,
+        species: likelyFish(spot.lngLat, month, { visM: env.clarityM(lng, lat, ms), sstC: env.sstC?.(lng, lat, ms) ?? null }),
+        moonPhase: s.phase.name, moonIllum: s.phase.illumination, tideRising: ts.rising, tideLevel: ts.level,
+        daylight: s.sun.sunrise !== null && s.sun.sunset !== null && ms >= s.sun.sunrise && ms < s.sun.sunset,
+      },
+    };
+  }
+  if (a === 'snorkel' || a === 'dive') {
+    const o = deps.outing?.(spot, a, ms, localHour(ms, env.tzOffsetH));
+    if (!o || !fin(o.score)) return none;
+    return {
+      ...base, score: o.score, share: o.score / 100, level: levelFor(a, o.score),
+      water: { reasons: o.reasons, visM: fin(o.visM) ? o.visM : null, surgeMs: o.surgeMs, surge: surgeBand(o.surgeMs), depthM: a === 'snorkel' ? 2 : 6, sstC: env.sstC?.(lng, lat, ms) ?? null },
+    };
+  }
+  // SAIL: sea comfort is the headline; wind, gusts and squalls ride along.
+  const s = sky(ms, lat, lng);
+  const args = { env, spot: spot.name, lng, lat, ms, sky: s };
+  const val = (id: string) => METRIC_BY_ID.get(id)!.at(args);
+  const comfort = val('comfort');
+  const sail: SailRead = { windKt: val('wind'), gustKt: val('gust'), fromDeg: val('wdir'), squall: val('squall'), swellM: val('swell') };
+  if (!fin(comfort)) return { ...none, sail };
+  return { ...base, score: comfort, share: comfort / 100, level: levelFor('sail', comfort), sail };
+}
+
+/** The 24 local hours of the day starting `dayStartMs`. */
+export function hoursOf(deps: FcDeps, a: FcActivity, spot: Spot, dayStartMs: number): FcRead[] {
+  const sky = skyMemo(deps.env.tzOffsetH);
+  return Array.from({ length: 24 }, (_, h) => readAt(deps, a, spot, dayStartMs + h * H, sky));
+}
+
+/** The spots an activity is forecast at (surf breaks for SURF, catalog snorkel spots for SNORKEL and DIVE). */
+export const spotsForActivity = (a: FcActivity, spots: readonly Spot[]): Spot[] => spotsFor(planActivity(a), spots);
+
+/** Each day's best window at this one spot, as WATCH's BEST DAY FOR finds it. */
+export function daysAt(deps: FcDeps, a: FcActivity, spot: Spot, nowMs: number, days = 7): Plan {
+  const outingAt = deps.outing ? (s: Spot, m: 'snorkel' | 'dive', ms: number, h: number) => deps.outing!(s, m, ms, h)?.score ?? null : undefined;
+  return planDays(deps.env, planActivity(a), [spot], nowMs, days, outingAt);
+}
+
+/** URL-safe name for a spot ("PLAYA COCLES" → "playa-cocles", accents dropped). */
+export const spotSlug = (name: string) =>
+  name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+export interface Route { spot: string | null; activity: FcActivity | null }
+/** `#forecast`, `#forecast/playa-cocles`, `#forecast/playa-cocles/surf`; null for any other hash. */
+export function parseRoute(hash: string, spots: readonly Spot[]): Route | null {
+  const m = /^#forecast(?:\/([^/]*))?(?:\/([^/]*))?\/?$/.exec(hash);
+  if (!m) return null;
+  const spot = m[1] ? spots.find((s) => spotSlug(s.name) === m[1])?.name ?? null : null;
+  return { spot, activity: isFcActivity(m[2]) ? m[2] : null };
+}
+export const routeHash = (spot: string, a: FcActivity) => `#forecast/${spotSlug(spot)}/${a}`;

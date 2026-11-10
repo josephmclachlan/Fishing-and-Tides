@@ -11,7 +11,7 @@ import { haversineM } from '../geo';
 import { breakerHeight, obliqueKr } from '../physics/breaking';
 import { sargLevel } from '../physics/drift';
 import { tideState, type Harmonics } from '../physics/tide';
-import { surfQuality } from '../surf-quality';
+import { surfQuality, type SurfQuality } from '../surf-quality';
 import type { SeaState } from '../adapters/waves';
 import type { SquallLevel } from '../physics/safety';
 
@@ -48,8 +48,8 @@ export interface SurfHour {
   sargKm2: number | null;
 }
 
-/** 0..10 break score for one hour, or null when the sea or wind forecast has nothing. */
-export function surfScoreAt(h: SurfHour): number | null {
+/** The full break reading for one hour (score, band, wind kind and the estimated breaker height), or null when the sea or wind forecast has nothing. */
+export function surfDetailAt(h: SurfHour): { q: SurfQuality; Hb: number; hs: number; tp: number; dir: number } | null {
   const s = h.sea;
   const swell = Number.isFinite(s.swellHs) && Number.isFinite(s.swellT) && s.swellHs > 0;
   const hs = swell ? s.swellHs : s.hs;
@@ -58,9 +58,10 @@ export function surfScoreAt(h: SurfHour): number | null {
   if (![hs, tp, dir].every(Number.isFinite) || h.windMs === null) return null;
   const ts = tideState(h.tide, h.ms);
   const part = (hs2: number, t: number, d: number) => (Number.isFinite(hs2) && Number.isFinite(t) && Number.isFinite(d) && hs2 >= 0.1 ? { Hs: hs2, Tp: t, fromDeg: d } : null);
-  return surfQuality({
+  const Hb = estimateHb(h.brk, hs, tp, dir);
+  const q = surfQuality({
     brk: h.brk,
-    Hb: estimateHb(h.brk, hs, tp, dir),
+    Hb,
     Tp: tp,
     swellFromDeg: dir,
     windMs: h.windMs,
@@ -73,5 +74,9 @@ export function surfScoreAt(h: SurfHour): number | null {
     rainMmH: h.rainMmH,
     sarg: h.sargKm2 === null ? null : sargLevel(h.sargKm2),
     tide: { level: ts.level, rising: ts.rising },
-  }).score;
+  });
+  return { q, Hb, hs, tp, dir };
 }
+
+/** 0..10 break score for one hour, or null when the sea or wind forecast has nothing. */
+export const surfScoreAt = (h: SurfHour): number | null => surfDetailAt(h)?.q.score ?? null;
