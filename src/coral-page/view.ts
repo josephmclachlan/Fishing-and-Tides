@@ -37,7 +37,7 @@ export const murkShare = (mw: number | null | undefined) => (mw === null || mw =
 export const gaugePct = (v: number, max: number) => (Number.isFinite(v) ? Math.min(100, Math.max(0, (v / max) * 100)) : 0);
 
 /** Words kept in capitals when the HUD's caps text is turned into a sentence. */
-const ACRONYMS = ['SINAC', 'SCTLD', 'IUCN', 'DHW', 'CRW', 'NOAA', 'MINAE', 'ICT', 'UCR', 'GPS', 'SST', 'UV', 'MMM', 'ERDDAP', 'GLOFAS', 'CARMABI', 'AGRRA', 'SITADA', 'ACLAC', 'MSL', 'LAT'];
+const ACRONYMS = ['SINAC', 'SCTLD', 'IUCN', 'DHW', 'CRW', 'NOAA', 'MINAE', 'ICT', 'UCR', 'GPS', 'SST', 'UV', 'ZIP', 'CSV', 'MMM', 'ERDDAP', 'GLOFAS', 'CARMABI', 'AGRRA', 'SITADA', 'ACLAC', 'MSL', 'LAT'];
 /** Place and proper names, in their written form. */
 const PROPER = [
   'Costa Rica', 'Gandoca-Manzanillo', 'Gandoca', 'Manzanillo', 'Cahuita', 'Limón', 'Isla Uvita', 'Punta Uva', 'Punta Mona', 'Cocles', 'Puerto Viejo',
@@ -59,7 +59,7 @@ export function soften(s: string): string {
   out = out.replace(/(^|[.:?!]\s+)(\p{L})/gu, (_, a: string, b: string) => a + b.toLocaleUpperCase('es'));
   out = out.replace(PROPER_RE, (_, a: string, b: string) => a + (PROPER_BY.get(b.toLocaleLowerCase('es')) ?? b));
   out = out.replace(ACR_RE, (_, a: string, b: string) => a + b.toLocaleUpperCase('es'));
-  return out;
+  return out.replace(/°c\b/g, '°C');
 }
 
 /** "LIMÓN · ISLA UVITA" → "Limón · Isla Uvita"; "BOULDER BRAIN" → "Boulder Brain". */

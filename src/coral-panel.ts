@@ -6,18 +6,15 @@
 import type { Map } from 'maplibre-gl';
 import { t, type Key } from './i18n';
 import { closeButton, PHONE_QUERY, type Sheets } from './sheets';
-import { haversineM } from './geo';
-import { ACTIONS, MEASURES, MEASURE_LIMITS, newId, SITE_KINDS, STATUSES, cleanMeasures, entryCount, photosOf, type ActionId, type Conditions, type CoralSite, type CoralStatus, type CoralStore, type SiteKind, type Visit } from './coral/store';
+import { ACTIONS, MEASURES, MEASURE_LIMITS, SITE_KINDS, STATUSES, cleanMeasures, photosOf, type ActionId, type LocSource, type Conditions, type CoralSite, type CoralStatus, type CoralStore, type SiteKind, type Visit } from './coral/store';
 import { conditionRows, dateInputMs, lastVisit, localDay, measureRows, nextMission, overdue, parseTags, photosNewestFirst, photoTime, type Row } from './coral/folder-view';
 import { toCSV, toGeoJSON } from './coral/export';
-import { buildBackup, mergeSites, readBackup } from './coral/backup';
+import { addPhotos, backupDue, download, importBackup, importErrorKey, persist, removeSite, saveBackup, siteFields, siteFromPhoto, watchFix } from './coral/actions';
 import { timelineSvg, yearRows, type Series } from './coral/timeline';
 import { RISK } from './coral/risks';
-import { deletePhoto, getPhoto, putPhoto, shrink } from './coral/photos';
+import { deletePhoto, getPhoto } from './coral/photos';
 import { CORAL_LOG_PREFIX } from './layers/coral-log';
 import { claimMapTap } from './here-card';
-import { EXIF_BYTES, readExif, type PhotoMeta } from './coral/exif';
-import { bestFix, doneWaiting, type Fix } from './coral/gps';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const day = (ms: number) => localDay(ms);
@@ -39,7 +36,6 @@ export interface SiteHistory {
 /** A row's value: an i18n key when it starts with @, else text. */
 const val = (v: string) => (v.startsWith('@') ? t(v.slice(1) as Key) : esc(v));
 const rowsHtml = (rows: Row[]) => rows.map(([k, v]) => `<div class="ro"><span class="lbl">${t(k as Key)}</span><span class="seg sm">${val(v)}</span></div>`).join('');
-const kmBetween = (lng1: number, lat1: number, lng2: number, lat2: number) => haversineM([lng1, lat1], [lng2, lat2]) / 1000;
 const statusTone = (s: CoralStatus | undefined) => (s === 'healthy' ? 'green' : s && s !== 'unknown' ? 'red' : '');
 
 export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, sheets: Sheets, depthAt: () => ((lng: number, lat: number) => number | undefined) | null, conditionsAt: (lng: number, lat: number, depthM?: number) => Conditions | null = () => null, historyAt: (site: CoralSite) => SiteHistory | null = () => null) {
@@ -363,44 +359,12 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     if (e.key === 'Escape' && !viewer.hidden) closeViewer();
   });
 
-  /**
-   * Your position for a new or moved site: watches GPS and keeps the best fix until it is within
-   * GOOD_FIX_M or FIX_TIMEOUT_MS passes, showing the accuracy as it improves. No GPS: the map centre.
-   */
-  let fixing = false;
-  const here = (): Promise<{ lng: number; lat: number; gps: boolean; accuracy?: number }> =>
-    new Promise((resolve) => {
-      const c = map.getCenter();
-      const centre = { lng: c.lng, lat: c.lat, gps: false };
-      if (!navigator.geolocation || fixing) return resolve(centre);
-      fixing = true;
-      const fixes: Fix[] = [];
-      const started = Date.now();
-      const msg = $('c-msg');
-      msg.textContent = t('coral.gpsWaiting');
-      let id = -1;
-      const finish = () => {
-        if (!fixing) return;
-        fixing = false;
-        navigator.geolocation.clearWatch(id);
-        clearTimeout(timer);
-        const best = bestFix(fixes);
-        msg.textContent = '';
-        resolve(best ? { lng: best.lng, lat: best.lat, gps: true, accuracy: best.accuracy } : centre);
-      };
-      const timer = setTimeout(finish, 20_500);
-      id = navigator.geolocation.watchPosition(
-        (p) => {
-          fixes.push({ lng: p.coords.longitude, lat: p.coords.latitude, accuracy: p.coords.accuracy, t: p.timestamp });
-          const best = bestFix(fixes);
-          if (best) msg.textContent = t('coral.gpsFix', { m: Math.round(best.accuracy) });
-          if (doneWaiting(best, started, Date.now())) finish();
-        },
-        // Permission refused: stop. A momentary loss of signal or a slow fix: keep waiting until the timer.
-        (err) => err.code === err.PERMISSION_DENIED && finish(),
-        { enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 },
-      );
-    });
+  /** Your position for a new or moved site (GPS until a good fix, else the map centre), with the accuracy shown as it improves. */
+  const here = () =>
+    watchFix(
+      () => map.getCenter(),
+      (m) => ($('c-msg').textContent = m === null ? t('coral.gpsWaiting') : t('coral.gpsFix', { m: Math.round(m) })),
+    ).then((f) => (($('c-msg').textContent = ''), f));
   const depthFields = (lng: number, lat: number) => {
     const d = depthAt()?.(lng, lat);
     return d !== undefined && d < 0 ? { depthM: Math.abs(d) } : {};
@@ -415,11 +379,12 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     else say(t('coral.addedGps', { m: Math.round(f.accuracy ?? 0) }));
     openSite(s.id, 'overview', false);
   });
-  function addSite(lng: number, lat: number, locSource: 'gps' | 'centre' | 'hand' | 'photo', accuracy?: number) {
+  const takeName = () => {
     const name = $<HTMLInputElement>('c-name').value.trim();
     $<HTMLInputElement>('c-name').value = '';
-    return store.add({ kind, name, lng, lat, locSource, ...(accuracy !== undefined && Number.isFinite(accuracy) ? { gpsAccuracyM: accuracy } : {}), ...depthFields(lng, lat) });
-  }
+    return name;
+  };
+  const addSite = (lng: number, lat: number, locSource: LocSource, accuracy?: number) => store.add(siteFields(kind, takeName(), lng, lat, locSource, accuracy, depthAt()));
   // PLACE ON MAP: the next map tap places the site (the drawer steps aside on a phone so the map can be tapped).
   let placing: (() => void) | null = null;
   $('c-place').addEventListener('click', () => {
@@ -444,52 +409,25 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     map.once('click', onTap);
   });
   // NEW SITE FROM PHOTO: the photo's own GPS places the site, and the photo is filed in it.
-  const meta = async (file: File): Promise<PhotoMeta> => {
-    try {
-      return readExif(await file.slice(0, EXIF_BYTES).arrayBuffer());
-    } catch {
-      return {};
-    }
-  };
   const fileSite = $<HTMLInputElement>('c-file-site');
   $('c-fromphoto').addEventListener('click', () => fileSite.click());
   fileSite.addEventListener('change', async () => {
     const file = fileSite.files?.[0];
     fileSite.value = '';
     if (!file) return;
-    const m = await meta(file);
-    if (m.lat === undefined || m.lng === undefined) return say(t('coral.photoNoGps'));
-    const blob = await shrink(file);
-    const pid = newId();
-    if (!blob || !(await putPhoto(pid, blob))) return say(t('coral.photoFail'));
-    const s = addSite(m.lng, m.lat, 'photo', m.accuracyM);
-    store.addPhoto(s.id, { id: pid, ...(m.takenAt !== undefined ? { takenAt: m.takenAt } : file.lastModified ? { takenAt: file.lastModified } : {}) });
+    const s = await siteFromPhoto(store, file, (lng, lat, acc) => siteFields(kind, takeName(), lng, lat, 'photo', acc, depthAt()));
+    if (s === 'nogps') return say(t('coral.photoNoGps'));
+    if (s === 'fail') return say(t('coral.photoFail'));
     say(t('coral.fromPhotoDone'));
     openSite(s.id, 'overview', true);
   });
-  const download = (text: string | Blob, type: string, name: string) => {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(typeof text === 'string' ? new Blob([text], { type }) : text);
-    a.download = name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
-  };
   $('c-geo').addEventListener('click', () => (store.list().length ? download(JSON.stringify(toGeoJSON(store.list()), null, 1), 'application/geo+json', `coral-sites-${day(Date.now())}.geojson`) : say(t('coral.exportEmpty'))));
   $('c-csv').addEventListener('click', () => (store.list().length ? download(toCSV(store.list()), 'text/csv', `coral-sites-${day(Date.now())}.csv`) : say(t('coral.exportEmpty'))));
 
   // BACKUP / IMPORT (PLAN 7.41): one zip with the log and the photos, to move the log between phones.
-  const BACKED_KEY = 'ft.coral.backedUp';
-  const REMIND_EVERY = 10;
-  const backedUp = () => {
-    try {
-      return Number(localStorage.getItem(BACKED_KEY) ?? '0') || 0;
-    } catch {
-      return 0;
-    }
-  };
   const remind = () => {
-    const n = entryCount(store.list()) - backedUp();
-    $('c-remind').textContent = n >= REMIND_EVERY ? t('coral.backupRemind', { n }) : '';
+    const n = backupDue(store.list());
+    $('c-remind').textContent = n ? t('coral.backupRemind', { n }) : '';
   };
   let busy = false;
   $('c-backup').addEventListener('click', async () => {
@@ -498,13 +436,7 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     busy = true;
     $('c-msg').textContent = t('coral.backupBusy');
     try {
-      const r = await buildBackup(store.list(), getPhoto);
-      download(r.blob, 'application/zip', `coral-backup-${day(Date.now())}.zip`);
-      try {
-        localStorage.setItem(BACKED_KEY, String(entryCount(store.list())));
-      } catch {
-        /* reminder only */
-      }
+      const r = await saveBackup(store);
       say(r.missing ? t('coral.backupMissing', { n: r.photos, m: r.missing }) : t('coral.backupDone', { n: r.photos }));
       remind();
     } catch {
@@ -522,25 +454,14 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     busy = true;
     $('c-msg').textContent = t('coral.importBusy');
     try {
-      const b = await readBackup(file);
-      const r = mergeSites(store.list(), b.log.sites);
-      // Photos first, so the log never points at a photo this device lacks.
-      let copied = 0;
-      for (const id of r.newPhotoIds) {
-        const blob = await b.photo(id);
-        if (blob && (await putPhoto(id, blob))) copied++;
-      }
-      store.replaceAll(r.sites);
-      say(t('coral.importDone', { a: r.added, m: r.merged, p: copied }));
+      const r = await importBackup(store, file);
+      say(t('coral.importDone', { a: r.added, m: r.merged, p: r.photos }));
     } catch (err) {
-      const m = err instanceof Error ? err.message : '';
-      say(`${t('coral.importFail')} ${t(/newer/.test(m) ? 'coral.importNewer' : /zip|backup/.test(m) ? 'coral.importNotBackup' : 'coral.importDamaged')}`);
+      say(`${t('coral.importFail')} ${t(importErrorKey(err))}`);
     } finally {
       busy = false;
     }
   });
-  // Ask the browser not to clear this storage under pressure (it may still if the user clears site data).
-  const persist = () => void navigator.storage?.persist?.().catch(() => false);
   store.subscribe(remind);
   remind();
 
@@ -551,8 +472,7 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     if ((e.target as HTMLElement).closest('.pin-x')) {
       if (!confirm(t('coral.removeSure'))) return;
       if (sel === s.id) sel = null;
-      s.photos.forEach((p) => void deletePhoto(p.id));
-      store.remove(s.id);
+      removeSite(store, s);
     } else if (sel === s.id) {
       sel = null;
       render();
@@ -566,24 +486,9 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     fileInput.value = '';
     const target = photoTarget;
     if (!target || !files.length) return;
-    let failed = 0;
-    let farKm = 0;
-    for (const [k, file] of files.entries()) {
-      $('c-msg').textContent = t('coral.photoSaving', { k: k + 1, n: files.length });
-      const m = await meta(file);
-      const s0 = store.list().find((x) => x.id === target.siteId);
-      if (s0 && m.lat !== undefined && m.lng !== undefined) farKm = Math.max(farKm, kmBetween(s0.lng, s0.lat, m.lng, m.lat));
-      const blob = await shrink(file);
-      const pid = newId();
-      if (!blob || !store.list().some((x) => x.id === target.siteId) || !(await putPhoto(pid, blob))) {
-        failed++;
-        continue;
-      }
-      const taken = m.takenAt ?? (file.lastModified || undefined);
-      store.addPhoto(target.siteId, { id: pid, ...(target.visitId ? { visitId: target.visitId } : {}), ...(taken !== undefined ? { takenAt: taken } : {}) });
-    }
-    if (failed) say(t('coral.photoFail'));
-    else if (farKm >= 1) say(t('coral.photoFar', { km: farKm.toFixed(1) }));
+    const r = await addPhotos(store, target, files, (k, n) => ($('c-msg').textContent = t('coral.photoSaving', { k, n })));
+    if (r.failed) say(t('coral.photoFail'));
+    else if (r.farKm >= 1) say(t('coral.photoFar', { km: r.farKm.toFixed(1) }));
     else say(t('coral.photosAdded', { n: files.length }));
   });
 

@@ -644,20 +644,24 @@ const coralPage = mountCoralPage({
     return reef ? reefVisit(reef.lngLat, false) : null;
   },
   store: coralStore,
+  conditionsAt: coralConditions,
+  historyAt: coralSiteHistory,
+  depthAt: () => depthAt,
+  centre: () => map.getCenter(),
   reefOf: (s) => nearestCoralReef(s.lng, s.lat).id,
   startReef: () => {
     const c = map.getCenter();
     return nearestCoralReef(c.lng, c.lat).id;
   },
-  // Editing stays in the CORAL drawer for now: go to the map (a new history entry, so back returns here) and open it there.
-  openOnMap: ({ site, reef, add }) => {
+  // Go to the map (a new history entry, so back returns here): a site shown in its drawer folder, or PLACE ON MAP armed.
+  openOnMap: ({ site, place }) => {
     location.hash = '#map';
     setTimeout(() => {
       if (site) coralPanel.openSite(site, 'overview', true);
-      else if (!sheets.is('coral')) sheets.toggle('coral');
-      const r = reef && CORAL_REEFS.find((x) => x.id === reef);
-      if (r) map.flyTo({ center: r.lngLat, zoom: Math.max(map.getZoom(), 12) });
-      void add;
+      else if (place) {
+        if (!sheets.is('coral')) sheets.toggle('coral');
+        document.getElementById('c-place')?.click();
+      }
     }, 0);
   },
 });
