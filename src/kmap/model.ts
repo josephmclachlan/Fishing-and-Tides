@@ -253,17 +253,27 @@ export function coastNear(mask: Mask, at: readonly [number, number], radiusM: nu
 /* ---------- pins ---------- */
 
 export interface PinBox { id: string; x: number; y: number; w: number; h: number; rank: number }
+export interface Rect { x: number; y: number; w: number; h: number }
+/** Half the size of a pin's square plus its halo, in px: a tile keeps off every square, not only its own. */
+export const PIN_SQUARE = 11;
 /**
  * Place rating tiles without overlap: best rank first, each tries a few spots around its anchor (above-right first,
- * the sea side on this coast) and is dropped to a dot when none fits. Returns the placed boxes' top-left corners.
+ * the sea side on this coast) and is dropped to its square when none fits. A tile never covers another tile, any
+ * pin's square, or one of the `obstacles` (the map's own panels and buttons). Returns the placed boxes' top-left
+ * corners. Pure.
  */
-export function placePins(pins: readonly PinBox[], bounds: { w: number; h: number }, gap = 4): Map<string, { x: number; y: number; dx: number; dy: number }> {
+export function placePins(pins: readonly PinBox[], bounds: { w: number; h: number }, gap = 4, obstacles: readonly Rect[] = []): Map<string, { x: number; y: number; dx: number; dy: number }> {
   const out = new Map<string, { x: number; y: number; dx: number; dy: number }>();
-  const placed: { x: number; y: number; w: number; h: number }[] = [];
-  const hit = (a: { x: number; y: number; w: number; h: number }) =>
-    placed.some((b) => a.x < b.x + b.w + gap && b.x < a.x + a.w + gap && a.y < b.y + b.h + gap && b.y < a.y + a.h + gap);
+  const q = PIN_SQUARE;
+  const squares = pins.map((p) => ({ x: p.x - q, y: p.y - q, w: 2 * q, h: 2 * q }));
+  const placed: Rect[] = [];
+  const over = (a: Rect, b: Rect, g: number) => a.x < b.x + b.w + g && b.x < a.x + a.w + g && a.y < b.y + b.h + g && b.y < a.y + a.h + g;
+  const hit = (a: Rect) => placed.some((b) => over(a, b, gap)) || squares.some((b) => over(a, b, 0)) || obstacles.some((b) => over(a, b, gap));
   for (const p of [...pins].sort((a, b) => b.rank - a.rank)) {
-    const tries: [number, number][] = [[14, -p.h - 26], [-p.w / 2, -p.h - 34], [-p.w - 14, -p.h - 26], [14, -p.h - 64], [-p.w - 14, -p.h - 64], [18, 14], [-p.w - 18, 14]];
+    const tries: [number, number][] = [
+      [14, -p.h - 26], [-p.w / 2, -p.h - 34], [-p.w - 14, -p.h - 26], [14, -p.h - 64], [-p.w - 14, -p.h - 64],
+      [22, -p.h / 2], [-p.w - 22, -p.h / 2], [18, 14], [-p.w - 18, 14], [-p.w / 2, 26],
+    ];
     for (const [dx, dy] of tries) {
       const box = { x: p.x + dx, y: p.y + dy, w: p.w, h: p.h };
       if (box.x < 4 || box.y < 4 || box.x + box.w > bounds.w - 4 || box.y + box.h > bounds.h - 4 || hit(box)) continue;

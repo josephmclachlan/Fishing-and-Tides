@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CELL_DEG, KM_LAYERS, MODES, PRESETS, coastNear, isCustom, loadOrders, moveLayer, offered, offsetOfX, orderOf, placePins, privateCells, saveOrders, slots,
+  CELL_DEG, KM_LAYERS, MODES, PRESETS, coastNear, isCustom, loadOrders, moveLayer, offered, offsetOfX, orderOf, placePins, PIN_SQUARE, privateCells, saveOrders, slots,
   toggleLayer, xOfOffset, type Mask,
 } from './model';
 import { LAYERS } from '../layers/registry';
@@ -93,6 +93,26 @@ describe('rating tiles', () => {
       }
     expect(at.has('p11')).toBe(true);
     for (const p of at.values()) expect(p.x).toBeGreaterThanOrEqual(4);
+  });
+
+  it('keeps tiles off every pin square and off the map panels', () => {
+    const pins = [
+      { id: 'a', x: 200, y: 200, w: 110, h: 44, rank: 90 },
+      { id: 'b', x: 240, y: 150, w: 110, h: 44, rank: 50 },
+      { id: 'c', x: 520, y: 520, w: 110, h: 44, rank: 70 },
+    ];
+    const panel = { x: 380, y: 380, w: 220, h: 220 };
+    const at = placePins(pins, { w: 600, h: 600 }, 4, [panel]);
+    const sq = (p: { x: number; y: number }) => ({ x: p.x - PIN_SQUARE, y: p.y - PIN_SQUARE, w: 2 * PIN_SQUARE, h: 2 * PIN_SQUARE });
+    const over = (a: { x: number; y: number; w: number; h: number }, b: typeof a) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+    for (const t of at.values()) {
+      const box = { x: t.x, y: t.y, w: 110, h: 44 };
+      for (const p of pins) expect(over(box, sq(p))).toBe(false);
+      expect(over(box, panel)).toBe(false);
+    }
+    // The pin under the panel has nowhere to go: it stays a square.
+    expect(at.has('c')).toBe(false);
+    expect(at.has('a')).toBe(true);
   });
 });
 
