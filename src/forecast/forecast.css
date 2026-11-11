@@ -345,6 +345,8 @@ body.fc-open { overflow: hidden; }
     grid-template-areas: 'meta meta' 'num art' 'words art' 'rate art' 'chips best'; grid-template-rows: auto auto auto 1fr auto; min-height: 680px; padding: 24px 0 36px;
   }
   .fc-h-art, .fc[data-act] .fc-h-art { height: auto; min-height: 420px; margin: 22px 0 0; }
+  /* SAIL: the rose and the heeling boat sit side by side, so the picture takes more of the width (Joseph, 2026-11-11). */
+  .fc[data-act='sail'] .fc-hero-in { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.25fr); column-gap: 40px; }
   .fc-h-num { margin-top: 40px; }
   .fc-h-words { margin-top: 18px; }
   .fc-rword { font-size: 64px; letter-spacing: -0.01em; }

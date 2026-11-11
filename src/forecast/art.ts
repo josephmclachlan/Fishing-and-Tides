@@ -570,8 +570,14 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
   };
 
   // --- The rose.
-  const R = Math.max(40, Math.min(h * 0.37, w * 0.235)), ri = R - Math.max(11, R * 0.13);
-  const cx = x + R + 4, cy = y + R + 10;
+  // Rose and section side by side on one centre line: the rose's needle tail and the masthead at the top, its
+  // captions and the wind scale at the bottom. R is as large as the box allows; the text grows with it.
+  const fs = clamp(Math.min(w, 760) / 560, 0.9, 1.3);
+  const tx = (s: string, px: number, py: number, al: CanvasTextAlign, size: number, wgt: number) => txt(c, s, px, py, al, size * fs, wgt);
+  const head = 46 * fs, foot = 66 * fs; // section titles above, captions and wind scale below
+  const R = Math.max(40, Math.min(w * 0.235, (h - head - foot) / 2 - 10)), ri = R - Math.max(11, R * 0.13);
+  const slack = Math.max(0, h - head - foot - 2 * R - 20);
+  const cx = x + Math.max(R + 4, w * 0.25), cy = y + head + 10 + R + slack / 2;
   c.lineCap = 'butt';
   if (a.fromDeg !== null) {
     // No-go wedge either side of the wind, inside the card.
@@ -597,7 +603,7 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
   c.stroke();
   c.setLineDash([1, 4]); c.beginPath(); c.arc(cx, cy, ri * 0.76, 0, TAU); c.stroke(); c.setLineDash([]);
   const small = R < 70;
-  for (let d = 30; d < 360; d += 30) if (d % 90) { const p = pol(ri - 9, d); c.fillStyle = S.soft; txt(c, String(d).padStart(3, '0'), p[0], p[1], 'center', small ? 7.5 : 8.5, 600); }
+  for (let d = 30; d < 360; d += 30) if (d % 90) { const p = pol(ri - 9, d); c.fillStyle = S.soft; tx(String(d).padStart(3, '0'), p[0], p[1], 'center', small ? 7.5 : 8.5, 600); }
   c.fillStyle = S.ink; c.font = `800 ${Math.round(Math.max(11, R * 0.15))}px ${DISP}`; c.textAlign = 'center'; c.textBaseline = 'middle';
   ([['N', 0], ['E', 90], ['S', 180], [t('hemi.W'), 270]] as const).forEach(([s, d]) => { const p = pol(ri - 11, d); c.fillText(s, p[0], p[1]); });
 
@@ -606,14 +612,14 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
     // The coast line through the hub, the leg's course ahead of the bow.
     c.strokeStyle = S.soft; c.lineWidth = 1; c.setLineDash([5, 4]); c.beginPath(); line(pol(ri * 0.98, P.courseDeg), pol(ri * 0.98, P.courseDeg + 180)); c.stroke(); c.setLineDash([]);
     const ce = pol(ri * 0.66, P.courseDeg + 180), ang = ((P.courseDeg + 180) % 180) - 90; // label along the line, upright
-    c.save(); c.translate(ce[0], ce[1]); c.rotate(ang * D2R); c.fillStyle = S.soft; txt(c, a.coastK, 0, -6, 'center', 7.5, 700); c.restore();
+    c.save(); c.translate(ce[0], ce[1]); c.rotate(ang * D2R); c.fillStyle = S.soft; tx(a.coastK, 0, -6, 'center', 7.5, 700); c.restore();
     // The wind angle off the bow, arced and numbered.
     const rel = ((((from - P.headingDeg) % 360) + 540) % 360) - 180, ra = ri * 0.5;
     const d0 = rel >= 0 ? P.headingDeg : P.headingDeg + rel, d1 = rel >= 0 ? P.headingDeg + rel : P.headingDeg;
     c.strokeStyle = S.ink; c.lineWidth = 1.4; c.beginPath(); c.arc(cx, cy, ra, (d0 - 90) * D2R, (d1 - 90) * D2R); c.stroke();
     c.beginPath(); line(pol(ra - 4, P.headingDeg), pol(ra + 4, P.headingDeg)); c.stroke();
     const lp = pol(ra + 10, P.headingDeg + rel / 2);
-    c.fillStyle = S.ink; txt(c, `${Math.round(P.twa)}°`, lp[0], lp[1], 'center', small ? 8.5 : 9.5, 800);
+    c.fillStyle = S.ink; tx(`${Math.round(P.twa)}°`, lp[0], lp[1], 'center', small ? 8.5 : 9.5, 800);
   }
   if (a.fromDeg !== null) {
     // Needle from the wind's side to the boat, the head towards it; barbs on the tail (a full barb 10 kt, a half 5 kt).
@@ -631,7 +637,7 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
     c.lineCap = 'butt';
     // The no-go label inside the wedge, on the needle's side away from the bow (clear of the wind-angle number).
     const side = P && ((((P.headingDeg - from) % 360) + 360) % 360) < 180 ? -1 : 1, nd = from + side * 27, np = pol(ri * 0.6, nd);
-    c.save(); c.translate(np[0], np[1]); c.rotate(((((nd % 180) + 180) % 180) - 90) * D2R); c.fillStyle = S.soft; txt(c, a.noGoK, 0, 0, 'center', 7, 700); c.restore();
+    c.save(); c.translate(np[0], np[1]); c.rotate(((((nd % 180) + 180) % 180) - 90) * D2R); c.fillStyle = S.soft; tx(a.noGoK, 0, 0, 'center', 7, 700); c.restore();
   }
   if (P) {
     // The boat from above: bow along the heading, starboard on +x before the turn; main and jib eased to leeward.
@@ -654,21 +660,22 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
     c.restore();
   }
   // Captions under the rose: where the wind is from, the leg, the other leg.
-  let ly = cy + R + 16;
-  if (a.from) { c.fillStyle = S.ink; txt(c, a.from, cx, ly, 'center', 10.5, 800); ly += 14; }
+  let ly = cy + R + 16 * fs;
+  if (a.from) { c.fillStyle = S.ink; tx(a.from, cx, ly, 'center', 10.5, 800); ly += 14 * fs; }
   if (P) {
-    c.fillStyle = S.ink; txt(c, P.leg, cx, ly, 'center', 9.5, 700); ly += 13;
-    c.fillStyle = S.soft; txt(c, P.otherLeg, cx, ly, 'center', 9, 600);
+    c.fillStyle = S.ink; tx(P.leg, cx, ly, 'center', 9.5, 700); ly += 13 * fs;
+    c.fillStyle = S.soft; tx(P.otherLeg, cx, ly, 'center', 9, 600);
   }
 
   // --- The section, seen from astern.
-  const sx0 = cx + R + (small ? 20 : 34), sx1 = x + w, sw = sx1 - sx0, hc = sx0 + sw * 0.5;
-  const sy = y + h - 14; // the wind scale's line
-  c.fillStyle = S.ink; txt(c, a.heelK, sx0, y + 6, 'left', small ? 8.5 : 9.5, 800);
-  if (P) { c.fillStyle = S.ink; txt(c, P.tackK, sx0, y + 19, 'left', small ? 8 : 9, 700); c.fillStyle = S.soft; txt(c, a.ruleK, sx0, y + 31, 'left', small ? 7 : 8, 600); }
-  const B = Math.max(24, Math.min(sw * 0.36, h * 0.16)); // beam
-  const wl = sy - 40 - B * 1.05; // waterline: the keel bulb clears the scale's title
-  const mH = Math.max(B * 1.2, Math.min(B * 2.4, wl - y - 40));
+  const sx0 = Math.max(cx + R + (small ? 20 : 34), x + w * 0.54), sx1 = x + w, sw = sx1 - sx0, hc = sx0 + sw * 0.5;
+  const sy = Math.min(y + h - 14 * fs, cy + R + foot - 14 * fs); // the wind scale's line
+  c.fillStyle = S.ink; tx(a.heelK, sx0, y + 6 * fs, 'left', small ? 8.5 : 9.5, 800);
+  if (P) { c.fillStyle = S.ink; tx(P.tackK, sx0, y + 19 * fs, 'left', small ? 8 : 9, 700); c.fillStyle = S.soft; tx(a.ruleK, sx0, y + 31 * fs, 'left', small ? 7 : 8, 600); }
+  // The masthead level with the top of the rose, the keel bulb clear of the scale's title.
+  const B = Math.max(24, Math.min(sw * 0.36, R * 0.62)); // beam
+  const wl = Math.min(sy - 34 * fs - B * 1.05, cy + R * 0.32); // waterline
+  const mH = Math.max(B * 1.2, Math.min(B * 2.4, wl - (cy - R), wl - y - head));
   const sea = S.reduced ? 0 : Math.sin((tt * TAU) / 6.5) * 1.5, seaAmp = clamp(a.seaM ?? 0.6, 0.2, 2.5);
   const lee = P ? (P.tack === 'port' ? 1 : -1) : 1;
   // Water under the waterline.
@@ -691,8 +698,8 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
   c.beginPath();
   for (let d = -5; d <= 45; d += 5) { const q0 = pp(pr, d), q1 = pp(pr + (d % 10 ? 4 : 8), d); line(q0, q1); }
   c.stroke();
-  [10, 20, 30].forEach((d) => { const q = pp(pr + 16, d); c.fillStyle = S.soft; txt(c, `${d}°`, q[0], q[1], 'center', 8, 600); });
-  const rq = pp(pr + 10, 47); c.fillStyle = S.ink; txt(c, a.reefK, rq[0], rq[1], lee > 0 ? 'left' : 'right', 7.5, 800);
+  [10, 20, 30].forEach((d) => { const q = pp(pr + 16, d); c.fillStyle = S.soft; tx(`${d}°`, q[0], q[1], 'center', 8, 600); });
+  const rq = pp(pr + 10, 47); c.fillStyle = S.ink; tx(a.reefK, rq[0], rq[1], lee > 0 ? 'left' : 'right', 7.5, 800);
   // Upright reference.
   c.strokeStyle = S.faint; c.lineWidth = 1; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(hc, wl + B * 0.3); c.lineTo(hc, wl - pr - 10); c.stroke(); c.setLineDash([]);
   const heel = P ? Math.max(0, SN.h) : 0;
@@ -746,7 +753,7 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
   if (P) {
     const q0 = pp(pr - 6, heel), q1 = pp(pr + 11, heel);
     c.strokeStyle = S.ink; c.lineWidth = 3; c.beginPath(); line(q0, q1); c.stroke();
-    c.fillStyle = S.ink; txt(c, a.heelNow.replace('{d}', String(Math.round(heel))) + (heel >= REEF_HEEL_DEG ? ` · ${a.reefK}` : ''), sx1, sy - 26, 'right', small ? 10 : 11.5, 800);
+    c.fillStyle = S.ink; tx(a.heelNow.replace('{d}', String(Math.round(heel))) + (heel >= REEF_HEEL_DEG ? ` · ${a.reefK}` : ''), sx1, sy - 26 * fs, 'right', small ? 10 : 11.5, 800);
   }
 
   // --- Wind scale 0-30 kt: ticks, the mean solid above the line, the gusts hatched beyond it.
@@ -754,16 +761,16 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
   c.strokeStyle = S.soft; c.lineWidth = 1; c.beginPath(); c.moveTo(sx0, sy); c.lineTo(sx1, sy);
   for (let k = 0; k <= 30; k++) { c.moveTo(k2x(k), sy); c.lineTo(k2x(k), sy + (k % 10 ? (k % 5 ? 2.5 : 4) : 6)); }
   c.stroke();
-  [0, 10, 20, 30].forEach((k) => { c.fillStyle = S.soft; txt(c, String(k), k2x(k), sy + 12, k ? (k === 30 ? 'right' : 'center') : 'left', 8, 600); });
+  [0, 10, 20, 30].forEach((k) => { c.fillStyle = S.soft; tx(String(k), k2x(k), sy + 12 * fs, k ? (k === 30 ? 'right' : 'center') : 'left', 8, 600); });
   c.fillStyle = S.ink; c.fillRect(sx0, sy - 9, k2x(a.windKt) - sx0, 6);
   if (a.gustKt !== null && a.gustKt > a.windKt) {
     const gx0 = k2x(a.windKt), gx1 = k2x(a.windKt + (a.gustKt - a.windKt) * (0.4 + 0.6 * g));
     c.save(); c.beginPath(); c.rect(gx0, sy - 9, gx1 - gx0, 6); c.fillStyle = rgba(S.on, 0.25); c.fill(); c.clip();
     c.strokeStyle = S.ink; c.lineWidth = 1; c.beginPath(); for (let xx = gx0 - 8; xx < gx1 + 8; xx += 3) { c.moveTo(xx, sy - 3); c.lineTo(xx + 6, sy - 9); } c.stroke(); c.restore();
   }
-  c.fillStyle = S.ink; txt(c, a.windK, sx0, sy - 26, 'left', small ? 8.5 : 9.5, 800);
-  c.fillStyle = S.ink; txt(c, a.kt, sx0, sy - 15, 'left', 8.5, 800);
-  if (a.gustKt !== null) { c.fillStyle = rgba(S.on, 0.55 + 0.45 * g); txt(c, a.gust, sx1, sy - 15, 'right', 8.5, 800); }
+  c.fillStyle = S.ink; tx(a.windK, sx0, sy - 26 * fs, 'left', small ? 8.5 : 9.5, 800);
+  c.fillStyle = S.ink; tx(a.kt, sx0, sy - 15 * fs, 'left', 8.5, 800);
+  if (a.gustKt !== null) { c.fillStyle = rgba(S.on, 0.55 + 0.45 * g); tx(a.gust, sx1, sy - 15 * fs, 'right', 8.5, 800); }
 }
 
 const SCHOOLS = [[0.16, 0.45, 0.13, 0.2, 0.01, 0.9], [0.48, 0.62, 0.17, 0.22, 0.007, 1], [0.78, 0.38, 0.11, 0.17, 0.013, 0.8], [0.32, 0.82, 0.12, 0.12, 0.006, 0.6], [0.95, 0.7, 0.14, 0.2, 0.009, 0.85]];
