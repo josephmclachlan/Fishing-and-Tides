@@ -13,7 +13,7 @@ import {
   dayUvPeaks, dayWeather, daysAt, FC_ACTIVITIES, hourWeather, readAt, timeline, waterAt, type FcActivity, type FcDeps, type TimelineHour,
 } from './model';
 import {
-  bestTimeView, coverPlace, daysView, headline, heroView, levelWord, reasons, moonAgeDays, readoutView, rowText, signed2, spotView, tilesFor, withUnit, type TileView, type ViewCtx,
+  bestTimeView, coverPlace, daysView, headline, heroView, reasons, moonAgeDays, readoutView, rowText, signed2, spotView, tilesFor, withUnit, type TileView, type ViewCtx,
 } from './view';
 import { DAY0, full, H, spot } from './testkit';
 
@@ -298,10 +298,9 @@ describe('small pure helpers', () => {
 });
 
 describe('swim after dark', () => {
-  it('shows AFTER DARK, not a red 0/100', () => {
+  it('is scored on the conditions, with the dark as a reason, not a red 0/100', () => {
     const { r } = setup('swim', full(), DAY0 + 2 * H);
-    expect(r.score).toBeNull();
-    expect(levelWord(r)).toBe('After dark');
-    expect(reasons(r)).toEqual(['After dark']);
+    expect(r.score).toBeGreaterThan(50);
+    expect(reasons(r)).toContain('After dark');
   });
 });

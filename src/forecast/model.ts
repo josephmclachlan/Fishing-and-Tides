@@ -256,8 +256,6 @@ export function readAt(deps: FcDeps, a: FcActivity, spot: Spot, ms: number, sky 
   if (a === 'swim') {
     const d = swimAt({ env, spot: spot.name, lng, lat, ms, sky: sky(ms, lat, lng) });
     if (!d) return none;
-    // After dark there is no beach day to rate: a red 0/100 all evening reads as "terrible", not "closed" (Joseph, 2026-11-11).
-    if (!d.daylight) return { ...none, swim: d };
     return { ...base, score: d.score, share: d.score / 100, level: levelFor('swim', d.score), swim: d };
   }
   // SAIL: sea comfort is the headline; wind, gusts and squalls ride along.
