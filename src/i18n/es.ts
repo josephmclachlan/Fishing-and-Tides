@@ -1349,6 +1349,8 @@ export const es: Dict = {
   'legend.fishing.1': 'Tenue: agua regular',
   'legend.fishing.2': 'Intenso: la mejor agua',
   'legend.fishing.3': 'ORILLA deja las celdas a un lanzamiento o vadeo de la playa, BOTE muestra las que están más allá',
+  'legend.fishing.4': 'En óvalo: dónde probar los peces nombrados al lado',
+  'legend.fishing.5': 'Los óvalos reúnen la mejor agua de todos los peces comestibles para este mes, en los colores de la calificación de playas (excelente, bueno, regular). Acerque para ver el motivo, la profundidad y el lugar más cercano. Ninguno dentro del Parque Nacional Cahuita, donde se prohíben los arpones y la pesca con línea está en duda.',
   'legend.zones.what': 'Áreas protegidas y sus reglas de pesca.',
   'legend.zones.1': 'Contorno rojo: prohibido pescar',
   'legend.zones.2': 'Contorno ámbar: restringido',

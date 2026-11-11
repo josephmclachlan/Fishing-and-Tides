@@ -79,7 +79,7 @@ import { mountSeafloor } from './layers/seafloor';
 import { mountSeafloorHud } from './seafloor-hud';
 import { fetchZones, mountZones, zoneName } from './layers/zones';
 import { mountZonesHud } from './zones-hud';
-import { fetchMouths, fetchOccurrences, mountFishing } from './layers/fishing';
+import { fetchMouths, fetchOccurrences, mountFishing, type FishingLayer } from './layers/fishing';
 import { loadSpecies, mountFishingHud } from './fishing-hud';
 import { layers, type ActivityId } from './layers/registry';
 import { mountMotionKey } from './layers/motion-key';
@@ -487,6 +487,7 @@ mountHarbours(map);
 let landGrid: Grid | null = null;
 /** The protected zones, for the modern map's ZONE reading. */
 let zonePolys: ZonePoly[] = [];
+let fishingLayer: FishingLayer | null = null;
 windSideHere = () => {
   if (!landGrid) return null;
   const c = map.getCenter();
@@ -1126,6 +1127,7 @@ document.addEventListener('visibilitychange', () => document.visibilityState ===
 fetchZones()
   .then(({ data, geojson }) => {
     zonePolys = data;
+    fishingLayer?.setRules(data);
     mountZonesHud(hud, map, data);
     mountZones(map, geojson);
   })
@@ -1319,6 +1321,9 @@ fetchSeafloor()
         const species = loadSpecies();
         const month = new Date(time.validMs()).getUTCMonth();
         const layer = mountFishing(map, { region: data.region, land: data.land, reefs: data.reefs, mouths, bounds: [REGION.bounds[0][0], REGION.bounds[0][1], REGION.bounds[1][0], REGION.bounds[1][1]] }, { species, month }, occurrences);
+        // No circled fishing zone in no-fishing water (the protected areas may load first or later).
+        fishingLayer = layer;
+        if (zonePolys.length) layer.setRules(zonePolys);
         // The nearest big river mouth and its GloFAS flow against the median (PLAN 7.15).
         const riverAt = (lng: number, lat: number, ms: number) => {
           if (!riverFlow) return null;
