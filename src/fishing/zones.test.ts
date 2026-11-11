@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fishZones, levelOf, zoneLabel, zoneRing, type ZoneCell } from './zones';
+import { FAR_ZONES, NEAR_ZONES, fishZones, levelOf, speciesZones, zoneLabel, zoneRing, type ZoneCell } from './zones';
 
 const STEP = 0.002;
 /** A patch of cells around (lng, lat): `cols` east by `rows` north, all with the same scores. */
@@ -25,7 +25,7 @@ describe('fishing zones', () => {
     expect(mouth.lng).toBeCloseTo(-82.9 + 1.5 * STEP, 5);
     expect(mouth.lat).toBeCloseTo(9.8 + STEP, 5);
     expect(reef.species).toEqual(['b', 'c']);
-    expect(reef.level).toBe(2);
+    expect(reef.level).toBe(1);
     expect(reef.why).toBe('reef');
   });
 
@@ -51,7 +51,7 @@ describe('fishing zones', () => {
   });
 
   it('grades the level from the mean best score', () => {
-    expect([0.55, 0.6, 0.74, 0.75, 0.95].map(levelOf)).toEqual([1, 2, 2, 3, 3]);
+    expect([0.6, 0.69, 0.7, 0.79, 0.8, 0.95].map(levelOf)).toEqual([1, 1, 2, 2, 3, 3]);
   });
 
   it('draws a closed ring that stays in the sea when told where land is', () => {
@@ -83,5 +83,41 @@ describe('fishing zones', () => {
     // Open sea all round: above.
     expect(zoneLabel(z, ring, () => true).anchor).toBe('bottom');
     expect(zoneLabel(z, ring).at[1]).toBeGreaterThan(bottom);
+  });
+
+  describe('per species', () => {
+    const ids = ['a', 'b', 'c'] as const;
+    it('gives each species its own zones, only where it earns them', () => {
+      const cells = [
+        ...patch(-82.9, 9.8, 4, 3, { a: 0.85, b: 0.1, c: 0 }, ['mouth']),
+        ...patch(-82.7, 9.67, 4, 3, { a: 0, b: 0.75, c: 0 }, ['reef']),
+        // c reaches the cell threshold but not the zone mean: no zone.
+        ...patch(-82.6, 9.6, 4, 3, { a: 0, b: 0, c: 0.62 }),
+      ];
+      const z = speciesZones(cells, ids, NEAR_ZONES);
+      expect(z.map((x) => x.species)).toEqual([['a'], ['b']]);
+      expect(z.map((x) => x.level)).toEqual([3, 2]);
+    });
+    it('puts species that share water on one oval, best first, and caps zones per species', () => {
+      const shared = patch(-82.8, 9.7, 4, 3, { a: 0.7, b: 0.9, c: 0.66 });
+      const many = Array.from({ length: 6 }, (_, i) => patch(-83 + i * 0.05, 9.9, 3, 3, { a: 0.8, b: 0, c: 0 })).flat();
+      const z = speciesZones([...shared, ...many], ids, NEAR_ZONES);
+      // b leads the shared water and c joins it; a's three best zones are elsewhere, so the shared water is not a's.
+      const one = z.find((x) => x.species.length > 1)!;
+      expect(one.species).toEqual(['b', 'c']);
+      expect(z.filter((x) => x.species.includes('a'))).toHaveLength(3);
+      // Without the cap, a joins the shared oval too.
+      const all = speciesZones([...shared, ...many], ids, { ...NEAR_ZONES, perSpecies: 9 });
+      expect(all.find((x) => x.species.length > 1)!.species).toEqual(['b', 'a', 'c']);
+    });
+    it('gathers boat water over kilometres', () => {
+      const STEP2 = 0.02;
+      const grid: ZoneCell<'a' | 'b' | 'c'>[] = [];
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) grid.push({ lng: -82.5 + i * STEP2, lat: 9.8 + j * STEP2, s: { a: 0.8, b: 0, c: 0 }, why: ['front'], depthM: 400 });
+      const [z] = speciesZones(grid, ids, FAR_ZONES);
+      expect(z.species).toEqual(['a']);
+      expect(z.why).toBe('front');
+      expect(z.rxM).toBeGreaterThan(2000);
+    });
   });
 });
