@@ -17,6 +17,11 @@ export const REGION = {
   },
   /** Costa Rica is UTC-6 all year (no daylight saving). Used for local sun, moon and solunar days. */
   tzOffsetH: -6,
+  /**
+   * General trend of the coast, degrees true, Cahuita (-82.82, 9.74) to Gandoca (-82.56, 9.58): the bearing a boat
+   * sails going south-east along it (the way back is +180°). The SAIL hero draws the boat on this line.
+   */
+  coastTrendDeg: 122,
 };
 
 /** Zoom tiers from DESIGN.md §5: MACRO below COAST, COAST from 8, SPOT from 12. */

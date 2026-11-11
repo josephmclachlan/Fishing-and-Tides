@@ -4,6 +4,8 @@ import { BODY_M, drawPerson, drawRadar, heroParams, HeroEngine, numVar, VMAX } f
 import { daysAt, FC_ACTIVITIES, readAt, timeline } from './model';
 import { headline, moonAgeDays } from './view';
 import { DAY0, empty, full, H, recCtx, spot, tokens } from './testkit';
+import { coastPose, heelDeg } from '../physics/heel';
+import { REGION } from '../region';
 
 const at = DAY0 + 10 * H; // 10:00 local
 const ctxFor = (deps: ReturnType<typeof full>, a: (typeof FC_ACTIVITIES)[number], name: string) => {
@@ -45,6 +47,16 @@ describe('hero pictures take their numbers from the reading (PLAN 7.69)', () => 
     expect(p.sail!.gustKt).toBe(r.sail!.gustKt);
     expect(p.sail!.fromDeg).toBe(r.sail!.fromDeg);
     expect(p.sail!.kt).toBe(`${Math.round(r.sail!.windKt!)} kt`);
+    // The boat on the harder coast leg, heeled by the rule of thumb at that wind angle (physics/heel.ts).
+    const q = coastPose(r.sail!.fromDeg!, REGION.coastTrendDeg);
+    expect(p.sail!.pose).toMatchObject({ headingDeg: q.headingDeg, twa: q.twa, tack: q.tack, beat: q.beat });
+    expect(p.sail!.pose!.heel).toBeCloseTo(heelDeg(r.sail!.windKt!, q.twa), 9);
+    expect(p.sail!.pose!.heelGust).toBeGreaterThanOrEqual(p.sail!.pose!.heel);
+  });
+  it('SAIL: no wind direction, no boat pose', () => {
+    const p = heroParams({ activity: 'sail', ms: at, score: 80, share: 0.8, level: 3, sail: { windKt: 12, gustKt: 16, fromDeg: null, squall: 0, swellM: 0.5 } } as never, { deps: full(), ms: at, plan: null, tl: [] });
+    expect(p.sail!.pose).toBeNull();
+    expect(p.ok).toBe(true);
   });
   it('SNORKEL, DIVE and SWIM: visibility, depth, water over the reef, rip and shore break are the reading\'s', () => {
     const deps = full();

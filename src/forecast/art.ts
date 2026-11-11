@@ -15,8 +15,9 @@
  *   DIVE     a depth column: a diver at the activity depth, range arcs at 5, 10 and 15 m, murk past the visibility,
  *            a lead line, the surge swinging with its strength
  *   SPEAR    the DIVE column with a breath-hold freediver, no tank, a speargun held out in front and a surface float on its line
- *   SAIL     a wind rose with a damped needle, barbs and the gust sector; a hull heeling with the wind (an
- *            illustration, no angle is claimed); a 0-30 kt scale with the mean and the gusts
+ *   SAIL     a chart-room wind rose with a damped needle, barbs, the no-go wedge and the gust sector, the boat at its
+ *            hub on the harder coast leg with the wind angle; the boat in section from astern heeled to leeward by
+ *            the rule-of-thumb heel (physics/heel.ts) on a protractor with the reef band; a 0-30 kt scale
  *
  * Also the live-map card's radar (rings in real kilometres when the map capture gives its scale).
  */
@@ -30,6 +31,8 @@ import { chopFor, type FcActivity, type FcDeps, type FcRead, type Level, type Ti
 import { cmp, dayHoursOf, headline, levelWord, moonAgeDays, n0, n1, planDayOf, sentence, tideNow } from './view';
 import { capsule, clamp, D2R, DISP, hatch, lerp, moonPath, rgba, sq, TAU, txt, type Ctx2D, type RGB, type Tokens } from './kit';
 import { reefAt } from './tiles';
+import { boomDeg, coastPose, heelDeg, REEF_HEEL_DEG, type SailPose } from '../physics/heel';
+import type { PointOfSail } from '../boat/route';
 
 const H = 3.6e6;
 const fin = (x: number | null | undefined): x is number => typeof x === 'number' && Number.isFinite(x);
@@ -43,7 +46,12 @@ export interface HeroParams {
   /** False before the activity has data: the field drifts, no diagram. */
   ok: boolean;
   surf?: { lo: number; hi: number; hb: number; period: number; dir: number; guides: [number, string][]; caption: string };
-  sail?: { windKt: number; gustKt: number | null; fromDeg: number | null; seaM: number | null; from: string; gust: string; kt: string };
+  sail?: {
+    windKt: number; gustKt: number | null; fromDeg: number | null; seaM: number | null; from: string; gust: string; kt: string;
+    /** The harder coast leg as the boat sails it, its labels, and the rule-of-thumb heel at the mean and the gusts; null with no wind direction. */
+    pose: (SailPose & { leg: string; otherLeg: string; tackK: string; heel: number; heelGust: number }) | null;
+    heelK: string; heelNow: string; reefK: string; noGoK: string; coastK: string; windK: string; ruleK: string;
+  };
   fish?: { illum: number; waxing: boolean; age: number; moon: string; tide: (number | null)[]; nowH: number; best: [number, number] | null; turn: { h: number; label: string } | null; share: number; tideK: string; bestK: string; nowK: string; echo: string };
   swim?: { rip: 'LOW' | 'MOD' | 'HIGH'; ripK: string; shore: string; flag: string; uv: number | null; uvK: string };
   water?: { visM: number | null; vis: string; depthM: number; waterM: number | null; overReef: string; chop: string; hvis: string; at: string; surge: string; surgeMs: number };
@@ -67,7 +75,20 @@ export function heroParams(r: FcRead, ctx: { deps: FcDeps; ms: number; plan: Pla
       windKt: s.windKt!, gustKt: fin(s.gustKt) ? s.gustKt : null, fromDeg: fin(s.fromDeg) ? s.fromDeg : null, seaM: fin(s.swellM) ? s.swellM : null,
       from: fin(s.fromDeg) ? t('fc.cap.from', { deg: String(Math.round(s.fromDeg) % 360).padStart(3, '0'), dir: cmp(s.fromDeg) }) : '',
       gust: fin(s.gustKt) ? t('fc.cap.gust', { kt: n0(s.gustKt) }) : '', kt: `${n0(s.windKt!)} kt`,
+      pose: null, heelK: t('fc.sail.heel'), heelNow: t('fc.sail.heelNow', { d: '{d}' }), reefK: t('fc.sail.reef'), noGoK: t('fc.sail.noGo'),
+      coastK: t('fc.sail.coast'), windK: t('fc.sail.wind'), ruleK: t('fc.sail.rule'),
     };
+    if (fin(s.fromDeg)) {
+      const q = coastPose(s.fromDeg, REGION.coastTrendDeg);
+      const pos = (k: PointOfSail) => t(`route.sail.${k}` as Key).toLowerCase();
+      base.sail.pose = {
+        ...q,
+        leg: q.beat ? t('fc.sail.beat', { dir: cmp(q.courseDeg), twa: n0(q.twa) }) : t('fc.sail.leg', { dir: cmp(q.courseDeg), sail: pos(q.sail), twa: n0(q.twa) }),
+        otherLeg: t('fc.sail.leg', { dir: cmp(q.other.courseDeg), sail: pos(q.other.sail), twa: n0(q.other.twa) }),
+        tackK: t(`fc.sail.tack.${q.tack}` as Key),
+        heel: heelDeg(s.windKt!, q.twa), heelGust: heelDeg(fin(s.gustKt) ? Math.max(s.gustKt, s.windKt!) : s.windKt!, q.twa),
+      };
+    }
     base.ok = true;
   }
   if (r.fish && r.score !== null) {
@@ -513,13 +534,22 @@ export function drawPerson(c: Ctx2D, cx: number, base: number, mpx: number, tt: 
   c.restore();
 }
 
+/**
+ * SAIL, drawn after the chart-room mockup in the Kinetic Plus ink: on the left a wind rose (bezel with degree ticks,
+ * a hairline 16-point star, the no-go wedge either side of the wind, the gust sector hatched on the bezel, the
+ * needle from the wind's side with its barbs) and at its hub the boat seen from above on the harder coast leg, its
+ * main and jib eased to leeward for the point of sail, the wind angle off the bow arced and numbered. On the right
+ * the same boat in section seen from astern (starboard on the right), heeled to leeward by the rule-of-thumb heel
+ * (physics/heel.ts) on a protractor with the reef band, a ghost at the gust heel and the wind blowing across. Under
+ * it the 0-30 kt scale, the mean solid and the gusts hatched.
+ */
 function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail']>, S: Style, SN: { a: number; v: number; h: number; hv: number; t: number }) {
-  const { x, y, w, h } = A, g = S.reduced ? 0.55 : gust(tt);
+  const { x, y, w, h } = A, g = S.reduced ? 0.55 : gust(tt), P = a.pose;
   const dt = S.reduced ? 1 : clamp(tt - SN.t, 0, 0.05);
   SN.t = tt;
   const from = a.fromDeg ?? 0;
-  const tgtA = from + (S.reduced ? 0 : 5 * Math.sin(tt * 0.6) + 4 * Math.sin(tt * 1.7) + 7 * g);
-  const tgtH = clamp(4 + a.windKt * 0.9 + 6 * g, 2, 30);
+  const tgtA = from + (S.reduced ? 0 : 3 * Math.sin(tt * 0.6) + 2 * Math.sin(tt * 1.7) + 4 * g);
+  const tgtH = P ? P.heel + (P.heelGust - P.heel) * g + (S.reduced ? 0 : 0.8 * Math.sin((tt * TAU) / 6)) : 0;
   if (S.reduced) (SN.a = tgtA), (SN.h = tgtH);
   else {
     // The short way round, so 350° → 10° swings 20°.
@@ -527,69 +557,213 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
     SN.v += (da * 7 - SN.v * 2.6) * dt; SN.a += SN.v * dt;
     SN.hv += ((tgtH - SN.h) * 5 - SN.hv * 2.2) * dt; SN.h += SN.hv * dt;
   }
-  const wide = w > h * 1.15;
-  const R = wide ? Math.min(h * 0.37, w * 0.23) : Math.min(w * 0.21, h * 0.34);
-  const cx = x + R + 24, cy = y + (wide ? h * 0.45 : h * 0.44);
+  // Points on the rose: 0° up, clockwise, like a compass card.
+  const pol = (r: number, d: number): [number, number] => [cx + Math.sin(d * D2R) * r, cy - Math.cos(d * D2R) * r];
+  const line = (p: [number, number], q: [number, number]) => { c.moveTo(p[0], p[1]); c.lineTo(q[0], q[1]); };
+  const wedge = (r0: number, r1: number, d0: number, d1: number) => {
+    c.beginPath(); c.arc(cx, cy, r1, (d0 - 90) * D2R, (d1 - 90) * D2R); c.arc(cx, cy, r0, (d1 - 90) * D2R, (d0 - 90) * D2R, true); c.closePath();
+  };
+  const stripes = (gap: number, col: string) => {
+    c.strokeStyle = col; c.lineWidth = 1; c.beginPath();
+    for (let k = -2 * R; k < 2 * R; k += gap) { c.moveTo(cx + k - R, cy + R); c.lineTo(cx + k + R, cy - R); }
+    c.stroke();
+  };
+
+  // --- The rose.
+  const R = Math.max(40, Math.min(h * 0.37, w * 0.235)), ri = R - Math.max(11, R * 0.13);
+  const cx = x + R + 4, cy = y + R + 10;
+  c.lineCap = 'butt';
   if (a.fromDeg !== null) {
-    // Gust sector, hatched.
-    const s0 = (from - 18) * D2R - Math.PI / 2, s1 = (from + 22) * D2R - Math.PI / 2;
-    c.save(); c.beginPath(); c.moveTo(cx, cy); c.arc(cx, cy, R - 2, s0, s1); c.closePath(); c.fillStyle = rgba(S.on, 0.16 + 0.14 * g); c.fill(); c.clip();
-    c.strokeStyle = rgba(S.on, 0.35); c.lineWidth = 1; c.beginPath();
-    for (let k = -R * 2; k < R * 2; k += 6) { c.moveTo(cx + k, cy - R); c.lineTo(cx + k + R, cy + R); }
-    c.stroke(); c.restore();
+    // No-go wedge either side of the wind, inside the card.
+    c.save(); wedge(0, ri, from - 40, from + 40); c.fillStyle = rgba(S.on, 0.07); c.fill(); c.clip(); stripes(5, rgba(S.on, 0.1)); c.restore();
+    // Gust sector on the bezel, hatched; it widens with the gust.
+    const sp = 12 + 8 * g;
+    c.save(); wedge(ri, R, from - sp, from + sp); c.fillStyle = rgba(S.on, 0.18 + 0.16 * g); c.fill(); c.clip(); stripes(4, rgba(S.on, 0.6)); c.restore();
   }
-  c.strokeStyle = S.ink; c.lineWidth = 3.5; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.stroke();
-  c.lineWidth = 1; c.strokeStyle = S.soft; c.beginPath(); c.arc(cx, cy, R - 15, 0, TAU); c.stroke();
+  c.strokeStyle = S.ink; c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.stroke();
+  c.lineWidth = 1; c.strokeStyle = S.soft; c.beginPath(); c.arc(cx, cy, ri, 0, TAU); c.stroke();
   for (let d = 0; d < 360; d += 5) {
-    const an = d * D2R, l = d % 30 === 0 ? 11 : d % 10 === 0 ? 7 : 3.5;
-    c.strokeStyle = d % 30 === 0 ? S.ink : S.soft; c.lineWidth = d % 30 === 0 ? 2 : 1;
-    c.beginPath(); c.moveTo(cx + Math.sin(an) * (R - 2), cy - Math.cos(an) * (R - 2)); c.lineTo(cx + Math.sin(an) * (R - 2 - l), cy - Math.cos(an) * (R - 2 - l)); c.stroke();
-    if (d % 30 === 0 && d % 90) { c.fillStyle = S.soft; txt(c, String(d).padStart(3, '0'), cx + Math.sin(an) * (R + 13), cy - Math.cos(an) * (R + 13), 'center', 9, 600); }
+    const l = d % 30 === 0 ? R - ri : d % 10 === 0 ? (R - ri) * 0.6 : (R - ri) * 0.35;
+    c.strokeStyle = d % 30 === 0 ? S.ink : S.soft; c.lineWidth = d % 30 === 0 ? 1.6 : 1;
+    c.beginPath(); line(pol(R, d), pol(R - l, d)); c.stroke();
   }
-  c.fillStyle = S.ink;
-  c.font = `800 ${Math.round(R * 0.17)}px ${DISP}`; c.textAlign = 'center'; c.textBaseline = 'middle';
-  ([['N', 0], ['E', 90], ['S', 180], [t('hemi.W'), 270]] as const).forEach(([s, d]) => c.fillText(s, cx + Math.sin(d * D2R) * (R - 29), cy - Math.cos(d * D2R) * (R - 29)));
+  // Hairline 16-point star and the dotted ring, as on a chart's compass rose.
+  c.strokeStyle = S.faint; c.lineWidth = 1; c.beginPath();
+  for (let i = 0; i < 16; i++) {
+    const d = i * 22.5, rr = i % 4 === 0 ? ri * 0.62 : i % 2 === 0 ? ri * 0.42 : ri * 0.28;
+    const p = pol(rr, d), q1 = pol(ri * 0.08, d - 11.25), q2 = pol(ri * 0.08, d + 11.25);
+    c.moveTo(q1[0], q1[1]); c.lineTo(p[0], p[1]); c.lineTo(q2[0], q2[1]);
+  }
+  c.stroke();
+  c.setLineDash([1, 4]); c.beginPath(); c.arc(cx, cy, ri * 0.76, 0, TAU); c.stroke(); c.setLineDash([]);
+  const small = R < 70;
+  for (let d = 30; d < 360; d += 30) if (d % 90) { const p = pol(ri - 9, d); c.fillStyle = S.soft; txt(c, String(d).padStart(3, '0'), p[0], p[1], 'center', small ? 7.5 : 8.5, 600); }
+  c.fillStyle = S.ink; c.font = `800 ${Math.round(Math.max(11, R * 0.15))}px ${DISP}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  ([['N', 0], ['E', 90], ['S', 180], [t('hemi.W'), 270]] as const).forEach(([s, d]) => { const p = pol(ri - 11, d); c.fillText(s, p[0], p[1]); });
+
+  const L = ri * 0.62; // boat length on the card
+  if (P) {
+    // The coast line through the hub, the leg's course ahead of the bow.
+    c.strokeStyle = S.soft; c.lineWidth = 1; c.setLineDash([5, 4]); c.beginPath(); line(pol(ri * 0.98, P.courseDeg), pol(ri * 0.98, P.courseDeg + 180)); c.stroke(); c.setLineDash([]);
+    const ce = pol(ri * 0.66, P.courseDeg + 180), ang = ((P.courseDeg + 180) % 180) - 90; // label along the line, upright
+    c.save(); c.translate(ce[0], ce[1]); c.rotate(ang * D2R); c.fillStyle = S.soft; txt(c, a.coastK, 0, -6, 'center', 7.5, 700); c.restore();
+    // The wind angle off the bow, arced and numbered.
+    const rel = ((((from - P.headingDeg) % 360) + 540) % 360) - 180, ra = ri * 0.5;
+    const d0 = rel >= 0 ? P.headingDeg : P.headingDeg + rel, d1 = rel >= 0 ? P.headingDeg + rel : P.headingDeg;
+    c.strokeStyle = S.ink; c.lineWidth = 1.4; c.beginPath(); c.arc(cx, cy, ra, (d0 - 90) * D2R, (d1 - 90) * D2R); c.stroke();
+    c.beginPath(); line(pol(ra - 4, P.headingDeg), pol(ra + 4, P.headingDeg)); c.stroke();
+    const lp = pol(ra + 10, P.headingDeg + rel / 2);
+    c.fillStyle = S.ink; txt(c, `${Math.round(P.twa)}°`, lp[0], lp[1], 'center', small ? 8.5 : 9.5, 800);
+  }
   if (a.fromDeg !== null) {
-    // Needle from the wind's side through the hub, the head downwind; barbs on the tail (a full barb 10 kt, a half 5 kt).
-    const an = SN.a * D2R, ux = Math.sin(an), uy = -Math.cos(an), px = -uy, py = ux, L = R - 18;
-    c.strokeStyle = S.ink; c.fillStyle = S.ink; c.lineWidth = 4;
-    c.beginPath(); c.moveTo(cx + ux * (R + 18), cy + uy * (R + 18)); c.lineTo(cx - ux * (L - 12), cy - uy * (L - 12)); c.stroke();
-    c.beginPath(); c.moveTo(cx - ux * L, cy - uy * L); c.lineTo(cx - ux * (L - 18) + px * 8, cy - uy * (L - 18) + py * 8); c.lineTo(cx - ux * (L - 18) - px * 8, cy - uy * (L - 18) - py * 8); c.closePath(); c.fill();
+    // Needle from the wind's side to the boat, the head towards it; barbs on the tail (a full barb 10 kt, a half 5 kt).
+    const an = SN.a * D2R, ux = Math.sin(an), uy = -Math.cos(an), px = -uy, py = ux;
+    const tail = R + 14, head = P ? L * 0.72 : 10;
+    c.strokeStyle = S.ink; c.fillStyle = S.ink; c.lineWidth = 3; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(cx + ux * tail, cy + uy * tail); c.lineTo(cx + ux * (head + 10), cy + uy * (head + 10)); c.stroke();
+    c.beginPath(); c.moveTo(cx + ux * head, cy + uy * head); c.lineTo(cx + ux * (head + 13) + px * 6, cy + uy * (head + 13) + py * 6); c.lineTo(cx + ux * (head + 13) - px * 6, cy + uy * (head + 13) - py * 6); c.closePath(); c.fill();
     const barb = (d: number, len: number) => { const bx = cx + ux * d, by = cy + uy * d; c.beginPath(); c.moveTo(bx, by); c.lineTo(bx + (ux * 0.5 + px) * len, by + (uy * 0.5 + py) * len); c.stroke(); };
-    c.lineWidth = 3;
+    c.lineWidth = 2.4;
     const full = Math.floor(Math.round(a.windKt / 5) / 2), half = Math.round(a.windKt / 5) % 2;
-    let d = R + 18;
-    for (let i = 0; i < Math.min(full, 5); i++, d -= 8) barb(d, 15);
-    if (half) barb(d, 8);
-    c.beginPath(); c.arc(cx, cy, 7, 0, TAU); c.fill(); c.fillStyle = rgba(S.fd); c.beginPath(); c.arc(cx, cy, 2.6, 0, TAU); c.fill();
-    c.fillStyle = S.ink; txt(c, a.from, cx, cy + R + 30, 'center', 11, 700);
+    let d = tail;
+    for (let i = 0; i < Math.min(full, 5); i++, d -= 7) barb(d, 13);
+    if (half) barb(d, 7);
+    c.lineCap = 'butt';
+    // The no-go label inside the wedge, on the needle's side away from the bow (clear of the wind-angle number).
+    const side = P && ((((P.headingDeg - from) % 360) + 360) % 360) < 180 ? -1 : 1, nd = from + side * 27, np = pol(ri * 0.6, nd);
+    c.save(); c.translate(np[0], np[1]); c.rotate(((((nd % 180) + 180) % 180) - 90) * D2R); c.fillStyle = S.soft; txt(c, a.noGoK, 0, 0, 'center', 7, 700); c.restore();
   }
-  // A hull section heeling with the wind (illustrative).
-  const hx = wide ? x + w * 0.74 : x + w * 0.78, wl = y + h * 0.6, mh = wide ? Math.min(h * 0.36, w * 0.22) : Math.min(h * 0.3, w * 0.2);
-  const sea = S.reduced ? 0 : Math.sin((tt * TAU) / 7) * 2.5, heel = SN.h * D2R, seaAmp = clamp(a.seaM ?? 0.6, 0.2, 2.5);
-  for (let k = 1; k <= 4; k++) {
-    c.strokeStyle = rgba(S.on, 0.42 - k * 0.08); c.lineWidth = 1.2; c.beginPath();
-    for (let xx = hx - mh * 1.05; xx <= x + w; xx += 3) { const yy = wl + sea + k * 7 + Math.sin(xx * 0.07 + tt * 1.8 + k) * 1.6; xx === hx - mh * 1.05 ? c.moveTo(xx, yy) : c.lineTo(xx, yy); }
+  if (P) {
+    // The boat from above: bow along the heading, starboard on +x before the turn; main and jib eased to leeward.
+    const lee = P.tack === 'port' ? 1 : -1, bw = L * 0.34, boom = boomDeg(P.twa) * D2R;
+    c.save(); c.translate(cx, cy); c.rotate(P.headingDeg * D2R);
+    c.beginPath(); c.moveTo(0, -L / 2);
+    c.bezierCurveTo(bw * 0.55, -L * 0.3, bw * 0.55, L * 0.2, bw * 0.4, L / 2); c.lineTo(-bw * 0.4, L / 2);
+    c.bezierCurveTo(-bw * 0.55, L * 0.2, -bw * 0.55, -L * 0.3, 0, -L / 2); c.closePath();
+    c.fillStyle = rgba(S.fd); c.fill(); c.strokeStyle = S.ink; c.lineWidth = 2; c.stroke();
+    const mY = -L * 0.08, bl = L * 0.52, bx = lee * Math.sin(boom) * bl, by = mY + Math.cos(boom) * bl;
+    // Mainsail: the boom straight, the sail's foot bellied to leeward of it.
+    const qx = bx / 2 + lee * Math.cos(boom) * bl * 0.2, qy = (mY + by) / 2 + Math.sin(boom) * bl * 0.2;
+    c.fillStyle = rgba(S.on, 0.4); c.beginPath(); c.moveTo(0, mY); c.quadraticCurveTo(qx, qy, bx, by); c.closePath(); c.fill();
+    c.strokeStyle = S.ink; c.lineWidth = 1.4; c.beginPath(); c.moveTo(0, mY); c.quadraticCurveTo(qx, qy, bx, by); c.stroke();
+    c.lineWidth = 2.4; c.beginPath(); c.moveTo(0, mY); c.lineTo(bx, by); c.stroke();
+    // Jib: tack at the bow, clew a little to leeward, sheeted a touch wider than the main.
+    const jb = Math.min(85, boomDeg(P.twa) + 6) * D2R, jl = L * 0.4, jx = lee * Math.sin(jb) * jl * 0.8, jy = -L / 2 + Math.cos(jb) * jl;
+    c.strokeStyle = S.ink; c.lineWidth = 1.6; c.beginPath(); c.moveTo(0, -L / 2 + 2); c.quadraticCurveTo(jx * 0.5 + lee * L * 0.08, (-L / 2 + jy) / 2, jx, jy); c.stroke();
+    c.fillStyle = S.ink; c.beginPath(); c.arc(0, mY, 2.6, 0, TAU); c.fill();
+    c.restore();
+  }
+  // Captions under the rose: where the wind is from, the leg, the other leg.
+  let ly = cy + R + 16;
+  if (a.from) { c.fillStyle = S.ink; txt(c, a.from, cx, ly, 'center', 10.5, 800); ly += 14; }
+  if (P) {
+    c.fillStyle = S.ink; txt(c, P.leg, cx, ly, 'center', 9.5, 700); ly += 13;
+    c.fillStyle = S.soft; txt(c, P.otherLeg, cx, ly, 'center', 9, 600);
+  }
+
+  // --- The section, seen from astern.
+  const sx0 = cx + R + (small ? 20 : 34), sx1 = x + w, sw = sx1 - sx0, hc = sx0 + sw * 0.5;
+  const sy = y + h - 14; // the wind scale's line
+  c.fillStyle = S.ink; txt(c, a.heelK, sx0, y + 6, 'left', small ? 8.5 : 9.5, 800);
+  if (P) { c.fillStyle = S.ink; txt(c, P.tackK, sx0, y + 19, 'left', small ? 8 : 9, 700); c.fillStyle = S.soft; txt(c, a.ruleK, sx0, y + 31, 'left', small ? 7 : 8, 600); }
+  const B = Math.max(24, Math.min(sw * 0.36, h * 0.16)); // beam
+  const wl = sy - 40 - B * 1.05; // waterline: the keel bulb clears the scale's title
+  const mH = Math.max(B * 1.2, Math.min(B * 2.4, wl - y - 40));
+  const sea = S.reduced ? 0 : Math.sin((tt * TAU) / 6.5) * 1.5, seaAmp = clamp(a.seaM ?? 0.6, 0.2, 2.5);
+  const lee = P ? (P.tack === 'port' ? 1 : -1) : 1;
+  // Water under the waterline.
+  const waveY = (xx: number, k: number) => wl + sea + k * 7 + Math.sin(xx * 0.06 - tt * 1.5 + k * 0.8) * (k ? 1.4 : 1.8 * seaAmp);
+  const wg = c.createLinearGradient(0, wl, 0, wl + B * 1.25);
+  wg.addColorStop(0, rgba(S.on, 0.14)); wg.addColorStop(1, rgba(S.on, 0));
+  c.fillStyle = wg; c.beginPath(); c.moveTo(sx0, waveY(sx0, 0));
+  for (let xx = sx0; xx <= sx1; xx += 3) c.lineTo(xx, waveY(xx, 0));
+  c.lineTo(sx1, wl + B * 1.25); c.lineTo(sx0, wl + B * 1.25); c.closePath(); c.fill();
+  // Protractor on the leeward side, the reef band past REEF_HEEL_DEG.
+  const pr = mH * 0.78, ang = (d: number) => (lee * d - 90) * D2R;
+  const pp = (r: number, d: number): [number, number] => [hc + Math.cos(ang(d)) * r, wl + Math.sin(ang(d)) * r];
+  c.save();
+  c.beginPath(); c.arc(hc, wl, pr + 7, ang(REEF_HEEL_DEG), ang(45), lee < 0); c.arc(hc, wl, pr, ang(45), ang(REEF_HEEL_DEG), lee > 0); c.closePath();
+  c.fillStyle = rgba(S.on, 0.22); c.fill(); c.clip();
+  c.strokeStyle = rgba(S.on, 0.7); c.lineWidth = 1; c.beginPath();
+  for (let k = -mH; k < mH * 2; k += 4) { c.moveTo(hc + k, wl - mH * 1.2); c.lineTo(hc + k - mH, wl); }
+  c.stroke(); c.restore();
+  c.strokeStyle = S.soft; c.lineWidth = 1; c.beginPath(); c.arc(hc, wl, pr, ang(-5), ang(45), lee < 0); c.stroke();
+  c.beginPath();
+  for (let d = -5; d <= 45; d += 5) { const q0 = pp(pr, d), q1 = pp(pr + (d % 10 ? 4 : 8), d); line(q0, q1); }
+  c.stroke();
+  [10, 20, 30].forEach((d) => { const q = pp(pr + 16, d); c.fillStyle = S.soft; txt(c, `${d}°`, q[0], q[1], 'center', 8, 600); });
+  const rq = pp(pr + 10, 47); c.fillStyle = S.ink; txt(c, a.reefK, rq[0], rq[1], lee > 0 ? 'left' : 'right', 7.5, 800);
+  // Upright reference.
+  c.strokeStyle = S.faint; c.lineWidth = 1; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(hc, wl + B * 0.3); c.lineTo(hc, wl - pr - 10); c.stroke(); c.setLineDash([]);
+  const heel = P ? Math.max(0, SN.h) : 0;
+  // The wind across the boat, from the windward side, level (it does not heel).
+  if (P) {
+    const ay = wl - mH * 0.62, ax1 = hc - lee * B * 0.55, ax0 = clamp(hc - lee * (B * 0.6 + Math.min(sw * 0.42, B * 1.5)), sx0, sx1);
+    c.strokeStyle = S.ink; c.lineWidth = 2; c.lineCap = 'round';
+    for (const [dy, k] of [[0, 1], [-11, 0.7], [11, 0.7]] as const) {
+      const o = S.reduced ? 0 : ((tt * 30) % 8) * lee;
+      const xa = ax0 + (ax1 - ax0) * (1 - k) + o, xb = ax1 + o * 0.2;
+      c.globalAlpha *= dy ? 0.55 : 1; c.beginPath(); c.moveTo(xa, ay + dy); c.lineTo(xb, ay + dy); c.stroke(); c.globalAlpha /= dy ? 0.55 : 1;
+    }
+    c.fillStyle = S.ink; c.beginPath(); c.moveTo(ax1 + lee * 8, ay); c.lineTo(ax1 - lee * 2, ay - 5); c.lineTo(ax1 - lee * 2, ay + 5); c.closePath(); c.fill();
+    c.lineCap = 'butt';
+    // Ghost at the gust heel.
+    const q0 = pp(pr - 5, P.heelGust), q1 = pp(pr + 9, P.heelGust);
+    c.strokeStyle = S.soft; c.lineWidth = 1.5; c.setLineDash([2, 2]); c.beginPath(); line(q0, q1); c.stroke(); c.setLineDash([]);
+  }
+  // The boat, rotated by the heel about the waterline.
+  c.save(); c.translate(hc, wl + sea * 0.5); c.rotate(lee * heel * D2R);
+  const hb = B / 2;
+  const hull = () => {
+    c.beginPath(); c.moveTo(-hb, -0.2 * B);
+    c.bezierCurveTo(-hb, 0.14 * B, -0.26 * B, 0.27 * B, 0, 0.28 * B); c.bezierCurveTo(0.26 * B, 0.27 * B, hb, 0.14 * B, hb, -0.2 * B);
+    c.quadraticCurveTo(0, -0.27 * B, -hb, -0.2 * B); c.closePath();
+  };
+  // Keel and bulb.
+  c.beginPath(); c.moveTo(-0.05 * B, 0.25 * B); c.lineTo(-0.035 * B, 0.98 * B); c.lineTo(0.035 * B, 0.98 * B); c.lineTo(0.05 * B, 0.25 * B); c.closePath();
+  c.fillStyle = rgba(S.fd); c.fill(); c.strokeStyle = S.ink; c.lineWidth = 1.4; c.stroke();
+  c.fillStyle = S.ink; c.beginPath(); c.ellipse(0, 1.0 * B, 0.13 * B, 0.05 * B, 0, 0, TAU); c.fill();
+  hull(); c.fillStyle = rgba(S.fd); c.fill(); c.strokeStyle = S.ink; c.lineWidth = 2; c.stroke();
+  // Shrouds over the spreaders, the mast, the main sheeted out to leeward.
+  const spY = -mH * 0.55, spX = 0.24 * B;
+  c.strokeStyle = S.soft; c.lineWidth = 1; c.beginPath();
+  c.moveTo(-hb + 2, -0.2 * B); c.lineTo(-spX, spY); c.lineTo(0, -mH); c.lineTo(spX, spY); c.lineTo(hb - 2, -0.2 * B); c.moveTo(-spX, spY); c.lineTo(spX, spY); c.stroke();
+  if (P) {
+    const gy = -0.24 * B - B * 0.35, bo = boomDeg(P.twa) * D2R, bx = lee * Math.sin(bo) * B * 1.2;
+    c.fillStyle = rgba(S.on, 0.3); c.beginPath(); c.moveTo(0, -mH + 3); c.quadraticCurveTo(bx * 0.7 + lee * 3, gy - mH * 0.35, bx, gy); c.lineTo(0, gy); c.closePath(); c.fill();
+    c.strokeStyle = S.ink; c.lineWidth = 1.6; c.beginPath(); c.moveTo(0, -mH + 3); c.quadraticCurveTo(bx * 0.7 + lee * 3, gy - mH * 0.35, bx, gy); c.stroke();
+    c.lineWidth = 2.2; c.beginPath(); c.moveTo(0, gy); c.lineTo(bx, gy); c.stroke();
+  }
+  c.strokeStyle = S.ink; c.lineWidth = 2.6; c.beginPath(); c.moveTo(0, -0.24 * B); c.lineTo(0, -mH); c.stroke();
+  c.restore();
+  // Surface lines over the hull's foot.
+  for (let k = 0; k < 3; k++) {
+    c.strokeStyle = k ? rgba(S.on, 0.3) : S.ink; c.lineWidth = k ? 1 : 1.6; c.beginPath();
+    for (let xx = sx0; xx <= sx1; xx += 3) { const yy = waveY(xx, k); xx === sx0 ? c.moveTo(xx, yy) : c.lineTo(xx, yy); }
     c.stroke();
   }
-  c.strokeStyle = S.ink; c.lineWidth = 2; c.beginPath();
-  for (let xx = hx - mh * 1.05; xx <= x + w; xx += 3) { const yy = wl + sea + Math.sin(xx * 0.07 + tt * 1.8) * 2.2 * seaAmp; xx === hx - mh * 1.05 ? c.moveTo(xx, yy) : c.lineTo(xx, yy); }
+  // Heel marker on the protractor and the readout.
+  if (P) {
+    const q0 = pp(pr - 6, heel), q1 = pp(pr + 11, heel);
+    c.strokeStyle = S.ink; c.lineWidth = 3; c.beginPath(); line(q0, q1); c.stroke();
+    c.fillStyle = S.ink; txt(c, a.heelNow.replace('{d}', String(Math.round(heel))) + (heel >= REEF_HEEL_DEG ? ` · ${a.reefK}` : ''), sx1, sy - 26, 'right', small ? 10 : 11.5, 800);
+  }
+
+  // --- Wind scale 0-30 kt: ticks, the mean solid above the line, the gusts hatched beyond it.
+  const k2x = (k: number) => sx0 + (clamp(k, 0, 30) / 30) * sw;
+  c.strokeStyle = S.soft; c.lineWidth = 1; c.beginPath(); c.moveTo(sx0, sy); c.lineTo(sx1, sy);
+  for (let k = 0; k <= 30; k++) { c.moveTo(k2x(k), sy); c.lineTo(k2x(k), sy + (k % 10 ? (k % 5 ? 2.5 : 4) : 6)); }
   c.stroke();
-  c.save(); c.translate(hx, wl + sea * 0.6); c.rotate(-heel);
-  c.fillStyle = rgba(S.on, 0.55); c.beginPath(); c.moveTo(-3, -mh + 4); c.lineTo(-3, -12); c.lineTo(-mh * 0.55, -12); c.closePath(); c.fill();
-  c.strokeStyle = S.ink; c.lineWidth = 3.2; c.beginPath(); c.moveTo(0, -10); c.lineTo(0, -mh); c.stroke();
-  c.fillStyle = S.ink; c.beginPath(); c.moveTo(-mh * 0.42, -10); c.lineTo(mh * 0.42, -10); c.bezierCurveTo(mh * 0.4, 6, mh * 0.2, 16, 0, 18); c.bezierCurveTo(-mh * 0.2, 16, -mh * 0.4, 6, -mh * 0.42, -10); c.closePath(); c.fill();
-  c.fillRect(-2.5, 16, 5, mh * 0.32); c.beginPath(); c.ellipse(0, 16 + mh * 0.32, 7, 4, 0, 0, TAU); c.fill();
-  c.restore();
-  // Wind scale 0-30 kt: the mean solid, the gusts soft.
-  const sx0 = wide ? x + w * 0.5 : x + w * 0.54, sx1 = x + w, sy = y + h - 12, k2x = (k: number) => sx0 + (clamp(k, 0, 30) / 30) * (sx1 - sx0);
-  c.fillStyle = S.faint; c.fillRect(sx0, sy - 4, sx1 - sx0, 8);
-  if (a.gustKt !== null) { c.fillStyle = S.soft; c.fillRect(k2x(a.windKt), sy - 4, k2x(a.windKt + (a.gustKt - a.windKt) * (0.35 + 0.65 * g)) - k2x(a.windKt), 8); }
-  c.fillStyle = S.ink; c.fillRect(sx0, sy - 4, k2x(a.windKt) - sx0, 8);
-  [0, 10, 20, 30].forEach((k) => { c.fillStyle = S.soft; txt(c, String(k), k2x(k), sy - 14, k ? (k === 30 ? 'right' : 'center') : 'left', 9, 600); });
-  // The mean under the scale's start, the gusts under its end, so the two never overlap.
-  c.fillStyle = S.ink; txt(c, a.kt, sx0, sy + 13, 'left', 10, 700);
-  if (a.gustKt !== null) { c.fillStyle = rgba(S.on, 0.45 + 0.55 * g); txt(c, a.gust, sx1, sy + 13, 'right', 10, 700); }
+  [0, 10, 20, 30].forEach((k) => { c.fillStyle = S.soft; txt(c, String(k), k2x(k), sy + 12, k ? (k === 30 ? 'right' : 'center') : 'left', 8, 600); });
+  c.fillStyle = S.ink; c.fillRect(sx0, sy - 9, k2x(a.windKt) - sx0, 6);
+  if (a.gustKt !== null && a.gustKt > a.windKt) {
+    const gx0 = k2x(a.windKt), gx1 = k2x(a.windKt + (a.gustKt - a.windKt) * (0.4 + 0.6 * g));
+    c.save(); c.beginPath(); c.rect(gx0, sy - 9, gx1 - gx0, 6); c.fillStyle = rgba(S.on, 0.25); c.fill(); c.clip();
+    c.strokeStyle = S.ink; c.lineWidth = 1; c.beginPath(); for (let xx = gx0 - 8; xx < gx1 + 8; xx += 3) { c.moveTo(xx, sy - 3); c.lineTo(xx + 6, sy - 9); } c.stroke(); c.restore();
+  }
+  c.fillStyle = S.ink; txt(c, a.windK, sx0, sy - 26, 'left', small ? 8.5 : 9.5, 800);
+  c.fillStyle = S.ink; txt(c, a.kt, sx0, sy - 15, 'left', 8.5, 800);
+  if (a.gustKt !== null) { c.fillStyle = rgba(S.on, 0.55 + 0.45 * g); txt(c, a.gust, sx1, sy - 15, 'right', 8.5, 800); }
 }
 
 const SCHOOLS = [[0.16, 0.45, 0.13, 0.2, 0.01, 0.9], [0.48, 0.62, 0.17, 0.22, 0.007, 1], [0.78, 0.38, 0.11, 0.17, 0.013, 0.8], [0.32, 0.82, 0.12, 0.12, 0.006, 0.6], [0.95, 0.7, 0.14, 0.2, 0.009, 0.85]];
