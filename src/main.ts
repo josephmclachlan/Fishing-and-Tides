@@ -130,7 +130,7 @@ import { dataAge, describeAge } from './adapters/data-age';
 import { createNet } from './net';
 import { createPhysicsClient } from './physics/client';
 import { flatPolygons } from './physics/reef-flat';
-import { haversineM, nearest } from './geo';
+import { haversineM, metersPerPixel, nearest } from './geo';
 import { mountVerdictHud } from './verdict-hud';
 import type { VerdictInputs } from './verdict';
 import { heavyRainSoon, STORM_ALERT_KM } from './weather';
@@ -842,7 +842,7 @@ const forecastPage = mountForecastPage({
       const prev = { center: map.getCenter(), zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() };
       const t0 = Date.now();
       let done = false;
-      const finish = (v: { url: string; x: number; y: number } | null) => {
+      const finish = (v: { url: string; x: number; y: number; mPerPx: number } | null) => {
         if (done) return;
         done = true;
         map.jumpTo(prev);
@@ -861,7 +861,9 @@ const forecastPage = mountForecastPage({
             out.width = 720;
             out.height = 360;
             out.getContext('2d')!.drawImage(src, (src.width - cw) / 2, (src.height - ch) / 2, cw, ch, 0, 0, out.width, out.height);
-            finish({ url: out.toDataURL('image/jpeg', 0.75), x: 0.5, y: 0.5 });
+            // Ground metres per picture pixel: the map's m per CSS px at this zoom, times CSS px per picture px.
+            const dpr = src.width / Math.max(1, map.getContainer().clientWidth);
+            finish({ url: out.toDataURL('image/jpeg', 0.75), x: 0.5, y: 0.5, mPerPx: (metersPerPixel(spot.lngLat[1], 12.5) * cw) / dpr / out.width });
           } catch {
             finish(null);
           }

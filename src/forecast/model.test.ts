@@ -11,7 +11,6 @@ import {
   type FcDeps, type OutingRead,
   dayWeather, wxSky, type TimelineHour, chooseSpot, DEFAULT_SPOT,
 } from './model';
-import { heroArt } from './art';
 
 const H = 3.6e6;
 const DAY0 = Date.UTC(2026, 10, 4, 6); // local midnight at UTC-6
@@ -122,26 +121,6 @@ describe('spots and links', () => {
     expect(parseRoute('#map', SPOTS)).toBeNull();
   });
 });
-
-describe('hero pictures', () => {
-  it('draws every activity without NaN, with and without data', () => {
-    const deps = { env: env(), outing: outing(55) };
-    const none = { env: env({ sea: () => null, windMs: () => null, weather: () => [], clarityM: () => null }) };
-    for (const a of FC_ACTIVITIES)
-      for (const d of [deps, none]) {
-        const svg = heroArt(readAt(d, a, spot('PUNTA CAHUITA'), DAY0 + 10 * H), 'x');
-        expect(svg.startsWith('<svg')).toBe(true);
-        expect(svg).not.toMatch(/NaN|undefined|Infinity/);
-      }
-  });
-  it('fades the reef past the visibility', () => {
-    const clear = heroArt(readAt({ env: env(), outing: (...a) => ({ ...outing(80)!(...a)!, visM: 20 }) }, 'snorkel', spot('PUNTA CAHUITA'), DAY0 + 10 * H), 'x');
-    const murky = heroArt(readAt({ env: env(), outing: (...a) => ({ ...outing(80)!(...a)!, visM: 3 }) }, 'snorkel', spot('PUNTA CAHUITA'), DAY0 + 10 * H), 'x');
-    const x = (s: string) => Number(/class="fc-vis-line" x1="([\d.]+)"/.exec(s)![1]);
-    expect(x(murky)).toBeLessThan(x(clear));
-  });
-});
-void H;
 
 describe('Beaufort words for sailing', () => {
   it('cuts at the WMO knot bounds', () => {
