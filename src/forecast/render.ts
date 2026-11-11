@@ -174,7 +174,7 @@ export function readoutHtml(r: ReadoutView): string {
   const cell = (c: ReadoutView['cells'][number]) =>
     `<div class="fc-rc${c.wx ? ' w' : ''}"><span>${esc(c.k)}</span><b>${esc(c.v)}${c.unit && c.v !== '--' ? `${c.unit === '%' || c.unit === '/100' ? '' : ' '}${esc(c.unit)}` : ''}${c.extra ? ` <small>${esc(c.extra)}</small>` : ''}</b></div>`;
   return `<div class="fc-rt ${lvCls(r.level)}"><span class="fc-mono">${esc(r.tag)}</span><b>${esc(r.day)}</b><strong>${esc(r.time)}</strong><span class="fc-mono fc-rl2">${esc(r.line)}</span></div>
-    <div class="fc-rcs"><div class="fc-rr">${r.cells.filter((c) => !c.wx).map(cell).join('')}</div><div class="fc-rr">${r.cells.filter((c) => c.wx).map(cell).join('')}</div></div>`;
+    <div class="fc-rcs"><div class="fc-rrow">${r.cells.filter((c) => !c.wx).map(cell).join('')}</div><div class="fc-rrow">${r.cells.filter((c) => c.wx).map(cell).join('')}</div></div>`;
 }
 
 /** The pinned label column beside the charts: each row's name, unit and scale. */
