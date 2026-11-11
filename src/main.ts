@@ -20,7 +20,11 @@ import { mountLightning } from './layers/lightning';
 import { fetchLightning } from './adapters/lightning';
 import { nearestFlash, STRIKE_ALERT_KM, type Flash } from './lightning';
 import { biteWeather, blendedGustKt, feelsLikeC, nearestStorm, pressureTrend, rainPastMm, squallLevel, summarise, uvAt } from './weather';
-import { crestGrid } from './waves-lines';
+import { crestGrid, dominantTrain } from './waves-lines';
+import { mountSwellMotion } from './layers/swell-motion';
+import { mountDriftMotion } from './layers/drift-motion';
+import { crestField, type CrestField } from './physics/crest-field';
+import { seafloorDepth, type DepthFn } from './physics/refraction';
 import { mountWavesLayer } from './layers/waves';
 import { mountWeatherHud } from './weather-hud';
 import { mountTownRainHud } from './town-rain-hud';
@@ -340,7 +344,44 @@ const seaHere = () => {
 // Wave crest lines (PLAN 6.9): rebuilt for the slider's valid time, when waves load and when the coastline mask arrives.
 const wavesLayer = mountWavesLayer(map);
 let waterMask: ((lng: number, lat: number) => boolean) | undefined;
-const rebuildCrests = () => wavesLayer.setCrests(waves ? crestGrid(REGION.bounds, 0.04, seaStateAt, waterMask) : []);
+// Moving crests bent over the seafloor (PLAN 7.86) in place of the static ticks wherever WebGL2 is there: the day's swell
+// train off Puerto Viejo, its crest field solved once per period and direction (to 0.5 s and 5°), kept for a few.
+const swellMotion = mountSwellMotion(map);
+let swellDepth: DepthFn | null = null;
+const crestFields = new Map<string, CrestField>();
+let crestKey = '';
+let crestTimer = 0;
+if (swellMotion) {
+  const syncSwell = () => swellMotion.setVisible(layers.isOn('waves'));
+  layers.subscribe(syncSwell);
+  syncSwell();
+}
+const rebuildSwell = () => {
+  if (!swellMotion) return;
+  const sea = seaStateAt(...REGION.swellRef);
+  const train = sea ? dominantTrain(sea) : null;
+  swellMotion.setHeight(train?.hs ?? NaN);
+  const depth = swellDepth;
+  if (!train || !depth || !(train.periodS > 2) || !Number.isFinite(train.dir)) return void ((crestKey = ''), swellMotion.setField(null));
+  const T = Math.round(train.periodS * 2) / 2, dir = (Math.round(train.dir / 5) * 5) % 360;
+  const key = `${T}|${dir}`;
+  if (key === crestKey) return;
+  crestKey = key;
+  clearTimeout(crestTimer);
+  const hit = crestFields.get(key);
+  if (hit) return swellMotion.setField(hit);
+  // Scrubbing the slider: solve once it rests (~100 ms of work).
+  crestTimer = window.setTimeout(() => {
+    const f = crestField(depth, REGION.bounds, 0.0015, T, dir);
+    crestFields.set(key, f);
+    if (crestFields.size > 6) crestFields.delete(crestFields.keys().next().value!);
+    if (crestKey === key) swellMotion.setField(f);
+  }, 150);
+};
+const rebuildCrests = () => {
+  if (swellMotion) return rebuildSwell();
+  wavesLayer.setCrests(waves ? crestGrid(REGION.bounds, 0.04, seaStateAt, waterMask) : []);
+};
 fetchWaves()
   .then((d) => {
     if (!d.forecast && !d.climatology) return console.warn('waves: no forecast or climatology published; using mock');
@@ -441,7 +482,14 @@ time.subscribe(() => townRainHud?.refresh());
 fetchTownRain().then((d) => townRainHud?.set(d)).catch((err) => console.warn('town rain unavailable', err));
 // RAIN CELLS (PLAN 7.24): satellite rain-cell nowcast per town and RAIN NOW on the map, refreshed every 5 minutes.
 rainNowHud = mountRainNowHud(hud);
-const rainLayer = mountRainLayer(map);
+// Rain and sargassum drift on their own canvas (PLAN 7.86); null where there is no 2-D canvas, and the still layers stand.
+const driftMotion = mountDriftMotion(map);
+if (driftMotion) {
+  const syncDrift = () => (driftMotion.setVisible('rain', layers.isOn('weather')), driftMotion.setVisible('sargassum', layers.isOn('sargassum')));
+  layers.subscribe(syncDrift);
+  syncDrift();
+}
+const rainLayer = mountRainLayer(map, driftMotion);
 time.subscribe(() => rainLayer.setTime(time.validMs()));
 const loadRainCells = () =>
   fetchRainCells()
@@ -1087,7 +1135,7 @@ fetchCatchmentRain()
 // 5-day landing outlook per beach. Needs the detections, the current forecast and the coastline; rerun as each loads.
 let sargassum: SargassumData | null = null;
 let sargForecast: SargForecast | null = null;
-const sargLayer = mountSargassum(map, () => seaCoast);
+const sargLayer = mountSargassum(map, () => seaCoast, driftMotion);
 const sargHud = mountSargassumHud(hud, map, () => ({ f: sargForecast, ms: time.validMs() }));
 const showSargassum = () => {
   if (sargForecast) sargLayer.update(sargForecast, time.validMs());
@@ -1289,6 +1337,9 @@ fetchSeafloor()
     mountSeafloorHud(hud, map, data);
     landGrid = data.land;
     km?.setMask(landMask(data.land));
+    swellDepth = seafloorDepth(data.region, data.macro, data.land);
+    swellMotion?.setLand(data.land);
+    rebuildCrests();
     harboursHud?.refresh();
     clarityElevation = data.region;
     clarityLand = data.land;

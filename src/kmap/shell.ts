@@ -434,7 +434,10 @@ export function mountKineticMap(d: KmDeps) {
    * (notes such as "nothing drawn: low risk") stay in the "?" explainer.
    */
   // 'dim' is the old map's faded amber (--amber-dim): the faint wash of the same colour, as the layers paint it.
-  const SW_TONE = { amber: 'var(--paint-amber)', green: 'var(--paint-green)', red: 'var(--paint-red)', dim: 'color-mix(in srgb, var(--paint-amber) 40%, transparent)' } as const;
+  const SW_TONE = {
+    amber: 'var(--paint-amber)', green: 'var(--paint-green)', red: 'var(--paint-red)', dim: 'color-mix(in srgb, var(--paint-amber) 40%, transparent)',
+    surf: 'var(--t-surf)', rain0: 'var(--r-rain0)', rain2: 'var(--r-rain2)', rain4: 'var(--r-rain4)',
+  } as const;
   /**
    * A painted field's key (mockup G's ramp keys): the layer's bands in its colours, equal widths, a few edges written
    * under them and the unit at the end (layers/bands.ts), so a band on the sea is a band here.
