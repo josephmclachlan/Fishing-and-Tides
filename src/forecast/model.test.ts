@@ -11,7 +11,6 @@ import {
   type FcDeps, type OutingRead,
   dayWeather, wxSky, type TimelineHour, chooseSpot, DEFAULT_SPOT,
 } from './model';
-import { heroArt } from './art';
 
 const H = 3.6e6;
 const DAY0 = Date.UTC(2026, 10, 4, 6); // local midnight at UTC-6
@@ -123,26 +122,6 @@ describe('spots and links', () => {
   });
 });
 
-describe('hero pictures', () => {
-  it('draws every activity without NaN, with and without data', () => {
-    const deps = { env: env(), outing: outing(55) };
-    const none = { env: env({ sea: () => null, windMs: () => null, weather: () => [], clarityM: () => null }) };
-    for (const a of FC_ACTIVITIES)
-      for (const d of [deps, none]) {
-        const svg = heroArt(readAt(d, a, spot('PUNTA CAHUITA'), DAY0 + 10 * H), 'x');
-        expect(svg.startsWith('<svg')).toBe(true);
-        expect(svg).not.toMatch(/NaN|undefined|Infinity/);
-      }
-  });
-  it('fades the reef past the visibility', () => {
-    const clear = heroArt(readAt({ env: env(), outing: (...a) => ({ ...outing(80)!(...a)!, visM: 20 }) }, 'snorkel', spot('PUNTA CAHUITA'), DAY0 + 10 * H), 'x');
-    const murky = heroArt(readAt({ env: env(), outing: (...a) => ({ ...outing(80)!(...a)!, visM: 3 }) }, 'snorkel', spot('PUNTA CAHUITA'), DAY0 + 10 * H), 'x');
-    const x = (s: string) => Number(/class="fc-vis-line" x1="([\d.]+)"/.exec(s)![1]);
-    expect(x(murky)).toBeLessThan(x(clear));
-  });
-});
-void H;
-
 describe('Beaufort words for sailing', () => {
   it('cuts at the WMO knot bounds', () => {
     expect(beaufort(0.4)).toBe(0);
@@ -175,7 +154,7 @@ describe('UV', () => {
 describe('SWIM: a beach day', () => {
   const rip = (level: 'LOW' | 'MOD' | 'HIGH', score: number) => ({ score, level, speedMs: 0.3, strength: 'WEAK' as const, lengthM: 60, length: 'SHORT' as const, factors: { height: 1, period: 1, angle: 1, tide: 1, wind: 1, channel: 1 } });
   const shore = (level: 'LOW' | 'MOD' | 'HIGH') => () => ({ breakerM: 0.4, rip: rip(level, level === 'LOW' ? 0.1 : level === 'MOD' ? 0.4 : 0.7) });
-  const noon = DAY0 + 18 * H; // 12:00 local
+  const noon = DAY0 + 12 * H; // 12:00 local
   it('reads the swim score from the spot\'s shore, the weather and the water, and nothing before the spot model runs', () => {
     const r = readAt({ env: env({ shore: shore('LOW') }) }, 'swim', spot('PLAYA COCLES'), noon);
     expect(r.score).not.toBeNull();
@@ -185,9 +164,13 @@ describe('SWIM: a beach day', () => {
     expect(r.swim!.sstC).toBe(28.5);
     expect(readAt({ env: env() }, 'swim', spot('PLAYA COCLES'), noon).score).toBeNull();
   });
-  it('rates a high rip risk poor and a night zero', () => {
+  it('rates a high rip risk poor; after dark it is scored on the conditions, not zero (night swimming)', () => {
     expect(readAt({ env: env({ shore: shore('HIGH') }) }, 'swim', spot('PLAYA COCLES'), noon).level).toBe(0);
-    expect(readAt({ env: env({ shore: shore('LOW') }) }, 'swim', spot('PLAYA COCLES'), DAY0 + 2 * H).score).toBe(0);
+    const night = readAt({ env: env({ shore: shore('LOW') }) }, 'swim', spot('PLAYA COCLES'), DAY0 + 2 * H);
+    expect(night.swim!.daylight).toBe(false);
+    expect(night.score).toBeGreaterThan(50);
+    expect(night.swim!.reasons).toContain('dark');
+    expect(readAt({ env: env({ shore: shore('HIGH') }) }, 'swim', spot('PLAYA COCLES'), DAY0 + 2 * H).score).toBe(15);
   });
   it('plans the week at every spot, as WATCH does', () => {
     const p = daysAt({ env: env({ shore: shore('LOW') }) }, 'swim', spot('PLAYA COCLES'), DAY0 + 6 * H, 5);

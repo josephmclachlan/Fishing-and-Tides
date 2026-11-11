@@ -19,6 +19,7 @@
  */
 import type { Map as MlMap } from 'maplibre-gl';
 import type { Spot as FcSpot } from '../metrics/forecast';
+import { headline } from '../forecast/view';
 import { readAt, skyMemo, spotsForActivity, type FcActivity, type FcDeps, type FcRead, type Level } from '../forecast/model';
 import { predictSeries, tideState } from '../physics/tide';
 import { LIMON_HARMONICS } from '../data/tides-limon';
@@ -32,7 +33,7 @@ import { dataAge, ageState } from '../adapters/data-age';
 import { resolveTarget, type Target } from '../target';
 import { nextSeasons, spawnWindows } from '../coral/spawning';
 import { t, type Key } from '../i18n';
-import { saveScheme, currentScheme } from '../theme';
+import { saveScheme, currentScheme, storedScheme } from '../theme';
 import { BANDS } from '../time';
 import type { TimeStore } from '../time';
 import {
@@ -121,28 +122,6 @@ const put = (s: Pick<Storage, 'setItem'> | undefined, k: string, v: string) => {
 const titleCase = (s: string) => s.toLowerCase().replace(/(^|[\s·-])(\p{L})/gu, (_, a: string, b: string) => a + b.toUpperCase());
 const n1 = (x: number) => x.toFixed(1);
 const n0 = (x: number) => String(Math.round(x));
-
-/** Headline value for a spot: the forecast page's (surf range, scores /100, visibility, wind). */
-export function headline(r: FcRead): { value: string; unit: string } {
-  if (r.score === null) return { value: '--', unit: '' };
-  switch (r.activity) {
-    case 'surf': {
-      const [lo, hi] = r.surf!.range;
-      return { value: hi < 0.15 ? '0' : lo === hi ? n1(lo) : `${n1(lo)}–${n1(hi)}`, unit: 'm' };
-    }
-    case 'snorkel':
-    case 'dive': {
-      const v = r.water?.visM;
-      return v === null || v === undefined ? { value: n0(r.score), unit: '/100' } : { value: v >= 10 ? n0(v) : n1(v), unit: 'm' };
-    }
-    case 'sail': {
-      const k = r.sail?.windKt;
-      return k === null || k === undefined ? { value: n0(r.score), unit: '/100' } : { value: n0(k), unit: 'kt' };
-    }
-    default:
-      return { value: n0(r.score), unit: '/100' };
-  }
-}
 
 export function mountKineticMap(d: KmDeps) {
   const { map, time, layers, settings, storage } = d;
@@ -1036,6 +1015,15 @@ export function mountKineticMap(d: KmDeps) {
     // The old map layers read their colours once, when built: reload to repaint them in the new scheme.
     d.reload();
   }
+  /** The forecast and coral pages switch the shared scheme on their own pages: back on the map, follow it. */
+  function schemeCheck() {
+    if (d.forecast.isOpen() || /^#(forecast|coral)/.test(location.hash)) return false;
+    const want = storedScheme(storage, !!window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+    if (want === currentScheme()) return false;
+    root.dataset.scheme = want;
+    d.reload();
+    return true;
+  }
   $('k-scheme').addEventListener('click', () => setScheme(currentScheme() === 'dark' ? 'light' : 'dark'));
 
   /* ---------- views ---------- */
@@ -1098,7 +1086,8 @@ export function mountKineticMap(d: KmDeps) {
     drawScrub();
     renderReadouts();
   }, 2000);
-  window.addEventListener('fc-hide', () => setTimeout(() => (renderAll(), pad()), 0));
+  window.addEventListener('fc-hide', () => setTimeout(() => (schemeCheck() || (renderAll(), pad())), 0));
+  window.addEventListener('hashchange', () => setTimeout(schemeCheck, 0));
   if (document.fonts?.ready) document.fonts.ready.then(() => (placeBar(), drawScrub()));
   quietCoral(S.coral);
   renderAll();

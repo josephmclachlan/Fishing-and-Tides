@@ -22,10 +22,11 @@ describe('outing score', () => {
     expect(r.score).toBeLessThan(100);
   });
   it('light ramps in the morning and out in the afternoon', () => {
-    expect(lightTerm(6)).toBe(0);
-    expect(lightTerm(8)).toBeCloseTo(0.5);
+    expect(lightTerm(6)).toBe(0.7); // night: a torch does, not zero
+    expect(lightTerm(8)).toBeCloseTo(0.7);
+    expect(lightTerm(9)).toBe(1);
     expect(lightTerm(12)).toBe(1);
-    expect(lightTerm(16)).toBeCloseTo(0.5);
+    expect(lightTerm(16)).toBeCloseTo(0.7);
   });
 });
 
@@ -127,10 +128,12 @@ describe('real daylight', () => {
   it('a high sun with clear sky is full light', () => {
     expect(outingScore({ ...good, sunAltDeg: 60, cloudPct: 0 }).score).toBe(outingScore(good).score);
   });
-  it('a low sun or night cuts the score', () => {
-    expect(outingScore({ ...good, sunAltDeg: 3 }).score).toBeLessThan(25);
+  it('a low sun or night cuts the score by at most 30%, not to zero (night snorkelling is done)', () => {
+    const night = outingScore({ ...good, sunAltDeg: -20 }).score;
+    expect(night).toBeGreaterThan(50);
+    expect(night).toBeLessThan(outingScore(good).score);
+    expect(outingScore({ ...good, sunAltDeg: 3 }).score).toBe(night);
     expect(outingScore({ ...good, sunAltDeg: 15 }).score).toBeLessThan(outingScore(good).score);
-    expect(outingScore({ ...good, sunAltDeg: 15 }).reasons).toContain('light');
   });
   it('overcast dulls the light but never below 70% of it', () => {
     const clear = outingScore({ ...good, sunAltDeg: 60, cloudPct: 0 }).score;

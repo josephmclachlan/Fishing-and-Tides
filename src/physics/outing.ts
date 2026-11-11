@@ -10,7 +10,8 @@
  *   vis     0 at 1 m, 1 at 10 m (linear)
  *   chop    1 at 4 m/s wind, 0 at 10 m/s (a snorkeller loses the bottom in whitecaps)
  *   depth   0 below 0.5 m of water over the reef (you touch coral), 1 from 1.5 m
- *   light   from the sun's real height when given (sunAltDeg): 0 at 5° and below, 1 from 30° up (about 08:00 to 16:00 here),
+ *   light   never below 0.7: night snorkelling and diving are done here (Joseph, 2026-11-11), with a torch, and visibility is then the
+ *           torch's reach, so after dark the score is the sea's alone, less 30% for the dark. By day: from the sun's real height when given (sunAltDeg): 0 at 5° and below, 1 from 30° up (about 08:00 to 16:00 here),
  *           times (1 − 0.3 × cloud share), because overcast dulls the colour and the bottom; without it a fixed clock:
  *           0 at 07:00, 1 from 09:00 until 15:00, 0 at 17:00
  *   current 1 up to 0.15 m/s, 0 at 0.60 m/s (a snorkeller swims about 0.5 m/s and cannot make headway, so the
@@ -78,15 +79,18 @@ export interface OutingScore {
 
 const ramp = (x: number, lo: number, hi: number) => Math.min(1, Math.max(0, (x - lo) / (hi - lo)));
 
+/** The least the light term can be: after dark a torch does, so night is not a zero (Joseph, 2026-11-11). */
+export const NIGHT_LIGHT = 0.7;
+
 export function lightTerm(h: number): number {
-  return Math.min(ramp(h, 7, 9), 1 - ramp(h, 15, 17));
+  return Math.max(NIGHT_LIGHT, Math.min(ramp(h, 7, 9), 1 - ramp(h, 15, 17)));
 }
 
 /** Light term from the sun's height and the cloud, or from the clock when no sun height is given. */
 function sunLight(i: Pick<OutingInputs, 'localHour' | 'sunAltDeg' | 'cloudPct'>): number {
   if (i.sunAltDeg === undefined || !Number.isFinite(i.sunAltDeg)) return lightTerm(i.localHour);
   const cloud = Number.isFinite(i.cloudPct) ? Math.min(1, Math.max(0, (i.cloudPct as number) / 100)) : 0;
-  return ramp(i.sunAltDeg, 5, 30) * (1 - 0.3 * cloud);
+  return Math.max(NIGHT_LIGHT, ramp(i.sunAltDeg, 5, 30) * (1 - 0.3 * cloud));
 }
 
 export function outingScore(i: OutingInputs): OutingScore {

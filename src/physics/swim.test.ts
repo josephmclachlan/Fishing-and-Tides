@@ -26,8 +26,11 @@ describe('swim score', () => {
     expect(swimScore(calm)).toEqual({ score: 100, reasons: [] });
     expect(swimTone(100)).toBe('green');
   });
-  it('caps for safety: dark, storms, a high rip risk, big shore break', () => {
-    expect(swimScore({ ...calm, daylight: false }).score).toBe(0);
+  it('caps for safety: storms, a high rip risk, big shore break', () => {
+    // After dark it is scored on the conditions (night swimming), without the sun's factors; ×0.85 for the dark.
+    expect(swimScore({ ...calm, daylight: false })).toEqual({ score: 85, reasons: ['dark'] });
+    expect(swimScore({ ...calm, daylight: false, uv: 11, cloudPct: 100 }).score).toBe(85);
+    expect(swimScore({ ...calm, daylight: false, rip: 'HIGH' }).score).toBe(15);
     expect(swimScore({ ...calm, lightning: true }).score).toBe(5);
     expect(swimScore({ ...calm, rip: 'HIGH' })).toEqual({ score: 15, reasons: ['rip'] });
     expect(swimScore({ ...calm, breakerM: 1.6 }).reasons[0]).toBe('surf');
