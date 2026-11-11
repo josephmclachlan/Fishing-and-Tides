@@ -191,6 +191,17 @@ body.fc-open { overflow: hidden; }
    (or focused) widens to show the weather and the next 12 hours; on touch, where there is no hover, the selected spot is wide. */
 .fc-spotbar { padding: 6px 0 0; }
 .fc-spots-cap { margin: 0 0 6px; color: var(--fc-ink2); }
+.fc-railwrap { position: relative; }
+.fc .fc-rarrow {
+  position: absolute; top: 4px; bottom: 10px; width: 44px; z-index: 2; border: 0; border-radius: 0; padding: 0; cursor: pointer;
+  font-family: var(--fc-disp); font-weight: 850; font-size: 30px; line-height: 1; color: var(--fc-ink); display: grid; place-items: center;
+  background: linear-gradient(var(--d), color-mix(in srgb, var(--fc-bg) 55%, transparent), transparent); transition: opacity 0.25s;
+}
+.fc .fc-rarrow[hidden] { display: none; }
+.fc-rl { --d: 90deg; left: calc(-1 * var(--fc-g-l)); padding-left: var(--fc-g-l); width: calc(44px + var(--fc-g-l)); justify-content: start; }
+.fc-rr { --d: 270deg; right: calc(-1 * var(--fc-g-r)); padding-right: var(--fc-g-r); width: calc(44px + var(--fc-g-r)); justify-content: end; }
+.fc .fc-rarrow:hover { opacity: 0.8; }
+@media (hover: none) { .fc .fc-rarrow { display: none; } }
 .fc-rail { display: flex; align-items: stretch; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; scroll-padding-left: var(--fc-g-l); padding-top: 4px; padding-bottom: 10px; scrollbar-width: none; }
 .fc-rail::-webkit-scrollbar { display: none; }
 .fc .fc-spot {
@@ -213,9 +224,6 @@ body.fc-open { overflow: hidden; }
 @media (hover: hover) {
   .fc .fc-spot:hover, .fc .fc-spot:focus-visible { width: var(--w-l); }
   .fc .fc-spot:hover .fc-s-b, .fc .fc-spot:focus-visible .fc-s-b { opacity: 1; }
-  .fc-rail { scrollbar-width: thin; }
-  .fc-rail::-webkit-scrollbar { display: block; height: 6px; }
-  .fc-rail::-webkit-scrollbar-thumb { background: var(--fc-line); }
 }
 @media (hover: none) {
   .fc .fc-spot[aria-selected='true'] { width: var(--w-l); }
@@ -235,12 +243,12 @@ body.fc-open { overflow: hidden; }
 .fc-t-val small { font-size: 0.55em; font-weight: 700; color: var(--fc-ink2); letter-spacing: 0; }
 .fc-t-sub { margin: 5px 0 0; font-size: 12.5px; line-height: 1.25; color: var(--fc-ink2); min-height: 2.5em; }
 .fc-t-tip {
-  position: absolute; inset: 0; background: var(--fc-ink); color: var(--fc-bg); padding: 14px; display: flex; align-items: flex-end;
+  position: absolute; inset: 0; background: color-mix(in srgb, var(--fc-bg) 62%, transparent); color: var(--fc-ink); outline: 1px solid var(--fc-ink); outline-offset: -1px; padding: 14px; display: flex; align-items: flex-end;
   opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity 0.25s, transform 0.25s;
 }
-.fc-t-tip p { margin: 0; font-family: var(--fc-disp); font-weight: 700; font-variation-settings: 'wdth' 84; font-size: 20px; line-height: 1.08; }
-.fc-tile[aria-expanded='true'] .fc-t-tip { opacity: 1; transform: none; }
-@media (hover: hover) { .fc-tile[role='button']:hover .fc-t-tip { opacity: 1; transform: none; } }
+.fc-t-tip p { margin: 0; text-shadow: 0 0 6px var(--fc-bg), 0 0 2px var(--fc-bg); font-family: var(--fc-disp); font-weight: 700; font-variation-settings: 'wdth' 84; font-size: 20px; line-height: 1.08; }
+.fc-tile:focus-visible .fc-t-tip { opacity: 1; transform: none; }
+@media (hover: hover) { .fc-tile:hover .fc-t-tip { opacity: 1; transform: none; } }
 
 /* --- live map card */
 .fc .fc-live {
@@ -307,6 +315,13 @@ body.fc-open { overflow: hidden; }
 .fc-hx-sc:focus-visible { outline-offset: -3px; }
 .fc-hx-in { position: relative; }
 .fc-hx-in canvas { position: absolute; left: 0; top: 0; display: block; }
+.fc-hx-key { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.fc-hx-key span { display: inline-flex; align-items: center; gap: 6px; }
+.fc-hx-key i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; }
+.fc-hx-key .k-night { background: var(--fc-c-night); box-shadow: inset 0 0 0 1px var(--fc-c-grid2); }
+.fc-hx-key .k-win { background: var(--fc-c-win); opacity: 0.85; }
+.fc-hx-key .k-sun { width: 3px; background: var(--fc-c-sun); }
+.fc-hx-key .k-now { width: 3px; background: var(--fc-ink); }
 .fc-hx-hint { margin: 8px 0 0; color: var(--fc-ink2); text-transform: none; letter-spacing: 0.02em; }
 
 .fc-foot { margin-top: 44px; border-top: 1px solid var(--fc-line); padding: 16px 0 calc(28px + env(safe-area-inset-bottom, 0px)); color: var(--fc-ink2); }
