@@ -77,7 +77,7 @@ import { allChecks } from './verify/registry';
 import { fetchSeafloor } from './adapters/seafloor';
 import { mountSeafloor } from './layers/seafloor';
 import { mountSeafloorHud } from './seafloor-hud';
-import { fetchZones, mountZones } from './layers/zones';
+import { fetchZones, mountZones, zoneName } from './layers/zones';
 import { mountZonesHud } from './zones-hud';
 import { fetchMouths, fetchOccurrences, mountFishing } from './layers/fishing';
 import { loadSpecies, mountFishingHud } from './fishing-hud';
@@ -150,6 +150,13 @@ import { mountForecastPage } from './forecast/page';
 import { mountCoralPage } from './coral-page/page';
 import type { FcActivity } from './forecast/model';
 import { fetchSargassum, type SargassumData } from './adapters/sargassum';
+import { currentTheme } from './theme';
+import { mountKineticMap, type Here, type KineticMap, type ReefNow } from './kmap/shell';
+import { haloOverlays, styleBaseMap } from './kmap/basemap';
+import { OLD_PRESET, type Mask } from './kmap/model';
+import { zoneAt, type ZonePoly } from './zone-lookup';
+import './kmap/fonts';
+import './kmap/kmap.css';
 import { BEACH_RADIUS_M, beachDay, mountSargassum, mountSargassumHud, sargassumForecast, type SargForecast } from './layers/sargassum';
 
 registerSW({ immediate: true });
@@ -159,6 +166,21 @@ const settings = createSettings(safeStorage(), navigator.languages ?? [navigator
 setDict(dictFor(settings.lang()));
 document.documentElement.lang = settings.lang();
 const map = createMap('map', takeView(safeSession()));
+/** MODERN is the Kinetic Plus map (PLAN 7.70): its own shell over the same map, layers and data. */
+const MODERN = currentTheme() === 'modern';
+/** The Kinetic Plus shell, mounted at the end of this file once every feed it reads is declared. */
+let km: KineticMap | null = null;
+if (MODERN) {
+  document.body.classList.add('km-on');
+  document.documentElement.classList.add('km');
+  map.on('style.load', () => styleBaseMap(map));
+  let haloQueued = false;
+  map.on('styledata', () => {
+    if (haloQueued) return;
+    haloQueued = true;
+    setTimeout(() => ((haloQueued = false), haloOverlays(map)), 50);
+  });
+}
 mountPinchGuard(map);
 const hud = document.getElementById('hud')!;
 // Tiers first: the HUD reads the tier they publish on each move.
@@ -186,6 +208,8 @@ const flowSources: { wind: FlowSource; current: FlowSource } = {
 const windAtRef: [number, number] = [0, 0];
 // Rip risk at the spot nearest the map centre, from the physics worker (PLAN 3.6, 4.2) once the seafloor loads.
 let spotPhysics: SpotPhysics | null = null;
+/** Counts spot-physics results, so the modern map's cached ratings follow the rip and shore model. */
+let physicsTick = 0;
 /** Gusts (weather feed, model mean) now and the wind three hours on, for the surf score (PLAN 7.23 B). */
 /** UV index for the hour (CAMS, else scaled GFS; weather.ts uvAt), null before the weather loads. */
 const uvNow = (ms: number) => {
@@ -459,6 +483,8 @@ fetchStorms().then((d) => ((stormList = d.storms), stormLayer.setStorms(d.storms
 mountAstroHud(hud, map, time);
 mountHarbours(map);
 let landGrid: Grid | null = null;
+/** The protected zones, for the modern map's ZONE reading. */
+let zonePolys: ZonePoly[] = [];
 windSideHere = () => {
   if (!landGrid) return null;
   const c = map.getCenter();
@@ -829,6 +855,7 @@ const forecastPage = mountForecastPage({
   // The live-map tile (PLAN 7.68): the activity's LAYERS preset, zoomed to the spot with the crosshair on it.
   openMap: (spot, a) => {
     forecastPage.close();
+    if (km) return km.openFor(spot.name, a);
     coralMode.set(false);
     layers.setActivity(MAP_PRESET[a]);
     map.jumpTo({ center: spot.lngLat, zoom: Math.max(map.getZoom(), 13) });
@@ -1086,6 +1113,7 @@ document.addEventListener('visibilitychange', () => document.visibilityState ===
 // Protected areas: static outlines, precached for offline use.
 fetchZones()
   .then(({ data, geojson }) => {
+    zonePolys = data;
     mountZonesHud(hud, map, data);
     mountZones(map, geojson);
   })
@@ -1196,12 +1224,14 @@ fetchSeafloor()
   .then(({ data }) => {
     mountSeafloorHud(hud, map, data);
     landGrid = data.land;
+    km?.setMask(landMask(data.land));
     harboursHud?.refresh();
     clarityElevation = data.region;
     clarityLand = data.land;
     refreshClarity();
     spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land, reefFlats: flatPolygons(data.reefs) }), baseConditions, () => time.validMs(), windExtras, spotSea);
     spotPhysics.subscribe(() => queueVerdict());
+    spotPhysics.subscribe(() => physicsTick++);
     spotPhysics.subscribe(() => {
       ripLayer.update(spotPhysics!.all(), data.land);
       surfBreaks.update((name) => spotPhysics!.byName(name)?.surf);
@@ -1386,3 +1416,110 @@ time.subscribe(queueVerdict);
 map.on('moveend', queueVerdict);
 setInterval(queueVerdict, 30_000);
 queueVerdict();
+
+/* ---------- Kinetic Plus map (PLAN 7.70) ---------- */
+
+/** The seafloor's land grid as the coast tracer's mask (1 = land). */
+function landMask(g: Grid): Mask {
+  const z = new Uint8Array(g.cols * g.rows);
+  for (let i = 0; i < z.length; i++) z[i] = g.z[i] === 1 ? 1 : 0;
+  return { z, cols: g.cols, rows: g.rows, lon0: g.lon0, lat0: g.lat0, dlon: g.dlon, dlat: g.dlat };
+}
+/** Everything the old CONDITIONS panel and "what's here" card read, at any point and hour. */
+const hereAt = (lng: number, lat: number, ms: number): Here => {
+  const fin = (x: number | null | undefined): x is number => typeof x === 'number' && Number.isFinite(x);
+  const depth = depthAt?.(lng, lat);
+  const s = waves ? wavesAt(waves, bandAt(ms), ms, lng, lat) : null;
+  let swell: Here['swell'] = null;
+  if (s && fin(s.hs)) {
+    const trains = ([[s.swellHs, s.swellT, s.swellDir], [s.swell2Hs, s.swell2T, s.swell2Dir], [s.windSeaHs, s.windSeaT, s.windSeaDir]] as const)
+      .filter(([h, p, d]) => fin(h) && fin(p) && fin(d) && h >= 0.05)
+      .map(([hs, tp, deg]) => ({ hs, tp, deg }))
+      .sort((a, b) => b.hs - a.hs);
+    const lead = trains[0];
+    swell = { hs: fin(s.swellHs) ? s.swellHs : s.hs, tp: lead?.tp ?? s.tm, fromDeg: lead?.deg ?? s.dir, trains };
+  }
+  const wv = windVecAt(lng, lat, ms);
+  const wx = weatherData ? summarise(weatherData, ms, [lng, lat]) : null;
+  const cv = currentVecAt(lng, lat, ms);
+  const c = clarityCtx();
+  const near = Math.abs(ms - Date.now()) < 3 * 3.6e6 && flashes.length ? nearestFlash(flashes, lng, lat, Date.now()) : null;
+  const spot = nearest([lng, lat], SPOTS);
+  const close = spot && spot.distanceM < 4000 ? spot.point.name : null;
+  const st = close ? spotPhysics?.byName(close) : null;
+  const sarg = close && sargForecast ? beachDay(sargForecast, close, ms) : null;
+  const reef = coral ? nearestReef(coral, [lng, lat]) : null;
+  const rn = coral && reef ? coralNow(coral, reef) : null;
+  const zone = zonePolys.length ? zoneAt(zonePolys, [lng, lat]) : null;
+  return {
+    land: depth === undefined && !!waterMask && !waterMask(lng, lat),
+    depthM: depth ?? null,
+    swell,
+    wind: wv ? { kt: Math.hypot(...wv) * KT_PER_MS, fromDeg: fromDeg(...wv), gustKt: wx && fin(wx.gustKt) ? wx.gustKt : null } : null,
+    current: cv ? { kt: Math.hypot(...cv) * KT_PER_MS, toDeg: (fromDeg(...cv) + 180) % 360 } : null,
+    sstC: satellite ? (sstAt(satellite, lng, lat, ms)?.value ?? null) : null,
+    visM: c ? (clarityAt({ ...c, ms }, lng, lat)?.visM ?? null) : null,
+    rain: wx ? { mmH: fin(wx.rainMmH) ? wx.rainMmH : null, pct: fin(wx.rainChancePct) ? wx.rainChancePct : null } : null,
+    lightningKm: near ? near.km : null,
+    rip: st?.result && st.liveSea && close ? { level: withOutflow(st.result.rip, outflowAt(st.pin, ms)).level, spot: close } : null,
+    sarg: sarg?.level && close ? { level: sarg.level, beach: close } : null,
+    uv: uvNow(ms),
+    zone: zone ? zoneName(zone) : null,
+    heat: rn && fin(rn.dhw) ? { reef: rn.reef.name, dhw: rn.dhw, alert: rn.alert ?? 0 } : null,
+    airC: wx && fin(wx.tempC) ? wx.tempC : null,
+  };
+};
+const reefsNow = (): ReefNow[] =>
+  coralHeat
+    ? coralHeat.reefs.map((r) => {
+        const n = coralNow(coralHeat!, r);
+        const mud = mudData ? mudNow(mudData, mudHistory, r.id).mw : NaN;
+        const f = (x: number) => (Number.isFinite(x) ? x : null);
+        return { id: r.id, name: r.name, lngLat: r.lngLat, dhw: f(n.dhw), alert: n.alert, sstC: f(n.sst), anomaly: f(n.sstAnomaly), mudWeeks: f(mud), day: f(n.dhwDay) };
+      })
+    : CORAL_REEFS.map((r) => ({ id: r.id, name: r.name, lngLat: r.lngLat, dhw: null, alert: null, sstC: null, anomaly: null, mudWeeks: null, day: null }));
+if (MODERN) {
+  sheets.close();
+  const reload = () => {
+    const c = map.getCenter();
+    saveView(safeSession(), { center: [c.lng, c.lat], zoom: map.getZoom() });
+    location.reload();
+  };
+  km = mountKineticMap({
+    map, time, layers, coralMode, sheets, settings, storage: safeStorage(),
+    fc: {
+      env: metricEnv(),
+      outing: (spot, m, ms, h) => {
+        const c = clarityCtx();
+        return diveHud ? diveHud.outingDetail((c && watchWater(spot.lngLat[0], spot.lngLat[1], c)) || spot.lngLat, m, ms, h) : null;
+      },
+    },
+    here: hereAt,
+    reefs: reefsNow,
+    coralLayer,
+    coralSites: () => coralStore.list(),
+    onCoralSites: (fn) => void coralStore.subscribe(fn),
+    forecast: forecastPage,
+    openCoralPage: (reef) => coralPage.open({ reef }),
+    explain: (title, id) => explain.show(title, id),
+    go: (tg) => enhancer.go(tg),
+    reload,
+    setLang: (l) => (settings.setLang(l), reload()),
+    version: () =>
+      `${wind ? 1 : 0}${waves ? 1 : 0}${weatherData ? 1 : 0}${satellite ? 1 : 0}${catchmentRain ? 1 : 0}${sargForecast ? 1 : 0}${riverFlow ? 1 : 0}${clarityElevation ? 1 : 0}${currents ? 1 : 0}${spotWind ? 1 : 0}${diveHud ? 1 : 0}${coralHeat ? 1 : 0}${mudData ? 1 : 0}${spotPhysics ? 1 : 0}|${physicsTick}|${flashesAt}|${zonePolys.length}`,
+    onMode: (m) => {
+      const a = m === 'coral' ? null : activityForPreset(OLD_PRESET[m]);
+      if (a) condGroups.setActivity(a);
+    },
+    tools: [
+      { id: 'cond', label: t('sheet.cond'), sub: '' },
+      { id: 'watch', label: 'WATCH', sub: '' },
+      { id: 'boat', label: 'BOAT', sub: '' },
+      { id: 'coral', label: 'CORAL', sub: '' },
+      { id: 'obs', label: 'LIVE OBS', sub: '' },
+      { id: 'check', label: 'SYSTEM CHECK', sub: '' },
+      { id: 'sync', label: 'SYNC', sub: '' },
+    ],
+  });
+  if (landGrid) km.setMask(landMask(landGrid));
+}

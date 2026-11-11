@@ -1,0 +1,54 @@
+/* Kinetic Plus map tokens (PLAN 7.70): the approved mockup G's values. Light land is a soft stone, not white (Joseph 2026-11-11). */
+:root[data-theme="modern"]{
+  --bg:#EEF3F8; --ink:#0A1626; --ink2:#46576C; --block:#DFE7F0; --line:#CFD9E4;
+  --t-surf:#0A66E0; --t-fish:#E4441C; --t-swim:#D4176B; --t-snorkel:#00877A; --t-dive:#4338D6; --t-sail:#2A8A1E; --t-coral:#B4670E;
+  --c-card:#FFFFFF; --c-head:#A5DBC2; --rd-bg:var(--ink); --rd-fg:var(--bg); --c-night:#F2F6FA; --c-grid:#E2E8EF; --c-grid2:#CFD9E4; --c-acc:#0A76E6; --c-bar:#7F90A4; --c-ink2:#46576C; --c-warm:#F2711C; --c-win:#1F9D55; --c-sun:#E8A200;
+  --map-sea:#06140F; --map-ink:#F2F8F5; --map-mut:#A9C3B8; --map-ring:#39FF9A; --map-go:#0A76E6; --map-go-ink:#FFFFFF;
+  --sand:#EADDB9; --moon:#FFFFFF; --night:#E7EBE6;
+  --uv0:#3E9F68; --uv1:#E8B620; --uv2:#EE8628; --uv3:#DF4430; --uv4:#8150C0;
+  --lv0:#F2634A; --lv1:#F59A3D; --lv2:#F4C542; --lv3:#A5DBC2; --lv4:#0C6B66; --lvn:#C9D3DE;
+  --on0:#1B0905; --on1:#1F0E02; --on2:#1D1604; --on3:#07241A; --on4:#F2FAF7; --onn:#0A1626;
+  --ac0:#CF3A20; --ac1:#C0620F; --ac2:#A67800; --ac3:#1F8A5E; --ac4:#0C6B66; --acn:#46576C;
+  --field:var(--lvn); --on-field:var(--onn); --ac:var(--acn);
+  /* map */
+  --m-sea-a:#D9E7F3; --m-sea-b:#7EA2C8; --m-land:#E2DFD1; --m-land-b:#D6D3C3; --m-topo:#C4C0AE; --m-coast:#0A1626; --m-halo:#ECEADF; --m-lab:#46576C; --m-sealab:#5D7590;
+  --m-reef:#0C6B66; --m-cover:#B4670E; --m-zone:#4338D6; --m-sarg:#8C6A12; --m-bolt:#E8A200;
+  --r-sst0:#2B6CB0; --r-sst1:#5FB3B3; --r-sst2:#A5DBC2; --r-sst3:#F4C542; --r-sst4:#F2711C; --r-sst5:#E0442B;
+  --r-vis0:#7A5A2A; --r-vis1:#C4A46A; --r-vis2:#D9D7A6; --r-vis3:#A5DBC2; --r-vis4:#3FA58F; --r-vis5:#0C6B66;
+  --r-chl0:#E4EFD8; --r-chl1:#B7D98E; --r-chl2:#6FB34A; --r-chl3:#2A8A1E; --r-chl4:#145214;
+  --r-rain0:#B9D7FF; --r-rain1:#6BAAF7; --r-rain2:#0A66E0; --r-rain3:#4338D6; --r-rain4:#D4176B;
+  --disp:"Anybody Variable","Anybody","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --body:"Geist Variable","Geist","Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"Geist Mono Variable","Geist Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --g-l:max(16px, env(safe-area-inset-left, 0px)); --g-r:max(16px, env(safe-area-inset-right, 0px));
+  --sb:env(safe-area-inset-bottom, 0px);
+  color-scheme:light;
+  /* the old HUD's role colours, for the drawers kept from the old map and the layers that read them */
+  --amber:#0A1626; --green:#1F9D55; --red:#DF4430; --amber-rgb:10 22 38; --panel-rgb:238 243 248;
+  --map-bg:#E2DFD1; --map-water:#D9E7F3; --map-land:#E2DFD1; --map-water-edge:#7EA2C8; --map-land-edge:#D6D3C3;
+  --map-water-line:#5D7590; --map-land-line:#C4C0AE; --map-text:#46576C;
+  --font:var(--body);
+  --flow-wind:#46576C; --flow-current:#00877A;
+}
+:root[data-theme="modern"][data-scheme="dark"]{
+  --bg:#070C14; --ink:#EDF3FA; --ink2:#A2B2C5; --block:#0F1723; --line:#2A3749;
+  --t-surf:#4D9DFF; --t-fish:#FF7A52; --t-swim:#FF5FA2; --t-snorkel:#2FD6C2; --t-dive:#9A93FF; --t-sail:#74D65E; --t-coral:#F0A040;
+  --c-card:#0F1723; --c-head:#1B4A3B; --rd-bg:#1F5C49; --rd-fg:#E8F6F0; --c-night:#141E2C; --c-grid:#1D2837; --c-grid2:#2A3749; --c-acc:#3D9BFF; --c-bar:#6C7E93; --c-ink2:#A2B2C5; --c-warm:#FF8A3D; --c-win:#3FCF7D; --c-sun:#FFC53D;
+  --map-sea:#06140F; --map-ink:#F2F8F5; --map-mut:#A9C3B8; --map-ring:#39FF9A; --map-go:#3D9BFF; --map-go-ink:#04101E;
+  --sand:#6B5D3E; --moon:#F4F1E6; --night:#060B0D;
+  --uv0:#4DB57D; --uv1:#E2B53A; --uv2:#F0913A; --uv3:#E6543C; --uv4:#A077E3;
+  --lv0:#CF4A31; --lv1:#D9772E; --lv2:#D6A62A; --lv3:#5BA987; --lv4:#0A4D49; --lvn:#1C2735;
+  --on0:#170603; --on1:#1A0B02; --on2:#181103; --on3:#05190F; --on4:#E4F5F0; --onn:#EDF3FA;
+  --ac0:#FF7D63; --ac1:#FFA05A; --ac2:#F2C94C; --ac3:#7CD5AE; --ac4:#41C3B4; --acn:#A2B2C5;
+  --m-sea-a:#102236; --m-sea-b:#03070D; --m-land:#121B27; --m-land-b:#1A2533; --m-topo:#212D3D; --m-coast:#C9D6E4; --m-halo:#070C14; --m-lab:#A2B2C5; --m-sealab:#6F86A3;
+  --m-reef:#41C3B4; --m-cover:#F0A040; --m-zone:#9A93FF; --m-sarg:#C9A23A; --m-bolt:#FFC53D;
+  --r-sst0:#2F6FB7; --r-sst1:#3C9A9A; --r-sst2:#5BA987; --r-sst3:#D6A62A; --r-sst4:#E8742A; --r-sst5:#CF4A31;
+  --r-vis0:#5C431F; --r-vis1:#8E7442; --r-vis2:#6F7E5A; --r-vis3:#3F8F74; --r-vis4:#2A9C88; --r-vis5:#41C3B4;
+  --r-chl0:#16241A; --r-chl1:#2C5A2A; --r-chl2:#4F8E36; --r-chl3:#74D65E; --r-chl4:#B9F09E;
+  --r-rain0:#1E3A66; --r-rain1:#2F6FD0; --r-rain2:#4D9DFF; --r-rain3:#9A93FF; --r-rain4:#FF5FA2;
+  
+  --amber:#EDF3FA; --green:#3FCF7D; --red:#E6543C; --amber-rgb:237 243 250; --panel-rgb:15 23 35;
+  --map-bg:#121B27; --map-water:#102236; --map-land:#121B27; --map-water-edge:#3B5A80; --map-land-edge:#1A2533;
+  --map-water-line:#6F86A3; --map-land-line:#212D3D; --map-text:#A2B2C5;
+  --flow-wind:#A2B2C5; --flow-current:#2FD6C2;
+  color-scheme:dark}

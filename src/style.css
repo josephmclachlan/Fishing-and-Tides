@@ -923,20 +923,6 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 /* ---- Colour themes (src/theme.ts). RETRO is the :root default above. The variable NAMES are roles, not hues:
    --amber = main ink and lines, --green = good / selected, --red = danger, --bg = darkest. Never hard-code colours. ---- */
 
-/* NAVAL: blue-lit instrument panels of a submarine or ship's bridge: navy glass, cyan-white ink, red for alarms. */
-:root[data-theme='naval'] {
-  --bg: #020a14; --amber: #6cc4ff; --green: #5dffc4; --red: #ff4d4d;
-  --amber-rgb: 108 196 255; --panel-rgb: 3 14 28;
-  --map-bg: #030b16; --map-water: #05203a; --map-land: #0b1626; --map-water-edge: #1d5f9c; --map-land-edge: #14284a;
-  --map-water-line: #3f9de6; --map-land-line: #24477a; --map-text: #8cc2f0;
-}
-:root[data-theme='naval'] .crt {
-  background: radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(0,6,16,0.7) 100%);
-  animation: none;
-}
-:root[data-theme='naval'] .panel { background: linear-gradient(180deg, rgb(var(--panel-rgb) / 0.82), rgb(2 8 18 / 0.9)); }
-:root[data-theme='naval'] .btn { background-image: repeating-linear-gradient(-45deg, transparent 0 8px, rgba(0,12,30,0.25) 8px 16px); }
-
 /* MODERN: a tactical status board. Solid slate panels, sans-serif type, big touch targets, no glow or scanlines,
    a green rail on every panel. Still uppercase mil-spec labels and a strict green / amber / red code. */
 :root[data-theme='modern'] {
@@ -992,9 +978,6 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
   :root[data-theme='modern'] .vd-chip { padding: 3px 0; }
 }
 :root[data-theme='modern'] .panel { overflow-wrap: break-word; }
-/* NAVAL: dim blue on navy needs a little more weight to stay readable. */
-:root[data-theme='naval'] .lbl, :root[data-theme='naval'] .unit { opacity: 0.88; }
-:root[data-theme='naval'] .dim { opacity: 0.8; }
 @media (min-width: 1101px) and (min-height: 701px) { :root[data-theme='modern'] .side { width: 300px; } }
 :root[data-theme='modern'] .vd-chip .seg { font-size: 13px; letter-spacing: 0; }
 :root[data-theme='modern'] .seek-in { min-width: 0; flex: 1; border-radius: 6px; }

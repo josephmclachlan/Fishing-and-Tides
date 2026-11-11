@@ -3,8 +3,7 @@
  * SET drawer on phones (src/settings-panel.ts); the choices are remembered (src/settings.ts).
  */
 import { t, type Key } from './i18n';
-import { safeStorage, VESSELS, type Settings } from './settings';
-import { currentTheme, nextTheme, saveTheme } from './theme';
+import { VESSELS, type Settings } from './settings';
 
 export function mountSettingsUi(root: HTMLElement, settings: Settings) {
   const btn = document.createElement('button');
@@ -69,16 +68,4 @@ export function mountSettingsUi(root: HTMLElement, settings: Settings) {
   vsl.addEventListener('click', () => settings.setVessel(VESSELS[(VESSELS.indexOf(settings.vessel()) + 1) % VESSELS.length]!));
   settings.subscribe(renderVsl);
   renderVsl();
-
-  // Colour theme (src/theme.ts): RETRO, NAVAL or MODERN. Applied at load, so a change reloads the page.
-  const thm = document.createElement('button');
-  thm.type = 'button';
-  thm.className = 'tab theme-toggle';
-  thm.title = t('settings.themeTitle');
-  root.querySelector('.top-tabs')?.appendChild(thm);
-  thm.textContent = `${t('settings.theme')}: ${t(`settings.theme.${currentTheme()}` as Key)}`;
-  thm.addEventListener('click', () => {
-    saveTheme(nextTheme(currentTheme()), safeStorage());
-    location.reload();
-  });
 }
