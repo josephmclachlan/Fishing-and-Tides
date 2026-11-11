@@ -154,8 +154,6 @@ export function mountForecastPage(deps: ForecastDeps) {
   let tlKey = '';
   let openedAt = 0;
   let heroRead: FcRead | null = null;
-  /** Which tiles show their tip (by activity and place), kept across redraws. */
-  const openTiles = new Set<string>();
 
   const spots = () => spotsForActivity(act, SPOTS);
   /** The spot shown, and the one asked for when it has no forecast for this activity (`chooseSpot`). */
@@ -374,14 +372,13 @@ export function mountForecastPage(deps: ForecastDeps) {
     const d0 = localDayStart(ms, TZ);
     $('fc-cond-when').textContent = `${d0 === localDayStart(Date.now(), TZ) ? t('fc.today') : dayDate(ms)} · ${localClock(ms)}`;
     const list = tilesFor(r, c);
-    if (html('fc-tiles', tilesHtml(list, () => false))) {
+    if (html('fc-tiles', tilesHtml(list))) {
       tileVis.clear();
       tio?.disconnect();
       tiles = [...$('fc-tiles').querySelectorAll<HTMLElement>('.fc-tile')].map((e, i) => {
         const cv = e.querySelector('canvas')!;
         if (tio) tio.observe(e);
         else tileVis.add(e);
-        if (openTiles.has(`${act}:${i}`)) e.setAttribute('aria-expanded', 'true');
         return { el: e, cv, c: cv.getContext('2d')!, w: 0, h: 0, v: list[i], drawn: false };
       });
       sizeTiles();
@@ -390,20 +387,6 @@ export function mountForecastPage(deps: ForecastDeps) {
     } else tiles.forEach((o, i) => (o.v = list[i] ?? o.v));
     drawTiles(performance.now() / 1000, true);
   };
-  const toggleTile = (e: Event) => {
-    const tile = (e.target as HTMLElement).closest<HTMLElement>('.fc-tile[aria-expanded]');
-    if (!tile) return;
-    const id = `${act}:${tile.dataset.tile}`;
-    const open = !openTiles.has(id);
-    if (open) openTiles.add(id);
-    else openTiles.delete(id);
-    tile.setAttribute('aria-expanded', String(open));
-  };
-  $('fc-tiles').addEventListener('click', toggleTile);
-  $('fc-tiles').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') (e.preventDefault(), toggleTile(e));
-  });
-
   // --- the next 7 days
   const renderDays = (anim: boolean) => {
     const p = plan;
@@ -723,6 +706,43 @@ export function mountForecastPage(deps: ForecastDeps) {
     const ms = Number($('fc-best').dataset.ms);
     if ($('fc-best').dataset.ms && Number.isFinite(ms)) pick(ms, true);
   });
+  // The spots bar: translucent < > arrows at its ends, and with a mouse it scrolls on its own while the pointer is in the
+  // outer 25% on either side (faster nearer the edge). Touch keeps plain swiping.
+  {
+    const rail = $('fc-spots'), wrap = $('fc-railwrap'), bl = $('fc-rl'), br = $('fc-rr');
+    let dir = 0, raf = 0, last = 0;
+    const arrows = () => {
+      bl.hidden = rail.scrollLeft < 4;
+      br.hidden = rail.scrollLeft > rail.scrollWidth - rail.clientWidth - 4;
+    };
+    const tick = (now: number) => {
+      raf = 0;
+      if (!dir) return;
+      const dt = Math.min(50, now - (last || now));
+      last = now;
+      rail.scrollLeft += dir * dt * 0.9;
+      raf = requestAnimationFrame(tick);
+    };
+    const go = (d: number) => {
+      dir = d;
+      if (d && !raf) {
+        last = 0;
+        raf = requestAnimationFrame(tick);
+      }
+    };
+    wrap.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse' || rail.scrollWidth <= rail.clientWidth) return go(0);
+      const r = rail.getBoundingClientRect(), f = (e.clientX - r.left) / r.width;
+      go(f < 0.25 ? -(0.25 - f) * 4 : f > 0.75 ? (f - 0.75) * 4 : 0);
+    });
+    wrap.addEventListener('pointerleave', () => go(0));
+    bl.addEventListener('click', () => rail.scrollBy({ left: -rail.clientWidth * 0.6, behavior: reduced ? 'auto' : 'smooth' }));
+    br.addEventListener('click', () => rail.scrollBy({ left: rail.clientWidth * 0.6, behavior: reduced ? 'auto' : 'smooth' }));
+    rail.addEventListener('scroll', arrows, { passive: true });
+    window.addEventListener('resize', arrows);
+    new MutationObserver(arrows).observe(rail, { childList: true });
+    requestAnimationFrame(arrows);
+  }
   $('fc-spots').addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-spot]');
     if (!b) return;

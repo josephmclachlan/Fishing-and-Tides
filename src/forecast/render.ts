@@ -48,6 +48,14 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
       <p class="fc-subline fc-mono" id="fc-sub">--</p>
       <p class="fc-swap" id="fc-swap" hidden></p>
     </header>
+    <section class="fc-spotbar fc-in" aria-label="${esc(t('fc.spots'))}">
+      <p class="fc-mono fc-spots-cap" id="fc-spots-cap"></p>
+      <div class="fc-railwrap" id="fc-railwrap">
+        <div class="fc-rail fc-bleed" id="fc-spots" role="listbox" aria-label="${esc(t('fc.spots'))}"></div>
+        <button type="button" class="fc-rarrow fc-rl" id="fc-rl" tabindex="-1" aria-hidden="true" hidden>&lt;</button>
+        <button type="button" class="fc-rarrow fc-rr" id="fc-rr" tabindex="-1" aria-hidden="true" hidden>&gt;</button>
+      </div>
+    </section>
     <nav class="fc-tabs fc-in" id="fc-tabs" role="tablist" aria-label="${esc(t('fc.actGroup'))}">${o.acts.map(tab).join('')}<span class="fc-tab-bar" id="fc-tab-bar" aria-hidden="true"></span></nav>
     <section class="fc-hero fc-bleed" id="fc-hero" aria-labelledby="fc-k">
       <canvas id="fc-fx" aria-hidden="true"></canvas>
@@ -61,10 +69,6 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
         <ul class="fc-chips fc-mono" id="fc-why"></ul>
         <button type="button" class="fc-best" id="fc-best" hidden></button>
       </div>
-    </section>
-    <section class="fc-sec fc-in" aria-labelledby="fc-spots-h">
-      <div class="fc-sec-head"><h2 id="fc-spots-h">${esc(t('fc.spots'))}</h2><p class="fc-mono" id="fc-spots-cap"></p></div>
-      <div class="fc-rail fc-bleed" id="fc-spots" role="listbox" aria-label="${esc(t('fc.spots'))}"></div>
     </section>
     <section class="fc-sec fc-in" aria-labelledby="fc-cond-h">
       <div class="fc-sec-head"><h2 id="fc-cond-h">${esc(t('fc.conditions'))}</h2><p class="fc-mono" id="fc-cond-when"></p></div>
@@ -89,7 +93,7 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
         <div class="fc-hx-lab" id="fc-hx-lab" aria-hidden="true"></div>
         <div class="fc-hx-sc" id="fc-tl" tabindex="0" role="img" aria-label="${esc(t('fc.hoursAria'))}"><div class="fc-hx-in" id="fc-tl-in"><canvas id="fc-hx-base"></canvas><canvas id="fc-hx-top"></canvas></div></div>
       </div>
-      <p class="fc-hx-hint fc-mono">${esc(t('fc.hoursKey'))}</p>
+      <p class="fc-hx-hint fc-mono fc-hx-key"><span><i class="k-night"></i>${esc(t('fc.key.night'))}</span><span><i class="k-win"></i>${esc(t('fc.key.win'))}</span><span><i class="k-sun"></i>${esc(t('fc.key.sun'))}</span><span><i class="k-now"></i>${esc(t('fc.key.now'))}</span></p>
     </section>
     <footer class="fc-foot fc-in"><p class="fc-note">${esc(t('fc.note'))}</p></footer>
   </div>`;
@@ -121,21 +125,25 @@ export function spotsHtml(list: readonly (SpotView & { id: string })[], cur: str
       const strip = s.strip.map((l) => `<i class="${lvCls(l)}" style="height:${l === null ? 12 : (l + 1) * 20}%"></i>`).join('');
       const wx = [s.airC, s.rainPct ? `${t('fc.rainChance')} ${s.rainPct}` : null].filter(Boolean).join(' · ');
       return `<button type="button" role="option" class="fc-spot ${lvCls(s.level)}" data-spot="${esc(s.id)}" aria-selected="${s.id === cur}">
-        <span class="fc-sn">${esc(s.name)}</span>
-        <span class="fc-sv">${esc(s.value)}${s.unit ? `<small>${esc(s.unit)}</small>` : ''}</span>
-        <span class="fc-sr fc-mono">${esc(s.word)}${wx ? `<span class="fc-swx">${esc(wx)}</span>` : ''}</span>
-        <span><span class="fc-strip" aria-hidden="true">${strip}</span><span class="fc-strip-l fc-mono" aria-hidden="true"><span>${esc(t('fc.now'))}</span><span>${esc(t('fc.plus12'))}</span></span></span>
+        <span class="fc-s-a">
+          <span class="fc-sn">${esc(s.name)}</span>
+          <span class="fc-sv">${esc(s.value)}${s.unit ? `<small>${esc(s.unit)}</small>` : ''}</span>
+          <span class="fc-sr fc-mono">${esc(s.word)}</span>
+        </span>
+        <span class="fc-s-b">
+          <span class="fc-swx fc-mono">${esc(wx) || '&nbsp;'}</span>
+          <span><span class="fc-strip" aria-hidden="true">${strip}</span><span class="fc-strip-l fc-mono" aria-hidden="true"><span>${esc(t('fc.now'))}</span><span>${esc(t('fc.plus12'))}</span></span></span>
+        </span>
       </button>`;
     })
     .join('');
 }
 
-/** The conditions tiles: label and number, a canvas picture (drawn by tiles.ts), the facts, and a tip on tap. */
-export function tilesHtml(list: readonly TileView[], open: (i: number) => boolean): string {
+/** The conditions tiles: label and number, a canvas picture (drawn by tiles.ts), the facts, and a tip on hover or keyboard focus. */
+export function tilesHtml(list: readonly TileView[]): string {
   return list
     .map((x, i) => {
-      const o = open(i);
-      return `<article class="fc-tile${x.lv === null ? '' : ` ${lvCls(x.lv)} has-lv`}" data-kind="${x.kind}" data-tile="${i}"${x.tip ? ` role="button" tabindex="0" aria-expanded="${o}"` : ''}>
+      return `<article class="fc-tile${x.lv === null ? '' : ` ${lvCls(x.lv)} has-lv`}" data-kind="${x.kind}" data-tile="${i}"${x.tip ? ` tabindex="0"` : ''}>
         <div class="fc-t-top"><span class="fc-mono">${esc(x.k)}</span><span class="fc-mono fc-ix">${String(i + 1).padStart(2, '0')}</span></div>
         <canvas class="fc-t-viz" aria-hidden="true"></canvas>
         <div class="fc-t-val">${esc(x.v)}${x.small ? `<small>${esc(x.small)}</small>` : ''}</div>

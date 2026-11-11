@@ -187,23 +187,49 @@ body.fc-open { overflow: hidden; }
 .fc .fc-now { border: 2px solid var(--fc-ink); background: var(--fc-ink); color: var(--fc-bg); padding: 3px 8px 2px; margin-left: 6px; font-family: var(--fc-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
 .fc .fc-now[hidden] { display: none; }
 
-/* --- spots */
-.fc-rail { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-left: var(--fc-g-l); padding-top: 6px; padding-bottom: 10px; scrollbar-width: none; }
+/* --- spots: one scrollable bar between the place name and the activity tabs. Small by default; the one under the mouse
+   (or focused) widens to show the weather and the next 12 hours; on touch, where there is no hover, the selected spot is wide. */
+.fc-spotbar { padding: 6px 0 0; }
+.fc-spots-cap { margin: 0 0 6px; color: var(--fc-ink2); }
+.fc-railwrap { position: relative; }
+.fc .fc-rarrow {
+  position: absolute; top: 4px; bottom: 10px; width: 44px; z-index: 2; border: 0; border-radius: 0; padding: 0; cursor: pointer;
+  font-family: var(--fc-disp); font-weight: 850; font-size: 30px; line-height: 1; color: var(--fc-ink); display: grid; place-items: center;
+  background: linear-gradient(var(--d), color-mix(in srgb, var(--fc-bg) 55%, transparent), transparent); transition: opacity 0.25s;
+}
+.fc .fc-rarrow[hidden] { display: none; }
+.fc-rl { --d: 90deg; left: calc(-1 * var(--fc-g-l)); padding-left: var(--fc-g-l); width: calc(44px + var(--fc-g-l)); justify-content: start; }
+.fc-rr { --d: 270deg; right: calc(-1 * var(--fc-g-r)); padding-right: var(--fc-g-r); width: calc(44px + var(--fc-g-r)); justify-content: end; }
+.fc .fc-rarrow:hover { opacity: 0.8; }
+@media (hover: none) { .fc .fc-rarrow { display: none; } }
+.fc-rail { display: flex; align-items: stretch; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; scroll-padding-left: var(--fc-g-l); padding-top: 4px; padding-bottom: 10px; scrollbar-width: none; }
 .fc-rail::-webkit-scrollbar { display: none; }
 .fc .fc-spot {
-  appearance: none; border: 0; flex: 0 0 66%; scroll-snap-align: start; text-align: left; background: var(--c); color: var(--o);
-  padding: 13px 14px 12px; display: grid; grid-template-rows: auto auto 1fr auto; gap: 4px; min-height: 172px; border-radius: 2px; transition: box-shadow 0.3s;
+  --w-s: 132px; --w-l: 288px;
+  appearance: none; border: 0; flex: 0 0 auto; width: var(--w-s); height: 96px; overflow: hidden; text-align: left; background: var(--c); color: var(--o);
+  padding: 0; display: flex; border-radius: 2px; transition: width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s;
 }
-.fc .fc-spot[aria-selected='true'] { box-shadow: 0 0 0 3px var(--fc-bg), 0 0 0 6px var(--fc-ink); }
-.fc-sn { font-weight: 600; font-size: 14.5px; line-height: 1.15; }
-.fc-sv { font-family: var(--fc-disp); font-weight: 850; font-variation-settings: 'wdth' 76; font-size: 36px; line-height: 0.92; letter-spacing: -0.025em; white-space: nowrap; }
+.fc-s-a { flex: 0 0 var(--w-s); box-sizing: border-box; padding: 10px 11px; display: grid; grid-template-rows: auto 1fr auto; gap: 2px; min-width: 0; }
+.fc-s-b { flex: 0 0 calc(var(--w-l) - var(--w-s)); box-sizing: border-box; padding: 10px 12px 10px 4px; display: grid; grid-template-rows: auto 1fr; align-content: space-between; opacity: 0; transition: opacity 0.25s; }
+.fc .fc-spot[aria-selected='true'] { box-shadow: 0 0 0 2px var(--fc-bg), 0 0 0 4px var(--fc-ink); }
+.fc-sn { font-weight: 600; font-size: 12.5px; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc-sv { font-family: var(--fc-disp); font-weight: 850; font-variation-settings: 'wdth' 76; font-size: 28px; line-height: 0.95; letter-spacing: -0.025em; white-space: nowrap; align-self: center; }
 .fc-sv small { font-size: 0.42em; font-weight: 700; letter-spacing: 0; margin-left: 3px; }
-.fc-sr { font-weight: 600; display: grid; gap: 2px; }
-.fc-swx { font-weight: 500; opacity: 0.85; text-transform: none; letter-spacing: 0.02em; }
+.fc-sr { font-weight: 600; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-swx { font-weight: 500; font-size: 10.5px; opacity: 0.9; text-transform: none; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fc-strip { display: flex; align-items: flex-end; gap: 3px; height: 26px; margin-top: 6px; }
 .fc-strip i { flex: 1; background: currentColor; display: block; min-height: 3px; }
 .fc-strip i.ln { opacity: 0.3; }
 .fc-strip-l { display: flex; justify-content: space-between; font-size: 9.5px; opacity: 0.85; margin-top: 3px; }
+@media (hover: hover) {
+  .fc .fc-spot:hover, .fc .fc-spot:focus-visible { width: var(--w-l); }
+  .fc .fc-spot:hover .fc-s-b, .fc .fc-spot:focus-visible .fc-s-b { opacity: 1; }
+}
+@media (hover: none) {
+  .fc .fc-spot[aria-selected='true'] { width: var(--w-l); }
+  .fc .fc-spot[aria-selected='true'] .fc-s-b { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .fc .fc-spot, .fc-s-b { transition: none; } }
 
 /* --- conditions tiles */
 .fc-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
@@ -217,12 +243,12 @@ body.fc-open { overflow: hidden; }
 .fc-t-val small { font-size: 0.55em; font-weight: 700; color: var(--fc-ink2); letter-spacing: 0; }
 .fc-t-sub { margin: 5px 0 0; font-size: 12.5px; line-height: 1.25; color: var(--fc-ink2); min-height: 2.5em; }
 .fc-t-tip {
-  position: absolute; inset: 0; background: var(--fc-ink); color: var(--fc-bg); padding: 14px; display: flex; align-items: flex-end;
+  position: absolute; inset: 0; background: color-mix(in srgb, var(--fc-bg) 62%, transparent); color: var(--fc-ink); outline: 1px solid var(--fc-ink); outline-offset: -1px; padding: 14px; display: flex; align-items: flex-end;
   opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity 0.25s, transform 0.25s;
 }
-.fc-t-tip p { margin: 0; font-family: var(--fc-disp); font-weight: 700; font-variation-settings: 'wdth' 84; font-size: 20px; line-height: 1.08; }
-.fc-tile[aria-expanded='true'] .fc-t-tip { opacity: 1; transform: none; }
-@media (hover: hover) { .fc-tile[role='button']:hover .fc-t-tip { opacity: 1; transform: none; } }
+.fc-t-tip p { margin: 0; text-shadow: 0 0 6px var(--fc-bg), 0 0 2px var(--fc-bg); font-family: var(--fc-disp); font-weight: 700; font-variation-settings: 'wdth' 84; font-size: 20px; line-height: 1.08; }
+.fc-tile:focus-visible .fc-t-tip { opacity: 1; transform: none; }
+@media (hover: hover) { .fc-tile:hover .fc-t-tip { opacity: 1; transform: none; } }
 
 /* --- live map card */
 .fc .fc-live {
@@ -289,6 +315,13 @@ body.fc-open { overflow: hidden; }
 .fc-hx-sc:focus-visible { outline-offset: -3px; }
 .fc-hx-in { position: relative; }
 .fc-hx-in canvas { position: absolute; left: 0; top: 0; display: block; }
+.fc-hx-key { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.fc-hx-key span { display: inline-flex; align-items: center; gap: 6px; }
+.fc-hx-key i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; }
+.fc-hx-key .k-night { background: var(--fc-c-night); box-shadow: inset 0 0 0 1px var(--fc-c-grid2); }
+.fc-hx-key .k-win { background: var(--fc-c-win); opacity: 0.85; }
+.fc-hx-key .k-sun { width: 3px; background: var(--fc-c-sun); }
+.fc-hx-key .k-now { width: 3px; background: var(--fc-ink); }
 .fc-hx-hint { margin: 8px 0 0; color: var(--fc-ink2); text-transform: none; letter-spacing: 0.02em; }
 
 .fc-foot { margin-top: 44px; border-top: 1px solid var(--fc-line); padding: 16px 0 calc(28px + env(safe-area-inset-bottom, 0px)); color: var(--fc-ink2); }
@@ -303,7 +336,6 @@ body.fc-open { overflow: hidden; }
   .fc-hide-s { display: inline; }
   .fc-tabs { display: flex; gap: clamp(18px, 2.6vw, 40px); }
   .fc .fc-tab { font-size: clamp(28px, 3.4vw, 48px); font-variation-settings: 'wdth' 78; gap: 9px; }
-  .fc .fc-spot { flex: 0 0 calc((100% - 30px) / 3.3); }
   .fc-day .fc-bv { font-size: 22px; }
 }
 @media (min-width: 960px) {
@@ -322,9 +354,6 @@ body.fc-open { overflow: hidden; }
   .fc .fc-best { margin-top: 22px; }
   .fc-bw { font-size: 28px; }
   .fc-bv { font-size: 44px; }
-  .fc-rail { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: visible; margin: 0; padding-left: 0; padding-right: 0; }
-  .fc .fc-spot { min-height: 190px; }
-  .fc-sv { font-size: 42px; }
   .fc-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
   .fc-tile { height: 270px; padding: 16px 16px 15px; }
   .fc-t-val { font-size: 46px; }
