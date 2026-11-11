@@ -15,7 +15,7 @@ import type { Seafloor } from '../adapters/seafloor';
 import { byTier, firstSymbolId } from '../map';
 import { bake, type BakeInput } from './seafloor-bake';
 import type { BakedShade, BakeOut } from './seafloor-worker';
-import { paintColour as cssColour } from './paint';
+import { lifted, paintColour as cssColour, paintLift } from './paint';
 
 export { contourLines } from './seafloor-bake';
 
@@ -89,6 +89,8 @@ export async function mountSeafloor(map: Map, sf: Seafloor) {
   const amber = cssColour('--amber', '#ffb000');
   const green = cssColour('--green', '#39ff7a');
   const red = cssColour('--red', '#ff3b2f');
+  // Faint fills made for a black sea, lifted for the theme's sea (paint.ts).
+  const L = paintLift('strong'), o = (a: number) => lifted(a, L);
 
   // Heavy work first, off the main thread, before touching the style.
   const baked = await bakeSeafloor({ macro: sf.macro, region: sf.region, land: sf.land, rgb: rgbOf(green) });
@@ -135,14 +137,14 @@ export async function mountSeafloor(map: Map, sf: Seafloor) {
 
     // OSM named reef outlines: the coast-tier view of where the reefs are.
     const osmReef: FilterSpecification = ['==', ['get', 'kind'], 'reef-area'];
-    map.addLayer({ id: 'sf-reef-area', type: 'fill', source: 'sf-marks', filter: osmReef, minzoom: 9, paint: { 'fill-color': amber, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 9, 0, 10, 0.14, SPOT - 1, 0.14, SPOT, 0] } }, below);
+    map.addLayer({ id: 'sf-reef-area', type: 'fill', source: 'sf-marks', filter: osmReef, minzoom: 9, paint: { 'fill-color': amber, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 9, 0, 10, o(0.14), SPOT - 1, o(0.14), SPOT, 0] } }, below);
     map.addLayer({ id: 'sf-reef-area-line', type: 'line', source: 'sf-marks', filter: osmReef, minzoom: 9, paint: { 'line-color': amber, 'line-width': 1, 'line-dasharray': [2, 2], 'line-opacity': ['interpolate', ['linear'], ['zoom'], 9, 0, 10, 0.8, SPOT, 0.8, SPOT + 1, 0.25] } }, below);
 
     // Allen Coral Atlas zones: red on the crest (where it breaks), amber on the flats (awash at low tide,
     // brightest on the outer flat), faint amber on slopes and lagoons. Outlines only on crest and flats.
     const cls = ['get', 'cls'] as ExpressionSpecification;
     const zoneColour: ExpressionSpecification = ['match', cls, 'REEF CREST', red, amber];
-    const zoneFill: ExpressionSpecification = ['match', cls, 'REEF CREST', 0.4, 'OUTER REEF FLAT', 0.3, ['INNER REEF FLAT', 'TERRESTRIAL REEF FLAT', 'PLATEAU'], 0.18, 0.07];
+    const zoneFill: ExpressionSpecification = ['match', cls, 'REEF CREST', o(0.4), 'OUTER REEF FLAT', o(0.3), ['INNER REEF FLAT', 'TERRESTRIAL REEF FLAT', 'PLATEAU'], o(0.18), o(0.07)];
     const flats: FilterSpecification = ['in', cls, ['literal', ['REEF CREST', 'OUTER REEF FLAT', 'INNER REEF FLAT', 'TERRESTRIAL REEF FLAT', 'PLATEAU']]];
     const zone: FilterSpecification = ['==', ['get', 'layer'], 'zone'];
     const zMin = SPOT - 1;
