@@ -1611,6 +1611,7 @@ export const es: Dict = {
   'fc.bestWindow': 'Mejor ventana',
   'fc.g.knee': 'Rodilla',
   'fc.g.waist': 'Cintura',
+  'fc.g.person': 'Adulto 1,7 m',
   'fc.g.head': 'Cabeza',
   'fc.hours': 'Hora por hora',
   'fc.hoursHint': 'Toque una hora para verla arriba. Sombreado: noche. Resaltado: la mejor ventana de cada día.',

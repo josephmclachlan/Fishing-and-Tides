@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { moonPhase } from '../physics/astro';
-import { BODY_M, drawRadar, heroParams, HeroEngine, numVar, VMAX } from './art';
+import { BODY_M, drawPerson, drawRadar, heroParams, HeroEngine, numVar, VMAX } from './art';
 import { daysAt, FC_ACTIVITIES, readAt, timeline } from './model';
 import { headline, moonAgeDays } from './view';
 import { DAY0, empty, full, H, recCtx, spot, tokens } from './testkit';
@@ -12,6 +12,7 @@ const ctxFor = (deps: ReturnType<typeof full>, a: (typeof FC_ACTIVITIES)[number]
   return { sp, plan, tl: timeline(deps, a, sp, plan.startMs) };
 };
 
+const ST = (reduced: boolean) => ({ ink: '#fff', soft: '#ccc', faint: '#888', on: [255, 255, 255], fd: [0, 200, 0], T: tokens(), reduced }) as never;
 describe('hero pictures take their numbers from the reading (PLAN 7.69)', () => {
   it('SURF: the face range is the reading\'s, on a 1.7 m adult\'s knee, waist, chest and head', () => {
     const deps = full();
@@ -113,5 +114,14 @@ describe('hero engine draws every activity without a NaN', () => {
     drawRadar(c2, 390, 460, 3, { cx: 195, cy: 230, kmPx: null, name: 'Playa Cocles', level: null, T: tokens(), reduced: true });
     expect(c1.texts).toContain('1 KM');
     expect(c2.texts.some((s) => s.endsWith('KM'))).toBe(false);
+  });
+  it('draws a 1.7 m person to the same scale as the wave guides', () => {
+    const c = recCtx(), mpx = 80, base = 400;
+    drawPerson(c, 100, base, mpx, 1, ST(false));
+    expect(c.texts).toEqual(['ADULT 1.7 M']);
+    expect(c.calls).toContain('arc');
+    const n = recCtx();
+    drawPerson(n, 100, base, 2, 1, ST(true));
+    expect(n.calls.length).toBe(0);
   });
 });
