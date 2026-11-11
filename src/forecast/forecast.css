@@ -408,3 +408,16 @@ body.fc-open { overflow: hidden; }
   body[data-sheet]:not([data-sheet='']) .top-tabs .fc-launch.tab { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .fc-launch.fc-ret-pulse { animation: none; } }
+
+/* Activity tabs: always one row. Type scales with the row's own width (container units) so all seven names fit in
+   full in English and Spanish; icons drop out below 460 px to give the letters the room. */
+.fc-tabs { flex-wrap: nowrap; justify-content: space-between; gap: 0 0.4em; container-type: inline-size; }
+.fc .fc-tab { font-size: min(23px, 100cqw / 21); }
+.fc .fc-tab svg { display: none; }
+@container (min-width: 460px) {
+  .fc .fc-tab { font-size: min(23px, 100cqw / 30); gap: 6px; }
+  .fc .fc-tab svg { display: block; }
+}
+@container (min-width: 700px) {
+  .fc .fc-tab { font-size: min(44px, 100cqw / 30); gap: 9px; }
+}
