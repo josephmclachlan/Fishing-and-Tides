@@ -307,6 +307,13 @@ body.fc-open { overflow: hidden; }
 .fc-hx-sc:focus-visible { outline-offset: -3px; }
 .fc-hx-in { position: relative; }
 .fc-hx-in canvas { position: absolute; left: 0; top: 0; display: block; }
+.fc-hx-key { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.fc-hx-key span { display: inline-flex; align-items: center; gap: 6px; }
+.fc-hx-key i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; }
+.fc-hx-key .k-night { background: var(--fc-c-night); box-shadow: inset 0 0 0 1px var(--fc-c-grid2); }
+.fc-hx-key .k-win { background: var(--fc-c-win); opacity: 0.85; }
+.fc-hx-key .k-sun { width: 3px; background: var(--fc-c-sun); }
+.fc-hx-key .k-now { width: 3px; background: var(--fc-ink); }
 .fc-hx-hint { margin: 8px 0 0; color: var(--fc-ink2); text-transform: none; letter-spacing: 0.02em; }
 
 .fc-foot { margin-top: 44px; border-top: 1px solid var(--fc-line); padding: 16px 0 calc(28px + env(safe-area-inset-bottom, 0px)); color: var(--fc-ink2); }
