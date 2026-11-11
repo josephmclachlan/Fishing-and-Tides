@@ -18,9 +18,10 @@
  * crosshair and every old reading module keeps reading the right point.
  */
 import type { Map as MlMap } from 'maplibre-gl';
+import type { Plan } from '../metrics/plan';
 import type { Spot as FcSpot } from '../metrics/forecast';
-import { headline } from '../forecast/view';
-import { readAt, skyMemo, spotsForActivity, type FcActivity, type FcDeps, type FcRead, type Level } from '../forecast/model';
+import { bestTimeView, headline } from '../forecast/view';
+import { daysAt, readAt, skyMemo, spotsForActivity, type FcActivity, type FcDeps, type FcRead, type Level } from '../forecast/model';
 import { predictSeries, tideState } from '../physics/tide';
 import { LIMON_HARMONICS } from '../data/tides-limon';
 import { REGION, SPOTS } from '../region';
@@ -626,22 +627,32 @@ export function mountKineticMap(d: KmDeps) {
     return `<div class="k-minis">${pick.map((k) => `<div><span>${C[k][0]}</span><b>${C[k][1]}</b></div>`).join('')}</div>`;
   };
   const segs = (share: number | null) => `<span class="k-segs" aria-hidden="true">${Array.from({ length: 10 }, (_, i) => `<i class="${share !== null && i < Math.round(share * 10) ? 'k-f' : ''}"></i>`).join('')}</span>`;
-  const bestIn = (s: Spot, from: number, hours: number) => {
-    let best: FcRead | null = null;
-    for (let o = 0; o < hours; o++) {
-      const t1 = from + o * H, sk = sky(t1, s.lngLat[1], s.lngLat[0]);
-      if (sk.sun.sunrise === null || sk.sun.sunset === null || t1 < sk.sun.sunrise || t1 >= sk.sun.sunset) continue;
-      const r = rate(S.act, s, t1);
-      if (r.score !== null && (!best || (r.share ?? 0) > (best.share ?? 0))) best = r;
+  /**
+   * The week's best window, exactly as the FORECAST page finds it (WATCH's planner): daylight runs from each day's
+   * sunrise to its sunset (PLAN 7.70, Joseph 2026-11-11: "use the new times based off ... active sunrise and sunset").
+   */
+  let planKey = '';
+  let planV: Plan | null = null;
+  const planFor = (a: FcActivity, sp: Spot): Plan | null => {
+    const k = `${a}|${sp.name}|${d.version()}|${Math.floor(Date.now() / 6e5)}`;
+    if (k !== planKey) {
+      planKey = k;
+      try {
+        planV = daysAt(d.fc, a, sp, Date.now());
+      } catch {
+        planV = null;
+      }
     }
-    return best;
+    return planV;
+  };
+  const bestWindow = () => {
+    const a: FcActivity = S.coral ? 'snorkel' : S.act, sp = S.coral ? reefSpot(reef()) : spot();
+    return bestTimeView(planFor(a, sp), (t1) => rate(a, sp, t1), ms(), false);
   };
   const spotCardHTML = () => {
     const s = spot(), t0 = ms(), r = rate(S.act, s, t0), hl = headline(r), dd = dateOf(t0);
     const strip = Array.from({ length: 12 }, (_, i) => rate(S.act, s, t0 + i * H).level);
-    const b = bestIn(s, Math.floor(Date.now() / H) * H, 7 * 24);
-    const bw = b ? `${DN()[local(b.ms).getUTCDay()]} ${local(b.ms).getUTCDate()} · ${hhmm(b.ms)}` : L2('No good window this week', 'Sin buena ventana esta semana');
-    const bh = b ? headline(b) : null;
+    const bt = bestWindow();
     const lv = r.level === null ? 'n' : r.level;
     const rs = r.score === null ? '' : r.activity === 'surf' ? `${n1(r.score)}<small>/10</small>` : `${n0(r.score)}<small>/100</small>`;
     return `<article class="k-scard k-lv${lv}" aria-label="${esc(titleCase(s.name))}">
@@ -652,7 +663,7 @@ export function mountKineticMap(d: KmDeps) {
       <ul class="k-chips k-mono">${reasonsOf(r).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
       ${minis(s, r, t0)}
       <div class="k-strip" aria-hidden="true">${strip.map((l) => `<i style="height:${l === null ? 8 : 24 + l * 19}%"></i>`).join('')}</div><div class="k-strip-l k-mono"><span>${time.offsetH() === 0 ? L2('Now', 'Ahora') : hhmm(t0)}</span><span>+12 h</span></div>
-      <div class="k-sbest"><span class="k-mono">${L2('Best time this week', 'Mejor momento de la semana')}</span><span class="k-bw">${esc(bw)}</span><span class="k-bv">${bh ? `${esc(bh.value)} ${esc(bh.unit.startsWith('/') ? '' : bh.unit)}` : ''}</span></div>
+      <div class="k-sbest"><span class="k-mono">${esc(bt.kind === 'hidden' ? L2('Best time this week', 'Mejor momento de la semana') : bt.label)}</span><span class="k-bw">${esc(bt.kind === 'hidden' ? '--' : bt.when)}</span><span class="k-bv">${esc(bt.value)}</span></div>
     </article>
     <div class="k-sacts"><button type="button" class="k-go" data-go="fc"><span>${L2('Open forecast', 'Abrir pronóstico')}</span>${ARROW}</button><button type="button" class="k-go2" data-go="centre">${L2('Centre', 'Centrar')}</button></div>`;
   };
@@ -779,6 +790,12 @@ export function mountKineticMap(d: KmDeps) {
     const sk = sky(t1, at[1], at[0]);
     return sk.sun.sunrise !== null && sk.sun.sunset !== null && t1 >= sk.sun.sunrise && t1 < sk.sun.sunset;
   };
+  /** The best window's hours on the slider, from the planner's day (its start and end). */
+  const bestSpan = (startMs: number) => {
+    const day = planV?.days.find((x) => x?.startMs === startMs);
+    if (!day) return null;
+    return { a: Math.max(0, (day.startMs - time.baseMs()) / H), b: Math.max(0, (day.endMs - time.baseMs()) / H) };
+  };
   let scrubQueued = false;
   function drawScrub() {
     if (scrubQueued) return;
@@ -786,7 +803,9 @@ export function mountKineticMap(d: KmDeps) {
     requestAnimationFrame(() => {
       scrubQueued = false;
       if (d.forecast.isOpen()) return;
-      scrub.set({ level: scrubLevel, isDay: scrubDay, date: (o) => dateOf(offMs(o)) }, time.offsetH());
+      const bt = bestWindow();
+      const best = bt.startMs !== null && (bt.kind === 'best' || bt.kind === 'chance') ? bestSpan(bt.startMs) : null;
+      scrub.set({ level: scrubLevel, isDay: scrubDay, date: (o) => dateOf(offMs(o)), best }, time.offsetH());
     });
   }
   const renderTime = () => {

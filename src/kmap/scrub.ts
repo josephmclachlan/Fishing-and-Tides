@@ -14,6 +14,8 @@ export interface ScrubData {
   isDay: (o: number) => boolean;
   /** Local date parts for an offset. */
   date: (o: number) => { wd: string; n: number; hh: number };
+  /** The week's best window (offsets in hours), as the forecast page finds it between sunrise and sunset. */
+  best?: { a: number; b: number } | null;
 }
 
 export function mountScrub(el: HTMLElement, onSet: (o: number) => void) {
@@ -73,18 +75,14 @@ export function mountScrub(el: HTMLElement, onSet: (o: number) => void) {
       c.fillRect(x0, h - 1 - hh, x1 - x0 - gap, hh);
     }
     hatch(c, xOfOffset(168, w), y0, xOfOffset(384, w), h, 6, rgba(tok('c-card'), 0.55), 1.6);
-    // Best daylight hours of the week: the top level seen in daylight, Good or better.
-    let top = -1;
-    for (let o = 0; o < 168; o++) if (data.isDay(o)) top = Math.max(top, levels.get(o) ?? -1);
+    // The week's best window (the forecast page's, sunrise to sunset), marked green as on its hour chart.
     best = -1;
-    c.fillStyle = rgba(tok('c-win'));
-    if (top >= 3)
-      for (let o = 0; o < 168; o++)
-        if (data.isDay(o) && levels.get(o) === top) {
-          c.fillRect(xOfOffset(o, w), y0, xOfOffset(o + 1, w) - xOfOffset(o, w) + 0.4, 3);
-          if (best < 0 && o >= cursor - 0) best = o;
-        }
-    if (best < 0 && top >= 3) for (let o = 0; o < 168; o++) if (data.isDay(o) && levels.get(o) === top) { best = o; break; }
+    if (data.best && data.best.b > data.best.a) {
+      c.fillStyle = rgba(tok('c-win'));
+      const x0 = xOfOffset(data.best.a, w), x1 = xOfOffset(data.best.b, w);
+      c.fillRect(x0, y0, Math.max(2, x1 - x0), 3);
+      best = Math.round(data.best.a);
+    }
     // Day ticks at local midnight.
     c.font = `600 ${big ? 10 : 9}px ${MONO}`;
     c.textBaseline = 'middle';
