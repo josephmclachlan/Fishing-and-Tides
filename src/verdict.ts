@@ -26,14 +26,14 @@ import type { Comfort } from './physics/sea-state';
 import type { SurfBand } from './surf-quality';
 import type { Confidence } from './physics/clarity-forecast';
 import { SMALL_BOAT_HS_M, SMALL_BOAT_WIND_KT, STORM_MARGINAL_KM, STORM_NOGO_KM, safetyTerm, type SquallLevel } from './physics/safety';
-import { ratingFor, type OutingScore } from './physics/outing';
+import { ratingFor, type OutingMode, type OutingScore } from './physics/outing';
 import type { Band } from './time';
 import { FEELS_DANGER_C } from './weather';
 
 export type Level = 'GO' | 'MARGINAL' | 'NO-GO';
 /** The activities judged here. BOAT is the sailing audit's (verdict-hud.ts reads it). */
-export type Activity = 'surf' | 'fish' | 'snorkel' | 'dive';
-export const ACTIVITIES: readonly Activity[] = ['surf', 'fish', 'snorkel', 'dive'];
+export type Activity = 'surf' | 'fish' | 'snorkel' | 'dive' | 'spear';
+export const ACTIVITIES: readonly Activity[] = ['surf', 'fish', 'snorkel', 'dive', 'spear'];
 
 export interface VerdictInputs {
   /** Nearest lightning flash in the alert window, km (only when looking at now). */
@@ -56,7 +56,7 @@ export interface VerdictInputs {
   /** Breaker height at the nearest break, m. */
   breakerM?: number | null;
   /** Outing score for the hour at the reticle's spot, per sub-activity (dive-hud.ts). */
-  outing?: Partial<Record<'snorkel' | 'dive', OutingScore | null>>;
+  outing?: Partial<Record<OutingMode, OutingScore | null>>;
   /** Slider band, and hours ahead of now, for the verdict's own confidence. */
   band?: Band;
   leadH?: number;
@@ -110,7 +110,7 @@ const HEAT: Rule = (i) => (has(i.feelsC) && i.feelsC >= HEAT_MARGINAL_C ? R('hea
 
 const OUTING_LEVEL = { GO: 'GO', CAUTION: 'MARGINAL', AVOID: 'NO-GO' } as const;
 /** The outing score's rating, its reasons as `dive.r.*`. Its weather cap is already in the score. */
-const OUTING = (m: 'snorkel' | 'dive'): Rule => (i) => {
+const OUTING = (m: OutingMode): Rule => (i) => {
   const o = i.outing?.[m];
   if (!o) return null;
   const level: Level = OUTING_LEVEL[ratingFor(o.score)];
@@ -139,6 +139,8 @@ export const RULES: Record<Activity, readonly Rule[]> = {
   ],
   snorkel: [HAZARD, STORM, OUTING('snorkel')],
   dive: [HAZARD, STORM, OUTING('dive')],
+  // Spearing is judged on the spear bands, and is a NO-GO (reason NO SPEARING) where the law bans it.
+  spear: [HAZARD, STORM, OUTING('spear')],
 };
 
 /** The inputs without which an activity gets no verdict. */
@@ -147,6 +149,7 @@ export const ESSENTIAL: Record<Activity, (i: VerdictInputs) => boolean> = {
   fish: (i) => has(i.windKt) || has(i.hsM),
   snorkel: (i) => !!i.outing?.snorkel,
   dive: (i) => !!i.outing?.dive,
+  spear: (i) => !!i.outing?.spear,
 };
 
 const RANK: Record<Level, number> = { GO: 0, MARGINAL: 1, 'NO-GO': 2 };

@@ -29,7 +29,7 @@
  * COMFORT points at the same tones) are listed as about as good rather than hidden behind a one-point win.
  */
 import { localDayStart } from '../physics/astro';
-import { bestWindow, ratingFor } from '../physics/outing';
+import { bestWindow, ratingFor, type OutingMode } from '../physics/outing';
 import { SURF_BREAKS } from '../data/surf-breaks';
 import { SNORKEL_SPOTS } from '../data/snorkel-spots';
 import { BEST_LEN_H, TONE_SCORE, bestTime, buildForecast, sunHours, type Spot } from './forecast';
@@ -37,8 +37,8 @@ import { votersFor } from './best-today';
 import { biteTone, fishWindow } from './fish-window';
 import { METRIC_BY_ID, type MetricEnv, type Tone } from './registry';
 
-export type PlanActivity = 'surf' | 'fish' | 'snorkel' | 'dive' | 'boat' | 'swim';
-export const PLAN_ACTIVITIES: readonly PlanActivity[] = ['surf', 'fish', 'snorkel', 'dive', 'boat', 'swim'];
+export type PlanActivity = 'surf' | 'fish' | 'snorkel' | 'dive' | 'spear' | 'boat' | 'swim';
+export const PLAN_ACTIVITIES: readonly PlanActivity[] = ['surf', 'fish', 'snorkel', 'dive', 'spear', 'boat', 'swim'];
 export const isPlanActivity = (x: unknown): x is PlanActivity => typeof x === 'string' && (PLAN_ACTIVITIES as readonly string[]).includes(x);
 
 /** The headline score each activity is shown and ranked by, and its full scale. */
@@ -47,12 +47,13 @@ export const HEADLINE: Readonly<Record<PlanActivity, { id: string; max: number }
   fish: { id: 'bite', max: 100 },
   snorkel: { id: 'outing', max: 100 },
   dive: { id: 'outing', max: 100 },
+  spear: { id: 'outing', max: 100 },
   boat: { id: 'comfort', max: 100 },
   swim: { id: 'swim', max: 100 },
 };
 
 /** Outing score 0..100 at a spot and hour, SNORKEL at 2 m or DIVE at 6 m (the DIVE & SNORKEL panel's), or null without data. */
-export type OutingAt = (spot: Spot, mode: 'snorkel' | 'dive', ms: number, localHour: number) => number | null;
+export type OutingAt = (spot: Spot, mode: OutingMode, ms: number, localHour: number) => number | null;
 
 export interface PlanDay {
   /** Days ahead, 0 = today. */
@@ -89,7 +90,7 @@ export const ALIKE = 0.03;
 /** The spots an activity is judged at: surf breaks for SURF, catalog snorkel spots for SNORKEL and DIVE, all of them otherwise. */
 export function spotsFor(activity: PlanActivity, spots: readonly Spot[]): Spot[] {
   if (activity === 'surf') return spots.filter((s) => SURF_BREAKS.some((b) => b.name === s.name));
-  if (activity === 'snorkel' || activity === 'dive') return spots.filter((s) => SNORKEL_SPOTS.some((x) => x.spot === s.name));
+  if (activity === 'snorkel' || activity === 'dive' || activity === 'spear') return spots.filter((s) => SNORKEL_SPOTS.some((x) => x.spot === s.name));
   return [...spots];
 }
 
@@ -149,7 +150,7 @@ function metricDays(env: MetricEnv, activity: 'surf' | 'fish' | 'boat' | 'swim',
 }
 
 /** Snorkel or dive at one spot: each day's window by the DIVE & SNORKEL panel's search, hours already over scoring nothing. */
-function outingDays(outingAt: OutingAt, mode: 'snorkel' | 'dive', spot: Spot, start: number, nowMs: number, days: number): (PlanDay | null)[] {
+function outingDays(outingAt: OutingAt, mode: OutingMode, spot: Spot, start: number, nowMs: number, days: number): (PlanDay | null)[] {
   return Array.from({ length: days }, (_, d) => {
     const dayMs = start + d * DAY;
     let seen = false;
@@ -175,7 +176,7 @@ export function planDays(env: MetricEnv, activity: PlanActivity, spots: readonly
   const empty = (none: Plan['none']): Plan => ({ activity, startMs: start, days: new Array(days).fill(null), bestDay: null, alike: [], none });
   if (!at.length) return empty('nospot');
   const perSpot = at.map((s) =>
-    activity === 'snorkel' || activity === 'dive'
+    activity === 'snorkel' || activity === 'dive' || activity === 'spear'
       ? outingAt
         ? outingDays(outingAt, activity, s, start, nowMs, days)
         : new Array<PlanDay | null>(days).fill(null)

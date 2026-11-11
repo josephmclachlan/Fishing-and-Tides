@@ -18,7 +18,7 @@ import {
 import { DAY0, full, H, spot } from './testkit';
 
 const NOW = DAY0 + 10 * H; // Wednesday 4 November 2026, 10:00 in Costa Rica (16:00 UTC)
-const SPOT_OF: Record<FcActivity, string> = { surf: 'SALSA BRAVA', fish: 'PUNTA UVA', snorkel: 'PUNTA CAHUITA', dive: 'PUNTA CAHUITA', swim: 'PLAYA COCLES', sail: 'PLAYA COCLES' };
+const SPOT_OF: Record<FcActivity, string> = { surf: 'SALSA BRAVA', fish: 'PUNTA UVA', snorkel: 'PUNTA CAHUITA', dive: 'PUNTA CAHUITA', spear: 'PUNTA UVA', swim: 'PLAYA COCLES', sail: 'PLAYA COCLES' };
 /** Local wall clock at UTC-6, worked out by hand: "HH:MM", seconds dropped as a clock does. */
 const clock = (ms: number) => {
   const m = Math.floor(((((ms / 6e4 - 6 * 60) % 1440) + 1440) % 1440));

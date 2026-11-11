@@ -81,6 +81,7 @@ function activityRows(a: FcActivity): RowSpec[] {
         tide,
       ];
     case 'dive':
+    case 'spear':
       return [
         { id: 'vis', kind: 'area', value: (h) => h.read.water?.visM ?? null, minMax: 15, decimals: 0, label: 'peak' },
         { id: 'score', kind: 'bars', value: (h) => h.read.score, level: (h) => h.read.level, minMax: 100, cap: 100, decimals: 0, label: 'peak' },

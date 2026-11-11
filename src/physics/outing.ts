@@ -33,7 +33,12 @@ import { safetyTerm, type SquallLevel } from './safety';
 
 export type SargLevel = 'NONE' | 'LOW' | 'MODERATE' | 'HIGH';
 
-export type OutingReason = 'storm' | 'surge' | 'vis' | 'chop' | 'shallow' | 'light' | 'rain' | 'current' | 'cold' | 'sargassum' | 'runoff' | 'entry' | 'rip';
+export type OutingReason = 'storm' | 'surge' | 'vis' | 'chop' | 'shallow' | 'deep' | 'light' | 'rain' | 'current' | 'cold' | 'sargassum' | 'runoff' | 'entry' | 'rip' | 'banned';
+
+/** Which outing a score is for: a SNORKEL/DIVE trip, or hunting fish by breath-hold spear (the SPEAR variant, below). */
+export type OutingKind = 'outing' | 'spear';
+/** The three outings the dive panel, the FORECAST page and WATCH score: snorkel (2 m), dive (6 m), spear (6 m, the SPEAR variant). */
+export type OutingMode = 'snorkel' | 'dive' | 'spear';
 
 export interface OutingInputs {
   /** Peak bed velocity at the activity's depth, m/s. */
@@ -93,20 +98,39 @@ function sunLight(i: Pick<OutingInputs, 'localHour' | 'sunAltDeg' | 'cloudPct'>)
   return Math.max(NIGHT_LIGHT, ramp(i.sunAltDeg, 5, 30) * (1 - 0.3 * cloud));
 }
 
-export function outingScore(i: OutingInputs): OutingScore {
+/**
+ * The SPEAR variant (Joseph, 2026-11-11; research in the thread "Research spearfishing as its own activity"). Same terms as a
+ * dive trip, other bands: a spearfisher holds still, aims and recovers, and works a depth window, so
+ *   surge   1 below 0.10 m/s, 0 at 0.40 m/s (a snorkeller's 0.60 would leave you unable to hold a shot)
+ *   vis     0 at 2 m, 1 at 6 m (a shot is 3 to 5 m; fish-by-species bands are in fishing/species.ts)
+ *   chop    1 at 4 m/s wind, 0 at 9 m/s (you surface tired and watch your float and buddy)
+ *   water   0 below 1.5 m over the bed, 1 from 4 m (you cannot dive a puddle), and 1 up to 15 m falling to 0 at 25 m
+ *           (a breath-hold hunter's working depth: shallow-water blackout risk climbs with depth and effort)
+ *   current 1 up to 0.10 m/s, 0 at 0.40 m/s (you carry a gun and a float and drift off your mark)
+ * The bands are our guidance from forum and shop sources, not a standard. Light, sea temperature, sargassum, runoff, entry, rip,
+ * rain and the safety cap are as for a dive trip.
+ */
+const BANDS: Record<OutingKind, { surge: [number, number]; vis: [number, number]; chop: [number, number]; water: [number, number]; deep: [number, number]; current: [number, number] }> = {
+  outing: { surge: [0.1, 0.6], vis: [1, 10], chop: [4, 10], water: [0.5, 1.5], deep: [Infinity, Infinity], current: [0.15, 0.6] },
+  spear: { surge: [0.1, 0.4], vis: [2, 6], chop: [4, 9], water: [1.5, 4], deep: [15, 25], current: [0.1, 0.4] },
+};
+
+export function outingScore(i: OutingInputs, kind: OutingKind = 'outing'): OutingScore {
+  const b = BANDS[kind];
   const terms: [OutingReason, number][] = [
-    ['surge', 1 - ramp(i.surgeMs, 0.1, 0.6)],
-    ['vis', ramp(i.visM, 1, 10)],
-    ['chop', 1 - ramp(i.windMs, 4, 10)],
-    ['shallow', ramp(i.waterM, 0.5, 1.5)],
+    ['surge', 1 - ramp(i.surgeMs, ...b.surge)],
+    ['vis', ramp(i.visM, ...b.vis)],
+    ['chop', 1 - ramp(i.windMs, ...b.chop)],
+    ['shallow', ramp(i.waterM, ...b.water)],
     ['light', sunLight(i)],
   ].map(([r, v]) => [r, Number.isFinite(v as number) ? (v as number) : 0.5] as [OutingReason, number]);
+  if (kind === 'spear' && Number.isFinite(i.waterM)) terms.push(['deep', 1 - ramp(i.waterM, ...b.deep)]);
   if (i.sstC !== undefined && Number.isFinite(i.sstC)) terms.push(['cold', 1 - 0.6 * ramp(26 - i.sstC, 0, 6)]);
   if (i.sarg) terms.push(['sargassum', i.sarg === 'HIGH' ? 0.3 : i.sarg === 'MODERATE' ? 0.6 : 1]);
   if (i.runoff !== undefined) terms.push(['runoff', i.runoff ? 0.6 : 1]);
   if (i.breakerM !== undefined && Number.isFinite(i.breakerM)) terms.push(['entry', 1 - ramp(i.breakerM, 0.5, 1.5)]);
   if (i.rip) terms.push(['rip', i.rip === 'HIGH' ? 0.4 : i.rip === 'MOD' ? 0.8 : 1]);
-  if (i.currentMs !== undefined && Number.isFinite(i.currentMs)) terms.push(['current', 1 - ramp(i.currentMs, 0.15, 0.6)]);
+  if (i.currentMs !== undefined && Number.isFinite(i.currentMs)) terms.push(['current', 1 - ramp(i.currentMs, ...b.current)]);
   if (i.rainMmH !== undefined && Number.isFinite(i.rainMmH)) terms.push(['rain', 1 - 0.7 * ramp(i.rainMmH, 2, 10)]);
   const min = Math.min(...terms.map((x) => x[1]));
   const mean = terms.reduce((a, x) => a + x[1], 0) / terms.length;

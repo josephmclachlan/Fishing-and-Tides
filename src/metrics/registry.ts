@@ -236,12 +236,13 @@ export const MAX_TRACKED = 8;
  * things that move a swimmer (current, chop, sargassum, sun); DIVE adds period, which drives surge at depth.
  * Every activity tracks the UV index, the day's peak in the daily view (Joseph, 2026-11-10).
  */
-export const METRIC_PRESETS: Readonly<Record<'surf' | 'fish' | 'snorkel' | 'dive' | 'boat' | 'swim', readonly string[]>> = {
+export const METRIC_PRESETS: Readonly<Record<'surf' | 'fish' | 'snorkel' | 'dive' | 'spear' | 'boat' | 'swim', readonly string[]>> = {
   swim: ['swim', 'rip', 'shorebreak', 'uv', 'feels', 'sst', 'wind', 'rain'],
   surf: ['surfq', 'swell', 'period', 'wind', 'tide', 'sargassum', 'sst', 'uv'],
   fish: ['bite', 'wind', 'swell', 'rain', 'clarity', 'uv'],
   snorkel: ['clarity', 'swell', 'wind', 'current', 'rain', 'sargassum', 'uv'],
   dive: ['clarity', 'swell', 'period', 'current', 'wind', 'rain', 'sst', 'uv'],
+  spear: ['clarity', 'swell', 'current', 'wind', 'rain', 'sst', 'uv'],
   boat: ['comfort', 'wind', 'wdir', 'gust', 'squall', 'current', 'rain', 'uv'],
 };
 

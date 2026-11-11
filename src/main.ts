@@ -158,6 +158,7 @@ import { haloOverlays, styleBaseMap } from './kmap/basemap';
 import { OLD_PRESET, type Mask } from './kmap/model';
 import { L2, setKmLang } from './kmap/dom';
 import { zoneAt, type ZonePoly } from './zone-lookup';
+import { spearStatus } from './rules';
 import './forecast/fonts';
 import './kmap/kmap.css';
 import { BEACH_RADIUS_M, beachDay, mountSargassum, mountSargassumHud, sargassumForecast, type SargForecast } from './layers/sargassum';
@@ -878,7 +879,7 @@ mountWatchPanel(
 );
 // FORECAST page (PLAN 7.52): a clean page per spot and activity, its own link (#forecast/<spot>/<activity>).
 /** The map's LAYERS preset for each forecast activity (snorkel and dive share DIVE). */
-const MAP_PRESET: Record<FcActivity, ActivityId> = { fish: 'fishing', surf: 'surf', swim: 'swim', snorkel: 'dive', dive: 'dive', sail: 'sail' };
+const MAP_PRESET: Record<FcActivity, ActivityId> = { fish: 'fishing', surf: 'surf', swim: 'swim', snorkel: 'dive', dive: 'dive', spear: 'spear', sail: 'sail' };
 /**
  * Changes whenever a feed arrives or updates (every adapter reports to DATA AGE; the rest are what is worked out from
  * them): the map shell and the forecast page keep what they worked out until it changes.
@@ -1345,6 +1346,8 @@ fetchSeafloor()
         return { rainMmH: w.rainMmH, cloudPct: w.cloudPct, uv: uvNow(ms) ?? undefined, squall: w.squall, lightning: !!near && near.km <= STRIKE_ALERT_KM };
       },
       depthAt: (lng, lat) => depthAt?.(lng, lat),
+      // SPEAR: the law under the point (a national park or closed water bans it); open until the zones load.
+      spearAt: (lng, lat) => (zonePolys.length ? spearStatus(zoneAt(zonePolys, [lng, lat])) : 'ok'),
     }) ?? null;
     spotPhysics.update();
     reefLookup = makeReefLookup(data.reefs, REEFISH);
@@ -1459,7 +1462,7 @@ const verdictInputs = (): VerdictInputs => {
     rip: cond.ripKnown ? cond.ripRisk : null,
     surf: brk?.surf?.band ?? null,
     breakerM: brk?.result?.waves.breaker.Hb ?? null,
-    outing: { snorkel: diveHud?.now('snorkel') ?? null, dive: diveHud?.now('dive') ?? null },
+    outing: { snorkel: diveHud?.now('snorkel') ?? null, dive: diveHud?.now('dive') ?? null, spear: diveHud?.now('spear') ?? null },
     band: time.band(),
     leadH: (ms - now) / 3.6e6,
   };

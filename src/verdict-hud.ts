@@ -9,14 +9,15 @@
  * so the two never disagree; the chip hides while that row isn't there.
  */
 import { t, type Key } from './i18n';
+import type { OutingMode } from './physics/outing';
 import type { Mode } from './glance';
 import type { CondGroups } from './cond-groups';
 import { ACTIVITIES, verdict, verdictConfidence, type Activity, type Level, type Reason, type Verdict, type VerdictInputs } from './verdict';
 
 type Chip = Activity | 'boat';
 const CHIPS: readonly Chip[] = [...ACTIVITIES, 'boat'];
-const GROUP: Record<Chip, Mode> = { surf: 'surf', fish: 'fish', snorkel: 'dive', dive: 'dive', boat: 'boat' };
-const LABEL: Record<Chip, Key> = { surf: 'cg.act.surf', fish: 'cg.act.fish', snorkel: 'dive.mode.snorkel', dive: 'dive.mode.dive', boat: 'cg.act.boat' };
+const GROUP: Record<Chip, Mode> = { surf: 'surf', fish: 'fish', snorkel: 'dive', dive: 'dive', spear: 'dive', boat: 'boat' };
+const LABEL: Record<Chip, Key> = { surf: 'cg.act.surf', fish: 'cg.act.fish', snorkel: 'dive.mode.snorkel', dive: 'dive.mode.dive', spear: 'dive.mode.spear', boat: 'cg.act.boat' };
 const TONE: Record<Level, string> = { GO: 'green', MARGINAL: '', 'NO-GO': 'red' };
 const RANK: Record<Level, number> = { GO: 0, MARGINAL: 1, 'NO-GO': 2 };
 
@@ -31,8 +32,8 @@ export const levelText = (v: Pick<Verdict, 'level' | 'confidence'>) => (v.level 
 
 /** The dive panel's SNORKEL / DIVE mode (dive-hud.ts), once it is mounted. */
 export interface DiveLink {
-  mode: () => 'snorkel' | 'dive';
-  setMode: (m: 'snorkel' | 'dive') => void;
+  mode: () => OutingMode;
+  setMode: (m: OutingMode) => void;
 }
 
 export function mountVerdictHud(root: HTMLElement, inputs: () => VerdictInputs, groups: CondGroups, dive: () => DiveLink | null) {
@@ -54,7 +55,7 @@ export function mountVerdictHud(root: HTMLElement, inputs: () => VerdictInputs, 
   for (const m of CHIPS)
     chip(m).addEventListener('click', () => {
       // A tap always shows that activity (ALL is its own tab): toggling back to ALL lost new users (J6).
-      if (m === 'snorkel' || m === 'dive') dive()?.setMode(m);
+      if (m === 'snorkel' || m === 'dive' || m === 'spear') dive()?.setMode(m);
       groups.setActivity(GROUP[m]);
       // Switching SNORKEL to DIVE keeps the same group open, so nothing else would redraw the chips.
       refresh();

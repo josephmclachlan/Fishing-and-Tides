@@ -7,7 +7,7 @@ import { safetyTerm } from './physics/safety';
 const reef = outingScore({ surgeMs: 0.05, visM: 12, windMs: 3, waterM: 3, localHour: 10 });
 const calm: VerdictInputs = {
   windKt: 10, hsM: 0.6, comfort: 'comfortable', rip: 'LOW', surf: 'GOOD', breakerM: 1.2, bite: 70,
-  outing: { snorkel: reef, dive: reef }, band: 'forecast', leadH: 0,
+  outing: { snorkel: reef, dive: reef, spear: reef }, band: 'forecast', leadH: 0,
 };
 const keys = (a: (typeof ACTIVITIES)[number], i: VerdictInputs) => verdict(a, i).reasons.map((r) => r.key);
 
@@ -90,5 +90,14 @@ describe('verdict', () => {
     expect(verdictConfidence('forecast', 120)).toBe('MED');
     expect(verdictConfidence('lowconf', 200)).toBe('LOW');
     expect(verdict('fish', { ...calm, band: 'outlook', leadH: 500 }).confidence).toBe('LOW');
+  });
+});
+
+describe('spear verdict', () => {
+  it('is a NO-GO named NO SPEARING where the law bans it (the score is 0 and the reason banned)', () => {
+    const banned = { score: 0, reasons: ['banned' as const] };
+    const v = verdict('spear', { outing: { spear: banned }, band: 'forecast', leadH: 0 });
+    expect(v.level).toBe('NO-GO');
+    expect(v.reasons.map((r) => r.key)).toContain('dive.r.banned');
   });
 });

@@ -14,6 +14,7 @@
  *            marker posts every 5 m, the water over the reef at this tide
  *   DIVE     a depth column: a diver at the activity depth, range arcs at 5, 10 and 15 m, murk past the visibility,
  *            a lead line, the surge swinging with its strength
+ *   SPEAR    the DIVE column with a breath-hold freediver, no tank, a speargun held out in front and a surface float on its line
  *   SAIL     a wind rose with a damped needle, barbs and the gust sector; a hull heeling with the wind (an
  *            illustration, no angle is claimed); a 0-30 kt scale with the mean and the gusts
  *
@@ -118,7 +119,7 @@ export function numVar(p: HeroParams, tt: number, reduced: boolean): [number, nu
   }
 }
 /** The widest the number gets (to fit it to its box). */
-export const VMAX: Record<FcActivity, [number, number]> = { surf: [96, 800], sail: [108, 900], fish: [86, 860], swim: [92, 800], snorkel: [92, 860], dive: [92, 860] };
+export const VMAX: Record<FcActivity, [number, number]> = { surf: [96, 800], sail: [108, 900], fish: [86, 860], swim: [92, 800], snorkel: [92, 860], dive: [92, 860], spear: [92, 860] };
 
 /** Gust envelope 0..1: smooth gusts roughly every 7 s (illustrative motion, the numbers are the reading's). */
 export function gust(tt: number) {
@@ -196,7 +197,7 @@ export class HeroEngine {
     this.AR = { x: a.left - r.left, y: a.top - r.top, w: Math.max(1, a.width), h: Math.max(1, a.height) };
     this.init();
   }
-  private dots() { return this.p.act === 'snorkel' || this.p.act === 'dive'; }
+  private dots() { return this.p.act === 'snorkel' || this.p.act === 'dive' || this.p.act === 'spear'; }
   private shoreY() { return this.AR.y + this.AR.h * 0.8; }
   private spawn(i: number, anywhere: boolean) {
     const x = Math.random() * this.W;
@@ -251,8 +252,8 @@ export class HeroEngine {
       out[0] = vx; out[1] = vy; out[2] = inX ? 0.35 + 0.6 * g + 0.4 * head : 0.3;
     } else {
       const n = nz(x, y, tt * 0.5), sg = clamp((p.water?.surgeMs ?? 0.1) / 0.3, 0.3, 2);
-      const surge = p.act === 'dive' ? 16 * sg * Math.sin((TAU * tt) / 8) : 4 * Math.sin((TAU * tt) / 6);
-      out[0] = -4 + surge + 4 * n; out[1] = (p.act === 'dive' ? 3.5 : 0.5) + 3 * Math.sin(x * 0.01 + tt * 0.3); out[2] = 1;
+      const surge = p.act === 'dive' || p.act === 'spear' ? 16 * sg * Math.sin((TAU * tt) / 8) : 4 * Math.sin((TAU * tt) / 6);
+      out[0] = -4 + surge + 4 * n; out[1] = (p.act === 'dive' || p.act === 'spear' ? 3.5 : 0.5) + 3 * Math.sin(x * 0.01 + tt * 0.3); out[2] = 1;
     }
   }
   private V = [0, 0, 0];
@@ -343,7 +344,7 @@ export class HeroEngine {
     else if (p.act === 'fish' && p.fish) drawFish(c, A, tt, p.fish, S);
     else if (p.act === 'swim' && p.swim) drawSwim(c, A, tt, p.swim, S, this.shoreY());
     else if (p.act === 'snorkel' && p.water) drawSnorkel(c, A, tt, p.water, S);
-    else if (p.act === 'dive' && p.water) drawDive(c, A, tt, p.water, S);
+    else if ((p.act === 'dive' || p.act === 'spear') && p.water) drawDive(c, A, tt, p.water, S, p.act);
     c.restore();
   }
   /** A still frame for reduced motion: the field run for a moment, then held. */
@@ -754,9 +755,9 @@ function seaFan(c: Ctx2D, x: number, y: number, r: number, sway: number, fill: s
   c.lineWidth = 2.4; c.beginPath(); c.moveTo(x, y + 2); c.lineTo(x + Math.sin(sway) * r * 0.25, y - r * 0.25); c.stroke();
 }
 /** A swimmer seen side on, facing right, mask at (0, 0). */
-function figure(c: Ctx2D, mx: number, my: number, s: number, tt: number, kit: 'snorkel' | 'dive', body: string, cut: string, gear: string) {
+function figure(c: Ctx2D, mx: number, my: number, s: number, tt: number, kit: 'snorkel' | 'dive' | 'spear', body: string, cut: string, gear: string) {
   c.save(); c.translate(mx, my); c.scale(s, s);
-  const kick = Math.sin(tt * (kit === 'dive' ? 2.4 : 3.4));
+  const kick = Math.sin(tt * (kit === 'snorkel' ? 3.4 : 2.4));
   c.strokeStyle = body; c.fillStyle = body;
   capsule(c, -14, 3, -50, 5, 13);
   capsule(c, -50, 5, -76, 3 + kick * 4, 6.5);
@@ -771,6 +772,14 @@ function figure(c: Ctx2D, mx: number, my: number, s: number, tt: number, kit: 's
     capsule(c, -44, -8, -18, -8, 8.5);
     c.fillStyle = cut; c.fillRect(-20, -12, 2, 8);
     c.strokeStyle = body; c.lineWidth = 1.6; c.beginPath(); c.moveTo(-18, -8); c.quadraticCurveTo(-6, -12, 2, 4); c.stroke();
+  } else if (kit === 'spear') {
+    // A breath-hold hunter: no tank. The speargun held out in front (stock at the hands, barrel and band forward, the shaft's tip beyond), its line to the float above.
+    c.lineCap = 'round'; c.strokeStyle = gear; c.lineWidth = 3.2; c.beginPath(); c.moveTo(4, 12); c.lineTo(58, 10); c.stroke();
+    c.lineWidth = 1.6; c.beginPath(); c.moveTo(16, 11.6); c.quadraticCurveTo(22, 17, 34, 10.8); c.stroke();
+    c.lineWidth = 1.2; c.beginPath(); c.moveTo(58, 10); c.lineTo(66, 9.7); c.stroke();
+    c.strokeStyle = body; c.lineWidth = 1; c.setLineDash([2, 3]); c.beginPath(); c.moveTo(-4, 13); c.quadraticCurveTo(-30, -60, -26, -150); c.stroke(); c.setLineDash([]);
+    c.fillStyle = gear; c.beginPath(); c.arc(-26, -152, 5, 0, TAU); c.fill();
+    c.lineCap = 'butt';
   } else { c.lineWidth = 3; c.lineCap = 'round'; c.beginPath(); c.moveTo(-8, -3); c.lineTo(-9, -22); c.lineTo(-5, -25); c.stroke(); c.lineCap = 'butt'; }
   c.restore();
 }
@@ -858,7 +867,7 @@ function drawSnorkel(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['wa
     c.fillStyle = S.ink; txt(c, a.overReef, bx - 8, (sy + by) / 2 + 10, 'right', 10.5, 700);
   }
 }
-function drawDive(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['water']>, S: Style) {
+function drawDive(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['water']>, S: Style, kit: 'dive' | 'spear' = 'dive') {
   const { x, y, w, h } = A, wide = w > h * 1.15, s = wide ? 1.05 : 0.74, vis = a.visM ?? 0;
   const span = 20, top = y + 16, bot = y + h - 4, mp = (bot - top) / span, lx = x + 26;
   const sg = clamp(a.surgeMs / 0.3, 0.3, 2);
@@ -899,11 +908,11 @@ function drawDive(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['water
   }
   c.fillStyle = S.ink; c.beginPath(); c.moveTo(lb - 4, my - 12); c.lineTo(lb + 4, my - 12); c.lineTo(lb + 7, my); c.lineTo(lb - 7, my); c.closePath(); c.fill();
   c.fillStyle = S.ink; txt(c, a.at, lx + 14, my - 18, 'left', 10.5, 800);
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < (kit === 'spear' ? 0 : 9); i++) { // a breath-hold hunter breathes out only at the surface: no bubble stream
     const k = S.reduced ? i / 9 : (tt * 0.32 + i / 9) % 1, by = my - 6 - k * (my - top - 10), bx = dmx + 8 * s + Math.sin(k * 14 + i) * 3;
     c.strokeStyle = rgba(S.on, 0.95 - k * 0.5); c.lineWidth = 1.3; c.beginPath(); c.arc(bx, by, 1.6 + k * 3.2, 0, TAU); c.stroke();
   }
-  figure(c, dmx, my, s, tt, 'dive', S.ink, rgba(S.fd), rgba(S.T.lv2));
+  figure(c, dmx, my, s, tt, kit, S.ink, rgba(S.fd), rgba(S.T.lv2));
   // Surge: a double arrow swinging as far as the surge is strong.
   const sx = mx - 30 * s, syy = my + 1.6 * mp, sw2 = surge * 10;
   c.strokeStyle = S.ink; c.fillStyle = S.ink; c.lineWidth = 2;

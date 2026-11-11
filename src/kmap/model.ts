@@ -13,7 +13,7 @@ import type { LayerId } from '../layers/registry';
 import type { FcActivity } from '../forecast/model';
 
 export type Mode = FcActivity | 'coral';
-export const MODES: readonly Mode[] = ['surf', 'fish', 'swim', 'snorkel', 'dive', 'sail', 'coral'];
+export const MODES: readonly Mode[] = ['surf', 'fish', 'swim', 'snorkel', 'dive', 'spear', 'sail', 'coral'];
 export const isMode = (x: unknown): x is Mode => typeof x === 'string' && (MODES as readonly string[]).includes(x);
 
 /** The map's own layers, drawn by src/kmap, beside the old registry's. */
@@ -48,6 +48,7 @@ export const KM_LAYERS: readonly KmLayerDef[] = [
   { id: 'rip', group: 'beach', src: 'Rip model · river flow', feeds: ['waves', 'river'] },
   { id: 'surf', group: 'beach', src: 'Surf break catalogue', feeds: ['waves'] },
   { id: 'fishing', group: 'beach', src: 'Habitat · BITE · OBIS', feeds: ['weather'] },
+  { id: 'spear', group: 'beach', src: 'Habitat · INCOPESCA · SINAC', feeds: [] },
   { id: 'depth', group: 'seafloor', src: 'GEBCO 2026', feeds: [] },
   { id: 'reefs', group: 'seafloor', src: 'Allen Coral Atlas', feeds: [] },
   { id: 'seamarks', group: 'seafloor', src: 'OpenStreetMap seamarks', feeds: [] },
@@ -70,6 +71,7 @@ export const PRESETS: Readonly<Record<Mode, readonly KmLayer[]>> = {
   swim: ['rating', 'lightning', 'weather', 'rip', 'sargassum', 'clarity', 'sst'],
   snorkel: ['rating', 'lightning', 'currents', 'waves', 'zones', 'reefs', 'clarity'],
   dive: ['rating', 'lightning', 'seamarks', 'currents', 'zones', 'reefs', 'clarity', 'depth'],
+  spear: ['rating', 'lightning', 'spear', 'currents', 'zones', 'reefs', 'clarity', 'depth'],
   sail: ['rating', 'lightning', 'weather', 'obs', 'wind', 'currents', 'waves', 'anchorages', 'seamarks'],
   coral: ['private', 'heat', 'zones', 'reefs', 'sst'],
 };
@@ -126,7 +128,7 @@ export function moveLayer(list: readonly KmLayer[], id: KmLayer, by: number): Km
 }
 
 /** The old map's LAYERS preset for each activity (snorkel and dive share DIVE): CONDITIONS groups follow it. */
-export const OLD_PRESET = { fish: 'fishing', surf: 'surf', swim: 'swim', snorkel: 'dive', dive: 'dive', sail: 'sail' } as const;
+export const OLD_PRESET = { fish: 'fishing', surf: 'surf', swim: 'swim', snorkel: 'dive', dive: 'dive', spear: 'spear', sail: 'sail' } as const;
 
 /* ---------- 30-day scrubber geometry ---------- */
 

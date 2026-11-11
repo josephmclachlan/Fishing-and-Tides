@@ -11,7 +11,7 @@ export type LayerId =
   | 'waves' | 'currents' | 'wind' | 'sst' | 'fronts' | 'clarity' | 'sargassum' | 'weather' | 'lightning' | 'obs'
   | 'rip' | 'surf'
   | 'depth' | 'reefs' | 'seamarks'
-  | 'fishing' | 'zones' | 'anchorages';
+  | 'fishing' | 'spear' | 'zones' | 'anchorages';
 
 export type LayerGroup = 'OCEAN' | 'SURF ZONE' | 'SEAFLOOR' | 'USE';
 
@@ -39,11 +39,12 @@ export const LAYERS: readonly LayerDef[] = [
   { id: 'reefs', group: 'SEAFLOOR', mapPrefixes: ['sf-reef', 'sf-zone', 'sf-bottom'] },
   { id: 'seamarks', group: 'SEAFLOOR', mapPrefixes: ['sf-marks'] },
   { id: 'fishing', group: 'USE', mapPrefixes: ['fh-', 'bt-'] },
+  { id: 'spear', group: 'USE', mapPrefixes: ['sp-'] },
   { id: 'zones', group: 'USE', mapPrefixes: ['pz-'] },
   { id: 'anchorages', group: 'USE', mapPrefixes: ['an-'] },
 ];
 
-export type ActivityId = 'all' | 'fishing' | 'dive' | 'surf' | 'swim' | 'sail';
+export type ActivityId = 'all' | 'fishing' | 'dive' | 'spear' | 'surf' | 'swim' | 'sail';
 export interface Activity { id: ActivityId; layers: readonly LayerId[] }
 
 const ALL_IDS = LAYERS.map((l) => l.id);
@@ -53,6 +54,8 @@ export const ACTIVITIES: readonly Activity[] = [
   { id: 'all', layers: ALL_IDS },
   { id: 'fishing', layers: ['fishing', 'sst', 'fronts', 'clarity', 'weather', 'lightning', 'obs', 'currents', 'wind', 'depth', 'reefs', 'zones'] },
   { id: 'dive', layers: ['lightning', 'clarity', 'sargassum', 'waves', 'currents', 'rip', 'depth', 'reefs', 'zones', 'seamarks'] },
+  // SPEAR (Joseph, 2026-11-11): the dive view with the spear areas, where spearing is banned, and the rules.
+  { id: 'spear', layers: ['spear', 'lightning', 'clarity', 'waves', 'currents', 'depth', 'reefs', 'zones', 'seamarks'] },
   { id: 'surf', layers: ['lightning', 'sargassum', 'waves', 'wind', 'rip', 'surf', 'depth', 'reefs'] },
   // A beach day (PLAN 7.68): rip channels and the waves that feed them, the water itself (clarity, temperature, sargassum),
   // rain and storms.
