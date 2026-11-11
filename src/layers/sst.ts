@@ -184,7 +184,8 @@ export function mountSst(map: Map, d: SatelliteData, sea?: SstCoast) {
     for (const { k, img, zoom } of fills) {
       map.addSource(`ss-fill-${k}`, { type: 'image', url: fillUrl(img), coordinates: img.coordinates });
       map.addLayer({ id: `ss-fill-${k}`, type: 'raster', source: `ss-fill-${k}`, ...zoom,
-        paint: { 'raster-opacity': 1, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, below);
+        // Steps back to a tint by the spot tier, where the pins and zones carry the detail (as chlorophyll does).
+        paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], TIER_ZOOM.SPOT - 1.5, 1, TIER_ZOOM.SPOT, 0.35], 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, below);
     }
     map.addSource('ss', { type: 'geojson', data, attribution: 'MUR SST, NASA JPL via NOAA CoastWatch' });
     // Macro lines fade out as the finer coast lines fade in across the tier edge.

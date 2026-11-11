@@ -199,6 +199,8 @@
 .km .k-rampw>em{font-style:normal;font-size:9.5px;font-weight:600;color:var(--ink2);letter-spacing:.03em}
 .km .k-rampl{grid-column:1;position:relative;height:13px;margin-top:3px;font-size:9.5px;font-weight:600;color:var(--ink2);letter-spacing:.03em}
 .km .k-rampl span{position:absolute;top:0;transform:translateX(-50%)}
+.km .k-rampl-ends span:first-child{transform:none}
+.km .k-rampl-ends span:last-child{transform:translateX(-100%)}
 .km .k-legmini .k-lkeys{font-size:10.5px;gap:2px}
 .km .k-legmini .k-lkeys span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .km .k-keys{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11.5px;color:var(--ink2)}

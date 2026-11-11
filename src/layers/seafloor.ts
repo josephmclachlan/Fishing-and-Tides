@@ -26,7 +26,7 @@ const { COAST, SPOT } = TIER_ZOOM;
  */
 export const CONTOURS_FROM = 'sf-contour-deep';
 /** Fill layers that must stay under the contours, whichever loads first. */
-const FILLS_UNDER_CONTOURS = ['fh-cells', 'sp-cells', 'sp-ban', 'pz-fill'];
+const FILLS_UNDER_CONTOURS = ['fh-heat', 'sp-cells', 'sp-ban', 'pz-fill'];
 const FONT = ['Noto Sans Regular'];
 
 /** Theme colours come from the CSS variables in style.css. */
@@ -141,18 +141,19 @@ export async function mountSeafloor(map: Map, sf: Seafloor) {
     map.addLayer({ id: 'sf-reef-area-line', type: 'line', source: 'sf-marks', filter: osmReef, minzoom: 9, paint: { 'line-color': amber, 'line-width': 1, 'line-dasharray': [2, 2], 'line-opacity': ['interpolate', ['linear'], ['zoom'], 9, 0, 10, 0.8, SPOT, 0.8, SPOT + 1, 0.25] } }, below);
 
     // Allen Coral Atlas zones: red on the crest (where it breaks), amber on the flats (awash at low tide,
-    // brightest on the outer flat), faint amber on slopes and lagoons. Outlines only on crest and flats.
+    // brightest on the outer flat), faint amber on slopes and lagoons. Outlines only on crest and flats, kept thin and
+    // light: the atlas's 5 m pixel edges read as noise when drawn strong (PLAN 7.80).
     const cls = ['get', 'cls'] as ExpressionSpecification;
     const zoneColour: ExpressionSpecification = ['match', cls, 'REEF CREST', red, amber];
-    const zoneFill: ExpressionSpecification = ['match', cls, 'REEF CREST', o(0.4), 'OUTER REEF FLAT', o(0.3), ['INNER REEF FLAT', 'TERRESTRIAL REEF FLAT', 'PLATEAU'], o(0.18), o(0.07)];
+    const zoneFill: ExpressionSpecification = ['match', cls, 'REEF CREST', o(0.4), 'OUTER REEF FLAT', o(0.3), ['INNER REEF FLAT', 'TERRESTRIAL REEF FLAT', 'PLATEAU'], o(0.14), o(0.06)];
     const flats: FilterSpecification = ['in', cls, ['literal', ['REEF CREST', 'OUTER REEF FLAT', 'INNER REEF FLAT', 'TERRESTRIAL REEF FLAT', 'PLATEAU']]];
     const zone: FilterSpecification = ['==', ['get', 'layer'], 'zone'];
     const zMin = SPOT - 1;
     map.addLayer({ id: 'sf-zone-fill', type: 'fill', source: 'sf-reefs', filter: zone, minzoom: zMin, paint: { 'fill-color': zoneColour, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], zMin, 0, SPOT, zoneFill] } }, below);
-    map.addLayer({ id: 'sf-zone-line', type: 'line', source: 'sf-reefs', filter: ['all', zone, flats], minzoom: zMin, paint: { 'line-color': zoneColour, 'line-width': ['interpolate', ['linear'], ['zoom'], SPOT, 0.5, 16, 1.2], 'line-opacity': ['interpolate', ['linear'], ['zoom'], zMin, 0, SPOT, 0.55] } }, below);
+    map.addLayer({ id: 'sf-zone-line', type: 'line', source: 'sf-reefs', filter: ['all', zone, flats], minzoom: zMin, paint: { 'line-color': zoneColour, 'line-width': ['interpolate', ['linear'], ['zoom'], SPOT, 0.4, 16, 1], 'line-opacity': ['interpolate', ['linear'], ['zoom'], zMin, 0, SPOT, 0.4] } }, below);
     // Bottom cover, dotted: seagrass green (forage beds), coral/algae and rock amber.
     const bottom: FilterSpecification = ['all', ['==', ['get', 'layer'], 'bottom'], ['in', cls, ['literal', ['SEAGRASS', 'CORAL/ALGAE', 'ROCK']]]];
-    map.addLayer({ id: 'sf-bottom-line', type: 'line', source: 'sf-reefs', filter: bottom, minzoom: 13.5, paint: { 'line-color': ['match', cls, 'SEAGRASS', green, amber], 'line-width': 1.2, 'line-dasharray': [0.5, 2], 'line-opacity': ['interpolate', ['linear'], ['zoom'], 13.5, 0, 14.5, 0.8] } }, below);
+    map.addLayer({ id: 'sf-bottom-line', type: 'line', source: 'sf-reefs', filter: bottom, minzoom: 13.5, paint: { 'line-color': ['match', cls, 'SEAGRASS', green, amber], 'line-width': 1, 'line-dasharray': [0.5, 2.5], 'line-opacity': ['interpolate', ['linear'], ['zoom'], 13.5, 0, 14.5, 0.5] } }, below);
 
     // Labels and marks sit with the other symbols on top.
     map.addLayer({

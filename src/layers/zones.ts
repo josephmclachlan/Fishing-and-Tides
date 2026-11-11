@@ -48,7 +48,7 @@ export function mountZones(map: Map, geojson: FeatureCollection) {
     const below = map.getLayer(CONTOURS_FROM) ? CONTOURS_FROM : map.getLayer('grat-macro') ? 'grat-macro' : firstSymbolId(map);
     map.addSource('pz', { type: 'geojson', data: labelled, attribution: 'SINAC via © OpenStreetMap' });
     const colour: ExpressionSpecification = ['match', ['get', 'status'], 'closed', red, amber];
-    map.addLayer({ id: 'pz-fill', type: 'fill', source: 'pz', paint: { 'fill-color': colour, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0.1, TIER_ZOOM.SPOT, 0.14] } }, below);
+    map.addLayer({ id: 'pz-fill', type: 'fill', source: 'pz', paint: { 'fill-color': colour, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0.1, TIER_ZOOM.COAST + 2, 0.08, TIER_ZOOM.SPOT, 0.04] } }, below); // a faint tint that gives way to the dashed edge as you zoom in, so a refuge over land and reef reads as a boundary, not a brown block
     map.addLayer({ id: 'pz-line', type: 'line', source: 'pz', paint: { 'line-color': colour, 'line-width': ['interpolate', ['linear'], ['zoom'], 7, 1, 14, 2], 'line-dasharray': [4, 3], 'line-opacity': 0.85 } }, below);
     map.addLayer({
       id: 'pz-label', type: 'symbol', source: 'pz', minzoom: 8.5,
