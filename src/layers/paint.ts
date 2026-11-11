@@ -1,5 +1,5 @@
 /**
- * Colours for what the layers paint on the sea (PLAN 7.71). The old map painted its zones in the HUD's role colours
+ * Colours for what the layers paint on the sea (PLAN 7.72). The old map painted its zones in the HUD's role colours
  * (--amber, --green, --red), vivid on black. The Kinetic Plus map keeps those role names for its drawers' text, where
  * amber is the ink, so it gives the painted zones their own tokens: --paint-amber, --paint-green, --paint-red. A layer
  * asks for a role and gets the paint token when the theme sets one, else the role colour itself.

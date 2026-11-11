@@ -313,6 +313,9 @@ export function mountFlow(map: MapLibreMap, sources: Record<FlowKind, FlowSource
 
   const frame = (now: number) => {
     if (!runs.size) return;
+    // A full-screen page (forecast, coral) covers the map: stop here, so the hidden particles cost no CPU, GPU or
+    // battery, and start again when it is uncovered.
+    if (covered()) return void ((raf = 0), (last = 0));
     raf = requestAnimationFrame(frame);
     const ms = last ? now - last : 16;
     last = now;
@@ -334,6 +337,11 @@ export function mountFlow(map: MapLibreMap, sources: Record<FlowKind, FlowSource
     }
     draw();
   };
+
+  const covered = () => document.body.classList.contains('fc-open');
+  new MutationObserver(() => {
+    if (!covered() && runs.size && !raf) (last = 0), (raf = requestAnimationFrame(frame));
+  }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
   // MapLibre may move the camera after our frame ran; redraw with its camera so the particles never lag the map.
   map.on('render', () => {
