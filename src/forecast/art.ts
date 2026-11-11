@@ -389,6 +389,54 @@ function drawSurf(c: Ctx2D, A: Box, tt: number, s: NonNullable<HeroParams['surf'
   const y1 = base - s.hi * mpx, y2 = base - s.lo * mpx;
   c.fillStyle = S.ink; c.fillRect(lx - 12, y1, 6, Math.max(2, y2 - y1));
   c.fillStyle = S.ink; txt(c, s.caption, lx - 12, y + 6, 'left', 10.5, 700);
+  drawPerson(c, lx + Math.min(44, (rx - lx) * 0.16), base, mpx, tt, S);
+}
+
+/**
+ * A standing adult drawn to the wave scale: feet on the 0 m line, the crown at BODY_M.head (1.7 m) on the same
+ * metres-to-pixels scale as the crests and guide lines, so the faces read against a real body. A background halo keeps
+ * it legible over the hatching; the trunks take the level colour; the arms and chest ease gently so it is alive but
+ * never moves the scale.
+ */
+/** The figure's halo and shorts: light on every level colour, in both themes. */
+const CREAM: RGB = [255, 246, 232];
+export function drawPerson(c: Ctx2D, cx: number, base: number, mpx: number, tt: number, S: Style) {
+  const u = BODY_M.head * mpx; // crown height in px
+  if (!(u > 8) || !Number.isFinite(cx)) return;
+  const br = S.reduced ? 0 : Math.sin(tt * 1.6), sway = S.reduced ? 0 : Math.sin(tt * 0.7);
+  const hipY = base - 0.5 * u, shY = base - 0.8 * u - 0.004 * u * br, neckY = base - 0.855 * u;
+  const headR = 0.062 * u, headY = base - 0.935 * u;
+  const hx = cx + sway * 0.004 * u;
+  const limbs = (col: string, grow: number) => {
+    c.strokeStyle = col;
+    for (const sd of [-1, 1]) {
+      capsule(c, hx + sd * 0.045 * u, hipY, cx + sd * 0.042 * u, base - 0.26 * u, 0.066 * u + grow);
+      capsule(c, cx + sd * 0.042 * u, base - 0.26 * u, cx + sd * 0.046 * u, base - 0.03 * u, 0.05 * u + grow);
+      capsule(c, cx + sd * 0.046 * u, base - 0.014 * u, cx + sd * 0.085 * u, base - 0.014 * u, 0.026 * u + grow);
+    }
+    capsule(c, hx, shY + 0.07 * u, hx, hipY - 0.02 * u, 0.13 * u + grow);
+    capsule(c, hx - 0.085 * u, shY + 0.012 * u, hx + 0.085 * u, shY + 0.012 * u, 0.06 * u + grow);
+    for (const sd of [-1, 1]) {
+      const el = 0.03 * u * (1 + 0.5 * br * sd);
+      capsule(c, hx + sd * 0.095 * u, shY + 0.02 * u, hx + sd * (0.12 * u + el), base - 0.57 * u, 0.042 * u + grow);
+      capsule(c, hx + sd * (0.12 * u + el), base - 0.57 * u, hx + sd * 0.115 * u, base - 0.4 * u, 0.036 * u + grow);
+    }
+    capsule(c, hx, shY - 0.02 * u, hx, neckY, 0.04 * u + grow);
+  };
+  c.save();
+  const halo = rgba(CREAM, 0.9);
+  limbs(halo, 0.022 * u);
+  c.fillStyle = halo; c.beginPath(); c.arc(hx, headY, headR + 0.018 * u, 0, TAU); c.fill();
+  limbs(S.ink, 0);
+  c.fillStyle = S.ink; c.beginPath(); c.arc(hx, headY, headR, 0, TAU); c.fill();
+  // Board shorts, a light panel so they read against the body.
+  c.strokeStyle = rgba(CREAM, 0.95);
+  capsule(c, hx, hipY - 0.03 * u, hx, hipY + 0.03 * u, 0.15 * u);
+  for (const sd of [-1, 1]) capsule(c, hx + sd * 0.045 * u, hipY + 0.02 * u, cx + sd * 0.043 * u, base - 0.34 * u, 0.07 * u);
+  c.strokeStyle = S.soft; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(hx - 0.1 * u, base - u); c.lineTo(hx + 0.1 * u, base - u); c.stroke();
+  c.fillStyle = S.ink; txt(c, t('fc.g.person'), hx, Math.max(base - u - 0.07 * u, 8), 'center', 10.5, 700);
+  c.restore();
 }
 
 function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail']>, S: Style, SN: { a: number; v: number; h: number; hv: number; t: number }) {

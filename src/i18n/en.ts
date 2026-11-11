@@ -1611,6 +1611,7 @@ export const en = {
   'fc.bestWindow': 'Best window',
   'fc.g.knee': 'Knee',
   'fc.g.waist': 'Waist',
+  'fc.g.person': 'Adult 1.7 m',
   'fc.g.head': 'Head',
   'fc.hours': 'Hour by hour',
   'fc.hoursHint': 'Tap an hour to see it above. Shaded: night. Highlight: the best window each day.',
