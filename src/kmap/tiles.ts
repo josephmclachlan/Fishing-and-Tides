@@ -4,6 +4,7 @@
  * picture drawn from the value (a wind arrow over streaks, the swell trains as a rose, the tide's day as a curve...).
  * Every tile opens its plain-words explainer.
  */
+import { CHL_STEPS } from '../layers/chl';
 import { D2R, esc, fitCanvas, L2, MONO, rgba, TAU, tok } from './dom';
 import { CLARITY_BANDS } from '../physics/clarity';
 import { SST_BANDS } from '../layers/sst';
@@ -91,7 +92,7 @@ export function drawTiles(el: HTMLElement, R: readonly Reading[], accent: string
      * The same bands the layer paints on the map (layers/legend.ts), in its colours, with the edges written under them
      * and a pointer at this value: the tile and the map say one thing.
      */
-    const bands = (segs: [string, number][], end: number, v: number | undefined, unit: string) => {
+    const bands = (segs: [string, number][], end: number, v: number | undefined, unit: string, labels?: readonly string[]) => {
       const lo = segs[0][1], x = (q: number) => 1 + ((Math.min(end, Math.max(lo, q)) - lo) / (end - lo)) * (w - 2);
       const y0 = h * 0.42, bh = h * 0.2, at = v !== undefined && Number.isFinite(v) ? v : null;
       segs.forEach(([col, a], k) => {
@@ -102,9 +103,9 @@ export function drawTiles(el: HTMLElement, R: readonly Reading[], accent: string
       c.fillStyle = rgba(tok('ink2'));
       c.font = `600 9px ${MONO}`;
       c.textBaseline = 'top';
-      segs.slice(1).forEach(([, a]) => {
+      segs.slice(1).forEach(([, a], k) => {
         c.textAlign = 'center';
-        c.fillText(`${a}${unit}`, x(a), y0 + bh + 5);
+        c.fillText(labels ? labels[k] : `${a}${unit}`, x(a), y0 + bh + 5);
       });
       if (at === null) return;
       const px = x(at);
@@ -175,6 +176,10 @@ export function drawTiles(el: HTMLElement, R: readonly Reading[], accent: string
       }
       case 'sst':
         bands([['paint-green', 25.5], ['paint-amber', SST_BANDS.COOL], ['paint-red', SST_BANDS.WARM]], 31.5, r.val, '°');
+        break;
+      case 'chl':
+        // The map's five chlorophyll steps, equal widths (a log scale), ticks in mg/m³.
+        bands([['r-chl0', 0], ['r-chl1', 1], ['r-chl2', 2], ['r-chl3', 3], ['r-chl4', 4]], 5, r.val, '', CHL_STEPS.map(String));
         break;
       case 'clarity':
         bands([['paint-red', 0], ['paint-amber', CLARITY_BANDS.fair], ['paint-green', CLARITY_BANDS.good]], 20, r.val, ' m');
