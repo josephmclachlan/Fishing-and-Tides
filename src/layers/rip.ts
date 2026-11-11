@@ -18,8 +18,11 @@
  *   5 km cells, so its ring rises with the rain at the mouth instead (PLAN 7.63): 25 mm in the last 6 h to MOD,
  *   50 mm to HIGH (also rules of thumb), and it says CREEK IN FLOOD.
  * - **The model's reading at each spot**, as a text label offshore of the spot (MOD and HIGH
- *   only): strength, speed and expected reach. No arrows: an arrow from the spot pin pretended
- *   to know where the rip would be.
+ *   only): strength, speed and expected reach. No arrow from the spot pin: that pretended to know where
+ *   a sand-bar rip would open.
+ * - **Arrows at the fixed sites** (PLAN 7.85), where the channel is known: one points seaward from each
+ *   mouth or rip break, out of the waterline along the shore normal, in the site's risk colour, and is longer
+ *   where the nearest modelled spot expects the rip to reach further (a flooding mouth reaches at least 200 m).
  *
  * Style layer ids start with `rp-`, which the catalog's 'rip' layer binds to (layers/registry.ts).
  */
@@ -233,6 +236,61 @@ export function ripSites(
   return sites;
 }
 
+/** How far a site's arrow says the rip runs out, m: when no spot is modelled near, the bounds, and a flooding mouth's least. */
+export const ARROW_REACH_M = { fallback: 100, min: 50, max: 350, flood: 200 } as const;
+/** A site borrows the reach of a modelled spot within this distance, m. */
+const ARROW_SPOT_M = 3000;
+
+/**
+ * A fixed site's arrow: where it starts (the first water seaward of the site along the shore normal), which way
+ * it points (compass degrees) and how far the rip is expected to run out, m. Null when the coastline mask has no
+ * open water near the site. Pure.
+ */
+export function siteArrow(land: Grid, at: [number, number], states: readonly SpotState[], flooding = false): { at: [number, number]; deg: number; reachM: number } | null {
+  const deg = maskNormal(land, at, 300);
+  if (deg === null) return null;
+  let p = at;
+  for (let m = 10; m <= 250 && isLand(land, p); m += 10) p = offset(at, deg, m);
+  if (isLand(land, p)) return null;
+  const near = states
+    .filter((s) => s.result && s.liveSea !== false && flatM(at, s.pin) <= ARROW_SPOT_M)
+    .sort((a, b) => flatM(at, a.pin) - flatM(at, b.pin))[0];
+  let reachM: number = near?.result?.rip.lengthM || ARROW_REACH_M.fallback;
+  if (flooding) reachM = Math.max(reachM, ARROW_REACH_M.flood);
+  return { at: p, deg, reachM: Math.min(ARROW_REACH_M.max, Math.max(ARROW_REACH_M.min, reachM)) };
+}
+
+/** An arrow pointing up (the map rotates it seaward), haloed so it reads on sand, reef and sea alike. Browser only. */
+function arrowImage(colour: string, halo: string, scale = 2): { width: number; height: number; data: Uint8Array } | null {
+  const w = 18 * scale;
+  const h = 44 * scale;
+  const cv = document.createElement('canvas');
+  cv.width = w;
+  cv.height = h;
+  const g = cv.getContext('2d');
+  if (!g) return null;
+  g.scale(scale, scale);
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  const path = () => {
+    g.beginPath();
+    g.moveTo(9, 41);
+    g.lineTo(9, 5);
+    g.moveTo(3, 13);
+    g.lineTo(9, 4);
+    g.lineTo(15, 13);
+  };
+  g.strokeStyle = halo;
+  g.lineWidth = 6;
+  path();
+  g.stroke();
+  g.strokeStyle = colour;
+  g.lineWidth = 3;
+  path();
+  g.stroke();
+  return { width: w, height: h, data: new Uint8Array(g.getImageData(0, 0, w, h).data.buffer) };
+}
+
 /**
  * GeoJSON for the overlay. Pure, so it's tested without a map. `stations` are the coast
  * stations (none until the coastline mask loads: then only the sites and labels show).
@@ -254,6 +312,8 @@ export function ripFeatures(states: readonly SpotState[], stations: readonly Sta
     const level = flooding ? flood.level : surf;
     const kind = flooding ? (flood.by === 'river' ? 'flood' : 'creek') : site.kind;
     features.push({ type: 'Feature', properties: { kind: 'site', level, site: kind, name: site.name }, geometry: { type: 'Point', coordinates: site.at } });
+    const arrow = land ? siteArrow(land, site.at, states, flooding) : null;
+    if (arrow) features.push({ type: 'Feature', properties: { kind: 'arrow', level, deg: Math.round(arrow.deg), reach: Math.round(arrow.reachM) }, geometry: { type: 'Point', coordinates: arrow.at } });
   }
   for (const s of states) {
     const r = s.result;
@@ -325,6 +385,25 @@ export function mountRip(map: Map): RipLayer {
         'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 10.5, 1.2, 15, 2.5],
         'circle-stroke-opacity': ['match', ['get', 'level'], 'LOW', 0.45, 1],
       },
+    });
+    // Arrows out of the mouths and rip breaks: risk colour, longer where the rip reaches further (PLAN 7.85).
+    const tone = { HIGH: cssColour('--red', '#ff3b2f'), MOD: cssColour('--amber', '#ffb000'), LOW: cssColour('--amber', '#ffb000') };
+    for (const [lv, c] of Object.entries(tone)) {
+      const id = `rp-arrow-${lv}`;
+      const img = map.hasImage(id) ? null : arrowImage(c, 'rgba(0,0,0,0.55)');
+      if (img) map.addImage(id, img, { pixelRatio: 2 });
+    }
+    map.addLayer({
+      id: 'rp-arrow', type: 'symbol', source: 'rp', minzoom: 11, filter: ['==', ['get', 'kind'], 'arrow'],
+      layout: {
+        'icon-image': ['concat', 'rp-arrow-', ['get', 'level']],
+        'icon-rotate': ['get', 'deg'], 'icon-rotation-alignment': 'map', 'icon-anchor': 'bottom',
+        'icon-size': ['interpolate', ['linear'], ['zoom'],
+          11, ['interpolate', ['linear'], ['get', 'reach'], 50, 0.45, 350, 0.75],
+          15, ['interpolate', ['linear'], ['get', 'reach'], 50, 0.9, 350, 1.6]],
+        'icon-allow-overlap': true, 'icon-ignore-placement': true,
+      },
+      paint: { 'icon-opacity': ['match', ['get', 'level'], 'LOW', 0.4, 1] },
     });
     map.addLayer({
       // Named only where the risk is up (a LOW site keeps its faint ring), and from closer in, so the names don't pile on

@@ -4,7 +4,7 @@ import { createSpotModel } from '../physics/spot-model';
 import { land, realDepth } from '../physics/fixtures/seafloor';
 import { cellAt } from '../physics/bathy';
 import { SPOTS } from '../region';
-import { coastStations, creekLevel, floodLevel, maskNormal, offset, ripFeatures, ripSites, riskAt, surfZoneWidth } from './rip';
+import { ARROW_REACH_M, coastStations, creekLevel, floodLevel, maskNormal, offset, ripFeatures, ripSites, riskAt, siteArrow, surfZoneWidth } from './rip';
 import { SURF_BREAKS } from '../data/surf-breaks';
 
 describe('rip overlay geometry', () => {
@@ -130,6 +130,24 @@ describe('rip overlay geometry', () => {
     const off = Math.abs(((n - 0 + 540) % 360) - 180);
     expect(off).toBeLessThan(45);
     expect(maskNormal(land, [-82.9, 9.6])).toBeNull(); // deep inland: no sea in reach
+  });
+
+  it('points each fixed site\'s arrow seaward from the first water, sized by the nearest modelled reach (PLAN 7.85)', () => {
+    const salsa = SPOTS.find((s) => s.name === 'SALSA BRAVA')!.lngLat;
+    const a = siteArrow(land, salsa, [])!;
+    expect(cellAt(land, a.at[0], a.at[1])).not.toBe(1);
+    expect(Math.abs(((a.deg + 540) % 360) - 180)).toBeLessThan(45); // faces roughly north, like the shore
+    expect(a.reachM).toBe(ARROW_REACH_M.fallback);
+    const spot = (lengthM: number, pin = salsa) => ({ name: 'X', pin, result: { rip: { lengthM } } }) as never;
+    expect(siteArrow(land, salsa, [spot(180)])!.reachM).toBe(180);
+    expect(siteArrow(land, salsa, [spot(900)])!.reachM).toBe(ARROW_REACH_M.max);
+    expect(siteArrow(land, salsa, [spot(20)])!.reachM).toBe(ARROW_REACH_M.min);
+    expect(siteArrow(land, salsa, [spot(80)], true)!.reachM).toBe(ARROW_REACH_M.flood);
+    expect(siteArrow(land, salsa, [spot(180, [-82.5, 9.9])])!.reachM).toBe(ARROW_REACH_M.fallback); // too far to borrow
+    expect(siteArrow(land, [-82.9, 9.6], [])).toBeNull(); // deep inland
+    const fc = ripFeatures([], [], [{ name: 'Salsa', at: salsa, kind: 'break' }], land);
+    expect(fc.features.filter((f) => f.properties!.kind === 'arrow')).toHaveLength(1);
+    expect(ripFeatures([], [], [{ name: 'Salsa', at: salsa, kind: 'break' }]).features.some((f) => f.properties!.kind === 'arrow')).toBe(false);
   });
 
   it('every spot pin sits within ~60 m of the sea in the coastline mask (none stranded inland)', () => {

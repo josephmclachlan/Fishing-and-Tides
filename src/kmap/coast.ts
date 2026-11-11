@@ -5,7 +5,8 @@
  * without overlap each frame the camera moves. Also the CORAL mode's private-site cells (never the sites).
  */
 import type { GeoJSONSource, Map as MlMap } from 'maplibre-gl';
-import { coastNear, placePins, privateCells, type Mask, type Rect, CELL_DEG } from './model';
+import { coastNear, labelRect, placePins, privateCells, type Mask, type Rect, CELL_DEG } from './model';
+import { ZONE_LABEL, zoneTextSize } from '../fishing/zones';
 import { esc, hex, L2, tok } from './dom';
 import type { Level } from '../forecast/model';
 
@@ -84,6 +85,24 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
     }
     return out;
   };
+  /** The fish zone names on screen (PLAN 7.85), estimated as boxes in stage px: the tiles step around them where they can. */
+  const zoneNames = (dx: number, dy: number): Rect[] => {
+    const z = map.getZoom();
+    if (z < ZONE_LABEL.nameZ || !map.getLayer('fh-zone-label') || map.getLayoutProperty('fh-zone-label', 'visibility') === 'none') return [];
+    const size = zoneTextSize(z);
+    const out: Rect[] = [];
+    for (const f of map.queryRenderedFeatures({ layers: ['fh-zone-label'] })) {
+      const p = f.properties as { sp?: string; where?: string; nearly?: number; anchor?: string; off?: string | [number, number] };
+      if (f.geometry.type !== 'Point' || !p.sp) continue;
+      const pt = map.project(f.geometry.coordinates as [number, number]);
+      const second = z >= ZONE_LABEL.whereZ ? p.where : p.nearly ? 'NEARLY A ZONE' : '';
+      const lines = [{ text: p.sp, size }, ...(second ? [{ text: second, size: size * ZONE_LABEL.whereScale }] : [])];
+      const off = typeof p.off === 'string' ? (JSON.parse(p.off) as [number, number]) : (p.off ?? [0, 0]);
+      const r = labelRect({ x: pt.x + dx, y: pt.y + dy }, lines, p.anchor ?? 'center', off);
+      out.push(r);
+    }
+    return out;
+  };
   const build = () => {
     layer.innerHTML = '';
     els.clear();
@@ -116,7 +135,7 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
       const sz = sizes.get(p.id) ?? { w: 120, h: 44 };
       return { id: p.id, x: pt.x + mr.left - off.left, y: pt.y + mr.top - off.top, w: sz.w, h: sz.h, rank: p.rank + (p.id === selected ? 1e6 : 0) };
     });
-    const at = z >= 9.6 ? placePins(boxes.filter((b) => b.x > -20 && b.y > -20 && b.x < W + 20 && b.y < H + 20), { w: W, h: H }, 4, obstacles(off)) : new Map();
+    const at = z >= 9.6 ? placePins(boxes.filter((b) => b.x > -20 && b.y > -20 && b.x < W + 20 && b.y < H + 20), { w: W, h: H }, 4, obstacles(off), zoneNames(mr.left - off.left, mr.top - off.top)) : new Map();
     for (const b of boxes) {
       const el = els.get(b.id)!;
       const on = b.x > -20 && b.y > -20 && b.x < W + 20 && b.y < H + 20 && z >= 9;
@@ -144,6 +163,7 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
     if (!queued) (queued = true), requestAnimationFrame(place);
   };
   map.on('move', queue);
+  map.on('idle', queue); // the zone names settle after the move: step the tiles around where they ended up
   void document.fonts?.ready.then(() => (measure(), place())); // the tiles' widths change when their fonts arrive
   map.on('resize', queue);
   map.on('styledata', () => ensure() && (drawRibbons(), setCells(cells)));

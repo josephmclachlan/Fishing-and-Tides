@@ -58,7 +58,11 @@ type Spot = (typeof SPOTS)[number];
 const asSpot = (s: FcSpot | undefined): Spot => (s ? (SPOTS.find((x) => x.name === s.name) ?? SPOTS[0]) : SPOTS[0]);
 const H = 3.6e6;
 
+/** Labels that draw over everything, the place names included (PLAN 7.85). */
+const ON_TOP = ['fh-zone-label', 'sp-zone-label'] as const;
+
 /** What is under a point at an hour: everything the old CONDITIONS panel and "what's here" card read. */
+
 export interface Here {
   land: boolean;
   depthM: number | null;
@@ -352,7 +356,7 @@ export function mountKineticMap(d: KmDeps) {
     coast.setCellsVisible(S.coral && o.includes('private'));
     applyOrder();
   };
-  /** Draw order: the composer's top layer draws over the rest, all under the place labels. */
+  /** Draw order: the composer's top layer draws over the rest, all under the place labels (but the zone names, ON_TOP). */
   const applyOrder = () => {
     if (!map.isStyleLoaded()) return;
     const lbl = map.getStyle().layers?.find((l) => l.type === 'symbol' && !l.id.startsWith('km-') && (l as { source?: string }).source === 'openmaptiles')?.id;
@@ -363,6 +367,8 @@ export function mountKineticMap(d: KmDeps) {
         for (const sid of styleIds(id)) map.moveLayer(sid, lbl);
       }
       for (const sid of ['km-coast-case', 'km-coast']) if (map.getLayer(sid)) map.moveLayer(sid, lbl);
+      // Zone names go over the place names, so they're placed first and never knocked out by a town or reef label (PLAN 7.85).
+      for (const sid of ON_TOP) if (map.getLayer(sid)) map.moveLayer(sid);
     } catch {
       /* a layer mid-rebuild: the next change reorders */
     }

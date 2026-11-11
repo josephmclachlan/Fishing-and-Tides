@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FAR_ZONES, NEAR_ZONES, fishZones, levelOf, speciesZones, zoneLabel, zoneRing, type ZoneCell } from './zones';
+import { FAR_ZONES, zoneTextSize, NEAR_ZONES, fishZones, levelOf, nearlyZones, speciesZones, zoneLabel, zoneRing, type ZoneCell } from './zones';
 
 const STEP = 0.002;
 /** A patch of cells around (lng, lat): `cols` east by `rows` north, all with the same scores. */
@@ -85,6 +85,10 @@ describe('fishing zones', () => {
     expect(zoneLabel(z, ring).at[1]).toBeGreaterThan(bottom);
   });
 
+  it('sizes the zone names by zoom as the style does', () => {
+    expect([8, 9, 10, 11, 12, 13, 15].map(zoneTextSize)).toEqual([9.5, 9.5, 10, 10.5, 11.25, 12, 12]);
+  });
+
   describe('per species', () => {
     const ids = ['a', 'b', 'c'] as const;
     it('gives each species its own zones, only where it earns them', () => {
@@ -109,6 +113,22 @@ describe('fishing zones', () => {
       // Without the cap, a joins the shared oval too.
       const all = speciesZones([...shared, ...many], ids, { ...NEAR_ZONES, perSpecies: 9 });
       expect(all.find((x) => x.species.length > 1)!.species).toEqual(['b', 'a', 'c']);
+    });
+    it('outlines water that nearly earned a zone, never beside a kept one (PLAN 7.85)', () => {
+      const cells = [
+        ...patch(-82.9, 9.8, 4, 3, { a: 0.85, b: 0, c: 0 }),
+        // b just misses the zone mean (the Playa Negra drop-off case).
+        ...patch(-82.7, 9.67, 4, 3, { a: 0, b: 0.61, c: 0 }),
+        // c misses beside a's kept zone: no dotted ring on top of a circled one.
+        ...patch(-82.9, 9.8, 4, 3, { a: 0, b: 0, c: 0.6 }).map((x) => ({ ...x, lat: x.lat + 0.0005 })),
+        // Poor water stays bare.
+        ...patch(-82.5, 9.6, 4, 3, { a: 0.4, b: 0.4, c: 0.4 }),
+      ];
+      const kept = speciesZones(cells, ids, NEAR_ZONES);
+      expect(kept.map((x) => x.species)).toEqual([['a']]);
+      const nearly = nearlyZones(cells, ids, kept);
+      expect(nearly.map((x) => x.species)).toEqual([['b']]);
+      expect(nearly[0].lng).toBeCloseTo(-82.697, 2);
     });
     it('gathers boat water over kilometres', () => {
       const STEP2 = 0.02;
