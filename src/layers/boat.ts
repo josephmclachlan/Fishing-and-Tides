@@ -8,10 +8,8 @@ import type { Feature, FeatureCollection } from 'geojson';
 import { t, type Key } from '../i18n';
 import type { BoatStore } from '../boat/store';
 import { firstSymbolId } from '../map';
+import { paintColour as cssColour } from './paint';
 
-function cssColour(name: string, fallback: string) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-}
 
 export function mountBoatLayer(map: Map, store: BoatStore, position: () => [number, number] | null) {
   let routeLine: [number, number][] = [];

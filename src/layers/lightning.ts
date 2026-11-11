@@ -6,8 +6,8 @@ import type { Map, GeoJSONSource } from 'maplibre-gl';
 import type { FeatureCollection } from 'geojson';
 import { firstSymbolId } from '../map';
 import type { Flash } from '../lightning';
+import { paintColour as cssColour } from './paint';
 
-const cssColour = (name: string, fallback: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 
 const toGeoJson = (flashes: readonly Flash[], now: number): FeatureCollection => ({
   type: 'FeatureCollection',

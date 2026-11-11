@@ -98,6 +98,7 @@ import { buildConditions } from './coral/conditions';
 import { fetchMud, mudNow, type MudData, type MudHistory } from './adapters/mud';
 import { MUD_HIGH, MUD_WATCH, MUD_WINDOW_D, REEF_DEPTH_M } from './physics/mud';
 import { predictSeries, tideState } from './physics/tide';
+import { OUTING_DEPTHS, surgeProfile } from './physics/surge';
 import { mountLayersPanel } from './layers-panel';
 import { FLOW_STYLE, mountFlow } from './layers/flow';
 import type { FlowSource } from './layers/flow-sim';
@@ -1470,7 +1471,25 @@ const hereAt = (lng: number, lat: number, ms: number): Here => {
     zone: zone ? zoneName(zone) : null,
     heat: rn && fin(rn.dhw) ? { reef: rn.reef.name, dhw: rn.dhw, alert: rn.alert ?? 0 } : null,
     airC: wx && fin(wx.tempC) ? wx.tempC : null,
+    feelsC: wx && fin(wx.feelsC) ? wx.feelsC : null,
+    humidityPct: wx && fin(wx.humidityPct) ? wx.humidityPct : null,
+    cloudPct: wx && fin(wx.cloudPct) ? wx.cloudPct : null,
+    surge: surgeHere(st, ms),
+    entryM: st?.result ? (st.result.shore?.Hb ?? st.result.waves.breaker.Hb) : null,
   };
+};
+/**
+ * Bed surge at the snorkel and dive depths for a spot's run (as dive-hud.ts reads it), with the offshore sea for the
+ * slider hour where the wave forecast covers it, else the run's own sea.
+ */
+const surgeHere = (st: ReturnType<SpotPhysics['byName']> | null | undefined, ms: number) => {
+  const r = st?.result;
+  if (!st || !r) return null;
+  const s = waves ? wavesAt(waves, bandAt(ms), ms, st.pin[0], st.pin[1]) : null;
+  const hs = s && Number.isFinite(s.hs) ? s.hs : st.sea.Hs;
+  const tp = s && Number.isFinite(s.swellT) ? s.swellT : s && Number.isFinite(s.tm) ? s.tm : st.sea.Tp;
+  const out = surgeProfile(hs, tp, r.waves.refraction.K, r.waves.refraction.depth, OUTING_DEPTHS);
+  return out.every((x) => Number.isFinite(x.uMs)) ? out : null;
 };
 const reefsNow = (): ReefNow[] =>
   coralHeat
@@ -1516,7 +1535,7 @@ if (MODERN) {
       if (a) condGroups.setActivity(a);
     },
     tools: [
-      { id: 'cond', label: L2('All readings', 'Todas las lecturas'), sub: L2('Every group of the classic CONDITIONS panel, GO or NO-GO per activity', 'Todos los grupos del panel de condiciones, apto o no por actividad') },
+      { id: 'cond', label: L2('Expand data', 'Ampliar datos'), sub: L2('Every group of the classic CONDITIONS panel, GO or NO-GO per activity', 'Todos los grupos del panel de condiciones, apto o no por actividad') },
       { id: 'watch', label: L2('Watch', 'Vigilar'), sub: L2('Pick metrics, get the best day over the next five', 'Elija métricas y vea el mejor día de los próximos cinco') },
       { id: 'boat', label: L2('Boat', 'Bote'), sub: L2('GPS track, pins, catches, offshore read and route', 'Ruta GPS, puntos, capturas, lectura mar afuera y ruta') },
       { id: 'coral', label: L2('Coral sites', 'Sitios de coral'), sub: L2('Your private field log, reef heat, spawning and guide', 'Su bitácora privada, calor, desove y guía') },

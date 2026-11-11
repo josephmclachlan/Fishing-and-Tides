@@ -69,18 +69,20 @@ export function styleBaseMap(map: MlMap) {
 
 /**
  * The old overlays label on a black halo (made for the amber screen); on this map their labels sit on the map's own
- * halo, so they read on the light sea and land. Overlays arrive over the first seconds: run on each style change.
+ * halo in the ink, so they read on the light sea and land, while the marks and washes beside them keep the vivid paint
+ * colours (layers/paint.ts). Overlays arrive over the first seconds: run on each style change.
  */
 export function haloOverlays(map: MlMap) {
   const st = map.getStyle?.();
   if (!st?.layers) return;
-  const halo = hex(tok('m-halo'));
+  const halo = hex(tok('m-halo')), ink = hex(tok('ink'));
   for (const l of st.layers) {
     if (l.type !== 'symbol' || (l as { source?: string }).source === 'openmaptiles') continue;
     try {
       if (map.getPaintProperty(l.id, 'text-halo-color') === '#000') {
         map.setPaintProperty(l.id, 'text-halo-color', halo);
         map.setPaintProperty(l.id, 'text-halo-width', 1.8);
+        map.setPaintProperty(l.id, 'text-color', ink);
       }
     } catch {
       /* layer gone mid-change */

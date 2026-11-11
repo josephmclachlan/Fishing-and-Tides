@@ -31,6 +31,7 @@ import { REGION, RIP_CREEKS } from '../region';
 import { cellAt, M_PER_DEG_LAT, M_PER_DEG_LNG, type Grid } from '../physics/bathy';
 import type { SpotState } from '../spot-physics';
 import { ripLevel, type RipLevel } from '../physics/rip';
+import { paintColour as cssColour } from './paint';
 
 const FONT = ['Noto Sans Regular'];
 const RAD = Math.PI / 180;
@@ -269,9 +270,6 @@ export function ripFeatures(states: readonly SpotState[], stations: readonly Sta
   return { type: 'FeatureCollection', features };
 }
 
-function cssColour(name: string, fallback: string) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-}
 
 /** Map metres per pixel at zoom 0 at the region's latitude (512 px tiles). */
 const M_PER_PX_Z0 = (40075016.686 * Math.cos(REGION.center[1] * RAD)) / 512;

@@ -6,10 +6,10 @@ import type { GeoJSONSource, Map } from 'maplibre-gl';
 import type { FeatureCollection } from 'geojson';
 import type { CoralStore } from '../coral/store';
 import { firstSymbolId } from '../map';
+import { paintColour as css } from './paint';
 
 /** Style ids start with this; it must not match any registry mapPrefixes (CLARITY owns 'cl-'). */
 export const CORAL_LOG_PREFIX = 'cs-';
-const css = (name: string, fallback: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 
 export function mountCoralLogLayer(map: Map, store: CoralStore) {
   const amber = css('--amber', '#ffb000');

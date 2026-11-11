@@ -21,6 +21,7 @@ import { flowRatio, type RiverFlow } from '../adapters/river-flow';
 import { readout } from '../hud-kit';
 import { t, type Key } from '../i18n';
 import { parseSeen, seenCSV, seenStats, seenStore, type VisApp } from '../vis-seen';
+import { NO_LIFT, lifted, paintColour as cssColour, paintLift, type Lift } from './paint';
 
 const RAD = Math.PI / 180;
 /** Layer grid: REGION.bounds every 0.004° (~440 m), about 210 × 160 cells. */
@@ -331,8 +332,8 @@ const ALPHA: Record<ClarityLevel, number> = { GOOD: 0.07, FAIR: 0.26, POOR: 0.42
  * stay empty however the coarse grid reads there, and sea pixels up to the beach take the nearest sea
  * value. Pure (no DOM); `colours` are 0..255 RGB per level.
  */
-export function clarityImage(g: ClarityGrid, land: Grid | null | undefined, colours: Record<ClarityLevel, readonly [number, number, number]>, pixelDeg = CLARITY_PIXEL_DEG): SeaImage {
-  const word = (l: ClarityLevel) => rgbaWord(...colours[l], Math.round(255 * ALPHA[l]));
+export function clarityImage(g: ClarityGrid, land: Grid | null | undefined, colours: Record<ClarityLevel, readonly [number, number, number]>, pixelDeg = CLARITY_PIXEL_DEG, lift: Lift = NO_LIFT): SeaImage {
+  const word = (l: ClarityLevel) => rgbaWord(...colours[l], Math.round(255 * lifted(ALPHA[l], lift)));
   const [good, fair, poor] = [word('GOOD'), word('FAIR'), word('POOR')];
   const { good: goodM, fair: fairM } = CLARITY_BANDS;
   return seaImage(
@@ -343,9 +344,6 @@ export function clarityImage(g: ClarityGrid, land: Grid | null | undefined, colo
   );
 }
 
-function cssColour(name: string, fallback: string) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-}
 const rgb = (hex: string): [number, number, number] => {
   const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
   return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [255, 176, 0];
@@ -363,7 +361,7 @@ export function mountClarity(map: Map): ClarityLayer {
   };
   const canvas = document.createElement('canvas');
   const draw = (g: ClarityGrid, land: Grid | null | undefined) => {
-    const img = clarityImage(g, land, colours);
+    const img = clarityImage(g, land, colours, CLARITY_PIXEL_DEG, paintLift());
     canvas.width = img.width;
     canvas.height = img.height;
     canvas.getContext('2d')!.putImageData(new ImageData(img.data as Uint8ClampedArray<ArrayBuffer>, img.width, img.height), 0, 0);

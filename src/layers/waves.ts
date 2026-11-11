@@ -7,8 +7,8 @@ import type { Map, GeoJSONSource } from 'maplibre-gl';
 import type { FeatureCollection } from 'geojson';
 import { firstSymbolId } from '../map';
 import type { Crest } from '../waves-lines';
+import { paintColour as cssColour } from './paint';
 
-const cssColour = (name: string, fallback: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 
 export const HIGH_SEA_M = 2.5;
 

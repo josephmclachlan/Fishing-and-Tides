@@ -10,10 +10,8 @@ import { firstSymbolId } from '../map';
 import { FRONT_FLOOR, frontCells, type FrontCell } from '../physics/fronts';
 import type { SatelliteData } from '../adapters/satellite';
 import type { GridSeries } from '../adapters/pack';
+import { paintColour as cssColour } from './paint';
 
-function cssColour(name: string, fallback: string) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-}
 
 /** Fronts in the newest frame of each satellite map: SST from the macro grid and the coast nest, chlorophyll from its grid. */
 export function satelliteFronts(d: SatelliteData): FrontCell[] {

@@ -15,6 +15,7 @@ import type { Seafloor } from '../adapters/seafloor';
 import { byTier, firstSymbolId } from '../map';
 import { bake, type BakeInput } from './seafloor-bake';
 import type { BakedShade, BakeOut } from './seafloor-worker';
+import { paintColour as cssColour } from './paint';
 
 export { contourLines } from './seafloor-bake';
 
@@ -29,9 +30,6 @@ const FILLS_UNDER_CONTOURS = ['fh-cells', 'pz-fill'];
 const FONT = ['Noto Sans Regular'];
 
 /** Theme colours come from the CSS variables in style.css. */
-function cssColour(name: string, fallback: string) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-}
 function rgbOf(hex: string): [number, number, number] {
   const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
   return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [57, 255, 122];
