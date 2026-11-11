@@ -191,6 +191,17 @@ body.fc-open { overflow: hidden; }
    (or focused) widens to show the weather and the next 12 hours; on touch, where there is no hover, the selected spot is wide. */
 .fc-spotbar { padding: 6px 0 0; }
 .fc-spots-cap { margin: 0 0 6px; color: var(--fc-ink2); }
+.fc-railwrap { position: relative; }
+.fc .fc-rarrow {
+  position: absolute; top: 4px; bottom: 10px; width: 44px; z-index: 2; border: 0; border-radius: 0; padding: 0; cursor: pointer;
+  font-family: var(--fc-disp); font-weight: 850; font-size: 30px; line-height: 1; color: var(--fc-ink); display: grid; place-items: center;
+  background: linear-gradient(var(--d), color-mix(in srgb, var(--fc-bg) 55%, transparent), transparent); transition: opacity 0.25s;
+}
+.fc .fc-rarrow[hidden] { display: none; }
+.fc-rl { --d: 90deg; left: calc(-1 * var(--fc-g-l)); padding-left: var(--fc-g-l); width: calc(44px + var(--fc-g-l)); justify-content: start; }
+.fc-rr { --d: 270deg; right: calc(-1 * var(--fc-g-r)); padding-right: var(--fc-g-r); width: calc(44px + var(--fc-g-r)); justify-content: end; }
+.fc .fc-rarrow:hover { opacity: 0.8; }
+@media (hover: none) { .fc .fc-rarrow { display: none; } }
 .fc-rail { display: flex; align-items: stretch; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; scroll-padding-left: var(--fc-g-l); padding-top: 4px; padding-bottom: 10px; scrollbar-width: none; }
 .fc-rail::-webkit-scrollbar { display: none; }
 .fc .fc-spot {
@@ -213,9 +224,6 @@ body.fc-open { overflow: hidden; }
 @media (hover: hover) {
   .fc .fc-spot:hover, .fc .fc-spot:focus-visible { width: var(--w-l); }
   .fc .fc-spot:hover .fc-s-b, .fc .fc-spot:focus-visible .fc-s-b { opacity: 1; }
-  .fc-rail { scrollbar-width: thin; }
-  .fc-rail::-webkit-scrollbar { display: block; height: 6px; }
-  .fc-rail::-webkit-scrollbar-thumb { background: var(--fc-line); }
 }
 @media (hover: none) {
   .fc .fc-spot[aria-selected='true'] { width: var(--w-l); }

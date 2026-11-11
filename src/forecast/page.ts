@@ -664,6 +664,43 @@ export function mountForecastPage(deps: ForecastDeps) {
     const ms = Number($('fc-best').dataset.ms);
     if ($('fc-best').dataset.ms && Number.isFinite(ms)) pick(ms, true);
   });
+  // The spots bar: translucent < > arrows at its ends, and with a mouse it scrolls on its own while the pointer is in the
+  // outer 25% on either side (faster nearer the edge). Touch keeps plain swiping.
+  {
+    const rail = $('fc-spots'), wrap = $('fc-railwrap'), bl = $('fc-rl'), br = $('fc-rr');
+    let dir = 0, raf = 0, last = 0;
+    const arrows = () => {
+      bl.hidden = rail.scrollLeft < 4;
+      br.hidden = rail.scrollLeft > rail.scrollWidth - rail.clientWidth - 4;
+    };
+    const tick = (now: number) => {
+      raf = 0;
+      if (!dir) return;
+      const dt = Math.min(50, now - (last || now));
+      last = now;
+      rail.scrollLeft += dir * dt * 0.9;
+      raf = requestAnimationFrame(tick);
+    };
+    const go = (d: number) => {
+      dir = d;
+      if (d && !raf) {
+        last = 0;
+        raf = requestAnimationFrame(tick);
+      }
+    };
+    wrap.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse' || rail.scrollWidth <= rail.clientWidth) return go(0);
+      const r = rail.getBoundingClientRect(), f = (e.clientX - r.left) / r.width;
+      go(f < 0.25 ? -(0.25 - f) * 4 : f > 0.75 ? (f - 0.75) * 4 : 0);
+    });
+    wrap.addEventListener('pointerleave', () => go(0));
+    bl.addEventListener('click', () => rail.scrollBy({ left: -rail.clientWidth * 0.6, behavior: reduced ? 'auto' : 'smooth' }));
+    br.addEventListener('click', () => rail.scrollBy({ left: rail.clientWidth * 0.6, behavior: reduced ? 'auto' : 'smooth' }));
+    rail.addEventListener('scroll', arrows, { passive: true });
+    window.addEventListener('resize', arrows);
+    new MutationObserver(arrows).observe(rail, { childList: true });
+    requestAnimationFrame(arrows);
+  }
   $('fc-spots').addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-spot]');
     if (!b) return;

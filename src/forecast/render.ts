@@ -50,7 +50,11 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
     </header>
     <section class="fc-spotbar fc-in" aria-label="${esc(t('fc.spots'))}">
       <p class="fc-mono fc-spots-cap" id="fc-spots-cap"></p>
-      <div class="fc-rail fc-bleed" id="fc-spots" role="listbox" aria-label="${esc(t('fc.spots'))}"></div>
+      <div class="fc-railwrap" id="fc-railwrap">
+        <div class="fc-rail fc-bleed" id="fc-spots" role="listbox" aria-label="${esc(t('fc.spots'))}"></div>
+        <button type="button" class="fc-rarrow fc-rl" id="fc-rl" tabindex="-1" aria-hidden="true" hidden>&lt;</button>
+        <button type="button" class="fc-rarrow fc-rr" id="fc-rr" tabindex="-1" aria-hidden="true" hidden>&gt;</button>
+      </div>
     </section>
     <nav class="fc-tabs fc-in" id="fc-tabs" role="tablist" aria-label="${esc(t('fc.actGroup'))}">${o.acts.map(tab).join('')}<span class="fc-tab-bar" id="fc-tab-bar" aria-hidden="true"></span></nav>
     <section class="fc-hero fc-bleed" id="fc-hero" aria-labelledby="fc-k">
