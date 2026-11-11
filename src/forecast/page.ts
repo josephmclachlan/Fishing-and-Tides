@@ -704,7 +704,12 @@ export function mountForecastPage(deps: ForecastDeps) {
     }, 80);
   };
   window.addEventListener('resize', onResize);
-  if ('ResizeObserver' in window) new ResizeObserver(onResize).observe($('fc-hero'));
+  if ('ResizeObserver' in window) {
+    const ro = new ResizeObserver(onResize);
+    ro.observe($('fc-hero'));
+    // The picture's own box also moves when the best-chance card appears or the data arrives, with the hero unchanged.
+    ro.observe($('fc-art'));
+  }
   void document.fonts?.ready.then(() => onResize());
 
   // --- routing: #forecast/<spot>/<activity>
