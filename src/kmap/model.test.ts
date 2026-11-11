@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CELL_DEG, KM_LAYERS, MODES, PRESETS, coastNear, isCustom, loadOrders, moveLayer, offered, offsetOfX, orderOf, placePins, PIN_SQUARE, privateCells, saveOrders, slots,
+  CELL_DEG, KM_LAYERS, MODES, PRESETS, coastNear, isCustom, loadOrders, moveLayer, offered, offsetOfX, orderOf, placePins, PIN_SQUARE, labelRect, privateCells, saveOrders, slots,
   toggleLayer, xOfOffset, type Mask,
 } from './model';
 import { LAYERS } from '../layers/registry';
@@ -95,6 +95,25 @@ describe('rating tiles', () => {
     for (const p of at.values()) expect(p.x).toBeGreaterThanOrEqual(4);
   });
 
+  it('steps tiles around the fish zone names where it can, and covers one only when nothing else fits (PLAN 7.85)', () => {
+    const pin = { id: 'a', x: 200, y: 200, w: 110, h: 44, rank: 90 };
+    const first = placePins([pin], { w: 600, h: 600 }).get('a')!;
+    const name = { x: first.x, y: first.y, w: 110, h: 44 };
+    const moved = placePins([pin], { w: 600, h: 600 }, 4, [], [name]).get('a')!;
+    expect(moved.x !== first.x || moved.y !== first.y).toBe(true);
+    // Names all round: the tile still shows, over one of them.
+    expect(placePins([pin], { w: 600, h: 600 }, 4, [], [{ x: 0, y: 0, w: 600, h: 600 }]).has('a')).toBe(true);
+  });
+  it('estimates a map label\'s box from its lines, anchor and em offset', () => {
+    const r = labelRect({ x: 100, y: 100 }, [{ text: 'SNAPPER', size: 10 }, { text: 'REEF', size: 8 }], 'left', [0.5, 0]);
+    expect(r.x).toBeCloseTo(105);
+    expect(r.w).toBeCloseTo(7 * 10 * 0.72);
+    expect(r.h).toBeCloseTo(21.6);
+    expect(r.y).toBeCloseTo(100 - 10.8);
+    const br = labelRect({ x: 0, y: 0 }, [{ text: 'AB', size: 10 }], 'bottom-right');
+    expect(br.x).toBeCloseTo(-14.4);
+    expect(br.y).toBeCloseTo(-12);
+  });
   it('keeps tiles off every pin square and off the map panels', () => {
     const pins = [
       { id: 'a', x: 200, y: 200, w: 110, h: 44, rank: 90 },

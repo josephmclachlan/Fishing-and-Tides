@@ -259,10 +259,11 @@ export const PIN_SQUARE = 11;
 /**
  * Place rating tiles without overlap: best rank first, each tries a few spots around its anchor (above-right first,
  * the sea side on this coast) and is dropped to its square when none fits. A tile never covers another tile, any
- * pin's square, or one of the `obstacles` (the map's own panels and buttons). Returns the placed boxes' top-left
- * corners. Pure.
+ * pin's square, or one of the `obstacles` (the map's own panels and buttons). It keeps off the `soft` boxes too (the
+ * fish zone names, PLAN 7.85) where it can, and covers one only when no other spot fits. Returns the placed boxes'
+ * top-left corners. Pure.
  */
-export function placePins(pins: readonly PinBox[], bounds: { w: number; h: number }, gap = 4, obstacles: readonly Rect[] = []): Map<string, { x: number; y: number; dx: number; dy: number }> {
+export function placePins(pins: readonly PinBox[], bounds: { w: number; h: number }, gap = 4, obstacles: readonly Rect[] = [], soft: readonly Rect[] = []): Map<string, { x: number; y: number; dx: number; dy: number }> {
   const out = new Map<string, { x: number; y: number; dx: number; dy: number }>();
   const q = PIN_SQUARE;
   const squares = pins.map((p) => ({ x: p.x - q, y: p.y - q, w: 2 * q, h: 2 * q }));
@@ -274,15 +275,39 @@ export function placePins(pins: readonly PinBox[], bounds: { w: number; h: numbe
       [14, -p.h - 26], [-p.w / 2, -p.h - 34], [-p.w - 14, -p.h - 26], [14, -p.h - 64], [-p.w - 14, -p.h - 64],
       [22, -p.h / 2], [-p.w - 22, -p.h / 2], [18, 14], [-p.w - 18, 14], [-p.w / 2, 26],
     ];
-    for (const [dx, dy] of tries) {
-      const box = { x: p.x + dx, y: p.y + dy, w: p.w, h: p.h };
-      if (box.x < 4 || box.y < 4 || box.x + box.w > bounds.w - 4 || box.y + box.h > bounds.h - 4 || hit(box)) continue;
-      placed.push(box);
-      out.set(p.id, { x: box.x, y: box.y, dx, dy });
-      break;
-    }
+    const fits = (box: Rect, strict: boolean) =>
+      !(box.x < 4 || box.y < 4 || box.x + box.w > bounds.w - 4 || box.y + box.h > bounds.h - 4 || hit(box) || (strict && soft.some((b) => over(box, b, 0))));
+    const pick = (strict: boolean) => {
+      for (const [dx, dy] of tries) {
+        const box = { x: p.x + dx, y: p.y + dy, w: p.w, h: p.h };
+        if (!fits(box, strict)) continue;
+        placed.push(box);
+        out.set(p.id, { x: box.x, y: box.y, dx, dy });
+        return true;
+      }
+      return false;
+    };
+    if (!pick(true)) pick(false);
   }
   return out;
+}
+
+/** Where a text's anchor point sits on its box, as fractions of width and height (MapLibre's text-anchor). */
+const ANCHOR_AT: Record<string, [number, number]> = {
+  center: [0.5, 0.5], left: [0, 0.5], right: [1, 0.5], top: [0.5, 0], bottom: [0.5, 1], 'top-left': [0, 0], 'top-right': [1, 0], 'bottom-left': [0, 1], 'bottom-right': [1, 1],
+};
+/** Caps in the map's sans run about this wide per character, in em, with the zone names' letter spacing. */
+const CAP_EM = 0.72;
+/**
+ * A map label's box in px, estimated from its lines (characters × size), its anchor and its offset in em (as the
+ * style's text-offset): for keeping the rating tiles off the fish zone names. Pure.
+ */
+export function labelRect(pt: { x: number; y: number }, lines: readonly { text: string; size: number }[], anchor: string, off: readonly [number, number] = [0, 0]): Rect {
+  const w = Math.max(0, ...lines.map((l) => l.text.length * l.size * CAP_EM));
+  const h = lines.reduce((a, l) => a + l.size * 1.2, 0);
+  const base = lines[0]?.size ?? 0;
+  const [fx, fy] = ANCHOR_AT[anchor] ?? ANCHOR_AT.center;
+  return { x: pt.x + off[0] * base - fx * w, y: pt.y + off[1] * base - fy * h, w, h };
 }
 
 /* ---------- private coral sites ---------- */

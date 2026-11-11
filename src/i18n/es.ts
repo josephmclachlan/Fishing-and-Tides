@@ -549,6 +549,7 @@ export const es: Dict = {
   'fish.why.front': 'FRENTE',
   'fish.why.weed': 'LÍNEA DE SARGAZO',
   'fish.zone.off': 'A {km} KM DE {name}',
+  'fish.zone.nearly': 'CASI UNA ZONA',
   'bite.r.tide': 'MAREA EN MOVIMIENTO',
   'bite.r.slack': 'MAREA QUIETA',
   'bite.r.dawn': 'AMANECER',

@@ -570,6 +570,7 @@ export const en = {
   'fish.why.front': 'FRONT',
   'fish.why.weed': 'WEED LINE',
   'fish.zone.off': '{km} KM OFF {name}',
+  'fish.zone.nearly': 'NEARLY A ZONE',
   'bite.r.tide': 'MOVING TIDE',
   'bite.r.slack': 'SLACK TIDE',
   'bite.r.dawn': 'DAWN',

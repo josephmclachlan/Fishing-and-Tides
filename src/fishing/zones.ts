@@ -163,6 +163,19 @@ export function zoneRing(z: Zone, n = 48, isWater?: (lng: number, lat: number) =
   return ring;
 }
 
+/**
+ * The zones' zooms and name sizes (PLAN 7.85, Joseph: "requires too much zoom"): ovals from `z`, fish names from
+ * `nameZ`, the where line from `whereZ`; the name's px size by zoom as [zoom, px] stops (the where line is 0.82 of it).
+ */
+export const ZONE_LABEL = { z: 8.5, nameZ: 9, whereZ: 11, sizes: [[9, 9.5], [11, 10.5], [13, 12]] as const, whereScale: 0.82 } as const;
+/** The zone name's px size at a zoom, as the style interpolates it. Pure. */
+export function zoneTextSize(zoom: number): number {
+  const s = ZONE_LABEL.sizes;
+  if (zoom <= s[0][0]) return s[0][1];
+  for (let i = 1; i < s.length; i++) if (zoom <= s[i][0]) return s[i - 1][1] + ((s[i][1] - s[i - 1][1]) * (zoom - s[i - 1][0])) / (s[i][0] - s[i - 1][0]);
+  return s[s.length - 1][1];
+}
+
 export type LabelAnchor = 'left' | 'bottom-left' | 'bottom' | 'bottom-right' | 'right' | 'top-right' | 'top' | 'top-left';
 const ANCHORS: readonly LabelAnchor[] = ['left', 'bottom-left', 'bottom', 'bottom-right', 'right', 'top-right', 'top', 'top-left'];
 /** The em offset that moves text a little off its anchor point, outward, per anchor. */
@@ -209,6 +222,11 @@ export interface SpeciesZoneOptions extends ZoneOptions {
 
 /** Shore and kayak water (PLAN 7.74b, Joseph 2026-11-11): 220 m cells. */
 export const NEAR_ZONES: SpeciesZoneOptions = { ...ZONE_DEFAULTS, minScore: 0.6, minMean: 0.65, perSpecies: 3, mergeKm: 0.7, maxNames: 3, max: 12 };
+/**
+ * Near-miss shore water (PLAN 7.85, Joseph 2026-11-11 on the Playa Negra drop-off): gathered from a lower cell score
+ * and kept from a lower mean, drawn dotted with no fill so it reads as "nearly", never as a circled zone.
+ */
+export const NEARLY_ZONES: SpeciesZoneOptions = { ...NEAR_ZONES, minScore: 0.55, minMean: 0.58, perSpecies: 2, max: 8 };
 /** Boat water: ~2 km cells, gathered over 6 km. */
 export const FAR_ZONES: SpeciesZoneOptions = { minScore: 0.65, radiusKm: 6, minCells: 3, max: 6, sepKm: 6, cellM: 2000, minMean: 0.7, perSpecies: 2, mergeKm: 5, maxNames: 3 };
 
@@ -220,16 +238,26 @@ const inside = (z: Zone, p: { lng: number; lat: number }) => {
 };
 
 /**
+ * Water that nearly earned a zone: `speciesZones` at the lower `NEARLY_ZONES` bar, leaving out any that overlap or
+ * sit beside a kept zone (`kept`), best first, at most `opt.max`. Pure.
+ */
+export function nearlyZones<S extends string>(cells: readonly ZoneCell<S>[], ids: readonly S[], kept: readonly Zone<S>[], opt: SpeciesZoneOptions = NEARLY_ZONES): Zone<S>[] {
+  const gap = (a: Zone, b: Zone) => kmBetween(a, b) < opt.mergeKm + 0.5 || inside(a, b) || inside(b, a);
+  return speciesZones(cells, ids, opt, (z) => kept.some((k) => gap(k, z))).slice(0, opt.max);
+}
+
+/**
  * Every species gets its own zones (Joseph 2026-11-11: "all the species selected at once, with each species getting
  * zones ... only when they warrant/earn that spot"): `fishZones` per species at `minScore`, kept when the zone's mean
  * reaches `minMean`, at most `perSpecies` each. Where two species' zones are the same water (centres within `mergeKm`,
- * or one centre inside the other oval) they share the better zone's oval, names best first. Pure.
+ * or one centre inside the other oval) they share the better zone's oval, names best first. Zones `skip` turns down
+ * don't count towards a species' cap. Pure.
  */
-export function speciesZones<S extends string>(cells: readonly ZoneCell<S>[], ids: readonly S[], opt: SpeciesZoneOptions): Zone<S>[] {
+export function speciesZones<S extends string>(cells: readonly ZoneCell<S>[], ids: readonly S[], opt: SpeciesZoneOptions, skip?: (z: Zone<S>) => boolean): Zone<S>[] {
   const all: Zone<S>[] = [];
   for (const id of ids) {
     const one = cells.map((c) => ({ ...c, s: { [id]: c.s[id] ?? 0 } as Record<S, number> }));
-    all.push(...fishZones(one, { ...opt, max: opt.perSpecies * 4 }).filter((z) => z.score >= opt.minMean).slice(0, opt.perSpecies));
+    all.push(...fishZones(one, { ...opt, max: opt.perSpecies * 4 }).filter((z) => z.score >= opt.minMean && !skip?.(z)).slice(0, opt.perSpecies));
   }
   const out: Zone<S>[] = [];
   for (const z of all.sort((a, b) => b.score - a.score)) {

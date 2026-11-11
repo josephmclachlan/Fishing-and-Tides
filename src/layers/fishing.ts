@@ -23,7 +23,7 @@ import { occurrenceBoost, recordsFor, withEvidence } from '../fishing/occurrence
 import type { OccurrenceFile } from '../fishing/occurrence-taxa';
 import { catchRecords, type CatchPin } from '../fishing/catches';
 import { lifted, paintColour as cssColour, paintLift } from './paint';
-import { ANCHOR_OFFSET, FAR_ZONES, fishZones, NEAR_ZONES, speciesZones, zoneLabel, zoneRing, type Zone, type ZoneCell, type ZoneWhy } from '../fishing/zones';
+import { ANCHOR_OFFSET, ZONE_LABEL, FAR_ZONES, fishZones, NEAR_ZONES, nearlyZones, speciesZones, zoneLabel, zoneRing, type Zone, type ZoneCell, type ZoneWhy } from '../fishing/zones';
 import type { OffshoreId } from '../fishing/offshore';
 import { nearestName, uniqueMarks } from '../fishing/near-name';
 import { cellAt } from '../physics/bathy';
@@ -37,8 +37,11 @@ import { spotWater } from '../fishing/spot-water';
 import { SPEAR_SPECIES, spearScore, spearWindow } from '../fishing/spear';
 
 const { COAST, SPOT } = TIER_ZOOM;
-/** The circled zones (mockup G): ovals from this zoom, the fish names a little later, the where line from ZONE_WHERE_Z. */
-const ZONE_Z = 9, ZONE_NAME_Z = 9.6, ZONE_WHERE_Z = 11.2;
+/**
+ * The circled zones (mockup G): ovals and fish names from the coast view (PLAN 7.85, Joseph: "requires too much zoom"),
+ * the where line from ZONE_WHERE_Z.
+ */
+const { z: ZONE_Z, nameZ: ZONE_NAME_Z, whereZ: ZONE_WHERE_Z } = ZONE_LABEL;
 /** The heat's band edges (habitat score): nothing under fair (0.4), then a band every 0.05 up to the best water (0.8). */
 export const HEAT_STEPS = [0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8] as const;
 /** Heat image pixel, degrees (~55 m, a quarter of a cell): fine enough that the coastline cut and the band edges read smooth. */
@@ -153,11 +156,11 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   const parkAt = (lng: number, lat: number) => noZone(zoneAt(rules, [lng, lat]));
   let boat: readonly ZoneCell<OffshoreId>[] | null = null, boatKey = '';
   const depthText = ([d0, d1]: [number, number]) => (d0 === d1 ? `${d0} M` : `${d0}–${d1} M`);
-  const zoneFeatures = (z: Zone<string>, names: string, where: string, far: boolean) => {
+  const zoneFeatures = (z: Zone<string>, names: string, where: string, far: boolean, nearly = false) => {
     const ring = zoneRing(z, 48, isWater);
     // The name just outside the oval on the open-sea side, clear of the beach and its rating tiles.
     const lab = zoneLabel(z, ring, isWater);
-    const props = { lv: z.level, far: far ? 1 : 0, sp: names, where, anchor: lab.anchor, off: ANCHOR_OFFSET[lab.anchor] };
+    const props = { lv: z.level, far: far ? 1 : 0, nearly: nearly ? 1 : 0, sp: names, where, anchor: lab.anchor, off: ANCHOR_OFFSET[lab.anchor] };
     return [
       { type: 'Feature' as const, properties: props, geometry: { type: 'Polygon' as const, coordinates: [ring] } },
       { type: 'Feature' as const, properties: props, geometry: { type: 'Point' as const, coordinates: lab.at } },
@@ -181,11 +184,16 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
         if (c.f.slopeMPerKm >= 20) why.push('drop');
         cells.push({ lng: c.lng, lat: c.lat, s, why, depthM: c.f.depthM });
       }
-    const near = speciesZones(cells, SPECIES.map((x) => x.id), NEAR_ZONES).flatMap((z) => {
+    const ids = SPECIES.map((x) => x.id);
+    const kept = speciesZones(cells, ids, NEAR_ZONES);
+    const nearWhere = (z: Zone<SpeciesId>) => {
       const at = nearestName(z.lng, z.lat, marks);
-      const where = [z.why ? t(`fish.why.${z.why}` as Key) : '', depthText(z.depthM), at?.name.toUpperCase() ?? ''].filter(Boolean).join(' · ');
-      return zoneFeatures(z, z.species.map((id) => t(`fish.${id}` as Key)).join(' · '), where, false);
-    });
+      return [z.why ? t(`fish.why.${z.why}` as Key) : '', depthText(z.depthM), at?.name.toUpperCase() ?? ''].filter(Boolean).join(' · ');
+    };
+    const spNames = (z: Zone<SpeciesId>) => z.species.map((id) => t(`fish.${id}` as Key)).join(' · ');
+    const near = kept.flatMap((z) => zoneFeatures(z, spNames(z), nearWhere(z), false));
+    // Water that nearly earned a circle (PLAN 7.85): dotted, no fill, said so on the label.
+    const nearly = nearlyZones(cells, ids, kept).flatMap((z) => zoneFeatures(z, spNames(z), [t('fish.zone.nearly'), nearWhere(z)].join(' · '), false, true));
     // Boat water beyond the cast: the offshore species on the day's satellite water (FAR_ZONES), not inside a national park.
     const far =
       boat && reach !== 'shore'
@@ -196,7 +204,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
             return zoneFeatures(z, z.species.map((id) => t(`boat.sp.${id}` as Key)).join(' · '), where, true);
           })
         : [];
-    zonesGj.features = [...far, ...near];
+    zonesGj.features = [...nearly, ...far, ...near];
     return true;
   };
   const refreshZones = () => {
@@ -303,25 +311,35 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     heatKey = `${month}|${reach}|${catchKey}`;
     map.addSource('fh-heat', { type: 'image', url: heatUrl(img), coordinates: img.coordinates });
     // Fades in past the coast tier and steps back to a tint by the spot tier, where the zones and the reefs carry the detail.
-    map.addLayer({ id: 'fh-heat', type: 'raster', source: 'fh-heat', minzoom: COAST, paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], COAST, 0, COAST + 1, 1, SPOT, 0.85, SPOT + 2, 0.4], 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, map.getLayer(CONTOURS_FROM) ? CONTOURS_FROM : firstSymbolId(map));
+    // Zoomed in it stays strong enough to read which water is better (PLAN 7.85).
+    map.addLayer({ id: 'fh-heat', type: 'raster', source: 'fh-heat', minzoom: COAST, paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], COAST, 0, COAST + 1, 1, SPOT, 0.9, SPOT + 2, 0.6], 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, map.getLayer(CONTOURS_FROM) ? CONTOURS_FROM : firstSymbolId(map));
     // The zones: rating colours as in mockup G (fill at 30 %, a dashed edge one shade deeper), names in ink on the halo.
     buildZones();
     map.addSource('fh-zones', { type: 'geojson', data: zonesGj });
     // Zone level 3, 2, 1 in the beach rating's great, good and fair (--lv4, --lv3, --lv2), edges in the deeper --ac shade.
     const byLv = (pre: string): ExpressionSpecification => ['match', ['get', 'lv'], 3, css(`--${pre}4`, '#0C6B66'), 2, css(`--${pre}3`, '#A5DBC2'), css(`--${pre}2`, '#F4C542')];
-    const poly: ExpressionSpecification = ['==', ['geometry-type'], 'Polygon'];
+    const poly: ExpressionSpecification = ['all', ['==', ['geometry-type'], 'Polygon'], ['==', ['get', 'nearly'], 0]];
     map.addLayer({ id: 'fh-zone-fill', type: 'fill', source: 'fh-zones', minzoom: ZONE_Z, filter: poly, paint: { 'fill-color': byLv('lv'), 'fill-opacity': ['interpolate', ['linear'], ['zoom'], ZONE_Z, 0, ZONE_Z + 0.5, 0.3] } });
     map.addLayer({ id: 'fh-zone-line', type: 'line', source: 'fh-zones', minzoom: ZONE_Z, filter: ['all', poly, ['==', ['get', 'far'], 0]], layout: { 'line-join': 'round' }, paint: { 'line-color': byLv('ac'), 'line-width': ['interpolate', ['linear'], ['zoom'], ZONE_Z, 1.2, 12, 1.8, 14, 2.2], 'line-dasharray': [3, 2], 'line-opacity': ['interpolate', ['linear'], ['zoom'], ZONE_Z, 0, ZONE_Z + 0.5, 1] } });
     // Boat zones: longer dashes, so water a cast can't reach reads differently at a glance.
     map.addLayer({ id: 'fh-zone-far', type: 'line', source: 'fh-zones', minzoom: ZONE_Z, filter: ['all', poly, ['==', ['get', 'far'], 1]], layout: { 'line-join': 'round' }, paint: { 'line-color': byLv('ac'), 'line-width': ['interpolate', ['linear'], ['zoom'], ZONE_Z, 1.2, 12, 1.8, 14, 2.2], 'line-dasharray': [7, 3], 'line-opacity': ['interpolate', ['linear'], ['zoom'], ZONE_Z, 0, ZONE_Z + 0.5, 1] } });
+    // Nearly zones: a fine dotted edge in the fair colour, no fill.
+    map.addLayer({ id: 'fh-zone-nearly', type: 'line', source: 'fh-zones', minzoom: ZONE_Z, filter: ['all', ['==', ['geometry-type'], 'Polygon'], ['==', ['get', 'nearly'], 1]], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': css('--ac2', '#A67800'), 'line-width': ['interpolate', ['linear'], ['zoom'], ZONE_Z, 1, 12, 1.5, 14, 1.9], 'line-dasharray': [0.1, 2.2], 'line-opacity': ['interpolate', ['linear'], ['zoom'], ZONE_Z, 0, ZONE_Z + 0.5, 0.9] } });
     const name: ExpressionSpecification = ['format', ['get', 'sp'], { 'text-font': ['literal', ['Noto Sans Bold']] }];
+    const nearlyName: ExpressionSpecification = ['format', ['get', 'sp'], {}, '\n', {}, t('fish.zone.nearly'), { 'font-scale': ZONE_LABEL.whereScale }];
     map.addLayer({
       id: 'fh-zone-label', type: 'symbol', source: 'fh-zones', minzoom: ZONE_NAME_Z, filter: ['==', ['geometry-type'], 'Point'],
       layout: {
-        'text-field': ['step', ['zoom'], name, ZONE_WHERE_Z, ['format', ['get', 'sp'], { 'text-font': ['literal', ['Noto Sans Bold']] }, '\n', {}, ['get', 'where'], { 'font-scale': 0.82, 'text-color': css('--ink2', '#46576C') }]],
-        'text-font': ['Noto Sans Regular'], 'text-size': ['interpolate', ['linear'], ['zoom'], ZONE_NAME_Z, 10, 13, 12], 'text-anchor': ['get', 'anchor'], 'text-offset': ['get', 'off'], 'text-justify': 'auto', 'text-letter-spacing': 0.06, 'text-max-width': 30, 'text-padding': 4,
+        'text-field': ['step', ['zoom'],
+          ['case', ['==', ['get', 'nearly'], 1], nearlyName, name],
+          ZONE_WHERE_Z, ['case', ['==', ['get', 'nearly'], 1], ['format', ['get', 'sp'], {}, '\n', {}, ['get', 'where'], { 'font-scale': ZONE_LABEL.whereScale }], ['format', ['get', 'sp'], { 'text-font': ['literal', ['Noto Sans Bold']] }, '\n', {}, ['get', 'where'], { 'font-scale': 0.82, 'text-color': css('--ink2', '#46576C') }]]],
+        'text-font': ['Noto Sans Regular'], 'text-size': ['interpolate', ['linear'], ['zoom'], ...ZONE_LABEL.sizes.flat()], 'text-anchor': ['get', 'anchor'], 'text-offset': ['get', 'off'], 'text-justify': 'auto', 'text-letter-spacing': 0.06, 'text-max-width': 30, 'text-padding': 4,
+        // Drawn over the place names (the map shell keeps this layer on top), so a town or a reef label never knocks a fish
+        // name out (Joseph: "very inconsistently displaying"). Zone names don't pile on each other: the best zones are placed
+        // first and the rest show as you zoom in.
+        'symbol-sort-key': ['-', ['*', 10, ['get', 'nearly']], ['get', 'lv']],
       },
-      paint: { 'text-color': css('--ink', '#0A1626'), 'text-halo-color': css('--m-halo', '#ECEADF'), 'text-halo-width': 1.8 },
+      paint: { 'text-color': ['case', ['==', ['get', 'nearly'], 1], css('--ink2', '#46576C'), css('--ink', '#0A1626')], 'text-halo-color': css('--m-halo', '#ECEADF'), 'text-halo-width': 1.8 },
     });
     // SPEAR: the cells (green), the banned water that would be good (red), the CHECK water (dashed amber) and the circled zones.
     buildSpear();
