@@ -62,6 +62,11 @@ export interface ForecastDeps extends FcDeps {
   storage: Store;
   /** The active language and a switch to the other one (reloads; the hash keeps the page open). */
   lang: () => 'en' | 'es';
+  /**
+   * Changes whenever a feed the readings use arrives or updates. With it, the page keeps each spot and activity's
+   * readings until it changes, so going back to a tab or spot is instant; without it, everything is worked out again.
+   */
+  version?: () => string;
   setLang: (l: 'en' | 'es') => void;
   /** Where the map is, for the first spot when none is remembered. */
   center: () => [number, number];
@@ -182,10 +187,26 @@ export function mountForecastPage(deps: ForecastDeps) {
     placeBar();
   };
 
-  /** The week's plan and the hour-by-hour timeline: rebuilt each hour, on a new spot or activity, and while feeds load. */
+  /**
+   * The week's plan and the hour-by-hour timeline: rebuilt each hour, on a new spot or activity, and when a feed
+   * arrives. The last few are kept, so switching back to a tab or spot does not work the week out again.
+   */
   const ensureData = () => {
     const sp = spot();
     const key = `${act}|${sp.name}|${nowHour()}`;
+    if (deps.version) {
+      const k = `${key}|${dataVer()}`;
+      if (k === planKey) return;
+      let c = weeks.get(k);
+      if (!c) {
+        const p = daysAt(deps, act, sp, Date.now(), 7);
+        c = { plan: p, tl: timeline(deps, act, sp, p?.startMs ?? localDayStart(Date.now(), TZ)) };
+        if (weeks.size >= KEEP_WEEKS) weeks.delete(weeks.keys().next().value!);
+        weeks.set(k, c);
+      }
+      (plan = c.plan), (tl = c.tl), (planKey = tlKey = k), (chartDirty = true);
+      return;
+    }
     if (key !== planKey || plan?.none === 'nodata') {
       plan = daysAt(deps, act, sp, Date.now(), 7);
       planKey = key;
@@ -195,6 +216,25 @@ export function mountForecastPage(deps: ForecastDeps) {
       tlKey = key;
       chartDirty = true;
     }
+  };
+  const weeks = new Map<string, { plan: Plan | null; tl: TimelineHour[] }>();
+  const KEEP_WEEKS = 30;
+  /** The feeds' version, and a five-minute clock so nothing kept outlives what the old 60 s redraw would show by much. */
+  const dataVer = () => `${deps.version?.() ?? ''}|${Math.floor(Date.now() / 3e5)}`;
+  /** One reading, kept per feed version (the spot cards, their strips and the day bars ask for the same hours). */
+  const reads = new Map<string, FcRead>();
+  let readsVer = '';
+  const read = (sp: Spot, ms: number): FcRead => {
+    if (!deps.version) return readAt(deps, act, sp, ms);
+    const v = dataVer();
+    if (v !== readsVer) reads.clear(), (readsVer = v);
+    const k = `${act}|${sp.name}|${ms}`;
+    let r = reads.get(k);
+    if (!r) {
+      if (reads.size > 4000) reads.clear();
+      reads.set(k, (r = readAt(deps, act, sp, ms)));
+    }
+    return r;
   };
   const tlPartial = () =>
     !tl.length || tl.every((h) => h.read.level === null) || tl.every((h) => h.windKt === null) || tl.every((h) => h.rainMmH === null && h.cloudPct === null);
@@ -221,7 +261,7 @@ export function mountForecastPage(deps: ForecastDeps) {
   const renderHero = () => {
     const sp = spot();
     const ms = when();
-    const r = readAt(deps, act, sp, ms);
+    const r = read(sp, ms);
     heroRead = r;
     $('fc-name').textContent = titleCase(sp.name);
     const asked = swapped();
@@ -238,7 +278,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     $('fc-words').textContent = v.words;
     html('fc-rate', rateHtml(v));
     html('fc-why', chipsHtml(v));
-    const b = bestTimeView(plan, (x) => readAt(deps, act, sp, x), ms, sel !== null);
+    const b = bestTimeView(plan, (x) => read(sp, x), ms, sel !== null);
     const best = $('fc-best') as HTMLButtonElement;
     best.hidden = b.kind === 'hidden';
     best.disabled = b.kind === 'none';
@@ -270,7 +310,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     let v = strips.get(k);
     if (!v || v.every((x) => x === null)) {
       if (strips.size > 120) strips.clear();
-      v = Array.from({ length: 12 }, (_, i) => readAt(deps, act, sp, now + i * H).level);
+      v = Array.from({ length: 12 }, (_, i) => read(sp, now + i * H).level);
       strips.set(k, v);
     }
     return v;
@@ -279,7 +319,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     const now = nowHour();
     const cur = spot().name;
     $('fc-spots-cap').textContent = t('fc.spotsCap', { act: actWord() });
-    html('fc-spots', spotsHtml(spots().map((s) => ({ id: s.name, ...spotView(s, readAt(deps, act, s, now), stripOf(s, now), hourWeather(deps.env, s, now)) })), cur));
+    html('fc-spots', spotsHtml(spots().map((s) => ({ id: s.name, ...spotView(s, read(s, now), stripOf(s, now), hourWeather(deps.env, s, now)) })), cur));
     if (cur !== shownSpot) {
       shownSpot = cur;
       const rail = $('fc-spots');
@@ -372,7 +412,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     $('fc-days-cap').textContent = t('fc.daysCap', { what: t(`fc.daysWhat.${act}` as Key) });
     const uvs = dayUvPeaks(deps.env, sp, p.startMs, p.days.length);
     const selDay = Math.floor((localDayStart(when(), TZ) - p.startMs) / DAY);
-    const changed = html('fc-days', daysHtml(daysView(p, (ms) => readAt(deps, act, sp, ms), uvs, selDay, sel !== null), t('fc.best')));
+    const changed = html('fc-days', daysHtml(daysView(p, (ms) => read(sp, ms), uvs, selDay, sel !== null), t('fc.best')));
     if (changed && anim && !reduced)
       $('fc-days').querySelectorAll<HTMLElement>('.fc-bar').forEach((b, i) => b.animate?.([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], { duration: 620, delay: i * 50, easing: 'cubic-bezier(.7,0,.2,1)', fill: 'backwards' }));
   };
@@ -489,7 +529,13 @@ export function mountForecastPage(deps: ForecastDeps) {
 
   // --- the live-map card
   let previewFor = '';
-  let previewAt = 0;
+  /**
+   * Pictures of the map already taken, per spot. Taking one moves the hidden map to the spot, waits for its tiles and
+   * encodes a JPEG, which made every spot tap stall; now each spot's picture is taken once (again after 10 minutes)
+   * and only once the card is on screen.
+   */
+  const shots = new Map<string, { p: { url: string; x: number; y: number; mPerPx?: number }; at: number }>();
+  const SHOT_FRESH_MS = 10 * 60_000;
   let shot: { w: number; h: number; x: number; y: number; mPerPx: number | null } | null = null;
   let liveVis = false;
   const LV = { w: 0, h: 0 };
@@ -518,20 +564,33 @@ export function mountForecastPage(deps: ForecastDeps) {
     $('fc-radar-hint').textContent = t('fc.radarHint', { act: a });
     $('fc-radar').setAttribute('aria-label', `${t('fc.radar')}: ${t('fc.radarSub', { act: a, spot: titleCase(sp.name) })}`);
     if (reduced || !liveVis) drawLive(3.2);
-    if (!deps.mapPreview || (previewFor === sp.name && Date.now() - previewAt < 120_000)) return;
-    previewFor = sp.name;
-    previewAt = Date.now();
+    ensureShot();
+  };
+  const showShot = (name: string, p: { url: string; x: number; y: number; mPerPx?: number }) => {
+    if (previewFor === name && shot) return;
+    previewFor = name;
+    const img = new Image();
+    img.onload = () => {
+      if (previewFor !== name) return;
+      shot = { w: img.naturalWidth, h: img.naturalHeight, x: p.x, y: p.y, mPerPx: p.mPerPx ?? null };
+      $('fc-radar-img').style.backgroundImage = `url(${p.url})`;
+      $('fc-radar').classList.add('has-img');
+      drawLive(performance.now() / 1000);
+    };
+    img.src = p.url;
+  };
+  let taking = '';
+  const ensureShot = () => {
+    const sp = spot();
+    const have = shots.get(sp.name);
+    if (have) showShot(sp.name, have.p);
+    if (!deps.mapPreview || (have && Date.now() - have.at < SHOT_FRESH_MS) || !liveVis || taking) return;
+    taking = sp.name;
     void deps.mapPreview(sp).then((p) => {
-      if (!p || previewFor !== sp.name) return;
-      const img = new Image();
-      img.onload = () => {
-        if (previewFor !== sp.name) return;
-        shot = { w: img.naturalWidth, h: img.naturalHeight, x: p.x, y: p.y, mPerPx: p.mPerPx ?? null };
-        $('fc-radar-img').style.backgroundImage = `url(${p.url})`;
-        $('fc-radar').classList.add('has-img');
-        drawLive(performance.now() / 1000);
-      };
-      img.src = p.url;
+      taking = '';
+      if (p) shots.set(sp.name, { p, at: Date.now() });
+      if (spot().name !== sp.name) return ensureShot();
+      if (p) (shot = null), showShot(sp.name, p);
     });
   };
   $('fc-radar').addEventListener('click', () => {
@@ -573,8 +632,8 @@ export function mountForecastPage(deps: ForecastDeps) {
   if ('IntersectionObserver' in window) {
     new IntersectionObserver((es) => ((heroVis = es[0].isIntersecting), kick())).observe($('fc-hero'));
     new IntersectionObserver((es) => ((chartVis = es[0].isIntersecting), kick())).observe($('fc-hx'));
-    new IntersectionObserver((es) => ((liveVis = es[0].isIntersecting), kick())).observe($('fc-radar'));
-  } else chartVis = liveVis = true;
+    new IntersectionObserver((es) => ((liveVis = es[0].isIntersecting), liveVis && ensureShot(), kick())).observe($('fc-radar'));
+  } else (chartVis = liveVis = true), ensureShot();
   document.addEventListener('visibilitychange', kick);
   motionQ?.addEventListener?.('change', (e) => {
     reduced = e.matches;

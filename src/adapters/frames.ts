@@ -9,7 +9,7 @@
  */
 import type { Band } from '../time';
 import type { VectorField } from '../physics/flow';
-import type { GridSeries } from './pack';
+import type { GridGeom, GridSeries } from './pack';
 
 export interface Bracket {
   i0: number;
@@ -146,9 +146,7 @@ export function meanSeries(s: GridSeries): GridSeries {
  * 1/12° coastal nest sharpen a 0.25° regional field without a second particle layer.
  */
 export function overlayFields(fine: VectorField, coarse: VectorField): VectorField {
-  const dlon = fine.dlon, dlat = fine.dlat;
-  const cols = Math.round(((coarse.cols - 1) * coarse.dlon) / dlon) + 1;
-  const rows = Math.round(((coarse.rows - 1) * coarse.dlat) / dlat) + 1;
+  const { cols, rows, dlon, dlat } = overlayGeom(fine, coarse);
   const u = new Float32Array(cols * rows);
   const v = new Float32Array(cols * rows);
   const tmp: [number, number] = [0, 0];
@@ -160,6 +158,49 @@ export function overlayFields(fine: VectorField, coarse: VectorField): VectorFie
       else (u[i] = NaN), (v[i] = NaN);
     }
   return { cols, rows, lon0: coarse.lon0, lat0: coarse.lat0, dlon, dlat, u, v };
+}
+
+/** The grid overlayFields writes: the fine spacing across the coarse extent. */
+export function overlayGeom(fine: GridGeom, coarse: GridGeom): GridGeom {
+  const dlon = fine.dlon, dlat = fine.dlat;
+  const cols = Math.round(((coarse.cols - 1) * coarse.dlon) / dlon) + 1;
+  const rows = Math.round(((coarse.rows - 1) * coarse.dlat) / dlat) + 1;
+  return { cols, rows, lon0: coarse.lon0, lat0: coarse.lat0, dlon, dlat };
+}
+
+/** One field sampled at every node of `g` the way overlayFields samples it; `ok` 0 where it has no value there. */
+export interface Resampled {
+  u: Float32Array;
+  v: Float32Array;
+  ok: Uint8Array;
+}
+
+export function resampleField(f: VectorField, g: GridGeom): Resampled {
+  const n = g.cols * g.rows;
+  const u = new Float32Array(n), v = new Float32Array(n), ok = new Uint8Array(n);
+  const tmp: [number, number] = [0, 0];
+  for (let r = 0; r < g.rows; r++)
+    for (let c = 0; c < g.cols; c++) {
+      const i = r * g.cols + c;
+      if (sampleNaNAware(f, g.lon0 + c * g.dlon, g.lat0 - r * g.dlat, tmp)) (u[i] = tmp[0]), (v[i] = tmp[1]), (ok[i] = 1);
+    }
+  return { u, v, ok };
+}
+
+/**
+ * True when every frame of `u` and `v` has no data in the same cells (the land mask). Then blending two frames in
+ * time and resampling commute: overlayFields of the blend equals the blend of each frame's overlay, so the overlay
+ * can be built once per frame instead of once per lookup.
+ */
+export function steadyMask(s: GridSeries, uVar: string, vVar: string): boolean {
+  const us = s.values[uVar], vs = s.values[vVar];
+  if (!us?.length || !vs?.length) return false;
+  const n = us[0].length;
+  const ref = new Uint8Array(n);
+  for (let i = 0; i < n; i++) ref[i] = Number.isFinite(us[0][i]) ? 1 : 0;
+  for (const frames of [us, vs])
+    for (const f of frames) for (let i = 0; i < n; i++) if ((Number.isFinite(f[i]) ? 1 : 0) !== ref[i]) return false;
+  return true;
 }
 
 /** Bilinear vector that skips no-data corners (renormalising the rest); false if none. */

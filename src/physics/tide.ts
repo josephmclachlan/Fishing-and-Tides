@@ -128,14 +128,16 @@ export function speed(name: ConstituentName): number {
 }
 
 /** Equilibrium argument V (deg), nodal factor f and correction u (deg) at time t. */
-export function argument(name: ConstituentName, a: Astro): { V: number; f: number; u: number } {
+export function argument(name: ConstituentName, a: Astro, groups?: Map<NodalKind, [number, number]>): { V: number; f: number; u: number } {
   const c: ConstituentDef = CONSTITUENTS[name];
   const [i1, i2, i3, i4, i5, i6] = c.d;
   const V = i1 * a.tau + i2 * a.s + i3 * a.h + i4 * a.p - i5 * a.N + i6 * a.p1 + c.phase;
   let f = 1;
   let u = 0;
   for (const [kind, pow] of c.nodal) {
-    const [fb, ub] = nodalBase(kind, a.N);
+    let g = groups?.get(kind);
+    if (!g) (g = nodalBase(kind, a.N)), groups?.set(kind, g);
+    const [fb, ub] = g;
     f *= fb ** pow;
     u += ub * pow;
   }
@@ -152,15 +154,28 @@ export interface Harmonics {
 
 /** Tide height (m above the harmonics' datum) at time t. */
 export function predict(hc: Harmonics, tMs: number): number {
+  // Pages ask for the same instants over and over (every hour's tide state scans the same 10-minute marks), so the
+  // heights are kept per station; the sum below is the same either way.
+  let memo = predicted.get(hc);
+  if (!memo || memo.size > PREDICT_MEMO) predicted.set(hc, (memo = new Map()));
+  const hit = memo.get(tMs);
+  if (hit !== undefined) return hit;
   const a = astro(tMs);
+  // The nodal groups depend only on N: work each out once per instant, not once per constituent.
+  const groups = new Map<NodalKind, [number, number]>();
   let eta = hc.z0;
   for (const name in hc.constituents) {
     const k = hc.constituents[name as ConstituentName]!;
-    const { V, f, u } = argument(name as ConstituentName, a);
+    const { V, f, u } = argument(name as ConstituentName, a, groups);
     eta += f * k.H * Math.cos((V + u - k.g) * RAD);
   }
+  memo.set(tMs, eta);
   return eta;
 }
+
+const predicted = new WeakMap<Harmonics, Map<number, number>>();
+/** About a month of 10-minute marks plus their refinements; then the memo starts over. */
+const PREDICT_MEMO = 20_000;
 
 /**
  * Tide height in metres above the harmonics' datum (mean sea level for Limón) at t, plus a correction in metres
