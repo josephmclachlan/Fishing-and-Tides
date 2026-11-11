@@ -1,12 +1,12 @@
 /**
- * Shore and kayak fishing layer (PLAN 4.5): the habitat score of the chosen species, drawn as a
- * heat of ~220 m cells within a paddle or long cast of the coast, from the coast tier in.
- * Amber only, faint for fair water and stronger for the best (green blended into the map).
+ * Shore and kayak fishing layer (PLAN 4.5): the habitat score of every eating fish at once (the best of them, PLAN 7.75),
+ * drawn as a heat of ~220 m cells within a paddle or long cast of the coast, from the coast tier in: amber for fair
+ * water, green for the best.
  * A SHORE / BOAT highlight keeps cells within a cast or wade of the beach, or those beyond it. Style layer ids start with `fh-` (catalog 'fishing').
  * The weights are fitted to the OBIS/GBIF records when the layer mounts (PLAN 4.4, fishing/fit.ts), and
  * refitted with your own logged catches whenever they change (PLAN 7.16, `setCatches`).
- * Over the cells, the circled zones of mockup G (PLAN 7.74, fishing/zones.ts): the best water of every eating fish,
- * named with the fish to try there (`fh-zone-*`).
+ * Over the cells, the circled zones of mockup G (PLAN 7.74, 7.75, fishing/zones.ts): each fish's own zones where it
+ * earns them, near shore and, from the boat read main.ts hands over, offshore (`fh-zone-*`).
  */
 import type { ExpressionSpecification, GeoJSONSource, Map } from 'maplibre-gl';
 import type { FeatureCollection } from 'geojson';
@@ -21,7 +21,8 @@ import { occurrenceBoost, recordsFor, withEvidence } from '../fishing/occurrence
 import type { OccurrenceFile } from '../fishing/occurrence-taxa';
 import { catchRecords, type CatchPin } from '../fishing/catches';
 import { lifted, paintColour as cssColour, paintLift } from './paint';
-import { ANCHOR_OFFSET, fishZones, zoneLabel, zoneRing, type ZoneCell, type ZoneWhy } from '../fishing/zones';
+import { ANCHOR_OFFSET, FAR_ZONES, NEAR_ZONES, speciesZones, zoneLabel, zoneRing, type Zone, type ZoneCell, type ZoneWhy } from '../fishing/zones';
+import type { OffshoreId } from '../fishing/offshore';
 import { nearestName, uniqueMarks } from '../fishing/near-name';
 import { cellAt } from '../physics/bathy';
 import { PLUME_RIVERS, RAIN_TOWNS, SPOTS } from '../region';
@@ -83,15 +84,17 @@ export interface FishingLayer {
   setCatches(pins: readonly CatchPin[]): void;
   /** Habitat score 0..1 at a point for a given species and the current month, or null outside the reach. */
   scoreFor(id: SpeciesId, lng: number, lat: number): number | null;
-  /** The protected areas (PLAN 4.3): no circled zone inside a national park or closed water. */
+  /** The protected areas (PLAN 4.3): no circled zone inside a national park or closed water, no spear fish in any. */
   setRules(zones: readonly ZonePoly[]): void;
+  /** Boat water scored per offshore species on a ~2 km grid for the day on the slider (main.ts), or null: its zones. */
+  setBoat(cells: readonly ZoneCell<OffshoreId>[] | null, key: string): void;
 }
 
 export function mountFishing(map: Map, input: FishingInput, initial: { species: SpeciesId; month: number }, occurrences: OccurrenceFile | null = null): FishingLayer {
   const built = buildCells(input);
   let sp = speciesById(initial.species);
   let month = initial.month;
-  const amber = cssColour('--amber', '#ffb000');
+  const amber = cssColour('--amber', '#ffb000'), green = cssColour('--green', '#39ff7a');
   // The theme's lift (paint.ts): these washes are 3 to 32 %, made for a black sea, and vanish on the light one.
   const L = paintLift('strong'), o = (a: number) => lifted(a, L);
   let reach: Reach = 'all';
@@ -130,39 +133,57 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   const isWater = (lng: number, lat: number) => cellAt(input.land, lng, lat) !== 1;
   const zonesGj: FeatureCollection = { type: 'FeatureCollection', features: [] };
   let zoneKey = '';
-  // Per cell: 1 where no zone is circled (set with the rules), else 0.
+  // Per cell: 2 where no zone is circled (a national park or closed water), 1 in another protected area, else 0.
   let rule = new Uint8Array(built.cells.length);
   let rules: readonly ZonePoly[] = [];
+  const noZone = (p: ReturnType<typeof zoneAt>) => !!p && (p.status === 'closed' || p.iucn === '2');
+  const parkAt = (lng: number, lat: number) => noZone(zoneAt(rules, [lng, lat]));
+  let boat: readonly ZoneCell<OffshoreId>[] | null = null, boatKey = '';
+  const depthText = ([d0, d1]: [number, number]) => (d0 === d1 ? `${d0} M` : `${d0}–${d1} M`);
+  const zoneFeatures = (z: Zone<string>, names: string, where: string, far: boolean) => {
+    const ring = zoneRing(z, 48, isWater);
+    // The name just outside the oval on the open-sea side, clear of the beach and its rating tiles.
+    const lab = zoneLabel(z, ring, isWater);
+    const props = { lv: z.level, far: far ? 1 : 0, sp: names, where, anchor: lab.anchor, off: ANCHOR_OFFSET[lab.anchor] };
+    return [
+      { type: 'Feature' as const, properties: props, geometry: { type: 'Polygon' as const, coordinates: [ring] } },
+      { type: 'Feature' as const, properties: props, geometry: { type: 'Point' as const, coordinates: lab.at } },
+    ];
+  };
   const buildZones = () => {
-    const key = `${month}|${reach}|${catchKey}|${rules.length}`;
+    const key = `${month}|${reach}|${catchKey}|${rules.length}|${boatKey}`;
     if (key === zoneKey) return false;
     zoneKey = key;
+    // Shore and kayak water: every eating fish, each in the zones it earns (fishing/zones.ts NEAR_ZONES).
     const cells: ZoneCell<SpeciesId>[] = [];
     for (const [i, c] of built.cells.entries()) {
-      if (!inReach(c.coastM) || rule[i]) continue;
-      const s = {} as Record<SpeciesId, number>;
-      for (const x of SPECIES) s[x.id] = Math.min(1, habitatScore(x, c.f, month, fits[x.id].weights) * (1 + boostAt(x.id, c.lng, c.lat)));
-      const why: ZoneWhy[] = [];
-      if (c.f.mouthKm < 0.8) why.push('mouth');
-      if (c.f.reef >= 0.3) why.push('reef');
-      if (c.f.slopeMPerKm >= 20) why.push('drop');
-      cells.push({ lng: c.lng, lat: c.lat, s, why, depthM: c.f.depthM });
-    }
-    const zones = fishZones(cells);
-    zonesGj.features = zones.flatMap((z) => {
-      const near = nearestName(z.lng, z.lat, marks);
-      const [d0, d1] = z.depthM;
-      const depth = d0 === d1 ? `${d0} M` : `${d0}–${d1} M`;
-      const where = [z.why ? t(`fish.why.${z.why}` as Key) : '', depth, near?.name.toUpperCase() ?? ''].filter(Boolean).join(' · ');
-      const ring = zoneRing(z, 48, isWater);
-      // The name just outside the oval on the open-sea side, clear of the beach and its rating tiles.
-      const lab = zoneLabel(z, ring, isWater);
-      const props = { lv: z.level, sp: z.species.map((id) => t(`fish.${id}` as Key)).join(' · '), where, anchor: lab.anchor, off: ANCHOR_OFFSET[lab.anchor] };
-      return [
-        { type: 'Feature' as const, properties: props, geometry: { type: 'Polygon' as const, coordinates: [ring] } },
-        { type: 'Feature' as const, properties: props, geometry: { type: 'Point' as const, coordinates: lab.at } },
-      ];
+        if (!inReach(c.coastM) || rule[i] === 2) continue;
+        const s = {} as Record<SpeciesId, number>;
+        for (const x of SPECIES) s[x.id] = Math.min(1, habitatScore(x, c.f, month, fits[x.id].weights) * (1 + boostAt(x.id, c.lng, c.lat)));
+        // Lionfish are taken by spear: none in any protected area.
+        if (rule[i]) s.lionfish = 0;
+        const why: ZoneWhy[] = [];
+        if (c.f.mouthKm < 0.8) why.push('mouth');
+        if (c.f.reef >= 0.3) why.push('reef');
+        if (c.f.slopeMPerKm >= 20) why.push('drop');
+        cells.push({ lng: c.lng, lat: c.lat, s, why, depthM: c.f.depthM });
+      }
+    const near = speciesZones(cells, SPECIES.map((x) => x.id), NEAR_ZONES).flatMap((z) => {
+      const at = nearestName(z.lng, z.lat, marks);
+      const where = [z.why ? t(`fish.why.${z.why}` as Key) : '', depthText(z.depthM), at?.name.toUpperCase() ?? ''].filter(Boolean).join(' · ');
+      return zoneFeatures(z, z.species.map((id) => t(`fish.${id}` as Key)).join(' · '), where, false);
     });
+    // Boat water beyond the cast: the offshore species on the day's satellite water (FAR_ZONES), not inside a national park.
+    const far =
+      boat && reach !== 'shore'
+        ? speciesZones(boat.filter((c) => !parkAt(c.lng, c.lat)), ['mahi', 'tuna', 'wahoo', 'kingfish', 'silksnapper'] as OffshoreId[], FAR_ZONES).flatMap((z) => {
+            const at = nearestName(z.lng, z.lat, marks);
+            const off = at ? t('fish.zone.off', { km: Math.round(at.km), name: at.name.toUpperCase() }) : '';
+            const where = [t('fish.reach.boat'), z.why ? t(`fish.why.${z.why}` as Key) : '', depthText(z.depthM), off].filter(Boolean).join(' · ');
+            return zoneFeatures(z, z.species.map((id) => t(`boat.sp.${id}` as Key)).join(' · '), where, true);
+          })
+        : [];
+    zonesGj.features = [...far, ...near];
     return true;
   };
   const refreshZones = () => {
@@ -222,20 +243,20 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
 
   const paint = () => {
     if (!map.getLayer('fh-cells')) return;
-    const raw: ExpressionSpecification = ['*', ['get', sp.id], seasonFactor(sp, month)];
+    // Every eating fish at once (Joseph 2026-11-11): the best of the species' scores, each with its season.
+    const raw: ExpressionSpecification = ['max', ...SPECIES.map((x): ExpressionSpecification => ['*', ['get', x.id], seasonFactor(x, month)])] as unknown as ExpressionSpecification;
     const score: ExpressionSpecification = reach === 'all' ? raw : ['case', reach === 'shore' ? ['<=', ['get', 'coast'], SHORE_M] : ['>', ['get', 'coast'], SHORE_M], raw, 0];
-    // Amber only. Nothing below fair (0.3); the best water reaches a firm but see-through fill. Past spot zoom the 0.06°
+    // Nothing below fair (0.3); the best water reaches a firm but see-through fill. Past spot zoom the 0.06°
     // cells are bigger than the screen's detail and read as blocks, so they fade out (clarity review CL19).
-    map.setPaintProperty('fh-cells', 'fill-color', amber);
-    // The best water also gets an edge, so it reads as marked sea and not as sand beside the beach (PLAN 7.73).
-    if (map.getLayer('fh-edge')) map.setPaintProperty('fh-edge', 'line-opacity', ['interpolate', ['linear'], score, 0.55, 0, 0.7, 0.75, 0.8, 0.95]);
+    // Amber for fair water turning green for the best (the old map's role colours, paint.ts), so the variation reads at a
+    // glance; the circled zones mark where each fish earns it. (7.73's amber edge on the best cells is gone: the zones do that now.)
+    map.setPaintProperty('fh-cells', 'fill-color', ['interpolate', ['linear'], score, 0.45, amber, 0.62, amber, 0.8, green]);
     map.setPaintProperty('fh-cells', 'fill-opacity', ['interpolate', ['linear'], ['zoom'], COAST, 0, COAST + 1, ['interpolate', ['linear'], score, 0.3, 0, 0.45, o(0.1), 0.8, o(0.32)], SPOT, ['interpolate', ['linear'], score, 0.3, 0, 0.45, o(0.08), 0.8, o(0.24)], SPOT + 2, ['interpolate', ['linear'], score, 0.3, 0, 0.45, o(0.03), 0.8, o(0.1)]]);
   };
   const add = () => {
     if (map.getSource('fh')) return;
     map.addSource('fh', { type: 'geojson', data: geojson, attribution: 'Habitat guide: GEBCO, Allen Coral Atlas, OSM' });
-    map.addLayer({ id: 'fh-cells', type: 'fill', source: 'fh', minzoom: COAST, paint: { 'fill-color': amber, 'fill-opacity': 0 } }, map.getLayer(CONTOURS_FROM) ? CONTOURS_FROM : firstSymbolId(map));
-    map.addLayer({ id: 'fh-edge', type: 'line', source: 'fh', minzoom: COAST + 0.5, paint: { 'line-color': amber, 'line-width': ['interpolate', ['linear'], ['zoom'], COAST + 0.5, 0.8, SPOT, 1.6], 'line-opacity': 0 } }, map.getLayer(CONTOURS_FROM) ? CONTOURS_FROM : firstSymbolId(map));
+    map.addLayer({ id: 'fh-cells', type: 'fill', source: 'fh', minzoom: COAST, paint: { 'fill-color': amber, 'fill-opacity': 0, 'fill-antialias': false } }, map.getLayer(CONTOURS_FROM) ? CONTOURS_FROM : firstSymbolId(map));
     // The zones: rating colours as in mockup G (fill at 30 %, a dashed edge one shade deeper), names in ink on the halo.
     buildZones();
     map.addSource('fh-zones', { type: 'geojson', data: zonesGj });
@@ -243,7 +264,9 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     const byLv = (pre: string): ExpressionSpecification => ['match', ['get', 'lv'], 3, css(`--${pre}4`, '#0C6B66'), 2, css(`--${pre}3`, '#A5DBC2'), css(`--${pre}2`, '#F4C542')];
     const poly: ExpressionSpecification = ['==', ['geometry-type'], 'Polygon'];
     map.addLayer({ id: 'fh-zone-fill', type: 'fill', source: 'fh-zones', minzoom: ZONE_Z, filter: poly, paint: { 'fill-color': byLv('lv'), 'fill-opacity': ['interpolate', ['linear'], ['zoom'], ZONE_Z, 0, ZONE_Z + 0.5, 0.3] } });
-    map.addLayer({ id: 'fh-zone-line', type: 'line', source: 'fh-zones', minzoom: ZONE_Z, filter: poly, layout: { 'line-join': 'round' }, paint: { 'line-color': byLv('ac'), 'line-width': ['interpolate', ['linear'], ['zoom'], ZONE_Z, 1.2, 12, 1.8, 14, 2.2], 'line-dasharray': [3, 2], 'line-opacity': ['interpolate', ['linear'], ['zoom'], ZONE_Z, 0, ZONE_Z + 0.5, 1] } });
+    map.addLayer({ id: 'fh-zone-line', type: 'line', source: 'fh-zones', minzoom: ZONE_Z, filter: ['all', poly, ['==', ['get', 'far'], 0]], layout: { 'line-join': 'round' }, paint: { 'line-color': byLv('ac'), 'line-width': ['interpolate', ['linear'], ['zoom'], ZONE_Z, 1.2, 12, 1.8, 14, 2.2], 'line-dasharray': [3, 2], 'line-opacity': ['interpolate', ['linear'], ['zoom'], ZONE_Z, 0, ZONE_Z + 0.5, 1] } });
+    // Boat zones: longer dashes, so water a cast can't reach reads differently at a glance.
+    map.addLayer({ id: 'fh-zone-far', type: 'line', source: 'fh-zones', minzoom: ZONE_Z, filter: ['all', poly, ['==', ['get', 'far'], 1]], layout: { 'line-join': 'round' }, paint: { 'line-color': byLv('ac'), 'line-width': ['interpolate', ['linear'], ['zoom'], ZONE_Z, 1.2, 12, 1.8, 14, 2.2], 'line-dasharray': [7, 3], 'line-opacity': ['interpolate', ['linear'], ['zoom'], ZONE_Z, 0, ZONE_Z + 0.5, 1] } });
     const name: ExpressionSpecification = ['format', ['get', 'sp'], { 'text-font': ['literal', ['Noto Sans Bold']] }];
     map.addLayer({
       id: 'fh-zone-label', type: 'symbol', source: 'fh-zones', minzoom: ZONE_NAME_Z, filter: ['==', ['geometry-type'], 'Point'],
@@ -325,11 +348,17 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
       // closed water gets no circle. The refuges (Gandoca-Manzanillo, Limoncito) have no fishing rule found, so they keep theirs.
       rule = Uint8Array.from(built.cells, (c) => {
         const p = zoneAt(z, [c.lng, c.lat]);
-        return p && (p.status === 'closed' || p.iucn === '2') ? 1 : 0;
+        return noZone(p) ? 2 : p ? 1 : 0;
       });
       law = Uint8Array.from(built.cells, (c) => ({ ok: 0, check: 1, banned: 2 })[spearStatus(zoneAt(z, [c.lng, c.lat]))]);
       refreshZones();
       refreshSpear();
+    },
+    setBoat(cells, key) {
+      if (key === boatKey) return;
+      boat = cells;
+      boatKey = key;
+      refreshZones();
     },
     setReach(r) {
       reach = r;

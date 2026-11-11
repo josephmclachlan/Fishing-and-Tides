@@ -1,6 +1,6 @@
 # SPEAR
 
-Breath-hold spearfishing of edible reef fish, as its own mode beside SNORKEL and DIVE (PLAN 7.75). Advisory only.
+Breath-hold spearfishing of edible reef fish, as its own mode beside SNORKEL and DIVE (PLAN 7.76). Advisory only.
 
 ## Why it is a variant, not a new category
 Most of what makes a good snorkel or dive hour also makes a good spearing hour (surge, visibility, chop, current, entry surf, rip, light, sea temperature, runoff, weather safety), so SPEAR reuses the dive score's terms with its own bands instead of a second model. What changes is the bands, one new term and a legal gate.

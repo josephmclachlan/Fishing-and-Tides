@@ -13,7 +13,8 @@
  *   5. Zones are ranked by size × quality, Σ(best − minScore + 0.1), and kept at least `sepKm` apart.
  */
 
-export type ZoneWhy = 'mouth' | 'reef' | 'drop';
+export type ZoneWhy = 'mouth' | 'reef' | 'drop' | 'front' | 'weed';
+const WHYS: readonly ZoneWhy[] = ['mouth', 'reef', 'front', 'weed', 'drop'];
 
 export interface ZoneCell<S extends string = string> {
   lng: number;
@@ -60,7 +61,8 @@ export const MIN_RX_M = 450, MIN_RY_M = 280;
 const M_LAT = 110574;
 const M_LNG = 111320;
 
-export const levelOf = (score: number): 1 | 2 | 3 => (score >= 0.75 ? 3 : score >= 0.6 ? 2 : 1);
+/** Great from 0.8, good from 0.7, else fair (the beach rating's words). */
+export const levelOf = (score: number): 1 | 2 | 3 => (score >= 0.8 ? 3 : score >= 0.7 ? 2 : 1);
 
 const kmBetween = (a: { lng: number; lat: number }, b: { lng: number; lat: number }) =>
   Math.hypot((a.lng - b.lng) * Math.cos((a.lat * Math.PI) / 180) * M_LNG, (a.lat - b.lat) * M_LAT) / 1000;
@@ -109,10 +111,10 @@ export function fishZones<S extends string>(cells: readonly ZoneCell<S>[], opt: 
     const mean = ids.map((id) => ({ id, m: g.reduce((a, x) => a + x.c.s[id], 0) / g.length })).sort((a, b) => b.m - a.m);
     const species = mean.filter((x, i) => i < 2 && x.m >= mean[0].m * 0.85 && x.m > 0).map((x) => x.id);
     const score = g.reduce((a, x) => a + x.b, 0) / g.length;
-    // The structure most cells share: mouth over reef over drop when tied.
-    const n = { mouth: 0, reef: 0, drop: 0 } as Record<ZoneWhy, number>;
+    // The structure most cells share: mouth, reef, front, weed, then drop when tied.
+    const n = { mouth: 0, reef: 0, drop: 0, front: 0, weed: 0 } as Record<ZoneWhy, number>;
     for (const { c } of g) for (const w of c.why) n[w]++;
-    const top = (['mouth', 'reef', 'drop'] as const).reduce<ZoneWhy | null>((a, w) => (n[w] >= 0.4 * g.length && (!a || n[w] > n[a]) ? w : a), null);
+    const top = WHYS.reduce<ZoneWhy | null>((a, w) => (n[w] >= 0.4 * g.length && (!a || n[w] > n[a]) ? w : a), null);
     const depths = g.map((x) => x.c.depthM);
     const zone: Zone<S> = {
       lng,
@@ -192,4 +194,48 @@ export function zoneLabel(z: Zone, ring: readonly [number, number][], isWater?: 
   const deg = (Math.atan2(uy, ux) * 180) / Math.PI;
   const anchor = ANCHORS[((Math.round(deg / 45) % 8) + 8) % 8];
   return { at: [z.lng + (ux * far) / k, z.lat + (uy * far) / M_LAT], anchor };
+}
+
+export interface SpeciesZoneOptions extends ZoneOptions {
+  /** A zone earns its circle only when its mean score reaches this. */
+  minMean: number;
+  /** At most this many zones per species, best first. */
+  perSpecies: number;
+  /** Zones of different species closer than this, km (or with one centre inside the other oval), share one oval. */
+  mergeKm: number;
+  /** At most this many names on one oval. */
+  maxNames: number;
+}
+
+/** Shore and kayak water (PLAN 7.74b, Joseph 2026-11-11): 220 m cells. */
+export const NEAR_ZONES: SpeciesZoneOptions = { ...ZONE_DEFAULTS, minScore: 0.6, minMean: 0.65, perSpecies: 3, mergeKm: 0.7, maxNames: 3, max: 12 };
+/** Boat water: ~2 km cells, gathered over 6 km. */
+export const FAR_ZONES: SpeciesZoneOptions = { minScore: 0.65, radiusKm: 6, minCells: 3, max: 6, sepKm: 6, cellM: 2000, minMean: 0.7, perSpecies: 2, mergeKm: 5, maxNames: 3 };
+
+const inside = (z: Zone, p: { lng: number; lat: number }) => {
+  const k = Math.cos((z.lat * Math.PI) / 180) * M_LNG, r = (z.rotDeg * Math.PI) / 180;
+  const dx = (p.lng - z.lng) * k, dy = (p.lat - z.lat) * M_LAT;
+  const u = dx * Math.cos(r) + dy * Math.sin(r), v = -dx * Math.sin(r) + dy * Math.cos(r);
+  return (u / z.rxM) ** 2 + (v / z.ryM) ** 2 <= 1;
+};
+
+/**
+ * Every species gets its own zones (Joseph 2026-11-11: "all the species selected at once, with each species getting
+ * zones ... only when they warrant/earn that spot"): `fishZones` per species at `minScore`, kept when the zone's mean
+ * reaches `minMean`, at most `perSpecies` each. Where two species' zones are the same water (centres within `mergeKm`,
+ * or one centre inside the other oval) they share the better zone's oval, names best first. Pure.
+ */
+export function speciesZones<S extends string>(cells: readonly ZoneCell<S>[], ids: readonly S[], opt: SpeciesZoneOptions): Zone<S>[] {
+  const all: Zone<S>[] = [];
+  for (const id of ids) {
+    const one = cells.map((c) => ({ ...c, s: { [id]: c.s[id] ?? 0 } as Record<S, number> }));
+    all.push(...fishZones(one, { ...opt, max: opt.perSpecies * 4 }).filter((z) => z.score >= opt.minMean).slice(0, opt.perSpecies));
+  }
+  const out: Zone<S>[] = [];
+  for (const z of all.sort((a, b) => b.score - a.score)) {
+    const host = out.find((o) => kmBetween(o, z) < opt.mergeKm || inside(o, z) || inside(z, o));
+    if (!host) out.push({ ...z, species: [...z.species] });
+    else for (const id of z.species) if (!host.species.includes(id) && host.species.length < opt.maxNames) host.species.push(id);
+  }
+  return out;
 }

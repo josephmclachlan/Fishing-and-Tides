@@ -117,7 +117,8 @@ import { fetchWaves, wavesAt, type SeaState, type WavesData } from './adapters/w
 import { chlAt, fetchSatellite, sstAt, type SatelliteData } from './adapters/satellite';
 import { mountFronts, satelliteFronts } from './layers/fronts';
 import { nearestFront, type FrontCell } from './physics/fronts';
-import { OFFSHORE, offshoreScore } from './fishing/offshore';
+import { OFFSHORE, offshoreScore, type OffshoreId } from './fishing/offshore';
+import type { ZoneCell, ZoneWhy } from './fishing/zones';
 import { sargassumSeeds } from './adapters/sargassum';
 import { fetchMld, mldAt, type MldData } from './adapters/mld';
 import { mountSst, type SstCoast } from './layers/sst';
@@ -317,12 +318,13 @@ fetchSatellite()
     // Fronts (PLAN 7.17): from the newest SST and chlorophyll maps.
     fronts = satelliteFronts(d);
     frontsLayer.setFronts(seaFronts());
+    refreshBoatZones();
     refreshClarity();
   })
   .catch((err) => console.warn('satellite unavailable', err));
 // Mixed-layer depth (PLAN 7.18) for the offshore read; optional, the score renormalises without it.
 let mld: MldData | null = null;
-fetchMld().then((d) => (mld = d.series ? d : null)).catch((err) => console.warn('mld unavailable', err));
+fetchMld().then((d) => ((mld = d.series ? d : null), refreshBoatZones())).catch((err) => console.warn('mld unavailable', err));
 // Real waves once loaded (forecast to day 16, then climatology); the mock swell until then.
 let waves: WavesData | null = null;
 const seaStateAt = (lng: number, lat: number): SeaState | null => (waves ? wavesAt(waves, time.band(), time.validMs(), lng, lat) : null);
@@ -542,6 +544,47 @@ const offshoreRead: OffshoreRead = (lng, lat) => {
   const scores = OFFSHORE.map((s) => ({ id: s.id, score: offshoreScore(s, inputs) ?? 0 })).sort((a, b) => b.score - a.score);
   return { front: front && { km: front.km, bearingDeg: front.bearingDeg, kind: front.front.kind }, mldM: inputs.mldM, scores };
 };
+// Boat-water zones (PLAN 7.74b): the offshore read on a 0.02° (~2 km) grid over the region's sea for the day on the
+// slider, handed to the fishing layer, which circles where each boat species earns it (fishing/zones.ts FAR_ZONES).
+const BOAT_STEP = 0.02;
+let boatKey = '';
+const refreshBoatZones = () => {
+  const layer = fishingLayer, dAt = offshoreDepth;
+  if (!layer || !dAt) return;
+  const ms = time.validMs(), day = Math.floor((ms + REGION.tzOffsetH * 3.6e6) / 864e5);
+  const key = `${day}|${satellite ? 1 : 0}|${fronts.length}|${sargassum ? 1 : 0}|${mld ? 1 : 0}`;
+  if (key === boatKey) return;
+  boatKey = key;
+  const seeds = sargassumSeeds(sargassum?.series ?? null, ms).map((x) => ({ lngLat: [x.lng, x.lat] as [number, number] }));
+  const [[w, so], [e, n]] = REGION.bounds;
+  const cells: ZoneCell<OffshoreId>[] = [];
+  for (let lng = w + BOAT_STEP / 2; lng < e; lng += BOAT_STEP)
+    for (let lat = so + BOAT_STEP / 2; lat < n; lat += BOAT_STEP) {
+      const depthM = dAt(lng, lat);
+      if (depthM === null || depthM < 8) continue;
+      const k = 0.01, kmK = k * 111.32;
+      const around = [dAt(lng + k, lat), dAt(lng - k, lat), dAt(lng, lat + k), dAt(lng, lat - k)].filter((x): x is number => x !== null);
+      const slopeMPerKm = around.length ? Math.max(...around.map((x) => Math.abs(x - depthM))) / kmK : null;
+      const front = nearestFront(fronts, lng, lat);
+      const weed = seeds.length ? nearest([lng, lat], seeds) : null;
+      const inputs = {
+        depthM, slopeMPerKm,
+        sstC: satellite ? (sstAt(satellite, lng, lat, ms)?.value ?? null) : null,
+        chl: satellite ? (chlAt(satellite, lng, lat, ms)?.value ?? null) : null,
+        frontKm: front?.km ?? null,
+        weedKm: weed ? weed.distanceM / 1000 : null,
+        mldM: mldAt(mld, lng, lat, ms),
+      };
+      const s = Object.fromEntries(OFFSHORE.map((sp) => [sp.id, offshoreScore(sp, inputs) ?? 0])) as Record<OffshoreId, number>;
+      const why: ZoneWhy[] = [];
+      if (inputs.frontKm !== null && inputs.frontKm < 5) why.push('front');
+      if (inputs.weedKm !== null && inputs.weedKm < 3) why.push('weed');
+      if (slopeMPerKm !== null && slopeMPerKm >= 20) why.push('drop');
+      cells.push({ lng, lat, s, why, depthM });
+    }
+  layer.setBoat(cells, key);
+};
+time.subscribe(() => fishingLayer && refreshBoatZones());
 let routeDeps: () => RouteDeps | null = () => null;
 let reefLookup: ReefAt | null = null;
 const shoalRead: ShoalRead = (lng, lat) => (depthAt ? shoalAlert((x, y) => depthAt?.(x, y), reefLookup, lng, lat, settings.vessel()) : null);
@@ -1052,7 +1095,7 @@ const runSargassum = () => {
 };
 time.subscribe(showSargassum);
 fetchSargassum()
-  .then((d) => ((sargassum = d), runSargassum()))
+  .then((d) => ((sargassum = d), runSargassum(), refreshBoatZones()))
   .catch((err) => console.warn('sargassum unavailable', err));
 
 // New forecast hour: rebuild both fields. Scrubbing fires many times a frame, so do it once per frame.
@@ -1327,6 +1370,7 @@ fetchSeafloor()
         // No circled fishing zone in no-fishing water (the protected areas may load first or later).
         fishingLayer = layer;
         if (zonePolys.length) layer.setRules(zonePolys);
+        refreshBoatZones();
         // The nearest big river mouth and its GloFAS flow against the median (PLAN 7.15).
         const riverAt = (lng: number, lat: number, ms: number) => {
           if (!riverFlow) return null;
