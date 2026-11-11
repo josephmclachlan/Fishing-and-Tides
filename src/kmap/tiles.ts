@@ -4,10 +4,8 @@
  * picture drawn from the value (a wind arrow over streaks, the swell trains as a rose, the tide's day as a curve...).
  * Every tile opens its plain-words explainer.
  */
-import { CHL_STEPS } from '../layers/chl';
+import { bandColours, FIELD_STEPS, FIELD_TICKS, fieldIndex, fieldStops, type FieldKind } from '../layers/bands';
 import { D2R, esc, fitCanvas, L2, MONO, rgba, TAU, tok } from './dom';
-import { CLARITY_BANDS } from '../physics/clarity';
-import { SST_BANDS } from '../layers/sst';
 
 export interface Reading {
   k: string;
@@ -80,33 +78,23 @@ export function drawTiles(el: HTMLElement, R: readonly Reading[], accent: string
       c.textBaseline = 'middle';
       c.fillText('N', cx, cy - L - 6);
     };
-    const ramp = (cols: string[], v: number) => {
-      const n = cols.length, gw = (w - (n - 1) * 2) / n;
-      cols.forEach((col, k) => {
-        const hh = h * (0.3 + (0.55 * k) / (n - 1));
-        c.fillStyle = rgba(tok(col), k / n <= v ? 1 : 0.22);
-        c.fillRect(k * (gw + 2), h - hh, gw, hh);
-      });
-    };
     /**
-     * The same bands the layer paints on the map (layers/legend.ts), in its colours, with the edges written under them
-     * and a pointer at this value: the tile and the map say one thing.
+     * A painted field (sea temperature, visibility, chlorophyll): the layer's own bands in its own colours, equal
+     * widths, the key's ticks under them and a pointer at this value (layers/bands.ts): the tile, the key and the map
+     * show one colour for one value.
      */
-    const bands = (segs: [string, number][], end: number, v: number | undefined, unit: string, labels?: readonly string[]) => {
-      const lo = segs[0][1], x = (q: number) => 1 + ((Math.min(end, Math.max(lo, q)) - lo) / (end - lo)) * (w - 2);
-      const y0 = h * 0.42, bh = h * 0.2, at = v !== undefined && Number.isFinite(v) ? v : null;
-      segs.forEach(([col, a], k) => {
-        const b = k + 1 < segs.length ? segs[k + 1][1] : end, here = at !== null && at >= a && (at < b || k === segs.length - 1);
-        c.fillStyle = rgba(tok(col), here || at === null ? 1 : 0.35);
-        c.fillRect(x(a), y0, x(b) - x(a) - (k + 1 < segs.length ? 2 : 0), bh);
+    const field = (kind: FieldKind, v: number | undefined) => {
+      const cols = bandColours(fieldStops(kind), FIELD_STEPS[kind].length + 1), n = cols.length, at = v !== undefined && Number.isFinite(v) ? fieldIndex(kind, v) : null;
+      const y0 = h * 0.42, bh = h * 0.2, x = (q: number) => 1 + (q / n) * (w - 2), here = at === null ? -1 : Math.min(n - 1, Math.floor(at));
+      cols.forEach((col, k) => {
+        c.fillStyle = rgba([col[0], col[1], col[2]], here < 0 || Math.abs(k - here) <= 1 ? 1 : 0.4);
+        c.fillRect(x(k), y0, x(k + 1) - x(k) + 0.5, bh);
       });
       c.fillStyle = rgba(tok('ink2'));
       c.font = `600 9px ${MONO}`;
       c.textBaseline = 'top';
-      segs.slice(1).forEach(([, a], k) => {
-        c.textAlign = 'center';
-        c.fillText(labels ? labels[k] : `${a}${unit}`, x(a), y0 + bh + 5);
-      });
+      c.textAlign = 'center';
+      for (const t of FIELD_TICKS[kind].at) c.fillText(String(t), x(FIELD_STEPS[kind].indexOf(t) + 1), y0 + bh + 5);
       if (at === null) return;
       const px = x(at);
       c.fillStyle = I;
@@ -117,6 +105,14 @@ export function drawTiles(el: HTMLElement, R: readonly Reading[], accent: string
       c.closePath();
       c.fill();
       c.fillRect(px - 1, y0 - 2, 2, bh + 4);
+    };
+    const ramp = (cols: string[], v: number) => {
+      const n = cols.length, gw = (w - (n - 1) * 2) / n;
+      cols.forEach((col, k) => {
+        const hh = h * (0.3 + (0.55 * k) / (n - 1));
+        c.fillStyle = rgba(tok(col), k / n <= v ? 1 : 0.22);
+        c.fillRect(k * (gw + 2), h - hh, gw, hh);
+      });
     };
     switch (r.k) {
       case 'wind': {
@@ -175,14 +171,13 @@ export function drawTiles(el: HTMLElement, R: readonly Reading[], accent: string
         break;
       }
       case 'sst':
-        bands([['paint-green', 25.5], ['paint-amber', SST_BANDS.COOL], ['paint-red', SST_BANDS.WARM]], 31.5, r.val, '°');
+        field('sst', r.val);
         break;
       case 'chl':
-        // The map's five chlorophyll steps, equal widths (a log scale), ticks in mg/m³.
-        bands([['r-chl0', 0], ['r-chl1', 1], ['r-chl2', 2], ['r-chl3', 3], ['r-chl4', 4]], 5, r.val, '', CHL_STEPS.map(String));
+        field('chl', r.val);
         break;
       case 'clarity':
-        bands([['paint-red', 0], ['paint-amber', CLARITY_BANDS.fair], ['paint-green', CLARITY_BANDS.good]], 20, r.val, ' m');
+        field('vis', r.val);
         break;
       case 'surge': {
         // One bar per depth, its height the bed speed, in the old map's CALM / SURGY / DANGEROUS colours.

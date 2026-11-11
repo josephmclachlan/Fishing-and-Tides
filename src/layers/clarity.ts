@@ -5,7 +5,9 @@
  * Rain, currents and waves come from the forecast, so the layer changes as the time slider moves;
  * the satellite part is carried forward from the newest map (PLAN 7.2, physics/clarity-forecast.ts). Style layer ids start with `cl-` (catalog 'clarity').
  */
-import type { Map } from 'maplibre-gl';
+import type { GeoJSONSource, Map } from 'maplibre-gl';
+import type { FeatureCollection } from 'geojson';
+import { bandLines, FIELD_STEPS, fieldWord } from './bands';
 import { PLUME_RIVERS, REGION } from '../region';
 import { cellAt, M_PER_DEG_LAT, M_PER_DEG_LNG, sample, type Grid } from '../physics/bathy';
 import { CLARITY_BANDS, clarity, effectiveRain, flowPlumeMm, kdFromChl, resuspensionKd, PLUME_SATURATION_MM, type Clarity, type ClarityLevel } from '../physics/clarity';
@@ -332,14 +334,15 @@ const ALPHA: Record<ClarityLevel, number> = { GOOD: 0.07, FAIR: 0.26, POOR: 0.42
  * stay empty however the coarse grid reads there, and sea pixels up to the beach take the nearest sea
  * value. Pure (no DOM); `colours` are 0..255 RGB per level.
  */
-export function clarityImage(g: ClarityGrid, land: Grid | null | undefined, colours: Record<ClarityLevel, readonly [number, number, number]>, pixelDeg = CLARITY_PIXEL_DEG, lift: Lift = NO_LIFT): SeaImage {
+export function clarityImage(g: ClarityGrid, land: Grid | null | undefined, colours: Record<ClarityLevel, readonly [number, number, number]>, pixelDeg = CLARITY_PIXEL_DEG, lift: Lift = NO_LIFT, banded?: (v: number) => number): SeaImage {
   const word = (l: ClarityLevel) => rgbaWord(...colours[l], Math.round(255 * lifted(ALPHA[l], lift)));
   const [good, fair, poor] = [word('GOOD'), word('FAIR'), word('POOR')];
   const { good: goodM, fair: fairM } = CLARITY_BANDS;
   return seaImage(
     { cols: g.cols, rows: g.rows, lon0: g.lon0, lat0: g.lat0, dlon: g.step, dlat: g.step },
     g.vis,
-    (v) => (v >= goodM ? good : v >= fairM ? fair : poor), // clarityLevel, inlined: this runs per pixel
+    // `banded`: the Kinetic Plus ramp's bands (bands.ts); else clarityLevel, inlined: this runs per pixel.
+    banded ?? ((v) => (v >= goodM ? good : v >= fairM ? fair : poor)),
     { pixelDeg, coast: land ? coastTest(land) : null, extend: 2 },
   );
 }
@@ -360,8 +363,14 @@ export function mountClarity(map: Map): ClarityLayer {
     POOR: rgb(cssColour('--red', '#ff3b2f')),
   };
   const canvas = document.createElement('canvas');
+  // Kinetic Plus paints visibility in its ramp's bands, murky brown to clear teal, with a hairline at each band edge
+  // (bands.ts, PLAN 7.79).
+  const banded = fieldWord('vis', paintLift());
+  const ink = cssColour('--ink', '#0b1a2a');
   const draw = (g: ClarityGrid, land: Grid | null | undefined) => {
-    const img = clarityImage(g, land, colours, CLARITY_PIXEL_DEG, paintLift());
+    const img = clarityImage(g, land, colours, CLARITY_PIXEL_DEG, paintLift(), banded);
+    const coast = land ? coastTest(land) : null;
+    const iso: FeatureCollection = { type: 'FeatureCollection', features: bandLines({ cols: g.cols, rows: g.rows, lon0: g.lon0, lat0: g.lat0, dlon: g.step, dlat: g.step }, g.vis, FIELD_STEPS.vis, coast ? (x, y) => coast(x, y) !== 1 : undefined, 0.001) };
     canvas.width = img.width;
     canvas.height = img.height;
     canvas.getContext('2d')!.putImageData(new ImageData(img.data as Uint8ClampedArray<ArrayBuffer>, img.width, img.height), 0, 0);
@@ -374,7 +383,10 @@ export function mountClarity(map: Map): ClarityLayer {
       // Under the contours and labels, like the other area fills.
       const below = map.getLayer('sf-contour-deep') ? 'sf-contour-deep' : map.getLayer('grat-macro') ? 'grat-macro' : undefined;
       map.addLayer({ id: 'cl-fill', type: 'raster', source: 'cl', minzoom: 7, paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0, 8, 1, 11, 1, 13, 0.45], 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, below);
+      map.addSource('cl-iso', { type: 'geojson', data: iso });
+      map.addLayer({ id: 'cl-iso', type: 'line', source: 'cl-iso', minzoom: 7, layout: { 'line-join': 'round' }, paint: { 'line-color': ink, 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.5, 13, 1], 'line-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0, 8, 0.3, 12, 0.3, 13.5, 0.12] } }, below);
     }
+    (map.getSource('cl-iso') as GeoJSONSource | undefined)?.setData(iso);
   };
   // A redraw costs a few tens of ms (the fine coastline cut and the PNG), so while the slider is
   // dragged it runs at most every MIN_GAP_MS, always ending on the latest hour.

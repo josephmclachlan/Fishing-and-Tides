@@ -17,7 +17,7 @@
  * The map itself stays full-screen under this shell; its padding is set to the stage, so `map.getCenter()` is the
  * crosshair and every old reading module keeps reading the right point.
  */
-import { CHL_STEPS, chlIndex } from '../layers/chl';
+import { bandCss, FIELD_STEPS, FIELD_TICKS, onFieldSteps, type FieldKind } from '../layers/bands';
 import type { Map as MlMap } from 'maplibre-gl';
 import type { Plan } from '../metrics/plan';
 import type { Spot as FcSpot } from '../metrics/forecast';
@@ -430,19 +430,32 @@ export function mountKineticMap(d: KmDeps) {
    */
   // 'dim' is the old map's faded amber (--amber-dim): the faint wash of the same colour, as the layers paint it.
   const SW_TONE = { amber: 'var(--paint-amber)', green: 'var(--paint-green)', red: 'var(--paint-red)', dim: 'color-mix(in srgb, var(--paint-amber) 40%, transparent)' } as const;
-  /** A continuous layer's key: the smooth ramp the map paints, ticks at the steps and the unit at the end (mockup G's ramp keys). */
-  const ramp = (cols: readonly string[], ticks: readonly string[], unit: string) =>
-    `<div class="k-rampw"><div class="k-ramp" aria-hidden="true" style="background:linear-gradient(90deg,${cols.map((c, i) => `var(--${c}) ${(((i + 0.5) * 100) / cols.length).toFixed(1)}%`).join(',')})"></div><em class="k-mono">${esc(unit)}</em><div class="k-rampl k-mono">${ticks.map((x, i) => `<span style="left:${((i + 1) * 100) / cols.length}%">${esc(x)}</span>`).join('')}</div></div>`;
+  /**
+   * A painted field's key (mockup G's ramp keys): the layer's bands in its colours, equal widths, a few edges written
+   * under them and the unit at the end (layers/bands.ts), so a band on the sea is a band here.
+   */
+  const FIELD_OF: Partial<Record<KmLayer, FieldKind>> = { sst: 'sst', clarity: 'vis', chl: 'chl' };
+  const fieldKey = (kind: FieldKind) => {
+    const cols = bandCss(kind), n = cols.length, { at, unit } = FIELD_TICKS[kind];
+    const num = (x: number) => (settings.lang() === 'es' ? String(x).replace('.', ',') : String(x));
+    return `<div class="k-rampw"><div class="k-ramp" aria-hidden="true">${cols.map((c) => `<i style="--k:${c}"></i>`).join('')}</div><em class="k-mono">${esc(unit)}</em><div class="k-rampl k-mono">${at.map((x) => `<span style="left:${((FIELD_STEPS[kind].indexOf(x) + 1) * 100) / n}%">${esc(num(x))}</span>`).join('')}</div></div>`;
+  };
   const legend = (id: KmLayer) => {
     if (isOwnLayer(id)) return ownLegend(id);
-    if (id === 'chl') return ramp(['r-chl0', 'r-chl1', 'r-chl2', 'r-chl3', 'r-chl4'], CHL_STEPS.map((x) => (settings.lang() === 'es' ? String(x).replace('.', ',') : String(x))), 'mg/m³');
+    // A painted field: its band key, then any line marks of its own (the sea temperature's amber isotherms).
+    const fk = FIELD_OF[id];
+    if (fk) {
+      const ls = LEGEND[id as LayerId].map((it, i) => ({ ...it, l: t(legendItemKey(id, i + 1) as Key) })).filter((it) => it.sw === 'line');
+      return fieldKey(fk) + (ls.length ? `<ul class="k-lkeys">${ls.map((it) => `<li><i class="k-sw-${it.sw}" style="--k:${SW_TONE[it.tone]}"></i><span>${esc(it.l)}</span></li>`).join('')}</ul>` : '');
+    }
     const items = LEGEND[id].map((it, i) => ({ ...it, l: t(legendItemKey(id, i + 1) as Key) })).filter((it) => it.sw !== 'none');
     return items.length ? `<ul class="k-lkeys">${items.map((it) => `<li><i class="k-sw-${it.sw}" style="--k:${SW_TONE[it.tone]}"></i><span>${esc(it.l)}</span></li>`).join('')}</ul>` : '';
   };
   const explainLayer = (id: KmLayer) => {
     if (isOwnLayer(id)) return `<p class="k-lgnote">${esc(id === 'rating' ? L2('Each beach in the rating colour of the chosen activity, for the hour on the slider: the same score as the forecast page. Tiles show the headline value; tap one for the spot card.', 'Cada playa en el color de su calificación para la actividad y la hora elegidas, igual que la página de pronóstico. Toque una para ver el spot.') : id === 'heat' ? L2('NOAA Coral Reef Watch degree heating weeks at each tracked reef: heat built up over 12 weeks. 4 or more is bleaching likely, 8 or more severe.', 'Semanas-grado de calor de NOAA Coral Reef Watch en cada arrecife: el calor acumulado en 12 semanas. 4 o más, blanqueo probable; 8 o más, severo.') : L2('Restoration sites in your private field log, drawn only as the 5 km cell they fall in, so nobody can read an exact site off the screen.', 'Sitios de restauración de su bitácora privada, dibujados solo como la celda de 5 km, para que nadie lea un sitio exacto en la pantalla.'))}</p>`;
     // What the layer is, plus its notes with no mark of their own; the marks themselves are the key under the row.
-    const notes = LEGEND[id].map((it, i) => (it.sw === 'none' ? t(legendItemKey(id, i + 1) as Key) : '')).filter(Boolean);
+    // A painted field's colour meanings (its fills are bands on the key, not chips) join the notes.
+    const notes = LEGEND[id].map((it, i) => (it.sw === 'none' || (FIELD_OF[id] && it.sw === 'fill') ? t(legendItemKey(id, i + 1) as Key) : '')).filter(Boolean);
     return `<div class="k-lgfull"><p>${esc(t(legendWhatKey(id) as Key))}</p>${notes.map((n) => `<p>${esc(n)}</p>`).join('')}</div>`;
   };
   const openInfo = new Set<KmLayer>();
@@ -596,7 +609,7 @@ export function mountKineticMap(d: KmDeps) {
     if ((has('sst') || has('fronts') || act('swim') || act('dive') || act('spear') || S.coral) && fin(h.sstC) && !h.land)
       out.push({ k: 'sst', l: L2('Water temp', 'Temp. agua'), v: n1(h.sstC), u: '°C', s: h.sstC >= SST_BANDS.WARM ? L2('Warm for here', 'Cálida para aquí') : h.sstC >= SST_BANDS.COOL ? L2('Mid · no wetsuit', 'Media · sin traje') : L2('Cooler for here', 'Fresca para aquí'), val: h.sstC, help: 'sst', src: L2('satellite', 'satélite') });
     if (has('chl') && fin(h.chl) && !h.land)
-      out.push({ k: 'chl', l: L2('Chlorophyll', 'Clorofila'), v: h.chl >= 1 ? n1(h.chl) : h.chl.toFixed(2), u: 'mg/m³', s: h.chl >= CHL_STEPS[2] ? L2('Green water', 'Agua verde') : h.chl >= CHL_STEPS[0] ? L2('Green water edge', 'Borde de agua verde') : L2('Blue water', 'Agua azul'), val: chlIndex(h.chl), help: 'chl', src: 'VIIRS' });
+      out.push({ k: 'chl', l: L2('Chlorophyll', 'Clorofila'), v: h.chl >= 1 ? n1(h.chl) : h.chl.toFixed(2), u: 'mg/m³', s: h.chl >= 0.7 ? L2('Green water', 'Agua verde') : h.chl >= 0.2 ? L2('Green water edge', 'Borde de agua verde') : L2('Blue water', 'Agua azul'), val: h.chl, help: 'chl', src: 'VIIRS' });
     if ((has('clarity') || act('snorkel') || act('dive') || act('spear')) && fin(h.visM) && !h.land)
       out.push({ k: 'clarity', l: L2('Visibility', 'Visibilidad'), v: h.visM >= 10 ? n0(h.visM) : n1(h.visM), u: 'm', s: h.visM < CLARITY_BANDS.fair ? L2('Poor · murky', 'Mala · turbia') : h.visM < CLARITY_BANDS.good ? L2('Fair · hazy', 'Regular · algo turbia') : L2('Good · clear', 'Buena · clara'), val: h.visM, help: 'vis', src: 'Kd490' });
     if (has('sargassum') && h.sarg) out.push({ k: 'sarg', l: L2('Sargassum', 'Sargazo'), v: t(`sarg.level.${h.sarg.level}` as Key) || h.sarg.level, u: '', s: titleCase(h.sarg.beach), help: 'sargassum', lv: h.sarg.level === 'HIGH' ? 0 : h.sarg.level === 'MED' || h.sarg.level === 'MOD' ? 2 : 4 });
@@ -1124,6 +1137,8 @@ export function mountKineticMap(d: KmDeps) {
     el.lastElementChild!.textContent = o ? `${L2('Data', 'Datos')} ${h < 1 ? `${Math.max(1, Math.round(a / 6e4))} min` : h < 48 ? `${Math.round(h)} h` : `${Math.round(h / 24)} d`}` : L2('Data --', 'Datos --');
   };
   dataAge.subscribe(() => (renderAge(), renderComposer()));
+  // The sea temperature's bands follow the day's water: its key redraws when they move.
+  onFieldSteps(() => (renderComposer(), renderLegMini()));
   setInterval(renderAge, 60_000);
 
   /* ---------- language, scheme ---------- */

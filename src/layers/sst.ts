@@ -11,12 +11,13 @@
  */
 import type { GeoJSONSource, ImageSource, Map } from 'maplibre-gl';
 import type { Feature, FeatureCollection, LineString } from 'geojson';
-import { TIER_ZOOM } from '../region';
+import { REGION, TIER_ZOOM } from '../region';
 import { chaikin, clipLines, contour } from '../physics/bathy';
 import type { GridSeries } from '../adapters/pack';
 import type { SatelliteData } from '../adapters/satellite';
 import { rgbaWord, seaImage, type CoastTest, type Corners, type SeaImage } from './sea-image';
 import { lifted, paintColour as cssColour, paintLift, type Lift } from './paint';
+import { fieldWord, setFieldSteps, smoothField, sstSteps } from './bands';
 
 const FONT = ['Noto Sans Regular'];
 
@@ -82,6 +83,8 @@ export interface SstImageOptions {
   pixelDeg?: number;
   /** The theme's lift for the wash's opacity (paint.ts). */
   lift?: Lift;
+  /** Colour per °C in place of the green / amber / red wash: the Kinetic Plus map's banded ramp (bands.ts). */
+  word?: (c: number) => number;
 }
 
 /**
@@ -101,7 +104,7 @@ export function sstImage(s: GridSeries, colours: Record<'green' | 'amber' | 'red
     const t = sstTone(LO + k / 100)!;
     lut[k] = rgbaWord(...colours[t.tone], Math.round(255 * lifted(t.alpha, o.lift)));
   }
-  const word = (c: number) => lut[Math.min(N, Math.max(0, Math.round((c - LO) * 100)))];
+  const word = o.word ?? ((c: number) => lut[Math.min(N, Math.max(0, Math.round((c - LO) * 100)))]);
   return seaImage(g, z, word, { pixelDeg: o.pixelDeg ?? g.dlon, coast: o.coast, hole, extend: 2 });
 }
 
@@ -120,7 +123,7 @@ function fillUrl(img: SeaImage) {
   return canvas.toDataURL('image/png');
 }
 
-const features = (d: SatelliteData, water?: WaterTest): FeatureCollection => ({
+const features = (d: Pick<SatelliteData, 'sst' | 'sstCoast'>, water?: WaterTest): FeatureCollection => ({
   type: 'FeatureCollection',
   features: [...(d.sst ? isotherms(d.sst, 0.5, 'macro', water) : []), ...(d.sstCoast ? isotherms(d.sstCoast, 0.25, 'coast', water) : [])],
 });
@@ -136,9 +139,23 @@ export interface SstCoast {
  * the coastline mask loads after the satellite data.
  */
 export function mountSst(map: Map, d: SatelliteData, sea?: SstCoast) {
-  let data = features(d, sea?.water);
   const amber = cssColour('--amber', '#ffb000');
   const lift = paintLift();
+  // Kinetic Plus paints the temperature in its ramp's bands, a quarter degree each around the region's water that
+  // day (bands.ts, PLAN 7.79); the amber isotherms stay on top as the old map drew them.
+  const g = d.sst?.meta.grid ?? d.sstCoast?.meta.grid;
+  const z = d.sst?.values.sst?.at(-1) ?? d.sstCoast?.values.sst?.at(-1);
+  const steps = g && z ? sstSteps(g, z, REGION.bounds) : null;
+  if (steps) setFieldSteps('sst', steps);
+  const word = fieldWord('sst', lift);
+  // The fills read a lightly blurred copy (smoothField): the 0.01° nest comes in flat blocks a band edge would trace.
+  const soft = (x: GridSeries | null | undefined): GridSeries | null => {
+    const last = x?.values.sst?.at(-1);
+    return x && last ? { ...x, values: { ...x.values, sst: [smoothField(last, x.meta.grid.cols, x.meta.grid.rows, 3)] } } : null;
+  };
+  const sst = soft(d.sst), sstCoast = soft(d.sstCoast);
+  // The isotherms follow the same softened map, so each one runs along a band edge.
+  let data = features({ sst, sstCoast }, sea?.water);
   const COAST = TIER_ZOOM.COAST;
   const colours = {
     green: rgb(cssColour('--green', '#39ff7a'), [57, 255, 122]),
@@ -150,12 +167,12 @@ export function mountSst(map: Map, d: SatelliteData, sea?: SstCoast) {
   // edge: a cross-fade of two translucent fills shows the nest as a box.
   type Fill = { k: string; img: SeaImage; zoom: { minzoom?: number; maxzoom?: number } };
   const makeFills = (c?: CoastTest | null): Fill[] => {
-    const coast = d.sstCoast ? sstImage(d.sstCoast, colours, undefined, { coast: c, pixelDeg: SST_PIXEL_DEG.coast, lift }) : null;
-    const macro = { coast: c, pixelDeg: SST_PIXEL_DEG.macro, lift };
+    const coast = sstCoast ? sstImage(sstCoast, colours, undefined, { coast: c, pixelDeg: SST_PIXEL_DEG.coast, lift, word }) : null;
+    const macro = { coast: c, pixelDeg: SST_PIXEL_DEG.macro, lift, word };
     const fills: Fill[] = [];
-    if (d.sst) fills.push({ k: 'macro', img: sstImage(d.sst, colours, undefined, macro), zoom: coast ? { maxzoom: COAST } : {} });
-    if (d.sst && coast) fills.push({ k: 'outer', img: sstImage(d.sst, colours, coast.coordinates, macro), zoom: { minzoom: COAST } });
-    if (coast) fills.push({ k: 'coast', img: coast, zoom: d.sst ? { minzoom: COAST } : {} });
+    if (sst) fills.push({ k: 'macro', img: sstImage(sst, colours, undefined, macro), zoom: coast ? { maxzoom: COAST } : {} });
+    if (sst && coast) fills.push({ k: 'outer', img: sstImage(sst, colours, coast.coordinates, macro), zoom: { minzoom: COAST } });
+    if (coast) fills.push({ k: 'coast', img: coast, zoom: sst ? { minzoom: COAST } : {} });
     return fills;
   };
   let fills = makeFills(sea?.coast);
@@ -184,7 +201,7 @@ export function mountSst(map: Map, d: SatelliteData, sea?: SstCoast) {
   else map.once('style.load', add);
   return {
     setCoast(next: SstCoast) {
-      data = features(d, next.water);
+      data = features({ sst, sstCoast }, next.water);
       (map.getSource('ss') as GeoJSONSource | undefined)?.setData(data);
       fills = makeFills(next.coast);
       for (const { k, img } of fills) (map.getSource(`ss-fill-${k}`) as ImageSource | undefined)?.updateImage({ url: fillUrl(img), coordinates: img.coordinates });
