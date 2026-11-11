@@ -1349,6 +1349,8 @@ export const en = {
   'legend.fishing.1': 'Faint: fair water',
   'legend.fishing.2': 'Strong: the best water',
   'legend.fishing.3': 'SHORE keeps cells within a cast or wade of the beach, BOAT shows those beyond it',
+  'legend.fishing.4': 'Circled: where to try for the fish named beside it',
+  'legend.fishing.5': 'Circled zones gather the best water of every eating fish for this month, coloured like the beach ratings (great, good, fair). Zoom in for the reason, the depth and the nearest place. None inside Cahuita National Park, where spear guns are banned and line fishing is disputed.',
   'legend.zones.what': 'Protected areas and their fishing rules.',
   'legend.zones.1': 'Red outline: no fishing',
   'legend.zones.2': 'Amber outline: restricted',

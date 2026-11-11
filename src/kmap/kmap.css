@@ -190,6 +190,7 @@
 .km .k-lkeys i.k-sw-dot{width:9px;height:9px;border-radius:50%}
 .km .k-lkeys i.k-sw-ring{width:11px;height:11px;border-radius:50%;background:none;box-shadow:inset 0 0 0 2.5px var(--k)}
 .km .k-lkeys i.k-sw-line{height:3px}
+.km .k-lkeys i.k-sw-zone{width:18px;height:10px;border-radius:50%;background:color-mix(in srgb,var(--lv3) 55%,transparent);border:1.5px dashed var(--ac4)}
 .km .k-legmini .k-lkeys{font-size:10.5px;gap:2px}
 .km .k-legmini .k-lkeys span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .km .k-keys{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11.5px;color:var(--ink2)}
