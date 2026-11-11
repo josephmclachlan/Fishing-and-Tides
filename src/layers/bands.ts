@@ -86,10 +86,16 @@ export function fieldWord(kind: FieldKind, lift: Lift, stops: readonly Rgb[] = f
  * reading the page. Pure.
  */
 export function bandCss(kind: FieldKind): string[] {
-  const { prefix, n } = FIELD_RAMP[kind], bands = FIELD_STEPS[kind].length + 1;
+  const { prefix, n } = FIELD_RAMP[kind];
+  return rampCss(Array.from({ length: n }, (_, i) => `--${prefix}${i}`), FIELD_STEPS[kind].length + 1);
+}
+
+/** `bands` CSS colours spread along a ramp of token names (e.g. ['--lv2', '--lv3', '--ac4']), as bandCss. Pure. */
+export function rampCss(tokens: readonly string[], bands: number): string[] {
+  const n = tokens.length;
   return Array.from({ length: bands }, (_, k) => {
     const x = bandT(k, bands) * (n - 1), i = Math.min(n - 2, Math.floor(x)), f = Math.round((x - i) * 100);
-    return f === 0 ? `var(--${prefix}${i})` : f === 100 ? `var(--${prefix}${i + 1})` : `color-mix(in srgb, var(--${prefix}${i + 1}) ${f}%, var(--${prefix}${i}))`;
+    return f === 0 ? `var(${tokens[i]})` : f === 100 ? `var(${tokens[i + 1]})` : `color-mix(in srgb, var(${tokens[i + 1]}) ${f}%, var(${tokens[i]}))`;
   });
 }
 

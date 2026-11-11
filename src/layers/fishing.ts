@@ -8,12 +8,14 @@
  * Over the cells, the circled zones of mockup G (PLAN 7.74, 7.75, fishing/zones.ts): each fish's own zones where it
  * earns them, near shore and, from the boat read main.ts hands over, offshore (`fh-zone-*`).
  */
-import type { ExpressionSpecification, GeoJSONSource, Map } from 'maplibre-gl';
+import type { ExpressionSpecification, GeoJSONSource, ImageSource, Map } from 'maplibre-gl';
 import type { FeatureCollection } from 'geojson';
 import { TIER_ZOOM } from '../region';
 import { firstSymbolId } from '../map';
 import { CONTOURS_FROM } from './seafloor';
-import { buildCells, cellGeometry, cellIndexAt, type FishingInput, type Mouth } from '../fishing/cells';
+import { buildCells, cellGeometry, cellIndexAt, STEP, type FishingInput, type Mouth } from '../fishing/cells';
+import { coastTest, rgbaWord, seaImage, type SeaImage } from './sea-image';
+import { bandColours, bandOf, smoothField } from './bands';
 import { baseScore, habitatScore, seasonFactor } from '../fishing/habitat';
 import { fitWeights, recordCells, type HabitatFit } from '../fishing/fit';
 import { SPECIES, speciesById, type SpeciesId } from '../fishing/species';
@@ -36,6 +38,14 @@ import { SPEAR_SPECIES, spearScore, spearWindow } from '../fishing/spear';
 const { COAST, SPOT } = TIER_ZOOM;
 /** The circled zones (mockup G): ovals from this zoom, the fish names a little later, the where line from ZONE_WHERE_Z. */
 const ZONE_Z = 9, ZONE_NAME_Z = 9.6, ZONE_WHERE_Z = 11.2;
+/** The heat's band edges (habitat score): nothing under fair (0.4), then a band every 0.05 up to the best water (0.8). */
+export const HEAT_STEPS = [0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8] as const;
+/** Heat image pixel, degrees (~55 m, a quarter of a cell): fine enough that the coastline cut and the band edges read smooth. */
+const HEAT_PIXEL_DEG = 0.0005;
+const hexRgb = (hex: string): [number, number, number] => {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [244, 197, 66];
+};
 const css = (n: string, d: string) => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || d;
 const DIR = 'data/fishing/mouths.geojson';
 const OCC = 'data/fishing/occurrences.json';
@@ -94,7 +104,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   const built = buildCells(input);
   let sp = speciesById(initial.species);
   let month = initial.month;
-  const amber = cssColour('--amber', '#ffb000'), green = cssColour('--green', '#39ff7a');
+  const amber = cssColour('--amber', '#ffb000');
   // The theme's lift (paint.ts): these washes are 3 to 32 %, made for a black sea, and vanish on the light one.
   const L = paintLift('strong'), o = (a: number) => lifted(a, L);
   let reach: Reach = 'all';
@@ -241,22 +251,56 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     (map.getSource('sp-zones') as GeoJSONSource | undefined)?.setData(spearZonesGj);
   };
 
+  // The fishing water as one smooth image (PLAN 7.80): the best of every eating fish's score with its season, per
+  // ~220 m cell, blended between cells and cut at the coastline, in flat bands along the beach rating's own ramp
+  // (fair yellow to great teal), so it reads like the other sea fields and the zones and pins share its colours.
+  // The 220 m squares this replaces looked pixelated next to the sea fields from the coast zoom in.
+  const coast = coastTest(input.land);
+  const heatGrid = { cols: built.lattice.cols, rows: built.lattice.rows, lon0: built.lattice.lon0 + STEP / 2, lat0: built.lattice.lat0 - STEP / 2, dlon: STEP, dlat: STEP };
+  const heatZ = new Float32Array(heatGrid.cols * heatGrid.rows);
+  // Lattice points with no cell: on land, empty (the coastline cut and the shore fill take over there); at sea (too
+  // deep, or past a long paddle), zero, so the heat fades out over its last cell instead of ending in 220 m steps.
+  const heatBase = new Float32Array(heatGrid.cols * heatGrid.rows);
+  for (let r = 0; r < heatGrid.rows; r++)
+    for (let c = 0; c < heatGrid.cols; c++) heatBase[r * heatGrid.cols + c] = cellAt(input.land, heatGrid.lon0 + c * STEP, heatGrid.lat0 - r * STEP) === 1 ? NaN : 0;
+  const heatStops = (['--lv2', '--lv3', '--ac4'] as const).map((n, i) => hexRgb(css(n, ['#F4C542', '#A5DBC2', '#0C6B66'][i])));
+  const heatWords = [0, ...bandColours(heatStops, HEAT_STEPS.length).map((c, k) => rgbaWord(c[0], c[1], c[2], Math.round(255 * o(0.14 + (0.36 * k) / (HEAT_STEPS.length - 1)))))];
+  const heatWord = (v: number) => (v === v ? heatWords[bandOf(HEAT_STEPS, v)] : 0);
+  const heatImage = () => {
+    heatZ.set(heatBase);
+    const season = SPECIES.map((x) => seasonFactor(x, month));
+    for (const [i, c] of built.cells.entries()) {
+      const p = geojson.features[i].properties as Record<string, number>;
+      let best = 0;
+      if (inReach(c.coastM)) SPECIES.forEach((x, k) => (best = Math.max(best, p[x.id] * season[k])));
+      const col = Math.floor((c.lng - built.lattice.lon0) / STEP), row = Math.floor((built.lattice.lat0 - c.lat) / STEP);
+      heatZ[row * heatGrid.cols + col] = best;
+    }
+    // A light blur first (bands.ts smoothField): band edges drawn straight off a 220 m lattice come out as steps.
+    return seaImage(heatGrid, smoothField(heatZ, heatGrid.cols, heatGrid.rows, 2), heatWord, { pixelDeg: HEAT_PIXEL_DEG, coast, extend: 1 });
+  };
+  const heatUrl = (img: SeaImage) => {
+    const cv = document.createElement('canvas');
+    cv.width = img.width;
+    cv.height = img.height;
+    cv.getContext('2d')!.putImageData(new ImageData(img.data as Uint8ClampedArray<ArrayBuffer>, img.width, img.height), 0, 0);
+    return cv.toDataURL('image/png');
+  };
+  let heatKey = '';
   const paint = () => {
-    if (!map.getLayer('fh-cells')) return;
-    // Every eating fish at once (Joseph 2026-11-11): the best of the species' scores, each with its season.
-    const raw: ExpressionSpecification = ['max', ...SPECIES.map((x): ExpressionSpecification => ['*', ['get', x.id], seasonFactor(x, month)])] as unknown as ExpressionSpecification;
-    const score: ExpressionSpecification = reach === 'all' ? raw : ['case', reach === 'shore' ? ['<=', ['get', 'coast'], SHORE_M] : ['>', ['get', 'coast'], SHORE_M], raw, 0];
-    // Nothing below fair (0.3); the best water reaches a firm but see-through fill. Past spot zoom the 0.06°
-    // cells are bigger than the screen's detail and read as blocks, so they fade out (clarity review CL19).
-    // Amber for fair water turning green for the best (the old map's role colours, paint.ts), so the variation reads at a
-    // glance; the circled zones mark where each fish earns it. (7.73's amber edge on the best cells is gone: the zones do that now.)
-    map.setPaintProperty('fh-cells', 'fill-color', ['interpolate', ['linear'], score, 0.45, amber, 0.62, amber, 0.8, green]);
-    map.setPaintProperty('fh-cells', 'fill-opacity', ['interpolate', ['linear'], ['zoom'], COAST, 0, COAST + 1, ['interpolate', ['linear'], score, 0.3, 0, 0.45, o(0.1), 0.8, o(0.32)], SPOT, ['interpolate', ['linear'], score, 0.3, 0, 0.45, o(0.08), 0.8, o(0.24)], SPOT + 2, ['interpolate', ['linear'], score, 0.3, 0, 0.45, o(0.03), 0.8, o(0.1)]]);
+    const key = `${month}|${reach}|${catchKey}`;
+    if (key === heatKey || !map.getSource('fh-heat')) return;
+    heatKey = key;
+    const img = heatImage();
+    (map.getSource('fh-heat') as ImageSource).updateImage({ url: heatUrl(img), coordinates: img.coordinates });
   };
   const add = () => {
-    if (map.getSource('fh')) return;
-    map.addSource('fh', { type: 'geojson', data: geojson, attribution: 'Habitat guide: GEBCO, Allen Coral Atlas, OSM' });
-    map.addLayer({ id: 'fh-cells', type: 'fill', source: 'fh', minzoom: COAST, paint: { 'fill-color': amber, 'fill-opacity': 0, 'fill-antialias': false } }, map.getLayer(CONTOURS_FROM) ? CONTOURS_FROM : firstSymbolId(map));
+    if (map.getSource('fh-heat')) return;
+    const img = heatImage();
+    heatKey = `${month}|${reach}|${catchKey}`;
+    map.addSource('fh-heat', { type: 'image', url: heatUrl(img), coordinates: img.coordinates });
+    // Fades in past the coast tier and steps back to a tint by the spot tier, where the zones and the reefs carry the detail.
+    map.addLayer({ id: 'fh-heat', type: 'raster', source: 'fh-heat', minzoom: COAST, paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], COAST, 0, COAST + 1, 1, SPOT, 0.85, SPOT + 2, 0.4], 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, map.getLayer(CONTOURS_FROM) ? CONTOURS_FROM : firstSymbolId(map));
     // The zones: rating colours as in mockup G (fill at 30 %, a dashed edge one shade deeper), names in ink on the halo.
     buildZones();
     map.addSource('fh-zones', { type: 'geojson', data: zonesGj });

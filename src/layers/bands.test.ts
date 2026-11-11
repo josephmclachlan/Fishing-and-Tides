@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bandColours, bandCss, bandLines, bandOf, FIELD_STEPS, FIELD_TICKS, fieldIndex, fieldWord, onFieldSteps, rampAt, setFieldSteps, sstSteps, type Rgb } from './bands';
+import { bandColours, bandCss, bandLines, bandOf, FIELD_STEPS, FIELD_TICKS, fieldIndex, fieldWord, onFieldSteps, rampAt, rampCss, setFieldSteps, smoothField, sstSteps, type Rgb } from './bands';
 import { NO_LIFT } from './paint';
 
 describe('field bands', () => {
@@ -75,5 +75,22 @@ describe('sea temperature steps', () => {
     off();
     setFieldSteps('sst', before);
     expect(n).toBe(1);
+  });
+});
+
+describe('smoothing and token ramps', () => {
+  it('blurs values but keeps empty cells empty', () => {
+    const z = smoothField([0, 0, 0, 0, 9, 0, 0, 0, NaN], 3, 3, 1);
+    expect(z[4]).toBeCloseTo(9 / 8);
+    expect(z[0]).toBeCloseTo(9 / 4);
+    expect(z[8]).toBeNaN();
+  });
+
+  it('spreads bands along a ramp of named tokens', () => {
+    const c = rampCss(['--lv2', '--lv3', '--ac4'], 5);
+    expect(c[0]).toBe('var(--lv2)');
+    expect(c[2]).toBe('var(--lv3)');
+    expect(c[4]).toBe('var(--ac4)');
+    expect(c[1]).toBe('color-mix(in srgb, var(--lv3) 50%, var(--lv2))');
   });
 });

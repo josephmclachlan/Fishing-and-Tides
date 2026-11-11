@@ -17,7 +17,8 @@
  * The map itself stays full-screen under this shell; its padding is set to the stage, so `map.getCenter()` is the
  * crosshair and every old reading module keeps reading the right point.
  */
-import { bandCss, FIELD_STEPS, FIELD_TICKS, onFieldSteps, type FieldKind } from '../layers/bands';
+import { bandCss, FIELD_STEPS, FIELD_TICKS, onFieldSteps, rampCss, type FieldKind } from '../layers/bands';
+import { HEAT_STEPS } from '../layers/fishing';
 import type { Map as MlMap } from 'maplibre-gl';
 import type { Plan } from '../metrics/plan';
 import type { Spot as FcSpot } from '../metrics/forecast';
@@ -444,6 +445,13 @@ export function mountKineticMap(d: KmDeps) {
     if (isOwnLayer(id)) return ownLegend(id);
     // A painted field: its band key, then any line marks of its own (the sea temperature's amber isotherms).
     const fk = FIELD_OF[id];
+    // The fishing water: its bands in the beach rating's colours (layers/fishing.ts), then the zone chips.
+    if (id === 'fishing') {
+      const cols = rampCss(['--lv2', '--lv3', '--ac4'], HEAT_STEPS.length), n = cols.length;
+      const ticks = [[0, L2('Fair', 'Regular')], [Math.round(n / 2), L2('Good', 'Buena')], [n, L2('Best', 'Mejor')]] as const;
+      const zs = LEGEND.fishing.map((it, i) => ({ ...it, l: t(legendItemKey(id, i + 1) as Key) })).filter((it) => it.sw === 'zone');
+      return `<div class="k-rampw"><div class="k-ramp" aria-hidden="true">${cols.map((c) => `<i style="--k:${c}"></i>`).join('')}</div><em class="k-mono"></em><div class="k-rampl k-rampl-ends k-mono">${ticks.map(([k, l]) => `<span style="left:${(k * 100) / n}%">${esc(l)}</span>`).join('')}</div></div>${zs.length ? `<ul class="k-lkeys">${zs.map((it) => `<li><i class="k-sw-${it.sw}" style="--k:${SW_TONE[it.tone]}"></i><span>${esc(it.l)}</span></li>`).join('')}</ul>` : ''}`;
+    }
     if (fk) {
       const ls = LEGEND[id as LayerId].map((it, i) => ({ ...it, l: t(legendItemKey(id, i + 1) as Key) })).filter((it) => it.sw === 'line');
       return fieldKey(fk) + (ls.length ? `<ul class="k-lkeys">${ls.map((it) => `<li><i class="k-sw-${it.sw}" style="--k:${SW_TONE[it.tone]}"></i><span>${esc(it.l)}</span></li>`).join('')}</ul>` : '');
@@ -455,7 +463,7 @@ export function mountKineticMap(d: KmDeps) {
     if (isOwnLayer(id)) return `<p class="k-lgnote">${esc(id === 'rating' ? L2('Each beach in the rating colour of the chosen activity, for the hour on the slider: the same score as the forecast page. Tiles show the headline value; tap one for the spot card.', 'Cada playa en el color de su calificación para la actividad y la hora elegidas, igual que la página de pronóstico. Toque una para ver el spot.') : id === 'heat' ? L2('NOAA Coral Reef Watch degree heating weeks at each tracked reef: heat built up over 12 weeks. 4 or more is bleaching likely, 8 or more severe.', 'Semanas-grado de calor de NOAA Coral Reef Watch en cada arrecife: el calor acumulado en 12 semanas. 4 o más, blanqueo probable; 8 o más, severo.') : L2('Restoration sites in your private field log, drawn only as the 5 km cell they fall in, so nobody can read an exact site off the screen.', 'Sitios de restauración de su bitácora privada, dibujados solo como la celda de 5 km, para que nadie lea un sitio exacto en la pantalla.'))}</p>`;
     // What the layer is, plus its notes with no mark of their own; the marks themselves are the key under the row.
     // A painted field's colour meanings (its fills are bands on the key, not chips) join the notes.
-    const notes = LEGEND[id].map((it, i) => (it.sw === 'none' || (FIELD_OF[id] && it.sw === 'fill') ? t(legendItemKey(id, i + 1) as Key) : '')).filter(Boolean);
+    const notes = LEGEND[id].map((it, i) => (it.sw === 'none' || ((FIELD_OF[id] || id === 'fishing') && it.sw === 'fill') ? t(legendItemKey(id, i + 1) as Key) : '')).filter(Boolean);
     return `<div class="k-lgfull"><p>${esc(t(legendWhatKey(id) as Key))}</p>${notes.map((n) => `<p>${esc(n)}</p>`).join('')}</div>`;
   };
   const openInfo = new Set<KmLayer>();

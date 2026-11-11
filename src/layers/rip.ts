@@ -327,7 +327,9 @@ export function mountRip(map: Map): RipLayer {
       },
     });
     map.addLayer({
-      id: 'rp-site-label', type: 'symbol', source: 'rp', minzoom: 12.5, filter: ['==', ['get', 'kind'], 'site'],
+      // Named only where the risk is up (a LOW site keeps its faint ring), and from closer in, so the names don't pile on
+      // the beach pins and break names at the spot zoom (PLAN 7.80).
+      id: 'rp-site-label', type: 'symbol', source: 'rp', minzoom: 13, filter: ['all', ['==', ['get', 'kind'], 'site'], ['!=', ['get', 'level'], 'LOW']],
       layout: {
         'text-field': ['match', ['get', 'site'], 'mouth', t('rip.siteMouth'), 'flood', t('rip.siteFlood'), 'creek', t('rip.siteCreek'), t('rip.siteBreak')],
         'text-font': FONT, 'text-size': 10, 'text-letter-spacing': 0.1, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-optional': true,
