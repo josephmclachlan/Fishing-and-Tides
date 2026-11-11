@@ -5,7 +5,7 @@
  * without overlap each frame the camera moves. Also the CORAL mode's private-site cells (never the sites).
  */
 import type { GeoJSONSource, Map as MlMap } from 'maplibre-gl';
-import { coastNear, placePins, privateCells, type Mask, CELL_DEG } from './model';
+import { coastNear, placePins, privateCells, type Mask, type Rect, CELL_DEG } from './model';
 import { esc, hex, L2, tok } from './dom';
 import type { Level } from '../forecast/model';
 
@@ -62,9 +62,32 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
 
   // Tiles: rebuilt when the pins change, placed on every camera move.
   const els = new Map<string, HTMLElement>();
+  // Tile sizes, measured while the tiles show: a tile dropped to its square is display:none and measures 0.
+  const sizes = new Map<string, { w: number; h: number }>();
+  const measure = () => {
+    // Shown for the measure; place() hides again what it must, before the frame paints.
+    for (const [id, el] of els) {
+      el.hidden = false;
+      el.classList.remove('dot');
+      const tile = el.querySelector<HTMLElement>('.k-pin-tile')!;
+      if (tile.offsetWidth) sizes.set(id, { w: tile.offsetWidth, h: tile.offsetHeight });
+    }
+  };
+  /** The map's own panels and buttons over the stage (readings, key, views, find/layers, zoom), in stage px. */
+  const SKIP = ['k-pins', 'k-xh', 'k-confveil'];
+  const obstacles = (off: DOMRect): Rect[] => {
+    const out: Rect[] = [];
+    for (const el of stage.children) {
+      if (!(el instanceof HTMLElement) || el.hidden || SKIP.some((c) => el.classList.contains(c))) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width && r.height) out.push({ x: r.left - off.left, y: r.top - off.top, w: r.width, h: r.height });
+    }
+    return out;
+  };
   const build = () => {
     layer.innerHTML = '';
     els.clear();
+    sizes.clear();
     for (const p of pins) {
       const el = document.createElement('button');
       el.type = 'button';
@@ -76,6 +99,7 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
       layer.appendChild(el);
       els.set(p.id, el);
     }
+    measure();
     place();
   };
   let queued = false;
@@ -83,16 +107,16 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
     queued = false;
     layer.hidden = !visible;
     if (!visible) return;
+    if (sizes.size < els.size) measure(); // built while hidden
     const W = stage.clientWidth, H = stage.clientHeight;
     const off = stage.getBoundingClientRect(), mr = map.getContainer().getBoundingClientRect();
     const z = map.getZoom();
     const boxes = pins.map((p) => {
       const pt = map.project(p.lngLat);
-      const el = els.get(p.id)!;
-      const tile = el.querySelector<HTMLElement>('.k-pin-tile')!;
-      return { id: p.id, x: pt.x + mr.left - off.left, y: pt.y + mr.top - off.top, w: tile.offsetWidth || 120, h: tile.offsetHeight || 44, rank: p.rank + (p.id === selected ? 1e6 : 0) };
+      const sz = sizes.get(p.id) ?? { w: 120, h: 44 };
+      return { id: p.id, x: pt.x + mr.left - off.left, y: pt.y + mr.top - off.top, w: sz.w, h: sz.h, rank: p.rank + (p.id === selected ? 1e6 : 0) };
     });
-    const at = z >= 9.6 ? placePins(boxes.filter((b) => b.x > -20 && b.y > -20 && b.x < W + 20 && b.y < H + 20), { w: W, h: H }) : new Map();
+    const at = z >= 9.6 ? placePins(boxes.filter((b) => b.x > -20 && b.y > -20 && b.x < W + 20 && b.y < H + 20), { w: W, h: H }, 4, obstacles(off)) : new Map();
     for (const b of boxes) {
       const el = els.get(b.id)!;
       const on = b.x > -20 && b.y > -20 && b.x < W + 20 && b.y < H + 20 && z >= 9;
@@ -106,8 +130,8 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
       const leg = el.querySelector<SVGSVGElement>('.k-pin-leg')!;
       if (p) {
         tile.style.transform = `translate(${p.dx}px, ${p.dy}px)`;
-        // Leader from the spot to the tile's nearest corner.
-        const cx = p.dx < 0 ? p.dx + b.w : p.dx, cy = p.dy < 0 ? p.dy + b.h : p.dy;
+        // Leader from the spot to the nearest point of the tile's edge.
+        const cx = Math.min(Math.max(0, p.dx), p.dx + b.w), cy = Math.min(Math.max(0, p.dy), p.dy + b.h);
         const l = leg.querySelector('line')!;
         l.setAttribute('x1', '0');
         l.setAttribute('y1', '0');
@@ -120,6 +144,7 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
     if (!queued) (queued = true), requestAnimationFrame(place);
   };
   map.on('move', queue);
+  void document.fonts?.ready.then(() => (measure(), place())); // the tiles' widths change when their fonts arrive
   map.on('resize', queue);
   map.on('styledata', () => ensure() && (drawRibbons(), setCells(cells)));
 
@@ -148,6 +173,7 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
           el.querySelector('b')!.innerHTML = `${esc(p.value)}<small>${esc(p.unit)}</small>`;
           el.setAttribute('aria-label', `${p.name}: ${p.value} ${p.unit}`);
         }
+      measure();
       drawRibbons();
       place();
     },
