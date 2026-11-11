@@ -576,3 +576,8 @@
 .km .k-dtw b{font-family:var(--disp);font-weight:850;font-variation-settings:"wdth" 74;font-size:15px;line-height:1}
 /* Expand data: a row with nothing to say here and now is folded away. */
 .km body.km-on #cond-panel .ro.k-empty{display:none}
+/* Activity tabs: one row at every width. Type scales with the row (container units); icons drop out when narrow. */
+.km .k-tabs{flex-wrap:nowrap;justify-content:space-between;gap:0 .4em;container-type:inline-size}
+.km .k-tab{font-size:min(19px,100cqw/26)}
+.km .k-tab svg{display:none}
+@container (min-width:470px){.km .k-tab{font-size:min(max(19px,clamp(18px,1.48vw,25px)),100cqw/33);gap:5px}.km .k-tab svg{display:block}}
