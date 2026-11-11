@@ -39,6 +39,7 @@ export const KM_LAYERS: readonly KmLayerDef[] = [
   { id: 'wind', group: 'ocean', src: 'ECMWF · GFS · ASCAT fit', feeds: ['wind'] },
   { id: 'currents', group: 'ocean', src: 'Copernicus SMOC', feeds: ['currents'] },
   { id: 'sst', group: 'water', src: 'Satellite SST', feeds: ['sst', 'sst-coast'] },
+  { id: 'chl', group: 'water', src: 'VIIRS chlorophyll', feeds: ['chl'] },
   { id: 'fronts', group: 'water', src: 'SST · chlorophyll fronts', feeds: ['sst', 'chl'] },
   { id: 'clarity', group: 'water', src: 'Kd490 · river plumes', feeds: ['chl', 'river', 'rain'] },
   { id: 'sargassum', group: 'water', src: 'USF SaWS · drift', feeds: ['sargassum'] },
@@ -67,7 +68,7 @@ export const isOwnLayer = (x: KmLayer): x is OwnLayer => x === 'rating' || x ===
  */
 export const PRESETS: Readonly<Record<Mode, readonly KmLayer[]>> = {
   surf: ['rating', 'lightning', 'rip', 'surf', 'wind', 'weather', 'waves', 'reefs', 'depth'],
-  fish: ['rating', 'lightning', 'fishing', 'currents', 'fronts', 'zones', 'seamarks', 'sst', 'depth'],
+  fish: ['rating', 'lightning', 'fishing', 'currents', 'fronts', 'zones', 'seamarks', 'chl', 'depth'],
   swim: ['rating', 'lightning', 'weather', 'rip', 'sargassum', 'clarity', 'sst'],
   snorkel: ['rating', 'lightning', 'currents', 'waves', 'zones', 'reefs', 'clarity'],
   dive: ['rating', 'lightning', 'seamarks', 'currents', 'zones', 'reefs', 'clarity', 'depth'],
