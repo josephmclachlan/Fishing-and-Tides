@@ -248,8 +248,25 @@ export interface DaySky {
   rating: 0 | 1 | 2 | 3 | 4;
 }
 
-/** Everything for one local day at a place. The phase is taken at local noon. */
+/**
+ * Everything for one local day at a place. The phase is taken at local noon. Each hour of a page asks for its day,
+ * so days already worked out are kept (the result is shared: treat it as read-only).
+ */
 export function daySky(dayStart: number, lat: number, lng: number): DaySky {
+  const k = `${dayStart},${lat},${lng}`;
+  let d = skies.get(k);
+  if (!d) {
+    if (skies.size >= SKY_MEMO) skies.delete(skies.keys().next().value!);
+    skies.set(k, (d = skyFor(dayStart, lat, lng)));
+  }
+  return d;
+}
+
+const skies = new Map<string, DaySky>();
+/** A month of days at every spot. */
+const SKY_MEMO = 600;
+
+function skyFor(dayStart: number, lat: number, lng: number): DaySky {
   const sun = sunTimes(dayStart, lat, lng);
   const moon = moonTimes(dayStart, lat, lng);
   const phase = moonPhase(dayStart + DAY_MS / 2);

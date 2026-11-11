@@ -111,7 +111,7 @@ import { fetchWind, windAt, type WindData } from './adapters/wind';
 import { appliedScale, fetchWindFix, scaleWind } from './adapters/wind-fix';
 import { corrections } from './corrections';
 import { tideFix } from './physics/tide-fix';
-import { currentsAt, fetchCurrents, type CurrentsData } from './adapters/currents';
+import { currentPointAt, currentsAt, fetchCurrents, type CurrentsData } from './adapters/currents';
 import { fetchWaves, wavesAt, type SeaState, type WavesData } from './adapters/waves';
 import { chlAt, fetchSatellite, sstAt, type SatelliteData } from './adapters/satellite';
 import { mountFronts, satelliteFronts } from './layers/fronts';
@@ -834,8 +834,18 @@ mountWatchPanel(
 // FORECAST page (PLAN 7.52): a clean page per spot and activity, its own link (#forecast/<spot>/<activity>).
 /** The map's LAYERS preset for each forecast activity (snorkel and dive share DIVE). */
 const MAP_PRESET: Record<FcActivity, ActivityId> = { fish: 'fishing', surf: 'surf', swim: 'swim', snorkel: 'dive', dive: 'dive', sail: 'sail' };
+/**
+ * Changes whenever a feed arrives or updates (every adapter reports to DATA AGE; the rest are what is worked out from
+ * them): the map shell and the forecast page keep what they worked out until it changes.
+ */
+function feedVersion(): string {
+  const flags = [wind, waves, weatherData, satellite, catchmentRain, sargForecast, riverFlow, clarityElevation, currents, spotWind, diveHud, coralHeat, mudData, spotPhysics];
+  const ages = dataAge.all().map((f) => `${f.feed}:${f.fetchedAt}`).join(',');
+  return `${flags.map((x) => (x ? 1 : 0)).join('')}|${physicsTick}|${flashesAt}|${zonePolys.length}|${gauge.at(-1)?.t ?? 0}|${ages}`;
+}
 const forecastPage = mountForecastPage({
   env: metricEnv(),
+  version: feedVersion,
   // Snorkel and dive read the outing score at the spot's nearest water, as WATCH does.
   outing: (spot, m, ms, h) => {
     const c = clarityCtx();
@@ -992,10 +1002,8 @@ fetchCoral()
 const clarityCtx = (): ClarityContext | null =>
   clarityElevation && {
     satellite, rain: catchmentRain, flow: riverFlow, elevation: clarityElevation, land: clarityLand, ms: time.validMs(),
-    currentAt: (lng, lat, ms) => {
-      const f = currents && currentsAt(currents, bandAt(ms), ms)?.field;
-      return f && sampleField(f, lng, lat, currentOut) ? [currentOut[0], currentOut[1]] : null;
-    },
+    currentAt: (lng, lat, ms) =>
+      currents && currentPointAt(currents, bandAt(ms), ms, lng, lat, currentOut) ? [currentOut[0], currentOut[1]] : null,
     seaAt: (lng, lat, ms) => {
       const s = ms === undefined ? seaStateAt(lng, lat) : waves && wavesAt(waves, bandAt(ms), ms, lng, lat);
       if (!s) return null;
@@ -1276,8 +1284,7 @@ fetchSeafloor()
         return now ? { name: now.reef.name.toUpperCase(), dhw: now.dhw, alert: now.alert, day: now.dhwDay } : null;
       },
       currentAt: (lng, lat, ms) => {
-        const f = currents && currentsAt(currents, bandAt(ms), ms)?.field;
-        if (!f || !sampleField(f, lng, lat, currentOut)) return null;
+        if (!currents || !currentPointAt(currents, bandAt(ms), ms, lng, lat, currentOut)) return null;
         return { ms: Math.hypot(currentOut[0], currentOut[1]), toDeg: (fromDeg(currentOut[0], currentOut[1]) + 180) % 360 };
       },
       visAt: (lng, lat, ms) => {
@@ -1509,8 +1516,7 @@ if (MODERN) {
     go: (tg) => enhancer.go(tg),
     reload,
     setLang: (l) => (settings.setLang(l), reload()),
-    version: () =>
-      `${wind ? 1 : 0}${waves ? 1 : 0}${weatherData ? 1 : 0}${satellite ? 1 : 0}${catchmentRain ? 1 : 0}${sargForecast ? 1 : 0}${riverFlow ? 1 : 0}${clarityElevation ? 1 : 0}${currents ? 1 : 0}${spotWind ? 1 : 0}${diveHud ? 1 : 0}${coralHeat ? 1 : 0}${mudData ? 1 : 0}${spotPhysics ? 1 : 0}|${physicsTick}|${flashesAt}|${zonePolys.length}`,
+    version: feedVersion,
     onMode: (m) => {
       const a = m === 'coral' ? null : activityForPreset(OLD_PRESET[m]);
       if (a) condGroups.setActivity(a);
