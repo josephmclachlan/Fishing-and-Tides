@@ -58,10 +58,10 @@ export type Tone = 'g' | 'a' | 'r' | 'n';
 /** Colour band of a 0..1 hour score (the same scale as the BEST TODAY button). */
 export const scoreTone = (s: number | null): Tone => (s === null ? 'n' : s >= 0.6 ? 'g' : s >= 0.35 ? 'a' : 'r');
 
-/** The best BEST_LEN_H consecutive hours (local hour of day, inside BEST_FROM_H..BEST_TO_H) of a day's scores, or null. */
-export function bestWindow(scores: readonly (number | null)[]): { from: number; to: number } | null {
+/** The best BEST_LEN_H consecutive hours (local hour of day, inside `span`: sunrise to sunset, else BEST_FROM_H..BEST_TO_H) of a day's scores, or null. */
+export function bestWindow(scores: readonly (number | null)[], span: { fromH: number; toH: number } = { fromH: BEST_FROM_H, toH: BEST_TO_H }): { from: number; to: number } | null {
   let best: { from: number; v: number } | null = null;
-  for (let h = BEST_FROM_H; h + BEST_LEN_H <= BEST_TO_H; h++) {
+  for (let h = span.fromH; h + BEST_LEN_H <= span.toH; h++) {
     let sum = 0, ok = true;
     for (let k = 0; k < BEST_LEN_H; k++) {
       const s = scores[h + k];
@@ -87,6 +87,8 @@ export interface ChartOptions {
   /** The slider time, epoch ms, drawn as a cursor. */
   cursor?: number;
   dayStartMs: number;
+  /** The hours the best window is searched in (sunrise to sunset), local [fromH, toH). */
+  span?: { fromH: number; toH: number };
   /** Accessible label. */
   label?: string;
 }
@@ -110,7 +112,7 @@ export function ribbonSvg(rows: readonly RibbonRow[], o: ChartOptions): string {
     .map((r, i) => {
       const y = top + i * (rowH + gap);
       const cells = r.scores.map((s, h) => `<rect class="sc-cell sc-${scoreTone(s)}" x="${f(LEFT + h * cw + 0.5)}" y="${y}" width="${f(cw - 1)}" height="${rowH}"/>`).join('');
-      const w = bestWindow(r.scores);
+      const w = bestWindow(r.scores, o.span);
       const box = w ? `<rect class="sc-best" x="${f(hx(W, w.from))}" y="${y - 1.5}" width="${f(cw * (w.to - w.from))}" height="${rowH + 3}"/>` : '';
       return `<text class="sc-lbl" x="0" y="${y + 11}">${r.label}</text>${cells}${box}`;
     })

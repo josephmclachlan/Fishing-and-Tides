@@ -21,6 +21,7 @@ import type { TimeStore } from './time';
 import { clock } from './astro-hud';
 import type { MetricEnv } from './metrics/registry';
 import { hourlyScores, type Activity } from './metrics/best-today';
+import { sunHours } from './metrics/forecast';
 import { hourRows, ribbonSvg, roseData, roseSvg, stripsSvg, type RibbonRow, type StripEnv } from './spot-charts';
 import { offsetForTap } from './tide-chart';
 
@@ -107,7 +108,7 @@ export function mountSpotPage(root: HTMLElement, map: Map, deps: SpotPageDeps) {
     if (key === chartKey) return;
     chartKey = key;
     const env = deps.metricEnv();
-    const opts = { width: CHART_W, cursor: now, dayStartMs: day0 };
+    const opts = { width: CHART_W, cursor: now, dayStartMs: day0, span: sunHours(day0, spot.lngLat[1], spot.lngLat[0]) };
     const rows: RibbonRow[] = RIBBON.map(({ act, label }) => ({
       label: t(label),
       scores: hourlyScores(env, act, spot, day0)?.map((r) => r.score) ?? Array(24).fill(null),
