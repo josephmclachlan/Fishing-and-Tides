@@ -124,12 +124,33 @@ export interface SeaImageOptions {
  * (values carried `extend` cells seaward, so the colour meets the beach) and `word(value)` as its RGBA
  * word (0 = clear). Where the coast isn't known only the grid's own cells paint.
  */
-export function seaImage(g: RegularGrid, values: ArrayLike<number>, word: (v: number) => number, o: SeaImageOptions): SeaImage {
+/**
+ * Where MapLibre really draws an image source's corners: it places the image in the one tile that holds it and rounds
+ * each corner to that tile's 1/8192 grid (maplibre-gl ImageSource, getCoordinatesCenterTileID). For an image the size
+ * of the western Caribbean that grid is ~150 m, enough to open a seam where two images are meant to meet. Pure.
+ */
+export function drawnCorners(c: Corners): Corners {
+  const EXTENT = 8192;
+  const xs = c.map((p) => (180 + p[0]) / 360), ys = c.map((p) => 0.5 - mercY(p[1]) / (2 * Math.PI));
+  const dMax = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+  const z = Math.max(0, Math.floor(-Math.log(dMax) / Math.LN2)), n = 2 ** z;
+  const tx = Math.floor(((Math.min(...xs) + Math.max(...xs)) / 2) * n), ty = Math.floor(((Math.min(...ys) + Math.max(...ys)) / 2) * n);
+  const snap = (v: number, t: number) => (Math.round((v * n - t) * EXTENT) / EXTENT + t) / n;
+  return c.map((_, i) => [snap(xs[i], tx) * 360 - 180, latOfMercY((0.5 - snap(ys[i], ty)) * 2 * Math.PI)]) as Corners;
+}
+
+/** The size and corners seaImage gives a grid at `pixelDeg`, without painting it. Pure. */
+export function seaFrame(g: RegularGrid, pixelDeg: number): Pick<SeaImage, 'width' | 'height' | 'coordinates'> {
   const w = g.lon0 - g.dlon / 2, n = g.lat0 + g.dlat / 2;
   const e = g.lon0 + (g.cols - 0.5) * g.dlon, s = g.lat0 - (g.rows - 0.5) * g.dlat;
+  const width = Math.max(1, Math.round((e - w) / pixelDeg));
+  const height = Math.max(1, Math.round((width * (mercY(n) - mercY(s))) / ((e - w) * RAD)));
+  return { width, height, coordinates: [[w, n], [e, n], [e, s], [w, s]] };
+}
+
+export function seaImage(g: RegularGrid, values: ArrayLike<number>, word: (v: number) => number, o: SeaImageOptions): SeaImage {
+  const { width, height, coordinates: [[w, n], , [e, s]] } = seaFrame(g, o.pixelDeg);
   const yN = mercY(n), yS = mercY(s);
-  const width = Math.max(1, Math.round((e - w) / o.pixelDeg));
-  const height = Math.max(1, Math.round((width * (yN - yS)) / ((e - w) * RAD)));
   const lngOf = (i: number) => w + ((i + 0.5) / width) * (e - w);
   const latOf = (j: number) => latOfMercY(yN - ((j + 0.5) / height) * (yN - yS));
   const mask = o.coast ? pixelMask(o.coast, `${w},${n},${e},${s},${width},${height}`, width, height, lngOf, latOf) : null;

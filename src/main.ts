@@ -122,6 +122,7 @@ import type { ZoneCell, ZoneWhy } from './fishing/zones';
 import { sargassumSeeds } from './adapters/sargassum';
 import { fetchMld, mldAt, type MldData } from './adapters/mld';
 import { mountSst, type SstCoast } from './layers/sst';
+import { mountChl } from './layers/chl';
 import { coastTest, type CoastTest } from './layers/sea-image';
 import { coralNow, DHW_BLEACHING, DHW_SEVERE, fetchCoral, nearestReef, type CoralLoaded } from './adapters/coral';
 import { runoffRisk } from './physics/outing';
@@ -303,6 +304,7 @@ const baseConditions = () => {
 // Satellite SST and ocean colour (PLAN 2.4): HUD sea temperature and the WATER TEMP isotherms.
 let satellite: SatelliteData | null = null;
 let sstLayer: ReturnType<typeof mountSst> | null = null;
+let chlLayer: ReturnType<typeof mountChl> = null;
 let sstCoast: SstCoast | null = null;
 /** Where the sea is (the coastline mask, then the 1′ depth grid), once the seafloor data loads: sea-only overlays cut at it. */
 let seaCoast: CoastTest | null = null;
@@ -315,6 +317,8 @@ fetchSatellite()
     satellite = d;
     // Cut at the coastline if its mask is already here; otherwise the seafloor load re-cuts them.
     sstLayer = mountSst(map, d, sstCoast ?? undefined);
+    // Chlorophyll (PLAN 7.77): the newest ocean-colour map as a sea fill.
+    chlLayer = mountChl(map, d, seaCoast);
     // Fronts (PLAN 7.17): from the newest SST and chlorophyll maps.
     fronts = satelliteFronts(d);
     frontsLayer.setFronts(seaFronts());
@@ -1426,6 +1430,7 @@ fetchSeafloor()
     seaCoast = coastTest(data.land, data.macro);
     sstCoast = { water: waterMask, coast: seaCoast };
     sstLayer?.setCoast(sstCoast);
+    chlLayer?.setCoast(seaCoast);
     frontsLayer.setFronts(seaFronts());
     const current = { ...flowSources.current, water: waterMask };
     flowSources.current = current;
@@ -1521,6 +1526,7 @@ const hereAt = (lng: number, lat: number, ms: number): Here => {
     wind: wv ? { kt: Math.hypot(...wv) * KT_PER_MS, fromDeg: fromDeg(...wv), gustKt: wx && fin(wx.gustKt) ? wx.gustKt : null } : null,
     current: cv ? { kt: Math.hypot(...cv) * KT_PER_MS, toDeg: (fromDeg(...cv) + 180) % 360 } : null,
     sstC: satellite ? (sstAt(satellite, lng, lat, ms)?.value ?? null) : null,
+    chl: satellite ? (chlAt(satellite, lng, lat, ms)?.value ?? null) : null,
     visM: c ? (clarityAt({ ...c, ms }, lng, lat)?.visM ?? null) : null,
     rain: wx ? { mmH: fin(wx.rainMmH) ? wx.rainMmH : null, pct: fin(wx.rainChancePct) ? wx.rainChancePct : null } : null,
     lightningKm: near ? near.km : null,

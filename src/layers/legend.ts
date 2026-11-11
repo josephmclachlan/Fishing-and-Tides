@@ -17,6 +17,7 @@ export const LEGEND: Readonly<Record<LayerId, readonly LegendItem[]>> = {
   currents: [{ sw: 'line', tone: 'green' }, { sw: 'line', tone: 'red' }],
   wind: [{ sw: 'line', tone: 'amber' }, { sw: 'line', tone: 'red' }],
   sst: [{ sw: 'fill', tone: 'green' }, { sw: 'fill', tone: 'amber' }, { sw: 'fill', tone: 'red' }, { sw: 'line', tone: 'amber' }, { sw: 'none', tone: 'amber' }],
+  chl: [{ sw: 'fill', tone: 'green' }, { sw: 'fill', tone: 'dim' }, { sw: 'none', tone: 'amber' }],
   fronts: [{ sw: 'dot', tone: 'amber' }, { sw: 'dot', tone: 'green' }, { sw: 'none', tone: 'amber' }],
   clarity: [{ sw: 'fill', tone: 'green' }, { sw: 'fill', tone: 'amber' }, { sw: 'fill', tone: 'red' }],
   sargassum: [{ sw: 'fill', tone: 'amber' }, { sw: 'hatch', tone: 'dim' }, { sw: 'dot', tone: 'amber' }, { sw: 'ring', tone: 'amber' }],

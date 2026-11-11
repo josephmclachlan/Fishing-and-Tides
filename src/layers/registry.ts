@@ -8,7 +8,7 @@
  */
 
 export type LayerId =
-  | 'waves' | 'currents' | 'wind' | 'sst' | 'fronts' | 'clarity' | 'sargassum' | 'weather' | 'lightning' | 'obs'
+  | 'waves' | 'currents' | 'wind' | 'sst' | 'chl' | 'fronts' | 'clarity' | 'sargassum' | 'weather' | 'lightning' | 'obs'
   | 'rip' | 'surf'
   | 'depth' | 'reefs' | 'seamarks'
   | 'fishing' | 'spear' | 'zones' | 'anchorages';
@@ -27,6 +27,7 @@ export const LAYERS: readonly LayerDef[] = [
   { id: 'currents', group: 'OCEAN' },
   { id: 'wind', group: 'OCEAN' },
   { id: 'sst', group: 'OCEAN', mapPrefixes: ['ss-'] },
+  { id: 'chl', group: 'OCEAN', mapPrefixes: ['ch-'] },
   { id: 'fronts', group: 'OCEAN', mapPrefixes: ['fr-'] },
   { id: 'clarity', group: 'OCEAN', mapPrefixes: ['cl-'] },
   { id: 'sargassum', group: 'OCEAN', mapPrefixes: ['sg-'] },

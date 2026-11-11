@@ -17,10 +17,12 @@
  * The map itself stays full-screen under this shell; its padding is set to the stage, so `map.getCenter()` is the
  * crosshair and every old reading module keeps reading the right point.
  */
+import { CHL_STEPS, chlIndex } from '../layers/chl';
 import type { Map as MlMap } from 'maplibre-gl';
 import type { Plan } from '../metrics/plan';
 import type { Spot as FcSpot } from '../metrics/forecast';
-import { bestTimeView, headline } from '../forecast/view';
+import { bestTimeView, headline, heroWords, sentence } from '../forecast/view';
+import { hourlyVerdicts, nextWindow } from '../boat/window';
 import { daysAt, readAt, skyMemo, spotsForActivity, type FcActivity, type FcDeps, type FcRead, type Level } from '../forecast/model';
 import { extrema, predictSeries, tideState } from '../physics/tide';
 import { localDayStart, moonPhase, sunTimes } from '../physics/astro';
@@ -62,6 +64,8 @@ export interface Here {
   wind: { kt: number; fromDeg: number; gustKt: number | null } | null;
   current: { kt: number; toDeg: number } | null;
   sstC: number | null;
+  /** Chlorophyll-a, mg/m³ (satellite). */
+  chl: number | null;
   visM: number | null;
   rain: { mmH: number | null; pct: number | null } | null;
   lightningKm: number | null;
@@ -389,8 +393,17 @@ export function mountKineticMap(d: KmDeps) {
 
   const groupName = (g: KmGroup) =>
     ({ core: L2('Ratings', 'Calificación'), ocean: L2('Ocean', 'Océano'), water: L2('Water', 'Agua'), weather: L2('Weather', 'Tiempo'), beach: L2('Beach and fishing', 'Playa y pesca'), seafloor: L2('Seafloor', 'Fondo'), rules: L2('Rules and places', 'Reglas y lugares'), coral: L2('Coral', 'Coral') })[g];
-  const layerName = (id: KmLayer) =>
-    id === 'rating' ? L2('Beach ratings', 'Calificación de playas') : id === 'heat' ? L2('Heat stress', 'Estrés térmico') : id === 'private' ? L2('Private sites', 'Sitios privados') : titleCase(t(`layer.${id}` as Key));
+  /** Mockup G's layer names where they say more than the old map's short labels. */
+  const KM_NAMES: Partial<Record<KmLayer, [string, string]>> = {
+    rating: ['Beach ratings', 'Calificación de playas'], heat: ['Heat stress', 'Estrés térmico'], private: ['Private sites', 'Sitios privados'],
+    waves: ['Swell crests', 'Crestas del oleaje'], currents: ['Current', 'Corriente'], weather: ['Rain and storms', 'Lluvia y tormentas'],
+    fishing: ['Fishing spots', 'Zonas de pesca'], depth: ['Seafloor depth', 'Profundidad'], zones: ['Zones and rules', 'Zonas y reglas'],
+    seamarks: ['Seamarks and wrecks', 'Balizas y naufragios'], anchorages: ['Harbours', 'Puertos y fondeaderos'],
+  };
+  const layerName = (id: KmLayer) => {
+    const n = KM_NAMES[id];
+    return n ? L2(...n) : titleCase(t(`layer.${id}` as Key));
+  };
   const ageOf = (id: KmLayer) => {
     const feeds = layerDef(id).feeds;
     if (!feeds.length) return { txt: L2('Static', 'Estático'), cls: 'k-ok' };
@@ -417,8 +430,12 @@ export function mountKineticMap(d: KmDeps) {
    */
   // 'dim' is the old map's faded amber (--amber-dim): the faint wash of the same colour, as the layers paint it.
   const SW_TONE = { amber: 'var(--paint-amber)', green: 'var(--paint-green)', red: 'var(--paint-red)', dim: 'color-mix(in srgb, var(--paint-amber) 40%, transparent)' } as const;
+  /** A continuous layer's key: the smooth ramp the map paints, ticks at the steps and the unit at the end (mockup G's ramp keys). */
+  const ramp = (cols: readonly string[], ticks: readonly string[], unit: string) =>
+    `<div class="k-rampw"><div class="k-ramp" aria-hidden="true" style="background:linear-gradient(90deg,${cols.map((c, i) => `var(--${c}) ${(((i + 0.5) * 100) / cols.length).toFixed(1)}%`).join(',')})"></div><em class="k-mono">${esc(unit)}</em><div class="k-rampl k-mono">${ticks.map((x, i) => `<span style="left:${((i + 1) * 100) / cols.length}%">${esc(x)}</span>`).join('')}</div></div>`;
   const legend = (id: KmLayer) => {
     if (isOwnLayer(id)) return ownLegend(id);
+    if (id === 'chl') return ramp(['r-chl0', 'r-chl1', 'r-chl2', 'r-chl3', 'r-chl4'], CHL_STEPS.map((x) => (settings.lang() === 'es' ? String(x).replace('.', ',') : String(x))), 'mg/m³');
     const items = LEGEND[id].map((it, i) => ({ ...it, l: t(legendItemKey(id, i + 1) as Key) })).filter((it) => it.sw !== 'none');
     return items.length ? `<ul class="k-lkeys">${items.map((it) => `<li><i class="k-sw-${it.sw}" style="--k:${SW_TONE[it.tone]}"></i><span>${esc(it.l)}</span></li>`).join('')}</ul>` : '';
   };
@@ -578,6 +595,8 @@ export function mountKineticMap(d: KmDeps) {
       out.push({ k: 'entry', l: L2('Surf at entry', 'Olas en la orilla'), v: n1(h.entryM), u: 'm', s: h.entryM >= 1.2 ? L2('Big shore break', 'Rompiente fuerte') : h.entryM >= 0.5 ? L2('Waves at the edge', 'Olas en la orilla') : L2('Easy entry', 'Entrada fácil'), val: h.entryM, help: 'diveEntry', lv: h.entryM >= 1.2 ? 0 : h.entryM >= 0.5 ? 2 : 4 });
     if ((has('sst') || has('fronts') || act('swim') || act('dive') || act('spear') || S.coral) && fin(h.sstC) && !h.land)
       out.push({ k: 'sst', l: L2('Water temp', 'Temp. agua'), v: n1(h.sstC), u: '°C', s: h.sstC >= SST_BANDS.WARM ? L2('Warm for here', 'Cálida para aquí') : h.sstC >= SST_BANDS.COOL ? L2('Mid · no wetsuit', 'Media · sin traje') : L2('Cooler for here', 'Fresca para aquí'), val: h.sstC, help: 'sst', src: L2('satellite', 'satélite') });
+    if (has('chl') && fin(h.chl) && !h.land)
+      out.push({ k: 'chl', l: L2('Chlorophyll', 'Clorofila'), v: h.chl >= 1 ? n1(h.chl) : h.chl.toFixed(2), u: 'mg/m³', s: h.chl >= CHL_STEPS[2] ? L2('Green water', 'Agua verde') : h.chl >= CHL_STEPS[0] ? L2('Green water edge', 'Borde de agua verde') : L2('Blue water', 'Agua azul'), val: chlIndex(h.chl), help: 'chl', src: 'VIIRS' });
     if ((has('clarity') || act('snorkel') || act('dive') || act('spear')) && fin(h.visM) && !h.land)
       out.push({ k: 'clarity', l: L2('Visibility', 'Visibilidad'), v: h.visM >= 10 ? n0(h.visM) : n1(h.visM), u: 'm', s: h.visM < CLARITY_BANDS.fair ? L2('Poor · murky', 'Mala · turbia') : h.visM < CLARITY_BANDS.good ? L2('Fair · hazy', 'Regular · algo turbia') : L2('Good · clear', 'Buena · clara'), val: h.visM, help: 'vis', src: 'Kd490' });
     if (has('sargassum') && h.sarg) out.push({ k: 'sarg', l: L2('Sargassum', 'Sargazo'), v: t(`sarg.level.${h.sarg.level}` as Key) || h.sarg.level, u: '', s: titleCase(h.sarg.beach), help: 'sargassum', lv: h.sarg.level === 'HIGH' ? 0 : h.sarg.level === 'MED' || h.sarg.level === 'MOD' ? 2 : 4 });
@@ -710,18 +729,46 @@ export function mountKineticMap(d: KmDeps) {
     const strip = Array.from({ length: 12 }, (_, i) => rate(S.act, s, t0 + i * H).level);
     const bt = bestWindow();
     const lv = r.level === null ? 'n' : r.level;
-    const rs = r.score === null ? '' : r.activity === 'surf' ? `${n1(r.score)}<small>/10</small>` : `${n0(r.score)}<small>/100</small>`;
+    // The score beside the word only where the big number is not already it (as the forecast hero).
+    const rs = r.score === null || r.activity === 'fish' || r.activity === 'swim' ? '' : r.activity === 'surf' ? `${n1(r.score)}<small>/10</small>` : `${n0(r.score)}<small>/100</small>`;
+    // The words line under the number (mockup G: "Waist to chest high, clean"): the forecast hero's own words.
+    const words = sentence(heroWords(r, { plan: planFor(S.act, s), ms: t0 }));
     return `<article class="k-scard k-lv${lv}" aria-label="${esc(titleCase(s.name))}">
       <div class="k-sm k-mono"><span>${esc(modeName(S.act))} · Spot</span><span>${time.offsetH() === 0 ? L2('Now', 'Ahora') : `${dd.wd} ${dd.n}`} · ${hhmm(t0)}</span></div>
       <h3>${esc(titleCase(s.name))}</h3>
       <div class="k-big">${esc(hl.value)}<span class="k-u">${esc(hl.unit)}</span></div>
+      ${words ? `<p class="k-w">${esc(words)}</p>` : ''}
       <div class="k-rt"><span class="k-rw">${esc(levelWord(r.level))}</span>${rs ? `<span class="k-rs">${rs}</span>` : ''}${segs(r.share)}</div>
       <ul class="k-chips k-mono">${reasonsOf(r).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
       ${minis(s, r, t0)}
       <div class="k-strip" aria-hidden="true">${strip.map((l) => `<i style="height:${l === null ? 8 : 24 + l * 19}%"></i>`).join('')}</div><div class="k-strip-l k-mono"><span>${time.offsetH() === 0 ? L2('Now', 'Ahora') : hhmm(t0)}</span><span>+12 h</span></div>
       <div class="k-sbest"><span class="k-mono">${esc(bt.kind === 'hidden' ? L2('Best time this week', 'Mejor momento de la semana') : bt.label)}</span><span class="k-bw">${esc(bt.kind === 'hidden' ? '--' : bt.when)}</span><span class="k-bv">${esc(bt.value)}</span></div>
     </article>
-    <div class="k-sacts"><button type="button" class="k-go" data-go="fc"><span>${L2('Open forecast', 'Abrir pronóstico')}</span>${ARROW}</button><button type="button" class="k-go2" data-go="centre">${L2('Centre', 'Centrar')}</button></div>`;
+    <div class="k-sacts"><button type="button" class="k-go" data-go="fc"><span>${L2('Open forecast', 'Abrir pronóstico')}</span>${ARROW}</button><button type="button" class="k-go2" data-go="centre">${L2('Centre', 'Centrar')}</button></div>${boatLine(s, t0)}`;
+  };
+  /**
+   * Fish and sail: the next boat window from this spot (mockup G: "Boat window · Wed 11 · 05:30–10:00 · Small boat OK"),
+   * the same GO hours as the BOAT drawer's NEXT GO WINDOW (boat/window.ts) for the vessel in Settings.
+   */
+  let bwKey = '', bwHTML = '';
+  const boatLine = (s: Spot, t0: number) => {
+    if (S.act !== 'fish' && S.act !== 'sail') return '';
+    const v = d.settings.vessel(), key = `${s.name}|${Math.floor(t0 / H)}|${v}|${d.version()}`;
+    if (key === bwKey) return bwHTML;
+    bwKey = key;
+    const hours = hourlyVerdicts(d.fc.env, v, s.lngLat[0], s.lngLat[1], t0, 48);
+    const known = hours.some((x) => x.verdict !== null);
+    const w = known ? nextWindow(hours, t0) : null;
+    const vw = v === 'yacht' ? L2('Yacht OK', 'Velero OK') : v === 'dinghy' ? L2('Dinghy OK', 'Panga OK') : L2('Small boat OK', 'Bote OK');
+    const dd = w && dateOf(w.now ? t0 : w.startMs), de = w && dateOf(w.endMs - 1);
+    // A window that runs past the day names the day it ends; one still open where the 48 h look-ahead stops has no end to give.
+    const open = !!w && w.endMs >= t0 + 47 * H;
+    const end = w ? `${de!.n !== dd!.n ? `${de!.wd} ${de!.n} ` : ''}${hhmm(w.endMs)}` : '';
+    const span = !w ? '' : open ? (w.now ? L2('all 48 h ahead', 'las próximas 48 h') : `${L2('from', 'desde')} ${hhmm(w.startMs)}`) : `${hhmm(w.now ? t0 : w.startMs)}–${end}`;
+    bwHTML = !known
+      ? ''
+      : `<p class="k-bwin k-mono"><span>${L2('Boat window', 'Ventana de bote')}</span>${w ? `<b>${w.now ? L2('Now', 'Ahora') : `${dd!.wd} ${dd!.n}`} · ${span}</b><span>${vw}</span>` : `<b>${L2('None in 48 h', 'Ninguna en 48 h')}</b>`}</p>`;
+    return bwHTML;
   };
   const coralCardHTML = () => {
     const rf = reef(), lv = reefLevel(rf);

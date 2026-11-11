@@ -190,7 +190,13 @@
 .km .k-lkeys i.k-sw-dot{width:9px;height:9px;border-radius:50%}
 .km .k-lkeys i.k-sw-ring{width:11px;height:11px;border-radius:50%;background:none;box-shadow:inset 0 0 0 2.5px var(--k)}
 .km .k-lkeys i.k-sw-line{height:3px}
-.km .k-lkeys i.k-sw-zone{width:18px;height:10px;border-radius:50%;background:color-mix(in srgb,var(--lv3) 55%,transparent);border:1.5px dashed var(--ac4)}
+.km .k-bwin{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;margin:10px 0 0;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.km .k-bwin b{color:var(--ink);font-weight:700}
+.km .k-rampw{display:grid;grid-template-columns:1fr auto;column-gap:8px;align-items:center;min-width:176px}
+.km .k-ramp{height:10px;border-radius:1px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 8%,transparent)}
+.km .k-rampw>em{font-style:normal;font-size:9.5px;font-weight:600;color:var(--ink2);letter-spacing:.03em}
+.km .k-rampl{grid-column:1;position:relative;height:13px;margin-top:3px;font-size:9.5px;font-weight:600;color:var(--ink2);letter-spacing:.03em}
+.km .k-rampl span{position:absolute;top:0;transform:translateX(-50%)}
 .km .k-legmini .k-lkeys{font-size:10.5px;gap:2px}
 .km .k-legmini .k-lkeys span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .km .k-keys{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11.5px;color:var(--ink2)}
