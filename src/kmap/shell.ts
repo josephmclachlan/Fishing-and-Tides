@@ -49,6 +49,7 @@ import {
 } from './model';
 import { ARROW, BACK, CLOSE, GRIP, ICON, L2, LOCK, PLUS, compass, esc, fin, levelWord, modeName, resetTokens, setKmLang, svg } from './dom';
 import { mountCoast, type PinData } from './coast';
+import { readDetails, type Detail } from './detail';
 import { mountScrub } from './scrub';
 import { barHTML, drawTiles, tileHTML, type Reading } from './tiles';
 import { styleBaseMap } from './basemap';
@@ -658,7 +659,29 @@ export function mountKineticMap(d: KmDeps) {
   };
   let lastR: Reading[] = [];
   const hereHTML = () =>
-    `<button type="button" class="k-expand" data-expand>${svg('<path d="M3 3h5M3 3v5M17 17h-5M17 17v-5M3 3l5.5 5.5M17 17l-5.5-5.5"/>', '0 0 20 20')}<span>${L2('Expand data', 'Ampliar datos')}</span>${ARROW}</button><p class="k-here-ll k-mono"><span>${esc(llTxt())}</span><span>${L2('Layers on · tap to explain', 'Capas activas · toque para explicar')}</span></p><div class="k-tiles"></div>`;
+    `<button type="button" class="k-expand" data-expand>${svg('<path d="M3 3h5M3 3v5M17 17h-5M17 17v-5M3 3l5.5 5.5M17 17l-5.5-5.5"/>', '0 0 20 20')}<span>${L2('Expand data', 'Ampliar datos')}</span>${ARROW}</button><p class="k-here-ll k-mono"><span>${esc(llTxt())}</span><span>${L2('Layers on · tap to explain', 'Capas activas · toque para explicar')}</span></p><div class="k-tiles"></div><section class="k-dtls" hidden><h3 class="k-mono">${L2('In detail', 'En detalle')}<span>${L2('From Expand data', 'De Ampliar datos')}</span></h3><div class="k-dtlg"></div></section>`;
+  /** The old map's finer rows for the activity (detail.ts), as compact cards under the tiles; each opens Expand data. */
+  const condRoot = () => document.getElementById('cond-panel');
+  const detailHTML = (x: Detail) =>
+    x.towns
+      ? `<button type="button" class="k-dtl k-dtl-towns k-lvn" data-k="${x.k}"><span class="k-dl k-mono">${esc(x.l)}</span><span class="k-dtw">${x.towns.map((tw) => `<span><i class="k-mono">${esc(titleCase(tw.name))}</i><b>${esc(tw.v)}</b></span>`).join('')}</span></button>`
+      : `<button type="button" class="k-dtl k-lv${x.lv ?? 'n'}${x.lv === null ? ' k-plain' : ''}" data-k="${x.k}"><span class="k-dl k-mono">${esc(x.l)}</span><b class="k-dv${/\d/.test(x.v) && x.v.length <= 6 ? '' : ' k-dw'}">${esc(x.v)}${x.u ? `<small>${esc(x.u)}</small>` : ''}</b>${x.s ? `<span class="k-ds k-mono">${esc(x.s)}</span>` : ''}</button>`;
+  const fillDetails = (el: HTMLElement) => {
+    const sec = el.querySelector<HTMLElement>('.k-dtls');
+    if (!sec) return;
+    const rows = S.coral ? [] : readDetails(condRoot(), S.act);
+    const html = rows.map(detailHTML).join('');
+    sec.hidden = !rows.length;
+    const g = sec.querySelector<HTMLElement>('.k-dtlg')!;
+    if (g.dataset.sig !== html) (g.innerHTML = html), (g.dataset.sig = html);
+  };
+  const renderDetails = () => {
+    if (WIDE.matches) {
+      const sec = railR.querySelector<HTMLElement>('#k-heresec');
+      if (sec) fillDetails(sec);
+    }
+    if (S.sheet === 'here') fillDetails(shBody);
+  };
   const accent = () => (S.coral ? 't-coral' : `t-${S.act}`);
   const fillTiles = (el: HTMLElement) => {
     const box = el.querySelector<HTMLElement>('.k-tiles');
@@ -671,6 +694,7 @@ export function mountKineticMap(d: KmDeps) {
       }),
     );
     drawTiles(box, lastR, accent());
+    fillDetails(el);
     const ll = el.querySelector('.k-here-ll span');
     if (ll) ll.textContent = llTxt();
   };
@@ -1021,8 +1045,29 @@ export function mountKineticMap(d: KmDeps) {
   $('k-back').addEventListener('click', () => d.forecast.open({ spot: spot().name, activity: S.act }));
   // Every reading the old map had, in its full CONDITIONS panel: first thing under "Under the crosshair" (Joseph 2026-11-11).
   app.addEventListener('click', (e) => {
-    if ((e.target as HTMLElement).closest('[data-expand]')) openTool('cond');
+    if ((e.target as HTMLElement).closest('[data-expand], .k-dtl')) openTool('cond');
   });
+  /**
+   * The old panel's rows change as its modules work them out: re-read the detail cards then, and in Expand data fold
+   * away a row with nothing to say ("--"), so the panel shows what is known here and now.
+   */
+  const EMPTY_RO = /^\s*(--|)\s*$/;
+  const foldEmpty = (cond: HTMLElement) =>
+    cond.querySelectorAll<HTMLElement>('.ro').forEach((ro) => {
+      const segs = ro.querySelectorAll('.seg');
+      ro.classList.toggle('k-empty', !!segs.length && !ro.querySelector('button') && [...segs].every((x) => EMPTY_RO.test(x.textContent ?? '')));
+    });
+  {
+    const cond = condRoot();
+    let q = false;
+    const sweep = () => {
+      q = false;
+      renderDetails();
+      if (cond && d.sheets.current() === 'cond') foldEmpty(cond);
+    };
+    if (cond) new MutationObserver(() => void (!q && ((q = true), requestAnimationFrame(sweep)))).observe(cond, { subtree: true, childList: true, characterData: true });
+    d.sheets.subscribe(() => cond && d.sheets.current() === 'cond' && foldEmpty(cond));
+  }
   map.on('click', () => !WIDE.matches && S.sheet && S.sheet !== 'here' && closeSheet());
 
   /** An old drawer (WATCH, BOAT, CORAL SITES, LIVE OBS, SYSTEM CHECK, CONDITIONS...), restyled, over the map. */
