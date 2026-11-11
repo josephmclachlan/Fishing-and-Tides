@@ -32,8 +32,8 @@ import { localDayStart } from '../physics/astro';
 import { bestWindow, ratingFor } from '../physics/outing';
 import { SURF_BREAKS } from '../data/surf-breaks';
 import { SNORKEL_SPOTS } from '../data/snorkel-spots';
-import { BEST_LEN_H, TONE_SCORE, bestTime, buildForecast, type Spot } from './forecast';
-import { toHFor, votersFor } from './best-today';
+import { BEST_LEN_H, TONE_SCORE, bestTime, buildForecast, sunHours, type Spot } from './forecast';
+import { votersFor } from './best-today';
 import { biteTone, fishWindow } from './fish-window';
 import { METRIC_BY_ID, type MetricEnv, type Tone } from './registry';
 
@@ -122,7 +122,8 @@ function metricDays(env: MetricEnv, activity: 'surf' | 'fish' | 'boat' | 'swim',
   const headRow = f.rows.find((r) => r.id === head.id);
   const voters = f.rows.map((r, i) => ({ r, m: metrics[i] })).filter(({ m }) => m.better !== null && !m.hours);
   return Array.from({ length: days }, (_, d) => {
-    const w = bestTime(f.rows, metrics, d, f.startMs, nowMs, toHFor(activity));
+    const sun = sunHours(f.startMs + d * DAY, spot.lngLat[1], spot.lngLat[0]);
+    const w = bestTime(f.rows, metrics, d, f.startMs, nowMs, sun.toH, sun.fromH);
     if (!w) return null;
     const h0 = Math.round((w.startMs - f.startMs) / H);
     let tone = 0, n = 0;
@@ -157,7 +158,7 @@ function outingDays(outingAt: OutingAt, mode: 'snorkel' | 'dive', spot: Spot, st
       const s = outingAt(spot, mode, ms, h);
       if (s !== null && Number.isFinite(s)) seen = true;
       return { score: s !== null && Number.isFinite(s) ? s : 0, reasons: [] };
-    }, dayMs);
+    }, dayMs, sunHours(dayMs, spot.lngLat[1], spot.lngLat[0]));
     if (!w || !seen) return null;
     return { day: d, dayMs, spot: spot.name, startMs: w.start, endMs: w.end, value: w.peak, tone: outingTone(w.peak), good: w.peak >= 40, rank: w.peak / 100 };
   });

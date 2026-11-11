@@ -381,6 +381,9 @@ export interface TimelineHour {
   humidityPct: number | null;
   /** The sun is up. */
   day: boolean;
+  /** Sunrise and sunset of this hour's local day, epoch ms (null where the sun does not rise or set); drawn on the chart. */
+  sunriseMs?: number | null;
+  sunsetMs?: number | null;
 }
 
 /**
@@ -412,6 +415,8 @@ export function timeline(deps: FcDeps, a: FcActivity, spot: Spot, startMs: numbe
       feelsC: val('feels'),
       humidityPct: val('humidity'),
       day: s.sun.sunrise !== null && s.sun.sunset !== null && ms + H / 2 >= s.sun.sunrise && ms + H / 2 < s.sun.sunset,
+      sunriseMs: s.sun.sunrise,
+      sunsetMs: s.sun.sunset,
     };
   });
 }

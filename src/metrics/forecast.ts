@@ -10,7 +10,7 @@
  * flattest day). See plan.ts.
  */
 import { haversineM } from '../geo';
-import { localDayStart } from '../physics/astro';
+import { localDayStart, daySky as skyOfDay } from '../physics/astro';
 import { METRIC_BY_ID, daySky, type Metric, type MetricEnv, type Tone } from './registry';
 
 const HOUR = 3.6e6, DAY = 864e5;
@@ -54,6 +54,18 @@ export interface WatchForecast {
 
 /** Local hours searched for the best time (a window starts at 5 and ends by 19), and its length. */
 export const BEST_FROM_H = 5, BEST_TO_H = 19, BEST_LEN_H = 2;
+
+/**
+ * The whole local hours between sunrise and sunset of the day starting `dayMs` at a place, as [fromH, toH) (each rounded to
+ * the nearest hour), which is where every best-window search looks (Joseph, 2026-11-11: "based around sunrise and sunset
+ * every day"). 06:00 to 18:00 where the sun does not rise or set. `padH` widens both ends (the bite peaks at dawn and dusk).
+ */
+export function sunHours(dayMs: number, lat: number, lng: number, padH = 0): { fromH: number; toH: number } {
+  const { sunrise, sunset } = skyOfDay(dayMs, lat, lng).sun;
+  const fromH = sunrise === null ? 6 : Math.round((sunrise - dayMs) / HOUR - padH);
+  const toH = sunset === null ? 18 : Math.round((sunset - dayMs) / HOUR + padH);
+  return toH - fromH >= BEST_LEN_H ? { fromH: Math.max(0, fromH), toH: Math.min(24, toH) } : { fromH: 6, toH: 18 };
+}
 
 const hoursFor = (m: Metric): readonly number[] => m.hours ?? (m.agg === 'sum' ? Array.from({ length: 24 }, (_, h) => h) : Array.from({ length: 12 }, (_, h) => h + 6));
 
@@ -141,12 +153,12 @@ export function hourScores(rows: readonly MetricRow[], metrics: readonly Metric[
   });
 }
 
-export function bestTime(rows: readonly MetricRow[], metrics: readonly Metric[], d: number, startMs: number, notBeforeMs = -Infinity, toH = BEST_TO_H): { startMs: number; endMs: number; score: number } | null {
+export function bestTime(rows: readonly MetricRow[], metrics: readonly Metric[], d: number, startMs: number, notBeforeMs = -Infinity, toH = BEST_TO_H, fromH = BEST_FROM_H): { startMs: number; endMs: number; score: number } | null {
   const scores = hourScores(rows, metrics, d);
   if (!scores) return null;
   const score = (h: number) => scores[h];
   let best: { h: number; v: number } | null = null;
-  for (let h = BEST_FROM_H; h + BEST_LEN_H <= toH; h++) {
+  for (let h = fromH; h + BEST_LEN_H <= toH; h++) {
     // Windows already over (or whose first hour is past) are not offered when asking for the rest of today.
     if (startMs + d * DAY + (h + 1) * HOUR <= notBeforeMs) continue;
     const parts = Array.from({ length: BEST_LEN_H }, (_, k) => score(h + k));
