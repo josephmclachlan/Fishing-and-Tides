@@ -1,32 +1,43 @@
 /**
- * FORECAST page (PLAN 7.52): a clean full-screen page beside the map for one spot and one activity, built
- * for reading at a glance rather than for the HUD. It has its own look (forecast.css: light and dark mode,
- * not the map themes, per Joseph) and its own link, `#forecast/<spot>/<activity>`, so it can be bookmarked.
- * It is the app's main page (PLAN 7.65): the bare address opens it, and the map is a page under it at `#map`;
- * the phone's back button moves between the two.
+ * FORECAST page (PLAN 7.52, redesigned as Kinetic Plus in PLAN 7.69): a clean full-screen page beside the map for
+ * one spot and one activity, built for reading at a glance rather than for the HUD. It has its own look
+ * (forecast.css: light and dark mode, not the map themes, per Joseph) and its own link, `#forecast/<spot>/<activity>`,
+ * so it can be bookmarked. It is the app's main page (PLAN 7.65): the bare address opens it, and the map is a page
+ * under it at `#map`; the phone's back button moves between the two.
  *
- * Top to bottom: the activity switch, the spots (each tinted with its rating now), the hero (a picture drawn
- * from the reading beside the one number that matters, its rating and why), then the next 7 days as bubbles
- * (WATCH's best window per day at this spot, the best day ringed). Tapping a day moves the hero to its window.
- * Every number comes from src/forecast/model.ts, which reads the scores the map already uses.
+ * Top to bottom: the spot and the activity tabs; the hero, a full-bleed colour field that is the rating, with a
+ * living picture drawn from the reading (art.ts) beside the one number that matters, its rating, why, and the
+ * week's best time; the spots as mini forecasts; eight conditions tiles with their own pictures (tiles.ts); the
+ * live map at the spot under a radar; the next 7 days as bars (tap one to move the hero there); and the hour-by-hour
+ * charts under a readout (charts.ts). Every number comes from src/forecast/model.ts, formatted in view.ts and
+ * written out by render.ts, which are pure and tested.
  */
 import { t, type Key } from '../i18n';
 import { localDayStart } from '../physics/astro';
 import { REGION, SPOTS, SPOT_RENAMES } from '../region';
 import { localClock } from '../tide-chart';
-import { compassName } from '../spot-charts';
 import type { Spot } from '../metrics/forecast';
-import type { Plan, PlanDay } from '../metrics/plan';
-import { heroArt } from './art';
-import { ratingStrip, rowSvg, rowsFor, skyKind, skyRow, timeAxis, SKY_ICON, type ChartGeom } from './charts';
-import { miniIcon, skyIcon, tileIcon, tipBand, type TileKind } from './tiles';
+import type { Plan } from '../metrics/plan';
+import { drawRadar, heroParams, HeroEngine, numVar, VMAX } from './art';
+import { bestBands, chartLayout, drawChartBase, drawChartTop, rowsFor, type ChartLayout } from './charts';
+import { clamp, readTokens, rgba, TAU, type Tokens, type TokenName } from './kit';
+import { drawTile } from './tiles';
 import {
-  FC_ACTIVITIES, beaufort, chopFor, dayUvPeaks, dayWeather, daysAt, hourWeather, waterAt, surfSize as surfSizeOf, uvLevel, driftFor, isFcActivity, landing, MAP_HASH, parseRoute, readAt, routeHash, spotsForActivity, chooseSpot, timeline,
-  type DayWeather, type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour,
+  bestHtml, chartLabelsHtml, chipsHtml, daysHtml, esc, rateHtml, readoutHtml, shellHtml, spotsHtml, tilesHtml,
+} from './render';
+import {
+  bestTimeView, coverPlace, dayDate, dayLabel, daysView, heroView, n0, n1, readoutView, rowText, sentence, spotView, tilesFor, titleCase,
+  type TileView, type ViewCtx,
+} from './view';
+import {
+  FC_ACTIVITIES, dayUvPeaks, daysAt, hourWeather, isFcActivity, landing, MAP_HASH, parseRoute, readAt, routeHash, spotsForActivity, chooseSpot, timeline,
+  type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour,
 } from './model';
+import './fonts';
 import './forecast.css';
 
 const H = 3.6e6, DAY = 864e5;
+const TZ = REGION.tzOffsetH;
 const ACT_KEY = 'ft.fcActivity';
 const SPOT_KEY = 'ft.fcSpot';
 const SCHEME_KEY = 'ft.fcScheme';
@@ -47,24 +58,6 @@ const put = (s: Store, k: string, v: string) => {
   }
 };
 
-/** "PLAYA COCLES" → "Playa Cocles"; "LIMÓN" → "Limón". */
-export const titleCase = (s: string) => s.toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (_, a: string, b: string) => a + b.toUpperCase());
-/** HUD caps to a sentence: "MOVING TIDE" → "Moving tide". */
-export const sentence = (s: string) => (s ? s[0].toUpperCase() + s.slice(1).toLowerCase() : s);
-const cmp = (deg: number | null | undefined) => (typeof deg === 'number' && Number.isFinite(deg) ? compassName(deg).replace(/W/g, t('hemi.W')) : '');
-const n1 = (x: number) => x.toFixed(1);
-const n0 = (x: number) => Math.round(x).toString();
-
-const ICONS: Record<FcActivity, string> = {
-  fish: '<path d="M3 12c3-4 9-5 13-1l4-3v8l-4-3c-4 4-10 3-13-1z"/><circle cx="8" cy="11" r="1"/>',
-  surf: '<path d="M2 17c3 0 4-2 6-2s3 2 6 2 4-2 6-2"/><path d="M4 13c1-5 6-8 11-6-3 1-4 3-3 6"/>',
-  snorkel: '<rect x="3" y="8" width="13" height="7" rx="3.5"/><path d="M19 4v10a3 3 0 0 1-3 3h-2"/>',
-  dive: '<rect x="9" y="3" width="6" height="15" rx="3"/><path d="M12 18v3M9 7h6"/>',
-  sail: '<path d="M12 3v14M12 4l7 12h-7M11 6l-6 10h6"/><path d="M3 19h18l-2 2H5z"/>',
-  swim: '<circle cx="16" cy="6" r="2.2"/><path d="M4 12l5-3 3 3 4-2"/><path d="M2 17c2 0 3-1.5 5-1.5S10 17 12 17s3-1.5 5-1.5 3 1.5 5 1.5"/>',
-};
-const icon = (a: FcActivity) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[a]}</svg>`;
-
 export interface ForecastDeps extends FcDeps {
   storage: Store;
   /** The active language and a switch to the other one (reloads; the hash keeps the page open). */
@@ -74,235 +67,16 @@ export interface ForecastDeps extends FcDeps {
   center: () => [number, number];
   /** Open the map for an activity at a spot: its layer preset, zoomed in with the crosshair on the spot (PLAN 7.68). */
   openMap?: (spot: Spot, a: FcActivity) => void;
-  /** A picture of the live map around a spot, and where the spot sits in it (0..1 across and down); null if it cannot be taken. */
-  mapPreview?: (spot: Spot) => Promise<{ url: string; x: number; y: number } | null>;
+  /**
+   * A picture of the live map around a spot, where the spot sits in it (0..1 across and down) and its ground scale
+   * (m per picture pixel, for the radar's kilometre rings); null if it cannot be taken.
+   */
+  mapPreview?: (spot: Spot) => Promise<{ url: string; x: number; y: number; mPerPx?: number } | null>;
   /** Open the CORAL page at the reef nearest this spot (PLAN 7.66); no button when left out. */
   openCoral?: (at: [number, number]) => void;
 }
-const CORAL_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-9M12 15l-4-4V7M12 12l4-4V5M8 11l-3-2M16 8l3-1M6 21h12"/></svg>';
 
-/** Headline value as [text, unit] for the hero and the day bubbles. */
-export function headline(r: FcRead): { value: string; unit: string } {
-  if (r.score === null) return { value: '--', unit: '' };
-  switch (r.activity) {
-    case 'surf': {
-      const [lo, hi] = r.surf!.range;
-      return { value: hi < 0.15 ? '0' : lo === hi ? n1(lo) : `${n1(lo)}–${n1(hi)}`, unit: t('unit.m').toLowerCase() };
-    }
-    case 'fish':
-    case 'swim':
-      return { value: n0(r.score), unit: '/100' };
-    case 'snorkel':
-    case 'dive': {
-      const v = r.water!.visM;
-      return v === null ? { value: '--', unit: '' } : { value: v >= 10 ? n0(v) : n1(v), unit: t('unit.m').toLowerCase() };
-    }
-    case 'sail': {
-      const k = r.sail!.windKt;
-      return k === null ? { value: '--', unit: '' } : { value: n0(k), unit: 'kt' };
-    }
-  }
-}
-
-/** The reasons line: what holds the score back (or that nothing does). */
-function reasons(r: FcRead): string[] {
-  if (r.score === null) return [];
-  if (r.surf) {
-    const out: string[] = [];
-    out.push(`${t('fc.wind')} ${t(`fc.wind.${r.surf.windKind}` as Key)}`);
-    out.push(`${n0(r.surf.tp)} s · ${cmp(r.surf.dir)}`);
-    if (r.surf.tideKind !== 'none') out.push(`${t('fc.tide')} ${t(`fc.tide.${r.surf.tideKind}` as Key)}`);
-    return out;
-  }
-  if (r.fish) return r.fish.reasons.slice(0, 3).map((k) => sentence(t(`bite.r.${k}` as Key)));
-  if (r.water) {
-    const why = r.water.reasons.length ? r.water.reasons.slice(0, 3).map((k) => sentence(t(`dive.r.${k}` as Key))) : [t('fc.reason.none')];
-    return r.water.access ? [sentence(t(`snk.access.${r.water.access}` as Key)), ...why] : why;
-  }
-  if (r.swim) {
-    const w = r.swim;
-    const why = w.reasons.length ? w.reasons.slice(0, 3).map((k) => t(`swim.r.${k}` as Key)) : [t('fc.reason.none')];
-    // The rip risk itself is on the line above; these are what hold the day back.
-    return why;
-  }
-  if (r.sail) {
-    const s = r.sail, out: string[] = [];
-    if (s.squall !== null && s.squall >= 1) out.push(`${t('fc.squall')}: ${t(`fc.squall.${Math.min(2, Math.round(s.squall))}` as Key).toLowerCase()}`);
-    if (s.gustKt !== null && s.gustKt >= 18) out.push(t('fc.reason.gust', { kt: n0(s.gustKt) }));
-    if (s.windKt !== null && s.windKt < 5) out.push(t('fc.reason.light'));
-    if (s.windKt !== null && s.windKt >= 20) out.push(t('fc.reason.wind'));
-    return out.length ? out : [t('fc.reason.none')];
-  }
-  return [];
-}
-
-/** One picture tile: what it shows, its value, the picture's input and the tip it opens to. */
-export interface TileSpec {
-  kind: TileKind;
-  k: string;
-  v: string;
-  val: number | null;
-  tip: string | null;
-  lv?: Level | null;
-  opt?: Parameters<typeof tileIcon>[2];
-}
-
-const tipOf = (kind: Parameters<typeof tipBand>[0], v: number | null, vars?: Record<string, string>) => {
-  const b = tipBand(kind, v);
-  return b === null ? null : t(`tip.${kind}.${b}` as Key, vars);
-};
-
-/** The picture tiles under the hero: each activity's own conditions, safety first. */
-function stats(r: FcRead, plan: Plan | null, selDay: number): TileSpec[] {
-  const dash = '--';
-  const win = plan?.days[selDay];
-  const winText = win ? t('fc.window', { from: localClock(win.startMs), to: localClock(win.endMs) }) : t('fc.noWindow');
-  const hourOf = (ms: number) => new Date(ms + REGION.tzOffsetH * H).getUTCHours();
-  const clock = (k: string): TileSpec => ({
-    kind: 'clock', k, v: winText, val: null,
-    tip: win ? t('tip.clock', { from: localClock(win.startMs) }) : null,
-    opt: win ? { from: hourOf(win.startMs), to: hourOf(win.endMs) } : {},
-  });
-  const uvTile = (uv: number | null): TileSpec => ({
-    kind: 'uv', k: t('fc.uv'), v: uv === null ? dash : `${n0(uv)} · ${t(`fc.uvw.${uvLevel(uv)}` as Key)}`, val: uv, tip: tipOf('uv', uv), lv: uv === null ? null : uvLevel(uv),
-  });
-  const entry = (m: number, rip: 'LOW' | 'MOD' | 'HIGH' | null): TileSpec => ({
-    kind: 'breaker', k: t('fc.entry'), v: `${n1(m)} m${rip ? ` · ${t('fc.rip')} ${sentence(t(`dive.rip.${rip}` as Key)).toLowerCase()}` : ''}`, val: m,
-    tip: rip === 'HIGH' ? t('tip.rip.HIGH') : tipOf('breaker', m),
-  });
-  const water = (c: number | null, k = t('fc.water')): TileSpec => ({ kind: 'water', k, v: c === null ? dash : `${n1(c)} °C`, val: c, tip: tipOf('water', c) });
-  const current = (kt: number | null): TileSpec => ({
-    kind: 'current', k: t('fc.current'), v: kt === null ? dash : `${t(`fc.drift.${driftFor(kt)}` as Key)} · ${n1(kt)} kt`, val: kt, tip: tipOf('current', kt),
-  });
-  if (r.surf) {
-    const s = r.surf;
-    return [
-      { kind: 'swell', k: t('fc.swell'), v: `${n1(s.hs)} m · ${n0(s.tp)} s · ${cmp(s.dir)}`, val: s.hs, tip: tipOf('swell', s.hs) },
-      { kind: 'wind', k: t('fc.wind'), v: s.windKt === null ? dash : `${n0(s.windKt)} kt ${cmp(s.windFromDeg)} · ${t(`fc.wind.${s.windKind}` as Key)}`, val: s.windKt, tip: t(`tip.surfwind.${s.windKind}` as Key) },
-      clock(t('fc.bestWindow')),
-    ];
-  }
-  if (r.fish) {
-    const f = r.fish;
-    return [
-      { kind: 'fish', k: t('fc.catch'), v: f.species.map((id) => titleCase(t(`fish.${id}` as Key))).join(' · '), val: null, tip: t('tip.fish') },
-      { kind: 'moon', k: t('fc.moon'), v: `${sentence(t(`astro.moon.${f.moonPhase}` as Key))} · ${n0(f.moonIllum * 100)}%`, val: f.moonIllum, tip: tipOf('moon', f.moonIllum), opt: { waxing: f.moonPhase <= 4 } },
-      { kind: 'tide', k: t('fc.tide'), v: t(f.tideRising ? 'fc.tide.rising' : 'fc.tide.falling'), val: f.tideLevel, tip: t(f.tideRising ? 'tip.tide.up' : 'tip.tide.down'), opt: { rising: f.tideRising } },
-    ];
-  }
-  if (r.water && r.activity === 'snorkel') {
-    // Snorkelling happens at the surface over a shallow reef: getting in, chop, drift, how much water, sun, stingers.
-    const w = r.water;
-    return [
-      entry(w.breakerM, w.rip),
-      { kind: 'chop', k: t('fc.chop'), v: w.windKt === null ? dash : `${t(`fc.chop.${chopFor(w.windKt)}` as Key)} · ${n0(w.windKt)} kt`, val: w.windKt, tip: tipOf('chop', w.windKt) },
-      current(w.currentKt),
-      { kind: 'reef', k: t('fc.overReef'), v: w.waterM === null ? dash : `${n1(w.waterM)} m`, val: w.waterM, tip: tipOf('reef', w.waterM) },
-      uvTile(w.uv),
-      { kind: 'stingers', k: t('fc.stingers'), v: w.stingers === null ? dash : sentence(t(w.stingers ? 'snk.stingers.maybe' : 'snk.stingers.low')), val: w.stingers === null ? null : w.stingers ? 1 : 0, tip: w.stingers === null ? null : tipOf('stingers', w.stingers ? 1 : 0) },
-    ];
-  }
-  if (r.water) {
-    // Diving is about the bottom: surge at depth, drift, temperature for the suit.
-    const w = r.water;
-    return [
-      { kind: 'surge', k: t('fc.surge', { d: w.depthM }), v: `${t(`fc.surge.${w.surge}` as Key)} · ${w.surgeMs.toFixed(2)} m/s`, val: w.surgeMs, tip: t(`tip.surge.${w.surge}` as Key) },
-      current(w.currentKt),
-      water(w.sstC, t('fc.sst')),
-      // A shore dive starts by swimming out through the break; the week's best time is in its own callout above.
-      entry(w.breakerM, w.rip),
-    ];
-  }
-  if (r.swim) {
-    // A beach day: safety in the water first, then the sun, the heat and the water.
-    const w = r.swim;
-    const ripLv = { LOW: 3, MOD: 2, HIGH: 0 } as const;
-    return [
-      { kind: 'rip', k: t('fc.ripRisk'), v: t(`fc.ripw.${w.rip}` as Key), val: w.ripScore, tip: t(`tip.rip.${w.rip}` as Key), lv: ripLv[w.rip] },
-      { kind: 'breaker', k: t('fc.shorebreak'), v: `${n1(w.breakerM)} m · ${t(`fc.size.${surfSizeOf(w.breakerM)}` as Key).toLowerCase()}`, val: w.breakerM, tip: tipOf('breaker', w.breakerM) },
-      uvTile(w.uv),
-      { kind: 'feels', k: t('fc.feels'), v: w.feelsC === null ? dash : `${n0(w.feelsC)} °C${w.airC === null ? '' : ` · ${t('fc.airIs', { c: n0(w.airC) })}`}`, val: w.feelsC, tip: tipOf('feels', w.feelsC) },
-      water(w.sstC),
-      { kind: 'wind', k: t('fc.wind'), v: w.windKt === null ? dash : `${n0(w.windKt)} kt`, val: w.windKt, tip: tipOf('wind', w.windKt) },
-    ];
-  }
-  if (r.sail) {
-    const s = r.sail;
-    return [
-      { kind: 'gust', k: t('fc.gust'), v: s.gustKt === null ? dash : `${n0(s.gustKt)} kt`, val: s.gustKt, tip: tipOf('gust', s.gustKt) },
-      { kind: 'boat', k: t('fc.comfort'), v: r.score === null ? dash : `${n0(r.score)}/100`, val: r.score, tip: tipOf('boat', r.score) },
-      { kind: 'swell', k: t('fc.swell'), v: s.swellM === null ? dash : `${n1(s.swellM)} m`, val: s.swellM, tip: tipOf('swell', s.swellM) },
-    ];
-  }
-  return [];
-}
-
-const SKY_WORD: Record<NonNullable<DayWeather['sky']>, Key> = {
-  sun: 'fc.sky.sun', partly: 'fc.sky.partly', cloud: 'fc.sky.cloud', showers: 'fc.sky.showers', rain: 'fc.sky.rain', storm: 'fc.sky.storm',
-};
-/** The weather tip: when the rain comes, or what the sun asks for. */
-function weatherTip(w: DayWeather): string | null {
-  const at = (ms: number | null) => (ms === null ? '' : localClock(ms));
-  let tip: string | null = null;
-  switch (w.sky) {
-    case 'storm': tip = t('tip.wx.storm', { h: at(w.wettestMs ?? w.rainPeakMs) }); break;
-    case 'rain': tip = t('tip.wx.rain', { mm: n0(w.rainMm ?? 0), h: at(w.wettestMs) }); break;
-    case 'showers': tip = t('tip.wx.showers', { h: at(w.rainPeakMs ?? w.wettestMs) }); break;
-    case 'cloud': tip = t('tip.wx.cloud'); break;
-    case 'sun': case 'partly': tip = w.uvMax !== null && w.uvMax >= 7.5 ? t('tip.wx.sunUv', { uv: n0(w.uvMax) }) : t('tip.wx.sun'); break;
-    default: return null;
-  }
-  const heat = w.feelsMaxC !== null && w.feelsMaxC >= 32 ? ` ${t(w.feelsMaxC >= 39 ? 'tip.feels.danger' : 'tip.feels.hot')}` : '';
-  return tip + heat;
-}
-/** The weather tile: the day's sky as a picture, high and low, real feel, then rain, humidity, water, UV and wind. */
-function weatherTile(w: DayWeather, sstC: number | null, dayName: string, open: boolean, id: string): string {
-  const dash = '--';
-  const deg = (c: number | null) => (c === null ? dash : `${n0(c)}°`);
-  const facts = [
-    ['rain', t('fc.rainChance'), w.rainPct === null ? dash : `${n0(w.rainPct)}%${w.rainMm === null ? '' : ` · ${n1(w.rainMm)} mm`}`],
-    ['humid', t('fc.humidity'), w.humidityPct === null ? dash : `${n0(w.humidityPct)}%`],
-    ['water', t('fc.water'), sstC === null ? dash : `${n1(sstC)} °C`],
-    ['uv', t('fc.uvPeakShort'), w.uvMax === null ? dash : `${n0(w.uvMax)} · ${t(`fc.uvw.${uvLevel(w.uvMax)}` as Key)}`],
-    ['wind', t('fc.windPeak'), w.windKt === null ? dash : `${n0(w.windKt)} kt${w.gustKt === null ? '' : ` · ${t('fc.gust').toLowerCase()} ${n0(w.gustKt)}`}`],
-  ] as const;
-  const tip = weatherTip(w);
-  return `<div class="fc-tile fc-wx fc-wx-${w.sky ?? 'none'}" role="button" tabindex="0" data-tile="${id}" aria-expanded="${open}"${tip ? '' : ' data-notip=""'}>
-    <span class="fc-wx-ico">${skyIcon(w.sky)}</span>
-    <span class="fc-wx-main">
-      <span class="fc-tile-k">${t('fc.weather')} · ${dayName}</span>
-      <span class="fc-wx-word">${w.sky ? t(SKY_WORD[w.sky]) : t('fc.nodata')}</span>
-      <span class="fc-wx-temp"><b>${deg(w.hiC)}</b><span>${deg(w.loC)}</span></span>
-      <span class="fc-wx-feels">${miniIcon('feels')}${t('fc.feels')} ${deg(w.feelsMaxC)}</span>
-    </span>
-    <ul class="fc-wx-facts">${facts.map(([ic, k, v]) => `<li>${miniIcon(ic)}<span>${k}</span><b>${v}</b></li>`).join('')}</ul>
-    ${tip ? `<span class="fc-tile-tip"><span>${tip}</span></span>` : ''}</div>`;
-}
-
-/** Animate a number in `el` from what it shows to `to` (ranges "a–b" animate both ends). Instant under reduced motion. */
-function countUp(el: HTMLElement, to: string) {
-  const from = el.dataset.v ?? '';
-  el.dataset.v = to;
-  const nums = (s: string) => s.split('–').map(Number);
-  const a = nums(from), b = nums(to);
-  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  if (reduce || a.length !== b.length || [...a, ...b].some((x) => !Number.isFinite(x))) {
-    el.textContent = to;
-    return;
-  }
-  const dec = to.includes('.') ? 1 : 0;
-  const t0 = performance.now(), dur = 550;
-  const step = (now: number) => {
-    const k = Math.min(1, (now - t0) / dur);
-    const e = 1 - (1 - k) ** 3;
-    el.textContent = k >= 1 ? to : a.map((x, i) => (x + (b[i] - x) * e).toFixed(dec)).join('–');
-    if (k < 1 && el.dataset.v === to) requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
-}
-
-const bar = (level: Level | null) =>
-  `<span class="fc-bar" aria-hidden="true">${[0, 1, 2, 3, 4].map((i) => `<i class="${level !== null && i <= level ? `on l${level}` : ''}" style="--i:${i}"></i>`).join('')}</span>`;
+const lvTok = (l: Level | null, p: 'lv' | 'on' | 'ac') => (l === null ? `${p}n` : `${p}${l}`) as TokenName;
 
 export function mountForecastPage(deps: ForecastDeps) {
   const { storage } = deps;
@@ -313,66 +87,7 @@ export function mountForecastPage(deps: ForecastDeps) {
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-modal', 'true');
   el.setAttribute('aria-labelledby', 'fc-name');
-  el.innerHTML = `
-    <div class="fc-wrap">
-      <header class="fc-head">
-        <button type="button" class="fc-back" id="fc-back" title="${t('fc.backTitle')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span>${t('fc.back')}</span></button>
-        <div class="fc-titles"><h1 id="fc-name">--</h1><p id="fc-sub">--</p><p class="fc-swap" id="fc-swap" hidden></p></div>
-        <div class="fc-tools">
-          ${deps.openCoral ? `<button type="button" class="fc-tool" id="fc-coral" aria-label="${t('fc.coral')}" title="${t('fc.coral')}">${CORAL_ICON}</button>` : ''}
-          <button type="button" class="fc-tool" id="fc-lang" title="${t('fc.lang')}">${deps.lang() === 'es' ? 'EN' : 'ES'}</button>
-          <button type="button" class="fc-tool" id="fc-scheme" aria-label="${t('fc.scheme')}" title="${t('fc.scheme')}"></button>
-        </div>
-      </header>
-      <nav class="fc-acts" role="tablist" aria-label="${t('fc.actGroup')}">
-        ${FC_ACTIVITIES.map((a) => `<button type="button" role="tab" class="fc-act" data-act="${a}">${icon(a)}<span>${t(`fc.act.${a}` as Key)}</span></button>`).join('')}
-        <span class="fc-act-ink" aria-hidden="true"></span>
-      </nav>
-      <div class="fc-spots" id="fc-spots" role="listbox" aria-label="${t('fc.spots')}"></div>
-      <section class="fc-hero" id="fc-hero" aria-live="polite">
-        <div class="fc-art-box"><div class="fc-art-in" id="fc-art"></div>
-          <div class="fc-compass" id="fc-compass" hidden aria-hidden="true">
-            <svg viewBox="-40 -40 80 80"><circle class="fc-cp-ring" r="34"/>
-              <path class="fc-cp-shore" d="M-30.5,-15 A34,34 0 0 1 30.5,-15"/>
-              <path class="fc-cp-ticks" d="M0,-34v6M34,0h-5M0,34v-5M-34,0h5"/><text class="fc-cp-n" y="-18" text-anchor="middle">N</text>
-              <g class="fc-cp-swell"><path d="M0,-24 L7,-6 L2.5,-8 L2.5,22 L-2.5,22 L-2.5,-8 L-7,-6 Z"/></g>
-              <g class="fc-cp-wind"><path d="M0,-28 L4.5,-17 L1.2,-18.5 L1.2,16 L-1.2,16 L-1.2,-18.5 L-4.5,-17 Z"/></g>
-              <circle class="fc-cp-hub" r="3"/></svg>
-            <ul class="fc-cp-key"><li class="fc-cp-k-swell" id="fc-cp-swell"></li><li class="fc-cp-k-wind" id="fc-cp-wind"></li></ul>
-          </div>
-        </div>
-        <div class="fc-hero-data">
-          <div class="fc-k" id="fc-k">--</div>
-          <div class="fc-big"><span class="fc-num" id="fc-num">--</span><span class="fc-unit" id="fc-unit"></span></div>
-          <div class="fc-size" id="fc-size"></div>
-          <div class="fc-rate" id="fc-rate"></div>
-          <button type="button" class="fc-best-time" id="fc-best-time" hidden></button>
-          <ul class="fc-why" id="fc-why"></ul>
-        </div>
-      </section>
-      <section class="fc-card fc-cond-card">
-        <div class="fc-card-head"><h2>${t('fc.conditions')}</h2><span class="fc-cond-when" id="fc-cond-when"></span></div>
-        <div class="fc-tiles" id="fc-tiles"></div>
-      </section>
-      <button type="button" class="fc-radar" id="fc-radar">
-        <span class="fc-radar-img" id="fc-radar-img"></span>
-        <span class="fc-radar-sweep" aria-hidden="true"></span>
-        <span class="fc-radar-ping" id="fc-radar-ping" aria-hidden="true" hidden></span>
-        <span class="fc-radar-txt"><b>${t('fc.radar')}</b><span id="fc-radar-sub"></span><small id="fc-radar-hint"></small></span>
-        <svg class="fc-radar-go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
-      </button>
-      <section class="fc-card fc-days-card">
-        <div class="fc-card-head"><h2>${t('fc.days')}</h2><button type="button" class="fc-now" id="fc-now" hidden>${t('fc.now')}</button></div>
-        <div class="fc-days" id="fc-days"></div>
-      </section>
-      <section class="fc-card fc-hours-card">
-        <div class="fc-card-head"><h2>${t('fc.hours')}</h2></div>
-        <ul class="fc-readout" id="fc-readout" aria-live="polite"></ul>
-        <div class="fc-tl" id="fc-tl"><div class="fc-tl-in" id="fc-tl-in"></div><div class="fc-nowline" id="fc-nowline" hidden><span>${t('fc.now')}</span></div><div class="fc-cursor" id="fc-cursor" hidden></div></div>
-        <p class="fc-tl-hint">${t('fc.hoursHint')}</p>
-      </section>
-      <p class="fc-note">${t('fc.note')}</p>
-    </div>`;
+  el.innerHTML = shellHtml({ acts: FC_ACTIVITIES, lang: deps.lang(), coral: !!deps.openCoral });
   document.body.appendChild(el);
   const $ = (id: string) => el.querySelector<HTMLElement>('#' + id)!;
   /** Replace a block's markup only when it changed, so the periodic redraw does not replay its animations. */
@@ -383,31 +98,33 @@ export function mountForecastPage(deps: ForecastDeps) {
     e.dataset.html = markup;
     return true;
   };
-  /** Restart a one-shot CSS animation class on an element. */
-  const replay = (e: Element, cls: string) => {
-    e.classList.remove(cls);
-    void (e as HTMLElement).offsetWidth;
-    e.classList.add(cls);
-  };
-  const reduceMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const motionQ = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  let reduced = !!motionQ?.matches;
 
   // --- light / dark: the OS setting until the user picks one here
   const media = window.matchMedia?.('(prefers-color-scheme: dark)');
   const scheme = () => (get(storage, SCHEME_KEY) as 'light' | 'dark' | null) ?? (media?.matches ? 'dark' : 'light');
+  let T: Tokens | null = null;
   const applyScheme = () => {
     const s = scheme();
     el.dataset.scheme = s;
-    $('fc-scheme').innerHTML =
-      s === 'dark'
-        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>'
-        : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>';
     $('fc-scheme').title = t(s === 'dark' ? 'fc.scheme.light' : 'fc.scheme.dark');
-    if (!el.hidden) themeMeta();
+    if (el.hidden) return;
+    themeMeta();
+    T = readTokens(el);
+    engine.setTokens(T, true);
+    chartDirty = true;
+    drawAll(true);
   };
   media?.addEventListener?.('change', applyScheme);
   $('fc-scheme').addEventListener('click', () => (put(storage, SCHEME_KEY, scheme() === 'dark' ? 'light' : 'dark'), applyScheme()));
   el.querySelector('#fc-coral')?.addEventListener('click', () => deps.openCoral?.(spot().lngLat));
-  $('fc-lang').addEventListener('click', () => deps.setLang(deps.lang() === 'es' ? 'en' : 'es'));
+  el.querySelectorAll<HTMLElement>('.fc-lang [data-lang]').forEach((b) =>
+    b.addEventListener('click', () => {
+      const l = b.dataset.lang as 'en' | 'es';
+      if (l !== deps.lang()) deps.setLang(l);
+    }),
+  );
 
   // The browser bar follows the page while it is open, the map's theme otherwise.
   const meta = document.querySelector('meta[name="theme-color"]');
@@ -430,14 +147,9 @@ export function mountForecastPage(deps: ForecastDeps) {
   let shownSpot = '';
   let tl: TimelineHour[] = [];
   let tlKey = '';
-  let geom: ChartGeom = { px: 6, tzOffsetH: REGION.tzOffsetH };
-  /** The spot and activity the timeline was last scrolled to "now" for. */
-  let scrolledFor = '';
   let openedAt = 0;
-  let artFor = '';
-  /** What the hero shows, for the tiles under it; and which tiles are open (kept across redraws). */
   let heroRead: FcRead | null = null;
-  let heroDay = 0;
+  /** Which tiles show their tip (by activity and place), kept across redraws. */
   const openTiles = new Set<string>();
 
   const spots = () => spotsForActivity(act, SPOTS);
@@ -446,32 +158,112 @@ export function mountForecastPage(deps: ForecastDeps) {
   const swapped = () => chooseSpot(spotName, act, SPOTS).asked;
   const nowHour = () => Math.floor(Date.now() / H) * H;
   const when = () => sel ?? nowHour();
+  const actWord = () => t(`fc.act.${act}` as Key);
 
-  const dayLabel = (dayMs: number, d: number) => {
-    if (d === 0) return t('fc.today');
-    if (d === 1) return t('fc.tomorrow');
-    const x = new Date(dayMs + 12 * H + REGION.tzOffsetH * H);
-    return `${sentence(t(`day.${x.getUTCDay()}` as Key))} ${x.getUTCDate()}`;
+  // --- the hero's canvases
+  const engine = new HeroEngine($('fc-fx') as HTMLCanvasElement, $('fc-ov') as HTMLCanvasElement, $('fc-hero'), $('fc-art'));
+  engine.reduced = reduced;
+
+  // --- tabs
+  const placeBar = () => {
+    const b = el.querySelector<HTMLElement>(`.fc-tab[data-act="${act}"]`);
+    if (!b) return;
+    const bar = $('fc-tab-bar');
+    bar.style.width = `${b.offsetWidth}px`;
+    bar.style.transform = `translate(${b.offsetLeft}px, ${b.offsetTop + b.offsetHeight - 5}px)`;
+  };
+  const renderTabs = () => {
+    el.querySelectorAll<HTMLElement>('.fc-tab').forEach((b) => {
+      const yes = b.dataset.act === act;
+      b.setAttribute('aria-selected', String(yes));
+      b.tabIndex = yes ? 0 : -1;
+    });
+    el.dataset.act = act;
+    placeBar();
   };
 
-  const renderActs = () => {
-    let on: HTMLElement | null = null;
-    el.querySelectorAll<HTMLElement>('.fc-act').forEach((b) => {
-      const yes = b.dataset.act === act;
-      b.classList.toggle('on', yes);
-      b.setAttribute('aria-selected', String(yes));
-      if (yes) on = b;
-    });
-    // The sliding highlight under the active activity.
-    const ink = el.querySelector<HTMLElement>('.fc-act-ink')!;
-    const b = on as HTMLElement | null;
-    if (b) {
-      ink.style.width = `${b.offsetWidth}px`;
-      ink.style.transform = `translateX(${b.offsetLeft}px)`;
+  /** The week's plan and the hour-by-hour timeline: rebuilt each hour, on a new spot or activity, and while feeds load. */
+  const ensureData = () => {
+    const sp = spot();
+    const key = `${act}|${sp.name}|${nowHour()}`;
+    if (key !== planKey || plan?.none === 'nodata') {
+      plan = daysAt(deps, act, sp, Date.now(), 7);
+      planKey = key;
+    }
+    if (key !== tlKey || tlPartial()) {
+      tl = timeline(deps, act, sp, plan?.startMs ?? localDayStart(Date.now(), TZ));
+      tlKey = key;
+      chartDirty = true;
     }
   };
+  const tlPartial = () =>
+    !tl.length || tl.every((h) => h.read.level === null) || tl.every((h) => h.windKt === null) || tl.every((h) => h.rainMmH === null && h.cloudPct === null);
+  const tlIndex = (ms: number) => (tl.length ? Math.round((ms - tl[0].ms) / H) : -1);
+  const ctx = (): ViewCtx => ({ deps, spot: spot(), act, ms: when(), nowMs: nowHour(), plan, tl });
 
-  /** Each spot's next 12 hours as levels, for the mini forecast cards; kept for the hour, rebuilt while empty. */
+  // --- header and hero
+  const fitHero = () => {
+    const box = $('fc-numbox'), hn = $('fc-hn');
+    const avail = box.clientWidth;
+    if (!avail) return;
+    hn.style.setProperty('--fs', '100px');
+    const [wd, wg] = VMAX[act];
+    hn.style.fontVariationSettings = `"wdth" ${wd}, "wght" ${wg}`;
+    const wNat = hn.getBoundingClientRect().width;
+    const big = window.innerWidth >= 960, cap = big ? 300 : Math.min(190, window.innerHeight * 0.24);
+    hn.style.setProperty('--fs', `${clamp(((100 * avail) / Math.max(1, wNat)) * 0.97, 56, cap).toFixed(1)}px`);
+    setVar(performance.now() / 1000);
+  };
+  const setVar = (tt: number) => {
+    const [a, b] = numVar(engine.p, tt, reduced);
+    $('fc-hn').style.fontVariationSettings = `"wdth" ${a.toFixed(1)}, "wght" ${b | 0}`;
+  };
+  const renderHero = () => {
+    const sp = spot();
+    const ms = when();
+    const r = readAt(deps, act, sp, ms);
+    heroRead = r;
+    $('fc-name').textContent = titleCase(sp.name);
+    const asked = swapped();
+    $('fc-swap').hidden = !asked;
+    $('fc-swap').textContent = asked ? t('fc.swapped', { asked: titleCase(asked), act: actWord().toLowerCase(), shown: titleCase(sp.name) }) : '';
+    const at = t('fc.at', { day: sel === null ? t('fc.now') : dayDate(ms), time: localClock(ms) });
+    html('fc-sub', `<b>${esc(sentence(t('fc.sub', { act: actWord().toLowerCase() })))}</b> · ${esc(at)}`);
+    $('fc-when').textContent = at;
+    const v = heroView(r, { plan, ms });
+    $('fc-k').textContent = v.label;
+    const numChanged = $('fc-num').textContent !== v.value || $('fc-unit').textContent !== v.unit;
+    $('fc-num').textContent = v.value;
+    $('fc-unit').textContent = v.unit;
+    $('fc-words').textContent = v.words;
+    html('fc-rate', rateHtml(v));
+    html('fc-why', chipsHtml(v));
+    const b = bestTimeView(plan, (x) => readAt(deps, act, sp, x), ms, sel !== null);
+    const best = $('fc-best') as HTMLButtonElement;
+    best.hidden = b.kind === 'hidden';
+    best.disabled = b.kind === 'none';
+    best.dataset.ms = b.startMs === null ? '' : String(b.startMs);
+    best.dataset.kind = b.kind;
+    html('fc-best', bestHtml(b));
+    $('fc-art').setAttribute('aria-label',
+      act === 'surf' ? t('fc.art.surf', { m: r.surf ? n1(r.surf.hb) : '--' })
+      : act === 'fish' ? t('fc.art.fish')
+      : act === 'swim' ? t('fc.art.swim', { flag: r.swim ? t(`fc.flag.${r.swim.rip}` as Key) : '--' })
+      : act === 'sail' ? t('fc.art.sail', { kt: r.sail?.windKt === null || !r.sail ? '--' : n0(r.sail.windKt) })
+      : t('fc.art.water', { m: r.water?.visM ? n1(r.water.visM) : '--' }));
+    const lv = r.level === null ? '' : String(r.level);
+    el.dataset.level = lv;
+    $('fc-hero').dataset.level = lv;
+    engine.set(heroParams(r, { deps, ms, plan, tl }), performance.now() / 1000);
+    if (numChanged) fitHero();
+    if (reduced && T) engine.still();
+    // Shimmer placeholders while the feeds load (first 20 s); after that a plain "no data".
+    el.classList.toggle('fc-loading', r.level === null && Date.now() - openedAt < 20_000);
+    $('fc-now').hidden = sel === null;
+  };
+
+  // --- spots
+  /** Each spot's next 12 hours as levels, for the cards; kept for the hour, rebuilt while empty. */
   const strips = new Map<string, (Level | null)[]>();
   const stripOf = (sp: Spot, now: number) => {
     const k = `${act}|${now}|${sp.name}`;
@@ -483,311 +275,380 @@ export function mountForecastPage(deps: ForecastDeps) {
     }
     return v;
   };
-  const levelWord = (r: FcRead) => (r.level === null ? t('fc.nodata') : r.surf ? sentence(t(`surf.band.${r.surf.band}` as Key)) : t(`fc.lvl.${r.level}` as Key));
-
-  /** A spot card's weather now: the sky, the air and the chance of rain. */
-  const spotWx = (s: Spot, ms: number) => {
-    const w = hourWeather(deps.env, s, ms);
-    const k = skyKind(w);
-    if (!k && w.airC === null) return '';
-    return `<span class="fc-spot-wx">${k ? `<svg class="fc-spot-sky fc-i fc-i-${k}" viewBox="-9 -9 18 19" aria-hidden="true">${SKY_ICON[k]}</svg>` : ''}${w.airC === null ? '' : `<b>${n0(w.airC)}°</b>`}${w.rainPct === null ? '' : `<span class="fc-spot-rain">${miniIcon('rain')}${n0(w.rainPct)}%</span>`}</span>`;
-  };
-  /** The spots as mini forecasts: name, the headline now, its rating, and the next 12 hours as a strip. Thumb-scroll, tap to switch. */
   const renderSpots = () => {
     const now = nowHour();
     const cur = spot().name;
-    html('fc-spots', spots()
-      .map((s) => {
-        const r = readAt(deps, act, s, now);
-        const hl = headline(r);
-        const strip = stripOf(s, now).map((l) => `<i class="${l === null ? 'l-none' : `l${l}`}"></i>`).join('');
-        return `<button type="button" role="option" class="fc-spot ${r.level === null ? 'l-none' : `l${r.level}`}${s.name === cur ? ' on' : ''}" data-spot="${s.name}" aria-selected="${s.name === cur}">
-          <span class="fc-spot-name">${titleCase(s.name)}</span>
-          <span class="fc-spot-big"><b>${hl.value}</b><small>${hl.unit}</small></span>
-          <span class="fc-spot-word">${levelWord(r)}</span>
-          ${spotWx(s, now)}
-          <span class="fc-spot-strip" aria-hidden="true">${strip}</span>
-          <span class="fc-spot-cap" aria-hidden="true"><span>${t('fc.now')}</span><span>${t('fc.plus12')}</span></span>
-          <span class="fc-spot-ico" aria-hidden="true">${icon(act)}</span></button>`;
-      })
-      .join(''));
-    if (cur !== shownSpot) (shownSpot = cur), $('fc-spots').querySelector<HTMLElement>('.on')?.scrollIntoView?.({ block: 'nearest', inline: 'center', behavior: reduceMotion() ? 'auto' : 'smooth' });
-  };
-
-  /** Turn a compass needle the short way round, so 350° → 10° swings 20°, not 340°. */
-  const turn = (sel: string, deg: number | null) => {
-    const g = $('fc-compass').querySelector<SVGElement>(sel)!;
-    if (deg === null || !Number.isFinite(deg)) return void g.classList.add('off');
-    const prev = Number(g.dataset.r);
-    const next = Number.isFinite(prev) ? prev + ((((deg - prev) % 360) + 540) % 360) - 180 : deg;
-    g.dataset.r = String(next);
-    g.classList.remove('off');
-    g.style.transform = `rotate(${next}deg)`;
-  };
-  /** SURF: swell and wind on a dial with the beach's land side; SAIL: the wind. Arrows point where they travel. */
-  const renderCompass = (r: FcRead) => {
-    const c = r.surf ? { swell: r.surf.dir, wind: r.surf.windFromDeg, shore: r.surf.facing } : r.sail ? { swell: null, wind: r.sail.fromDeg, shore: null } : null;
-    $('fc-compass').hidden = !c || r.score === null;
-    if (!c) return;
-    turn('.fc-cp-swell', c.swell === null ? null : c.swell + 180);
-    turn('.fc-cp-wind', c.wind === null ? null : c.wind + 180);
-    turn('.fc-cp-shore', c.shore === null ? null : c.shore + 180);
-    $('fc-cp-swell').textContent = c.swell === null ? '' : `${t('fc.swell')} ${cmp(c.swell)}`;
-    $('fc-cp-wind').textContent = c.wind === null ? '' : `${t('fc.wind')} ${cmp(c.wind)}`;
-  };
-  /** The week's best window as one tappable line, hidden while the hero already shows it. */
-  const renderBestTime = (sp: Spot) => {
-    const b = $('fc-best-time') as HTMLButtonElement;
-    const p = plan;
-    if (!p || p.none === 'nodata' || p.none === 'nospot') return void (b.hidden = true);
-    // No window good enough to call it a best day: still point at the least bad one, as "best chance".
-    const chance = p.days.reduce<PlanDay | null>((acc, x) => (x && x.value !== null && (!acc || x.value > acc.value!) ? x : acc), null);
-    const d = p.bestDay === null ? chance : p.days[p.bestDay];
-    const k = t(p.bestDay === null ? 'fc.bestChance' : 'fc.bestTime');
-    if (!d) {
-      b.hidden = false;
-      b.disabled = true;
-      b.className = 'fc-best-time none';
-      html('fc-best-time', `<span class="fc-bt-k">${t('fc.bestTime')}</span><b>${t('fc.noGood')}</b>`);
-      return;
-    }
-    const ms = when();
-    b.hidden = sel !== null && ms >= d.startMs && ms < d.endMs;
-    b.disabled = false;
-    b.dataset.ms = String(d.startMs);
-    const r = readAt(deps, act, sp, d.startMs);
-    const hl = headline(r);
-    b.className = `fc-best-time${r.level === null ? '' : ` l${r.level}`}${p.bestDay === null ? ' chance' : ''}`;
-    html('fc-best-time', `<span class="fc-bt-k">${k}</span><b>${dayLabel(d.dayMs, d.day)} · ${t('fc.window', { from: localClock(d.startMs), to: localClock(d.endMs) })}</b><span class="fc-bt-v">${hl.value}${hl.unit ? ` ${hl.unit}` : ''}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>`);
-  };
-
-  const renderHero = () => {
-    const sp = spot();
-    const ms = when();
-    const r = readAt(deps, act, sp, ms);
-    $('fc-name').textContent = titleCase(sp.name);
-    const asked = swapped();
-    $('fc-swap').hidden = !asked;
-    $('fc-swap').textContent = asked ? t('fc.swapped', { asked: titleCase(asked), act: t(`fc.act.${act}` as Key).toLowerCase(), shown: titleCase(sp.name) }) : '';
-    const d = new Date(ms + REGION.tzOffsetH * H);
-    const day = sel === null ? t('fc.now') : `${sentence(t(`day.${d.getUTCDay()}` as Key))} ${d.getUTCDate()}`;
-    $('fc-sub').textContent = `${sentence(t('fc.sub', { act: t(`fc.act.${act}` as Key).toLowerCase() }))} · ${t('fc.at', { day, time: localClock(ms) })}`;
-    const hl = headline(r);
-    $('fc-k').textContent = t(`fc.metric.${act}` as Key);
-    countUp($('fc-num'), hl.value);
-    $('fc-unit').textContent = hl.unit;
-    const dayIdx = plan ? Math.max(0, Math.min(plan.days.length - 1, Math.floor((localDayStart(ms, REGION.tzOffsetH) - plan.startMs) / DAY))) : 0;
-    const win = plan?.days[dayIdx];
-    $('fc-size').textContent = r.swim ? `${t('fc.ripRisk')} ${t(`fc.ripw.${r.swim.rip}` as Key).toLowerCase()} · ${t('fc.shorebreak').toLowerCase()} ${n1(r.swim.breakerM)} m` : r.fish ? (win ? `${t('fc.bestWindow')} ${t('fc.window', { from: localClock(win.startMs), to: localClock(win.endMs) })}` : '') : r.surf ? t(`fc.size.${r.surf.size}` as Key) : r.water && act === 'snorkel' ? `${t('fc.entry')} ${n1(r.water.breakerM)} m${r.water.windKt === null ? '' : ` · ${t(`fc.chop.${chopFor(r.water.windKt)}` as Key).toLowerCase()}`}` : r.water ? `${t('fc.depthAt', { d: r.water.depthM })}${r.water.currentKt === null ? '' : ` · ${t('fc.current').toLowerCase()} ${t(`fc.drift.${driftFor(r.water.currentKt)}` as Key).toLowerCase()}`}` : r.sail && r.sail.windKt !== null ? `${t(`fc.bft.${beaufort(r.sail.windKt)}` as Key)} · ${t('fc.force', { n: beaufort(r.sail.windKt) })}` : '';
-    html('fc-rate', r.level === null
-      ? `<span class="fc-word">${t('fc.nodata')}</span>`
-      : `<span class="fc-word l${r.level}">${r.surf ? sentence(t(`surf.band.${r.surf.band}` as Key)) : t(`fc.lvl.${r.level}` as Key)}</span>${bar(r.level)}${r.surf ? `<span class="fc-of">${n1(r.score!)}/10</span>` : ''}`);
-    html('fc-why', reasons(r).map((x) => `<li>${x}</li>`).join(''));
-    heroRead = r;
-    heroDay = dayIdx;
-    const artLabel =
-      act === 'surf' ? t('fc.art.surf', { m: r.surf ? n1(r.surf.hb) : '--' })
-      : act === 'fish' ? t('fc.art.fish')
-      : act === 'swim' ? t('fc.art.swim', { flag: r.swim ? t(`fc.flag.${r.swim.rip}` as Key) : '--' })
-      : act === 'sail' ? t('fc.art.sail', { kt: r.sail?.windKt === null || !r.sail ? '--' : n0(r.sail.windKt) })
-      : t('fc.art.water', { m: r.water?.visM ? n1(r.water.visM) : '--' });
-    const artKey = `${act}|${sp.name}`;
-    // A new hour at the same spot cross-fades the picture; a new spot or activity has its own entrance.
-    if (html('fc-art', heroArt(r, artLabel, { knee: t('fc.g.knee'), waist: t('fc.g.waist'), head: t('fc.g.head') })) && artFor === artKey) replay($('fc-art'), 'fc-fade');
-    artFor = artKey;
-    renderCompass(r);
-    renderBestTime(sp);
-    $('fc-hero').dataset.level = r.level === null ? '' : String(r.level);
-    // Shimmer placeholders while the feeds load (first 20 s); after that a plain "no data".
-    el.classList.toggle('fc-loading', r.level === null && Date.now() - openedAt < 20_000);
-    $('fc-now').hidden = sel === null;
-  };
-
-  const renderDays = () => {
-    const sp = spot();
-    const key = `${act}|${sp.name}|${nowHour()}`;
-    if (key !== planKey || plan?.none === 'nodata') {
-      plan = daysAt(deps, act, sp, Date.now(), 7);
-      // The bubbles rise in one after another when the spot or activity changes, not on every redraw.
-      if (planKey.split('|').slice(0, 2).join('|') !== key.split('|').slice(0, 2).join('|')) {
-        $('fc-days').classList.add('in');
-        window.setTimeout(() => $('fc-days').classList.remove('in'), 900);
+    $('fc-spots-cap').textContent = t('fc.spotsCap', { act: actWord() });
+    html('fc-spots', spotsHtml(spots().map((s) => ({ id: s.name, ...spotView(s, readAt(deps, act, s, now), stripOf(s, now), hourWeather(deps.env, s, now)) })), cur));
+    if (cur !== shownSpot) {
+      shownSpot = cur;
+      const rail = $('fc-spots');
+      const on = rail.querySelector<HTMLElement>('[aria-selected="true"]');
+      if (on && rail.scrollWidth > rail.clientWidth) {
+        const pad = parseFloat(getComputedStyle(rail).paddingLeft) || 0;
+        const left = on.getBoundingClientRect().left - rail.getBoundingClientRect().left + rail.scrollLeft - pad;
+        rail.scrollTo({ left: Math.max(0, left), behavior: reduced ? 'auto' : 'smooth' });
       }
-      planKey = key;
     }
-    const p = plan!;
-    const uvs = dayUvPeaks(deps.env, sp, p.startMs, p.days.length);
-    const selDay = Math.floor((localDayStart(when(), REGION.tzOffsetH) - p.startMs) / DAY);
-    html('fc-days', p.days
-      .map((d, i) => {
-        const dayMs = p.startMs + i * DAY;
-        const r = d ? readAt(deps, act, sp, d.startMs) : null;
-        const hl = r ? headline(r) : { value: '--', unit: '' };
-        const lvl = r?.level ?? null;
-        const best = p.bestDay === i;
-        return `<button type="button" class="fc-day${best ? ' best' : ''}${i === selDay && sel !== null ? ' on' : ''}" data-day="${i}" style="--i:${i}">
-          <span class="fc-day-name">${dayLabel(dayMs, i)}</span>
-          <span class="fc-bubble ${lvl === null ? 'l-none' : `l${lvl}`}"><b>${hl.value}</b><small>${hl.unit}</small></span>
-          <span class="fc-day-win">${d ? `${localClock(d.startMs)}` : '—'}</span>
-          ${uvs[i] === null ? '' : `<span class="fc-day-uv l${uvLevel(uvs[i]!)}" title="${t('fc.uvPeak')}: ${t(`fc.uvw.${uvLevel(uvs[i]!)}` as Key)}">UV ${n0(uvs[i]!)}</span>`}
-          ${best ? `<span class="fc-best">${t('fc.bestDay')}</span>` : ''}</button>`;
-      })
-      .join(''));
   };
 
-  /** The hour-by-hour charts: built when the spot, activity, hour or width changes, or while data is missing. */
-  const renderTimeline = () => {
-    const sp = spot();
-    const width = $('fc-tl').clientWidth || 340;
-    const px = Math.max(6, Math.floor((width / (7 * 24)) * 10) / 10);
-    const key = `${act}|${sp.name}|${nowHour()}|${px}`;
-    // Feeds arrive one by one after start-up: rebuild while any row is still empty.
-    const missing = tlPartial();
-    if (key !== tlKey || missing) {
-      const start = plan?.startMs ?? localDayStart(Date.now(), REGION.tzOffsetH);
-      tl = timeline(deps, act, sp, start);
-      tlKey = key;
-      geom = { px, tzOffsetH: REGION.tzOffsetH };
-      const wins = (plan?.days ?? []).flatMap((d) => (d ? [{ startMs: d.startMs, endMs: d.endMs }] : []));
-      const rows = rowsFor(act)
-        .map((r, i, all) => `${r.wx && !all[i - 1]?.wx ? `<div class="fc-row fc-row-group"><div class="fc-row-k">${t('fc.row.wxgroup')}</div></div>` : ''}<div class="fc-row"><div class="fc-row-k">${t(`fc.row.${r.id}` as Key)} <span>${t(`fc.unit.${r.id}` as Key)}</span>${tl.some((h) => r.value(h) !== null) ? '' : ` <em>${t('fc.noRow')}</em>`}</div>${rowSvg(r, tl, geom, wins)}</div>`)
-        .join('');
-      html('fc-tl-in', `${timeAxis(tl, geom, (ms, i) => dayLabel(ms, i))}<div class="fc-row fc-row-sky">${skyRow(tl, geom)}</div><div class="fc-row fc-row-rating"><div class="fc-row-k">${t('fc.row.rating')}</div>${ratingStrip(tl, geom)}</div>${rows}`);
+  // --- conditions tiles
+  let tiles: { el: HTMLElement; cv: HTMLCanvasElement; c: CanvasRenderingContext2D; w: number; h: number; v: TileView; drawn: boolean }[] = [];
+  const tileVis = new Set<Element>();
+  const tio = 'IntersectionObserver' in window ? new IntersectionObserver((es) => es.forEach((e) => (e.isIntersecting ? tileVis.add(e.target) : tileVis.delete(e.target))), { rootMargin: '60px' }) : null;
+  const sizeTiles = () => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    for (const o of tiles) {
+      const r = o.cv.getBoundingClientRect();
+      o.w = r.width;
+      o.h = r.height;
+      o.cv.width = Math.max(1, Math.round(r.width * dpr));
+      o.cv.height = Math.max(1, Math.round(r.height * dpr));
+      o.c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      o.drawn = false;
     }
-    const ni = tlIndex(nowHour());
-    const nl = $('fc-nowline');
-    // While the hero shows now, the cursor is the now line; the dashed marker appears once another hour is picked.
-    nl.hidden = sel === null || ni < 0 || ni >= tl.length;
-    nl.style.transform = `translateX(${(ni + 0.5) * geom.px}px)`;
-    // Open (or switch) with the present in view, not last midnight.
-    const sk = `${act}|${sp.name}`;
-    if (sk !== scrolledFor && ni >= 0) {
-      scrolledFor = sk;
-      // From midnight while now still sits in the first part of the view (the day's name stays readable), else just before now.
-      const tlw = $('fc-tl').clientWidth || 340;
-      $('fc-tl').scrollLeft = ni * geom.px < tlw * 0.6 ? 0 : Math.max(0, ni * geom.px - 48);
+    // Long values shrink to fit their tile.
+    el.querySelectorAll<HTMLElement>('.fc-t-val').forEach((v) => {
+      v.style.fontSize = '';
+      let fs = parseFloat(getComputedStyle(v).fontSize), n = 0;
+      while (v.scrollWidth > v.clientWidth + 1 && fs > 18 && n++ < 30) (fs -= 1.5), (v.style.fontSize = `${fs}px`);
+    });
+  };
+  const drawTiles = (tt: number, all = false) => {
+    if (!T) return;
+    const I = rgba(T.ink), B = rgba(T.block);
+    const words = { period: t('fc.vz.period'), from: t('fc.cap.from', { deg: '', dir: '' }).replace(/[°\s]+$/, '') };
+    const heroA = rgba(T[lvTok(heroRead?.level ?? null, 'ac')]);
+    for (const o of tiles) {
+      if (!all && !reduced && o.drawn && !tileVis.has(o.el)) continue;
+      o.drawn = true;
+      const A = o.v.kind === 'uv' && o.v.lv !== null ? rgba(T[`uv${4 - o.v.lv}` as TokenName]) : o.v.lv !== null ? rgba(T[lvTok(o.v.lv, 'ac')]) : heroA;
+      drawTile(o.v.kind, o.c, o.w, o.h, reduced ? 3.2 : tt, o.v.viz, { I, A, B, sand: T.sand, reduced, words });
     }
-    placeCursor(when());
   };
-  const tlPartial = () =>
-    !tl.length || tl.every((h) => h.read.level === null) || tl.every((h) => h.windKt === null) || tl.every((h) => h.rainMmH === null && h.cloudPct === null);
-  const tlIndex = (ms: number) => (tl.length ? Math.round((ms - tl[0].ms) / H) : -1);
-  /** Move the cursor line and the readout to an hour (no rebuild: cheap enough for a mouse move). */
-  const placeCursor = (ms: number) => {
-    const i = tlIndex(ms);
-    const c = $('fc-cursor');
-    if (i < 0 || i >= tl.length) return void (c.hidden = true);
-    c.hidden = false;
-    c.classList.toggle('is-now', ms === nowHour());
-    $('fc-nowline').hidden = sel === null || tlIndex(nowHour()) < 0;
-    c.style.transform = `translateX(${(i + 0.5) * geom.px}px)`;
-    const h = tl[i];
-    const d = new Date(h.ms + REGION.tzOffsetH * H);
-    const r = h.read;
-    const hl = headline(r);
-    const items = [
-      `<li class="fc-ro-when">${sentence(t(`day.${d.getUTCDay()}` as Key))} ${d.getUTCDate()} · ${localClock(h.ms)}</li>`,
-      `<li><span class="fc-dot ${r.level === null ? '' : `l${r.level}`}"></span>${t(`fc.metric.${act}` as Key)} <b>${hl.value}${hl.unit ? ` ${hl.unit}` : ''}</b>${r.level === null ? '' : ` · ${r.surf ? sentence(t(`surf.band.${r.surf.band}` as Key)) : t(`fc.lvl.${r.level}` as Key)}`}</li>`,
-      h.windKt === null || act === 'sail' ? '' : `<li>${t('fc.wind')} <b>${n0(h.windKt)} kt ${cmp(h.windFromDeg)}</b>${h.gustKt === null ? '' : ` · ${t('fc.gust').toLowerCase()} ${n0(h.gustKt)}`}</li>`,
-      `<li>${t('fc.tide')} <b>${h.tideM.toFixed(2)} m</b></li>`,
-      h.rainMmH !== null && h.rainMmH >= 0.1 ? `<li>${t('fc.row.rain')} <b>${n1(h.rainMmH)} mm/h</b></li>` : '',
-      h.airC === null ? '' : `<li>${t('fc.air')} <b>${n0(h.airC)} °C</b>${h.feelsC === null ? '' : ` · ${t('fc.feels').toLowerCase()} ${n0(h.feelsC)}`}</li>`,
-      h.rainPct === null ? '' : `<li>${t('fc.row.rainpct')} <b>${n0(h.rainPct)}%</b></li>`,
-      h.humidityPct === null ? '' : `<li>${t('fc.humidity')} <b>${n0(h.humidityPct)}%</b></li>`,
-      h.uv === null || h.uv < 0.5 ? '' : `<li><span class="fc-dot l${uvLevel(h.uv)}"></span>UV <b>${n0(h.uv)}</b> · ${t(`fc.uvw.${uvLevel(h.uv)}` as Key)}</li>`,
-    ];
-    html('fc-readout', items.join(''));
-  };
-
-  /** The weather tile (the selected day at this spot, a traditional forecast) and the activity's picture tiles. */
-  const renderConditions = () => {
+  const renderTiles = (anim: boolean) => {
     const r = heroRead;
     if (!r) return;
-    const sp = spot();
-    const ms = when();
-    const d0 = localDayStart(ms, REGION.tzOffsetH);
-    const i0 = tlIndex(d0);
-    const dayHours = i0 >= 0 ? tl.slice(i0, i0 + 24) : [];
-    const wx = dayWeather(dayHours);
-    const sst = waterAt(deps.env, sp, d0);
-    const d = new Date(ms + REGION.tzOffsetH * H);
-    const today = d0 === localDayStart(Date.now(), REGION.tzOffsetH);
-    const dayName = today ? t('fc.today') : `${sentence(t(`day.${d.getUTCDay()}` as Key))} ${d.getUTCDate()}`;
-    $('fc-cond-when').textContent = `${dayName} · ${localClock(ms)}`;
-    const tiles = stats(r, plan, heroDay);
-    const tileHtml = (x: TileSpec, i: number) => {
-      const id = `${act}:${x.kind}:${i}`;
-      const open = openTiles.has(id);
-      return `<div class="fc-tile${x.lv === null || x.lv === undefined ? '' : ` l${x.lv}`}" role="button" tabindex="0" data-tile="${id}" aria-expanded="${open}"${x.tip ? '' : ' data-notip=""'}>
-        <span class="fc-tile-ico">${tileIcon(x.kind, x.val, { ...x.opt, lv: x.lv })}</span>
-        <span class="fc-tile-k">${x.k}</span>
-        <span class="fc-tile-v">${x.v}</span>
-        ${x.tip ? `<span class="fc-tile-tip"><span>${x.tip}</span></span>` : ''}</div>`;
-    };
-    const wid = `${act}:wx`;
-    html('fc-tiles', `${weatherTile(wx, sst, dayName, openTiles.has(wid), wid)}${tiles.map(tileHtml).join('')}`);
-    $('fc-tiles').dataset.n = String(tiles.length);
+    const c = ctx();
+    const ms = c.ms;
+    const d0 = localDayStart(ms, TZ);
+    $('fc-cond-when').textContent = `${d0 === localDayStart(Date.now(), TZ) ? t('fc.today') : dayDate(ms)} · ${localClock(ms)}`;
+    const list = tilesFor(r, c);
+    if (html('fc-tiles', tilesHtml(list, () => false))) {
+      tileVis.clear();
+      tio?.disconnect();
+      tiles = [...$('fc-tiles').querySelectorAll<HTMLElement>('.fc-tile')].map((e, i) => {
+        const cv = e.querySelector('canvas')!;
+        if (tio) tio.observe(e);
+        else tileVis.add(e);
+        if (openTiles.has(`${act}:${i}`)) e.setAttribute('aria-expanded', 'true');
+        return { el: e, cv, c: cv.getContext('2d')!, w: 0, h: 0, v: list[i], drawn: false };
+      });
+      sizeTiles();
+      if (anim && !reduced)
+        tiles.forEach((o, i) => o.el.animate?.([{ clipPath: 'inset(0 0 100% 0)', transform: 'translateY(14px)' }, { clipPath: 'inset(0 0 0% 0)', transform: 'none' }], { duration: 560, delay: 60 + i * 45, easing: 'cubic-bezier(.7,0,.2,1)', fill: 'backwards' }));
+    } else tiles.forEach((o, i) => (o.v = list[i] ?? o.v));
+    drawTiles(performance.now() / 1000, true);
   };
-  /** The live-map tile: a picture of the map around the spot, retaken when the spot changes and every two minutes. */
+  const toggleTile = (e: Event) => {
+    const tile = (e.target as HTMLElement).closest<HTMLElement>('.fc-tile[aria-expanded]');
+    if (!tile) return;
+    const id = `${act}:${tile.dataset.tile}`;
+    const open = !openTiles.has(id);
+    if (open) openTiles.add(id);
+    else openTiles.delete(id);
+    tile.setAttribute('aria-expanded', String(open));
+  };
+  $('fc-tiles').addEventListener('click', toggleTile);
+  $('fc-tiles').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') (e.preventDefault(), toggleTile(e));
+  });
+
+  // --- the next 7 days
+  const renderDays = (anim: boolean) => {
+    const p = plan;
+    if (!p) return;
+    const sp = spot();
+    $('fc-days-cap').textContent = t('fc.daysCap', { what: t(`fc.daysWhat.${act}` as Key) });
+    const uvs = dayUvPeaks(deps.env, sp, p.startMs, p.days.length);
+    const selDay = Math.floor((localDayStart(when(), TZ) - p.startMs) / DAY);
+    const changed = html('fc-days', daysHtml(daysView(p, (ms) => readAt(deps, act, sp, ms), uvs, selDay, sel !== null), t('fc.best')));
+    if (changed && anim && !reduced)
+      $('fc-days').querySelectorAll<HTMLElement>('.fc-bar').forEach((b, i) => b.animate?.([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], { duration: 620, delay: i * 50, easing: 'cubic-bezier(.7,0,.2,1)', fill: 'backwards' }));
+  };
+
+  // --- hour by hour
+  let L: ChartLayout | null = null;
+  let chartDirty = true;
+  let chartFor = '';
+  let chartP = 1, chartT0 = 0;
+  let cursorI: number | null = null;
+  let chartVis = false;
+  let scrolledFor = '';
+  const bctx = ($('fc-hx-base') as HTMLCanvasElement).getContext('2d')!;
+  const tctx = ($('fc-hx-top') as HTMLCanvasElement).getContext('2d')!;
+  const bands = () => (L ? bestBands((plan?.days ?? []).flatMap((d) => (d ? [{ startMs: d.startMs, endMs: d.endMs }] : [])), L.t0) : []);
+  const drawBase = () => {
+    if (!L || !T) return;
+    drawChartBase(bctx, L, tl, T, chartP, { dayName: (ms, i) => dayLabel(localDayStart(ms, TZ), i), text: (s, v) => rowText(s, v) });
+  };
+  const drawTop = (tt: number) => {
+    if (!L || !T) return;
+    const ni = tlIndex(nowHour());
+    drawChartTop(tctx, L, T, {
+      bands: bands(), breath: reduced ? 0.5 : 0.5 + 0.5 * Math.sin((TAU * tt) / 4), nowI: ni, nowLabel: t('fc.now'),
+      cursorI: cursorI ?? (sel === null ? null : tlIndex(sel)),
+    });
+  };
+  const renderChart = (anim: boolean) => {
+    const sp = spot();
+    const sc = $('fc-tl');
+    const wide = window.innerWidth >= 960;
+    const lw = wide ? 150 : 96;
+    const avail = Math.max(200, ($('fc-hx').clientWidth || 360) - lw);
+    const px = wide ? Math.max(9, avail / 168) : 7;
+    const key = `${tlKey}|${px.toFixed(2)}|${wide}`;
+    if (!chartDirty && key === chartFor) return;
+    chartDirty = false;
+    chartFor = key;
+    L = chartLayout(act, tl, px, wide, TZ);
+    $('fc-hx').style.setProperty('--lw', `${lw}px`);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    $('fc-tl-in').style.width = `${L.W}px`;
+    $('fc-tl-in').style.height = `${L.H}px`;
+    for (const [cv, c] of [[$('fc-hx-base'), bctx], [$('fc-hx-top'), tctx]] as const) {
+      const cc = cv as HTMLCanvasElement;
+      cc.width = Math.max(1, Math.round(L.W * dpr));
+      cc.height = Math.max(1, Math.round(L.H * dpr));
+      cc.style.width = `${L.W}px`;
+      cc.style.height = `${L.H}px`;
+      c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    $('fc-hx-lab').style.height = `${L.H}px`;
+    html('fc-hx-lab', chartLabelsHtml(L));
+    chartP = anim && !reduced ? 0 : 1;
+    chartT0 = performance.now();
+    drawBase();
+    drawTop(performance.now() / 1000);
+    // Open (or switch) with the present in view, not last midnight.
+    const sk = `${act}|${sp.name}`;
+    const ni = tlIndex(nowHour());
+    if (sk !== scrolledFor && ni >= 0) {
+      scrolledFor = sk;
+      sc.scrollLeft = Math.max(0, (ni - 3) * px);
+    }
+    renderReadout();
+  };
+  const renderReadout = () => {
+    const i = cursorI ?? tlIndex(when());
+    const h = tl[clamp(i, 0, tl.length - 1)];
+    if (!h) return;
+    html('fc-readout', readoutHtml(readoutView(h, act, rowsFor(act))));
+  };
+  const setCursor = (i: number | null) => {
+    if (L) i = i === null ? null : clamp(i, 0, tl.length - 1);
+    if (i === cursorI) return;
+    cursorI = i;
+    renderReadout();
+    if (reduced || !chartVis) drawTop(3);
+  };
+  const hourAtX = (clientX: number) => {
+    const r = $('fc-tl-in').getBoundingClientRect();
+    return L ? Math.floor((clientX - r.left) / L.px) : -1;
+  };
+  let dragging = false;
+  $('fc-tl').addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'mouse' || dragging) setCursor(hourAtX(e.clientX));
+  });
+  $('fc-tl').addEventListener('pointerdown', (e) => {
+    dragging = e.pointerType !== 'mouse';
+    setCursor(hourAtX(e.clientX));
+  });
+  $('fc-tl').addEventListener('pointerup', () => (dragging = false));
+  $('fc-tl').addEventListener('pointercancel', () => (dragging = false));
+  $('fc-tl').addEventListener('pointerleave', (e) => {
+    if (e.pointerType === 'mouse') setCursor(null);
+  });
+  // A tap (or click) picks the hour for the hero.
+  $('fc-tl').addEventListener('click', (e) => {
+    const i = hourAtX(e.clientX);
+    if (i < 0 || i >= tl.length) return;
+    pick(tl[i].ms, false);
+  });
+  $('fc-tl').addEventListener('keydown', (e) => {
+    if (!L) return;
+    if (e.key === 'Enter' && cursorI !== null) return void (e.preventDefault(), pick(tl[cursorI].ms, false));
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault();
+    const sc = $('fc-tl');
+    const i = clamp((cursorI ?? tlIndex(when())) + (e.key === 'ArrowRight' ? 1 : -1), 0, tl.length - 1);
+    const x = (i + 0.5) * L.px;
+    if (x < sc.scrollLeft + 20 || x > sc.scrollLeft + sc.clientWidth - 20) sc.scrollLeft = x - sc.clientWidth / 2;
+    setCursor(i);
+  });
+
+  // --- the live-map card
   let previewFor = '';
   let previewAt = 0;
+  let shot: { w: number; h: number; x: number; y: number; mPerPx: number | null } | null = null;
+  let liveVis = false;
+  const LV = { w: 0, h: 0 };
+  const lctx = ($('fc-radar-cv') as HTMLCanvasElement).getContext('2d')!;
+  const sizeLive = () => {
+    const cv = $('fc-radar-cv') as HTMLCanvasElement;
+    const r = $('fc-radar').getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    LV.w = r.width;
+    LV.h = r.height;
+    cv.width = Math.max(1, Math.round(r.width * dpr));
+    cv.height = Math.max(1, Math.round(r.height * dpr));
+    lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawLive(performance.now() / 1000);
+  };
+  const drawLive = (tt: number) => {
+    if (!T || !LV.w) return;
+    const at = shot ? coverPlace(shot, LV, shot) : { x: LV.w / 2, y: LV.h / 2, kmPx: null };
+    drawRadar(lctx, LV.w, LV.h, reduced ? 3.2 : tt, { cx: at.x, cy: at.y, kmPx: at.kmPx, name: titleCase(spot().name), level: heroRead?.level ?? null, T, reduced });
+  };
   const renderRadar = () => {
     const sp = spot();
-    const a = t(`fc.act.${act}` as Key).toLowerCase();
+    const a = actWord().toLowerCase();
+    $('fc-radar-big').textContent = t('fc.radarBig', { act: actWord() });
     $('fc-radar-sub').textContent = t('fc.radarSub', { act: a, spot: titleCase(sp.name) });
     $('fc-radar-hint').textContent = t('fc.radarHint', { act: a });
+    $('fc-radar').setAttribute('aria-label', `${t('fc.radar')}: ${t('fc.radarSub', { act: a, spot: titleCase(sp.name) })}`);
+    if (reduced || !liveVis) drawLive(3.2);
     if (!deps.mapPreview || (previewFor === sp.name && Date.now() - previewAt < 120_000)) return;
     previewFor = sp.name;
     previewAt = Date.now();
     void deps.mapPreview(sp).then((p) => {
       if (!p || previewFor !== sp.name) return;
-      $('fc-radar-img').style.backgroundImage = `url(${p.url})`;
-      $('fc-radar').classList.add('has-img');
-      const ping = $('fc-radar-ping');
-      ping.hidden = !(p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1);
-      ping.style.left = `${(p.x * 100).toFixed(1)}%`;
-      ping.style.top = `${(p.y * 100).toFixed(1)}%`;
+      const img = new Image();
+      img.onload = () => {
+        if (previewFor !== sp.name) return;
+        shot = { w: img.naturalWidth, h: img.naturalHeight, x: p.x, y: p.y, mPerPx: p.mPerPx ?? null };
+        $('fc-radar-img').style.backgroundImage = `url(${p.url})`;
+        $('fc-radar').classList.add('has-img');
+        drawLive(performance.now() / 1000);
+      };
+      img.src = p.url;
     });
   };
   $('fc-radar').addEventListener('click', () => {
     if (deps.openMap) deps.openMap(spot(), act);
     else close();
   });
-  const render = () => {
+
+  // --- drawing loop: the hero field, visible tiles, the chart's top layer and the radar, only while on screen
+  let raf = 0, last = 0, heroVis = true;
+  const frame = (now: number) => {
+    raf = 0;
     if (el.hidden) return;
-    renderActs();
-    renderDays();
-    renderSpots();
+    const tt = now / 1000, dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    if (heroVis) (engine.step(dt, tt), engine.overlay(tt), setVar(tt));
+    drawTiles(tt);
+    if (chartVis) {
+      if (chartP < 1) (chartP = Math.min(1, (now - chartT0) / 900)), drawBase();
+      drawTop(tt);
+    }
+    if (liveVis) drawLive(tt);
+    kick();
+  };
+  const kick = () => {
+    if (reduced || document.hidden || el.hidden || raf) return;
+    if (heroVis || tileVis.size || chartVis || liveVis) (last = performance.now()), (raf = requestAnimationFrame(frame));
+  };
+  /** Everything at rest (reduced motion, a theme change): one still frame of each canvas. */
+  const drawAll = (force = false) => {
+    if (!T) return;
+    if (reduced || force) {
+      if (reduced) engine.still();
+      drawTiles(3.2, true);
+      drawBase();
+      drawTop(3);
+      drawLive(3.2);
+    }
+  };
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver((es) => ((heroVis = es[0].isIntersecting), kick())).observe($('fc-hero'));
+    new IntersectionObserver((es) => ((chartVis = es[0].isIntersecting), kick())).observe($('fc-hx'));
+    new IntersectionObserver((es) => ((liveVis = es[0].isIntersecting), kick())).observe($('fc-radar'));
+  } else chartVis = liveVis = true;
+  document.addEventListener('visibilitychange', kick);
+  motionQ?.addEventListener?.('change', (e) => {
+    reduced = e.matches;
+    engine.reduced = reduced;
+    if (reduced) drawAll();
+    else kick();
+  });
+
+  const render = (anim = false) => {
+    if (el.hidden) return;
+    if (!T) (T = readTokens(el)), engine.setTokens(T, true);
+    ensureData();
+    renderTabs();
     renderHero();
-    renderTimeline();
-    renderConditions();
+    renderSpots();
+    renderTiles(anim);
+    renderDays(anim);
+    renderChart(anim);
     renderRadar();
+    kick();
+  };
+
+  /** Move the hero to an hour (a day, the best time, a chart hour); null goes back to now. */
+  const pick = (ms: number | null, scroll: boolean) => {
+    sel = ms;
+    cursorI = null;
+    renderHero();
+    renderTiles(false);
+    renderDays(false);
+    renderReadout();
+    if (reduced || !chartVis) drawTop(3);
+    const i = ms === null ? -1 : tlIndex(ms);
+    if (scroll && i >= 0 && L) $('fc-tl').scrollTo({ left: Math.max(0, (i - 3) * L.px), behavior: reduced ? 'auto' : 'smooth' });
+    if (!reduced) $('fc-hero').animate?.([{ filter: 'brightness(1.12)' }, { filter: 'none' }], { duration: 600, easing: 'ease-out' });
   };
 
   // --- events
+  const heroParts = () => ['fc-k', 'fc-numbox', 'fc-words', 'fc-rate', 'fc-why', 'fc-best'].map($);
+  let switching = 0;
   const setAct = (a: FcActivity) => {
     if (a === act) return;
     act = a;
     put(storage, ACT_KEY, act);
     sel = null;
-    replay(el, 'fc-switch');
+    cursorI = null;
     syncHash();
-    render();
+    if (reduced) return render(false);
+    const my = ++switching;
+    heroParts().forEach((x, i) => x.animate?.([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-10px)' }], { duration: 170, delay: i * 18, easing: 'ease-in', fill: 'forwards' }));
+    window.setTimeout(() => {
+      if (my !== switching) return;
+      render(true);
+      fitHero();
+      heroParts().forEach((x, i) => {
+        x.getAnimations?.().forEach((an) => an.cancel());
+        x.animate?.([{ opacity: 0, transform: 'translateY(18px)' }, { opacity: 1, transform: 'none' }], { duration: 520, delay: i * 45, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' });
+      });
+      $('fc-hn').animate?.([{ letterSpacing: '-.12em', opacity: 0 }, { letterSpacing: '-.04em', opacity: 1 }], { duration: 700, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    }, 230);
+    renderTabs();
   };
   const stepAct = (dir: 1 | -1) => setAct(FC_ACTIVITIES[(FC_ACTIVITIES.indexOf(act) + dir + FC_ACTIVITIES.length) % FC_ACTIVITIES.length]);
-  el.querySelector('.fc-acts')!.addEventListener('click', (e) => {
+  $('fc-tabs').addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-act]');
     if (b) setAct(b.dataset.act as FcActivity);
   });
   // Arrow keys move along the tabs, as in any tab list.
-  el.querySelector('.fc-acts')!.addEventListener('keydown', (e) => {
-    const k = (e as KeyboardEvent).key;
-    if (k !== 'ArrowLeft' && k !== 'ArrowRight') return;
+  $('fc-tabs').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
     e.preventDefault();
-    stepAct(k === 'ArrowRight' ? 1 : -1);
-    el.querySelector<HTMLElement>(`.fc-act[data-act="${act}"]`)?.focus();
+    stepAct(e.key === 'ArrowRight' ? 1 : -1);
+    el.querySelector<HTMLElement>(`.fc-tab[data-act="${act}"]`)?.focus();
   });
-  // A sideways swipe across the hero picture switches activity on a phone.
+  // A sideways swipe across the hero switches activity on a phone.
   let swipe: { x: number; y: number; id: number } | null = null;
   $('fc-hero').addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'touch') swipe = { x: e.clientX, y: e.clientY, id: e.pointerId };
@@ -799,81 +660,52 @@ export function mountForecastPage(deps: ForecastDeps) {
     if (Math.abs(dx) > 60 && Math.abs(dy) < 45) stepAct(dx < 0 ? 1 : -1);
   });
   $('fc-hero').addEventListener('pointercancel', () => (swipe = null));
-  $('fc-best-time').addEventListener('click', () => {
-    const ms = Number($('fc-best-time').dataset.ms);
-    if (!Number.isFinite(ms) || !plan) return;
-    sel = ms;
-    renderDays();
-    renderHero();
-    const i = tlIndex(ms);
-    if (i >= 0) $('fc-tl').scrollTo({ left: Math.max(0, i * geom.px - 48), behavior: reduceMotion() ? 'auto' : 'smooth' });
-    placeCursor(ms);
-    replay($('fc-hero'), 'fc-flash');
+  $('fc-best').addEventListener('click', () => {
+    const ms = Number($('fc-best').dataset.ms);
+    if ($('fc-best').dataset.ms && Number.isFinite(ms)) pick(ms, true);
   });
   $('fc-spots').addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-spot]');
     if (!b) return;
     spotName = b.dataset.spot!;
     put(storage, SPOT_KEY, spotName);
+    sel = null;
+    cursorI = null;
     syncHash();
-    render();
+    render(true);
   });
   $('fc-days').addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-day]');
     if (!b || !plan) return;
     const i = Number(b.dataset.day);
     const d = plan.days[i];
-    const start = d?.startMs ?? plan.startMs + i * DAY + 12 * H;
-    sel = i === 0 && !d ? null : start;
-    renderDays();
-    renderHero();
-    $('fc-tl').scrollTo({ left: Math.max(0, i * 24 * geom.px - 24), behavior: reduceMotion() ? 'auto' : 'smooth' });
-    placeCursor(when());
+    pick(i === 0 && !d ? null : (d?.startMs ?? plan.startMs + i * DAY + 12 * H), true);
   });
-  // Timeline: a tap (or click) picks the hour for the hero; a mouse hovering previews it in the readout.
-  const hourAt = (e: MouseEvent) => {
-    const r = $('fc-tl-in').getBoundingClientRect();
-    const i = Math.floor((e.clientX - r.left) / geom.px);
-    return i >= 0 && i < tl.length ? tl[i].ms : null;
-  };
-  // Tiles open on tap or Enter (hover opens them on a mouse); the open set survives redraws.
-  const toggleTile = (e: Event) => {
-    const tile = (e.target as HTMLElement).closest<HTMLElement>('[data-tile]');
-    if (!tile) return;
-    const id = tile.dataset.tile!;
-    const open = !openTiles.has(id);
-    if (open) openTiles.add(id);
-    else openTiles.delete(id);
-    tile.setAttribute('aria-expanded', String(open));
-    // Keep the cached markup in step, so the next redraw does not undo the toggle.
-    delete $('fc-tiles').dataset.html;
-  };
-  $('fc-tiles').addEventListener('click', toggleTile);
-  $('fc-tiles').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      toggleTile(e);
-    }
-  });
-  $('fc-tl').addEventListener('click', (e) => {
-    const ms = hourAt(e);
-    if (ms === null) return;
-    sel = ms;
-    renderDays();
-    renderHero();
-    placeCursor(ms);
-  });
-  $('fc-tl').addEventListener('pointermove', (e) => {
-    if (e.pointerType !== 'mouse') return;
-    const ms = hourAt(e);
-    if (ms !== null) placeCursor(ms);
-  });
-  $('fc-tl').addEventListener('pointerleave', () => placeCursor(when()));
-  $('fc-now').addEventListener('click', () => ((sel = null), renderDays(), renderHero(), placeCursor(when())));
+  $('fc-now').addEventListener('click', () => pick(null, true));
   $('fc-back').addEventListener('click', () => close());
   el.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') (e.stopPropagation(), close());
   });
+
+  // Resizes: refit the number, the canvases and the tab bar; re-lay the chart when the width changes.
+  let rzT = 0;
+  const onResize = () => {
+    if (el.hidden) return;
+    window.clearTimeout(rzT);
+    rzT = window.setTimeout(() => {
+      engine.resize();
+      fitHero();
+      sizeTiles();
+      sizeLive();
+      placeBar();
+      renderChart(false);
+      drawAll();
+      if (reduced) engine.still();
+    }, 80);
+  };
+  window.addEventListener('resize', onResize);
+  if ('ResizeObserver' in window) new ResizeObserver(onResize).observe($('fc-hero'));
+  void document.fonts?.ready.then(() => onResize());
 
   // --- routing: #forecast/<spot>/<activity>
   const syncHash = () => {
@@ -892,8 +724,11 @@ export function mountForecastPage(deps: ForecastDeps) {
     openedAt = Date.now();
     scrolledFor = '';
     applyScheme();
-    themeMeta();
     render();
+    engine.resize();
+    sizeLive();
+    fitHero();
+    if (reduced) drawAll();
     // Feeds load after start-up and age by the hour: redraw while open, every 3 s until the hero has data.
     const tick = () => {
       render();
@@ -945,11 +780,10 @@ export function mountForecastPage(deps: ForecastDeps) {
       hide();
     }
   };
-  window.addEventListener('resize', () => !el.hidden && (renderActs(), renderTimeline()));
 
   // After start-up: the deps read feeds and panels main.ts declares further down.
   window.setTimeout(fromHash, 0);
   /** Where the forecast is, for the map's way back to it (PLAN 7.67). */
   const where = () => ({ spot: spot().name, activity: act });
-  return { open, close, isOpen: () => !el.hidden, refresh: render, where };
+  return { open, close, isOpen: () => !el.hidden, refresh: () => render(), where };
 }

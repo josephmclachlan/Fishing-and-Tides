@@ -1,7 +1,9 @@
 /**
  * CORAL page (PLAN 7.66): a clean full-screen page for reef restoration teams (Joseph and his partner work
  * with Raising Coral alongside SINAC), covering what the map's CORAL overlay and drawer track, in the
- * FORECAST page's own light and dark look (it reuses `.fc` and its tokens; coral-page.css adds the rest).
+ * FORECAST page's own light and dark look (it reuses `.fc` and its tokens; coral-page.css adds the rest), redrawn
+ * in the Kinetic Plus language with it (PLAN 7.69): bold section tabs in their own colours, the chosen reef on a
+ * colour field of its heat alert with a canvas reef (art.ts), crisp tiles and charts.
  * Its own link, `#coral[/<tab>[/<id>]]` (route.ts), so it can be bookmarked and the phone's back button works.
  *
  *  - REEFS: every tracked reef as a card tinted by its heat alert; the chosen reef's picture (paler with heat,
@@ -32,7 +34,8 @@ import { CORAL_CONTACTS, CORAL_ETIQUETTE, CORAL_RULES } from '../coral/conduct';
 import type { ReefVisit } from '../coral-heat-ui';
 import { landing, MAP_HASH, routeHash } from '../forecast/model';
 import { CP_TABS, coralHash, parseCoralRoute, type CpTab } from './route';
-import { reefArt } from './art';
+import { drawReef } from './art';
+import { fitCanvas, readTokens, type Tokens } from '../forecast/kit';
 import { trendChart, yearBars } from './charts';
 import { alertLevelOf, bleachShare, clockCR, dayDate, gaugePct, lc, monthName, murkShare, riskLevelOf, shortDate, soften, statusLevelOf, titleCase, type Level } from './view';
 import { isFolderTab, mountSites } from './sites';
@@ -135,22 +138,25 @@ export function mountCoralPage(deps: CoralPageDeps) {
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-modal', 'true');
   el.setAttribute('aria-labelledby', 'cp-title');
+  const MAP_ICON = svg('<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/>');
   el.innerHTML = `
-    <div class="fc-wrap">
-      <header class="fc-head">
-        <button type="button" class="fc-back" id="cp-back" title="${t('cp.backTitle')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span id="cp-back-l">${t('cp.back')}</span></button>
-        <div class="fc-titles"><h1 id="cp-title">${t('cp.title')}</h1><p>${t('cp.sub')}</p></div>
-        <div class="fc-tools">
-          <button type="button" class="fc-tool" id="cp-lang" title="${t('fc.lang')}">${lang === 'es' ? 'EN' : 'ES'}</button>
-          <button type="button" class="fc-tool" id="cp-scheme" aria-label="${t('fc.scheme')}" title="${t('fc.scheme')}"></button>
+    <div class="fc-page">
+      <header class="fc-top fc-in">
+        <p class="fc-brand fc-mono">${t('fc.brand')}<span class="fc-hide-s"> · ${t('fc.region')}</span></p>
+        <div class="fc-ctrls">
+          <button type="button" class="fc-ctl fc-back" id="cp-back" title="${t('cp.backTitle')}">${MAP_ICON}<span id="cp-back-l">${t('cp.back')}</span></button>
+          <div class="fc-lang" role="group" aria-label="${t('fc.langGroup')}"><button type="button" data-lang="en" aria-pressed="${lang === 'en'}">EN</button><button type="button" data-lang="es" aria-pressed="${lang === 'es'}">ES</button></div>
+          <button type="button" class="fc-ctl fc-sq fc-themeb" id="cp-scheme" aria-label="${t('fc.scheme')}" title="${t('fc.scheme')}"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 2a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg></button>
         </div>
+        <h1 id="cp-title">${t('cp.title')}</h1>
+        <p class="fc-subline fc-mono"><b>${t('cp.sub')}</b></p>
       </header>
-      <nav class="fc-acts cp-tabs" role="tablist" aria-label="${t('cp.tabs')}">
-        ${CP_TABS.map((k) => `<button type="button" role="tab" class="fc-act" data-tab="${k}" aria-controls="cp-body">${svg(TAB_ICONS[k])}<span>${t(`cp.tab.${k}` as Key)}</span></button>`).join('')}
-        <span class="fc-act-ink" aria-hidden="true"></span>
+      <nav class="fc-tabs cp-tabs fc-in" role="tablist" aria-label="${t('cp.tabs')}">
+        ${CP_TABS.map((k) => `<button type="button" role="tab" class="fc-tab" data-tab="${k}" aria-controls="cp-body">${svg(TAB_ICONS[k])}<span>${t(`cp.tab.${k}` as Key)}</span></button>`).join('')}
+        <span class="fc-tab-bar" aria-hidden="true"></span>
       </nav>
       <div id="cp-body" class="cp-body" role="tabpanel"></div>
-      <p class="fc-note">${t('cp.note')}</p>
+      <footer class="fc-foot fc-in"><p class="fc-note">${t('cp.note')}</p></footer>
     </div>`;
   document.body.appendChild(el);
   const $ = (id: string) => el.querySelector<HTMLElement>('#' + id)!;
@@ -171,15 +177,43 @@ export function mountCoralPage(deps: CoralPageDeps) {
   const applyScheme = () => {
     const s = scheme();
     el.dataset.scheme = s;
-    $('cp-scheme').innerHTML = s === 'dark'
-      ? svg('<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/>')
-      : svg('<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>');
     $('cp-scheme').title = t(s === 'dark' ? 'fc.scheme.light' : 'fc.scheme.dark');
-    if (!el.hidden) themeMeta();
+    if (!el.hidden) (themeMeta(), (T = readTokens(el)), drawArt(true));
   };
   media?.addEventListener?.('change', applyScheme);
   $('cp-scheme').addEventListener('click', () => (put(storage, SCHEME_KEY, scheme() === 'dark' ? 'light' : 'dark'), applyScheme()));
-  $('cp-lang').addEventListener('click', () => deps.setLang(deps.lang() === 'es' ? 'en' : 'es'));
+  el.querySelectorAll<HTMLElement>('.fc-lang [data-lang]').forEach((b) =>
+    b.addEventListener('click', () => {
+      const l = b.dataset.lang as 'en' | 'es';
+      if (l !== deps.lang()) deps.setLang(l);
+    }),
+  );
+
+  // --- the reef picture (art.ts): a canvas in the field's own ink, moving unless reduced motion is asked for
+  let T: Tokens | null = null;
+  let paint = { bleach: 0, murk: 0, heat: '', mud: '' };
+  let level: Level | null = null;
+  const still = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  let raf = 0;
+  let seen = true;
+  const drawArt = (force = false) => {
+    const cv = el.querySelector<HTMLCanvasElement>('#cp-art-cv');
+    if (!cv || !T || el.hidden) return;
+    if (force || cv.width <= 1) fitCanvas(cv);
+    const box = cv.getBoundingClientRect();
+    const k = level === null ? 'n' : String(level);
+    drawReef(cv.getContext('2d')!, box.width, box.height, performance.now() / 1000, {
+      ...paint, on: T[`on${k}` as keyof Tokens], field: T[`lv${k}` as keyof Tokens], reduced: !!still?.matches,
+    });
+  };
+  const loop = () => {
+    raf = 0;
+    if (el.hidden || tab !== 'reefs' || !seen) return;
+    drawArt();
+    if (!still?.matches) raf = requestAnimationFrame(loop);
+  };
+  const kick = () => !raf && (raf = requestAnimationFrame(loop));
+  const io = typeof IntersectionObserver === 'function' ? new IntersectionObserver((es) => ((seen = es.some((e) => e.isIntersecting)), seen && kick())) : null;
 
   // --- state
   let tab: CpTab = ((v) => (CP_TABS as readonly string[]).includes(v ?? '') ? (v as CpTab) : 'reefs')(get(storage, TAB_KEY));
@@ -198,18 +232,19 @@ export function mountCoralPage(deps: CoralPageDeps) {
   // --- tabs
   const renderTabs = () => {
     let on: HTMLElement | null = null;
-    el.querySelectorAll<HTMLElement>('.cp-tabs .fc-act').forEach((b) => {
+    el.querySelectorAll<HTMLElement>('.cp-tabs .fc-tab').forEach((b) => {
       const yes = b.dataset.tab === tab;
-      b.classList.toggle('on', yes);
       b.setAttribute('aria-selected', String(yes));
       b.tabIndex = yes ? 0 : -1;
       if (yes) on = b;
     });
-    const ink = el.querySelector<HTMLElement>('.cp-tabs .fc-act-ink')!;
+    el.dataset.tab = tab;
+    // The bar under the chosen tab, in its colour.
+    const bar = el.querySelector<HTMLElement>('.cp-tabs .fc-tab-bar')!;
     const b = on as HTMLElement | null;
     if (b) {
-      ink.style.width = `${b.offsetWidth}px`;
-      ink.style.transform = `translateX(${b.offsetLeft}px)`;
+      bar.style.width = `${b.offsetWidth}px`;
+      bar.style.transform = `translate(${b.offsetLeft}px, ${b.offsetTop + b.offsetHeight - 5}px)`;
     }
   };
 
@@ -228,11 +263,11 @@ export function mountCoralPage(deps: CoralPageDeps) {
       const m = deps.mud(r.id);
       const lv = alertLevelOf(n?.alert);
       const ml = riskLevelOf(m?.level);
-      return `<button type="button" role="option" class="fc-spot cp-reef ${lc(lv)}${r.id === sel ? ' on' : ''}" data-reef="${r.id}" aria-selected="${r.id === sel}">
-        <span class="fc-spot-name">${esc(titleCase(r.name))}</span>
-        <span class="fc-spot-big"><b>${n && Number.isFinite(n.dhw) ? f1(n.dhw) : '--'}</b><small>DHW</small></span>
-        <span class="fc-spot-word">${esc(alertWord(n?.alert ?? null))}</span>
-        <span class="cp-reef-mud ${lc(ml)}"><i></i>${t('cp.mudShort')} ${m && Number.isFinite(m.mw) ? f1(m.mw) : '--'}</span>
+      return `<button type="button" role="option" class="fc-spot cp-reef ${lc(lv)}" data-reef="${r.id}" aria-selected="${r.id === sel}">
+        <span class="fc-sn">${esc(titleCase(r.name))}</span>
+        <span class="fc-sv">${n && Number.isFinite(n.dhw) ? f1(n.dhw) : '--'}<small>DHW</small></span>
+        <span class="fc-sr fc-mono">${esc(alertWord(n?.alert ?? null))}</span>
+        <span class="cp-reef-mud fc-mono ${lc(ml)}"><i></i>${t('cp.mudShort')} ${m && Number.isFinite(m.mw) ? f1(m.mw) : '--'}</span>
       </button>`;
     }).join('');
   }
@@ -246,21 +281,26 @@ export function mountCoralPage(deps: CoralPageDeps) {
     const v = deps.visit(id);
     const sst = n && Number.isFinite(n.sst) ? t('cp.sst', { t: n.sst.toFixed(1), a: `${n.sstAnomaly >= 0 ? '+' : ''}${f1(n.sstAnomaly)}` }) : '';
     const visit = v
-      ? `<button type="button" class="fc-best-time cp-visit l3" data-forecast="${esc(v.spot)}"><span class="fc-bt-k">${t('cp.bestVisit')}</span><b>${esc(v.when)} · ${esc(v.hours)}</b>${v.visM !== null ? `<span class="fc-bt-v">${t('cp.bestVisitVis', { m: v.visM < 10 ? v.visM.toFixed(1) : Math.round(v.visM) })}</span>` : '<span></span>'}${CHEVRON}<span class="cp-visit-go">${t('cp.bestVisitGo', { spot: esc(titleCase(v.spot)) })}</span></button>`
-      : `<div class="fc-best-time none cp-visit"><span class="fc-bt-k">${t('cp.bestVisit')}</span><b>${t('cp.bestVisitNone')}</b></div>`;
+      ? `<button type="button" class="fc-best cp-visit" data-forecast="${esc(v.spot)}"><span class="fc-mono">${t('cp.bestVisit')}</span><span class="fc-bw">${esc(v.when)} · ${esc(v.hours)}</span>${v.visM !== null ? `<span class="fc-bv">${t('cp.bestVisitVis', { m: v.visM < 10 ? v.visM.toFixed(1) : Math.round(v.visM) })}</span>` : '<span></span>'}<span class="cp-visit-go fc-mono">${t('cp.bestVisitGo', { spot: esc(titleCase(v.spot)) })} ${CHEVRON}</span></button>`
+      : `<div class="fc-best cp-visit"><span class="fc-mono">${t('cp.bestVisit')}</span><span class="fc-bw">${t('cp.bestVisitNone')}</span></div>`;
+    const dhw = n && Number.isFinite(n.dhw) ? f1(n.dhw) : '--';
+    const mw = m && Number.isFinite(m.mw) ? f1(m.mw) : '--';
     return {
       level: lv,
-      art: reefArt({ bleach: bleachShare(n?.dhw), murk: murkShare(m?.mw) }),
+      paint: { bleach: bleachShare(n?.dhw), murk: murkShare(m?.mw), heat: n && Number.isFinite(n.dhw) ? `DHW ${f1(n.dhw)}` : '', mud: m && Number.isFinite(m.mw) ? `${t('cp.mudShort')} ${f1(m.mw)}` : '' },
       data: `
-        <div class="fc-k">${esc(titleCase(r.name))} · ${t('cp.heat')}</div>
-        <div class="fc-big"><span class="fc-num">${n && Number.isFinite(n.dhw) ? f1(n.dhw) : '--'}</span><span class="fc-unit">${t('cp.heatUnit')}</span></div>
-        <div class="fc-rate"><span class="fc-word ${lc(lv)}">${esc(alertWord(n?.alert ?? null))}</span></div>
-        ${gauge(n?.dhw ?? NaN, 16, DHW_BLEACHING, DHW_SEVERE, [t('cp.g.watch'), t('cp.g.high')])}
-        <p class="cp-src">${n ? t('cp.heatSource', { d: shortDate(n.dhwDay, lang) }) : t('cp.loading')}${sst ? ` · ${sst}` : ''}</p>
-        <div class="cp-mud ${lc(ml)}">
-          <div class="cp-mud-head"><span class="fc-k">${t('cp.mud')}</span><span class="cp-mud-v"><b>${m && Number.isFinite(m.mw) ? f1(m.mw) : '--'}</b> ${t('cp.mudUnit')} <span class="fc-word ${lc(ml)}">${mudWord(m?.level ?? 'none')}</span></span></div>
-          ${gauge(m?.mw ?? NaN, 6, MUD_WATCH, MUD_HIGH, [t('cp.lvl.watch'), t('cp.lvl.high')])}
-          <p class="cp-src">${m && Number.isFinite(m.day) ? t('cp.mudSource', { m: m.depthM, d: shortDate(m.day, lang) }) : t('cp.loading')}</p>
+        <div class="fc-h-meta fc-mono"><span>${esc(titleCase(r.name))} · ${t('cp.heat')}</span><span>${n ? t('cp.heatSource', { d: shortDate(n.dhwDay, lang) }) : t('cp.loading')}</span></div>
+        <div class="fc-h-art cp-h-art" role="img" aria-label="${esc(`${titleCase(r.name)}: DHW ${dhw}, ${t('cp.mud')} ${mw}`)}"><canvas id="cp-art-cv" aria-hidden="true"></canvas></div>
+        <div class="fc-h-num"><span class="fc-hn cp-hn">${dhw}<span class="fc-u">${t('cp.heatUnit')}</span></span></div>
+        <div class="fc-h-rate"><span class="fc-rword">${esc(alertWord(n?.alert ?? null))}</span></div>
+        <div class="cp-gauges">
+          ${gauge(n?.dhw ?? NaN, 16, DHW_BLEACHING, DHW_SEVERE, [t('cp.g.watch'), t('cp.g.high')])}
+          ${sst ? `<p class="cp-src fc-mono">${sst}</p>` : ''}
+          <div class="cp-mud ${lc(ml)}">
+            <div class="cp-mud-head"><span class="fc-mono">${t('cp.mud')}</span><span class="cp-mud-v"><b>${mw}</b> ${t('cp.mudUnit')} <span class="cp-pill ${lc(ml)}">${mudWord(m?.level ?? 'none')}</span></span></div>
+            ${gauge(m?.mw ?? NaN, 6, MUD_WATCH, MUD_HIGH, [t('cp.lvl.watch'), t('cp.lvl.high')])}
+            <p class="cp-src fc-mono">${m && Number.isFinite(m.day) ? t('cp.mudSource', { m: m.depthM, d: shortDate(m.day, lang) }) : t('cp.loading')}</p>
+          </div>
         </div>
         ${visit}`,
     };
@@ -272,11 +312,11 @@ export function mountCoralPage(deps: CoralPageDeps) {
     return rows.map((row) => {
       const l: Level | null = row.id === 'heat' ? alertLevelOf(n?.alert) : riskLevelOf(row.level);
       const value = row.id === 'heat' ? alertWord(n?.alert ?? null) : row.id === 'sargassum' ? (row.level === 'none' ? '' : t(`cp.lvl.${row.level}` as Key)) : row.value;
-      return `<div class="fc-tile cp-tile ${lc(l)}" role="button" tabindex="0" aria-expanded="false">
-        <span class="fc-tile-ico cp-ti">${svg(RISK_ICONS[row.id])}</span>
-        <span class="fc-tile-k">${esc(soften(t(`coral.risk.${row.id}` as Key)))}</span>
-        <span class="fc-tile-v"><span class="cp-pill ${lc(l)}">${row.level === 'none' && row.id !== 'heat' ? t('cp.lvl.none') : row.id === 'heat' ? esc(value) : t(`cp.lvl.${row.level}` as Key)}</span>${row.id !== 'heat' && row.id !== 'sargassum' && value ? ` <span class="cp-tile-num">${esc(value)}</span>` : ''}</span>
-        <span class="fc-tile-tip"><span>${t(`cp.risk.${row.id}.tip` as Key)}</span></span>
+      return `<div class="cp-tile ${lc(l)}" role="button" tabindex="0" aria-expanded="false">
+        <div class="fc-t-top"><span class="fc-mono">${esc(soften(t(`coral.risk.${row.id}` as Key)))}</span><span class="cp-ti">${svg(RISK_ICONS[row.id])}</span></div>
+        <div class="cp-tile-v"><span class="cp-pill ${lc(l)}">${row.level === 'none' && row.id !== 'heat' ? t('cp.lvl.none') : row.id === 'heat' ? esc(value) : t(`cp.lvl.${row.level}` as Key)}</span></div>
+        ${row.id !== 'heat' && row.id !== 'sargassum' && value ? `<div class="cp-tile-num">${esc(value)}</div>` : '<div class="cp-tile-num"></div>'}
+        <div class="fc-t-tip"><p>${t(`cp.risk.${row.id}.tip` as Key)}</p></div>
       </div>`;
     }).join('');
   }
@@ -330,13 +370,14 @@ export function mountCoralPage(deps: CoralPageDeps) {
   function reefsHtml() {
     const r = reef();
     const hero = heroHtml(r.id);
+    paint = hero.paint;
+    level = hero.level;
     return `
-      <div class="fc-spots cp-reefs" role="listbox" aria-label="${t('cp.reefs')}">${reefCards(r.id)}</div>
-      <section class="fc-hero cp-hero"${hero.level !== null ? ` data-level="${hero.level}"` : ''}>
-        <div class="fc-art-box cp-art-box"><div class="fc-art-in">${hero.art}</div></div>
-        <div class="fc-hero-data">${hero.data}</div>
+      <div class="fc-rail fc-bleed cp-reefs" role="listbox" aria-label="${t('cp.reefs')}">${reefCards(r.id)}</div>
+      <section class="fc-hero fc-bleed cp-hero">
+        <div class="fc-hero-in fc-in cp-hero-in">${hero.data}</div>
       </section>
-      <section class="fc-card"><div class="fc-card-head"><h2>${t('cp.stress')}</h2></div><div class="fc-tiles cp-tiles">${stressHtml(r.id)}</div>
+      <section class="fc-card"><div class="fc-card-head"><h2>${t('cp.stress')}</h2></div><div class="cp-tiles">${stressHtml(r.id)}</div>
         <p class="cp-cap">${esc(soften(t('coral.heatNote')))}</p></section>
       ${reefSitesHtml(r.id)}
       <div class="cp-grid2">${chartsHtml(r.id)}</div>`;
@@ -430,12 +471,22 @@ export function mountCoralPage(deps: CoralPageDeps) {
     if (el.hidden) return;
     renderTabs();
     body.dataset.tab = tab;
-    const changed = html(body, tab === 'reefs' ? reefsHtml() : tab === 'sites' ? sites_.html(siteRoute.id, siteRoute.sub, banner()) : tab === 'spawning' ? spawningHtml() : tab === 'guide' ? guideHtml() : rulesHtml());
+    const markup = tab === 'reefs' ? reefsHtml() : '';
+    // The colour field follows the chosen reef's heat alert, on the REEFS tab only.
+    if (tab === 'reefs' && level !== null) el.dataset.level = String(level);
+    else delete el.dataset.level;
+    const changed = html(body, tab === 'reefs' ? markup : tab === 'sites' ? sites_.html(siteRoute.id, siteRoute.sub, banner()) : tab === 'spawning' ? spawningHtml() : tab === 'guide' ? guideHtml() : rulesHtml());
     if (changed && (tab === 'sites' || tab === 'reefs')) void sites_.after();
     // A folder whose site is gone (deleted here or in the drawer): back to the front.
     if (tab === 'sites' && siteRoute.id && sites_.current() === null) (siteRoute = { id: null, sub: null }), syncHash();
     // Keep the chosen reef card in view in its scrolling row.
-    if (changed && tab === 'reefs') el.querySelector<HTMLElement>('.cp-reef.on')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    if (changed && tab === 'reefs') el.querySelector<HTMLElement>('.cp-reef[aria-selected="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    if (tab === 'reefs') {
+      const hero = body.querySelector('.cp-hero');
+      if (changed && hero && io) (io.disconnect(), io.observe(hero));
+      drawArt(true);
+      kick();
+    }
   };
 
   // --- events
@@ -524,6 +575,7 @@ export function mountCoralPage(deps: CoralPageDeps) {
     el.hidden = true;
     document.body.classList.remove('fc-open');
     window.clearTimeout(timer);
+    if (raf) cancelAnimationFrame(raf), (raf = 0);
     if (mapMeta !== null) meta?.setAttribute('content', mapMeta);
   };
   const fromHash = (e?: HashChangeEvent) => {
@@ -563,7 +615,8 @@ export function mountCoralPage(deps: CoralPageDeps) {
       location.hash = cameFrom === 'forecast' ? '#forecast' : MAP_HASH;
     }
   };
-  window.addEventListener('resize', () => !el.hidden && renderTabs());
+  window.addEventListener('resize', () => !el.hidden && (renderTabs(), drawArt(true)));
+  still?.addEventListener?.('change', () => (drawArt(true), kick()));
   deps.store.subscribe(() => render());
 
   window.setTimeout(fromHash, 0);
