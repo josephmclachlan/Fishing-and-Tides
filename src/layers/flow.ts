@@ -190,11 +190,11 @@ export function mountFlow(map: MapLibreMap, sources: Record<FlowKind, FlowSource
     width: u('u_width'), colour: u('u_colour'), red: u('u_red'),
   };
   const colours: Record<FlowKind, [number, number, number]> = {
-    // A theme may give the moving lines their own colours (the modern map's, PLAN 7.70); else the HUD's.
-    wind: cssRgb('--flow-wind', cssRgb('--amber', [1, 0.69, 0])),
-    current: cssRgb('--flow-current', cssRgb('--green', [0.22, 1, 0.48])),
+    // The map's paint colours where the theme sets them (layers/paint.ts), else the HUD's: wind amber, current green, as the legend says.
+    wind: cssRgb('--paint-amber', cssRgb('--amber', [1, 0.69, 0])),
+    current: cssRgb('--paint-green', cssRgb('--green', [0.22, 1, 0.48])),
   };
-  const red = cssRgb('--red', [1, 0.23, 0.18]);
+  const red = cssRgb('--paint-red', cssRgb('--red', [1, 0.23, 0.18]));
 
   const vao = gl.createVertexArray();
   gl.bindVertexArray(vao);

@@ -11,12 +11,10 @@ import { t, type Key } from '../i18n';
 import { firstSymbolId } from '../map';
 import { SURF_BREAKS } from '../data/surf-breaks';
 import type { SurfQuality } from '../surf-quality';
+import { paintColour as cssColour } from './paint';
 
 const { COAST, SPOT } = TIER_ZOOM;
 
-function cssColour(name: string, fallback: string) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-}
 
 export const breakLabel = (b: (typeof SURF_BREAKS)[number], detailed: boolean) =>
   detailed ? `${b.name}\n${t(`surf.type.${b.type}` as Key)} ${t(`surf.shape.${b.shape}` as Key)}` : b.name;

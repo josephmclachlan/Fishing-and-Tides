@@ -18,6 +18,7 @@ import { SPECIES, speciesById, type SpeciesId } from '../fishing/species';
 import { occurrenceBoost, recordsFor, withEvidence } from '../fishing/occurrences';
 import type { OccurrenceFile } from '../fishing/occurrence-taxa';
 import { catchRecords, type CatchPin } from '../fishing/catches';
+import { paintColour as cssColour } from './paint';
 
 const { COAST, SPOT } = TIER_ZOOM;
 const DIR = 'data/fishing/mouths.geojson';
@@ -45,9 +46,6 @@ export async function fetchMouths(base: string = import.meta.env.BASE_URL): Prom
   return { data, fetchedAt: Date.parse(gj.fetchedAt) };
 }
 
-function cssColour(name: string, fallback: string) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-}
 
 /** Cells within this distance of the beach count as shore water (cast, wade or a short paddle), m. */
 export const SHORE_M = 400;

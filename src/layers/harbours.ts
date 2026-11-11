@@ -7,12 +7,10 @@ import type { FeatureCollection } from 'geojson';
 import { TIER_ZOOM } from '../region';
 import { firstSymbolId } from '../map';
 import { PLACES } from '../data/harbours';
+import { paintColour as cssColour } from './paint';
 
 const { COAST, SPOT } = TIER_ZOOM;
 
-function cssColour(name: string, fallback: string) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-}
 
 export function mountHarbours(map: Map) {
   const green = cssColour('--green', '#3cff8c');

@@ -16,6 +16,7 @@ import { chaikin, clipLines, contour } from '../physics/bathy';
 import type { GridSeries } from '../adapters/pack';
 import type { SatelliteData } from '../adapters/satellite';
 import { rgbaWord, seaImage, type CoastTest, type Corners, type SeaImage } from './sea-image';
+import { lifted, paintColour as cssColour, paintLift, type Lift } from './paint';
 
 const FONT = ['Noto Sans Regular'];
 
@@ -79,6 +80,8 @@ export interface SstImageOptions {
   coast?: CoastTest | null;
   /** Pixel size, degrees; default one pixel per grid cell. */
   pixelDeg?: number;
+  /** The theme's lift for the wash's opacity (paint.ts). */
+  lift?: Lift;
 }
 
 /**
@@ -96,15 +99,12 @@ export function sstImage(s: GridSeries, colours: Record<'green' | 'amber' | 'red
   const lut = new Uint32Array(N + 1);
   for (let k = 0; k <= N; k++) {
     const t = sstTone(LO + k / 100)!;
-    lut[k] = rgbaWord(...colours[t.tone], Math.round(255 * t.alpha));
+    lut[k] = rgbaWord(...colours[t.tone], Math.round(255 * lifted(t.alpha, o.lift)));
   }
   const word = (c: number) => lut[Math.min(N, Math.max(0, Math.round((c - LO) * 100)))];
   return seaImage(g, z, word, { pixelDeg: o.pixelDeg ?? g.dlon, coast: o.coast, hole, extend: 2 });
 }
 
-function cssColour(name: string, fallback: string) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-}
 
 const rgb = (hex: string, fb: [number, number, number]): [number, number, number] => {
   const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
@@ -138,6 +138,7 @@ export interface SstCoast {
 export function mountSst(map: Map, d: SatelliteData, sea?: SstCoast) {
   let data = features(d, sea?.water);
   const amber = cssColour('--amber', '#ffb000');
+  const lift = paintLift();
   const COAST = TIER_ZOOM.COAST;
   const colours = {
     green: rgb(cssColour('--green', '#39ff7a'), [57, 255, 122]),
@@ -149,8 +150,8 @@ export function mountSst(map: Map, d: SatelliteData, sea?: SstCoast) {
   // edge: a cross-fade of two translucent fills shows the nest as a box.
   type Fill = { k: string; img: SeaImage; zoom: { minzoom?: number; maxzoom?: number } };
   const makeFills = (c?: CoastTest | null): Fill[] => {
-    const coast = d.sstCoast ? sstImage(d.sstCoast, colours, undefined, { coast: c, pixelDeg: SST_PIXEL_DEG.coast }) : null;
-    const macro = { coast: c, pixelDeg: SST_PIXEL_DEG.macro };
+    const coast = d.sstCoast ? sstImage(d.sstCoast, colours, undefined, { coast: c, pixelDeg: SST_PIXEL_DEG.coast, lift }) : null;
+    const macro = { coast: c, pixelDeg: SST_PIXEL_DEG.macro, lift };
     const fills: Fill[] = [];
     if (d.sst) fills.push({ k: 'macro', img: sstImage(d.sst, colours, undefined, macro), zoom: coast ? { maxzoom: COAST } : {} });
     if (d.sst && coast) fills.push({ k: 'outer', img: sstImage(d.sst, colours, coast.coordinates, macro), zoom: { minzoom: COAST } });

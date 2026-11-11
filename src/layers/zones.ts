@@ -12,6 +12,7 @@ import { firstSymbolId } from '../map';
 import { CONTOURS_FROM } from './seafloor';
 import type { LngLat, ZoneProps } from '../zones';
 import type { ZonePoly } from '../zone-lookup';
+import { paintColour as cssColour } from './paint';
 
 const FONT = ['Noto Sans Regular'];
 const DIR = 'data/zones/zones.geojson';
@@ -30,9 +31,6 @@ export async function fetchZones(base: string = import.meta.env.BASE_URL): Promi
 export const zoneName = (p: ZoneProps) => t(`zone.${p.id}.name` as Key);
 export const zoneStatus = (p: ZoneProps) => t(`zone.status.${p.status}` as Key);
 
-function cssColour(name: string, fallback: string) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-}
 
 export function mountZones(map: Map, geojson: FeatureCollection) {
   const red = cssColour('--red', '#ff3b2f');

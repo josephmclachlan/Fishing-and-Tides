@@ -7,8 +7,8 @@ import type { Map, GeoJSONSource } from 'maplibre-gl';
 import type { FeatureCollection } from 'geojson';
 import { firstSymbolId } from '../map';
 import { stormCategory, type Storm } from '../adapters/storms';
+import { paintColour as cssColour } from './paint';
 
-const cssColour = (name: string, fallback: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 
 const toGeoJson = (storms: readonly Storm[]): FeatureCollection => ({
   type: 'FeatureCollection',

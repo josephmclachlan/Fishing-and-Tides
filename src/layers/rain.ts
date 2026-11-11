@@ -11,8 +11,8 @@ import type { FeatureCollection } from 'geojson';
 import { firstSymbolId } from '../map';
 import type { RainCellsData } from '../adapters/rain-cells';
 import { extrapolate, findCells, HORIZON_MIN, motion, type Motion } from '../rain/nowcast';
+import { paintColour as cssColour } from './paint';
 
-const cssColour = (name: string, fallback: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 const ARROW_MIN = 30;
 const EMPTY: FeatureCollection = { type: 'FeatureCollection', features: [] };
 

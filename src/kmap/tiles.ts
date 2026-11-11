@@ -4,7 +4,9 @@
  * picture drawn from the value (a wind arrow over streaks, the swell trains as a rose, the tide's day as a curve...).
  * Every tile opens its plain-words explainer.
  */
-import { D2R, esc, fitCanvas, MONO, rgba, TAU, tok } from './dom';
+import { D2R, esc, fitCanvas, L2, MONO, rgba, TAU, tok } from './dom';
+import { CLARITY_BANDS } from '../physics/clarity';
+import { SST_BANDS } from '../layers/sst';
 
 export interface Reading {
   k: string;
@@ -26,6 +28,8 @@ export interface Reading {
   /** The day's tide curve, m, hourly from local midnight, and where now is (hours). */
   curve?: number[];
   at?: number;
+  /** Bed surge by depth, for the surge tile's bars. */
+  prof?: { depth: number; uMs: number; band: 'CALM' | 'SURGY' | 'DANGEROUS' }[];
   /** Rating level for a coloured cell (0..4). */
   lv?: number | null;
 }
@@ -80,6 +84,36 @@ export function drawTiles(el: HTMLElement, R: readonly Reading[], accent: string
         c.fillStyle = rgba(tok(col), k / n <= v ? 1 : 0.22);
         c.fillRect(k * (gw + 2), h - hh, gw, hh);
       });
+    };
+    /**
+     * The same bands the layer paints on the map (layers/legend.ts), in its colours, with the edges written under them
+     * and a pointer at this value: the tile and the map say one thing.
+     */
+    const bands = (segs: [string, number][], end: number, v: number | undefined, unit: string) => {
+      const lo = segs[0][1], x = (q: number) => 1 + ((Math.min(end, Math.max(lo, q)) - lo) / (end - lo)) * (w - 2);
+      const y0 = h * 0.42, bh = h * 0.2, at = v !== undefined && Number.isFinite(v) ? v : null;
+      segs.forEach(([col, a], k) => {
+        const b = k + 1 < segs.length ? segs[k + 1][1] : end, here = at !== null && at >= a && (at < b || k === segs.length - 1);
+        c.fillStyle = rgba(tok(col), here || at === null ? 1 : 0.35);
+        c.fillRect(x(a), y0, x(b) - x(a) - (k + 1 < segs.length ? 2 : 0), bh);
+      });
+      c.fillStyle = rgba(tok('ink2'));
+      c.font = `600 9px ${MONO}`;
+      c.textBaseline = 'top';
+      segs.slice(1).forEach(([, a]) => {
+        c.textAlign = 'center';
+        c.fillText(`${a}${unit}`, x(a), y0 + bh + 5);
+      });
+      if (at === null) return;
+      const px = x(at);
+      c.fillStyle = I;
+      c.beginPath();
+      c.moveTo(px, y0 - 2);
+      c.lineTo(px - 6, y0 - 11);
+      c.lineTo(px + 6, y0 - 11);
+      c.closePath();
+      c.fill();
+      c.fillRect(px - 1, y0 - 2, 2, bh + 4);
     };
     switch (r.k) {
       case 'wind': {
@@ -138,11 +172,55 @@ export function drawTiles(el: HTMLElement, R: readonly Reading[], accent: string
         break;
       }
       case 'sst':
-        ramp(['r-sst0', 'r-sst1', 'r-sst2', 'r-sst3', 'r-sst4', 'r-sst5'], ((r.val ?? 27) - 26.5) / 3.5);
+        bands([['paint-green', 25.5], ['paint-amber', SST_BANDS.COOL], ['paint-red', SST_BANDS.WARM]], 31.5, r.val, '°');
         break;
       case 'clarity':
-        ramp(['r-vis0', 'r-vis1', 'r-vis2', 'r-vis3', 'r-vis4', 'r-vis5'], (r.val ?? 0) / 22);
+        bands([['paint-red', 0], ['paint-amber', CLARITY_BANDS.fair], ['paint-green', CLARITY_BANDS.good]], 20, r.val, ' m');
         break;
+      case 'surge': {
+        // One bar per depth, its height the bed speed, in the old map's CALM / SURGY / DANGEROUS colours.
+        const P = r.prof ?? [], n = P.length, top = Math.max(0.7, ...P.map((p) => p.uMs)), gw = n ? (w - (n - 1) * 6) / n : 0, base = h - 12;
+        P.forEach((p, k) => {
+          const bh = Math.max(2, (p.uMs / top) * (base - 4));
+          c.fillStyle = rgba(tok(p.band === 'DANGEROUS' ? 'paint-red' : p.band === 'SURGY' ? 'paint-amber' : 'paint-green'));
+          c.fillRect(k * (gw + 6), base - bh, gw, bh);
+          c.fillStyle = rgba(tok('ink2'));
+          c.font = `600 9px ${MONO}`;
+          c.textAlign = 'center';
+          c.textBaseline = 'bottom';
+          c.fillText(`${p.depth}m`, k * (gw + 6) + gw / 2, h);
+        });
+        break;
+      }
+      case 'sky': {
+        // The moon as lit tonight: a disc with the terminator where the elongation puts it.
+        const R = Math.min(w, h) * 0.38, cx = R + 4, cy = h / 2, e = ((r.deg ?? 0) * D2R) % TAU, k = Math.cos(e);
+        c.fillStyle = rgba(tok('ink'), 0.12);
+        c.beginPath();
+        c.arc(cx, cy, R, 0, TAU);
+        c.fill();
+        c.fillStyle = rgba(tok('c-sun'));
+        c.beginPath();
+        // Waxing (e < 180°) is lit on the right; the terminator is an ellipse of half-width R·cos(e).
+        const right = (r.deg ?? 0) < 180;
+        c.arc(cx, cy, R, -Math.PI / 2, Math.PI / 2, !right);
+        c.ellipse(cx, cy, Math.abs(k) * R, R, 0, Math.PI / 2, -Math.PI / 2, (k > 0) === right);
+        c.fill();
+        break;
+      }
+      case 'air': {
+        const n = 10, filled = Math.round(((r.val ?? 0) / 100) * n), gw = (w - (n - 1) * 3) / n;
+        for (let k = 0; k < n; k++) {
+          c.fillStyle = k < filled ? rgba(tok('ink2'), 0.55) : rgba(tok('ink'), 0.1);
+          c.fillRect(k * (gw + 3), h * 0.55, gw, h * 0.3);
+        }
+        c.fillStyle = rgba(tok('ink2'));
+        c.font = `600 9px ${MONO}`;
+        c.textAlign = 'left';
+        c.textBaseline = 'bottom';
+        c.fillText(`${L2('CLOUD', 'NUBES')} ${Math.round(r.val ?? 0)}%`, 0, h * 0.5);
+        break;
+      }
       case 'uv':
         ramp(['uv0', 'uv1', 'uv2', 'uv3', 'uv4'], (r.val ?? 0) / 11);
         break;

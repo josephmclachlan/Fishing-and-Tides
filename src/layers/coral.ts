@@ -13,6 +13,7 @@ import { TIER_ZOOM } from '../region';
 import { t, type Key } from '../i18n';
 import { firstSymbolId } from '../map';
 import { ALERT_KEYS, coralNow, nearestReef, type CoralData } from '../adapters/coral';
+import { paintColour as cssColour } from './paint';
 
 const { COAST, SPOT } = TIER_ZOOM;
 /** Tone per alert level, as the legend and the panel show it. */
@@ -66,9 +67,6 @@ export function reefPolygons(d: CoralData | null, sources: FeatureCollection[]):
   return { type: 'FeatureCollection', features: out };
 }
 
-function cssColour(name: string, fallback: string) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-}
 
 export function mountCoral(map: Map, reefs: readonly { id: string; name: string; lngLat: [number, number] }[]) {
   const amber = cssColour('--amber', '#ffb000');

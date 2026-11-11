@@ -17,6 +17,7 @@ import { nearest } from '../geo';
 import { paintSea, rgbaWord, type CoastTest } from './sea-image';
 import { readout } from '../hud-kit';
 import { t, type Key } from '../i18n';
+import { paintColour as css } from './paint';
 
 const HOUR = 3.6e6, DAY = 864e5;
 /** Forecast window, days. */
@@ -110,9 +111,6 @@ export function trackAt(path: readonly [number, number, number][], ms: number): 
 
 const localDay = (ms: number) => t(`day.${new Date(ms + REGION.tzOffsetH * HOUR).getUTCDay()}` as Key);
 
-function css(name: string, fallback: string) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-}
 const rgb = (hex: string): [number, number, number] => {
   const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
   return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [255, 176, 0];
