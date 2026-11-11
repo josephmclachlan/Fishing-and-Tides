@@ -845,6 +845,8 @@ const metricEnv = (): MetricEnv => ({
     return at && satellite ? sstAt(satellite, at[0], at[1], ms)?.value ?? null : null;
   },
   sargassumKm2: (spot, ms) => (sargForecast ? beachDay(sargForecast, spot, ms)?.km2 ?? null : null),
+  // FISH: the best eating-fish water near the spot for that month (fishing/spot-water.ts), once the fishing layer is built.
+  fishWater: (lng, lat, ms) => fishingLayer?.spotWater(lng, lat, new Date(ms + REGION.tzOffsetH * 3.6e6).getUTCMonth()) ?? null,
   // SWIM: the spot model's shore at the place (normal, slope, breaking angle), with this hour's swell, period, tide and wind.
   shore: (spot, ms) => {
     const st = spotPhysics?.byName(spot);
@@ -889,7 +891,7 @@ const MAP_PRESET: Record<FcActivity, ActivityId> = { fish: 'fishing', surf: 'sur
  * them): the map shell and the forecast page keep what they worked out until it changes.
  */
 function feedVersion(): string {
-  const flags = [wind, waves, weatherData, satellite, catchmentRain, sargForecast, riverFlow, clarityElevation, currents, spotWind, diveHud, coralHeat, mudData, spotPhysics];
+  const flags = [wind, waves, weatherData, satellite, catchmentRain, sargForecast, riverFlow, clarityElevation, currents, spotWind, diveHud, coralHeat, mudData, spotPhysics, fishingLayer];
   const ages = dataAge.all().map((f) => `${f.feed}:${f.fetchedAt}`).join(',');
   return `${flags.map((x) => (x ? 1 : 0)).join('')}|${physicsTick}|${flashesAt}|${zonePolys.length}|${gauge.at(-1)?.t ?? 0}|${ages}`;
 }
