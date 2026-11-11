@@ -24,7 +24,7 @@ export const HELP_BY_ID: Readonly<Record<string, HelpId>> = {
   'rn-cahuita': 'rainNow', 'rn-playanegra': 'rainNow', 'rn-puertoviejo': 'rainNow', 'rn-manzanillo': 'rainNow', 'rn-move': 'rainNow', 'rn-src': 'rainNow',
   'tr-cahuita': 'townRain', 'tr-playanegra': 'townRain', 'tr-puertoviejo': 'townRain', 'tr-manzanillo': 'townRain',
   depth: 'depth', dsrc: 'depthSource', dzone: 'reef', dbottom: 'bottom', zone: 'zone', 'fish-score': 'habitat', 'fish-bite': 'bite', 'fish-reach': 'reach', 'fish-times': 'times',
-  'dv-mode': 'diveMode', 'dv-water': 'waterOver', 'dv-current': 'diveCurrent', 'dv-sst': 'diveSst', 'dv-uv': 'diveUv', 'dv-runoff': 'diveRunoff', 'dv-coral': 'diveCoral', 'dv-entry': 'diveEntry', 'dv-score': 'outing', 'dv-time': 'bestTime', 'dv-day': 'bestDay', 'dv-week': 'weekAhead', 'dv-spot': 'snorkelSpot', 'dv-rate': 'snorkelRating', 'dv-sting': 'stingers',
+  'dv-mode': 'diveMode', 'dv-law': 'diveLaw', 'dv-water': 'waterOver', 'dv-current': 'diveCurrent', 'dv-sst': 'diveSst', 'dv-uv': 'diveUv', 'dv-runoff': 'diveRunoff', 'dv-coral': 'diveCoral', 'dv-entry': 'diveEntry', 'dv-score': 'outing', 'dv-time': 'bestTime', 'dv-day': 'bestDay', 'dv-week': 'weekAhead', 'dv-spot': 'snorkelSpot', 'dv-rate': 'snorkelRating', 'dv-sting': 'stingers',
   'wx-gust': 'gust', 'wx-cape': 'cape', 'wx-squall': 'squall', 'wx-conf': 'wxConf', 'lt-near': 'lightningNear', 'vis-days': 'visDays', 'vis-seen': 'visSeen',
   't-off': 'fcst', 't-valid': 'valid', 't-band': 'band', lat: 'lat', lon: 'lon', alt: 'alt', age: 'dataAge', tier: 'tier',
 };

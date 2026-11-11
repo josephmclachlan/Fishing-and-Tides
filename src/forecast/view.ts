@@ -54,7 +54,8 @@ export function headline(r: FcRead): { value: string; unit: string } {
     case 'swim':
       return { value: n0(r.score), unit: '/100' };
     case 'snorkel':
-    case 'dive': {
+    case 'dive':
+    case 'spear': {
       const v = r.water!.visM;
       return v === null ? { value: dash, unit: '' } : { value: v >= 10 ? n0(v) : n1(v), unit: 'm' };
     }
@@ -147,6 +148,7 @@ export function heroWords(r: FcRead, ctx: Pick<ViewCtx, 'plan' | 'ms'>): string 
   if (r.fish) return win ? `${t('fc.bestWindow')} ${t('fc.window', { from: localClock(win.startMs), to: localClock(win.endMs) })}` : '';
   if (r.surf) return t(`fc.size.${r.surf.size}` as Key);
   if (r.water && r.activity === 'snorkel') return `${t('fc.entry')} ${n1(r.water.breakerM)} m${r.water.windKt === null ? '' : ` · ${t(`fc.chop.${chopFor(r.water.windKt)}` as Key).toLowerCase()}`}`;
+  if (r.water && r.water.law) return `${t(`dive.law.${r.water.law}` as Key)} · ${t('fc.depthAtSpear', { d: r.water.depthM })}`;
   if (r.water) return `${t('fc.depthAt', { d: r.water.depthM })}${r.water.currentKt === null ? '' : ` · ${t('fc.current').toLowerCase()} ${t(`fc.drift.${driftFor(r.water.currentKt)}` as Key).toLowerCase()}`}`;
   if (r.sail && r.sail.windKt !== null) return `${t(`fc.bft.${beaufort(r.sail.windKt)}` as Key)} · ${t('fc.force', { n: beaufort(r.sail.windKt) })}`;
   return '';

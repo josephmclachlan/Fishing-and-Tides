@@ -16,12 +16,13 @@ import { LIMON_HARMONICS } from './data/tides-limon';
 import { tideFixNow } from './corrections';
 import { localDayStart, sunAltitude } from './physics/astro';
 import type { SquallLevel } from './physics/safety';
-import { suitFor, type SargLevel, outingScore, outlook, ratingFor, stingerGuess, type OutingReason, type OutingScore } from './physics/outing';
+import { suitFor, type OutingMode, type SargLevel, outingScore, outlook, ratingFor, stingerGuess, type OutingReason, type OutingScore } from './physics/outing';
 import { flatHeight, shoreHeight } from './physics/reef-flat';
 import { SNORKEL_SPOTS } from './data/snorkel-spots';
 import { OUTING_DEPTHS, surgeAt, surgeProfile } from './physics/surge';
 import { tideHeightM } from './physics/tide';
 import { REGION, SPOTS } from './region';
+import type { SpearStatus } from './rules';
 import type { SpotPhysics } from './spot-physics';
 import type { TimeStore } from './time';
 
@@ -45,14 +46,16 @@ export interface DiveEnv {
   wxAt: (lng: number, lat: number, ms: number) => { rainMmH?: number; cloudPct?: number; uv?: number; squall?: SquallLevel; lightning?: boolean };
   /** Chart depth, m (positive down), or undefined on land or before the depth grid loads. */
   depthAt: (lng: number, lat: number) => number | undefined;
+  /** Whether spearfishing is allowed in the zone under the point (rules.ts spearStatus). Optional: 'ok' before the zones load. */
+  spearAt?: (lng: number, lat: number) => SpearStatus;
 }
 
 /** The water inputs the score takes, leaving out what is unknown. */
 const waterTerms = (w: { sstC?: number | null; sarg?: SargLevel | null }) => ({ ...(typeof w.sstC === 'number' ? { sstC: w.sstC } : {}), ...(w.sarg ? { sarg: w.sarg } : {}) });
 
-type Mode = 'snorkel' | 'dive';
-const MODES: readonly Mode[] = ['snorkel', 'dive'];
-const MODE_DEPTH: Record<Mode, number> = { snorkel: 2, dive: 6 };
+type Mode = OutingMode;
+const MODES: readonly Mode[] = ['snorkel', 'dive', 'spear'];
+const MODE_DEPTH: Record<Mode, number> = { snorkel: 2, dive: 6, spear: 6 };
 const KEY = 'dive.mode';
 const DAYS = 7;
 /** How close the reticle must be to a catalog spot to show its card, km. */
@@ -73,6 +76,8 @@ export interface OutingDetail extends OutingScore {
   waterM: number;
   rip?: 'LOW' | 'MOD' | 'HIGH';
   uv?: number;
+  /** SPEAR only: whether spearfishing is allowed here. */
+  law?: SpearStatus;
 }
 
 export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, time: TimeStore, env: DiveEnv) {
@@ -81,7 +86,7 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
   let mode: Mode = 'snorkel';
   try {
     const m = localStorage.getItem(KEY);
-    if (m === 'dive' || m === 'snorkel') mode = m;
+    if (m === 'dive' || m === 'snorkel' || m === 'spear') mode = m;
   } catch {
     /* private mode */
   }
@@ -97,6 +102,7 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
       <div class="ro"><span class="lbl">${t('dive.uv')}</span><span class="seg sm" id="dv-uv">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.coral')}</span><span class="seg sm" id="dv-coral">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.entry')}</span><span class="seg sm" id="dv-entry">--</span></div>
+      <div class="ro" id="dv-law-row"><span class="lbl">${t('dive.law')}</span><span class="seg sm" id="dv-law">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.score')}</span><span class="seg sm" id="dv-score">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.time')}</span><span class="seg sm" id="dv-time">--</span></div>
       <div class="ro"><span class="lbl">${t('dive.day')}</span><span class="seg sm" id="dv-day">--</span></div>
@@ -150,6 +156,11 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     const hb = r ? r.shore?.Hb ?? r.waves.breaker.Hb : undefined;
     $('entry').textContent = r && Number.isFinite(hb) ? `${(hb as number).toFixed(1)} ${t('unit.m')} · ${t('dive.rip')} ${t(`dive.rip.${r.rip.level}` as Key)}` : '--';
     $('entry').className = 'seg sm ' + (!r || !Number.isFinite(hb) ? '' : (hb as number) >= 1.2 || r.rip.level === 'HIGH' ? 'red' : (hb as number) >= 0.5 || r.rip.level === 'MOD' ? '' : 'green');
+    // SPEAR only: may you spear here? (park and closed water: no; refuge with no rule found: ask SINAC; else yes, with the permit and card)
+    const law = env.spearAt?.(c.lng, c.lat) ?? 'ok';
+    side.querySelector<HTMLElement>('#dv-law-row')!.style.display = mode === 'spear' ? '' : 'none';
+    $('law').textContent = t(`dive.law.${law}` as Key);
+    $('law').className = 'seg sm ' + (law === 'banned' ? 'red' : law === 'check' ? '' : 'green');
     heavy();
   };
 
@@ -178,8 +189,10 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     const rip = Math.abs(ms - time.validMs()) < 0.5 * 3.6e6 ? r.rip.level : undefined;
     const currentMs = env.currentAt(c.lng, c.lat, ms)?.ms;
     const wx = env.wxAt(c.lng, c.lat, ms);
-    const out = outingScore({ surgeMs: u, visM: vis ?? NaN, windMs: wind, waterM, localHour, sunAltDeg: sunAltitude(ms, c.lat, c.lng), currentMs, breakerM, ...(rip ? { rip } : {}), ...(runoff === null ? {} : { runoff }), ...waterTerms(env.waterAt(c.lng, c.lat, ms)), ...wx });
-    return { ...out, surgeMs: u, visM: vis, breakerM, currentMs, windMs: wind, waterM, rip, uv: wx.uv };
+    // SPEAR: where spearfishing is banned (a national park, closed water) there is nothing to score.
+    const banned = m === 'spear' && env.spearAt?.(c.lng, c.lat) === 'banned';
+    const out = banned ? { score: 0, reasons: ['banned' as const] } : outingScore({ surgeMs: u, visM: vis ?? NaN, windMs: wind, waterM, localHour, sunAltDeg: sunAltitude(ms, c.lat, c.lng), currentMs, breakerM, ...(rip ? { rip } : {}), ...(runoff === null ? {} : { runoff }), ...waterTerms(env.waterAt(c.lng, c.lat, ms)), ...wx }, m === 'spear' ? 'spear' : 'outing');
+    return { ...out, surgeMs: u, visM: vis, breakerM, currentMs, windMs: wind, waterM, rip, uv: wx.uv, ...(m === 'spear' ? { law: env.spearAt?.(c.lng, c.lat) ?? 'ok' } : {}) };
   };
 
   let heavyKey = '';

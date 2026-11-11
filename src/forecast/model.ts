@@ -23,7 +23,8 @@ import { SPECIES, type SpeciesId } from '../fishing/species';
 import { seasonFactor } from '../fishing/habitat';
 import { waterTerm } from '../fishing/water';
 import type { BiteReason } from '../fishing/bite';
-import { stingerGuess, type OutingReason, type OutingScore } from '../physics/outing';
+import { stingerGuess, type OutingMode, type OutingReason, type OutingScore } from '../physics/outing';
+import type { SpearStatus } from '../rules';
 import { SNORKEL_SPOTS, type SnorkelAccess } from '../data/snorkel-spots';
 import { surgeBand, type SurgeBand } from '../physics/surge';
 import { METRIC_BY_ID, biteAt, surfHourFor, swimAt, type MetricEnv, type SwimDetail } from '../metrics/registry';
@@ -32,9 +33,9 @@ import { planDays, spotsFor, type Plan, type PlanActivity } from '../metrics/pla
 import type { Spot } from '../metrics/forecast';
 import type { SurfBand, SurfQuality } from '../surf-quality';
 
-export type FcActivity = 'fish' | 'surf' | 'swim' | 'snorkel' | 'dive' | 'sail';
+export type FcActivity = 'fish' | 'surf' | 'swim' | 'snorkel' | 'dive' | 'spear' | 'sail';
 /** In Joseph's order, SWIM (a beach day) beside SURF. */
-export const FC_ACTIVITIES: readonly FcActivity[] = ['fish', 'surf', 'swim', 'snorkel', 'dive', 'sail'];
+export const FC_ACTIVITIES: readonly FcActivity[] = ['fish', 'surf', 'swim', 'snorkel', 'dive', 'spear', 'sail'];
 export const isFcActivity = (x: unknown): x is FcActivity => typeof x === 'string' && (FC_ACTIVITIES as readonly string[]).includes(x);
 /** plan.ts calls sailing BOAT. */
 export const planActivity = (a: FcActivity): PlanActivity => (a === 'sail' ? 'boat' : a);
@@ -49,8 +50,9 @@ export interface OutingRead extends OutingScore {
   waterM?: number;
   rip?: 'LOW' | 'MOD' | 'HIGH';
   uv?: number;
+  law?: SpearStatus;
 }
-export type OutingDetailAt = (spot: Spot, mode: 'snorkel' | 'dive', ms: number, localHour: number) => OutingRead | null;
+export type OutingDetailAt = (spot: Spot, mode: OutingMode, ms: number, localHour: number) => OutingRead | null;
 
 export interface FcDeps {
   env: MetricEnv;
@@ -67,6 +69,7 @@ export const LEVEL_CUTS: Readonly<Record<Exclude<FcActivity, 'surf'>, readonly [
   fish: [20, 40, 60, 80],
   snorkel: [20, 40, 70, 85],
   dive: [20, 40, 70, 85],
+  spear: [20, 40, 70, 85],
   sail: [25, 50, 75, 90],
   swim: [20, 40, 70, 85],
 };
@@ -142,6 +145,8 @@ export interface WaterRead {
   /** SNORKEL: the catalog spot's access and the on-shore-wind stinger guess (outing.ts stingerGuess). */
   access: SnorkelAccess | null;
   stingers: boolean | null;
+  /** SPEAR: whether spearfishing is allowed here (rules.ts spearStatus), null for the other activities. */
+  law: SpearStatus | null;
 }
 /** Words for a snorkeller: chop from the wind, drift from the current. */
 export type Chop = 'flat' | 'light' | 'choppy' | 'rough';
@@ -237,7 +242,7 @@ export function readAt(deps: FcDeps, a: FcActivity, spot: Spot, ms: number, sky 
       },
     };
   }
-  if (a === 'snorkel' || a === 'dive') {
+  if (a === 'snorkel' || a === 'dive' || a === 'spear') {
     const o = deps.outing?.(spot, a, ms, localHour(ms, env.tzOffsetH));
     const snk = a === 'snorkel' ? SNORKEL_SPOTS.find((x) => x.spot === spot.name) ?? null : null;
     const windFrom = env.windDirDeg?.(lng, lat, ms) ?? null;
@@ -249,6 +254,7 @@ export function readAt(deps: FcDeps, a: FcActivity, spot: Spot, ms: number, sky 
         breakerM: o.breakerM, currentKt: fin(o.currentMs) ? o.currentMs * KT : null, windKt: fin(o.windMs) ? o.windMs * KT : null,
         waterM: fin(o.waterM) ? o.waterM : null, rip: o.rip ?? null, uv: fin(o.uv) ? o.uv : null,
         access: snk?.access ?? null,
+        law: a === 'spear' ? o.law ?? 'ok' : null,
         stingers: snk && fin(o.windMs) && fin(windFrom) ? stingerGuess(o.windMs, windFrom, snk.facing) : null,
       },
     };
@@ -296,7 +302,7 @@ export function chooseSpot(name: string, a: FcActivity, all: readonly Spot[]): {
 
 /** Each day's best window at this one spot, as WATCH's BEST DAY FOR finds it. */
 export function daysAt(deps: FcDeps, a: FcActivity, spot: Spot, nowMs: number, days = 7): Plan {
-  const outingAt = deps.outing ? (s: Spot, m: 'snorkel' | 'dive', ms: number, h: number) => deps.outing!(s, m, ms, h)?.score ?? null : undefined;
+  const outingAt = deps.outing ? (s: Spot, m: OutingMode, ms: number, h: number) => deps.outing!(s, m, ms, h)?.score ?? null : undefined;
   return planDays(deps.env, planActivity(a), [spot], nowMs, days, outingAt);
 }
 

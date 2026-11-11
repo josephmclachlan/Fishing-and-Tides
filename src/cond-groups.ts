@@ -51,7 +51,7 @@ export const isActivity = (v: unknown): v is CondActivity => ACTIVITIES.includes
 
 /** Layer presets (layers/registry.ts) to the matching conditions activity. */
 export function activityForPreset(preset: string | null): CondActivity | null {
-  const map: Record<string, CondActivity> = { all: 'all', fishing: 'fish', dive: 'dive', surf: 'surf', sail: 'boat' };
+  const map: Record<string, CondActivity> = { all: 'all', fishing: 'fish', dive: 'dive', spear: 'dive', surf: 'surf', sail: 'boat' };
   return preset ? (map[preset] ?? null) : null;
 }
 

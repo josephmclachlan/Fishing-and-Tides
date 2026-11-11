@@ -25,6 +25,7 @@ export const ICON: Record<Mode, string> = {
   swim: '<circle class="k-mv" cx="17" cy="6" r="2.2"/><path d="M2 14c2.5 0 2.5 2 5 2s2.5-2 5-2 2.5 2 5 2 2.5-2 5-2"/><path d="M2 20c2.5 0 2.5 2 5 2s2.5-2 5-2 2.5 2 5 2 2.5-2 5-2"/>',
   snorkel: '<path class="k-mv" d="M2 9h13v6.5H10L8.5 13 7 15.5H2z"/><path d="M20 2v13a5 5 0 0 1-5 5h-2"/>',
   dive: '<path class="k-mv" d="M12 2v13M6.5 10l5.5 5.5 5.5-5.5"/><path d="M2 20h20"/>',
+  spear: '<path class="k-mv" d="M3 21L19 5"/><path d="M14 4h6v6"/><path d="M3 13h5M11 21v-5"/>',
   sail: '<path class="k-mv" d="M11 2v15M11 3l8 14h-8z"/><path d="M8 7l-5 10h5"/><path d="M2 21c5 1.5 15 1.5 20 0"/>',
   coral: '<path class="k-mv" d="M12 22V12M12 12L7 7M7 7V3M7 7L3 5M12 12l5-4M17 8V4M17 8l4-1M12 16l-4-2"/>',
 };
@@ -38,7 +39,7 @@ export const LOCK = svg('<rect x="4" y="9" width="12" height="9"/><path d="M7 9V
 
 /** Map mode words. */
 export const modeName = (m: Mode) =>
-  ({ surf: L2('Surf', 'Surf'), fish: L2('Fish', 'Pesca'), swim: L2('Swim', 'Nadar'), snorkel: L2('Snorkel', 'Snorkel'), dive: L2('Dive', 'Buceo'), sail: L2('Sail', 'Navegar'), coral: L2('Coral', 'Coral') })[m];
+  ({ surf: L2('Surf', 'Surf'), fish: L2('Fish', 'Pesca'), swim: L2('Swim', 'Nadar'), snorkel: L2('Snorkel', 'Snorkel'), dive: L2('Dive', 'Buceo'), spear: L2('Spear', 'Arpón'), sail: L2('Sail', 'Navegar'), coral: L2('Coral', 'Coral') })[m];
 /** Rating words on the forecast page's five levels. */
 export const levelWord = (l: number | null) => (l === null ? L2('No data', 'Sin datos') : [L2('Very poor', 'Muy malo'), L2('Poor', 'Malo'), L2('Fair', 'Regular'), L2('Good', 'Bueno'), L2('Great', 'Excelente')][l]);
 

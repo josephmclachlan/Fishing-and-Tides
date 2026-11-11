@@ -29,6 +29,7 @@ export const LEGEND: Readonly<Record<LayerId, readonly LegendItem[]>> = {
   reefs: [{ sw: 'none', tone: 'amber' }, { sw: 'none', tone: 'amber' }],
   seamarks: [],
   fishing: [{ sw: 'fill', tone: 'dim' }, { sw: 'fill', tone: 'amber' }, { sw: 'none', tone: 'amber' }, { sw: 'zone', tone: 'green' }, { sw: 'none', tone: 'amber' }],
+  spear: [{ sw: 'fill', tone: 'green' }, { sw: 'fill', tone: 'red' }, { sw: 'line', tone: 'amber' }, { sw: 'zone', tone: 'green' }],
   zones: [{ sw: 'line', tone: 'red' }, { sw: 'line', tone: 'amber' }],
   anchorages: [{ sw: 'ring', tone: 'green' }, { sw: 'ring', tone: 'dim' }],
 };

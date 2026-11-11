@@ -190,3 +190,25 @@ describe('surf and rip at the entry', () => {
     expect(outingScore({ ...good, rip: 'HIGH' }).reasons).toContain('rip');
   });
 });
+
+describe('spear variant', () => {
+  const spearGood: OutingInputs = { surgeMs: 0.05, visM: 8, windMs: 3, waterM: 6, localHour: 11 };
+  it('is 100 in calm clear water at a working depth', () => {
+    expect(outingScore(spearGood, 'spear')).toEqual({ score: 100, reasons: [] });
+  });
+  it('is harder on surge and current than a dive trip', () => {
+    const rough = { ...spearGood, surgeMs: 0.3, currentMs: 0.3 };
+    expect(outingScore(rough, 'spear').score).toBeLessThan(outingScore(rough).score);
+    expect(outingScore(rough, 'spear').reasons).toEqual(expect.arrayContaining(['surge', 'current']));
+  });
+  it('wants about 3 to 6 m of sight for a shot, not a snorkeller\'s 10', () => {
+    expect(outingScore({ ...spearGood, visM: 6 }, 'spear').score).toBe(100);
+    expect(outingScore({ ...spearGood, visM: 6 }).score).toBeLessThan(100);
+    expect(outingScore({ ...spearGood, visM: 2 }, 'spear').reasons).toContain('vis');
+  });
+  it('has a working depth window: too shallow and too deep both cost', () => {
+    expect(outingScore({ ...spearGood, waterM: 1 }, 'spear').reasons).toContain('shallow');
+    expect(outingScore({ ...spearGood, waterM: 22 }, 'spear').reasons).toContain('deep');
+    expect(outingScore({ ...spearGood, waterM: 22 }).reasons).not.toContain('deep');
+  });
+});

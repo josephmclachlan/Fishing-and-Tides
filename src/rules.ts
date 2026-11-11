@@ -6,6 +6,8 @@
  * `official` = stated in an official document we read; `unconfirmed` = sources disagree or we
  * found nothing, so the card says who to ask. Last checked 2026-11-02.
  */
+import type { ZoneProps } from './zones';
+
 export type RuleConfidence = 'official' | 'unconfirmed';
 
 export interface Rule {
@@ -45,4 +47,16 @@ export const ZONE_RULES: Readonly<Record<string, readonly Rule[]>> = {
 /** Rules for the zone under the reticle (or none), then the national ones. */
 export function rulesFor(zoneId: string | null): { here: readonly Rule[]; national: readonly Rule[] } {
   return { here: (zoneId && ZONE_RULES[zoneId]) || [], national: NATIONAL_RULES };
+}
+
+/**
+ * Whether breath-hold spearfishing is allowed in the zone under a point (the SPEAR map layer and score). BANNED: a national park
+ * (IUCN II, Cahuita: spear guns not allowed) or closed water, where INCOPESCA art. 9 bars it. CHECK: a refuge whose marine rule we could
+ * not find (Gandoca-Manzanillo, Limoncito). OK: outside any zone, but the national rules still apply (permit and card, 18+, 5 fish a day).
+ */
+export type SpearStatus = 'ok' | 'check' | 'banned';
+export function spearStatus(z: ZoneProps | null): SpearStatus {
+  if (!z) return 'ok';
+  if (z.status === 'closed' || z.iucn === '2' || z.id === 'cahuita') return 'banned';
+  return ZONE_RULES[z.id]?.some((r) => r.confidence === 'unconfirmed') ? 'check' : 'ok';
 }

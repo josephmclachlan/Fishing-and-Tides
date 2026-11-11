@@ -20,6 +20,7 @@ export const ICONS: Record<FcActivity, string> = {
   swim: '<circle class="mv" cx="17" cy="6" r="2.2"/><path d="M2 14c2.5 0 2.5 2 5 2s2.5-2 5-2 2.5 2 5 2 2.5-2 5-2"/><path d="M2 20c2.5 0 2.5 2 5 2s2.5-2 5-2 2.5 2 5 2 2.5-2 5-2"/>',
   snorkel: '<path class="mv" d="M2 9h13v6.5H10L8.5 13 7 15.5H2z"/><path d="M20 2v13a5 5 0 0 1-5 5h-2"/>',
   dive: '<path class="mv" d="M12 2v13M6.5 10l5.5 5.5 5.5-5.5"/><path d="M2 20h20"/>',
+  spear: '<path class="mv" d="M3 21L19 5"/><path d="M14 4h6v6"/><path d="M3 13h5M11 21v-5"/>',
   sail: '<path class="mv" d="M11 2v15M11 3l8 14h-8z"/><path d="M8 7l-5 10h5"/><path d="M2 21c5 1.5 15 1.5 20 0"/>',
 };
 export const icon = (a: FcActivity) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[a]}</svg>`;

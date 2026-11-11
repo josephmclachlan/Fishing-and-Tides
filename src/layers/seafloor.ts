@@ -26,7 +26,7 @@ const { COAST, SPOT } = TIER_ZOOM;
  */
 export const CONTOURS_FROM = 'sf-contour-deep';
 /** Fill layers that must stay under the contours, whichever loads first. */
-const FILLS_UNDER_CONTOURS = ['fh-cells', 'pz-fill'];
+const FILLS_UNDER_CONTOURS = ['fh-cells', 'sp-cells', 'sp-ban', 'pz-fill'];
 const FONT = ['Noto Sans Regular'];
 
 /** Theme colours come from the CSS variables in style.css. */

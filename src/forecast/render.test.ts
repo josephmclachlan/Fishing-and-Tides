@@ -14,7 +14,7 @@ import { DAY0, empty, full, H, spot } from './testkit';
 
 const NOW = DAY0 + 11 * H;
 const BAD = /NaN|undefined|Infinity|\bnull\b/;
-const SPOT_OF: Record<FcActivity, string> = { surf: 'SALSA BRAVA', fish: 'PUNTA UVA', snorkel: 'PUNTA CAHUITA', dive: 'PUNTA CAHUITA', swim: 'PLAYA COCLES', sail: 'PLAYA COCLES' };
+const SPOT_OF: Record<FcActivity, string> = { surf: 'SALSA BRAVA', fish: 'PUNTA UVA', snorkel: 'PUNTA CAHUITA', dive: 'PUNTA CAHUITA', spear: 'PUNTA UVA', swim: 'PLAYA COCLES', sail: 'PLAYA COCLES' };
 /** Text content of markup: tags dropped, entities decoded. */
 const text = (html: string) => html.replace(/<wbr>/g, '').replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ');
 
@@ -39,8 +39,8 @@ function page(a: FcActivity, deps = full()) {
 }
 
 describe('the page renders the model\'s numbers (PLAN 7.69)', () => {
-  it('renders the frame with all six activities, both languages and the map, coral and theme controls', () => {
-    const s = shellHtml({ acts: ['fish', 'surf', 'swim', 'snorkel', 'dive', 'sail'], lang: 'en', coral: true });
+  it('renders the frame with all seven activities, both languages and the map, coral and theme controls', () => {
+    const s = shellHtml({ acts: ['fish', 'surf', 'swim', 'snorkel', 'dive', 'spear', 'sail'], lang: 'en', coral: true });
     for (const a of FC_ACTIVITIES) expect(s).toContain(`data-act="${a}"`);
     expect(s).toContain('data-lang="es"');
     expect(s).toContain('id="fc-coral"');

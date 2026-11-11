@@ -565,20 +565,20 @@ export function mountKineticMap(d: KmDeps) {
       out.push({ k: 'swell', l: L2('Swell', 'Oleaje'), v: n1(h.swell.hs), u: 'm', s: `${Math.round(h.swell.tp)} s · ${L2('from', 'de')} ${compass(h.swell.fromDeg)}`, deg: h.swell.fromDeg, trains: h.swell.trains, help: 'swell', src: 'WW3' });
     if ((has('wind') || act('sail') || act('surf')) && h.wind)
       out.push({ k: 'wind', l: L2('Wind', 'Viento'), v: n0(h.wind.kt), u: 'kt', s: `${compass(h.wind.fromDeg)}${fin(h.wind.gustKt) ? ` · ${L2('gusts', 'ráfagas')} ${n0(h.wind.gustKt)}` : ''}`, deg: h.wind.fromDeg, help: 'wind', src: 'ECMWF · GFS' });
-    if ((has('currents') || act('snorkel') || act('dive')) && h.current && !h.land)
+    if ((has('currents') || act('snorkel') || act('dive') || act('spear')) && h.current && !h.land)
       out.push({ k: 'current', l: L2('Current', 'Corriente'), v: n1(h.current.kt), u: 'kt', s: `${L2('sets', 'hacia')} ${compass(h.current.toDeg)}`, deg: h.current.toDeg, help: 'current', src: 'SMOC' });
     // The old DIVE & SNORKEL rows (dive-hud.ts): bed surge at each depth, scored at 2 m for snorkel and 6 m for dive.
-    if ((act('snorkel') || act('dive') || (has('reefs') && !S.coral)) && h.surge?.length && !h.land) {
-      const at = act('dive') ? 6 : 2, sg = h.surge.find((x) => x.depth === at) ?? h.surge[0];
+    if ((act('snorkel') || act('dive') || act('spear') || (has('reefs') && !S.coral)) && h.surge?.length && !h.land) {
+      const at = act('dive') || act('spear') ? 6 : 2, sg = h.surge.find((x) => x.depth === at) ?? h.surge[0];
       const word = (b: string) => (b === 'DANGEROUS' ? L2('Dangerous', 'Peligroso') : b === 'SURGY' ? L2('Surgy', 'Con vaivén') : L2('Calm', 'Calmo'));
       out.push({ k: 'surge', l: L2('Surge', 'Vaivén'), v: n1(sg.uMs), u: 'm/s', s: `${word(sg.band)} · ${sg.depth} m · ±${n1(sg.excursionM)}`, help: 'surge', src: L2('by depth', 'por prof.'), prof: h.surge, lv: sg.band === 'DANGEROUS' ? 0 : sg.band === 'SURGY' ? 2 : 4 });
     }
     // Surf at the water's edge (the breaker, cut by any reef flat in front): what a swimmer walks into.
     if ((act('swim') || act('snorkel') || act('surf')) && fin(h.entryM) && !h.land)
       out.push({ k: 'entry', l: L2('Surf at entry', 'Olas en la orilla'), v: n1(h.entryM), u: 'm', s: h.entryM >= 1.2 ? L2('Big shore break', 'Rompiente fuerte') : h.entryM >= 0.5 ? L2('Waves at the edge', 'Olas en la orilla') : L2('Easy entry', 'Entrada fácil'), val: h.entryM, help: 'diveEntry', lv: h.entryM >= 1.2 ? 0 : h.entryM >= 0.5 ? 2 : 4 });
-    if ((has('sst') || has('fronts') || act('swim') || act('dive') || S.coral) && fin(h.sstC) && !h.land)
+    if ((has('sst') || has('fronts') || act('swim') || act('dive') || act('spear') || S.coral) && fin(h.sstC) && !h.land)
       out.push({ k: 'sst', l: L2('Water temp', 'Temp. agua'), v: n1(h.sstC), u: '°C', s: h.sstC >= SST_BANDS.WARM ? L2('Warm for here', 'Cálida para aquí') : h.sstC >= SST_BANDS.COOL ? L2('Mid · no wetsuit', 'Media · sin traje') : L2('Cooler for here', 'Fresca para aquí'), val: h.sstC, help: 'sst', src: L2('satellite', 'satélite') });
-    if ((has('clarity') || act('snorkel') || act('dive')) && fin(h.visM) && !h.land)
+    if ((has('clarity') || act('snorkel') || act('dive') || act('spear')) && fin(h.visM) && !h.land)
       out.push({ k: 'clarity', l: L2('Visibility', 'Visibilidad'), v: h.visM >= 10 ? n0(h.visM) : n1(h.visM), u: 'm', s: h.visM < CLARITY_BANDS.fair ? L2('Poor · murky', 'Mala · turbia') : h.visM < CLARITY_BANDS.good ? L2('Fair · hazy', 'Regular · algo turbia') : L2('Good · clear', 'Buena · clara'), val: h.visM, help: 'vis', src: 'Kd490' });
     if (has('sargassum') && h.sarg) out.push({ k: 'sarg', l: L2('Sargassum', 'Sargazo'), v: t(`sarg.level.${h.sarg.level}` as Key) || h.sarg.level, u: '', s: titleCase(h.sarg.beach), help: 'sargassum', lv: h.sarg.level === 'HIGH' ? 0 : h.sarg.level === 'MED' || h.sarg.level === 'MOD' ? 2 : 4 });
     if ((has('weather') || act('swim') || act('sail')) && h.rain)
@@ -596,7 +596,7 @@ export function mountKineticMap(d: KmDeps) {
       if (r.score !== null) out.push({ k: 'bite', l: 'BITE', v: n0(r.score), u: '/100', s: titleCase(s.name), lv: r.level, help: 'bite' });
     }
     const td = tideNow(t0);
-    if ((has('depth') || has('reefs') || act('dive') || act('snorkel') || act('fish')) && fin(h.depthM) && !h.land) {
+    if ((has('depth') || has('reefs') || act('dive') || act('spear') || act('snorkel') || act('fish')) && fin(h.depthM) && !h.land) {
       // With the tide on top, as the old WATER OVER REEF row read it (chart depth is to mean sea level).
       const wet = h.depthM + td.m;
       out.push({ k: 'depth', l: L2('Depth', 'Prof.'), v: h.depthM >= 10 ? n0(h.depthM) : n1(h.depthM), u: 'm', s: `${L2('With tide', 'Con marea')} ${wet >= 10 ? n0(wet) : n1(wet)} m · ${L2('not for navigation', 'no para navegar')}`, val: h.depthM, help: 'depth', src: 'GEBCO' });
@@ -679,7 +679,7 @@ export function mountKineticMap(d: KmDeps) {
       sea: [L2('Swell', 'Oleaje'), fin(r.sail?.swellM) ? `${n1(r.sail!.swellM!)}<small>m</small>` : '--'],
       air: [L2('Air', 'Aire'), fin(h.airC) ? `${n0(h.airC)}°` : '--'],
     };
-    const pick = { surf: ['swell', 'wind', 'tide', 'uv'], fish: ['tide', 'moon', 'wind', 'uv'], swim: ['rip', 'water', 'air', 'uv'], snorkel: ['vis', 'current', 'water', 'uv'], dive: ['vis', 'surge', 'water', 'uv'], sail: ['wind', 'gust', 'sea', 'uv'] }[S.act];
+    const pick = { surf: ['swell', 'wind', 'tide', 'uv'], fish: ['tide', 'moon', 'wind', 'uv'], swim: ['rip', 'water', 'air', 'uv'], snorkel: ['vis', 'current', 'water', 'uv'], dive: ['vis', 'surge', 'water', 'uv'], spear: ['vis', 'surge', 'current', 'uv'], sail: ['wind', 'gust', 'sea', 'uv'] }[S.act];
     return `<div class="k-minis">${pick.map((k) => `<div><span>${C[k][0]}</span><b>${C[k][1]}</b></div>`).join('')}</div>`;
   };
   const segs = (share: number | null) => `<span class="k-segs" aria-hidden="true">${Array.from({ length: 10 }, (_, i) => `<i class="${share !== null && i < Math.round(share * 10) ? 'k-f' : ''}"></i>`).join('')}</span>`;
