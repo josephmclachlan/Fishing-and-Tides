@@ -364,12 +364,14 @@ type Box = { x: number; y: number; w: number; h: number };
 
 function drawSurf(c: Ctx2D, A: Box, tt: number, s: NonNullable<HeroParams['surf']>, S: Style) {
   const { x, y, w, h } = A, maxM = Math.max(2.2, s.hi * 1.2);
-  const base = y + h - 14, top = y + 30, mpx = (base - top) / maxM, lx = x + 40, rx = x + w - 58;
+  const base = y + h - 14, top = y + 30, mpx = (base - top) / maxM, lx = x + 40;
+  // The right gutter is the surfer's: the guide names end where it starts, so nothing is drawn over the figure.
+  const G = BODY_M.head * mpx * 0.78, xl = x + w - G, rx = xl - 58;
   for (const [m, n] of s.guides) {
     if (m > maxM) continue;
     const yy = base - m * mpx;
     c.strokeStyle = S.faint; c.lineWidth = 1; c.setLineDash([2, 4]); c.beginPath(); c.moveTo(lx, yy); c.lineTo(rx, yy); c.stroke(); c.setLineDash([]);
-    c.fillStyle = S.ink; txt(c, n, x + w, yy, 'right', 10.5, 700);
+    c.fillStyle = S.ink; txt(c, n, xl, yy, 'right', 10.5, 700);
     c.fillStyle = S.soft; txt(c, m.toFixed(1), x, yy, 'left', 10.5);
   }
   c.strokeStyle = S.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(lx, base); c.lineTo(rx, base); c.stroke();
@@ -389,24 +391,58 @@ function drawSurf(c: Ctx2D, A: Box, tt: number, s: NonNullable<HeroParams['surf'
   const y1 = base - s.hi * mpx, y2 = base - s.lo * mpx;
   c.fillStyle = S.ink; c.fillRect(lx - 12, y1, 6, Math.max(2, y2 - y1));
   c.fillStyle = S.ink; txt(c, s.caption, lx - 12, y + 6, 'left', 10.5, 700);
-  drawPerson(c, lx + Math.min(44, (rx - lx) * 0.16), base, mpx, tt, S);
+  drawPerson(c, x + w - BODY_M.head * mpx * 0.3, base, mpx, tt, S, x + w);
 }
 
-/**
- * A standing adult drawn to the wave scale: feet on the 0 m line, the crown at BODY_M.head (1.7 m) on the same
- * metres-to-pixels scale as the crests and guide lines, so the faces read against a real body. A background halo keeps
- * it legible over the hatching; the trunks take the level colour; the arms and chest ease gently so it is alive but
- * never moves the scale.
- */
-/** The figure's halo and shorts: light on every level colour, in both themes. */
+/** The figure's halo, shorts and board deck: light on every level colour, in both themes. */
 const CREAM: RGB = [255, 246, 232];
-export function drawPerson(c: Ctx2D, cx: number, base: number, mpx: number, tt: number, S: Style) {
+/** Typical shortboard, m: the figure is drawn at BODY_M.head on the same scale, so the board reads true beside it. */
+export const BOARD_M = { len: 1.85, wid: 0.5 } as const;
+
+/**
+ * A standing adult with a shortboard planted behind, drawn to the wave scale: feet on the 0 m line, the crown at
+ * BODY_M.head (1.7 m) on the same metres-to-pixels scale as the crests and guide lines, the board at its real length.
+ * The surfer stands in the chart's right gutter (`edge` is the right limit for the label), clear of the waves and
+ * numbers. A light halo keeps it legible on every level colour; the arms and chest ease gently so it is alive
+ * without moving the scale (still under reduced motion).
+ */
+export function drawPerson(c: Ctx2D, cx: number, base: number, mpx: number, tt: number, S: Style, edge = cx + 40) {
   const u = BODY_M.head * mpx; // crown height in px
   if (!(u > 8) || !Number.isFinite(cx)) return;
   const br = S.reduced ? 0 : Math.sin(tt * 1.6), sway = S.reduced ? 0 : Math.sin(tt * 0.7);
+  const cream = (a: number) => rgba(CREAM, a);
+  c.save();
+  // Contact shadow on the sand line.
+  c.fillStyle = rgba(S.on, 0.22);
+  c.beginPath(); c.ellipse(cx - 0.04 * u, base + 1, 0.3 * u, 0.022 * u + 1, 0, 0, TAU); c.fill();
+
+  // The board: nose up, leaning back and a little left, tail in the sand, a stringer, a rail stripe and a deck panel.
+  const L = BOARD_M.len * mpx, Wd = BOARD_M.wid * mpx, lean = -0.13 + 0.004 * sway;
+  c.save();
+  c.translate(cx - 0.17 * u, base);
+  c.rotate(lean);
+  const bp = () => {
+    c.beginPath();
+    c.moveTo(0, -L); // nose
+    c.bezierCurveTo(Wd * 0.46, -L * 0.82, Wd * 0.52, -L * 0.42, Wd * 0.46, -L * 0.12);
+    c.bezierCurveTo(Wd * 0.44, -L * 0.03, Wd * 0.3, 0, Wd * 0.14, 0); // tail
+    c.lineTo(-Wd * 0.14, 0);
+    c.bezierCurveTo(-Wd * 0.3, 0, -Wd * 0.44, -L * 0.03, -Wd * 0.46, -L * 0.12);
+    c.bezierCurveTo(-Wd * 0.52, -L * 0.42, -Wd * 0.46, -L * 0.82, 0, -L);
+    c.closePath();
+  };
+  bp(); c.fillStyle = cream(0.96); c.fill();
+  c.save(); bp(); c.clip();
+  c.fillStyle = rgba(S.on, 0.9); c.fillRect(-Wd, -L * 0.7, Wd * 2, L * 0.16); // stripe
+  c.fillStyle = rgba(S.on, 0.9); c.fillRect(-Wd, -L * 0.5, Wd * 2, L * 0.03);
+  c.fillStyle = rgba(S.fd, 0.5); c.beginPath(); c.moveTo(-Wd, -L * 0.2); c.lineTo(Wd, -L * 0.28); c.lineTo(Wd, -L * 0.08); c.lineTo(-Wd, -L * 0.02); c.closePath(); c.fill();
+  c.restore();
+  c.strokeStyle = rgba(S.on, 1); c.lineWidth = 2; bp(); c.stroke();
+  c.lineWidth = 1; c.strokeStyle = rgba(S.on, 0.55); c.beginPath(); c.moveTo(0, -L * 0.96); c.lineTo(0, -L * 0.03); c.stroke();
+  c.restore();
+
   const hipY = base - 0.5 * u, shY = base - 0.8 * u - 0.004 * u * br, neckY = base - 0.855 * u;
-  const headR = 0.062 * u, headY = base - 0.935 * u;
-  const hx = cx + sway * 0.004 * u;
+  const headR = 0.062 * u, headY = base - 0.935 * u, hx = cx + sway * 0.004 * u;
   const limbs = (col: string, grow: number) => {
     c.strokeStyle = col;
     for (const sd of [-1, 1]) {
@@ -423,19 +459,20 @@ export function drawPerson(c: Ctx2D, cx: number, base: number, mpx: number, tt: 
     }
     capsule(c, hx, shY - 0.02 * u, hx, neckY, 0.04 * u + grow);
   };
-  c.save();
-  const halo = rgba(CREAM, 0.9);
-  limbs(halo, 0.022 * u);
-  c.fillStyle = halo; c.beginPath(); c.arc(hx, headY, headR + 0.018 * u, 0, TAU); c.fill();
+  limbs(cream(0.9), 0.022 * u);
+  c.fillStyle = cream(0.9); c.beginPath(); c.arc(hx, headY, headR + 0.018 * u, 0, TAU); c.fill();
   limbs(S.ink, 0);
   c.fillStyle = S.ink; c.beginPath(); c.arc(hx, headY, headR, 0, TAU); c.fill();
-  // Board shorts, a light panel so they read against the body.
-  c.strokeStyle = rgba(CREAM, 0.95);
+  // Board shorts: a light panel with a level-colour drawstring band.
+  c.strokeStyle = cream(0.97);
   capsule(c, hx, hipY - 0.03 * u, hx, hipY + 0.03 * u, 0.15 * u);
   for (const sd of [-1, 1]) capsule(c, hx + sd * 0.045 * u, hipY + 0.02 * u, cx + sd * 0.043 * u, base - 0.34 * u, 0.07 * u);
+  c.strokeStyle = rgba(S.on, 0.9); c.lineWidth = Math.max(1.5, 0.014 * u);
+  c.beginPath(); c.moveTo(hx - 0.075 * u, hipY - 0.045 * u); c.lineTo(hx + 0.075 * u, hipY - 0.045 * u); c.stroke();
+  // Height tick at the crown and the label, kept inside the chart's right edge.
   c.strokeStyle = S.soft; c.lineWidth = 1;
-  c.beginPath(); c.moveTo(hx - 0.1 * u, base - u); c.lineTo(hx + 0.1 * u, base - u); c.stroke();
-  c.fillStyle = S.ink; txt(c, t('fc.g.person'), hx, Math.max(base - u - 0.07 * u, 8), 'center', 10.5, 700);
+  c.beginPath(); c.moveTo(hx + 0.1 * u, base - u); c.lineTo(edge, base - u); c.stroke();
+  c.fillStyle = S.ink; txt(c, t('fc.g.person'), edge, Math.max(base - u - 0.07 * u, 8), 'right', 10.5, 700);
   c.restore();
 }
 
