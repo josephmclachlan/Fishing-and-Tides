@@ -243,12 +243,12 @@ body.fc-open { overflow: hidden; }
 .fc-t-val small { font-size: 0.55em; font-weight: 700; color: var(--fc-ink2); letter-spacing: 0; }
 .fc-t-sub { margin: 5px 0 0; font-size: 12.5px; line-height: 1.25; color: var(--fc-ink2); min-height: 2.5em; }
 .fc-t-tip {
-  position: absolute; inset: 0; background: var(--fc-ink); color: var(--fc-bg); padding: 14px; display: flex; align-items: flex-end;
+  position: absolute; inset: 0; background: color-mix(in srgb, var(--fc-bg) 62%, transparent); color: var(--fc-ink); outline: 1px solid var(--fc-ink); outline-offset: -1px; padding: 14px; display: flex; align-items: flex-end;
   opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity 0.25s, transform 0.25s;
 }
-.fc-t-tip p { margin: 0; font-family: var(--fc-disp); font-weight: 700; font-variation-settings: 'wdth' 84; font-size: 20px; line-height: 1.08; }
-.fc-tile[aria-expanded='true'] .fc-t-tip { opacity: 1; transform: none; }
-@media (hover: hover) { .fc-tile[role='button']:hover .fc-t-tip { opacity: 1; transform: none; } }
+.fc-t-tip p { margin: 0; text-shadow: 0 0 6px var(--fc-bg), 0 0 2px var(--fc-bg); font-family: var(--fc-disp); font-weight: 700; font-variation-settings: 'wdth' 84; font-size: 20px; line-height: 1.08; }
+.fc-tile:focus-visible .fc-t-tip { opacity: 1; transform: none; }
+@media (hover: hover) { .fc-tile:hover .fc-t-tip { opacity: 1; transform: none; } }
 
 /* --- live map card */
 .fc .fc-live {
