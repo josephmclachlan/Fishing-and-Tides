@@ -164,13 +164,13 @@ describe('SWIM: a beach day', () => {
     expect(r.swim!.sstC).toBe(28.5);
     expect(readAt({ env: env() }, 'swim', spot('PLAYA COCLES'), noon).score).toBeNull();
   });
-  it('rates a high rip risk poor, and after dark is closed (no red 0/100), not rated', () => {
+  it('rates a high rip risk poor; after dark it is scored on the conditions, not zero (night swimming)', () => {
     expect(readAt({ env: env({ shore: shore('HIGH') }) }, 'swim', spot('PLAYA COCLES'), noon).level).toBe(0);
     const night = readAt({ env: env({ shore: shore('LOW') }) }, 'swim', spot('PLAYA COCLES'), DAY0 + 2 * H);
-    expect(night.score).toBeNull();
-    expect(night.level).toBeNull();
     expect(night.swim!.daylight).toBe(false);
-    expect(readAt({ env: env({ shore: shore('LOW') }) }, 'swim', spot('PLAYA COCLES'), DAY0 + 11 * H).score).not.toBeNull();
+    expect(night.score).toBeGreaterThan(50);
+    expect(night.swim!.reasons).toContain('dark');
+    expect(readAt({ env: env({ shore: shore('HIGH') }) }, 'swim', spot('PLAYA COCLES'), DAY0 + 2 * H).score).toBe(15);
   });
   it('plans the week at every spot, as WATCH does', () => {
     const p = daysAt({ env: env({ shore: shore('LOW') }) }, 'swim', spot('PLAYA COCLES'), DAY0 + 6 * H, 5);

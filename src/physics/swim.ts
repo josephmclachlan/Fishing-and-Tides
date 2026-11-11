@@ -11,7 +11,7 @@
  *
  * The score, 0..100, starts at 100. Safety caps it, comfort scales it:
  *
- *   caps     dark (sun below the horizon) 0; lightning or a likely squall 5; rip HIGH 15; shore break over 1.3 m 15
+ *   caps     lightning or a likely squall 5; rip HIGH 15; shore break over 1.3 m 15
  *   factors  rip MOD ×0.55; shore break 0.5 → 1.3 m ×1 → ×0.3; squall watch ×0.7;
  *            wind 10 → 20 kt ×1 → ×0.6 (sand blowing, chop), over 20 kt ×0.5;
  *            rain 0.2 → 2 mm/h ×1 → ×0.6, over 2 mm/h ×0.4;
@@ -19,6 +19,9 @@
  *            water 26 → 22 °C ×1 → ×0.75; UV 8-10 ×0.9, 11+ ×0.8 (cover up, shade, not a reason to stay home);
  *            overcast (≥ 85 % cloud) ×0.9; sargassum moderate ×0.8, high ×0.5;
  *            low sun, from sunrise or to sunset 0 → 1.5 h ×0.7 → ×1 (a beach day wants the sun up)
+ *   night    after dark the score is the conditions' alone (night swimming is common here, Joseph 2026-11-11): rip, shore break,
+ *            wind, rain, heat and water temperature count as by day; sun-only factors (low sun, UV, overcast) are dropped, and
+ *            ×0.85 for not seeing the sea (a torch, a flag you cannot read)
  *
  * Tones: 70 and up good (green), 40 to 69 fair (amber), under 40 poor (red), as the outing score.
  */
@@ -107,7 +110,7 @@ export interface SwimScore {
 export function swimScore(i: SwimInputs): SwimScore {
   const f: [SwimReason, number][] = [];
   const caps: [SwimReason, number][] = [];
-  if (!i.daylight) caps.push(['dark', 0]);
+  if (!i.daylight) f.push(['dark', 0.85]);
   else if (finite(i.sunHours)) f.push(['lowsun', lerp(i.sunHours, 0, 1.5, 0.7, 1)]);
   if (i.lightning || i.squall === 'high') caps.push(['storm', 5]);
   else if (i.squall === 'watch') f.push(['storm', 0.7]);
@@ -122,8 +125,8 @@ export function swimScore(i: SwimInputs): SwimScore {
     else if (i.feelsC < 26) f.push(['cool', lerp(i.feelsC, 26, 22, 1, 0.7)]);
   }
   if (finite(i.sstC)) f.push(['cold', lerp(i.sstC, 26, 22, 1, 0.75)]);
-  if (finite(i.uv)) f.push(['uv', i.uv >= 10.5 ? 0.8 : i.uv >= 7.5 ? 0.9 : 1]);
-  if (finite(i.cloudPct) && i.cloudPct >= 85 && !(finite(i.rainMmH) && i.rainMmH >= 0.2)) f.push(['overcast', 0.9]);
+  if (i.daylight && finite(i.uv)) f.push(['uv', i.uv >= 10.5 ? 0.8 : i.uv >= 7.5 ? 0.9 : 1]);
+  if (i.daylight && finite(i.cloudPct) && i.cloudPct >= 85 && !(finite(i.rainMmH) && i.rainMmH >= 0.2)) f.push(['overcast', 0.9]);
   if (i.sarg === 'HIGH') f.push(['sargassum', 0.5]);
   else if (i.sarg === 'MODERATE') f.push(['sargassum', 0.8]);
   let score = 100 * f.reduce((p, [, k]) => p * k, 1);
