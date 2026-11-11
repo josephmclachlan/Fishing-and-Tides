@@ -21,7 +21,7 @@ import { occurrenceBoost, recordsFor, withEvidence } from '../fishing/occurrence
 import type { OccurrenceFile } from '../fishing/occurrence-taxa';
 import { catchRecords, type CatchPin } from '../fishing/catches';
 import { lifted, paintColour as cssColour, paintLift } from './paint';
-import { ANCHOR_OFFSET, FAR_ZONES, NEAR_ZONES, speciesZones, zoneLabel, zoneRing, type Zone, type ZoneCell, type ZoneWhy } from '../fishing/zones';
+import { ANCHOR_OFFSET, FAR_ZONES, fishZones, NEAR_ZONES, speciesZones, zoneLabel, zoneRing, type Zone, type ZoneCell, type ZoneWhy } from '../fishing/zones';
 import type { OffshoreId } from '../fishing/offshore';
 import { nearestName, uniqueMarks } from '../fishing/near-name';
 import { cellAt } from '../physics/bathy';

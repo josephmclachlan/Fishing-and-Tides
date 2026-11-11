@@ -1365,7 +1365,6 @@ export const en = {
   'legend.fishing.3': 'SHORE keeps cells within a cast or wade of the beach, BOAT shows those beyond it',
   'legend.fishing.4': 'Circled: where to try for the fish named beside it',
   'legend.fishing.5': "Each eating fish gets its own circles where its water scores 65 or more over at least 4 cells, at most 3 per fish; fish sharing the water share one. Boat circles (longer dashes) come from the day's satellite water, depth and ledges: dorado, tuna, wahoo, kingfish and silk snapper. Coloured like the beach ratings (great, good, fair). Zoom in for the reason, the depth and the nearest place. None inside Cahuita National Park, and no lionfish (a spear fish) in any protected area.",
-  'legend.fishing.5': 'Circled zones gather the best water of every eating fish for this month, coloured like the beach ratings (great, good, fair). Zoom in for the reason, the depth and the nearest place. None inside Cahuita National Park, where spear guns are banned and line fishing is disputed.',
   'legend.spear.what': 'Where a breath-hold spearfisher can work: reef water 3 to 15 m deep that holds the edible fish you spear (grouper, snapper, jack, lionfish). It is habitat, not a guarantee, and only the law decides where you may spear.',
   'legend.spear.1': 'Green: good spear water, stronger is better',
   'legend.spear.2': 'Red: would be good water, but spearing is banned there (a national park such as Cahuita, or closed water)',
