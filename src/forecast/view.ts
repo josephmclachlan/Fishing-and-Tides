@@ -69,7 +69,7 @@ export function headline(r: FcRead): { value: string; unit: string } {
 export const withUnit = (hl: { value: string; unit: string }) => (hl.unit ? `${hl.value}${hl.unit.startsWith('/') ? '' : ' '}${hl.unit}` : hl.value);
 
 /** The rating word: the surf band for SURF, the level word for the rest. */
-export const levelWord = (r: FcRead) => (r.level === null ? t('fc.nodata') : r.surf ? sentence(t(`surf.band.${r.surf.band}` as Key)) : t(`fc.lvl.${r.level}` as Key));
+export const levelWord = (r: FcRead) => (r.level === null ? (r.swim && !r.swim.daylight ? t('swim.r.dark') : t('fc.nodata')) : r.surf ? sentence(t(`surf.band.${r.surf.band}` as Key)) : t(`fc.lvl.${r.level}` as Key));
 
 /** "Today", "Tomorrow", "Thu 12" for day `d` of the plan starting at local midnight `dayMs`. */
 export function dayLabel(dayMs: number, d: number): string {
@@ -86,7 +86,7 @@ export const dayDate = (ms: number) => {
 
 /** The reasons chips: what holds the score back (or that nothing does). */
 export function reasons(r: FcRead): string[] {
-  if (r.score === null) return [];
+  if (r.score === null) return r.swim && !r.swim.daylight ? [t('swim.r.dark')] : [];
   if (r.surf) {
     const out: string[] = [];
     out.push(`${t('fc.wind')} ${t(`fc.wind.${r.surf.windKind}` as Key)}`);
