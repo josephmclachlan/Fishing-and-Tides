@@ -1,34 +1,18 @@
 /**
  * CHLOROPHYLL map layer (PLAN 7.77, mockup G's fish preset): the newest satellite chlorophyll-a (VIIRS, gap-filled,
- * 9 km; adapters/satellite.ts) painted over the sea in the Kinetic Plus chlorophyll ramp (`--r-chl0..4`, the forecast
- * page's tokens), blended smoothly on a log scale from under 0.2 to over 1.3 mg/m³: clear blue water pale, green water deep green. Offshore fish hunt
+ * 9 km; adapters/satellite.ts) painted over the sea in the Kinetic Plus chlorophyll ramp (`--r-chl0..4`), in nine flat bands from under 0.15 to
+ * over 2.2 mg/m³ with a hairline along each band edge (bands.ts, PLAN 7.79): clear blue water pale, green water deep green. Offshore fish hunt
  * the edge between the two (the FRONTS layer marks it). Drawn in two tiers like the sea temperature: the whole map, then the region finely enough to stop at the beach.
  * Style layer ids start with `ch-` (catalog 'chl').
  */
-import type { ExpressionSpecification, ImageSource, Map } from 'maplibre-gl';
+import type { ExpressionSpecification, GeoJSONSource, ImageSource, Map } from 'maplibre-gl';
+import type { FeatureCollection } from 'geojson';
 import type { SatelliteData } from '../adapters/satellite';
 import { REGION, TIER_ZOOM } from '../region';
-import { drawnCorners, extendSeaward, paintSea, rgbaWord, seaFrame, seaImage, type CoastTest, type Corners, type RegularGrid, type SeaImage } from './sea-image';
+import { drawnCorners, extendSeaward, paintSea, seaFrame, seaImage, type CoastTest, type Corners, type RegularGrid, type SeaImage } from './sea-image';
 import { latOfMercY, mercY } from './seafloor-shade';
-import { lifted, paintLift } from './paint';
-
-/** The ramp's steps, mg/m³ (about even on a log scale): five colours, below the first to above the last. */
-export const CHL_STEPS = [0.2, 0.35, 0.7, 1.3] as const;
-const ALPHA = 0.5;
-
-/** 0..4: the ramp colour for a concentration, mg/m³. Pure. */
-export const chlTone = (mg: number) => CHL_STEPS.filter((x) => mg >= x).length;
-const EDGES = [0.1, ...CHL_STEPS, 2.5];
-/** 0..5 along the ramp, each step one unit wide, log-interpolated inside it (for the reading's pointer). Pure. */
-export function chlIndex(mg: number): number {
-  const k = chlTone(mg), a = EDGES[k], b = EDGES[k + 1];
-  return Math.min(5, Math.max(0, k + (Math.log(Math.max(mg, 1e-3)) - Math.log(a)) / (Math.log(b) - Math.log(a))));
-}
-
-const hexRgb = (hex: string, fb: [number, number, number]): [number, number, number] => {
-  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex.trim());
-  return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : fb;
-};
+import { paintLift, paintColour } from './paint';
+import { bandLines, FIELD_STEPS, fieldWord } from './bands';
 
 function fillUrl(img: SeaImage) {
   const canvas = document.createElement('canvas');
@@ -85,24 +69,15 @@ const PIXEL_DEG = { macro: 0.01, outer: 0.005, coast: 0.001 } as const;
  * A 9 km map says nothing about one beach: from the spot tier the fill steps back to a tint, so the fishing heat and
  * zones read on top of it rather than green on green.
  */
+/** The isolines: ink, faint, gone by the spot tier with the fill. */
+const ISO_INK = () => paintColour('--ink', '#0b1a2a');
+const ISO_FADE: ExpressionSpecification = ['interpolate', ['linear'], ['zoom'], TIER_ZOOM.SPOT - 1.5, 0.3, TIER_ZOOM.SPOT, 0];
 const FADE: ExpressionSpecification = ['interpolate', ['linear'], ['zoom'], TIER_ZOOM.SPOT - 1.5, 1, TIER_ZOOM.SPOT, 0.35];
 
 export function mountChl(map: Map, d: SatelliteData, coast?: CoastTest | null) {
   const s = d.chl;
   if (!s) return null;
-  const css = getComputedStyle(document.documentElement);
-  const FB: [number, number, number][] = [[228, 239, 216], [183, 217, 142], [111, 179, 74], [42, 138, 30], [20, 82, 20]];
-  const ramp = FB.map((fb, i) => hexRgb(css.getPropertyValue(`--r-chl${i}`), fb));
-  const a = Math.round(255 * lifted(ALPHA, paintLift()));
-  // A smooth ramp (log scale, one word per 1/100 of a step): the 9 km grid's steps would otherwise show as blocks.
-  const N = 500;
-  const lut = new Uint32Array(N + 1);
-  for (let k = 0; k <= N; k++) {
-    const x = Math.min(4, Math.max(0, k / 100 - 0.5)), i = Math.min(3, Math.floor(x)), t = x - i;
-    const c = ramp[i].map((v, n) => Math.round(v + (ramp[i + 1][n] - v) * t)) as [number, number, number];
-    lut[k] = rgbaWord(...c, a);
-  }
-  const word = (v: number) => (Number.isFinite(v) && v > 0 ? lut[Math.round(chlIndex(v) * 100)] : 0);
+  const word = fieldWord('chl', paintLift());
   const g = s.meta.grid;
   const z = s.values.chl?.[s.values.chl.length - 1] ?? new Float32Array(g.cols * g.rows).fill(NaN);
   const COAST = TIER_ZOOM.COAST;
@@ -122,6 +97,9 @@ export function mountChl(map: Map, d: SatelliteData, coast?: CoastTest | null) {
     ];
   };
   let fills = makeFills(coast);
+  // The hairline isolines along the band edges (mockup G), cut at the coastline once it is here.
+  const lines = (c?: CoastTest | null): FeatureCollection => ({ type: 'FeatureCollection', features: bandLines(g, z, FIELD_STEPS.chl, c ? (lng, lat) => c(lng, lat) !== 1 : undefined) });
+  let iso = lines(coast);
   const add = () => {
     if (map.getSource('ch-fill-macro')) return;
     const below = map.getLayer('sf-contour-deep') ? 'sf-contour-deep' : map.getLayer('grat-macro') ? 'grat-macro' : undefined;
@@ -129,12 +107,16 @@ export function mountChl(map: Map, d: SatelliteData, coast?: CoastTest | null) {
       map.addSource(`ch-fill-${k}`, { type: 'image', url: fillUrl(img), coordinates: img.coordinates });
       map.addLayer({ id: `ch-fill-${k}`, type: 'raster', source: `ch-fill-${k}`, ...zoom, paint: { 'raster-opacity': FADE, 'raster-fade-duration': 0, 'raster-resampling': nearest ? 'nearest' : 'linear' } }, below);
     }
+    map.addSource('ch-iso', { type: 'geojson', data: iso });
+    map.addLayer({ id: 'ch-iso', type: 'line', source: 'ch-iso', layout: { 'line-join': 'round' }, paint: { 'line-color': ISO_INK(), 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 0.5, 11, 0.9], 'line-opacity': ISO_FADE } }, below);
   };
   if (map.getLayer('grat-macro') || map.isStyleLoaded()) add();
   else map.once('style.load', add);
   return {
     setCoast(c: CoastTest) {
       fills = makeFills(c);
+      iso = lines(c);
+      (map.getSource('ch-iso') as GeoJSONSource | undefined)?.setData(iso);
       for (const { k, img } of fills) (map.getSource(`ch-fill-${k}`) as ImageSource | undefined)?.updateImage({ url: fillUrl(img), coordinates: img.coordinates });
     },
   };

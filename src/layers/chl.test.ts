@@ -1,22 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { chlIndex, chlTone, pixelBox, sampleSea } from './chl';
+import { pixelBox, sampleSea } from './chl';
 import { drawnCorners } from './sea-image';
 
 describe('chlorophyll layer', () => {
-  it('puts a concentration on the five-step ramp', () => {
-    expect([0.05, 0.2, 0.3, 0.5, 1, 2, 9].map(chlTone)).toEqual([0, 1, 1, 2, 3, 4, 4]);
-  });
-
-  it('places the pointer smoothly along the ramp, clamped at the ends', () => {
-    expect(chlIndex(0.2)).toBeCloseTo(1, 5);
-    expect(chlIndex(1.3)).toBeCloseTo(4, 5);
-    expect(chlIndex(Math.sqrt(0.35 * 0.7))).toBeCloseTo(2.5, 5);
-    expect(chlIndex(0.001)).toBe(0);
-    expect(chlIndex(50)).toBe(5);
-    const xs = [0.12, 0.25, 0.5, 0.9, 1.8].map(chlIndex);
-    expect(xs).toEqual([...xs].sort((a, b) => a - b));
-  });
-
   it('samples the sea between cells and skips empty ones', () => {
     const g = { cols: 2, rows: 2, lon0: 0, lat0: 1, dlon: 1, dlat: 1 };
     expect(sampleSea(g, [0, 2, 4, 6], 0.5, 0.5)).toBeCloseTo(3);
