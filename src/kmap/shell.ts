@@ -299,12 +299,9 @@ export function mountKineticMap(d: KmDeps) {
     const tb = tabs.querySelector<HTMLElement>('[aria-selected="true"]');
     if (!tb) return;
     tabBar.style.width = `${tb.offsetWidth}px`;
-    tabBar.style.transform = `translateX(${tb.offsetLeft}px)`;
-    if (!WIDE.matches) {
-      const l = tb.offsetLeft - 16;
-      if (l < tabs.scrollLeft || tb.offsetLeft + tb.offsetWidth > tabs.scrollLeft + tabs.clientWidth) tabs.scrollTo({ left: Math.max(0, l), behavior: 'smooth' });
-    }
+    tabBar.style.transform = `translate(${tb.offsetLeft}px, ${tb.offsetTop + tb.offsetHeight - 5}px)`;
   };
+  new ResizeObserver(() => placeBar()).observe(tabs);
   const renderTabs = () => {
     tabs.querySelectorAll<HTMLElement>('.k-tab').forEach((b) => b.setAttribute('aria-selected', String(S.coral ? b.dataset.id === 'coral' : b.dataset.id === S.act)));
     root.dataset.act = S.act;
