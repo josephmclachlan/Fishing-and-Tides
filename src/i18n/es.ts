@@ -569,6 +569,8 @@ export const es: Dict = {
   'bite.r.temp': 'TEMP. DEL AGUA MAL',
   'bite.r.sargassum': 'SARGAZO',
   'bite.r.goodwater': 'BUEN AGUA',
+  'bite.r.fishwater': 'AGUA RICA EN PECES',
+  'bite.r.thinwater': 'POCOS PECES AQUÍ',
   'bite.r.riverup': 'RÍO CORRIENDO',
   'bite.r.flood': 'RÍO CRECIDO',
   'bite.r.riverlow': 'RÍO BAJO',

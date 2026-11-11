@@ -82,7 +82,7 @@ export interface BiteTerms {
   reasons: BiteReason[];
 }
 
-export type BiteReason = 'tide' | 'dawn' | 'dusk' | 'golden' | 'night' | 'major' | 'minor' | 'rough' | 'wind' | 'rain' | 'slack' | 'midday' | 'overcast' | 'squall' | 'lightning' | 'brightmoon' | 'darknight' | 'falling' | 'rising' | 'highwater' | 'lowwater' | WaterReason;
+export type BiteReason = 'tide' | 'dawn' | 'dusk' | 'golden' | 'night' | 'major' | 'minor' | 'rough' | 'wind' | 'rain' | 'slack' | 'midday' | 'overcast' | 'squall' | 'lightning' | 'brightmoon' | 'darknight' | 'falling' | 'rising' | 'highwater' | 'lowwater' | 'fishwater' | 'thinwater' | WaterReason;
 
 /**
  * Tide term: current flow as a share of a big tide's fastest flow (or of this day's, if faster), with a floor so slack

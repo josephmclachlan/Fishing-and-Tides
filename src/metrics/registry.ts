@@ -52,6 +52,8 @@ export interface MetricEnv {
    * and the rip risk there. Optional: SWIM, RIP RISK and SHORE BREAK read null without it (before the model runs).
    */
   shore?(spot: string, ms: number): { breakerM: number; rip: Rip } | null;
+  /** How good the eating-fish water is near the place for the month of `ms`, 0..1 (fishing/spot-water.ts), or null before the fishing layer loads. */
+  fishWater?(lng: number, lat: number, ms: number): number | null;
   tide: Harmonics;
   tzOffsetH: number;
 }

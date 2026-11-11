@@ -4,7 +4,8 @@
  * rest of the app already uses, so the page never disagrees with the map:
  *   SURF     the break score (surf-estimate.ts surfDetailAt, the WATCH / BEST TODAY estimate) and its
  *            estimated breaker height
- *   FISH     BITE (fishing/bite.ts) with its reasons, plus the likely local eating fish at the spot
+ *   FISH     BITE (fishing/bite.ts, the coast-wide timing) blended with the spot's own fishing water (fishing/spot-water.ts),
+ *            with its reasons, plus the likely local eating fish at the spot
  *   SNORKEL  the DIVE & SNORKEL outing score at 2 m, with its surge and visibility
  *   DIVE     the same at 6 m
  *   SAIL     SEA COMFORT with wind, gusts and squalls (metrics/registry.ts)
@@ -23,6 +24,7 @@ import { SPECIES, type SpeciesId } from '../fishing/species';
 import { seasonFactor } from '../fishing/habitat';
 import { waterTerm } from '../fishing/water';
 import type { BiteReason } from '../fishing/bite';
+import { fishScore, WATER_RICH, WATER_THIN } from '../fishing/spot-water';
 import { stingerGuess, type OutingMode, type OutingReason, type OutingScore } from '../physics/outing';
 import type { SpearStatus } from '../rules';
 import { SNORKEL_SPOTS, type SnorkelAccess } from '../data/snorkel-spots';
@@ -125,6 +127,8 @@ export interface FishRead {
   tideLevel: number;
   /** The sun is up at the hour (between the day's sunrise and sunset). */
   daylight: boolean;
+  /** The spot's fishing water this month, 0..1 (fishing/spot-water.ts), blended into the score; null before it loads. */
+  water?: number | null;
 }
 export interface WaterRead {
   reasons: OutingReason[];
@@ -232,10 +236,15 @@ export function readAt(deps: FcDeps, a: FcActivity, spot: Spot, ms: number, sky 
     if (!fin(b.bite)) return none;
     const ts = tideState(env.tide, ms);
     const month = new Date(ms + env.tzOffsetH * H).getUTCMonth();
+    // BITE is the coast-wide timing; the spot's own water (its best eating fish this month) sets the pins apart (PLAN 7.83).
+    const water = env.fishWater?.(spot.lngLat[0], spot.lngLat[1], ms) ?? null;
+    const score = fishScore(b.bite, water);
+    const wr: BiteReason[] = water === null ? [] : water >= WATER_RICH ? ['fishwater'] : water < WATER_THIN ? ['thinwater'] : [];
     return {
-      ...base, score: b.bite, share: b.bite / 100, level: levelFor('fish', b.bite),
+      ...base, score, share: score / 100, level: levelFor('fish', score),
       fish: {
-        reasons: b.reasons,
+        reasons: [...wr, ...b.reasons],
+        water,
         species: likelyFish(spot.lngLat, month, { visM: env.clarityM(lng, lat, ms), sstC: env.sstC?.(lng, lat, ms) ?? null }),
         moonPhase: s.phase.name, moonIllum: s.phase.illumination, tideRising: ts.rising, tideLevel: ts.level,
         daylight: s.sun.sunrise !== null && s.sun.sunset !== null && ms >= s.sun.sunrise && ms < s.sun.sunset,

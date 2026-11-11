@@ -590,6 +590,8 @@ export const en = {
   'bite.r.temp': 'WATER TEMP OFF',
   'bite.r.sargassum': 'SARGASSUM',
   'bite.r.goodwater': 'GOOD WATER',
+  'bite.r.fishwater': 'RICH FISH WATER HERE',
+  'bite.r.thinwater': 'THIN FISH WATER HERE',
   'bite.r.riverup': 'RIVER RUNNING',
   'bite.r.flood': 'RIVER IN FLOOD',
   'bite.r.riverlow': 'RIVER LOW',

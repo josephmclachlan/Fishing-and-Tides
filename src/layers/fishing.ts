@@ -33,6 +33,7 @@ import { PLACES as HARBOURS } from '../data/harbours';
 import { t, type Key } from '../i18n';
 import { zoneAt, type ZonePoly } from '../zone-lookup';
 import { spearStatus } from '../rules';
+import { spotWater } from '../fishing/spot-water';
 import { SPEAR_SPECIES, spearScore, spearWindow } from '../fishing/spear';
 
 const { COAST, SPOT } = TIER_ZOOM;
@@ -94,6 +95,8 @@ export interface FishingLayer {
   setCatches(pins: readonly CatchPin[]): void;
   /** Habitat score 0..1 at a point for a given species and the current month, or null outside the reach. */
   scoreFor(id: SpeciesId, lng: number, lat: number): number | null;
+  /** The fishing water at a spot for a month (fishing/spot-water.ts), 0..1, or null with no sea cell near. */
+  spotWater(lng: number, lat: number, month: number): number | null;
   /** The protected areas (PLAN 4.3): no circled zone inside a national park or closed water, no spear fish in any. */
   setRules(zones: readonly ZonePoly[]): void;
   /** Boat water scored per offshore species on a ~2 km grid for the day on the slider (main.ts), or null: its zones. */
@@ -374,8 +377,24 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     const s = speciesById(id);
     return Math.min(1, habitatScore(s, c.f, month, fits[id].weights) * (1 + boostAt(id, c.lng, c.lat)));
   };
+  // Each cell's best eating fish for a month, for the spot water (the FISH pins); rebuilt when the month or catches change.
+  let bestKey = '';
+  let bestCell = new Float32Array(0);
+  const bestFor = (m: number) => {
+    const key = `${m}|${catchKey}`;
+    if (key !== bestKey) {
+      bestKey = key;
+      bestCell = Float32Array.from(built.cells, (c) => {
+        let b = 0;
+        for (const s of SPECIES) b = Math.max(b, Math.min(1, habitatScore(s, c.f, m, fits[s.id].weights) * (1 + boostAt(s.id, c.lng, c.lat))));
+        return b;
+      });
+    }
+    return bestCell;
+  };
   return {
     fits: () => fits,
+    spotWater: (lng, lat, m) => spotWater(built.cells, bestFor(m), lng, lat),
     setCatches(pins) {
       const key = pins.filter((p) => p.kind === 'catch').map((p) => `${p.species}${p.lng.toFixed(4)}${p.lat.toFixed(4)}`).join('|');
       if (key === catchKey) return;
