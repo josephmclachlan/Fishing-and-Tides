@@ -4,7 +4,7 @@
  * whose hours score best (green +1, red -1, plus where the value sits in the day's range). Pure.
  */
 import { nearest } from '../geo';
-import { BEST_LEN_H, BEST_TO_H, buildForecast, bestTime, hourScores, type Spot } from './forecast';
+import { BEST_LEN_H, BEST_TO_H, buildForecast, bestTime, hourScores, sunHours, type Spot } from './forecast';
 import { localDayStart } from '../physics/astro';
 import { breakFor } from './surf-estimate';
 import { METRIC_BY_ID, type MetricEnv } from './registry';
@@ -59,10 +59,12 @@ export const BEST_MAX_DAY = 6;
 export const spotNear = (at: [number, number], spots: readonly Spot[]): Spot | null => nearest(at, spots)?.point ?? null;
 
 /** True once the last window of the local day (BEST_TO_H) has started: an empty BEST TODAY then means none left, not missing data. */
-export function todayOver(tzOffsetH: number, nowMs: number, activity?: Activity): boolean {
-  const toH = activity ? toHFor(activity) : BEST_TO_H;
-  if (activity === 'fish') return nowMs >= localDayStart(nowMs, tzOffsetH) + toH * 3.6e6;
-  return nowMs >= localDayStart(nowMs, tzOffsetH) + (toH - BEST_LEN_H + 1) * 3.6e6;
+export function todayOver(tzOffsetH: number, nowMs: number, activity?: Activity, at?: readonly [number, number]): boolean {
+  const day0 = localDayStart(nowMs, tzOffsetH);
+  // Given where (lng, lat), the windows end at sunset (an hour after it for fishing), as bestOnDay searches them.
+  const toH = at ? sunHours(day0, at[1], at[0], activity === 'fish' ? 1 : 0).toH : activity ? toHFor(activity) : BEST_TO_H;
+  if (activity === 'fish') return nowMs >= day0 + toH * 3.6e6;
+  return nowMs >= day0 + (toH - BEST_LEN_H + 1) * 3.6e6;
 }
 
 /**
@@ -80,7 +82,8 @@ export function bestOnDay(env: MetricEnv, activity: Activity, spot: Spot, nowMs:
   const f = buildForecast(env, ids, [spot], nowMs, day + 1);
   const metrics = ids.map((id) => METRIC_BY_ID.get(id)!);
   if (f.rows.length !== metrics.length) return null;
-  const w = bestTime(f.rows, metrics, day, f.startMs, nowMs, toHFor(activity));
+  const sun = sunHours(f.startMs + day * 864e5, spot.lngLat[1], spot.lngLat[0]);
+  const w = bestTime(f.rows, metrics, day, f.startMs, nowMs, sun.toH, sun.fromH);
   return w ? { spot: spot.name, startMs: w.startMs, endMs: w.endMs, good: w.score >= 0, score: w.score } : null;
 }
 

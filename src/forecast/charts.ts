@@ -162,6 +162,22 @@ export function rowLabels(spec: RowSpec, hours: readonly TimelineHour[]): RowLab
   return out;
 }
 
+/** Sunrise and sunset marks of the chart: x on the axis and the local clock time ("05:48"), at the minute. */
+export function sunMarks(hours: readonly TimelineHour[], t0: number, px: number, tz = -6): { x: number; rise: boolean; ms: number; label: string }[] {
+  const out: { x: number; rise: boolean; ms: number; label: string }[] = [];
+  const seen = new Set<number>();
+  const clock = (ms: number) => { const d = new Date(ms + tz * 3.6e6); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`; };
+  for (const h of hours) {
+    for (const [ms, rise] of [[h.sunriseMs, true], [h.sunsetMs, false]] as const) {
+      if (ms === null || ms === undefined || seen.has(ms)) continue;
+      seen.add(ms);
+      const x = ((ms - t0) / 3.6e6) * px;
+      if (x >= 0) out.push({ x, rise, ms, label: clock(ms) });
+    }
+  }
+  return out;
+}
+
 /** The best windows as hour spans [start, end) on the chart's axis (hours from its first midnight). */
 export function bestBands(wins: readonly Window[], t0: number): [number, number][] {
   return wins.map((w) => [(w.startMs - t0) / H, (w.endMs - t0) / H] as [number, number]).filter(([s, e]) => e > s);
@@ -289,6 +305,14 @@ export function drawChartBase(c: Ctx2D, L: ChartLayout, hours: readonly Timeline
       txt(c, String(lh).padStart(2, '0'), x, ax - 13, 'center', 9, 600);
     }
   });
+  // Sunrise and sunset to the minute: a sun-coloured line down the chart and the time under the axis, the hours every best window sits between.
+  for (const m of sunMarks(hours, L.t0, px, L.tz)) {
+    c.fillStyle = rgba(T['c-sun']); c.globalAlpha = 0.9;
+    for (let yy = ax; yy < Hc; yy += 4) c.fillRect(m.x, yy, 1, 2);
+    c.fillRect(m.x - 0.5, ax - 12, 2, 12);
+    c.globalAlpha = 1;
+    c.fillStyle = I; txt(c, `${m.rise ? '↑' : '↓'}${m.label}`, m.x + 4, ax - 3, 'left', 9, 700);
+  }
   for (const o of L.rows) {
     if (o.t === 'sky') {
       for (let i = 0; i < hours.length; i += 3) {
