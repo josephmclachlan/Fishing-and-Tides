@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bestBands, chartLayout, drawChartBase, drawChartTop, niceCeil, rowLabels, rowScale, rowsFor, skyBlock, skyKind } from './charts';
+import { bestBands, chartLayout, drawChartBase, drawChartTop, niceCeil, rowLabels, rowScale, rowsFor, skyBlock, skyKind, sunMarks } from './charts';
 import { FC_ACTIVITIES, type FcRead, type TimelineHour } from './model';
 import { recCtx, tokens } from './testkit';
 
@@ -116,5 +116,14 @@ describe('sky row (PLAN 7.52 part 3)', () => {
       expect(wx).toEqual(['air', 'feels', 'humidity', 'rainpct', 'rain', 'uv']);
       expect(ids.slice(-wx.length)).toEqual(wx);
     }
+  });
+});
+
+describe('sunrise and sunset marks', () => {
+  it('puts each at its minute on the axis with the local time', () => {
+    const marks = sunMarks(Array.from({ length: 24 }, (_, i) => hour(i, { sunriseMs: T0 + 5.75 * H, sunsetMs: T0 + 17.8 * H })), T0, 10, -6);
+    expect(marks.map((m) => m.label)).toEqual(['05:45', '17:48']);
+    expect(marks[0].x).toBeCloseTo(57.5, 6);
+    expect(marks[1].rise).toBe(false);
   });
 });

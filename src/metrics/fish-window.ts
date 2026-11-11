@@ -4,7 +4,7 @@
  * after sunset); this one follows the peak itself. Pure.
  */
 import { daySky } from '../physics/astro';
-import { BEST_FROM_H, BEST_TO_H, type Spot } from './forecast';
+import { sunHours, type Spot } from './forecast';
 import { biteAt, METRIC_BY_ID, type MetricEnv } from './registry';
 
 const STEP = 10 * 60_000;
@@ -20,13 +20,15 @@ export interface FishWindow {
 
 /**
  * The run of 10-minute steps around the day's best bite that stays within `share` of it, between
- * BEST_FROM_H and BEST_TO_H local, never starting before `notBeforeMs`. Runs shorter than 30 minutes
+ * an hour before sunrise and an hour after sunset, local, never starting before `notBeforeMs`. Runs shorter than 30 minutes
  * are widened to 30. Null when nothing is left or the forecast has no value.
  */
 export function fishWindow(env: MetricEnv, spot: Spot, dayMs: number, notBeforeMs = -Infinity, share = 0.9): FishWindow | null {
   const [lng, lat] = spot.lngLat;
   const sky = daySky(dayMs, lat, lng);
-  const from = dayMs + BEST_FROM_H * HOUR, to = dayMs + BEST_TO_H * HOUR;
+  // An hour either side of the sun: the bite peaks in the half-light before sunrise and after sunset.
+  const sun = sunHours(dayMs, lat, lng, 1);
+  const from = dayMs + sun.fromH * HOUR, to = dayMs + sun.toH * HOUR;
   const pts: { t: number; v: number }[] = [];
   for (let t = from; t < to; t += STEP) {
     if (t + STEP <= notBeforeMs) continue;

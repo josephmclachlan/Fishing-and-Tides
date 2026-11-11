@@ -123,10 +123,10 @@ export interface OutingDay { dayStart: number; best: OutingWindow | null }
 
 const H = 3.6e6;
 
-/** Best window of one local day: hourly from 07:00 to 17:00, the run of hours within 10% of the day's best. */
-export function bestWindow(at: (ms: number, localHour: number) => OutingScore, dayStart: number): OutingWindow | null {
+/** Best window of one local day: hourly from sunrise to sunset (`span`, local hours [fromH, toH); 07:00 to 17:00 when not given), the run of hours within 10% of the day's best. */
+export function bestWindow(at: (ms: number, localHour: number) => OutingScore, dayStart: number, span: { fromH: number; toH: number } = { fromH: 7, toH: 17 }): OutingWindow | null {
   const hours: { t: number; s: OutingScore }[] = [];
-  for (let h = 7; h <= 16; h++) hours.push({ t: dayStart + h * H, s: at(dayStart + h * H, h) });
+  for (let h = span.fromH; h < span.toH; h++) hours.push({ t: dayStart + h * H, s: at(dayStart + h * H, h) });
   const top = hours.reduce((a, b) => (b.s.score > a.s.score ? b : a));
   if (top.s.score <= 0) return null;
   const cut = top.s.score * 0.9;
