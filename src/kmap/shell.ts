@@ -321,7 +321,7 @@ export function mountKineticMap(d: KmDeps) {
   function setCoral(onC: boolean, quiet = false) {
     S.coral = onC;
     put(storage, CORAL_KEY, onC ? '1' : '0');
-    d.coralMode.set(onC);
+    quietCoral(onC);
     modeChanged();
     if (onC && !quiet && WIDE.matches === false) openSheet('coral');
   }
@@ -336,6 +336,15 @@ export function mountKineticMap(d: KmDeps) {
   const catalog = LAYERS as readonly { id: LayerId; mapPrefixes?: readonly string[] }[];
   const layersCatalog = () => catalog;
   let applying = false;
+  /** The old CORAL switch moves the registry's layers itself; the composer's list for the mode wins, so hush it. */
+  function quietCoral(on: boolean) {
+    applying = true;
+    try {
+      d.coralMode.set(on);
+    } finally {
+      applying = false;
+    }
+  }
   const applyLayers = () => {
     const o = order();
     applying = true;
@@ -531,30 +540,32 @@ export function mountKineticMap(d: KmDeps) {
     const c = map.getCenter(), t0 = ms(), h = d.here(c.lng, c.lat, t0), out: Reading[] = [];
     const o = order();
     const has = (id: KmLayer) => o.includes(id);
+    /** The activity's own readings, never in CORAL (its layers say what it reads). */
+    const act = (a: FcActivity) => !S.coral && S.act === a;
     if (S.coral && h.heat) out.push({ k: 'heat', l: 'DHW', v: n1(h.heat.dhw), u: '°C-wk', s: `${titleCase(h.heat.reef)}`, help: 'diveCoral', val: h.heat.dhw, src: 'CRW' });
-    if ((has('waves') || has('surf') || (has('rating') && S.act === 'surf')) && h.swell && !h.land)
+    if ((has('waves') || has('surf') || (has('rating') && act('surf'))) && h.swell && !h.land)
       out.push({ k: 'swell', l: L2('Swell', 'Oleaje'), v: n1(h.swell.hs), u: 'm', s: `${Math.round(h.swell.tp)} s · ${L2('from', 'de')} ${compass(h.swell.fromDeg)}`, deg: h.swell.fromDeg, trains: h.swell.trains, help: 'swell', src: 'WW3' });
-    if ((has('wind') || S.act === 'sail' || S.act === 'surf') && h.wind)
+    if ((has('wind') || act('sail') || act('surf')) && h.wind)
       out.push({ k: 'wind', l: L2('Wind', 'Viento'), v: n0(h.wind.kt), u: 'kt', s: `${compass(h.wind.fromDeg)}${fin(h.wind.gustKt) ? ` · ${L2('gusts', 'ráfagas')} ${n0(h.wind.gustKt)}` : ''}`, deg: h.wind.fromDeg, help: 'wind', src: 'ECMWF · GFS' });
-    if ((has('currents') || S.act === 'snorkel' || S.act === 'dive') && h.current && !h.land)
+    if ((has('currents') || act('snorkel') || act('dive')) && h.current && !h.land)
       out.push({ k: 'current', l: L2('Current', 'Corriente'), v: n1(h.current.kt), u: 'kt', s: `${L2('sets', 'hacia')} ${compass(h.current.toDeg)}`, deg: h.current.toDeg, help: 'current', src: 'SMOC' });
-    if ((has('sst') || has('fronts') || S.act === 'swim' || S.act === 'dive' || S.coral) && fin(h.sstC) && !h.land)
+    if ((has('sst') || has('fronts') || act('swim') || act('dive') || S.coral) && fin(h.sstC) && !h.land)
       out.push({ k: 'sst', l: L2('Water', 'Agua'), v: n1(h.sstC), u: '°C', s: h.sstC >= 29.5 ? L2('Very warm', 'Muy cálida') : h.sstC >= 27 ? L2('Warm, no wetsuit', 'Cálida, sin traje') : L2('Cool for here', 'Fresca para aquí'), val: h.sstC, help: 'sst', src: L2('satellite', 'satélite') });
-    if ((has('clarity') || S.act === 'snorkel' || S.act === 'dive') && fin(h.visM) && !h.land)
+    if ((has('clarity') || act('snorkel') || act('dive')) && fin(h.visM) && !h.land)
       out.push({ k: 'clarity', l: L2('Visibility', 'Visibilidad'), v: h.visM >= 10 ? n0(h.visM) : n1(h.visM), u: 'm', s: h.visM < 4 ? L2('Murky, river water', 'Turbia, agua de río') : h.visM < 10 ? L2('Hazy', 'Algo turbia') : L2('Clear', 'Clara'), val: h.visM, help: 'vis', src: 'Kd490' });
     if (has('sargassum') && h.sarg) out.push({ k: 'sarg', l: L2('Sargassum', 'Sargazo'), v: t(`sarg.level.${h.sarg.level}` as Key) || h.sarg.level, u: '', s: titleCase(h.sarg.beach), help: 'sargassum', lv: h.sarg.level === 'HIGH' ? 0 : h.sarg.level === 'MED' || h.sarg.level === 'MOD' ? 2 : 4 });
-    if ((has('weather') || S.act === 'swim' || S.act === 'sail') && h.rain)
+    if ((has('weather') || act('swim') || act('sail')) && h.rain)
       out.push({ k: 'rain', l: L2('Rain', 'Lluvia'), v: fin(h.rain.mmH) ? n1(h.rain.mmH) : '--', u: 'mm/h', s: fin(h.rain.pct) ? `${n0(h.rain.pct)}% ${L2('chance', 'prob.')}` : '', val: h.rain.mmH ?? 0, help: 'rain', src: L2('4 models', '4 modelos') });
     if (has('lightning') && fin(h.lightningKm) && h.lightningKm < 60) out.push({ k: 'lightning', l: L2('Lightning', 'Rayos'), v: n0(h.lightningKm), u: 'km', s: h.lightningKm < 25 ? L2('Get out of the water', 'Salga del agua') : L2('Nearest flash', 'Rayo más cercano'), val: h.lightningKm, help: 'lightningNear', src: 'GLM' });
-    if ((has('rip') || S.act === 'swim' || S.act === 'surf') && h.rip) {
+    if ((has('rip') || act('swim') || act('surf')) && h.rip) {
       const lv = h.rip.level === 'HIGH' ? 0 : h.rip.level === 'MOD' ? 2 : 4;
       out.push({ k: 'rip', l: L2('Rip risk', 'Resaca'), v: h.rip.level === 'HIGH' ? L2('High', 'Alta') : h.rip.level === 'MOD' ? L2('Mod', 'Mod') : L2('Low', 'Baja'), u: '', s: titleCase(h.rip.spot), lv, help: 'rip' });
     }
-    if (has('fishing') || S.act === 'fish') {
+    if (has('fishing') || act('fish')) {
       const s = spot(), r = rate('fish', s, t0);
       if (r.score !== null) out.push({ k: 'bite', l: 'BITE', v: n0(r.score), u: '/100', s: titleCase(s.name), lv: r.level, help: 'bite' });
     }
-    if ((has('depth') || has('reefs') || S.act === 'dive' || S.act === 'fish') && fin(h.depthM) && !h.land)
+    if ((has('depth') || has('reefs') || act('dive') || act('fish')) && fin(h.depthM) && !h.land)
       out.push({ k: 'depth', l: L2('Depth', 'Prof.'), v: h.depthM >= 10 ? n0(h.depthM) : n1(h.depthM), u: 'm', s: L2('GEBCO · not for navigation', 'GEBCO · no para navegar'), val: h.depthM, help: 'depth', src: 'GEBCO' });
     if (has('zones') && h.zone) out.push({ k: 'zone', l: L2('Zone', 'Zona'), v: '', u: '', s: h.zone, help: 'zone', lv: null });
     const td = tideNow(t0);
@@ -896,7 +907,22 @@ export function mountKineticMap(d: KmDeps) {
     if (id === 'sync') return void document.getElementById('sync')?.click();
     d.sheets.open(id);
   }
-  d.sheets.subscribe(() => document.body.classList.toggle('km-tool', !!d.sheets.current()));
+  // The kept drawer's own header bar: its name and the way back to the map.
+  const toolHead = document.createElement('div');
+  toolHead.className = 'k-toolhead';
+  toolHead.innerHTML = `<div class="k-th-l"><button type="button" class="k-ib" aria-label="${L2('Back to the map', 'Volver al mapa')}">${BACK}</button><h2></h2></div><span class="k-mono">${L2('Classic tools', 'Herramientas')}</span>`;
+  document.body.appendChild(toolHead);
+  toolHead.querySelector('button')!.addEventListener('click', () => d.sheets.close());
+  const topEl = app.querySelector<HTMLElement>('.k-top')!;
+  new ResizeObserver(() => root.style.setProperty('--k-tool-top', `${Math.round(topEl.getBoundingClientRect().bottom)}px`)).observe(topEl);
+  d.sheets.subscribe(() => {
+    const cur = d.sheets.current();
+    const on = !!cur && cur !== 'layers' && cur !== 'time' && cur !== 'find' && cur !== 'spot' && cur !== 'settings';
+    document.body.classList.toggle('km-tool', on);
+    if (on) toolHead.querySelector('h2')!.textContent = d.tools.find((x) => x.id === cur)?.label ?? cur;
+    // Only the kept tools open here: the shell has its own layers, find, time, spot and settings.
+    else if (cur) d.sheets.close();
+  });
 
   const findHTML = () => {
     const t0 = ms();
@@ -1074,7 +1100,7 @@ export function mountKineticMap(d: KmDeps) {
   }, 2000);
   window.addEventListener('fc-hide', () => setTimeout(() => (renderAll(), pad()), 0));
   if (document.fonts?.ready) document.fonts.ready.then(() => (placeBar(), drawScrub()));
-  d.coralMode.set(S.coral);
+  quietCoral(S.coral);
   renderAll();
   applyLayers();
   coast.setCells(d.coralSites());
@@ -1086,7 +1112,7 @@ export function mountKineticMap(d: KmDeps) {
       put(storage, SPOT_KEY, spotName);
       if (S.coral) S.coral = false;
       put(storage, CORAL_KEY, '0');
-      d.coralMode.set(false);
+      quietCoral(false);
       setAct(a);
     },
     setMask(m: Mask) {

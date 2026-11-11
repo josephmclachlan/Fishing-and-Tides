@@ -154,6 +154,7 @@ import { currentTheme } from './theme';
 import { mountKineticMap, type Here, type KineticMap, type ReefNow } from './kmap/shell';
 import { haloOverlays, styleBaseMap } from './kmap/basemap';
 import { OLD_PRESET, type Mask } from './kmap/model';
+import { L2, setKmLang } from './kmap/dom';
 import { zoneAt, type ZonePoly } from './zone-lookup';
 import './kmap/fonts';
 import './kmap/kmap.css';
@@ -1479,6 +1480,7 @@ const reefsNow = (): ReefNow[] =>
       })
     : CORAL_REEFS.map((r) => ({ id: r.id, name: r.name, lngLat: r.lngLat, dhw: null, alert: null, sstC: null, anomaly: null, mudWeeks: null, day: null }));
 if (MODERN) {
+  setKmLang(settings.lang());
   sheets.close();
   const reload = () => {
     const c = map.getCenter();
@@ -1512,13 +1514,13 @@ if (MODERN) {
       if (a) condGroups.setActivity(a);
     },
     tools: [
-      { id: 'cond', label: t('sheet.cond'), sub: '' },
-      { id: 'watch', label: 'WATCH', sub: '' },
-      { id: 'boat', label: 'BOAT', sub: '' },
-      { id: 'coral', label: 'CORAL', sub: '' },
-      { id: 'obs', label: 'LIVE OBS', sub: '' },
-      { id: 'check', label: 'SYSTEM CHECK', sub: '' },
-      { id: 'sync', label: 'SYNC', sub: '' },
+      { id: 'cond', label: L2('All readings', 'Todas las lecturas'), sub: L2('Every group of the classic CONDITIONS panel, GO or NO-GO per activity', 'Todos los grupos del panel de condiciones, apto o no por actividad') },
+      { id: 'watch', label: L2('Watch', 'Vigilar'), sub: L2('Pick metrics, get the best day over the next five', 'Elija métricas y vea el mejor día de los próximos cinco') },
+      { id: 'boat', label: L2('Boat', 'Bote'), sub: L2('GPS track, pins, catches, offshore read and route', 'Ruta GPS, puntos, capturas, lectura mar afuera y ruta') },
+      { id: 'coral', label: L2('Coral sites', 'Sitios de coral'), sub: L2('Your private field log, reef heat, spawning and guide', 'Su bitácora privada, calor, desove y guía') },
+      { id: 'obs', label: L2('Live observations', 'Observaciones en vivo'), sub: L2('Tide gauge, airport and satellite passes, with ages', 'Mareógrafo, aeropuerto y pasadas de satélite, con su edad') },
+      { id: 'check', label: L2('System check', 'Revisión del sistema'), sub: L2('Test every feed and the app against known answers', 'Pruebe cada fuente y la app contra respuestas conocidas') },
+      { id: 'sync', label: L2('Save for a trip', 'Guardar para un viaje'), sub: L2('Store the map, forecasts and feeds for use with no signal', 'Guarde el mapa, pronósticos y datos para usar sin señal') },
     ],
   });
   if (landGrid) km.setMask(landMask(landGrid));
