@@ -139,12 +139,11 @@ export function spotsHtml(list: readonly (SpotView & { id: string })[], cur: str
     .join('');
 }
 
-/** The conditions tiles: label and number, a canvas picture (drawn by tiles.ts), the facts, and a tip on tap. */
-export function tilesHtml(list: readonly TileView[], open: (i: number) => boolean): string {
+/** The conditions tiles: label and number, a canvas picture (drawn by tiles.ts), the facts, and a tip on hover or keyboard focus. */
+export function tilesHtml(list: readonly TileView[]): string {
   return list
     .map((x, i) => {
-      const o = open(i);
-      return `<article class="fc-tile${x.lv === null ? '' : ` ${lvCls(x.lv)} has-lv`}" data-kind="${x.kind}" data-tile="${i}"${x.tip ? ` role="button" tabindex="0" aria-expanded="${o}"` : ''}>
+      return `<article class="fc-tile${x.lv === null ? '' : ` ${lvCls(x.lv)} has-lv`}" data-kind="${x.kind}" data-tile="${i}"${x.tip ? ` tabindex="0"` : ''}>
         <div class="fc-t-top"><span class="fc-mono">${esc(x.k)}</span><span class="fc-mono fc-ix">${String(i + 1).padStart(2, '0')}</span></div>
         <canvas class="fc-t-viz" aria-hidden="true"></canvas>
         <div class="fc-t-val">${esc(x.v)}${x.small ? `<small>${esc(x.small)}</small>` : ''}</div>

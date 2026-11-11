@@ -149,8 +149,6 @@ export function mountForecastPage(deps: ForecastDeps) {
   let tlKey = '';
   let openedAt = 0;
   let heroRead: FcRead | null = null;
-  /** Which tiles show their tip (by activity and place), kept across redraws. */
-  const openTiles = new Set<string>();
 
   const spots = () => spotsForActivity(act, SPOTS);
   /** The spot shown, and the one asked for when it has no forecast for this activity (`chooseSpot`). */
@@ -334,14 +332,13 @@ export function mountForecastPage(deps: ForecastDeps) {
     const d0 = localDayStart(ms, TZ);
     $('fc-cond-when').textContent = `${d0 === localDayStart(Date.now(), TZ) ? t('fc.today') : dayDate(ms)} · ${localClock(ms)}`;
     const list = tilesFor(r, c);
-    if (html('fc-tiles', tilesHtml(list, () => false))) {
+    if (html('fc-tiles', tilesHtml(list))) {
       tileVis.clear();
       tio?.disconnect();
       tiles = [...$('fc-tiles').querySelectorAll<HTMLElement>('.fc-tile')].map((e, i) => {
         const cv = e.querySelector('canvas')!;
         if (tio) tio.observe(e);
         else tileVis.add(e);
-        if (openTiles.has(`${act}:${i}`)) e.setAttribute('aria-expanded', 'true');
         return { el: e, cv, c: cv.getContext('2d')!, w: 0, h: 0, v: list[i], drawn: false };
       });
       sizeTiles();
@@ -350,20 +347,6 @@ export function mountForecastPage(deps: ForecastDeps) {
     } else tiles.forEach((o, i) => (o.v = list[i] ?? o.v));
     drawTiles(performance.now() / 1000, true);
   };
-  const toggleTile = (e: Event) => {
-    const tile = (e.target as HTMLElement).closest<HTMLElement>('.fc-tile[aria-expanded]');
-    if (!tile) return;
-    const id = `${act}:${tile.dataset.tile}`;
-    const open = !openTiles.has(id);
-    if (open) openTiles.add(id);
-    else openTiles.delete(id);
-    tile.setAttribute('aria-expanded', String(open));
-  };
-  $('fc-tiles').addEventListener('click', toggleTile);
-  $('fc-tiles').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') (e.preventDefault(), toggleTile(e));
-  });
-
   // --- the next 7 days
   const renderDays = (anim: boolean) => {
     const p = plan;

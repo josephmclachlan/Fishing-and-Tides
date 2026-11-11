@@ -32,7 +32,7 @@ function page(a: FcActivity, deps = full()) {
   const ro = readoutView(tl[Math.round((NOW - tl[0].ms) / H)], a, rowsFor(a));
   const L = chartLayout(a, tl, 7, false, -6);
   const html = {
-    rate: rateHtml(hero), chips: chipsHtml(hero), best: bestHtml(best), tiles: tilesHtml(tiles, () => false), spots: spotsHtml(spots, sp.name),
+    rate: rateHtml(hero), chips: chipsHtml(hero), best: bestHtml(best), tiles: tilesHtml(tiles), spots: spotsHtml(spots, sp.name),
     days: daysHtml(days, t('fc.best')), readout: readoutHtml(ro), labels: chartLabelsHtml(L),
   };
   return { sp, plan, tl, r, hero, best, tiles, spots, days, ro, L, html };
