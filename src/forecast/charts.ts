@@ -213,10 +213,13 @@ export type ChartRow =
   | { t: 'data'; y: number; h: number; spec: RowSpec; lo: number; hi: number; labels: RowLabel[]; vals: (number | null)[] };
 export interface ChartLayout { px: number; W: number; H: number; rows: ChartRow[]; t0: number; tz: number }
 
+/** Header height: day names, then hour ticks, then sunrise/sunset times, then the best-window bar, each on its own line. */
+export const AXIS_H = 52;
+
 /** Rows top to bottom with their heights: the axis, the sky, the rating strip, the activity's rows, WEATHER, its rows. */
 export function chartLayout(a: FcActivity, hours: readonly TimelineHour[], px: number, wide: boolean, tz: number): ChartLayout {
   const RA = wide ? 66 : 58, RW = wide ? 52 : 46;
-  const rows: ChartRow[] = [{ t: 'axis', y: 0, h: 38 }, { t: 'sky', y: 0, h: 30 }, { t: 'rate', y: 0, h: 18 }];
+  const rows: ChartRow[] = [{ t: 'axis', y: 0, h: AXIS_H }, { t: 'sky', y: 0, h: 30 }, { t: 'rate', y: 0, h: 18 }];
   const specs = rowsFor(a);
   specs.forEach((spec, i) => {
     if (spec.wx && !specs[i - 1]?.wx) rows.push({ t: 'head', y: 0, h: 30 });
@@ -291,27 +294,36 @@ export function drawChartBase(c: Ctx2D, L: ChartLayout, hours: readonly Timeline
   hours.forEach((h, i) => { if (!h.day) c.fillRect(i * px, ax, px + 0.5, Hc - ax); });
   L.rows.forEach((o, k) => { if (k) { c.fillStyle = o.t === 'head' ? L2 : Lg; c.fillRect(0, o.y, W, 1); } });
   c.fillStyle = L2; c.fillRect(0, ax - 1, W, 1);
-  // Dotted 6-hour guides, solid midnights with the day names, ticks at 06, 12 and 18.
+  // Header lines: day names (y 14), hour ticks 06/12/18 (y 29), sunrise/sunset times (y 41); the best-window bar sits at the bottom edge.
+  // Dotted 6-hour guides and solid midnights run down the body.
   let day = 0;
   hours.forEach((h, i) => {
     const lh = localHour(h.ms, L.tz), x = i * px;
     if (lh === 0) {
       c.fillStyle = L2; c.fillRect(x, 0, 1, Hc);
-      c.fillStyle = I; c.font = `800 15px ${DISP}`; c.textAlign = 'left'; c.textBaseline = 'alphabetic';
-      c.fillText(opt.dayName(h.ms, day++), x + 5, 16);
+      const name = opt.dayName(h.ms, day++);
+      c.font = `800 15px ${DISP}`;
+      // A name that would run off the chart's end is left out rather than clipped.
+      if (x + 5 + c.measureText(name).width <= W - 2) { c.fillStyle = I; c.textAlign = 'left'; c.textBaseline = 'alphabetic'; c.fillText(name, x + 5, 16); }
     } else if (lh % 6 === 0) {
       c.fillStyle = Lg; for (let yy = ax; yy < Hc; yy += 5) c.fillRect(x, yy, 1, 2);
-      c.fillStyle = BAR; c.fillRect(x, ax - 7, 1, 5);
-      txt(c, String(lh).padStart(2, '0'), x, ax - 13, 'center', 9, 600);
+      c.fillStyle = BAR; c.fillRect(x, 21, 1, 4);
+      if (x >= 9 && x <= W - 9) txt(c, String(lh).padStart(2, '0'), x, 31, 'center', 9, 600);
     }
   });
-  // Sunrise and sunset to the minute: a sun-coloured line down the chart and the time under the axis, the hours every best window sits between.
+  // Sunrise and sunset to the minute: an amber tick and the time on the header's own line; the night shading shows the dark hours.
+  let sunEnd = -1;
   for (const m of sunMarks(hours, L.t0, px, L.tz)) {
-    c.fillStyle = rgba(T['c-sun']); c.globalAlpha = 0.9;
-    for (let yy = ax; yy < Hc; yy += 4) c.fillRect(m.x, yy, 1, 2);
-    c.fillRect(m.x - 0.5, ax - 12, 2, 12);
-    c.globalAlpha = 1;
-    c.fillStyle = I; txt(c, `${m.rise ? '↑' : '↓'}${m.label}`, m.x + 4, ax - 3, 'left', 9, 700);
+    c.fillStyle = rgba(T['c-sun']);
+    c.fillRect(m.x - 0.5, 36, 2, 12);
+    const label = `${m.rise ? '↑' : '↓'}${m.label}`;
+    c.font = `700 ${(9 * 1.12).toFixed(1)}px ${MONO}`;
+    const w = c.measureText(label).width;
+    const flip = m.x + 4 + w > W - 2;
+    const x0 = flip ? m.x - 4 - w : m.x + 4;
+    if (x0 < 0 || x0 < sunEnd + 3) continue;
+    sunEnd = x0 + w;
+    c.fillStyle = I; txt(c, label, x0, 42, 'left', 9, 700);
   }
   for (const o of L.rows) {
     if (o.t === 'sky') {
@@ -408,8 +420,7 @@ export function drawChartTop(c: Ctx2D, L: ChartLayout, T: Tokens, o: { bands: [n
   for (const [s, e] of o.bands) {
     const WIN = T['c-win'];
     c.fillStyle = rgba(WIN, 0.06 + 0.09 * o.breath); c.fillRect(s * px, ax, (e - s) * px, Hc - ax);
-    c.fillStyle = rgba(WIN, 0.45); c.fillRect(s * px, ax, 1, Hc - ax); c.fillRect(e * px - 1, ax, 1, Hc - ax);
-    c.fillStyle = rgba(WIN); c.fillRect(s * px, ax - 3, (e - s) * px, 3);
+    c.fillStyle = rgba(WIN); c.fillRect(s * px, ax - 4, (e - s) * px, 4);
   }
   if (o.nowI >= 0 && o.nowI < W / px) {
     const nx = (o.nowI + 0.5) * px;
