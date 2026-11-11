@@ -863,7 +863,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 /* Phone top bar: eight tabs don't fit one row at 360-430 px (LAYERS ran into FIND), so two rows of four. */
 @media (max-width: 600px) {
   .top-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .top-tabs .tab { min-height: 40px; overflow: hidden; text-overflow: ellipsis; }
+  .top-tabs .tab { min-height: 40px; overflow: visible; font-size: 11px; letter-spacing: 0; }
 }
 
 /* Phone CONDITIONS: one row per reading. In two half-width columns the rows paired up at random (a verdict beside an
