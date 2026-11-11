@@ -405,15 +405,11 @@ export const BOARD_M = { len: 1.85, wid: 0.5 } as const;
  * right limit), so the waves and numbers read through it. A light halo keeps it legible on every level colour; the arms and chest ease gently so it is alive
  * without moving the scale (still under reduced motion).
  */
-export function drawPerson(c: Ctx2D, cx: number, base: number, mpx: number, tt: number, S: Style, edge = cx + 40) {
+function paintPerson(c: Ctx2D, cx: number, base: number, mpx: number, tt: number, S: Style) {
   const u = BODY_M.head * mpx; // crown height in px
-  if (!(u > 8) || !Number.isFinite(cx)) return;
   const br = S.reduced ? 0 : Math.sin(tt * 1.6), sway = S.reduced ? 0 : Math.sin(tt * 0.7);
   const cream = (a: number) => rgba(CREAM, a);
   c.save();
-  // Only the left half, fading, so the waves and numbers stay readable through it.
-  c.beginPath(); c.rect(cx - 4 * u, base - 2 * u, 4 * u, 2.2 * u); c.clip();
-  c.globalAlpha = (typeof c.globalAlpha === 'number' ? c.globalAlpha : 1) * 0.3;
   // Contact shadow on the sand line.
   c.fillStyle = rgba(S.on, 0.22);
   c.beginPath(); c.ellipse(cx - 0.04 * u, base + 1, 0.3 * u, 0.022 * u + 1, 0, 0, TAU); c.fill();
@@ -472,10 +468,48 @@ export function drawPerson(c: Ctx2D, cx: number, base: number, mpx: number, tt: 
   c.strokeStyle = rgba(S.on, 0.9); c.lineWidth = Math.max(1.5, 0.014 * u);
   c.beginPath(); c.moveTo(hx - 0.075 * u, hipY - 0.045 * u); c.lineTo(hx + 0.075 * u, hipY - 0.045 * u); c.stroke();
   c.restore();
+}
+
+/** Opacity of the whole figure over the chart. */
+const PERSON_ALPHA = 0.3;
+/**
+ * The left half of the figure and board (`cx` is the centre line), drawn as ONE solid image and then faded as a whole,
+ * so overlapping limbs and board never show through each other (no joints, no wire look); the height tick and label
+ * stay crisp (`edge` is the label's right limit).
+ */
+export function drawPerson(c: Ctx2D, cx: number, base: number, mpx: number, tt: number, S: Style, edge = cx + 40) {
+  const u = BODY_M.head * mpx; // crown height in px
+  if (!(u > 8) || !Number.isFinite(cx)) return;
+  const ox = cx - 0.9 * u, oy = base - 1.25 * u, w = 0.9 * u, h = 1.3 * u;
+  const dpr = typeof c.getTransform === 'function' ? Math.max(1, c.getTransform().a || 1) : 1;
+  let layer: HTMLCanvasElement | null = null;
+  if (typeof document !== 'undefined') {
+    try {
+      layer = document.createElement('canvas');
+      layer.width = Math.max(1, Math.ceil(w * dpr)); layer.height = Math.max(1, Math.ceil(h * dpr));
+    } catch { layer = null; }
+  }
+  const lc = layer?.getContext('2d') ?? null;
+  if (layer && lc) {
+    lc.setTransform(dpr, 0, 0, dpr, -ox * dpr, -oy * dpr);
+    paintPerson(lc, cx, base, mpx, tt, S);
+    c.save();
+    c.globalAlpha = (typeof c.globalAlpha === 'number' ? c.globalAlpha : 1) * PERSON_ALPHA;
+    c.drawImage(layer, ox, oy, w, h);
+    c.restore();
+  } else {
+    // No offscreen canvas (tests): draw directly, clipped to the left half.
+    c.save();
+    c.beginPath(); c.rect(ox, oy, w, h); c.clip();
+    paintPerson(c, cx, base, mpx, tt, S);
+    c.restore();
+  }
   // Height tick at the crown and the label, kept inside the chart's right edge.
+  c.save();
   c.strokeStyle = S.soft; c.lineWidth = 1;
-  c.beginPath(); c.moveTo(hx - 0.14 * u, base - u); c.lineTo(edge, base - u); c.stroke();
+  c.beginPath(); c.moveTo(cx - 0.14 * u, base - u); c.lineTo(edge, base - u); c.stroke();
   c.fillStyle = S.ink; txt(c, t('fc.g.person'), edge, Math.max(base - 1.17 * u, 8), 'right', 10.5, 700);
+  c.restore();
 }
 
 function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail']>, S: Style, SN: { a: number; v: number; h: number; hv: number; t: number }) {
