@@ -9,6 +9,8 @@ export const REGION = {
   // zooming out never hits a wall (the camera only stops well beyond the analysed area).
   viewBounds: [[-90, 4.5], [-75, 16]] as [[number, number], [number, number]],
   initialZoom: 9.3,
+  /** Open water ~20 km off Puerto Viejo where the day's swell train is read for the moving crests (PLAN 7.86). */
+  swellRef: [-82.6, 9.85] as [number, number],
   /** Resting view: centred on Playa Cocles, framing every activity from Punta Mona (south) to Punta Cahuita (north). */
   home: {
     center: [-82.7368, 9.6507] as [number, number],

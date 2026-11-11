@@ -8,20 +8,21 @@
 import type { LayerId } from './registry';
 
 export type Swatch = 'fill' | 'hatch' | 'dot' | 'ring' | 'line' | 'zone' | 'none';
-export type SwatchTone = 'amber' | 'green' | 'red' | 'dim';
+/** HUD roles, plus the Kinetic Plus crest blue and three steps of its rain ramp (PLAN 7.86). */
+export type SwatchTone = 'amber' | 'green' | 'red' | 'dim' | 'surf' | 'rain0' | 'rain2' | 'rain4';
 export interface LegendItem { sw: Swatch; tone: SwatchTone }
 
 /** Items per layer, in the order of their text keys `legend.<layer>.1`, `.2` ... */
 export const LEGEND: Readonly<Record<LayerId, readonly LegendItem[]>> = {
-  waves: [{ sw: 'line', tone: 'amber' }, { sw: 'line', tone: 'red' }],
+  waves: [{ sw: 'line', tone: 'surf' }, { sw: 'line', tone: 'red' }],
   currents: [{ sw: 'line', tone: 'green' }, { sw: 'line', tone: 'red' }],
   wind: [{ sw: 'line', tone: 'amber' }, { sw: 'line', tone: 'red' }],
   sst: [{ sw: 'fill', tone: 'green' }, { sw: 'fill', tone: 'amber' }, { sw: 'fill', tone: 'red' }, { sw: 'line', tone: 'amber' }, { sw: 'none', tone: 'amber' }],
   chl: [{ sw: 'fill', tone: 'green' }, { sw: 'fill', tone: 'dim' }, { sw: 'none', tone: 'amber' }],
   fronts: [{ sw: 'dot', tone: 'amber' }, { sw: 'dot', tone: 'green' }, { sw: 'none', tone: 'amber' }],
   clarity: [{ sw: 'fill', tone: 'green' }, { sw: 'fill', tone: 'amber' }, { sw: 'fill', tone: 'red' }],
-  sargassum: [{ sw: 'fill', tone: 'amber' }, { sw: 'hatch', tone: 'dim' }, { sw: 'dot', tone: 'amber' }, { sw: 'ring', tone: 'amber' }],
-  weather: [{ sw: 'ring', tone: 'red' }, { sw: 'fill', tone: 'green' }, { sw: 'fill', tone: 'amber' }, { sw: 'fill', tone: 'red' }, { sw: 'line', tone: 'amber' }],
+  sargassum: [{ sw: 'fill', tone: 'amber' }, { sw: 'hatch', tone: 'dim' }, { sw: 'line', tone: 'amber' }, { sw: 'ring', tone: 'amber' }],
+  weather: [{ sw: 'ring', tone: 'red' }, { sw: 'fill', tone: 'rain0' }, { sw: 'fill', tone: 'rain2' }, { sw: 'fill', tone: 'rain4' }, { sw: 'line', tone: 'amber' }],
   lightning: [{ sw: 'dot', tone: 'red' }, { sw: 'dot', tone: 'amber' }],
   obs: [{ sw: 'dot', tone: 'green' }, { sw: 'dot', tone: 'amber' }, { sw: 'dot', tone: 'red' }],
   rip: [{ sw: 'fill', tone: 'amber' }, { sw: 'fill', tone: 'red' }, { sw: 'ring', tone: 'amber' }, { sw: 'none', tone: 'dim' }],

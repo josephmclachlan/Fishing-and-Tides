@@ -18,6 +18,7 @@ import { paintSea, rgbaWord, type CoastTest } from './sea-image';
 import { readout } from '../hud-kit';
 import { t, type Key } from '../i18n';
 import { paintColour as css } from './paint';
+import type { DriftMotion } from './drift-motion';
 
 const HOUR = 3.6e6, DAY = 864e5;
 /** Forecast window, days. */
@@ -130,7 +131,7 @@ const HATCH_EVERY = 45, HATCH_ON = 7;
  * Map layers: detection image (`sg-cells`), tracks (`sg-track`), mats at the slider time (`sg-mat`) and beach outlook labels (`sg-beach`).
  * `coast` is where the sea is (sea-image.ts): the 6.6 km cells are cut at the coastline, so a shore cell doesn't paint the beach.
  */
-export function mountSargassum(map: Map, coast: () => CoastTest | null = () => null): SargassumLayer {
+export function mountSargassum(map: Map, coast: () => CoastTest | null = () => null, drift: DriftMotion | null = null): SargassumLayer {
   const canvas = document.createElement('canvas');
   let drawnFor: GridSeries | null = null;
   let drawnAt = -1;
@@ -173,7 +174,9 @@ export function mountSargassum(map: Map, coast: () => CoastTest | null = () => n
       type: 'FeatureCollection',
       features: f.tracks.filter((x) => x.path.length > 1).map((x) => ({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: x.path.map((p) => [p[0], p[1]]) } })),
     };
-    const mats = f.tracks.flatMap((x) => {
+    // With the moving weed (PLAN 7.86) the mats ride their tracks on the motion canvas instead of sitting as dots.
+    drift?.setSargassum(f.tracks, ms);
+    const mats = drift ? [] : f.tracks.flatMap((x) => {
       const p = trackAt(x.path, ms);
       return p ? [{ type: 'Feature' as const, properties: { kind: 'mat', ashore: x.end.fate === 'beached' && ms >= x.end.ms ? 1 : 0, label: '' }, geometry: { type: 'Point' as const, coordinates: p } }] : [];
     });

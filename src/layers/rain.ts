@@ -12,6 +12,7 @@ import { firstSymbolId } from '../map';
 import type { RainCellsData } from '../adapters/rain-cells';
 import { extrapolate, findCells, HORIZON_MIN, motion, type Motion } from '../rain/nowcast';
 import { paintColour as cssColour } from './paint';
+import type { DriftMotion } from './drift-motion';
 
 const ARROW_MIN = 30;
 const EMPTY: FeatureCollection = { type: 'FeatureCollection', features: [] };
@@ -33,7 +34,8 @@ export function paint(field: Float32Array, colours: { green: [number, number, nu
   return out;
 }
 
-export function mountRainLayer(map: Map) {
+/** `drift`: the moving rain (PLAN 7.86) draws the field instead of the still image, which then stays clear. */
+export function mountRainLayer(map: Map, drift: DriftMotion | null = null) {
   let data: RainCellsData | null = null;
   let m: Motion | null = null;
   let validMs = Date.now();
@@ -54,16 +56,17 @@ export function mountRainLayer(map: Map) {
       field = extrapolate(g, last, m, lead);
       arrows = true;
     }
+    drift?.setRain(field ? { ...g, rate: field } : null, arrows ? m : null);
     const canvas = document.createElement('canvas');
     canvas.width = g.nx;
     canvas.height = g.ny;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    if (field) {
+    if (field && !drift) {
       const colours = { green: rgb(cssColour('--green', '#33ff66')), amber: rgb(cssColour('--amber', '#ffb000')), red: rgb(cssColour('--red', '#ff3b30')) };
       ctx.putImageData(new ImageData(paint(field, colours), g.nx, g.ny), 0, 0);
+      (map.getSource('rn') as ImageSource | undefined)?.updateImage({ url: canvas.toDataURL('image/png'), coordinates: corners(data) });
     }
-    (map.getSource('rn') as ImageSource | undefined)?.updateImage({ url: canvas.toDataURL('image/png'), coordinates: corners(data) });
     const cells = field && arrows && m && m.speedKmh >= 3 ? findCells(g, field, 2, 3) : [];
     const deg = (km: number) => km / 111.32;
     const fc: FeatureCollection = {
@@ -92,7 +95,7 @@ export function mountRainLayer(map: Map) {
     const blank = document.createElement('canvas');
     blank.width = blank.height = 1;
     map.addSource('rn', { type: 'image', url: blank.toDataURL('image/png'), coordinates: corners(data) });
-    map.addLayer({ id: 'rn-img', type: 'raster', source: 'rn', paint: { 'raster-opacity': 0.75, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, before);
+    map.addLayer({ id: 'rn-img', type: 'raster', source: 'rn', paint: { 'raster-opacity': drift ? 0 : 0.75, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, before);
     map.addSource('rn-move', { type: 'geojson', data: EMPTY });
     map.addSource('rn-head', { type: 'geojson', data: EMPTY });
     const amber = cssColour('--amber', '#ffb000');

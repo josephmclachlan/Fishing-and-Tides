@@ -60,6 +60,7 @@ uniform int u_head;
 uniform vec2 u_center;   // view centre, world units relative to the texture origin
 uniform float u_world;   // world size, CSS px
 uniform vec2 u_half;     // half the viewport, CSS px
+uniform vec2 u_off;      // the view centre's offset from the viewport's middle, CSS px (map padding)
 uniform float u_width;
 in vec3 a_seg;           // this end's age, the other end's age, side (−1 or +1)
 out float v_alpha;
@@ -89,6 +90,7 @@ void main() {
   }
   vec2 n = vec2(-d.y, d.x) / len;
   vec2 at = p + n * a_seg.z * u_width * 0.5;
+  at += u_off;
   gl_Position = vec4(at.x / u_half.x, -at.y / u_half.y, 0.0, 1.0);
   float fade = 1.0 - float(ageThis) / float(${HISTORY - 1});
   float bright = me.z >= 1.5 ? me.z - 2.0 : me.z;
@@ -186,7 +188,7 @@ export function mountFlow(map: MapLibreMap, sources: Record<FlowKind, FlowSource
   const prog = compile(gl, VERT, FRAG);
   const u = (name: string) => gl.getUniformLocation(prog, name);
   const loc = {
-    pos: u('u_pos'), head: u('u_head'), center: u('u_center'), world: u('u_world'), half: u('u_half'),
+    pos: u('u_pos'), head: u('u_head'), center: u('u_center'), world: u('u_world'), half: u('u_half'), off: u('u_off'),
     width: u('u_width'), colour: u('u_colour'), red: u('u_red'),
   };
   const colours: Record<FlowKind, [number, number, number]> = {
@@ -281,6 +283,9 @@ export function mountFlow(map: MapLibreMap, sources: Record<FlowKind, FlowSource
     gl.uniform2f(loc.center, v.x - ox, v.y - oy);
     gl.uniform1f(loc.world, v.world);
     gl.uniform2f(loc.half, v.w / 2, v.h / 2);
+    // The view centre sits off the middle when the map has padding (the Kinetic Plus shell pads it to its stage).
+    const pc = map.project(map.getCenter());
+    gl.uniform2f(loc.off, pc.x - v.w / 2, pc.y - v.h / 2);
     gl.uniform1f(loc.width, LINE_PX);
     gl.uniform3fv(loc.red, red);
     gl.enable(gl.BLEND);
