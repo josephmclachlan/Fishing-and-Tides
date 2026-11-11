@@ -365,13 +365,12 @@ type Box = { x: number; y: number; w: number; h: number };
 function drawSurf(c: Ctx2D, A: Box, tt: number, s: NonNullable<HeroParams['surf']>, S: Style) {
   const { x, y, w, h } = A, maxM = Math.max(2.2, s.hi * 1.2);
   const base = y + h - 14, top = y + 30, mpx = (base - top) / maxM, lx = x + 40;
-  // The right gutter is the surfer's: the guide names end where it starts, so nothing is drawn over the figure.
-  const G = BODY_M.head * mpx * 0.78, xl = x + w - G, rx = xl - 58;
+  const rx = x + w - 58;
   for (const [m, n] of s.guides) {
     if (m > maxM) continue;
     const yy = base - m * mpx;
     c.strokeStyle = S.faint; c.lineWidth = 1; c.setLineDash([2, 4]); c.beginPath(); c.moveTo(lx, yy); c.lineTo(rx, yy); c.stroke(); c.setLineDash([]);
-    c.fillStyle = S.ink; txt(c, n, xl, yy, 'right', 10.5, 700);
+    c.fillStyle = S.ink; txt(c, n, x + w, yy, 'right', 10.5, 700);
     c.fillStyle = S.soft; txt(c, m.toFixed(1), x, yy, 'left', 10.5);
   }
   c.strokeStyle = S.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(lx, base); c.lineTo(rx, base); c.stroke();
@@ -391,7 +390,7 @@ function drawSurf(c: Ctx2D, A: Box, tt: number, s: NonNullable<HeroParams['surf'
   const y1 = base - s.hi * mpx, y2 = base - s.lo * mpx;
   c.fillStyle = S.ink; c.fillRect(lx - 12, y1, 6, Math.max(2, y2 - y1));
   c.fillStyle = S.ink; txt(c, s.caption, lx - 12, y + 6, 'left', 10.5, 700);
-  drawPerson(c, x + w - BODY_M.head * mpx * 0.3, base, mpx, tt, S, x + w);
+  drawPerson(c, rx - 2, base, mpx, tt, S, rx);
 }
 
 /** The figure's halo, shorts and board deck: light on every level colour, in both themes. */
@@ -402,8 +401,8 @@ export const BOARD_M = { len: 1.85, wid: 0.5 } as const;
 /**
  * A standing adult with a shortboard planted behind, drawn to the wave scale: feet on the 0 m line, the crown at
  * BODY_M.head (1.7 m) on the same metres-to-pixels scale as the crests and guide lines, the board at its real length.
- * The surfer stands in the chart's right gutter (`edge` is the right limit for the label), clear of the waves and
- * numbers. A light halo keeps it legible on every level colour; the arms and chest ease gently so it is alive
+ * Only the left half is drawn, highly translucent, at the right end of the chart (`cx` is its centre line, `edge` the label's
+ * right limit), so the waves and numbers read through it. A light halo keeps it legible on every level colour; the arms and chest ease gently so it is alive
  * without moving the scale (still under reduced motion).
  */
 export function drawPerson(c: Ctx2D, cx: number, base: number, mpx: number, tt: number, S: Style, edge = cx + 40) {
@@ -412,6 +411,9 @@ export function drawPerson(c: Ctx2D, cx: number, base: number, mpx: number, tt: 
   const br = S.reduced ? 0 : Math.sin(tt * 1.6), sway = S.reduced ? 0 : Math.sin(tt * 0.7);
   const cream = (a: number) => rgba(CREAM, a);
   c.save();
+  // Only the left half, fading, so the waves and numbers stay readable through it.
+  c.beginPath(); c.rect(cx - 4 * u, base - 2 * u, 4 * u, 2.2 * u); c.clip();
+  c.globalAlpha = (typeof c.globalAlpha === 'number' ? c.globalAlpha : 1) * 0.3;
   // Contact shadow on the sand line.
   c.fillStyle = rgba(S.on, 0.22);
   c.beginPath(); c.ellipse(cx - 0.04 * u, base + 1, 0.3 * u, 0.022 * u + 1, 0, 0, TAU); c.fill();
@@ -469,11 +471,11 @@ export function drawPerson(c: Ctx2D, cx: number, base: number, mpx: number, tt: 
   for (const sd of [-1, 1]) capsule(c, hx + sd * 0.045 * u, hipY + 0.02 * u, cx + sd * 0.043 * u, base - 0.34 * u, 0.07 * u);
   c.strokeStyle = rgba(S.on, 0.9); c.lineWidth = Math.max(1.5, 0.014 * u);
   c.beginPath(); c.moveTo(hx - 0.075 * u, hipY - 0.045 * u); c.lineTo(hx + 0.075 * u, hipY - 0.045 * u); c.stroke();
+  c.restore();
   // Height tick at the crown and the label, kept inside the chart's right edge.
   c.strokeStyle = S.soft; c.lineWidth = 1;
-  c.beginPath(); c.moveTo(hx + 0.1 * u, base - u); c.lineTo(edge, base - u); c.stroke();
-  c.fillStyle = S.ink; txt(c, t('fc.g.person'), edge, Math.max(base - u - 0.07 * u, 8), 'right', 10.5, 700);
-  c.restore();
+  c.beginPath(); c.moveTo(hx - 0.14 * u, base - u); c.lineTo(edge, base - u); c.stroke();
+  c.fillStyle = S.ink; txt(c, t('fc.g.person'), edge, Math.max(base - 1.17 * u, 8), 'right', 10.5, 700);
 }
 
 function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail']>, S: Style, SN: { a: number; v: number; h: number; hv: number; t: number }) {
