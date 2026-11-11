@@ -28,6 +28,8 @@ export interface Reading {
   /** The day's tide curve, m, hourly from local midnight, and where now is (hours). */
   curve?: number[];
   at?: number;
+  /** Sunrise and sunset, local, for the sun and moon tile. */
+  sun?: [string, string];
   /** Bed surge by depth, for the surge tile's bars. */
   prof?: { depth: number; uMs: number; band: 'CALM' | 'SURGY' | 'DANGEROUS' }[];
   /** Rating level for a coloured cell (0..4). */
@@ -206,6 +208,19 @@ export function drawTiles(el: HTMLElement, R: readonly Reading[], accent: string
         c.arc(cx, cy, R, -Math.PI / 2, Math.PI / 2, !right);
         c.ellipse(cx, cy, Math.abs(k) * R, R, 0, Math.PI / 2, -Math.PI / 2, (k > 0) === right);
         c.fill();
+        // The day's light beside it: sunrise and sunset.
+        if (r.sun) {
+          c.fillStyle = rgba(tok('ink2'));
+          c.font = `600 9px ${MONO}`;
+          c.textAlign = 'left';
+          c.textBaseline = 'middle';
+          c.fillText(L2('SUNRISE', 'SALIDA'), 2 * R + 14, cy - 15);
+          c.fillText(L2('SUNSET', 'PUESTA'), 2 * R + 14, cy + 9);
+          c.fillStyle = I;
+          c.font = `700 12px ${MONO}`;
+          c.fillText(r.sun[0], 2 * R + 14, cy - 3);
+          c.fillText(r.sun[1], 2 * R + 14, cy + 21);
+        }
         break;
       }
       case 'air': {

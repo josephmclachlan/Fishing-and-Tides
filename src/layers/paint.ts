@@ -19,13 +19,18 @@ export function paintColour(name: string, fallback: string): string {
 export interface Lift { gain: number; floor: number; cap: number }
 export const NO_LIFT: Lift = { gain: 1, floor: 0, cap: 1 };
 
-export function paintLift(): Lift {
+/**
+ * The theme's lift. 'strong' is for washes that are the layer's only mark on the sea (fishing water, reef zones): amber
+ * at a light lift mixes with the pale sea into the sand of the land and reads as coast, so these go further.
+ */
+export function paintLift(kind: 'wash' | 'strong' = 'wash'): Lift {
   const s = cs();
   const n = (k: string, d: number) => {
     const v = parseFloat(s.getPropertyValue(k));
     return Number.isFinite(v) && v >= 0 ? v : d;
   };
-  return { gain: n('--paint-gain', 1), floor: n('--paint-floor', 0), cap: n('--paint-cap', 1) };
+  const w = { gain: n('--paint-gain', 1), floor: n('--paint-floor', 0), cap: n('--paint-cap', 1) };
+  return kind === 'wash' ? w : { gain: n('--paint-strong-gain', w.gain), floor: n('--paint-strong-floor', w.floor), cap: n('--paint-strong-cap', w.cap) };
 }
 
 /** A wash opacity (0..1) after the theme's lift; nothing stays nothing. Pure. */

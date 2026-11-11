@@ -167,10 +167,7 @@ export function mountKineticMap(d: KmDeps) {
   app.className = 'k-app';
   app.innerHTML = `
   <header class="k-top">
-    <div class="k-backs">
-      <button type="button" class="k-back" id="k-back">${BACK}<span class="k-bt"><span class="k-b1">${L2('Forecast', 'Pronóstico')}</span><span class="k-b2" id="k-backsub"></span></span></button>
-      <button type="button" class="k-expand" id="k-expand">${svg('<path d="M3 3h5M3 3v5M17 17h-5M17 17v-5M3 3l5.5 5.5M17 17l-5.5-5.5"/>', '0 0 20 20')}<span>${L2('Expand data', 'Ampliar datos')}</span></button>
-    </div>
+    <button type="button" class="k-back" id="k-back">${BACK}<span class="k-bt"><span class="k-b1">${L2('Forecast', 'Pronóstico')}</span><span class="k-b2" id="k-backsub"></span></span></button>
     <div class="k-ttl"><p class="k-brand k-mono"><span class="k-hide-s">Fishing and Tides · </span>Caribe Sur</p><h1>${L2('Map', 'Mapa')} <em id="k-ttlact"></em></h1></div>
     <nav class="k-tabs" id="k-tabs" role="tablist" aria-label="${L2('Activity', 'Actividad')}"><span class="k-tab-bar" id="k-tabbar"></span></nav>
     <div class="k-ctrls">
@@ -418,11 +415,12 @@ export function mountKineticMap(d: KmDeps) {
    * actually paints (layers/paint.ts), so a green wash on the map is a green chip here. Items with no mark of their own
    * (notes such as "nothing drawn: low risk") stay in the "?" explainer.
    */
-  const SW_TONE = { amber: 'paint-amber', green: 'paint-green', red: 'paint-red', dim: 'ink2' } as const;
+  // 'dim' is the old map's faded amber (--amber-dim): the faint wash of the same colour, as the layers paint it.
+  const SW_TONE = { amber: 'var(--paint-amber)', green: 'var(--paint-green)', red: 'var(--paint-red)', dim: 'color-mix(in srgb, var(--paint-amber) 40%, transparent)' } as const;
   const legend = (id: KmLayer) => {
     if (isOwnLayer(id)) return ownLegend(id);
     const items = LEGEND[id].map((it, i) => ({ ...it, l: t(legendItemKey(id, i + 1) as Key) })).filter((it) => it.sw !== 'none');
-    return items.length ? `<ul class="k-lkeys">${items.map((it) => `<li><i class="k-sw-${it.sw}" style="--k:var(--${SW_TONE[it.tone]})"></i><span>${esc(it.l)}</span></li>`).join('')}</ul>` : '';
+    return items.length ? `<ul class="k-lkeys">${items.map((it) => `<li><i class="k-sw-${it.sw}" style="--k:${SW_TONE[it.tone]}"></i><span>${esc(it.l)}</span></li>`).join('')}</ul>` : '';
   };
   const explainLayer = (id: KmLayer) => {
     if (isOwnLayer(id)) return `<p class="k-lgnote">${esc(id === 'rating' ? L2('Each beach in the rating colour of the chosen activity, for the hour on the slider: the same score as the forecast page. Tiles show the headline value; tap one for the spot card.', 'Cada playa en el color de su calificación para la actividad y la hora elegidas, igual que la página de pronóstico. Toque una para ver el spot.') : id === 'heat' ? L2('NOAA Coral Reef Watch degree heating weeks at each tracked reef: heat built up over 12 weeks. 4 or more is bleaching likely, 8 or more severe.', 'Semanas-grado de calor de NOAA Coral Reef Watch en cada arrecife: el calor acumulado en 12 semanas. 4 o más, blanqueo probable; 8 o más, severo.') : L2('Restoration sites in your private field log, drawn only as the 5 km cell they fall in, so nobody can read an exact site off the screen.', 'Sitios de restauración de su bitácora privada, dibujados solo como la celda de 5 km, para que nadie lea un sitio exacto en la pantalla.'))}</p>`;
@@ -573,7 +571,7 @@ export function mountKineticMap(d: KmDeps) {
     if ((act('snorkel') || act('dive') || (has('reefs') && !S.coral)) && h.surge?.length && !h.land) {
       const at = act('dive') ? 6 : 2, sg = h.surge.find((x) => x.depth === at) ?? h.surge[0];
       const word = (b: string) => (b === 'DANGEROUS' ? L2('Dangerous', 'Peligroso') : b === 'SURGY' ? L2('Surgy', 'Con vaivén') : L2('Calm', 'Calmo'));
-      out.push({ k: 'surge', l: L2('Surge', 'Vaivén'), v: n1(sg.uMs), u: 'm/s', s: `${word(sg.band)} ${L2('at', 'a')} ${sg.depth} m · ±${n1(sg.excursionM)} m`, help: 'surge', src: L2('by depth', 'por prof.'), prof: h.surge, lv: sg.band === 'DANGEROUS' ? 0 : sg.band === 'SURGY' ? 2 : 4 });
+      out.push({ k: 'surge', l: L2('Surge', 'Vaivén'), v: n1(sg.uMs), u: 'm/s', s: `${word(sg.band)} · ${sg.depth} m · ±${n1(sg.excursionM)}`, help: 'surge', src: L2('by depth', 'por prof.'), prof: h.surge, lv: sg.band === 'DANGEROUS' ? 0 : sg.band === 'SURGY' ? 2 : 4 });
     }
     // Surf at the water's edge (the breaker, cut by any reef flat in front): what a swimmer walks into.
     if ((act('swim') || act('snorkel') || act('surf')) && fin(h.entryM) && !h.land)
@@ -587,7 +585,7 @@ export function mountKineticMap(d: KmDeps) {
       out.push({ k: 'rain', l: L2('Rain', 'Lluvia'), v: fin(h.rain.mmH) ? n1(h.rain.mmH) : '--', u: 'mm/h', s: fin(h.rain.pct) ? `${n0(h.rain.pct)}% ${L2('chance', 'prob.')}` : '', val: h.rain.mmH ?? 0, help: 'rain', src: L2('4 models', '4 modelos') });
     // The old WEATHER rows: air, real feel, humidity and cloud.
     if ((has('weather') || act('swim') || act('sail') || act('fish')) && fin(h.airC))
-      out.push({ k: 'air', l: L2('Air', 'Aire'), v: n0(h.airC), u: '°C', s: [fin(h.feelsC) ? `${L2('Feels', 'Sensación')} ${n0(h.feelsC)}°` : '', fin(h.humidityPct) ? `${n0(h.humidityPct)}% ${L2('humid', 'humedad')}` : ''].filter(Boolean).join(' · '), val: h.cloudPct ?? 0, help: 'air', src: L2('blend', 'mezcla') });
+      out.push({ k: 'air', l: L2('Air', 'Aire'), v: n0(h.airC), u: '°C', s: [fin(h.feelsC) ? `${L2('Feels', 'Sens.')} ${n0(h.feelsC)}°` : '', fin(h.humidityPct) ? `${n0(h.humidityPct)}% ${L2('humid', 'HR')}` : ''].filter(Boolean).join(' · '), val: h.cloudPct ?? 0, help: 'air', src: L2('blend', 'mezcla') });
     if (has('lightning') && fin(h.lightningKm) && h.lightningKm < 60) out.push({ k: 'lightning', l: L2('Lightning', 'Rayos'), v: n0(h.lightningKm), u: 'km', s: h.lightningKm < 25 ? L2('Get out of the water', 'Salga del agua') : L2('Nearest flash', 'Rayo más cercano'), val: h.lightningKm, help: 'lightningNear', src: 'GLM' });
     if ((has('rip') || act('swim') || act('surf')) && h.rip) {
       const lv = h.rip.level === 'HIGH' ? 0 : h.rip.level === 'MOD' ? 2 : 4;
@@ -609,7 +607,7 @@ export function mountKineticMap(d: KmDeps) {
     // The old SUN & MOON rows (astro-hud.ts): the day's light and the moon the bite tables run on.
     if (act('fish') || act('surf')) {
       const c0 = map.getCenter(), day = localDayStart(t0, tz), sun = sunTimes(day, c0.lat, c0.lng), mp = moonPhase(t0);
-      out.push({ k: 'sky', l: L2('Sun and moon', 'Sol y luna'), v: n0(mp.illumination * 100), u: '%', s: `${L2(...MOON_NAMES[mp.name])} · ☀ ${sun.sunrise ? hm(sun.sunrise) : '--'}–${sun.sunset ? hm(sun.sunset) : '--'}`, val: mp.illumination, deg: mp.elongation, help: 'bwMoon', src: L2('exact', 'exacto') });
+      out.push({ k: 'sky', l: L2('Sun and moon', 'Sol y luna'), v: n0(mp.illumination * 100), u: '%', s: L2(...MOON_NAMES[mp.name]), sun: [sun.sunrise ? hm(sun.sunrise) : '--', sun.sunset ? hm(sun.sunset) : '--'], val: mp.illumination, deg: mp.elongation, help: 'bwMoon', src: L2('exact', 'exacto') });
     }
     if (fin(h.uv)) out.push({ k: 'uv', l: 'UV', v: n0(h.uv), u: '', s: uvWord(h.uv), val: h.uv, help: 'uv', src: 'CAMS' });
     return out;
@@ -620,7 +618,7 @@ export function mountKineticMap(d: KmDeps) {
   };
   let lastR: Reading[] = [];
   const hereHTML = () =>
-    `<p class="k-here-ll k-mono"><span>${esc(llTxt())}</span><span>${L2('Layers on · tap to explain', 'Capas activas · toque para explicar')}</span></p><div class="k-tiles"></div>`;
+    `<button type="button" class="k-expand" data-expand>${svg('<path d="M3 3h5M3 3v5M17 17h-5M17 17v-5M3 3l5.5 5.5M17 17l-5.5-5.5"/>', '0 0 20 20')}<span>${L2('Expand data', 'Ampliar datos')}</span>${ARROW}</button><p class="k-here-ll k-mono"><span>${esc(llTxt())}</span><span>${L2('Layers on · tap to explain', 'Capas activas · toque para explicar')}</span></p><div class="k-tiles"></div>`;
   const accent = () => (S.coral ? 't-coral' : `t-${S.act}`);
   const fillTiles = (el: HTMLElement) => {
     const box = el.querySelector<HTMLElement>('.k-tiles');
@@ -953,8 +951,10 @@ export function mountKineticMap(d: KmDeps) {
   $('k-set').addEventListener('click', () => (S.sheet === 'settings' ? closeSheet() : openSheet('settings')));
   $('k-age').addEventListener('click', () => (S.sheet === 'age' ? closeSheet() : openSheet('age')));
   $('k-back').addEventListener('click', () => d.forecast.open({ spot: spot().name, activity: S.act }));
-  // Every reading the old map had, in its full CONDITIONS panel (Joseph 2026-11-11: just under Forecast, called Expand data).
-  $('k-expand').addEventListener('click', () => openTool('cond'));
+  // Every reading the old map had, in its full CONDITIONS panel: first thing under "Under the crosshair" (Joseph 2026-11-11).
+  app.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('[data-expand]')) openTool('cond');
+  });
   map.on('click', () => !WIDE.matches && S.sheet && S.sheet !== 'here' && closeSheet());
 
   /** An old drawer (WATCH, BOAT, CORAL SITES, LIVE OBS, SYSTEM CHECK, CONDITIONS...), restyled, over the map. */

@@ -18,7 +18,7 @@ import { SPECIES, speciesById, type SpeciesId } from '../fishing/species';
 import { occurrenceBoost, recordsFor, withEvidence } from '../fishing/occurrences';
 import type { OccurrenceFile } from '../fishing/occurrence-taxa';
 import { catchRecords, type CatchPin } from '../fishing/catches';
-import { paintColour as cssColour } from './paint';
+import { lifted, paintColour as cssColour, paintLift } from './paint';
 
 const { COAST, SPOT } = TIER_ZOOM;
 const DIR = 'data/fishing/mouths.geojson';
@@ -75,6 +75,8 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   let sp = speciesById(initial.species);
   let month = initial.month;
   const amber = cssColour('--amber', '#ffb000');
+  // The theme's lift (paint.ts): these washes are 3 to 32 %, made for a black sea, and vanish on the light one.
+  const L = paintLift('strong'), o = (a: number) => lifted(a, L);
   let reach: Reach = 'all';
   const inReach = (coastM: number) => reach === 'all' || (reach === 'shore' ? coastM <= SHORE_M : coastM > SHORE_M);
 
@@ -111,12 +113,15 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     // Amber only. Nothing below fair (0.3); the best water reaches a firm but see-through fill. Past spot zoom the 0.06°
     // cells are bigger than the screen's detail and read as blocks, so they fade out (clarity review CL19).
     map.setPaintProperty('fh-cells', 'fill-color', amber);
-    map.setPaintProperty('fh-cells', 'fill-opacity', ['interpolate', ['linear'], ['zoom'], COAST, 0, COAST + 1, ['interpolate', ['linear'], score, 0.3, 0, 0.45, 0.1, 0.8, 0.32], SPOT, ['interpolate', ['linear'], score, 0.3, 0, 0.45, 0.08, 0.8, 0.24], SPOT + 2, ['interpolate', ['linear'], score, 0.3, 0, 0.45, 0.03, 0.8, 0.1]]);
+    // The best water also gets an edge, so it reads as marked sea and not as sand beside the beach (PLAN 7.73).
+    if (map.getLayer('fh-edge')) map.setPaintProperty('fh-edge', 'line-opacity', ['interpolate', ['linear'], score, 0.55, 0, 0.7, 0.75, 0.8, 0.95]);
+    map.setPaintProperty('fh-cells', 'fill-opacity', ['interpolate', ['linear'], ['zoom'], COAST, 0, COAST + 1, ['interpolate', ['linear'], score, 0.3, 0, 0.45, o(0.1), 0.8, o(0.32)], SPOT, ['interpolate', ['linear'], score, 0.3, 0, 0.45, o(0.08), 0.8, o(0.24)], SPOT + 2, ['interpolate', ['linear'], score, 0.3, 0, 0.45, o(0.03), 0.8, o(0.1)]]);
   };
   const add = () => {
     if (map.getSource('fh')) return;
     map.addSource('fh', { type: 'geojson', data: geojson, attribution: 'Habitat guide: GEBCO, Allen Coral Atlas, OSM' });
     map.addLayer({ id: 'fh-cells', type: 'fill', source: 'fh', minzoom: COAST, paint: { 'fill-color': amber, 'fill-opacity': 0 } }, map.getLayer(CONTOURS_FROM) ? CONTOURS_FROM : firstSymbolId(map));
+    map.addLayer({ id: 'fh-edge', type: 'line', source: 'fh', minzoom: COAST + 0.5, paint: { 'line-color': amber, 'line-width': ['interpolate', ['linear'], ['zoom'], COAST + 0.5, 0.8, SPOT, 1.6], 'line-opacity': 0 } }, map.getLayer(CONTOURS_FROM) ? CONTOURS_FROM : firstSymbolId(map));
     paint();
   };
   if (map.getLayer('grat-macro') || map.isStyleLoaded()) add();
