@@ -48,6 +48,10 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
       <p class="fc-subline fc-mono" id="fc-sub">--</p>
       <p class="fc-swap" id="fc-swap" hidden></p>
     </header>
+    <section class="fc-spotbar fc-in" aria-label="${esc(t('fc.spots'))}">
+      <p class="fc-mono fc-spots-cap" id="fc-spots-cap"></p>
+      <div class="fc-rail fc-bleed" id="fc-spots" role="listbox" aria-label="${esc(t('fc.spots'))}"></div>
+    </section>
     <nav class="fc-tabs fc-in" id="fc-tabs" role="tablist" aria-label="${esc(t('fc.actGroup'))}">${o.acts.map(tab).join('')}<span class="fc-tab-bar" id="fc-tab-bar" aria-hidden="true"></span></nav>
     <section class="fc-hero fc-bleed" id="fc-hero" aria-labelledby="fc-k">
       <canvas id="fc-fx" aria-hidden="true"></canvas>
@@ -61,10 +65,6 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
         <ul class="fc-chips fc-mono" id="fc-why"></ul>
         <button type="button" class="fc-best" id="fc-best" hidden></button>
       </div>
-    </section>
-    <section class="fc-sec fc-in" aria-labelledby="fc-spots-h">
-      <div class="fc-sec-head"><h2 id="fc-spots-h">${esc(t('fc.spots'))}</h2><p class="fc-mono" id="fc-spots-cap"></p></div>
-      <div class="fc-rail fc-bleed" id="fc-spots" role="listbox" aria-label="${esc(t('fc.spots'))}"></div>
     </section>
     <section class="fc-sec fc-in" aria-labelledby="fc-cond-h">
       <div class="fc-sec-head"><h2 id="fc-cond-h">${esc(t('fc.conditions'))}</h2><p class="fc-mono" id="fc-cond-when"></p></div>
@@ -121,10 +121,15 @@ export function spotsHtml(list: readonly (SpotView & { id: string })[], cur: str
       const strip = s.strip.map((l) => `<i class="${lvCls(l)}" style="height:${l === null ? 12 : (l + 1) * 20}%"></i>`).join('');
       const wx = [s.airC, s.rainPct ? `${t('fc.rainChance')} ${s.rainPct}` : null].filter(Boolean).join(' · ');
       return `<button type="button" role="option" class="fc-spot ${lvCls(s.level)}" data-spot="${esc(s.id)}" aria-selected="${s.id === cur}">
-        <span class="fc-sn">${esc(s.name)}</span>
-        <span class="fc-sv">${esc(s.value)}${s.unit ? `<small>${esc(s.unit)}</small>` : ''}</span>
-        <span class="fc-sr fc-mono">${esc(s.word)}${wx ? `<span class="fc-swx">${esc(wx)}</span>` : ''}</span>
-        <span><span class="fc-strip" aria-hidden="true">${strip}</span><span class="fc-strip-l fc-mono" aria-hidden="true"><span>${esc(t('fc.now'))}</span><span>${esc(t('fc.plus12'))}</span></span></span>
+        <span class="fc-s-a">
+          <span class="fc-sn">${esc(s.name)}</span>
+          <span class="fc-sv">${esc(s.value)}${s.unit ? `<small>${esc(s.unit)}</small>` : ''}</span>
+          <span class="fc-sr fc-mono">${esc(s.word)}</span>
+        </span>
+        <span class="fc-s-b">
+          <span class="fc-swx fc-mono">${esc(wx) || '&nbsp;'}</span>
+          <span><span class="fc-strip" aria-hidden="true">${strip}</span><span class="fc-strip-l fc-mono" aria-hidden="true"><span>${esc(t('fc.now'))}</span><span>${esc(t('fc.plus12'))}</span></span></span>
+        </span>
       </button>`;
     })
     .join('');
