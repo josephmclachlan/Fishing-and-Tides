@@ -552,3 +552,28 @@
 .km #hud .panel .vd-chip .lbl{color:inherit;opacity:.8;min-width:0}
 .km .k-here-ll{flex-wrap:wrap;gap:2px 10px}
 .km .k-here-ll span:first-child{white-space:nowrap}
+
+/* ---------- in detail: the old map's finer rows for the activity, under the tiles (detail.ts, PLAN 7.82) ---------- */
+.km .k-dtls{margin-top:14px}
+.km .k-dtls[hidden]{display:none}
+.km .k-dtls h3{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line);font-weight:700;color:var(--ink)}
+.km .k-dtls h3 span{color:var(--ink2);font-weight:500;font-size:9.5px}
+.km .k-dtlg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.km .k-dtl{appearance:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;position:relative;display:grid;grid-template-rows:auto 1fr auto;align-content:start;gap:4px;min-width:0;min-height:84px;padding:9px 10px 9px 15px;background:var(--block);border-radius:2px;overflow:hidden;transition:box-shadow .2s}
+.km .k-dtl::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c);transition:background-color .5s}
+.km .k-dtl.k-plain::before{background:var(--ink);width:2px}
+.km .k-dtl:hover{box-shadow:0 0 0 2px var(--ink)}
+.km .k-dtl .k-dl{font-size:9.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.km .k-dtl .k-dv{font-family:var(--disp);font-weight:850;font-variation-settings:"wdth" 74;font-size:25px;line-height:.92;letter-spacing:-.02em;align-self:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.km .k-dtl .k-dv small{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.04em;margin-left:3px;font-variation-settings:normal}
+.km .k-dtl .k-dv.k-dw{font-size:17px;line-height:1;text-transform:uppercase;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.km .k-dtl .k-ds{font-size:9.5px;letter-spacing:.05em;color:var(--ink2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.km .k-dtl-towns{grid-column:1/-1;min-height:0}
+.km .k-dtl-towns::before{display:none}
+.km .k-dtl-towns{padding-left:10px}
+.km .k-dtw{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.km .k-dtw span{display:flex;flex-direction:column;gap:3px;min-width:0;border-top:2px solid var(--ink);padding-top:5px}
+.km .k-dtw i{font-style:normal;font-size:9px;letter-spacing:.04em;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.km .k-dtw b{font-family:var(--disp);font-weight:850;font-variation-settings:"wdth" 74;font-size:15px;line-height:1}
+/* Expand data: a row with nothing to say here and now is folded away. */
+.km body.km-on #cond-panel .ro.k-empty{display:none}
