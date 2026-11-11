@@ -23,3 +23,21 @@ describe('best windows follow the sun (Joseph, 2026-11-11)', () => {
     expect(seen[seen.length - 1]).toBe(16);
   });
 });
+
+import { bestWindow as ribbonBest } from '../spot-charts';
+import { todayOver } from './best-today';
+
+describe('the map follows the sun too', () => {
+  it('the spot ribbon searches only the span it is given', () => {
+    const scores = Array.from({ length: 24 }, (_, h) => (h === 5 || h === 18 ? 1 : 0.5));
+    expect(ribbonBest(scores, { fromH: 6, toH: 18 })).toEqual({ from: 6, to: 8 });
+    expect(ribbonBest(scores)?.from).toBe(5);
+  });
+  it('today is over once the last window before sunset has started (an hour after for fishing)', () => {
+    const sun = sunHours(DAY0, LAT, LNG);
+    const last = DAY0 + (sun.toH - 1) * 3.6e6; // 2 h windows: the last starts toH - 2, so this hour has started it
+    expect(todayOver(-6, last + 1, 'surf', [LNG, LAT])).toBe(true);
+    expect(todayOver(-6, DAY0 + (sun.toH - 2) * 3.6e6 - 1, 'surf', [LNG, LAT])).toBe(false);
+    expect(todayOver(-6, last + 1, 'fish', [LNG, LAT])).toBe(false);
+  });
+});

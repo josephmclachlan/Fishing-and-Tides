@@ -73,7 +73,7 @@ export function mountBestToday(
     const when = day === 0 ? t('bt.today') : day === 1 ? t('bt.tomorrow') : t(`day.${new Date(time.validMs() + getEnv().tzOffsetH * HOUR).getUTCDay()}` as Key);
     // Why it is empty: past the forecast, a day with nothing good, the day's windows over, or a feed missing.
     const none = t(
-      day > BEST_MAX_DAY ? 'bt.tooFar' : found && !found.good ? 'bt.poor' : day === 0 && todayOver(getEnv().tzOffsetH, Date.now(), act) ? 'bt.noneLeft' : 'bt.noData',
+      day > BEST_MAX_DAY ? 'bt.tooFar' : found && !found.good ? 'bt.poor' : day === 0 && todayOver(getEnv().tzOffsetH, Date.now(), act, spot?.lngLat) ? 'bt.noneLeft' : 'bt.noData',
     );
     waiting = !win && none === t('bt.noData');
     const body = win
