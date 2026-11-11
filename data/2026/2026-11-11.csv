@@ -3836,3 +3836,22 @@ t,site,source,model,var,value,issued
 2026-11-11T23:00Z,PUNTA MONA,wind,,v,-2.6539,2026-11-10T23:18Z
 2026-11-11T23:00Z,GANDOCA,wind,,u,0.5601,2026-11-10T23:18Z
 2026-11-11T23:00Z,GANDOCA,wind,,v,-2.7016,2026-11-10T23:18Z
+2026-11-11T00:00Z,MRLM,metar,,windFromDeg,10,
+2026-11-11T00:00Z,MRLM,metar,,windKt,3,
+2026-11-11T00:00Z,MRLM,metar,,tempC,30,
+2026-11-11T00:00Z,MRLM,metar,,dewC,26,
+2026-11-11T00:00Z,MRLM,metar,,pressureHpa,1011.3,
+2026-11-11T00:05Z,limon,gauge,,levelM,-0.0518,
+2026-11-11T00:05Z,limon,gauge,,tideM,-0.096234,
+2026-11-11T00:15Z,limon,gauge,,levelM,-0.068,
+2026-11-11T00:15Z,limon,gauge,,tideM,-0.1082,
+2026-11-11T00:25Z,limon,gauge,,levelM,-0.0758,
+2026-11-11T00:25Z,limon,gauge,,tideM,-0.1196,
+2026-11-11T00:35Z,limon,gauge,,levelM,-0.0903,
+2026-11-11T00:35Z,limon,gauge,,tideM,-0.13039,
+2026-11-11T00:45Z,limon,gauge,,levelM,-0.1036,
+2026-11-11T00:45Z,limon,gauge,,tideM,-0.14053,
+2026-11-11T00:55Z,limon,gauge,,levelM,-0.1072,
+2026-11-11T00:55Z,limon,gauge,,tideM,-0.14998,
+2026-11-11T01:05Z,limon,gauge,,levelM,-0.1156,
+2026-11-11T01:05Z,limon,gauge,,tideM,-0.15872,
