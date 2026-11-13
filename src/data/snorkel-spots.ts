@@ -71,4 +71,31 @@ export const SNORKEL_SPOTS: readonly SnorkelSpot[] = [
     confidence: 'check', // refuge reefs; dive boats run there from Punta Uva
     sources: [{ name: 'Tico Travel', url: 'https://ticotravel.com/diving-the-caribbean-coast-of-costa-rica/' }],
   },
+  {
+    id: 'rocking-js',
+    spot: 'SALSA BRAVA',
+    lngLat: [-82.7524, 9.6582],
+    access: 'shore',
+    facing: 342,
+    confidence: 'check', // Joseph's local knowledge (2026-11-13): reef-protected beach; no guide gives depth or best tide. Shares the Salsa Brava reading
+    sources: [],
+  },
+  {
+    id: 'playa-chino',
+    spot: 'SALSA BRAVA',
+    lngLat: [-82.7524, 9.6582],
+    access: 'shore',
+    facing: 342,
+    confidence: 'check', // Joseph's local knowledge (2026-11-13): reef-protected corals in Puerto Viejo; shares the Salsa Brava reading
+    sources: [],
+  },
+  {
+    id: 'arrecife',
+    spot: 'PUNTA UVA',
+    lngLat: [-82.6871, 9.6432],
+    access: 'shore',
+    facing: 355,
+    confidence: 'check', // Joseph (2026-11-13): the next beach east of Punta Uva; shares the Punta Uva reading
+    sources: [],
+  },
 ];

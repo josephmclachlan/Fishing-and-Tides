@@ -231,10 +231,10 @@ describe('chooseSpot', () => {
     expect(chooseSpot('SALSA BRAVA', 'surf', SPOTS)).toEqual({ spot: SPOTS.find((s) => s.name === 'SALSA BRAVA'), asked: null });
   });
   it('shows the nearest spot with the activity, and says which was asked for', () => {
-    const r = chooseSpot('SALSA BRAVA', 'dive', SPOTS);
+    const r = chooseSpot('PLAYA COCLES', 'dive', SPOTS);
     expect(spotsForActivity('dive', SPOTS).map((s) => s.name)).toContain(r.spot.name);
-    expect(r.spot.name).not.toBe('SALSA BRAVA');
-    expect(r.asked).toBe('SALSA BRAVA');
+    expect(r.spot.name).not.toBe('PLAYA COCLES');
+    expect(r.asked).toBe('PLAYA COCLES');
   });
   it('opens Playa Cocles for an unknown or missing name, without a note', () => {
     expect(chooseSpot('NOWHERE', 'surf', SPOTS)).toEqual({ spot: SPOTS.find((s) => s.name === DEFAULT_SPOT), asked: null });
