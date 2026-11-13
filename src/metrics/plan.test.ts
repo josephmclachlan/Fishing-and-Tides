@@ -65,18 +65,18 @@ describe('planDays: each activity its own best day (Joseph, 2026-11-04)', () => 
 describe('planDays: where each activity is judged', () => {
   it('judges SURF only at surf breaks and SNORKEL / DIVE only at the snorkel spots', () => {
     expect(spotsFor('surf', coast).map((s) => s.name)).toEqual(['SALSA BRAVA']);
-    expect(spotsFor('snorkel', coast).map((s) => s.name)).toEqual(['PUNTA CAHUITA', 'PUNTA UVA']);
+    expect(spotsFor('snorkel', coast).map((s) => s.name)).toEqual(['SALSA BRAVA', 'PUNTA CAHUITA', 'PUNTA UVA']);
     expect(spotsFor('dive', coast)).toEqual(spotsFor('snorkel', coast));
     expect(spotsFor('fish', coast)).toHaveLength(4);
     expect(spotsFor('boat', coast)).toHaveLength(4);
   });
   it('says so when the region has no spot for the activity', () => {
     expect(planDays(env(), 'surf', [spot('PUNTA CAHUITA'), elsewhere], DAY0, 5)).toMatchObject({ bestDay: null, none: 'nospot' });
-    expect(planDays(env(), 'snorkel', [spot('SALSA BRAVA')], DAY0, 5, outing)).toMatchObject({ bestDay: null, none: 'nospot' });
+    expect(planDays(env(), 'snorkel', [spot('PLAYA COCLES')], DAY0, 5, outing)).toMatchObject({ bestDay: null, none: 'nospot' });
   });
   it('picks the better spot each day and names it', () => {
     // Punta Uva clearer than Cahuita every day.
-    const p = planDays(env(), 'snorkel', coast, DAY0, 2, (s, m, ms, h) => outing(s, m, ms, h)! - (s.name === 'PUNTA CAHUITA' ? 20 : 0));
+    const p = planDays(env(), 'snorkel', coast, DAY0, 2, (s, m, ms, h) => outing(s, m, ms, h)! - (s.name === 'PUNTA CAHUITA' || s.name === 'SALSA BRAVA' ? 20 : 0));
     expect(p.days[0]!.spot).toBe('PUNTA UVA');
   });
 });
