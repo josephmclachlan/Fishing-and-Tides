@@ -2,13 +2,13 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { PLUME_RIVERS } from '../../src/region.ts';
+import { RAIN_AREAS } from '../../src/region.ts';
 import { subsetOf, type RainImerg } from '../../src/adapters/imerg-parse.ts';
 import { buildRainImerg } from './rain-imerg.ts';
 
 const H = 3.6e6;
 const now = Date.UTC(2026, 10, 10, 18, 10);
-const b = subsetOf(PLUME_RIVERS);
+const b = subsetOf(RAIN_AREAS);
 const nLon = b.i1 - b.i0 + 1, nLat = b.j1 - b.j0 + 1;
 const name = (ms: number) => {
   const d = new Date(ms).toISOString();
@@ -50,7 +50,7 @@ describe('buildRainImerg', () => {
     expect(f.times.at(-1)).toBe(Date.UTC(2026, 10, 10, 13, 0));
     expect(f.times.length).toBe(7 * 48 + 27);
     expect(f.byRiver['RÍO SIXAOLA'].every((x) => x === 2)).toBe(true);
-    expect(f.cells).toEqual({ 'RÍO SIXAOLA': 28, 'RÍO ESTRELLA': 8, 'RÍO BANANO': 2, 'RÍO BANANITO': 1 });
+    expect(f.cells).toEqual({ 'RÍO SIXAOLA': 28, 'RÍO ESTRELLA': 8, 'RÍO BANANO': 2, 'RÍO BANANITO': 1, 'COAST CREEKS': 2 });
     expect(msg).toMatch(/363 new/);
     expect(g.asked.find((u) => u.includes('/opendap/'))).toMatch(/\.HDF5\.ascii\?precipitation%5B0%5D%5B967%3A973%5D%5B992%3A999%5D$/);
   });
@@ -63,6 +63,16 @@ describe('buildRainImerg', () => {
     expect(await buildRainImerg(dir, now, g, prev)).toMatch(/ 2 new/);
     const f = JSON.parse(readFileSync(join(dir, 'rain-imerg.json'), 'utf8')) as RainImerg;
     expect(f.byRiver['RÍO BANANO'].slice(-3)).toEqual([1, 3, 3]);
+  });
+
+  it('reads every half hour again for a rain area the published copy lacks (the coast creeks, PLAN 7.89)', async () => {
+    dir = mkdtempSync(join(tmpdir(), 'imerg-'));
+    await buildRainImerg(dir, now - H, fakeGesdisc(1, now - H), null);
+    const prev = JSON.parse(readFileSync(join(dir, 'rain-imerg.json'), 'utf8')) as RainImerg;
+    delete prev.byRiver['COAST CREEKS'];
+    expect(await buildRainImerg(dir, now, fakeGesdisc(3), prev)).toMatch(/ 363 new/);
+    const f = JSON.parse(readFileSync(join(dir, 'rain-imerg.json'), 'utf8')) as RainImerg;
+    expect(f.byRiver['COAST CREEKS'].every((x) => x === 3)).toBe(true);
   });
 
   it('reads the newest first and leaves the rest for later runs when out of time', async () => {

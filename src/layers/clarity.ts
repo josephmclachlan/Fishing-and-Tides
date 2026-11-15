@@ -8,7 +8,7 @@
 import type { GeoJSONSource, Map } from 'maplibre-gl';
 import type { FeatureCollection } from 'geojson';
 import { bandLines, FIELD_STEPS, fieldWord } from './bands';
-import { PLUME_RIVERS, REGION } from '../region';
+import { COAST_RAIN, CREEK_PLUMES, PLUME_RIVERS, REGION } from '../region';
 import { cellAt, M_PER_DEG_LAT, M_PER_DEG_LNG, sample, type Grid } from '../physics/bathy';
 import { CLARITY_BANDS, clarity, effectiveRain, flowPlumeMm, kdFromChl, resuspensionKd, PLUME_SATURATION_MM, type Clarity, type ClarityLevel } from '../physics/clarity';
 import { riverMud, type MudSeries } from '../physics/runoff';
@@ -66,28 +66,33 @@ export interface ClarityContext {
  * lag, clearing at sea; PLAN 7.50) on the PLUME_SATURATION_MM scale, or the measured flow's, whichever is more.
  * `ageS` is the mean age of that mud, for the drift.
  */
-export const riverRain = (rain: CatchmentRain | null, ms: number, currentAt?: ClarityContext['currentAt'], flow?: RiverFlow | null) =>
-  PLUME_RIVERS.map((r) => {
-    const mm = rain?.byRiver[r.name];
-    const ratio = flow ? flowRatio(flow, r.name, ms) : null;
-    const wet = mm ? effectiveRain(rain.times, mm, ms) : 0;
-    const flowMm = ratio === null ? 0 : flowPlumeMm(ratio);
-    const rainMm = Math.max(wet, flowMm);
-    const mud = mm ? mudAt(rain, r.name, r.catchmentKm2, ms) : { strength: 0, ageS: 0 };
-    const plumeMm = Math.max(PLUME_SATURATION_MM * mud.strength, flowMm);
-    let drift: [number, number] = [0, 0];
-    const ageS = plumeMm > 0 ? mud.ageS : 0;
-    if (mm && plumeMm > 0 && ageS > 0 && currentAt) {
-      const age = ageS;
-      let u = 0, v = 0, n = 0;
-      for (let k = 0; k < 4; k++) {
-        const c = currentAt(r.mouth[0], r.mouth[1], ms - (k / 3) * age * 1000);
-        if (c) (u += c[0]), (v += c[1]), n++;
-      }
-      if (n) drift = plumeDrift(age, [u / n, v / n]);
+export const riverRain = (rain: CatchmentRain | null, ms: number, currentAt?: ClarityContext['currentAt'], flow?: RiverFlow | null) => [
+  ...PLUME_RIVERS.map((r) => plumeSource(r, r.name, rain, ms, currentAt, flow ? flowRatio(flow, r.name, ms) : null)),
+  // The beach creeks (PLAN 7.89): the coast hills' rain through the same runoff model, no measured flow.
+  ...CREEK_PLUMES.map((r) => plumeSource(r, COAST_RAIN.name, rain, ms, currentAt, null)),
+];
+
+function plumeSource<R extends { name: string; mouth: readonly [number, number]; catchmentKm2: number }>(
+  r: R, rainName: string, rain: CatchmentRain | null, ms: number, currentAt: ClarityContext['currentAt'] | undefined, ratio: number | null,
+) {
+  const mm = rain?.byRiver[rainName];
+  const wet = mm ? effectiveRain(rain.times, mm, ms) : 0;
+  const flowMm = ratio === null ? 0 : flowPlumeMm(ratio);
+  const rainMm = Math.max(wet, flowMm);
+  const mud = mm ? mudAt(rain, rainName, r.catchmentKm2, ms) : { strength: 0, ageS: 0 };
+  const plumeMm = Math.max(PLUME_SATURATION_MM * mud.strength, flowMm);
+  let drift: [number, number] = [0, 0];
+  const ageS = plumeMm > 0 ? mud.ageS : 0;
+  if (mm && plumeMm > 0 && ageS > 0 && currentAt) {
+    let u = 0, v = 0, n = 0;
+    for (let k = 0; k < 4; k++) {
+      const c = currentAt(r.mouth[0], r.mouth[1], ms - (k / 3) * ageS * 1000);
+      if (c) (u += c[0]), (v += c[1]), n++;
     }
-    return { ...r, rainMm, plumeMm, drift, ageS };
-  });
+    if (n) drift = plumeDrift(ageS, [u / n, v / n]);
+  }
+  return { ...r, rainMm, plumeMm, drift, ageS };
+}
 
 /** River mud per catchment-rain load and river, computed once (the grid asks for every hour it shows). */
 const mudMemo = new WeakMap<CatchmentRain, globalThis.Map<string, MudSeries>>();
@@ -122,8 +127,9 @@ const MUD_TAIL_H = 240;
 export function mudAt(rain: CatchmentRain, river: string, areaKm2: number, ms: number): { strength: number; ageS: number } {
   let byRiver = mudMemo.get(rain);
   if (!byRiver) mudMemo.set(rain, (byRiver = new globalThis.Map()));
-  let m = byRiver.get(river);
-  if (!m) byRiver.set(river, (m = rain.members?.[river]?.length ? memberMud(rain.members[river], areaKm2) : riverMud([...(rain.byRiver[river] ?? []), ...Array(MUD_TAIL_H).fill(0)], areaKm2)));
+  const key = `${river}|${areaKm2}`;
+  let m = byRiver.get(key);
+  if (!m) byRiver.set(key, (m = rain.members?.[river]?.length ? memberMud(rain.members[river], areaKm2) : riverMud([...(rain.byRiver[river] ?? []), ...Array(MUD_TAIL_H).fill(0)], areaKm2)));
   const t = rain.times;
   if (!t.length) return { strength: 0, ageS: 0 };
   const f = (ms - t[0]) / 3.6e6 - 1;
