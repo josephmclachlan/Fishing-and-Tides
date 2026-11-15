@@ -49,7 +49,10 @@ export function idScore(e: Entry, a: IdAnswers): number | null {
   if (a.kind === 'animal' && e.group === 'plants-algae') return null;
   if (a.group && e.group !== a.group) return null;
   if (a.sub && e.sub !== a.sub) return null;
-  let s = (e.seen ? SEEN_BONUS[e.seen] ?? 0 : 0) + (e.tier === 'list' ? -2 : 0);
+  // Ties go to what people most often meet and catch (Joseph 2026-11-15): seen often, met in the water or on the
+  // shore, eaten.
+  let s = (e.seen ? SEEN_BONUS[e.seen] ?? 0 : 0) + (e.tier === 'list' ? -2 : 0) + (e.edible === 'yes' || e.edible === 'caution' ? 0.5 : 0) +
+    (e.encounter?.some((x) => x !== 'boat-fishing') ? 0.5 : 0);
   if (a.size) {
     const b = sizeBand(e);
     if (b) {
