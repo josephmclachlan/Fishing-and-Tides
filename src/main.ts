@@ -155,6 +155,7 @@ import { mountTideHud } from './tide-hud';
 import { mountSpotPage } from './spot-page';
 import { mountForecastPage } from './forecast/page';
 import { mountCoralPage } from './coral-page/page';
+import { mountGuidePage } from './guide/page';
 import type { FcActivity } from './forecast/model';
 import { fetchSargassum, type SargassumData } from './adapters/sargassum';
 import { currentTheme } from './theme';
@@ -749,6 +750,18 @@ if (coralPanelEl) {
   map.on('moveend', () => coralHeatUi?.refresh());
   sheets.subscribe(() => sheets.is('coral') && (coralHeatUi?.refresh(), spawnUi.refresh()));
 }
+// SPECIES GUIDE page (PLAN 7.91): every animal and plant from shore to dive depth, on a page of its own (#guide).
+const guidePage = mountGuidePage({
+  storage: safeStorage(),
+  lang: () => settings.lang(),
+  setLang: (l) => {
+    settings.setLang(l);
+    const c = map.getCenter();
+    saveView(safeSession(), { center: [c.lng, c.lat], zoom: map.getZoom() });
+    location.reload();
+  },
+});
+void guidePage;
 // CORAL page (PLAN 7.66): reef health, the private field log, spawning, guide and rules on a clean page of its own (#coral).
 const coralPage = mountCoralPage({
   storage: safeStorage(),

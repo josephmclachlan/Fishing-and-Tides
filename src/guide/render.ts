@@ -63,7 +63,7 @@ export function badges(e: Entry, lang: Lang, max = 3): string {
     if (risk) out.push(`<span class="gd-b risk">${esc(tx(RISK_WORDS[risk], lang))}</span>`);
   } else if (e.edible === 'protected') out.push(`<span class="gd-b prot">${esc(t('gd.flag.protected'))}</span>`);
   if (e.iucn === 'CR' || e.iucn === 'EN' || e.iucn === 'VU') out.push(`<span class="gd-b iucn i-${e.iucn}" title="${esc(tx(IUCN_WORDS[e.iucn], lang))}">${e.iucn}</span>`);
-  if (e.origin === 'invasive' || e.origin === 'introduced') out.push(`<span class="gd-b intro">${esc(t('gd.flag.introduced'))}</span>`);
+  if (e.origin === 'invasive' || e.origin === 'introduced') out.push(`<span class="gd-b introd">${esc(t('gd.flag.introduced'))}</span>`);
   return out.length ? `<span class="gd-badges">${out.slice(0, max).join('')}</span>` : '';
 }
 
@@ -84,7 +84,7 @@ export function cardHtml(e: Entry, o: ListOpts): string {
     ? `<img src="${esc(o.base + e.thumb)}" alt="" loading="lazy" decoding="async" width="240" height="180">`
     : artSvg(artFor(e.group, e.sub));
   return `<a class="gd-card g-${e.group}" href="${esc(o.href(e.id))}" data-id="${esc(e.id)}">
-    <span class="gd-thumb${e.thumb ? ' ph' : ''}">${thumb}</span>
+    <span class="gd-thumb${e.thumb ? ' gd-ph' : ''}">${thumb}</span>
     <span class="gd-ct">
       <b class="gd-name${latin ? ' sci' : ''}">${esc(nameOf(e, lang))}</b>${latin ? '' : `<i class="gd-sci">${esc(e.sci)}</i>`}
       ${alt.length ? `<span class="gd-alt">${esc(alt.join(' · '))}</span>` : ''}
@@ -297,7 +297,7 @@ function statusBadges(s: Species, lang: Lang): string {
   if (st?.iucn && st.iucn !== 'NE') out.push(`<span class="gd-b iucn i-${st.iucn}">${st.iucn} · ${esc(tx(IUCN_WORDS[st.iucn], lang))}</span>`);
   if (st?.protectedCR) out.push(`<span class="gd-b prot">${esc(t('gd.flag.protected'))} CR</span>`);
   if (st?.cites) out.push(`<span class="gd-b prot">CITES ${esc(st.cites)}</span>`);
-  if (st?.origin === 'invasive' || st?.origin === 'introduced') out.push(`<span class="gd-b intro">${esc(t('gd.flag.introduced'))}</span>`);
+  if (st?.origin === 'invasive' || st?.origin === 'introduced') out.push(`<span class="gd-b introd">${esc(t('gd.flag.introduced'))}</span>`);
   if (s.check) out.push(`<span class="gd-b chk" title="${esc(t('gd.checkTitle'))}">${esc(t('gd.check'))}</span>`);
   return out.length ? `<div class="gd-badges">${out.join('')}</div>` : '';
 }

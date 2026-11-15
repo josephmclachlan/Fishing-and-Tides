@@ -1959,7 +1959,7 @@ export const en = {
   'gd.d.next': 'Next',
   'gd.d.of': '{i} of {n}',
   'gd.d.tabs': 'Species sections',
-  'gd.d.otherNames': 'English',
+  'gd.d.otherNames': 'In Spanish',
   'gd.d.local': 'Local names',
   'gd.d.loading': 'Loading…',
   'gd.d.photos': 'Photos',

@@ -1958,7 +1958,7 @@ export const es: Dict = {
   'gd.d.next': 'Siguiente',
   'gd.d.of': '{i} de {n}',
   'gd.d.tabs': 'Secciones de la especie',
-  'gd.d.otherNames': 'Español',
+  'gd.d.otherNames': 'En inglés',
   'gd.d.local': 'Nombres locales',
   'gd.d.loading': 'Cargando…',
   'gd.d.photos': 'Fotos',

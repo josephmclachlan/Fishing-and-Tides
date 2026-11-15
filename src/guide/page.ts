@@ -85,7 +85,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
         <p class="fc-subline fc-mono"><b id="gd-sub">${t('gd.loading')}</b></p>
       </header>
       <nav class="gd-modes fc-in" id="gd-modes" role="tablist" aria-label="${esc(t('gd.modes'))}"></nav>
-      <div class="gd-groups-w"><div class="gd-groups" id="gd-groups" role="toolbar" aria-label="${esc(t('gd.groups'))}"></div></div>
+      <div class="gd-groups-w fc-in"><div class="gd-groups" id="gd-groups" role="toolbar" aria-label="${esc(t('gd.groups'))}"></div></div>
       <div class="gd-tools fc-in">
         <label class="gd-search">${svg(ICONS.search)}<input id="gd-q" type="search" enterkeyhint="search" autocomplete="off" spellcheck="false" placeholder="${esc(t('gd.search'))}" aria-label="${esc(t('gd.searchLabel'))}"></label>
         <button type="button" class="fc-ctl gd-fbtn" id="gd-fbtn" aria-expanded="false" aria-controls="gd-filters">${svg(ICONS.filter)}<span>${t('gd.filters')}</span><b id="gd-fn" hidden></b></button>
@@ -160,12 +160,11 @@ export function mountGuidePage(deps: GuidePageDeps) {
   $('gd-filters').innerHTML = filtersHtml(f, lang);
   const drawPicks = () => ($('gd-picks').innerHTML = pickersHtml({ ...f, by: byNow() }, mode));
   drawPicks();
-  const wide = window.matchMedia?.('(min-width: 960px)');
   const setFilters = (open: boolean) => {
     $('gd-filters').hidden = !open;
     $('gd-fbtn').setAttribute('aria-expanded', String(open));
   };
-  setFilters(!!wide?.matches);
+  setFilters(false);
 
   const modeBar = () => {
     const on = el.querySelector<HTMLElement>('.gd-mode[aria-selected="true"]');
