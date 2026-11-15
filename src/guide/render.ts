@@ -8,7 +8,7 @@ import { t, type Key } from '../i18n';
 import { artFor, artSvg, GROUP_ART } from './art';
 import { cleanHtml } from './clean';
 import {
-  FLAGS, GROUP_BYS, hurtsToTouch, isFood, latinOnly, nameOf, poisonToEat, riskToEat, SIZE_BANDS, SORTS, TOUCH_KINDS,
+  FLAGS, GROUP_BYS, hurtsToTouch, isFood, latinOnly, nameOf, poisonToEat, riskToEat, SIZE_BANDS, SORTS, TOUCH_KINDS, touchLevel,
   type GdFilter, type GroupBy, type Section,
 } from './filter';
 import { GD_MODES, type GdMode, type GdTab } from './route';
@@ -58,7 +58,8 @@ export function badges(e: Entry, lang: Lang, max = 3): string {
   const out: string[] = [];
   if (e.danger && hurtsToTouch(e)) {
     const k = e.danger.kinds.find((x) => TOUCH_KINDS.includes(x))!;
-    out.push(`<span class="gd-b dz l${e.danger.level}" title="${esc(tx(LEVEL_WORDS[e.danger.level], lang))}">${icon(ICONS.danger)}${esc(tx(KIND_WORDS[k], lang))}</span>`);
+    const lv = touchLevel(e);
+    out.push(`<span class="gd-b dz l${lv}" title="${esc(tx(LEVEL_WORDS[lv], lang))}">${icon(ICONS.danger)}${esc(tx(KIND_WORDS[k], lang))}</span>`);
   }
   if (poisonToEat(e)) out.push(`<span class="gd-b dz l3">${esc(tx(EDIBLE_WORDS.toxic, lang))}</span>`);
   if (isFood(e)) {

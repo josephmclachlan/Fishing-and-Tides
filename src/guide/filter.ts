@@ -160,13 +160,23 @@ const rank = (list: readonly string[], v: string | undefined) => {
 export const RISK_SECTIONS = ['touch-3', 'touch-2', 'touch-1', 'eat-poison', 'eat-risk'] as const;
 export type RiskSection = (typeof RISK_SECTIONS)[number];
 export const RISK_SECTION_WORDS: Record<RiskSection, Txt> = {
-  'touch-3': { en: 'Venomous: can kill', es: 'Venenosos: pueden matar' },
-  'touch-2': { en: 'Venomous, stinging or biting: see a doctor', es: 'Venenosos, urticantes o que muerden: vaya al médico' },
+  'touch-3': { en: 'Can kill: venom, stings and bites', es: 'Pueden matar: veneno, picaduras y mordidas' },
+  'touch-2': { en: 'Serious: see a doctor', es: 'Graves: ve al médico' },
   'touch-1': { en: 'Painful to touch', es: 'Dolorosos al tocar' },
   'eat-poison': { en: 'Poisonous to eat', es: 'Venenosos al comer' },
   'eat-risk': { en: 'Eaten, with a risk', es: 'Se comen, con riesgo' },
 };
-const touchLevel = (e: Entry): 1 | 2 | 3 => e.danger?.level ?? 1;
+/**
+ * How bad it is to touch. A species that is poisonous to eat carries the level of eating it (a pufferfish can
+ * kill when eaten), so its spines or sap count as painful, or serious for a skin toxin, unless it also stings,
+ * bites or envenoms.
+ */
+export function touchLevel(e: Pick<Entry, 'danger'>): 1 | 2 | 3 {
+  const d = e.danger;
+  if (!d) return 1;
+  if (!d.kinds.includes('toxic-to-eat') || d.kinds.some((k) => k === 'venom' || k === 'sting' || k === 'bite' || k === 'aggressive')) return d.level;
+  return d.kinds.some((k) => k === 'skin-toxin' || k === 'irritant') ? (Math.min(d.level, 2) as 1 | 2) : 1;
+}
 
 function riskSections(list: readonly Entry[], sort: SortKey, lang: Lang): Section[] {
   const out: Section[] = [];

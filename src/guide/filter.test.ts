@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  touchLevel,
   activeCount, DEFAULT_FILTER, flagsOf, fold, groupCounts, haystack, inView, isDanger, matches, modeCounts, nameOf, poisonToEat, riskToEat,
   sections, sizeBand, sortEntries, type GdFilter,
 } from './filter';
@@ -123,5 +124,14 @@ describe('sorting and sections', () => {
       ['eat-poison', ['sphoeroides-testudineus']],
       ['eat-risk', ['lutjanus-apodus']],
     ]);
+  });
+});
+
+describe('touchLevel', () => {
+  it('ranks spines on a fish that kills when eaten as painful, a venomous one as it is', () => {
+    expect(touchLevel({ danger: { kinds: ['toxic-to-eat', 'spines'], level: 3 } })).toBe(1);
+    expect(touchLevel({ danger: { kinds: ['toxic-to-eat', 'skin-toxin', 'irritant'], level: 3 } })).toBe(2);
+    expect(touchLevel({ danger: { kinds: ['sting', 'venom'], level: 3 } })).toBe(3);
+    expect(touchLevel({ danger: { kinds: ['bite', 'toxic-to-eat'], level: 2 } })).toBe(2);
   });
 });
