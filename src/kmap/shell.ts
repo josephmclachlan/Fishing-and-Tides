@@ -109,6 +109,8 @@ export interface KmDeps {
   onCoralSites: (fn: () => void) => void;
   forecast: { open(o?: { spot?: string; activity?: FcActivity }): void; isOpen(): boolean; where(): { spot: string; activity: FcActivity } };
   openCoralPage: (reef: string) => void;
+  /** The species guide (PLAN 7.91). */
+  openGuide?: () => void;
   explain: (title: string, id: string) => void;
   go: (t: Target) => void;
   /** Reload keeping the view (language, theme and scheme are applied at load). */
@@ -795,7 +797,7 @@ export function mountKineticMap(d: KmDeps) {
       <div class="k-strip" aria-hidden="true">${strip.map((l) => `<i style="height:${l === null ? 8 : 24 + l * 19}%"></i>`).join('')}</div><div class="k-strip-l k-mono"><span>${time.offsetH() === 0 ? L2('Now', 'Ahora') : hhmm(t0)}</span><span>+12 h</span></div>
       <div class="k-sbest"><span class="k-mono">${esc(bt.kind === 'hidden' ? L2('Best time this week', 'Mejor momento de la semana') : bt.label)}</span><span class="k-bw">${esc(bt.kind === 'hidden' ? '--' : bt.when)}</span><span class="k-bv">${esc(bt.value)}</span></div>
     </article>
-    <div class="k-sacts"><button type="button" class="k-go" data-go="fc"><span>${L2('Open forecast', 'Abrir pronóstico')}</span>${ARROW}</button><button type="button" class="k-go2" data-go="centre">${L2('Centre', 'Centrar')}</button></div>${boatLine(s, t0)}`;
+    <div class="k-sacts"><button type="button" class="k-go" data-go="fc"><span>${L2('Open forecast', 'Abrir pronóstico')}</span>${ARROW}</button><button type="button" class="k-go2" data-go="centre">${L2('Centre', 'Centrar')}</button>${d.openGuide ? `<button type="button" class="k-go2" data-go="guide">${L2('Species', 'Especies')}</button>` : ''}</div>${boatLine(s, t0)}`;
   };
   /**
    * Fish and sail: the next boat window from this spot (mockup G: "Boat window · Wed 11 · 05:30–10:00 · Small boat OK"),
@@ -852,6 +854,7 @@ export function mountKineticMap(d: KmDeps) {
           if (!WIDE.matches) closeSheet();
         } else if (k === 'fc') d.forecast.open({ spot: spot().name, activity: S.act });
         else if (k === 'coralpage') d.openCoralPage(reef()?.id ?? 'cahuita');
+        else if (k === 'guide') d.openGuide?.();
       }),
     );
   const inspectorHTML = () =>

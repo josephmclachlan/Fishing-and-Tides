@@ -79,6 +79,8 @@ export interface ForecastDeps extends FcDeps {
   mapPreview?: (spot: Spot) => Promise<{ url: string; x: number; y: number; mPerPx?: number } | null>;
   /** Open the CORAL page at the reef nearest this spot (PLAN 7.66); no button when left out. */
   openCoral?: (at: [number, number]) => void;
+  /** The species guide (PLAN 7.91). */
+  openGuide?: () => void;
 }
 
 const lvTok = (l: Level | null, p: 'lv' | 'on' | 'ac') => (l === null ? `${p}n` : `${p}${l}`) as TokenName;
@@ -92,7 +94,7 @@ export function mountForecastPage(deps: ForecastDeps) {
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-modal', 'true');
   el.setAttribute('aria-labelledby', 'fc-name');
-  el.innerHTML = shellHtml({ acts: FC_ACTIVITIES, lang: deps.lang(), coral: !!deps.openCoral });
+  el.innerHTML = shellHtml({ acts: FC_ACTIVITIES, lang: deps.lang(), coral: !!deps.openCoral, guide: !!deps.openGuide });
   document.body.appendChild(el);
   const $ = (id: string) => el.querySelector<HTMLElement>('#' + id)!;
   /** Replace a block's markup only when it changed, so the periodic redraw does not replay its animations. */
@@ -124,6 +126,7 @@ export function mountForecastPage(deps: ForecastDeps) {
   media?.addEventListener?.('change', applyScheme);
   $('fc-scheme').addEventListener('click', () => (put(storage, SCHEME_KEY, scheme() === 'dark' ? 'light' : 'dark'), applyScheme()));
   el.querySelector('#fc-coral')?.addEventListener('click', () => deps.openCoral?.(spot().lngLat));
+  el.querySelector('#fc-guide')?.addEventListener('click', () => deps.openGuide?.());
   el.querySelectorAll<HTMLElement>('.fc-lang [data-lang]').forEach((b) =>
     b.addEventListener('click', () => {
       const l = b.dataset.lang as 'en' | 'es';
