@@ -20,7 +20,7 @@ import {
 import { bandText, depthLines, pips, sizeMain, sizeMax, timesText, weightText } from './view';
 
 export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-const icon = (body: string, cls = '') => `<svg viewBox="0 0 24 24" aria-hidden="true"${cls ? ` class="${cls}"` : ''}>${body}</svg>`;
+export const icon = (body: string, cls = '') => `<svg viewBox="0 0 24 24" aria-hidden="true"${cls ? ` class="${cls}"` : ''}>${body}</svg>`;
 
 export const ICONS = {
   all: '<rect x="4" y="4" width="6.5" height="6.5"/><rect x="13.5" y="4" width="6.5" height="6.5"/><rect x="4" y="13.5" width="6.5" height="6.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5"/>',
@@ -33,6 +33,8 @@ export const ICONS = {
   next: '<path d="M9 4l8 8-8 8"/>',
   out: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
   map: '<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/>',
+  star: '<path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/>',
+  identify: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5M8.5 11h5M11 8.5v5"/>',
 } as const;
 
 /** Paragraphs from a text with blank lines between them. */
@@ -42,6 +44,8 @@ const txt = (v: Txt | undefined, lang: Lang) => tx(v, lang).trim();
 // ------------------------------------------------------------------ the list
 
 export interface ListOpts {
+  /** Saved by the reader (a star on the card). */
+  fav?: (id: string) => boolean;
   lang: Lang;
   /** Base URL of the site (Vite's BASE_URL), for bundled thumbnails. */
   base: string;
@@ -86,7 +90,7 @@ export function cardHtml(e: Entry, o: ListOpts): string {
   return `<a class="gd-card g-${e.group}" href="${esc(o.href(e.id))}" data-id="${esc(e.id)}">
     <span class="gd-thumb${e.thumb ? ' gd-ph' : ''}">${thumb}</span>
     <span class="gd-ct">
-      <b class="gd-name${latin ? ' sci' : ''}">${esc(nameOf(e, lang))}</b>${latin ? '' : `<i class="gd-sci">${esc(e.sci)}</i>`}
+      <b class="gd-name${latin ? ' sci' : ''}">${o.fav?.(e.id) ? `<span class="gd-star" aria-label="${esc(t('gd.mode.saved'))}">★</span>` : ''}${esc(nameOf(e, lang))}</b>${latin ? '' : `<i class="gd-sci">${esc(e.sci)}</i>`}
       ${alt.length ? `<span class="gd-alt">${esc(alt.join(' · '))}</span>` : ''}
       ${facts.length ? `<span class="gd-facts fc-mono">${esc(facts.join(' · '))}</span>` : ''}
       ${badges(e, lang)}
@@ -169,11 +173,11 @@ export function rowsHtml(rows: readonly Row[], o: ListOpts): string {
 
 // ------------------------------------------------------------------ the controls
 
-const MODE_ICON: Record<GdMode, string> = { all: ICONS.all, edible: ICONS.edible, danger: ICONS.danger };
+const MODE_ICON: Record<GdMode, string> = { all: ICONS.all, identify: ICONS.identify, edible: ICONS.edible, danger: ICONS.danger, saved: ICONS.star };
 
 export function modesHtml(mode: GdMode, counts: Record<GdMode, number>): string {
   return GD_MODES.map(
-    (m) => `<button type="button" role="tab" class="gd-mode" data-mode="${m}" aria-selected="${m === mode}" tabindex="${m === mode ? 0 : -1}" aria-controls="gd-list">${icon(MODE_ICON[m])}<span>${esc(t(`gd.mode.${m}` as Key))}</span><sup class="fc-mono">${counts[m]}</sup></button>`,
+    (m) => `<button type="button" role="tab" class="gd-mode" data-mode="${m}" aria-selected="${m === mode}" tabindex="${m === mode ? 0 : -1}" aria-controls="gd-list">${icon(MODE_ICON[m])}<span>${esc(t(`gd.mode.${m}` as Key))}</span><sup class="fc-mono">${m === 'identify' ? '' : counts[m]}</sup></button>`,
   ).join('') + '<span class="gd-mode-bar" aria-hidden="true"></span>';
 }
 
@@ -253,6 +257,8 @@ export interface DetailOpts {
   link: (sci: string) => string | null;
   /** The link to one of this species' tabs. */
   tabHref: (tab: GdTab) => string;
+  /** Whether the reader has saved it. */
+  fav?: boolean;
 }
 
 function credit(p: Photo): string {
@@ -410,6 +416,7 @@ export function detailHtml(s: Species, o: DetailOpts): string {
   const pos = o.pos;
   return `<div class="gd-d-top">
       <button type="button" class="fc-ctl gd-d-close" data-close title="${esc(t('gd.d.closeTitle'))}">${icon(ICONS.back)}<span>${esc(t('gd.d.close'))}</span></button>
+      <button type="button" class="fc-ctl gd-fav" data-fav aria-pressed="${!!o.fav}" title="${esc(t('gd.fav.title'))}">${icon(ICONS.star)}<span>${esc(t(o.fav ? 'gd.fav.on' : 'gd.fav.off'))}</span></button>
       ${pos ? `<span class="gd-d-pos fc-mono">${esc(t('gd.d.of', { i: pos.i + 1, n: pos.n }))}</span>
       <button type="button" class="fc-ctl fc-sq" data-go="${esc(pos.prev ?? '')}" aria-label="${esc(t('gd.d.prev'))}"${pos.prev ? '' : ' disabled'}>${icon(ICONS.back)}</button>
       <button type="button" class="fc-ctl fc-sq" data-go="${esc(pos.next ?? '')}" aria-label="${esc(t('gd.d.next'))}"${pos.next ? '' : ' disabled'}>${icon(ICONS.next)}</button>` : ''}

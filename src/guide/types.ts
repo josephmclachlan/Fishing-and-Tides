@@ -21,6 +21,22 @@ export const isGroup = (v: unknown): v is Group => typeof v === 'string' && (GRO
 
 export const HABITATS = ['reef', 'rock', 'seagrass', 'sand', 'rubble', 'mangrove', 'estuary', 'beach', 'open-water', 'offshore', 'deep', 'drift'] as const;
 export type Habitat = (typeof HABITATS)[number];
+/** What it looks like, for the identify steps (research/look/<id>.json, docs/GUIDE.md). */
+export const COLORS = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'brown', 'black', 'white', 'grey', 'silver', 'clear'] as const;
+export type Color = (typeof COLORS)[number];
+export const PATTERNS = ['plain', 'stripes', 'bars', 'spots', 'eyespot', 'mottled', 'two-tone', 'lines-face', 'rings', 'net'] as const;
+export type Pattern = (typeof PATTERNS)[number];
+export const POSITIONS = ['bottom', 'reef', 'hidden', 'midwater', 'surface', 'attached', 'shore'] as const;
+export type Position = (typeof POSITIONS)[number];
+export interface Look {
+  colors: Color[];
+  pattern: Pattern[];
+  position: Position[];
+  juvColors?: Color[];
+  juvPattern?: Pattern[];
+  /** True when guessed from the species' text by the data build, not described by a researcher. */
+  guessed?: boolean;
+}
 export const ENCOUNTERS = ['snorkel', 'dive', 'shore-fishing', 'boat-fishing', 'spear', 'shore-walk'] as const;
 export type Encounter = (typeof ENCOUNTERS)[number];
 export const TIMES = ['day', 'twilight', 'night'] as const;
@@ -127,6 +143,7 @@ export interface Species {
   reproduction?: Txt;
   where?: Txt;
   season?: Txt;
+  look?: Look;
   edible?: Edible;
   edibleNote?: Txt;
   eat?: Eat;
@@ -160,6 +177,7 @@ export interface Entry {
   encounter?: Encounter[];
   seenAt?: When[];
   feedsAt?: When[];
+  look?: Look;
   edible?: Edible;
   quality?: number;
   methods?: Method[];
@@ -344,4 +362,20 @@ export const MEASURE_WORDS: Record<Measure, Txt> = {
   TL: W('total length', 'largo total'), FL: W('fork length', 'largo a la horquilla'), SL: W('standard length', 'largo estándar'), DW: W('disc width', 'ancho del disco'),
   CL: W('carapace length', 'largo del caparazón'), CW: W('carapace width', 'ancho del caparazón'), ML: W('mantle length', 'largo del manto'),
   SH: W('shell length', 'largo de la concha'), D: W('across', 'de diámetro'), H: W('tall', 'de alto'), L: W('long', 'de largo'), WS: W('wingspan', 'de envergadura'),
+};
+
+export const COLOR_WORDS: Record<Color, Txt> = {
+  red: W('Red', 'Rojo'), orange: W('Orange', 'Naranja'), yellow: W('Yellow', 'Amarillo'), green: W('Green', 'Verde'), blue: W('Blue', 'Azul'),
+  purple: W('Purple', 'Morado'), pink: W('Pink', 'Rosado'), brown: W('Brown', 'Café'), black: W('Black', 'Negro'), white: W('White', 'Blanco'),
+  grey: W('Grey', 'Gris'), silver: W('Silver', 'Plateado'), clear: W('See-through', 'Transparente'),
+};
+export const PATTERN_WORDS: Record<Pattern, Txt> = {
+  plain: W('Plain', 'Liso'), stripes: W('Stripes along', 'Rayas a lo largo'), bars: W('Bands across', 'Franjas de arriba abajo'), spots: W('Spots', 'Manchas o puntos'),
+  eyespot: W('Big eye-spot', 'Ocelo (mancha de ojo)'), mottled: W('Mottled or camouflaged', 'Moteado o camuflado'), 'two-tone': W('Two-tone', 'Dos colores'),
+  'lines-face': W('Lines on the face', 'Líneas en la cara'), rings: W('Rings', 'Anillos'), net: W('Net pattern', 'Patrón de red'),
+};
+export const POSITION_WORDS: Record<Position, Txt> = {
+  bottom: W('On the seabed', 'En el fondo'), reef: W('On the reef or rocks', 'En el arrecife o rocas'), hidden: W('In a hole or crevice', 'En un hueco o grieta'),
+  midwater: W('Swimming in open water', 'Nadando en aguas abiertas'), surface: W('At the surface', 'En la superficie'),
+  attached: W('Fixed in place', 'Fijo en un lugar'), shore: W('On the shore, beach or mangrove', 'En la orilla, playa o manglar'),
 };

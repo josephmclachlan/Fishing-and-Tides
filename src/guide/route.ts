@@ -4,11 +4,12 @@
  * is not this page's: it hides and the forecast or the map takes over.
  *
  * The view is a mode and a group: everything, the edible list or the danger list, of every group or of one.
- * `all` (or nothing), `edible`, `danger`, `<group>`, `edible-<group>` or `danger-<group>`, e.g. `#guide/edible-fish`.
+ * `all` (or nothing), `edible`, `danger`, `<group>`, `edible-<group>` or `danger-<group>`, e.g. `#guide/edible-fish`;
+ * `identify` (the questions) and `saved` (the reader's favourites) have no group.
  */
 import { GROUPS, isGroup, type Group } from './types';
 
-export const GD_MODES = ['all', 'edible', 'danger'] as const;
+export const GD_MODES = ['all', 'identify', 'edible', 'danger', 'saved'] as const;
 export type GdMode = (typeof GD_MODES)[number];
 export const isGdMode = (v: unknown): v is GdMode => typeof v === 'string' && (GD_MODES as readonly string[]).includes(v);
 
@@ -32,7 +33,7 @@ const ID = /^[a-z0-9-]{1,80}$/;
 
 /** The view part of the link for a mode and a group. */
 export function viewSeg(mode: GdMode, group: Group | null): string {
-  if (!group) return mode;
+  if (!group || mode === 'identify' || mode === 'saved') return mode;
   return mode === 'all' ? group : `${mode}-${group}`;
 }
 

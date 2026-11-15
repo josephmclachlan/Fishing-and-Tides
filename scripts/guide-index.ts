@@ -24,9 +24,28 @@ register(
 }`),
 );
 const { buildIndex } = await import('../src/guide/index-build.ts');
-const { isGroup } = await import('../src/guide/types.ts');
+const { isGroup, COLORS, PATTERNS, POSITIONS } = await import('../src/guide/types.ts');
+const { guessLook } = await import('../src/guide/identify.ts');
 type Species = import('../src/guide/types.ts').Species;
 type Photo = import('../src/guide/types.ts').Photo;
+type Look = import('../src/guide/types.ts').Look;
+
+/** A researcher's description of its looks (research/look/<id>.json), with any unknown word dropped. */
+function readLook(id: string): Look | undefined {
+  const f = join(SRC, 'research', 'look', `${id}.json`);
+  if (!existsSync(f)) return undefined;
+  try {
+    const l = JSON.parse(readFileSync(f, 'utf8')) as Look;
+    const only = <T extends string>(v: unknown, ok: readonly T[]) => (Array.isArray(v) ? v.filter((x): x is T => ok.includes(x as T)) : []);
+    const look: Look = { colors: only(l.colors, COLORS), pattern: only(l.pattern, PATTERNS), position: only(l.position, POSITIONS) };
+    const jc = only(l.juvColors, COLORS), jp = only(l.juvPattern, PATTERNS);
+    if (jc.length) look.juvColors = jc;
+    if (jp.length) look.juvPattern = jp;
+    return look.colors.length || look.position.length ? look : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 const SRC = process.argv[2] ?? process.env.GUIDE_SRC ?? '/mnt/project-files/species-guide';
 const OUT = join(import.meta.dirname, '..', 'public', 'data', 'guide');
@@ -44,6 +63,7 @@ if (existsSync(photoFile)) photos = (JSON.parse(readFileSync(photoFile, 'utf8'))
 const list: Species[] = [];
 const problems: string[] = [];
 let dropped = 0;
+let guessed = 0;
 for (const f of readdirSync(outDir).filter((n) => n.endsWith('.json')).sort()) {
   const id = f.slice(0, -5);
   let s: Species;
@@ -63,7 +83,9 @@ for (const f of readdirSync(outDir).filter((n) => n.endsWith('.json')).sort()) {
   else if (!s.sci?.trim()) problems.push(`${f}: no Latin name`);
   else {
     const ph = photos[id]?.filter((p) => p.src && p.page && p.by && p.lic && !/\bND\b/i.test(p.lic));
-    list.push(ph?.length ? { ...s, photos: ph } : { ...s, photos: undefined });
+    const look = readLook(id) ?? guessLook(s.idTips?.en ?? '', s.habitats, s.group);
+    if (look?.guessed) guessed++;
+    list.push({ ...s, photos: ph?.length ? ph : undefined, look });
   }
 }
 
@@ -103,7 +125,7 @@ writeFileSync(join(OUT, 'index.json'), JSON.stringify(index));
 
 const full = kept.filter((s) => s.tier === 'full').length;
 console.log(
-  `guide: ${kept.length} species (${full} full, ${kept.length - full} also recorded), ${thumbs.size} with photos, ${dropped} dropped, ${removed} stale files removed; ` +
+  `guide: ${kept.length} species (${full} full, ${kept.length - full} also recorded), ${thumbs.size} with photos, ${dropped} dropped, ${guessed} looks guessed from text, ${removed} stale files removed; ` +
     `index ${(statSync(join(OUT, 'index.json')).size / 1024).toFixed(0)} KB`,
 );
 if (problems.length) console.warn(`${problems.length} problem(s):\n  ${problems.join('\n  ')}`);

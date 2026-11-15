@@ -218,7 +218,7 @@ export function groupCounts(list: readonly Entry[], f: GdFilter, mode: GdMode, h
 
 /** Counts per mode for the main tabs, under the current group and filters. */
 export function modeCounts(list: readonly Entry[], f: GdFilter, group: Group | null, hays?: Map<string, string>): Record<GdMode, number> {
-  const out: Record<GdMode, number> = { all: 0, edible: 0, danger: 0 };
+  const out: Record<GdMode, number> = { all: 0, identify: 0, edible: 0, danger: 0, saved: 0 };
   for (const e of list) {
     if ((group && e.group !== group) || !matches(e, f, hays?.get(e.id))) continue;
     out.all++;

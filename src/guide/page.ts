@@ -17,6 +17,8 @@
 import { t } from '../i18n';
 import { landing, MAP_HASH } from '../forecast/model';
 import { loadIndex, loadSpecies } from './data';
+import { NO_ANSWERS, stepsFor, type IdAnswers, type IdStep } from './identify';
+import { idHtml } from './identify-view';
 import {
   activeCount, DEFAULT_FILTER, groupCounts, GROUP_BYS, haystack, inView, matches, modeCounts, sections, SORTS,
   type GdFilter, type GroupBy, type SortKey,
@@ -30,6 +32,7 @@ import './guide.css';
 const SCHEME_KEY = 'ft.fcScheme';
 const SORT_KEY = 'ft.gdSort';
 const BY_KEY = 'ft.gdBy';
+const FAV_KEY = 'ft.gdFav';
 /** Species drawn per step as the list scrolls. */
 const CHUNK = 48;
 
@@ -152,10 +155,23 @@ export function mountGuidePage(deps: GuidePageDeps) {
   let current: Species | null = null;
   let pushed = false;
   let cameFrom: From = 'map';
-  const listOpts = { lang, base, href: (id: string) => guideHash({ mode, group, id }) };
+  /** Species the reader saved, kept on this phone. */
+  const favs = new Set<string>(((): string[] => {
+    try {
+      const v: unknown = JSON.parse(get(storage, FAV_KEY) ?? '[]');
+      return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+    } catch {
+      return [];
+    }
+  })());
+  const saveFavs = () => put(storage, FAV_KEY, JSON.stringify([...favs]));
+  /** The identify answers and the question showing. */
+  let idA: IdAnswers = { ...NO_ANSWERS, colors: [], pattern: [], position: [] };
+  let idStep: IdStep = 'kind';
+  const listOpts = { lang, base, href: (id: string) => guideHash({ mode, group, id }), fav: (id: string) => favs.has(id) };
 
   // --- the controls, drawn once and updated in place (keeps focus and the strip's scroll)
-  $('gd-modes').innerHTML = modesHtml(mode, { all: 0, edible: 0, danger: 0 });
+  $('gd-modes').innerHTML = modesHtml(mode, { all: 0, identify: 0, edible: 0, danger: 0, saved: 0 });
   $('gd-groups').innerHTML = groupsHtml(group, Object.fromEntries(GROUPS.map((g) => [g, 0])) as Record<Group, number>, lang);
   $('gd-filters').innerHTML = filtersHtml(f, lang);
   const drawPicks = () => ($('gd-picks').innerHTML = pickersHtml({ ...f, by: byNow() }, mode));
@@ -176,11 +192,12 @@ export function mountGuidePage(deps: GuidePageDeps) {
 
   const counts = (all: readonly Entry[]) => {
     const mc = modeCounts(all, f, group, hays);
+    mc.saved = all.filter((e) => favs.has(e.id)).length;
     el.querySelectorAll<HTMLElement>('.gd-mode').forEach((b) => {
       const m = b.dataset.mode as GdMode;
       b.setAttribute('aria-selected', String(m === mode));
       b.tabIndex = m === mode ? 0 : -1;
-      b.querySelector('sup')!.textContent = String(mc[m]);
+      b.querySelector('sup')!.textContent = m === 'identify' ? '' : String(mc[m]);
     });
     el.dataset.mode = mode;
     const gc = groupCounts(all, f, mode, hays);
@@ -195,7 +212,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
     const fn = activeCount(f);
     $('gd-fn').textContent = String(fn);
     $('gd-fn').hidden = !fn;
-    el.querySelectorAll<HTMLElement>('.gd-chip').forEach((b) => {
+    el.querySelectorAll<HTMLElement>('.gd-chip[data-f]').forEach((b) => {
       const on = (f[b.dataset.f as 'encounter'] as string[]).includes(b.dataset.v!);
       b.classList.toggle('on', on);
       b.setAttribute('aria-pressed', String(on));
@@ -223,14 +240,28 @@ export function mountGuidePage(deps: GuidePageDeps) {
     }
     const all = idx.entries;
     counts(all);
-    const shown = all.filter((e) => inView(e, mode, group) && matches(e, f, hays.get(e.id)));
+    if (mode === 'identify') {
+      const r = idHtml(all, idA, idStep, listOpts);
+      order = r.order;
+      $('gd-intro').innerHTML = '';
+      $('gd-count').textContent = '';
+      list.innerHTML = r.html;
+      rows = [];
+      drawn = 0;
+      moreBtn.hidden = true;
+      return;
+    }
+    const shown =
+      mode === 'saved'
+        ? all.filter((e) => favs.has(e.id) && (!group || e.group === group))
+        : all.filter((e) => inView(e, mode, group) && matches(e, f, hays.get(e.id)));
     const by = byNow();
     const secs = sections(shown, by, f.sort, lang);
     rows = rowsFor(secs, !group && by !== 'none' && by !== 'risk');
     order = rows.flatMap((r) => (r.k === 'card' || r.k === 'rec' ? [r.e.id] : []));
     $('gd-intro').innerHTML = introHtml(mode);
     $('gd-count').textContent = shown.length ? t('gd.shown', { n: itemCount(rows) }) : '';
-    list.innerHTML = shown.length ? '' : `<p class="gd-empty">${esc(t('gd.none'))}</p>`;
+    list.innerHTML = shown.length ? '' : `<p class="gd-empty">${esc(t(mode === 'saved' ? 'gd.fav.none' : 'gd.none'))}</p>`;
     drawn = 0;
     if (shown.length) more();
   };
@@ -271,18 +302,63 @@ export function mountGuidePage(deps: GuidePageDeps) {
     toTools();
   };
 
+  /** Keep the question in view after an answer moves it on. */
+  const toId = () => {
+    const box = el.querySelector<HTMLElement>('.gd-id');
+    if (box && el.scrollTop > box.offsetTop - 8) el.scrollTop = box.offsetTop - 8;
+  };
+  /** One answer: a single choice moves on to the next question, colours, marks and places can be several. */
+  const idAnswer = (k: string, v: string) => {
+    const a = idA;
+    let advance = false;
+    if (k === 'kind') (a.kind = a.kind === v ? undefined : (v as IdAnswers['kind'])), (a.group = undefined), (a.sub = undefined), (advance = !!a.kind);
+    else if (k === 'group') (a.group = a.group === v ? undefined : (v as IdAnswers['group'])), (a.sub = undefined), (advance = !!a.group);
+    else if (k === 'sub') (a.sub = a.sub === v ? undefined : v), (advance = !!a.sub);
+    else if (k === 'size') (a.size = a.size === v ? undefined : (v as IdAnswers['size'])), (advance = !!a.size);
+    else if (k === 'night') a.night = !a.night;
+    else if (k === 'colors' || k === 'pattern' || k === 'position') {
+      const arr = a[k] as string[];
+      a[k] = (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]) as never;
+    }
+    if (advance && idx) {
+      const steps = stepsFor(idx.entries, a);
+      idStep = steps[steps.indexOf(idStep) + 1] ?? 'results';
+    }
+    render();
+    if (advance) toId();
+  };
+
   // --- clicks and typing
   el.addEventListener('click', (ev) => {
     const target = ev.target as Element;
     const hit = <T extends Element = HTMLElement>(sel: string) => target.closest<T>(sel);
     let b: HTMLElement | null;
     const plain = (ev as MouseEvent).button === 0 && !(ev as MouseEvent).metaKey && !(ev as MouseEvent).ctrlKey && !(ev as MouseEvent).shiftKey;
-    if ((b = hit('.gd-mode'))) setView(b.dataset.mode as GdMode, group);
+    if ((b = hit('[data-a]')) && idx) {
+      idAnswer(b.dataset.a!, b.dataset.v!);
+    } else if ((b = hit('[data-step]'))) {
+      idStep = b.dataset.step as IdStep;
+      render();
+      toId();
+    } else if (hit('[data-id-reset]')) {
+      idA = { ...NO_ANSWERS, colors: [], pattern: [], position: [] };
+      idStep = 'kind';
+      render();
+      toId();
+    } else if ((b = hit('[data-fav]')) && openId) {
+      if (favs.has(openId)) favs.delete(openId);
+      else favs.add(openId);
+      saveFavs();
+      const on = favs.has(openId);
+      b.setAttribute('aria-pressed', String(on));
+      b.querySelector('span')!.textContent = t(on ? 'gd.fav.on' : 'gd.fav.off');
+      render();
+    } else if ((b = hit('.gd-mode'))) setView(b.dataset.mode as GdMode, group);
     else if ((b = hit('.gd-g'))) {
       const g = (b.dataset.group || null) as Group | null;
       setView(mode, g === group ? null : g);
       b.scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
-    } else if ((b = hit('.gd-chip'))) {
+    } else if ((b = hit('.gd-chip[data-f]'))) {
       const k = b.dataset.f as 'encounter';
       const v = b.dataset.v as never;
       const arr = f[k] as string[];
@@ -346,6 +422,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
         return id ? guideHash({ mode, group, id }) : null;
       },
       tabHref: (k) => guideHash({ mode, group, id: openId, tab: k }),
+      fav: !!openId && favs.has(openId),
     });
     if (fresh) sheet.scrollTop = 0;
     else el.querySelector<HTMLElement>('.gd-d-tabs')?.scrollIntoView?.({ block: 'nearest' });

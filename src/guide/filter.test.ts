@@ -93,8 +93,8 @@ describe('modes', () => {
   it('counts per group and per mode', () => {
     expect(groupCounts(ALL, F(), 'all')).toMatchObject({ fish: 3, corals: 1, crustaceans: 0 });
     expect(groupCounts(ALL, F(), 'edible')).toMatchObject({ fish: 2, corals: 0 });
-    expect(modeCounts(ALL, F(), null)).toEqual({ all: 4, edible: 2, danger: 3 });
-    expect(modeCounts(ALL, F({ records: true }), 'fish')).toEqual({ all: 4, edible: 2, danger: 3 });
+    expect(modeCounts(ALL, F(), null)).toMatchObject({ all: 4, edible: 2, danger: 3 });
+    expect(modeCounts(ALL, F({ records: true }), 'fish')).toMatchObject({ all: 4, edible: 2, danger: 3 });
   });
 });
 
