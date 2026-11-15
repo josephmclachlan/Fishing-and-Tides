@@ -16,6 +16,8 @@
 
 ## Running every 10 minutes for real (external timer)
 
+**Since PLAN 7.90 this is built in:** `.github/workflows/pacer.yml` keeps one Actions job running that starts this workflow every 10 minutes and the Pages build every hour, with no token or outside account. The outside timer below is the alternative if that job is ever turned off.
+
 GitHub's `*/10` schedule is a request, not a promise. In practice it fired every 4 to 8 hours (8 runs from 2 to 4 Nov 2026), so the file was usually hours old and the alert was suppressed. A run started through the API (`workflow_dispatch`) starts within seconds, so a free outside timer calls it every 10 minutes. The schedule stays as a backup.
 
 **1. Make a token that can only start workflows in this repo.** GitHub, Settings, Developer settings, Personal access tokens, Fine-grained tokens, Generate new token.
