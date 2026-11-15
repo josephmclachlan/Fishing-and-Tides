@@ -394,3 +394,7 @@
 .gd .gd-fav[aria-pressed='true'] svg { fill: currentColor; }
 .gd-star { color: var(--fc-lv1); margin-right: 4px; }
 .gd-marks { font-size: 13px; line-height: 1.35; margin-top: 3px; }
+.gd-exp { flex: 1 1 100%; min-height: 40px; }
+.gd-id-exp { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--fc-line); }
+.gd-id-exp p { margin: 0 0 6px; font-size: 14px; color: var(--fc-ink2); }
+@media (min-width: 560px) { .gd-exp { flex: 0 0 auto; } }

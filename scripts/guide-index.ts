@@ -24,7 +24,7 @@ register(
 }`),
 );
 const { buildIndex } = await import('../src/guide/index-build.ts');
-const { isGroup, COLORS, PATTERNS, POSITIONS, SHAPES, FEATURES } = await import('../src/guide/types.ts');
+const { isGroup, RECS, COLORS, PATTERNS, POSITIONS, SHAPES, FEATURES } = await import('../src/guide/types.ts');
 const { guessLook } = await import('../src/guide/identify.ts');
 type Species = import('../src/guide/types.ts').Species;
 type Photo = import('../src/guide/types.ts').Photo;
@@ -87,6 +87,15 @@ for (const f of readdirSync(outDir).filter((n) => n.endsWith('.json')).sort()) {
   else if (!s.sci?.trim()) problems.push(`${f}: no Latin name`);
   else {
     const ph = photos[id]?.filter((p) => p.src && p.page && p.by && p.lic && !/\bND\b/i.test(p.lic));
+    const lf = join(SRC, 'research', 'local', `${id}.json`);
+    if (existsSync(lf)) {
+      try {
+        const l = JSON.parse(readFileSync(lf, 'utf8')) as { rec?: string; why?: string; check?: boolean };
+        if (RECS.includes(l.rec as never)) Object.assign(s, { rec: l.rec, recWhy: l.why?.trim() || undefined, recCheck: l.check || undefined });
+      } catch {
+        problems.push(`local/${id}.json does not parse`);
+      }
+    }
     const look = readLook(id) ?? guessLook(s.idTips?.en ?? '', s.habitats, s.group);
     if (look?.guessed) guessed++;
     list.push({ ...s, photos: ph?.length ? ph : undefined, look });

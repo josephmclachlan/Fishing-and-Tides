@@ -37,9 +37,11 @@ export interface GdFilter {
   by: GroupBy;
   /** Show the "also recorded" rows (tiny, deep-sea or museum-only records). A search always finds them. */
   records: boolean;
+  /** Also species not recorded between Gandoca and Cahuita (Joseph 2026-11-15: hidden by default). */
+  expanded: boolean;
 }
 export const DEFAULT_FILTER: GdFilter = {
-  q: '', encounter: [], habitats: [], seen: [], times: [], methods: [], sizes: [], flags: [], sort: 'seen', by: 'sub', records: false,
+  q: '', encounter: [], habitats: [], seen: [], times: [], methods: [], sizes: [], flags: [], sort: 'seen', by: 'sub', records: false, expanded: false,
 };
 
 /** How many filters are on (the phone's filter button shows it). Search, sort and grouping are not filters. */
@@ -104,9 +106,13 @@ export function flagsOf(e: Entry): Flag[] {
 /** Search words; every one must be found. */
 export const words = (q: string) => fold(q).split(/\s+/).filter(Boolean);
 
+/** Recorded between Gandoca and Cahuita (or not yet checked). */
+export const isHere = (e: Pick<Entry, 'rec'>) => !e.rec || e.rec === 'here';
+
 export function matches(e: Entry, f: GdFilter, hay: string = haystack(e)): boolean {
   const ws = words(f.q);
   if (e.tier === 'list' && !f.records && !ws.length) return false;
+  if (!f.expanded && !ws.length && !isHere(e)) return false;
   if (ws.length && !ws.every((w) => hay.includes(w))) return false;
   if (!anyOf(f.encounter, e.encounter)) return false;
   if (!anyOf(f.habitats, e.habitats)) return false;

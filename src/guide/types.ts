@@ -39,6 +39,10 @@ export const FEATURES = [
   'transparent-body', 'glows', 'filter-feeding-siphons', 'slime',
 ] as const;
 export type Feature = (typeof FEATURES)[number];
+/** Whether it is recorded between Gandoca and Cahuita (here), only elsewhere on Costa Rica's Caribbean coast or in
+ * Bocas del Toro (near), or not on this coast at all (none): research/local/<id>.json. */
+export const RECS = ['here', 'near', 'none'] as const;
+export type Rec = (typeof RECS)[number];
 export interface Look {
   /** The key marks that tell it apart, in one sentence. */
   marks?: Txt;
@@ -158,6 +162,10 @@ export interface Species {
   reproduction?: Txt;
   where?: Txt;
   season?: Txt;
+  rec?: Rec;
+  /** The record behind `rec`, in English. */
+  recWhy?: string;
+  recCheck?: boolean;
   look?: Look;
   edible?: Edible;
   edibleNote?: Txt;
@@ -192,6 +200,7 @@ export interface Entry {
   encounter?: Encounter[];
   seenAt?: When[];
   feedsAt?: When[];
+  rec?: Rec;
   look?: Look;
   edible?: Edible;
   quality?: number;

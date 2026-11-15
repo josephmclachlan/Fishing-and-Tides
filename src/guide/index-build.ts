@@ -38,6 +38,7 @@ export function toEntry(s: Species, thumb?: string): Entry {
     seenAt: nonEmpty(s.seenAt),
     feedsAt: nonEmpty(s.feedsAt),
     look: s.look,
+    rec: s.rec,
     edible: s.edible,
     quality: s.eat?.quality,
     methods: nonEmpty(s.eat?.methods),

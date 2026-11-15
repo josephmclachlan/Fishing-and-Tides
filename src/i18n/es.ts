@@ -1894,6 +1894,13 @@ export const es: Dict = {
   'fc.radarBig': 'Mapa de {act}',
   'fc.vz.period': 'Periodo',
   // GUÍA DE ESPECIES (PLAN 7.91)
+  'gd.exp': 'Especies ampliadas',
+  'gd.exp.title': 'Mostrar también especies sin registro entre Gandoca y Cahuita',
+  'gd.rec.near': 'Sin registro aquí',
+  'gd.rec.none': 'No está en esta costa',
+  'gd.h.local': 'Registro aquí',
+  'gd.id.expOff': 'Solo especies registradas entre Gandoca y Cahuita. ¿No la encuentras? Activa especies ampliadas para incluir el resto del Caribe.',
+  'gd.id.expOn': 'Incluye especies sin registro entre Gandoca y Cahuita.',
   'gd.id.s.shape': 'Forma',
   'gd.id.q.shape': '¿Qué forma tenía?',
   'gd.id.h.shape': 'Escoge una o dos. Sáltalo si no estás seguro.',

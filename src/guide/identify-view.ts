@@ -6,7 +6,7 @@ import { t, type Key } from '../i18n';
 import { artSvg, GROUP_ART } from './art';
 import { SIZE_BANDS } from './filter';
 import { fits, groupsOf, identify, shapesOf, stepsFor, subsOf, type IdAnswers, type IdStep } from './identify';
-import { cardHtml, esc, icon, ICONS, type ListOpts } from './render';
+import { cardHtml, esc, expandHtml, icon, ICONS, type ListOpts } from './render';
 import { COLOR_WORDS, COLORS, FEATURE_WORDS, FEATURES, GROUP_WORDS, SHAPE_WORDS, PATTERN_WORDS, PATTERNS, POSITION_WORDS, POSITIONS, SUB_WORDS, tx, type Entry, type Lang } from './types';
 
 /** How many results to show. */
@@ -80,7 +80,7 @@ function question(s: IdStep, list: readonly Entry[], a: IdAnswers, lang: Lang): 
 }
 
 /** The whole identify view for one step. Returns the markup and the ids of the results in order (for the arrows). */
-export function idHtml(list: readonly Entry[], a: IdAnswers, step: IdStep, o: ListOpts): { html: string; order: string[] } {
+export function idHtml(list: readonly Entry[], a: IdAnswers, step: IdStep, o: ListOpts, expanded = false): { html: string; order: string[] } {
   const { lang } = o;
   const steps = stepsFor(list, a);
   const cur = steps.includes(step) ? step : steps[0];
@@ -107,6 +107,7 @@ export function idHtml(list: readonly Entry[], a: IdAnswers, step: IdStep, o: Li
         <div class="gd-id-nav"><button type="button" class="fc-ctl" data-step="${steps[i - 1] ?? 'kind'}">${icon(ICONS.back)}<span>${esc(t('gd.id.back'))}</span></button><button type="button" class="fc-ctl" data-id-reset>${esc(t('gd.id.again'))}</button></div></div>
         ${strong.length ? `<h4 class="fc-mono gd-id-k">${esc(t('gd.id.best'))}</h4>${cards(strong)}` : `<p class="gd-empty">${esc(t('gd.none'))}</p>`}
         ${rest.length ? `<h4 class="fc-mono gd-id-k">${esc(t('gd.id.maybe'))}</h4>${cards(rest)}` : ''}
+        <div class="gd-id-exp"><p>${esc(t(expanded ? 'gd.id.expOn' : 'gd.id.expOff'))}</p>${expandHtml(expanded)}</div>
       </section></div>`,
     };
   }
