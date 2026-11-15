@@ -135,3 +135,13 @@ describe('touchLevel', () => {
     expect(touchLevel({ danger: { kinds: ['bite', 'toxic-to-eat'], level: 2 } })).toBe(2);
   });
 });
+
+describe('expanded species', () => {
+  it('hides species not recorded between Gandoca and Cahuita unless expanded or searched for', () => {
+    const e = { ...ALL[0], rec: 'none' as const };
+    expect(matches(e, F())).toBe(false);
+    expect(matches(e, F({ expanded: true }))).toBe(true);
+    expect(matches({ ...e, rec: 'here' }, F())).toBe(true);
+    expect(matches({ ...e, rec: undefined }, F())).toBe(true);
+  });
+});

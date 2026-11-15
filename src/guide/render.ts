@@ -71,6 +71,7 @@ export function badges(e: Entry, lang: Lang, max = 3): string {
   } else if (e.edible === 'protected') out.push(`<span class="gd-b prot">${esc(t('gd.flag.protected'))}</span>`);
   if (e.iucn === 'CR' || e.iucn === 'EN' || e.iucn === 'VU') out.push(`<span class="gd-b iucn i-${e.iucn}" title="${esc(tx(IUCN_WORDS[e.iucn], lang))}">${e.iucn}</span>`);
   if (e.origin === 'invasive' || e.origin === 'introduced') out.push(`<span class="gd-b introd">${esc(t('gd.flag.introduced'))}</span>`);
+  if (e.rec && e.rec !== 'here') out.unshift(`<span class="gd-b rec">${esc(t(e.rec === 'near' ? 'gd.rec.near' : 'gd.rec.none'))}</span>`);
   return out.length ? `<span class="gd-badges">${out.slice(0, max).join('')}</span>` : '';
 }
 
@@ -197,6 +198,10 @@ const chipRow = <T extends string>(key: string, label: string, values: readonly 
     .map((v) => `<button type="button" class="cp-chip gd-chip${on.includes(v) ? ' on' : ''}" data-f="${key}" data-v="${v}" aria-pressed="${on.includes(v)}">${esc(word(v))}</button>`)
     .join('')}</div></div>`;
 
+/** The expanded-species switch, beside the search (Joseph 2026-11-15). */
+export const expandHtml = (on: boolean) =>
+  `<label class="gd-switch gd-exp" title="${esc(t('gd.exp.title'))}"><input type="checkbox" data-f="expanded"${on ? ' checked' : ''}><span>${esc(t('gd.exp'))}</span></label>`;
+
 export function filtersHtml(f: GdFilter, lang: Lang): string {
   return [
     chipRow('encounter', t('gd.f.encounter'), ENCOUNTERS, f.encounter, (v) => tx(ENCOUNTER_WORDS[v], lang)),
@@ -301,6 +306,7 @@ function factTiles(s: Species, lang: Lang): string {
 function statusBadges(s: Species, lang: Lang): string {
   const out: string[] = [];
   if (s.tier === 'list') out.push(`<span class="gd-b rec">${esc(t('gd.recordsOnly'))}</span>`);
+  if (s.rec && s.rec !== 'here') out.push(`<span class="gd-b rec" title="${esc(s.recWhy ?? '')}">${esc(t(s.rec === 'near' ? 'gd.rec.near' : 'gd.rec.none'))}</span>`);
   if (s.danger) out.push(`<span class="gd-b dz l${s.danger.level}">${icon(ICONS.danger)}${esc(tx(LEVEL_WORDS[s.danger.level], lang))}</span>`);
   if (s.edible) out.push(`<span class="gd-b ed-${s.edible}">${s.edible === 'yes' || s.edible === 'caution' ? icon(ICONS.edible) : ''}${esc(tx(EDIBLE_WORDS[s.edible], lang))}</span>`);
   const st = s.status;
@@ -389,6 +395,7 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
     }
     case 'sources':
       return (
+        block(t('gd.h.local'), s.recWhy ? `<p>${esc(s.recWhy)}${s.recCheck ? checkMark() : ''}</p>` : '') +
         block(t('gd.h.check'), pText(s.check, lang), 'gd-chk') +
         block(t('gd.h.evidence'), s.evidence?.length ? `<ul class="gd-ev">${s.evidence.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '') +
         block(

@@ -20,10 +20,10 @@ import { loadIndex, loadSpecies } from './data';
 import { noAnswers, stepsFor, type IdAnswers, type IdStep } from './identify';
 import { idHtml } from './identify-view';
 import {
-  activeCount, DEFAULT_FILTER, groupCounts, GROUP_BYS, haystack, inView, matches, modeCounts, sections, SORTS,
+  activeCount, DEFAULT_FILTER, isHere, groupCounts, GROUP_BYS, haystack, inView, matches, modeCounts, sections, SORTS,
   type GdFilter, type GroupBy, type SortKey,
 } from './filter';
-import { detailHtml, esc, filtersHtml, groupsHtml, ICONS, introHtml, itemCount, modesHtml, pickersHtml, rowsFor, rowsHtml, type Row } from './render';
+import { detailHtml, esc, expandHtml, filtersHtml, groupsHtml, ICONS, introHtml, itemCount, modesHtml, pickersHtml, rowsFor, rowsHtml, type Row } from './render';
 import { guideHash, isGdTab, parseGuideRoute, type GdMode, type GdTab } from './route';
 import { GROUPS, type Entry, type Group, type GuideIndex, type Lang, type Species } from './types';
 import '../forecast/forecast.css';
@@ -33,6 +33,7 @@ const SCHEME_KEY = 'ft.fcScheme';
 const SORT_KEY = 'ft.gdSort';
 const BY_KEY = 'ft.gdBy';
 const FAV_KEY = 'ft.gdFav';
+const EXP_KEY = 'ft.gdExp';
 /** Species drawn per step as the list scrolls. */
 const CHUNK = 48;
 
@@ -93,6 +94,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
         <label class="gd-search">${svg(ICONS.search)}<input id="gd-q" type="search" enterkeyhint="search" autocomplete="off" spellcheck="false" placeholder="${esc(t('gd.search'))}" aria-label="${esc(t('gd.searchLabel'))}"></label>
         <button type="button" class="fc-ctl gd-fbtn" id="gd-fbtn" aria-expanded="false" aria-controls="gd-filters">${svg(ICONS.filter)}<span>${t('gd.filters')}</span><b id="gd-fn" hidden></b></button>
         <div class="gd-picks" id="gd-picks"></div>
+        <div id="gd-exp"></div>
       </div>
       <div class="gd-filters fc-in" id="gd-filters" hidden></div>
       <div class="fc-in" id="gd-intro"></div>
@@ -138,6 +140,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
     encounter: [], habitats: [], seen: [], times: [], methods: [], sizes: [], flags: [],
     sort: savedSort && SORTS.includes(savedSort) ? savedSort : 'seen',
     by: savedBy && GROUP_BYS.includes(savedBy) && savedBy !== 'risk' ? savedBy : 'sub',
+    expanded: get(storage, EXP_KEY) === '1',
   };
   /** The danger list has its own grouping (by how it hurts, unless another is picked there). */
   let dangerBy: GroupBy = 'risk';
@@ -174,6 +177,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
   $('gd-modes').innerHTML = modesHtml(mode, { all: 0, identify: 0, edible: 0, danger: 0, saved: 0 });
   $('gd-groups').innerHTML = groupsHtml(group, Object.fromEntries(GROUPS.map((g) => [g, 0])) as Record<Group, number>, lang);
   $('gd-filters').innerHTML = filtersHtml(f, lang);
+  $('gd-exp').innerHTML = expandHtml(f.expanded);
   const drawPicks = () => ($('gd-picks').innerHTML = pickersHtml({ ...f, by: byNow() }, mode));
   drawPicks();
   const setFilters = (open: boolean) => {
@@ -218,6 +222,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       b.setAttribute('aria-pressed', String(on));
     });
     el.querySelector<HTMLInputElement>('input[data-f="records"]')!.checked = f.records;
+    el.querySelectorAll<HTMLInputElement>('input[data-f="expanded"]').forEach((i) => (i.checked = f.expanded));
     modeBar();
   };
 
@@ -241,7 +246,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
     const all = idx.entries;
     counts(all);
     if (mode === 'identify') {
-      const r = idHtml(all, idA, idStep, listOpts);
+      const r = idHtml(f.expanded ? all : all.filter(isHere), idA, idStep, listOpts, f.expanded);
       order = r.order;
       $('gd-intro').innerHTML = '';
       $('gd-count').textContent = '';
@@ -393,6 +398,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
   el.addEventListener('change', (ev) => {
     const s = ev.target as HTMLInputElement | HTMLSelectElement;
     if (s.dataset.f === 'records') (f.records = (s as HTMLInputElement).checked), render();
+    else if (s.dataset.f === 'expanded') (f.expanded = (s as HTMLInputElement).checked), put(storage, EXP_KEY, f.expanded ? '1' : ''), render();
     else if (s.dataset.pick === 'sort') (f.sort = s.value as SortKey), put(storage, SORT_KEY, f.sort), render();
     else if (s.dataset.pick === 'by') {
       if (mode === 'danger') dangerBy = s.value as GroupBy;

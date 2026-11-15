@@ -1895,6 +1895,13 @@ export const en = {
   'fc.radarBig': '{act} map',
   'fc.vz.period': 'Period',
   // SPECIES GUIDE (PLAN 7.91)
+  'gd.exp': 'Expanded species',
+  'gd.exp.title': 'Also show species not recorded between Gandoca and Cahuita',
+  'gd.rec.near': 'Not recorded here',
+  'gd.rec.none': 'Not on this coast',
+  'gd.h.local': 'Recorded here',
+  'gd.id.expOff': 'Showing only species recorded between Gandoca and Cahuita. Not found? Turn on expanded species to include the wider Caribbean.',
+  'gd.id.expOn': 'Including species not recorded between Gandoca and Cahuita.',
   'gd.id.s.shape': 'Shape',
   'gd.id.q.shape': 'What shape was it?',
   'gd.id.h.shape': 'Pick one or two. Skip if you are not sure.',
