@@ -1,0 +1,46 @@
+name: Pace the data runs
+
+# GitHub's schedules are a request, not a promise: on this repo the hourly Pages build and the 10-minute
+# lightning job each fired only every 4 to 8 hours (Nov 2026), so the IMERG rain behind the clarity
+# model's river plumes was up to 18 h old (PLAN 7.90). A run started through workflow_dispatch starts
+# within seconds, and GITHUB_TOKEN may start one (it is the one event its token is allowed to trigger).
+#
+# This job does that from inside Actions, so no outside timer or token is needed: each run stays up to
+# 5 h 50 min (a job may run 6 h) and starts "Deploy to GitHub Pages" every hour at :17 and "Collect
+# lightning" every 10 minutes, then starts the next pacer, which replaces it (concurrency below). Its own
+# schedule is only the backup that restarts the chain if a hand-off fails. Public repository, so the waiting costs no Actions minutes.
+# The outside timer of docs/LIGHTNING.md does the same job and can replace this one.
+on:
+  schedule:
+    - cron: '3 */3 * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: pacer
+  cancel-in-progress: true
+
+jobs:
+  pace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - name: Start the data runs on time
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          end=$(( $(date +%s) + 350 * 60 ))
+          dispatch() { gh workflow run "$1" --repo "$REPO" --ref main || echo "could not start $1"; }
+          while [ "$(date +%s)" -lt "$end" ]; do
+            m=$(date -u +%M)
+            [ $(( 10#$m % 10 )) -eq 0 ] && dispatch lightning.yml
+            [ "$m" = "17" ] && dispatch pages.yml
+            # Sleep to the start of the next minute.
+            sleep $(( 60 - $(date +%s) % 60 ))
+          done
+          # Hand over to the next pacer, which cancels this one as it starts.
+          dispatch pacer.yml

@@ -1,6 +1,6 @@
 /**
  * Rain over the river catchments (PLAN 6.1), for the clarity layer's plume term: hourly rainfall
- * for the last 7 days (5 of them say how wet the ground is, PLAN 7.50) and the next 16 at one point inside each PLUME_RIVERS catchment, from
+ * for the last 7 days (5 of them say how wet the ground is, PLAN 7.50) and the next 16 at one point inside each PLUME_RIVERS catchment and over the coast creeks' hills (RAIN_AREAS, PLAN 7.89), from
  * Open-Meteo's best-match forecast (CORS allowed; one call for all the points, so the phone fetches
  * it directly through the offline cache, like the weather adapter).
  *
@@ -15,7 +15,7 @@
  * puts over a catchment. `byRiver` is the members' mean, for the rain readouts. Before 7.58b this was Open-Meteo's
  * single best-match model.
  */
-import { PLUME_RIVERS } from '../region';
+import { RAIN_AREAS } from '../region';
 import { cachedFetch, type CacheDeps } from './cache';
 import { dataAge } from './data-age';
 import { FORECAST_DIR } from './series';
@@ -39,7 +39,7 @@ export interface CatchmentRain {
 }
 
 /** The distinct rain points (two rivers can share one). */
-export const rainPoints = (): [number, number][] => [...new Map(PLUME_RIVERS.map((r) => [r.rainAt.join(','), r.rainAt])).values()];
+export const rainPoints = (): [number, number][] => [...new Map(RAIN_AREAS.map((r) => [r.rainAt.join(','), r.rainAt])).values()];
 
 export const catchmentRainUrl = (pts = rainPoints()) =>
   `https://api.open-meteo.com/v1/forecast?latitude=${pts.map((p) => p[1]).join(',')}&longitude=${pts.map((p) => p[0]).join(',')}&hourly=precipitation&models=${WEATHER_MODELS.join(',')}&past_days=7&forecast_days=16&timeformat=unixtime&timezone=GMT`;
@@ -70,7 +70,7 @@ export function parseCatchmentRain(json: unknown, fetchedAt: number, fromCache =
   });
   const byRiver: Record<string, number[]> = {};
   const members: Record<string, number[][]> = {};
-  for (const r of PLUME_RIVERS) {
+  for (const r of RAIN_AREAS) {
     const m = perPoint[pts.findIndex((p) => p[0] === r.rainAt[0] && p[1] === r.rainAt[1])];
     members[r.name] = m;
     byRiver[r.name] = m.length === 1 ? m[0] : memberMean(m, times.length);

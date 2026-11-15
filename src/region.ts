@@ -58,7 +58,8 @@ export function tierForZoom(z: number): Tier {
  * - `facing`: bearing in degrees true the shore faces (seaward normal), the mean direction to the OSM sea on rings of
  *   300, 600 and 1000 m around the nearest shore point. Good to about ±10° on a beach; on a point (Punta Cahuita,
  *   Punta Uva) it is the bisector of the open water.
- * - `sea`: where the sea values for the spot are read (clarity, sea temperature, the snorkel and dive score): the
+ * - `sea`: where the sea values for the spot are read (sea temperature, spot wind; clarity reads the swimmers' water
+ *   50 m off the sand instead since PLAN 7.88, layers/clarity.ts `swimPoint`, and this point only as a fallback): the
  *   first point along `facing`, from 300 m out in 50 m steps, where the depth grid has real water (3 m or more,
  *   not its 2 m shore fill). So each spot reads the water in front of its own beach, not the first wet point a
  *   ring search finds.
@@ -224,6 +225,37 @@ export const PLUME_RIVERS: { name: string; mouth: [number, number]; catchmentKm2
   { name: 'RÍO ESTRELLA', mouth: [-82.8922, 9.7927], catchmentKm2: 1000, rainAt: [-83.1, 9.68], flowAt: [-82.975, 9.775], rainBox: [[-83.3, 9.6], [-82.9, 9.8]] },
   { name: 'RÍO BANANO', mouth: [-82.9951, 9.9208], catchmentKm2: 210, rainAt: [-83.12, 9.88], flowAt: [-83.075, 9.925], rainBox: [[-83.2, 9.9], [-83.0, 10.0]] },
   { name: 'RÍO BANANITO', mouth: [-82.9573, 9.874], catchmentKm2: 110, rainAt: [-83.12, 9.88], flowAt: [-82.9573, 9.874], rainBox: [[-83.1, 9.8], [-83.0, 9.9]] },
+];
+
+/**
+ * Rain over the coastal hills that feed the beach creeks (PLAN 7.89), the same way PLUME_RIVERS' rain is read: IMERG's
+ * 0.1° cells in `rainBox` for the past (the two cells over the coast from Hone Creek to Manzanillo and the first
+ * Talamanca ridges behind it) and the forecast models at `rainAt` (the hills between Cocles and Playa Chiquita).
+ */
+export const COAST_RAIN: { name: string; rainAt: [number, number]; rainBox: [[number, number], [number, number]] } = {
+  name: 'COAST CREEKS', rainAt: [-82.72, 9.625], rainBox: [[-82.8, 9.6], [-82.6, 9.7]],
+};
+
+/** Every area whose rain the catchment-rain feed reads: the four rivers and the coast creeks. */
+export const RAIN_AREAS: readonly { name: string; rainAt: [number, number]; rainBox: [[number, number], [number, number]] }[] = [...PLUME_RIVERS, COAST_RAIN];
+
+/**
+ * Beach creeks that carry mud onto the swimming water after rain on the coastal hills (PLAN 7.89; Joseph 2026-11-13:
+ * the creeks into Punta Uva, Cocles behind Bar Playa 506, and the three large ones at Playa Negra). Mouths from
+ * data/fishing/mouths.geojson (OSM). CHECK, all of it: which creeks Joseph meant is not confirmed, and the catchment
+ * areas are not surveyed. They come from each creek's mapped length in OSM (OpenFreeMap z14, 2026-11) through
+ * Hack's law inverted, A = (L / 1.4)^(1/0.6) (miles, square miles; Hack 1957), good to a factor of about 2; they
+ * only scale how far the plume reaches (√area). Río Cocles includes Río Negro, which meets it at the mouth;
+ * Río Hone includes Quebrada Hotel, which joins about 200 m up.
+ */
+export const CREEK_PLUMES: { name: string; mouth: [number, number]; catchmentKm2: number }[] = [
+  { name: 'RÍO HONE', mouth: [-82.78927, 9.67464], catchmentKm2: 40 },
+  { name: 'QUEBRADA HONTA', mouth: [-82.76308, 9.65474], catchmentKm2: 0.2 },
+  { name: 'QUEBRADA JOE GYAL', mouth: [-82.75604, 9.6555], catchmentKm2: 0.5 },
+  { name: 'RÍO COCLES', mouth: [-82.73255, 9.64817], catchmentKm2: 4 },
+  { name: 'QUEBRADA ERNESTO', mouth: [-82.69428, 9.6382], catchmentKm2: 0.8 },
+  { name: 'QUEBRADA HONE MARK', mouth: [-82.66349, 9.632], catchmentKm2: 2 },
+  { name: 'QUEBRADA MILLA', mouth: [-82.61163, 9.60621], catchmentKm2: 24 },
 ];
 
 /**

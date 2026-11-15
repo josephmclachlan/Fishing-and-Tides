@@ -6,7 +6,7 @@
  * free NASA Earthdata account in EARTHDATA_USERNAME and EARTHDATA_PASSWORD (scripts/forecast/earthdata.ts).
  */
 import { writeFileSync } from 'node:fs';
-import { PLUME_RIVERS } from '../../src/region.ts';
+import { RAIN_AREAS } from '../../src/region.ts';
 import {
   boxCells, catchmentMeans, IMERG_DATASET, IMERG_LICENCE, IMERG_NAME, listingFiles, mergeHalfHours, parseImergAscii, subsetOf, subsetQuery,
   type RainImerg,
@@ -49,7 +49,9 @@ export async function buildRainImerg(dir: string, now = Date.now(), ed?: Earthda
   const session = ed ?? earthdata(user!, pass!);
   const prev = prevFeed === undefined ? await previous() : prevFeed;
   const fromMs = Math.floor(now / 864e5) * 864e5 - (IMERG_DAYS - 1) * 864e5;
-  const have = new Set(prev?.times ?? []);
+  // A half hour counts as had when every rain area has a value in it, so an area the published copy doesn't have
+  // yet (the coast creeks, PLAN 7.89) is filled in over the next runs. A half hour IMERG left blank is asked again.
+  const have = new Set((prev?.times ?? []).filter((_, k) => RAIN_AREAS.every((r) => typeof prev!.byRiver[r.name]?.[k] === 'number')));
 
   const listed: { name: string; start: number; path: string }[] = [];
   for (let d = fromMs; d <= now; d += 864e5) {
@@ -64,14 +66,14 @@ export async function buildRainImerg(dir: string, now = Date.now(), ed?: Earthda
   // Newest first: the recent hours matter most to the plume.
   const todo = listed.filter((f) => f.start >= fromMs && !have.has(f.start)).sort((a, b) => b.start - a.start);
 
-  const box = subsetOf(PLUME_RIVERS);
+  const box = subsetOf(RAIN_AREAS);
   const nLon = box.i1 - box.i0 + 1, nLat = box.j1 - box.j0 + 1;
   const got: { start: number; means: Record<string, number | null> }[] = [];
   let failed = 0, firstErr = '';
   const read = async (f: (typeof todo)[number]) => {
     try {
       const text = await session.text(`${HOST}/opendap/${f.path}${f.name}.ascii?${subsetQuery(box)}`);
-      got.push({ start: f.start, means: catchmentMeans(parseImergAscii(text, nLon, nLat), box, PLUME_RIVERS) });
+      got.push({ start: f.start, means: catchmentMeans(parseImergAscii(text, nLon, nLat), box, RAIN_AREAS) });
     } catch (err) {
       if ((err as { fatal?: boolean }).fatal && !got.length) throw err;
       failed++;
@@ -87,14 +89,14 @@ export async function buildRainImerg(dir: string, now = Date.now(), ed?: Earthda
   const left = Math.max(0, todo.length - k);
   if (todo.length && !got.length) throw new Error(`rain-imerg: none of ${todo.length} half hours read (${firstErr})`);
 
-  const merged = mergeHalfHours(prev, got, PLUME_RIVERS, fromMs);
+  const merged = mergeHalfHours(prev, got, RAIN_AREAS, fromMs);
   if (!merged.times.length) throw new Error('rain-imerg: no half hours listed');
   const out: RainImerg = {
     feed: 'rain-imerg',
     fetchedAt: new Date(now).toISOString(),
     source: { id: IMERG_DATASET, name: IMERG_NAME },
     licence: IMERG_LICENCE,
-    cells: Object.fromEntries(PLUME_RIVERS.map((r) => [r.name, boxCells(r.rainBox).length])),
+    cells: Object.fromEntries(RAIN_AREAS.map((r) => [r.name, boxCells(r.rainBox).length])),
     ...merged,
   };
   writeFileSync(`${dir}/rain-imerg.json`, JSON.stringify(out));
