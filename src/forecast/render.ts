@@ -25,12 +25,13 @@ export const ICONS: Record<FcActivity, string> = {
 };
 export const icon = (a: FcActivity) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[a]}</svg>`;
 const MAP_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>';
+const GUIDE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12c3-4.5 7-6 11-4.5 2 .8 3.6 2.5 4.6 4.5-1 2-2.6 3.7-4.6 4.5C10 18 6 16.5 3 12zM18.6 12L22 8.5v7z"/><path d="M8 11.5v.5"/></svg>';
 const CORAL_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-9M12 15l-4-4V7M12 12l4-4V5M8 11l-3-2M16 8l3-1M6 21h12"/></svg>';
 const THEME_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 2a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg>';
 const GO_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
 
 /** The page's frame: header, tabs, hero, and the sections the page fills in. */
-export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; coral: boolean }): string {
+export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; coral: boolean; guide?: boolean }): string {
   const tab = (a: FcActivity) =>
     `<button type="button" role="tab" class="fc-tab" data-act="${a}" aria-selected="false" tabindex="-1">${icon(a)}<span>${esc(t(`fc.act.${a}` as Key))}</span></button>`;
   return `
@@ -39,6 +40,7 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
       <p class="fc-brand fc-mono">${esc(t('fc.brand'))}<span class="fc-hide-s"> · ${esc(t('fc.region'))}</span></p>
       <div class="fc-ctrls">
         <button type="button" class="fc-ctl fc-back" id="fc-back" title="${esc(t('fc.backTitle'))}">${MAP_ICON}<span>${esc(t('fc.back'))}</span></button>
+        ${o.guide ? `<button type="button" class="fc-ctl fc-sq" id="fc-guide" aria-label="${esc(t('fc.guide'))}" title="${esc(t('fc.guide'))}">${GUIDE_ICON}</button>` : ''}
         ${o.coral ? `<button type="button" class="fc-ctl fc-sq" id="fc-coral" aria-label="${esc(t('fc.coral'))}" title="${esc(t('fc.coral'))}">${CORAL_ICON}</button>` : ''}
         <div class="fc-lang" role="group" aria-label="${esc(t('fc.langGroup'))}">
           <button type="button" data-lang="en" aria-pressed="${o.lang === 'en'}">EN</button><button type="button" data-lang="es" aria-pressed="${o.lang === 'es'}">ES</button>

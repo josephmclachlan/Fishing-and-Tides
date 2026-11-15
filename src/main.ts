@@ -761,7 +761,6 @@ const guidePage = mountGuidePage({
     location.reload();
   },
 });
-void guidePage;
 // CORAL page (PLAN 7.66): reef health, the private field log, spawning, guide and rules on a clean page of its own (#coral).
 const coralPage = mountCoralPage({
   storage: safeStorage(),
@@ -1026,6 +1025,7 @@ const forecastPage = mountForecastPage({
       wait();
     }),
   openCoral: ([lng, lat]) => coralPage.open({ reef: nearestCoralReef(lng, lat).id }),
+  openGuide: () => guidePage.open(),
 });
 // The way back to the forecast from the map (PLAN 7.67; Joseph: "make returning to forecast page more obviously
 // apparent on maps page"): a large button with the spot and activity it returns to, which pulses when the map opens.
@@ -1657,6 +1657,7 @@ if (MODERN) {
     onCoralSites: (fn) => void coralStore.subscribe(fn),
     forecast: forecastPage,
     openCoralPage: (reef) => coralPage.open({ reef }),
+    openGuide: () => guidePage.open(),
     explain: (title, id) => explain.show(title, id),
     go: (tg) => enhancer.go(tg),
     reload,

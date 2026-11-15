@@ -1895,6 +1895,7 @@ export const en = {
   'fc.radarBig': '{act} map',
   'fc.vz.period': 'Period',
   // SPECIES GUIDE (PLAN 7.91)
+  'fc.guide': 'Species guide',
   'gd.mode.identify': 'Identify',
   'gd.mode.saved': 'Saved',
   'gd.fav.title': 'Save it to your list on this phone',
