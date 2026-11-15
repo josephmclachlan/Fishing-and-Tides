@@ -393,3 +393,4 @@
 .gd .gd-fav[aria-pressed='true'] { background: var(--fc-lv2); color: var(--fc-on2); border-color: var(--fc-on2); }
 .gd .gd-fav[aria-pressed='true'] svg { fill: currentColor; }
 .gd-star { color: var(--fc-lv1); margin-right: 4px; }
+.gd-marks { font-size: 13px; line-height: 1.35; margin-top: 3px; }

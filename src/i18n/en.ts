@@ -1895,6 +1895,11 @@ export const en = {
   'fc.radarBig': '{act} map',
   'fc.vz.period': 'Period',
   // SPECIES GUIDE (PLAN 7.91)
+  'gd.id.s.shape': 'Shape',
+  'gd.id.q.shape': 'What shape was it?',
+  'gd.id.h.shape': 'Pick one or two. Skip if you are not sure.',
+  'gd.id.features': 'Anything that stood out',
+  'gd.h.marks': 'Key marks',
   'fc.guide': 'Species guide',
   'gd.mode.identify': 'Identify',
   'gd.mode.saved': 'Saved',

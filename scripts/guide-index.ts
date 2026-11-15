@@ -24,7 +24,7 @@ register(
 }`),
 );
 const { buildIndex } = await import('../src/guide/index-build.ts');
-const { isGroup, COLORS, PATTERNS, POSITIONS } = await import('../src/guide/types.ts');
+const { isGroup, COLORS, PATTERNS, POSITIONS, SHAPES, FEATURES } = await import('../src/guide/types.ts');
 const { guessLook } = await import('../src/guide/identify.ts');
 type Species = import('../src/guide/types.ts').Species;
 type Photo = import('../src/guide/types.ts').Photo;
@@ -41,6 +41,10 @@ function readLook(id: string): Look | undefined {
     const jc = only(l.juvColors, COLORS), jp = only(l.juvPattern, PATTERNS);
     if (jc.length) look.juvColors = jc;
     if (jp.length) look.juvPattern = jp;
+    const sh = only(l.shape, SHAPES), ft = only(l.features, FEATURES);
+    if (sh.length) look.shape = sh;
+    if (ft.length) look.features = ft;
+    if (l.marks?.en?.trim()) look.marks = { en: l.marks.en.trim(), es: l.marks.es?.trim() || l.marks.en.trim() };
     return look.colors.length || look.position.length ? look : undefined;
   } catch {
     return undefined;
