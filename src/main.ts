@@ -130,7 +130,7 @@ import { mountChl } from './layers/chl';
 import { coastTest, type CoastTest } from './layers/sea-image';
 import { coralNow, DHW_BLEACHING, DHW_SEVERE, fetchCoral, nearestReef, type CoralLoaded } from './adapters/coral';
 import { runoffRisk } from './physics/outing';
-import { clarityAt, mountClarity, mountClarityHud, riverRain, type ClarityContext } from './layers/clarity';
+import { clarityAt, mountClarity, mountClarityHud, riverRain, swimPoint, type ClarityContext } from './layers/clarity';
 import { fetchCatchmentRain, type CatchmentRain } from './adapters/catchment-rain';
 import { fetchRiverFlow, flowRatio, type RiverFlow } from './adapters/river-flow';
 import { dataAge, describeAge } from './adapters/data-age';
@@ -838,17 +838,19 @@ const currentVecAt = (lng: number, lat: number, ms: number): [number, number] | 
   return f && sampleField(f, lng, lat, out) ? out : null;
 };
 /** Each named spot's sea read point (region.ts `sea`): the water in front of its own beach. */
-const SPOT_SEA = new globalThis.Map<string, [number, number]>(SPOTS.map((s) => [`${s.lngLat[0]},${s.lngLat[1]}`, s.sea]));
+const SPOT_SEA = new globalThis.Map<string, (typeof SPOTS)[number]>(SPOTS.map((s) => [`${s.lngLat[0]},${s.lngLat[1]}`, s]));
 /**
  * Where a shore pin reads its sea values (cached per pin): clarity and sea temperature are sea values. A named spot
- * reads its `sea` point; any other pin, or a spot whose point the clarity grid has as land, the nearest water within ~1.8 km.
+ * reads the swimmers' water SWIM_READ_M off its sand along its facing (PLAN 7.88), else its `sea` point; any other
+ * pin, or a spot whose points the clarity grid has as land, the nearest water within ~1.8 km.
  */
 const watchWater = (lng: number, lat: number, c: ClarityContext): [number, number] | null => {
   const key = `${lng},${lat}`;
   let at = watchSea.get(key);
   if (at === undefined) {
-    const own = SPOT_SEA.get(key);
-    at = own && clarityAt(c, own[0], own[1]) ? own : null;
+    const spot = SPOT_SEA.get(key);
+    const swim = spot ? swimPoint(c, spot.lngLat, spot.facing) : null;
+    at = swim && clarityAt(c, swim[0], swim[1]) ? swim : spot && clarityAt(c, spot.sea[0], spot.sea[1]) ? spot.sea : null;
     if (!at) search: for (const r of [0.004, 0.008, 0.016])
       for (let k = 0; k < 8; k++) {
         const p: [number, number] = [lng + r * Math.cos((k * Math.PI) / 4), lat + r * Math.sin((k * Math.PI) / 4)];

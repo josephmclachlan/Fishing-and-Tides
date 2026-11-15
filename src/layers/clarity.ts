@@ -17,6 +17,7 @@ import { observedAt, type SatelliteData } from '../adapters/satellite';
 import { projectMonthly, scalarAt } from '../adapters/frames';
 import type { GridSeries } from '../adapters/pack';
 import { landOf, offshoreFill, touchesLand } from '../physics/clarity-baseline';
+import { coastDistance, nearshoreDepth } from '../physics/shore-depth';
 import { coastTest, rgbaWord, seaImage, type SeaImage } from './sea-image';
 import { memberMean, type CatchmentRain } from '../adapters/catchment-rain';
 import { flowRatio, type RiverFlow } from '../adapters/river-flow';
@@ -132,13 +133,47 @@ export function mudAt(rain: CatchmentRain, river: string, areaKm2: number, ms: n
   return { strength: m.strength[i] + (m.strength[j] - m.strength[i]) * w, ageS: m.ageS[i] + (m.ageS[j] - m.ageS[i]) * w };
 }
 
-/** Water depth at a sea point, m; null on land. The coastline mask decides where it covers. */
+/** Distance to the shoreline per coastline mask, computed once per mask (physics/shore-depth.ts). */
+const coastMemo = new WeakMap<Grid, Grid>();
+/** Distance from a sea point to the shoreline, m, by the coastline mask; NaN off the mask. */
+export function coastDistanceAt(land: Grid, lng: number, lat: number): number {
+  let d = coastMemo.get(land);
+  if (!d) coastMemo.set(land, (d = coastDistance(land)));
+  return cellAt(d, lng, lat);
+}
+
+/**
+ * Water depth at a sea point, m; null on land. The coastline mask decides where it covers, and near the beach the
+ * depth follows the equilibrium beach profile from the shoreline (PLAN 7.88, physics/shore-depth.ts): the ~460 m
+ * depth grid put 13 m of water right off Punta Uva's sand, too deep for any swell to stir the bottom.
+ */
 export function seaDepthAt(c: Pick<ClarityContext, 'elevation' | 'land'>, lng: number, lat: number): number | null {
   const z = sample(c.elevation, lng, lat);
   const m = c.land ? cellAt(c.land, lng, lat) : NaN;
   if (m === 1) return null;
-  if (m === 0) return Number.isFinite(z) && z < -SHORE_DEPTH_M ? -z : SHORE_DEPTH_M;
+  if (m === 0) return nearshoreDepth(Number.isFinite(z) && z < -SHORE_DEPTH_M ? -z : SHORE_DEPTH_M, coastDistanceAt(c.land!, lng, lat));
   return z < 0 ? -z : null;
+}
+
+/**
+ * How far out from the sand a beach's visibility is read, m (PLAN 7.88): where people swim and snorkel off the
+ * beach. The spots used to read their `sea` point about 300 m out, past the water anyone stands in.
+ */
+export const SWIM_READ_M = 50;
+
+/**
+ * The swimmers' water in front of a shore pin: the first point along `facingDeg` from the pin, in 5 m steps up to
+ * 1.5 km, that is sea and at least `xM` from the shoreline by the coastline mask. Null without the mask or with no
+ * such point.
+ */
+export function swimPoint(c: Pick<ClarityContext, 'elevation' | 'land'>, pin: readonly [number, number], facingDeg: number, xM = SWIM_READ_M): [number, number] | null {
+  if (!c.land) return null;
+  const b = facingDeg * RAD, mx = M_PER_DEG_LNG * Math.cos(pin[1] * RAD);
+  for (let m = 0; m <= 1500; m += 5) {
+    const p: [number, number] = [pin[0] + (m * Math.sin(b)) / mx, pin[1] + (m * Math.cos(b)) / M_PER_DEG_LAT];
+    if (seaDepthAt(c, p[0], p[1]) !== null && coastDistanceAt(c.land, p[0], p[1]) >= xM) return p;
+  }
+  return null;
 }
 
 /**

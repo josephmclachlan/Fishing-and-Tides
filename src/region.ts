@@ -58,7 +58,8 @@ export function tierForZoom(z: number): Tier {
  * - `facing`: bearing in degrees true the shore faces (seaward normal), the mean direction to the OSM sea on rings of
  *   300, 600 and 1000 m around the nearest shore point. Good to about ±10° on a beach; on a point (Punta Cahuita,
  *   Punta Uva) it is the bisector of the open water.
- * - `sea`: where the sea values for the spot are read (clarity, sea temperature, the snorkel and dive score): the
+ * - `sea`: where the sea values for the spot are read (sea temperature, spot wind; clarity reads the swimmers' water
+ *   50 m off the sand instead since PLAN 7.88, layers/clarity.ts `swimPoint`, and this point only as a fallback): the
  *   first point along `facing`, from 300 m out in 50 m steps, where the depth grid has real water (3 m or more,
  *   not its 2 m shore fill). So each spot reads the water in front of its own beach, not the first wet point a
  *   ring search finds.
