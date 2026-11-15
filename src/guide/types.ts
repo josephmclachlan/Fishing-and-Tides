@@ -28,7 +28,22 @@ export const PATTERNS = ['plain', 'stripes', 'bars', 'spots', 'eyespot', 'mottle
 export type Pattern = (typeof PATTERNS)[number];
 export const POSITIONS = ['bottom', 'reef', 'hidden', 'midwater', 'surface', 'attached', 'shore'] as const;
 export type Position = (typeof POSITIONS)[number];
+export const SHAPES = [
+  'torpedo', 'deep-bodied', 'elongate', 'flat', 'round', 'crab-like', 'lobster-like', 'shrimp-like', 'star', 'urchin-ball', 'cylinder', 'coiled-shell',
+  'two-shell', 'bell', 'soft-blob', 'branching', 'mound', 'plate', 'fan', 'tube-vase', 'blade', 'feathery', 'bird', 'reptile', 'mammal', 'tree-palm', 'other',
+] as const;
+export type Shape = (typeof SHAPES)[number];
+export const FEATURES = [
+  'spines', 'venom-spines', 'long-fins', 'sail-fin', 'forked-tail', 'rounded-tail', 'barbels', 'big-eyes', 'long-snout', 'big-mouth', 'teeth-visible', 'beak',
+  'armour-plates', 'scutes', 'shell', 'claws', 'long-antennae', 'tentacles', 'arms', 'stinging', 'eye-stalks', 'horns', 'crest', 'hump', 'stripes-on-tail',
+  'transparent-body', 'glows', 'filter-feeding-siphons', 'slime',
+] as const;
+export type Feature = (typeof FEATURES)[number];
 export interface Look {
+  /** The key marks that tell it apart, in one sentence. */
+  marks?: Txt;
+  shape?: Shape[];
+  features?: Feature[];
   colors: Color[];
   pattern: Pattern[];
   position: Position[];
@@ -378,4 +393,25 @@ export const POSITION_WORDS: Record<Position, Txt> = {
   bottom: W('On the seabed', 'En el fondo'), reef: W('On the reef or rocks', 'En el arrecife o rocas'), hidden: W('In a hole or crevice', 'En un hueco o grieta'),
   midwater: W('Swimming in open water', 'Nadando en aguas abiertas'), surface: W('At the surface', 'En la superficie'),
   attached: W('Fixed in place', 'Fijo en un lugar'), shore: W('On the shore, beach or mangrove', 'En la orilla, playa o manglar'),
+};
+export const SHAPE_WORDS: Record<Shape, Txt> = {
+  torpedo: W('Torpedo', 'Torpedo'), 'deep-bodied': W('Tall, flat-sided', 'Alto y aplanado de lado'), elongate: W('Long and thin', 'Largo y delgado'),
+  flat: W('Flat on the bottom', 'Plano sobre el fondo'), round: W('Round or boxy', 'Redondo o en caja'), 'crab-like': W('Crab', 'Cangrejo'),
+  'lobster-like': W('Lobster', 'Langosta'), 'shrimp-like': W('Shrimp', 'Camarón'), star: W('Star', 'Estrella'), 'urchin-ball': W('Spiny ball', 'Bola de espinas'),
+  cylinder: W('Sausage or tube', 'Salchicha o tubo'), 'coiled-shell': W('Coiled shell', 'Concha enrollada'), 'two-shell': W('Two shells', 'Dos conchas'),
+  bell: W('Bell', 'Campana'), 'soft-blob': W('Soft blob', 'Masa blanda'), branching: W('Branching', 'Ramificado'), mound: W('Mound or crust', 'Montículo o costra'),
+  plate: W('Plate', 'Placa'), fan: W('Fan', 'Abanico'), 'tube-vase': W('Tube or vase', 'Tubo o jarrón'), blade: W('Blades or leaves', 'Hojas'),
+  feathery: W('Feathery', 'Plumoso'), bird: W('Bird', 'Ave'), reptile: W('Reptile', 'Reptil'), mammal: W('Mammal', 'Mamífero'),
+  'tree-palm': W('Tree or palm', 'Árbol o palma'), other: W('Other', 'Otra'),
+};
+export const FEATURE_WORDS: Record<Feature, Txt> = {
+  spines: W('Spines', 'Espinas'), 'venom-spines': W('Venomous spines', 'Espinas venenosas'), 'long-fins': W('Long fins', 'Aletas largas'),
+  'sail-fin': W('Sail fin', 'Aleta de vela'), 'forked-tail': W('Forked tail', 'Cola ahorquillada'), 'rounded-tail': W('Rounded tail', 'Cola redonda'),
+  barbels: W('Whiskers', 'Barbillas'), 'big-eyes': W('Big eyes', 'Ojos grandes'), 'long-snout': W('Long snout', 'Hocico largo'),
+  'big-mouth': W('Big mouth', 'Boca grande'), 'teeth-visible': W('Teeth showing', 'Dientes visibles'), beak: W('Beak', 'Pico'),
+  'armour-plates': W('Armour plates', 'Placas de armadura'), scutes: W('Scutes', 'Escudos'), shell: W('Shell', 'Concha'), claws: W('Claws', 'Pinzas'),
+  'long-antennae': W('Long antennae', 'Antenas largas'), tentacles: W('Tentacles', 'Tentáculos'), arms: W('Arms', 'Brazos'), stinging: W('Stings', 'Pica'),
+  'eye-stalks': W('Eyes on stalks', 'Ojos en tallos'), horns: W('Horns', 'Cuernos'), crest: W('Crest', 'Cresta'), hump: W('Hump', 'Joroba'),
+  'stripes-on-tail': W('Marked tail', 'Cola marcada'), 'transparent-body': W('See-through body', 'Cuerpo transparente'), glows: W('Glows', 'Brilla'),
+  'filter-feeding-siphons': W('Siphons', 'Sifones'), slime: W('Slimy', 'Viscoso'),
 };

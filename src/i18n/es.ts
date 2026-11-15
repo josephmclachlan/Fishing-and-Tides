@@ -1894,6 +1894,11 @@ export const es: Dict = {
   'fc.radarBig': 'Mapa de {act}',
   'fc.vz.period': 'Periodo',
   // GUÍA DE ESPECIES (PLAN 7.91)
+  'gd.id.s.shape': 'Forma',
+  'gd.id.q.shape': '¿Qué forma tenía?',
+  'gd.id.h.shape': 'Escoge una o dos. Sáltalo si no estás seguro.',
+  'gd.id.features': 'Algo que te llamó la atención',
+  'gd.h.marks': 'Marcas clave',
   'fc.guide': 'Guía de especies',
   'gd.mode.identify': 'Identificar',
   'gd.mode.saved': 'Guardadas',

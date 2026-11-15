@@ -6,7 +6,7 @@
  * rough and some species are not described yet: a near miss drops down the list instead of vanishing.
  */
 import { SIZE_BANDS, sizeBand, type SizeBand } from './filter';
-import { GROUPS, type Color, type Entry, type Group, type Habitat, type Look, type Pattern, type Position } from './types';
+import { GROUPS, type Color, type Entry, type Feature, type Group, type Habitat, type Look, type Pattern, type Position, type Shape } from './types';
 
 export type IdKind = 'animal' | 'plant';
 export interface IdAnswers {
@@ -17,11 +17,15 @@ export interface IdAnswers {
   colors: Color[];
   pattern: Pattern[];
   position: Position[];
+  shape: Shape[];
+  features: Feature[];
   night?: boolean;
 }
-export const NO_ANSWERS: IdAnswers = { colors: [], pattern: [], position: [] };
+export const NO_ANSWERS: IdAnswers = { colors: [], pattern: [], position: [], shape: [], features: [] };
+/** Fresh answers (the arrays are new each time). */
+export const noAnswers = (): IdAnswers => ({ colors: [], pattern: [], position: [], shape: [], features: [] });
 
-export const ID_STEPS = ['kind', 'group', 'sub', 'size', 'look', 'where', 'results'] as const;
+export const ID_STEPS = ['kind', 'group', 'sub', 'size', 'shape', 'look', 'where', 'results'] as const;
 export type IdStep = (typeof ID_STEPS)[number];
 
 export const groupsOf = (k: IdKind | undefined): Group[] =>
@@ -35,9 +39,23 @@ export function subsOf(list: readonly Entry[], group: Group | undefined, max = 8
   return subs.size >= 2 && subs.size <= max ? [...subs.keys()] : [];
 }
 
+/** The body shapes among the species that still fit the kind, group and subgroup (asked only when there are several). */
+export function shapesOf(list: readonly Entry[], a: IdAnswers): Shape[] {
+  const out = new Set<Shape>();
+  for (const e of list)
+    if (e.tier === 'full' && idScore(e, { ...a, size: undefined, colors: [], pattern: [], position: [], shape: [], features: [], night: false }) !== null)
+      for (const s of e.look?.shape ?? []) if (s !== 'other') out.add(s);
+  return out.size >= 2 ? [...out] : [];
+}
+
 /** The steps that apply to these answers (plants skip the group; a group without a few subgroups skips that). */
 export function stepsFor(list: readonly Entry[], a: IdAnswers): IdStep[] {
-  return ID_STEPS.filter((s) => (s === 'group' ? a.kind !== 'plant' : s === 'sub' ? subsOf(list, a.kind === 'plant' ? 'plants-algae' : a.group).length > 0 : true));
+  return ID_STEPS.filter((s) =>
+    s === 'group' ? a.kind !== 'plant'
+    : s === 'sub' ? subsOf(list, a.kind === 'plant' ? 'plants-algae' : a.group).length > 0
+    : s === 'shape' ? shapesOf(list, a).length > 0
+    : true,
+  );
 }
 
 const LIGHT: readonly Color[] = ['white', 'grey', 'silver'];
@@ -49,7 +67,10 @@ export function idScore(e: Entry, a: IdAnswers): number | null {
   if (a.kind === 'animal' && e.group === 'plants-algae') return null;
   if (a.group && e.group !== a.group) return null;
   if (a.sub && e.sub !== a.sub) return null;
-  let s = (e.seen ? SEEN_BONUS[e.seen] ?? 0 : 0) + (e.tier === 'list' ? -2 : 0);
+  // Ties go to what people most often meet and catch (Joseph 2026-11-15): seen often, met in the water or on the
+  // shore, eaten.
+  let s = (e.seen ? SEEN_BONUS[e.seen] ?? 0 : 0) + (e.tier === 'list' ? -2 : 0) + (e.edible === 'yes' || e.edible === 'caution' ? 0.5 : 0) +
+    (e.encounter?.some((x) => x !== 'boat-fishing') ? 0.5 : 0);
   if (a.size) {
     const b = sizeBand(e);
     if (b) {
@@ -71,6 +92,8 @@ export function idScore(e: Entry, a: IdAnswers): number | null {
       const hit = a.pattern.filter((p) => has.has(p)).length;
       s += w * (hit ? 2 * hit : -2);
     }
+    if (a.shape.length && look.shape?.length) s += w * (a.shape.some((x) => look.shape!.includes(x)) ? 2 : -2);
+    if (a.features.length && look.features?.length) s += w * a.features.filter((x) => look.features!.includes(x)).length * 1.5;
     if (a.position.length) {
       const hit = a.position.filter((p) => look.position.includes(p)).length;
       s += w * (hit ? 2 : -2);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fits, guessLook, identify, idScore, NO_ANSWERS, stepsFor, subsOf, type IdAnswers } from './identify';
+import { fits, guessLook, identify, idScore, noAnswers, stepsFor, subsOf, type IdAnswers } from './identify';
 import type { Entry } from './types';
 
 const E = (id: string, o: Partial<Entry>): Entry => ({ id, tier: 'full', sci: id, group: 'fish', sub: 'snappers', en: [id], es: [], ...o }) as Entry;
@@ -9,7 +9,7 @@ const nurse = E('nurse', { group: 'sharks-rays', sub: 'sharks', size: { common: 
 const stingray = E('stingray', { group: 'sharks-rays', sub: 'rays', size: { common: 90, unit: 'cm' } });
 const grass = E('turtle-grass', { group: 'plants-algae', sub: 'seagrass', look: { colors: ['green'], pattern: ['plain'], position: ['attached'] } });
 const LIST = [porkfish, tarpon, nurse, stingray, grass];
-const A = (o: Partial<IdAnswers>): IdAnswers => ({ ...NO_ANSWERS, colors: [], pattern: [], position: [], ...o });
+const A = (o: Partial<IdAnswers>): IdAnswers => ({ ...noAnswers(), ...o });
 
 describe('identify', () => {
   it('keeps animals and plants apart and holds to the group', () => {

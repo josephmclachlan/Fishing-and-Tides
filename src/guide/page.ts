@@ -17,7 +17,7 @@
 import { t } from '../i18n';
 import { landing, MAP_HASH } from '../forecast/model';
 import { loadIndex, loadSpecies } from './data';
-import { NO_ANSWERS, stepsFor, type IdAnswers, type IdStep } from './identify';
+import { noAnswers, stepsFor, type IdAnswers, type IdStep } from './identify';
 import { idHtml } from './identify-view';
 import {
   activeCount, DEFAULT_FILTER, groupCounts, GROUP_BYS, haystack, inView, matches, modeCounts, sections, SORTS,
@@ -166,7 +166,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
   })());
   const saveFavs = () => put(storage, FAV_KEY, JSON.stringify([...favs]));
   /** The identify answers and the question showing. */
-  let idA: IdAnswers = { ...NO_ANSWERS, colors: [], pattern: [], position: [] };
+  let idA: IdAnswers = noAnswers();
   let idStep: IdStep = 'kind';
   const listOpts = { lang, base, href: (id: string) => guideHash({ mode, group, id }), fav: (id: string) => favs.has(id) };
 
@@ -311,12 +311,12 @@ export function mountGuidePage(deps: GuidePageDeps) {
   const idAnswer = (k: string, v: string) => {
     const a = idA;
     let advance = false;
-    if (k === 'kind') (a.kind = a.kind === v ? undefined : (v as IdAnswers['kind'])), (a.group = undefined), (a.sub = undefined), (advance = !!a.kind);
-    else if (k === 'group') (a.group = a.group === v ? undefined : (v as IdAnswers['group'])), (a.sub = undefined), (advance = !!a.group);
+    if (k === 'kind') (a.kind = a.kind === v ? undefined : (v as IdAnswers['kind'])), (a.group = undefined), (a.sub = undefined), (a.shape = []), (advance = !!a.kind);
+    else if (k === 'group') (a.group = a.group === v ? undefined : (v as IdAnswers['group'])), (a.sub = undefined), (a.shape = []), (advance = !!a.group);
     else if (k === 'sub') (a.sub = a.sub === v ? undefined : v), (advance = !!a.sub);
     else if (k === 'size') (a.size = a.size === v ? undefined : (v as IdAnswers['size'])), (advance = !!a.size);
     else if (k === 'night') a.night = !a.night;
-    else if (k === 'colors' || k === 'pattern' || k === 'position') {
+    else if (k === 'colors' || k === 'pattern' || k === 'position' || k === 'shape' || k === 'features') {
       const arr = a[k] as string[];
       a[k] = (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]) as never;
     }
@@ -341,7 +341,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       render();
       toId();
     } else if (hit('[data-id-reset]')) {
-      idA = { ...NO_ANSWERS, colors: [], pattern: [], position: [] };
+      idA = noAnswers();
       idStep = 'kind';
       render();
       toId();

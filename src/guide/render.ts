@@ -44,6 +44,8 @@ const txt = (v: Txt | undefined, lang: Lang) => tx(v, lang).trim();
 // ------------------------------------------------------------------ the list
 
 export interface ListOpts {
+  /** Show the key marks on the card (the identify results). */
+  marks?: boolean;
   /** Saved by the reader (a star on the card). */
   fav?: (id: string) => boolean;
   lang: Lang;
@@ -93,6 +95,7 @@ export function cardHtml(e: Entry, o: ListOpts): string {
     <span class="gd-ct">
       <b class="gd-name${latin ? ' sci' : ''}">${o.fav?.(e.id) ? `<span class="gd-star" aria-label="${esc(t('gd.mode.saved'))}">★</span>` : ''}${esc(nameOf(e, lang))}</b>${latin ? '' : `<i class="gd-sci">${esc(e.sci)}</i>`}
       ${alt.length ? `<span class="gd-alt">${esc(alt.join(' · '))}</span>` : ''}
+      ${o.marks && e.look?.marks ? `<span class="gd-marks">${esc(txt(e.look.marks, lang))}</span>` : ''}
       ${facts.length ? `<span class="gd-facts fc-mono">${esc(facts.join(' · '))}</span>` : ''}
       ${badges(e, lang)}
     </span></a>`;
@@ -239,7 +242,7 @@ export function introHtml(mode: GdMode): string {
 
 export function tabsFor(s: Species): GdTab[] {
   const out: GdTab[] = ['about'];
-  if (s.idTips || s.variants?.length || s.lookalikes?.length) out.push('id');
+  if (s.idTips || s.variants?.length || s.lookalikes?.length || s.look?.marks) out.push('id');
   if (s.diet || s.predators || s.behaviour || s.reproduction || s.lifespan) out.push('life');
   if (s.eat && isFood(s)) out.push('catch');
   if (s.eat?.clean && isFood(s)) out.push('clean');
@@ -329,6 +332,7 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
       );
     case 'id':
       return (
+        block(t('gd.h.marks'), s.look?.marks && !s.look.guessed ? `<p class="gd-lede">${esc(txt(s.look.marks, lang))}</p>` : '') +
         block(t('gd.h.idTips'), pText(s.idTips, lang)) +
         block(t('gd.h.variants'), s.variants?.length ? `<dl class="gd-dl">${s.variants.map((v) => `<dt>${esc(tx(VARIANT_WORDS[v.key], lang))}</dt><dd>${esc(txt(v.text, lang))}</dd>`).join('')}</dl>` : '') +
         block(
