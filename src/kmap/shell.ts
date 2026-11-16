@@ -30,7 +30,8 @@ import { localDayStart, moonPhase, sunTimes } from '../physics/astro';
 import { LIMON_HARMONICS } from '../data/tides-limon';
 import { REGION, SPOTS } from '../region';
 import { LAYERS, type LayerId, type LayerStore } from '../layers/registry';
-import { LEGEND, legendItemKey, legendWhatKey } from '../layers/legend';
+import { LEGEND, legendItemKey, legendWhatKey, type LegendItem } from '../layers/legend';
+import { sprigSvg } from '../layers/sargassum-glyph';
 import { SST_BANDS } from '../layers/sst';
 import { CLARITY_BANDS } from '../physics/clarity';
 import type { CoralMode } from '../coral-mode';
@@ -437,9 +438,11 @@ export function mountKineticMap(d: KmDeps) {
    * (notes such as "nothing drawn: low risk") stay in the "?" explainer.
    */
   // 'dim' is the old map's faded amber (--amber-dim): the faint wash of the same colour, as the layers paint it.
+  /** A key's swatch: a CSS chip, or the drawn mark itself where the layer draws a glyph (the sargassum sprig). */
+  const keySw = (it: LegendItem) => `<i class="k-sw-${it.sw}" style="--k:${SW_TONE[it.tone]}">${it.sw === 'weed' ? sprigSvg(18) : ''}</i>`;
   const SW_TONE = {
     amber: 'var(--paint-amber)', green: 'var(--paint-green)', red: 'var(--paint-red)', dim: 'color-mix(in srgb, var(--paint-amber) 40%, transparent)',
-    surf: 'var(--t-surf)', rain0: 'var(--r-rain0)', rain2: 'var(--r-rain2)', rain4: 'var(--r-rain4)',
+    surf: 'var(--t-surf)', rain0: 'var(--r-rain0)', rain2: 'var(--r-rain2)', rain4: 'var(--r-rain4)', sarg: 'var(--m-sarg)',
   } as const;
   /**
    * A painted field's key (mockup G's ramp keys): the layer's bands in its colours, equal widths, a few edges written
@@ -460,14 +463,14 @@ export function mountKineticMap(d: KmDeps) {
       const cols = rampCss(['--lv2', '--lv3', '--ac4'], HEAT_STEPS.length), n = cols.length;
       const ticks = [[0, L2('Fair', 'Regular')], [Math.round(n / 2), L2('Good', 'Buena')], [n, L2('Best', 'Mejor')]] as const;
       const zs = LEGEND.fishing.map((it, i) => ({ ...it, l: t(legendItemKey(id, i + 1) as Key) })).filter((it) => it.sw === 'zone');
-      return `<div class="k-rampw"><div class="k-ramp" aria-hidden="true">${cols.map((c) => `<i style="--k:${c}"></i>`).join('')}</div><em class="k-mono"></em><div class="k-rampl k-rampl-ends k-mono">${ticks.map(([k, l]) => `<span style="left:${(k * 100) / n}%">${esc(l)}</span>`).join('')}</div></div>${zs.length ? `<ul class="k-lkeys">${zs.map((it) => `<li><i class="k-sw-${it.sw}" style="--k:${SW_TONE[it.tone]}"></i><span>${esc(it.l)}</span></li>`).join('')}</ul>` : ''}`;
+      return `<div class="k-rampw"><div class="k-ramp" aria-hidden="true">${cols.map((c) => `<i style="--k:${c}"></i>`).join('')}</div><em class="k-mono"></em><div class="k-rampl k-rampl-ends k-mono">${ticks.map(([k, l]) => `<span style="left:${(k * 100) / n}%">${esc(l)}</span>`).join('')}</div></div>${zs.length ? `<ul class="k-lkeys">${zs.map((it) => `<li>${keySw(it)}<span>${esc(it.l)}</span></li>`).join('')}</ul>` : ''}`;
     }
     if (fk) {
       const ls = LEGEND[id as LayerId].map((it, i) => ({ ...it, l: t(legendItemKey(id, i + 1) as Key) })).filter((it) => it.sw === 'line');
-      return fieldKey(fk) + (ls.length ? `<ul class="k-lkeys">${ls.map((it) => `<li><i class="k-sw-${it.sw}" style="--k:${SW_TONE[it.tone]}"></i><span>${esc(it.l)}</span></li>`).join('')}</ul>` : '');
+      return fieldKey(fk) + (ls.length ? `<ul class="k-lkeys">${ls.map((it) => `<li>${keySw(it)}<span>${esc(it.l)}</span></li>`).join('')}</ul>` : '');
     }
     const items = LEGEND[id].map((it, i) => ({ ...it, l: t(legendItemKey(id, i + 1) as Key) })).filter((it) => it.sw !== 'none');
-    return items.length ? `<ul class="k-lkeys">${items.map((it) => `<li><i class="k-sw-${it.sw}" style="--k:${SW_TONE[it.tone]}"></i><span>${esc(it.l)}</span></li>`).join('')}</ul>` : '';
+    return items.length ? `<ul class="k-lkeys">${items.map((it) => `<li>${keySw(it)}<span>${esc(it.l)}</span></li>`).join('')}</ul>` : '';
   };
   const explainLayer = (id: KmLayer) => {
     if (isOwnLayer(id)) return `<p class="k-lgnote">${esc(id === 'rating' ? L2('Each beach in the rating colour of the chosen activity, for the hour on the slider: the same score as the forecast page. Tiles show the headline value; tap one for the spot card.', 'Cada playa en el color de su calificación para la actividad y la hora elegidas, igual que la página de pronóstico. Toque una para ver el spot.') : id === 'heat' ? L2('NOAA Coral Reef Watch degree heating weeks at each tracked reef: heat built up over 12 weeks. 4 or more is bleaching likely, 8 or more severe.', 'Semanas-grado de calor de NOAA Coral Reef Watch en cada arrecife: el calor acumulado en 12 semanas. 4 o más, blanqueo probable; 8 o más, severo.') : L2('Restoration sites in your private field log, drawn only as the 5 km cell they fall in, so nobody can read an exact site off the screen.', 'Sitios de restauración de su bitácora privada, dibujados solo como la celda de 5 km, para que nadie lea un sitio exacto en la pantalla.'))}</p>`;

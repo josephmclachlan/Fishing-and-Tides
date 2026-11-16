@@ -189,6 +189,8 @@
 .km .k-lkeys i.k-sw-dot{width:9px;height:9px;border-radius:50%}
 .km .k-lkeys i.k-sw-ring{width:11px;height:11px;border-radius:50%;background:none;box-shadow:inset 0 0 0 2.5px var(--k)}
 .km .k-lkeys i.k-sw-line{height:3px}
+.km .k-lkeys i.k-sw-weed{width:18px;height:auto;background:none;color:var(--k);line-height:0}
+.km .k-lkeys i.k-sw-weed svg{display:block}
 .km .k-bwin{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;margin:10px 0 0;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
 .km .k-bwin b{color:var(--ink);font-weight:700}
 .km .k-rampw{display:grid;grid-template-columns:1fr auto;column-gap:8px;align-items:center;min-width:176px}
