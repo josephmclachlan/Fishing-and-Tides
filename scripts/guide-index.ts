@@ -173,6 +173,13 @@ if (!existsSync(outDir)) {
   process.exit(1);
 }
 let photos: Record<string, Photo[]> = {};
+let photoFix: Record<string, { src: string; big?: string | null; w: number; h: number }> = {};
+try {
+  const pff = join(SRC, 'photos', 'photo-fix.json');
+  if (existsSync(pff)) photoFix = JSON.parse(readFileSync(pff, 'utf8'));
+} catch {
+  console.warn('photos/photo-fix.json does not parse');
+}
 const photoFile = join(SRC, 'photos', 'photos.json');
 if (existsSync(photoFile)) photos = (JSON.parse(readFileSync(photoFile, 'utf8')) as { photos: Record<string, Photo[]> }).photos ?? {};
 
@@ -213,7 +220,17 @@ for (const f of readdirSync(outDir).filter((n) => n.endsWith('.json')).sort()) {
   else if (!isGroup(s.group)) problems.push(`${f}: group "${s.group}"`);
   else if (!s.sci?.trim()) problems.push(`${f}: no Latin name`);
   else {
-    const ph = photos[id]?.filter((p) => p.src && p.page && p.by && p.lic && !/\bND\b/i.test(p.lic));
+    const ph = photos[id]
+      ?.filter((p) => p.src && p.page && p.by && p.lic && !/\bND\b/i.test(p.lic))
+      // Wikimedia serves only its standard thumbnail widths; 1024 px answers 400, so phones with sharp screens got a
+      // broken photo (Joseph 2026-11-16). 960 is the nearest standard width. Tracking parameters are dropped.
+      .map((p) => {
+        const fix = (u?: string) => (u && /wikimedia\.org\//.test(u) ? u.replace(/\?utm_[^#]*$/, '').replace(/\/1024px-/, '/960px-') : u);
+        // Full-size Wikimedia files are throttled for hotlinking (429): photos/photo-fix.json maps each to a standard thumbnail.
+        const pf = photoFix[p.src];
+        if (pf) return { ...p, src: pf.src, big: pf.big ?? undefined, w: pf.w, h: pf.h };
+        return { ...p, src: fix(p.src)!, big: fix(p.big) };
+      });
     const lf = join(SRC, 'research', 'local', `${id}.json`);
     if (existsSync(lf)) {
       try {

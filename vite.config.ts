@@ -41,7 +41,8 @@ export default defineConfig({
             // Species photos are linked from iNaturalist and Wikimedia Commons with their credits (docs/GUIDE.md).
             urlPattern: /^https:\/\/(inaturalist-open-data\.s3\.amazonaws\.com|static\.inaturalist\.org|(upload|thumb)\.wikimedia\.org)\//,
             handler: 'CacheFirst',
-            options: { cacheName: 'guide-photos', expiration: { maxEntries: 600, maxAgeSeconds: 90 * 24 * 3600 }, cacheableResponse: { statuses: [0, 200] } },
+            // v2 and 200 only (2026-11-16): v1 kept opaque responses, so one failed load left a photo broken for 90 days.
+            options: { cacheName: 'guide-photos-v2', expiration: { maxEntries: 600, maxAgeSeconds: 90 * 24 * 3600 }, cacheableResponse: { statuses: [200] } },
           },
           {
             urlPattern: /^https:\/\/tiles\.openfreemap\.org\/(?!.*[?&]ftsync=1)/,
