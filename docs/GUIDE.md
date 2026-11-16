@@ -71,3 +71,10 @@ or it is not normally eaten. The edible list still shows only legal food. A spec
 gets the Catch and Clean tabs anyway: a red "Illegal to take in Costa Rica: emergency use only" banner when the
 research sets `eat.illegal` or the species is protected, and an amber "Not normally eaten" banner when it is marked
 not edible or toxic (`emergencyHtml` in src/guide/render.ts).
+
+## Ciguatera size advice (Joseph 2026-11-16)
+
+Each food species with a ciguatera risk gets "Ciguatera: size to keep" in its Catch tab, from
+`research/cigua-size/out/<id>.json`: a published limit for that species (6, mostly Cuba's weight-based sale bans and
+the Canary Islands amberjack limit), a reasoned estimate marked as such (41), or "no size link known" with practical
+advice (76). The generic "under 3 lb is safe" rule has no source and is not used; advice says "lower risk", never safe.

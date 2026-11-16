@@ -406,3 +406,8 @@
 .gd a.gd-dispatch { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px; margin: 12px 0 0; padding: 12px 14px; border: 2px solid var(--fc-ink); text-decoration: none; font-size: 14px; }
 .gd a.gd-dispatch b { font-family: var(--fc-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .gd a.gd-dispatch:hover { background: var(--fc-ink); color: var(--fc-bg); }
+
+/* Ciguatera size advice in the catch tab */
+.gd-csz { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.gd-csz b { font-size: 15px; }
+.gd-csz-src { font-size: 11px; color: var(--fc-ink2); }
