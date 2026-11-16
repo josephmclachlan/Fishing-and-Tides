@@ -22,6 +22,7 @@ import { flatHeight, shoreHeight } from './physics/reef-flat';
 import { SNORKEL_SPOTS } from './data/snorkel-spots';
 import { OUTING_DEPTHS, surgeAt, surgeProfile } from './physics/surge';
 import { tideHeightM } from './physics/tide';
+import { SHORE_DUMP_M, SHORE_EASY_M } from './physics/shorebreak';
 import { REGION, SPOTS } from './region';
 import type { SpearStatus } from './rules';
 import type { SpotPhysics } from './spot-physics';
@@ -156,7 +157,7 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     // What a swimmer meets at the water's edge: the breaker outside, cut by any reef flat in front (PLAN 7.59).
     const hb = r ? r.shore?.Hb ?? r.waves.breaker.Hb : undefined;
     $('entry').textContent = r && Number.isFinite(hb) ? `${(hb as number).toFixed(1)} ${t('unit.m')} · ${t('dive.rip')} ${t(`dive.rip.${r.rip.level}` as Key)}` : '--';
-    $('entry').className = 'seg sm ' + (!r || !Number.isFinite(hb) ? '' : (hb as number) >= 1.2 || r.rip.level === 'HIGH' ? 'red' : (hb as number) >= 0.5 || r.rip.level === 'MOD' ? '' : 'green');
+    $('entry').className = 'seg sm ' + (!r || !Number.isFinite(hb) ? '' : (hb as number) > SHORE_DUMP_M || r.rip.level === 'HIGH' ? 'red' : (hb as number) >= SHORE_EASY_M || r.rip.level === 'MOD' ? '' : 'green');
     // SPEAR only: may you spear here? (park and closed water: no; refuge with no rule found: ask SINAC; else yes, with the permit and card)
     const law = env.spearAt?.(c.lng, c.lat) ?? 'ok';
     side.querySelector<HTMLElement>('#dv-law-row')!.style.display = mode === 'spear' ? '' : 'none';

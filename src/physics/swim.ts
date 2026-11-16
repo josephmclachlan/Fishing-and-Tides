@@ -11,7 +11,7 @@
  *
  * The score, 0..100, starts at 100. Safety caps it, comfort scales it:
  *
- *   caps     lightning or a likely squall 5; rip HIGH 15; shore break over 1.3 m 15
+ *   caps     lightning or a likely squall 5; rip HIGH 15; shore break over 1.3 m 15 (shorebreak.ts)
  *   factors  rip MOD ×0.55; shore break 0.5 → 1.3 m ×1 → ×0.3; squall watch ×0.7;
  *            wind 10 → 20 kt ×1 → ×0.6 (sand blowing, chop), over 20 kt ×0.5;
  *            rain 0.2 → 2 mm/h ×1 → ×0.6, over 2 mm/h ×0.4;
@@ -28,6 +28,7 @@
 import { onshoreWind, ripRisk, type Rip, type RipLevel } from './rip';
 import type { SargLevel } from './drift';
 import type { SquallLevel } from './safety';
+import { SHORE_DUMP_M, SHORE_EASY_M } from './shorebreak';
 
 const clamp = (x: number, a: number, b: number) => Math.min(b, Math.max(a, x));
 const lerp = (x: number, x0: number, x1: number, y0: number, y1: number) => y0 + (y1 - y0) * clamp((x - x0) / (x1 - x0), 0, 1);
@@ -81,7 +82,7 @@ export function shoreAt(b: ShoreBase, h: ShoreHour): { breakerM: number; rip: Ri
   return { breakerM, rip };
 }
 
-export type SwimReason = 'dark' | 'storm' | 'rip' | 'surf' | 'wind' | 'rain' | 'heat' | 'cool' | 'cold' | 'uv' | 'overcast' | 'sargassum' | 'lowsun';
+export type SwimReason = 'dark' | 'storm' | 'rip' | 'surf' | 'dump' | 'wind' | 'rain' | 'heat' | 'cool' | 'cold' | 'uv' | 'overcast' | 'sargassum' | 'lowsun';
 
 export interface SwimInputs {
   rip: RipLevel;
@@ -116,8 +117,8 @@ export function swimScore(i: SwimInputs): SwimScore {
   else if (i.squall === 'watch') f.push(['storm', 0.7]);
   if (i.rip === 'HIGH') caps.push(['rip', 15]);
   else if (i.rip === 'MOD') f.push(['rip', 0.55]);
-  if (i.breakerM > 1.3) caps.push(['surf', 15]);
-  else f.push(['surf', lerp(i.breakerM, 0.5, 1.3, 1, 0.3)]);
+  if (i.breakerM > SHORE_DUMP_M) caps.push(['dump', 15]);
+  else f.push(['surf', lerp(i.breakerM, SHORE_EASY_M, SHORE_DUMP_M, 1, 0.3)]);
   if (finite(i.windKt)) f.push(['wind', i.windKt > 20 ? 0.5 : lerp(i.windKt, 10, 20, 1, 0.6)]);
   if (finite(i.rainMmH)) f.push(['rain', i.rainMmH > 2 ? 0.4 : lerp(i.rainMmH, 0.2, 2, 1, 0.6)]);
   if (finite(i.feelsC)) {
