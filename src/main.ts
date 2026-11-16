@@ -89,8 +89,8 @@ import { mountSeafloor } from './layers/seafloor';
 import { mountSeafloorHud } from './seafloor-hud';
 import { fetchZones, mountZones, zoneName } from './layers/zones';
 import { mountZonesHud } from './zones-hud';
-import { fetchMouths, fetchOccurrences, mountFishing, type FishingLayer } from './layers/fishing';
-import { loadSpecies, mountFishingHud } from './fishing-hud';
+import { fetchMouths, fetchOccurrences, mountFishing, type FishingLayer, type Reach } from './layers/fishing';
+import { loadReach, loadSpecies, mountFishingHud } from './fishing-hud';
 import { SPECIES, speciesById, speciesIn, type FishMode, type SpeciesId } from './fishing/species';
 import { layers, type ActivityId } from './layers/registry';
 import { mountMotionKey } from './layers/motion-key';
@@ -598,7 +598,7 @@ const boatStore = createBoatStore(safeStorage());
 // Catches logged in the BOAT drawer store their BITE once the fishing panel is up (PLAN 7.16).
 let scoreCatch: CatchScorer | null = null;
 let fishSetSpecies: ((id: SpeciesId) => void) | null = null;
-let fishHudMode: { set(m: FishMode): void; get(): FishMode } | null = null;
+let fishHudMode: { set(m: FishMode): void; get(): FishMode; setReach(r: Reach): void; reach(): Reach } | null = null;
 const fishModeListeners = new Set<() => void>();
 /**
  * EAT or SPORT for the fish map (PLAN 7.120): through the fishing panel once it is up, else remembered as that mode's
@@ -615,7 +615,17 @@ const fishMode = {
       /* private mode */
     }
   },
-  /** Called when the fishing panel changes the mode itself, so the map's spot card follows. */
+  /** ALL, SHORE or BOAT: which water the fish map highlights (the panel's REACH row, remembered on the device). */
+  reach: (): Reach => fishHudMode?.reach() ?? loadReach(),
+  setReach: (r: Reach) => {
+    if (fishHudMode) return fishHudMode.setReach(r);
+    try {
+      localStorage.setItem('ft.fishing.reach', r);
+    } catch {
+      /* private mode */
+    }
+  },
+  /** Called when the fishing panel changes the mode or reach itself, so the map's switches and spot card follow. */
   subscribe: (fn: () => void) => void fishModeListeners.add(fn),
 };
 // Offshore read for the BOAT drawer (PLAN 7.17): depth and ledge from the seafloor grids, satellite
@@ -1593,7 +1603,7 @@ fetchSeafloor()
         const fishHud = mountFishingHud(hud, map, layer, time, species, fishEnv, pins, () => fishModeListeners.forEach((fn) => fn()));
         scoreCatch = fishHud?.scoreCatch ?? null;
         fishSetSpecies = fishHud?.setSpecies ?? null;
-        fishHudMode = fishHud ? { set: fishHud.setMode, get: fishHud.mode } : null;
+        fishHudMode = fishHud ? { set: fishHud.setMode, get: fishHud.mode, setReach: fishHud.setReach, reach: fishHud.reach } : null;
         boatStore.subscribe(() => (layer.setCatches(pins()), fishHud?.refresh()));
       })
       .catch((err) => console.warn('fishing layer unavailable', err));

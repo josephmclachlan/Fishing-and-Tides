@@ -118,7 +118,14 @@ export interface KmDeps {
   /** The species guide (PLAN 7.91). */
   openGuide?: (mode?: 'identify' | 'edible') => void;
   /** What the fish map shows (PLAN 7.120): EAT, fish to keep and eat, or SPORT, fish to catch and release. */
-  fishMode?: { get(): 'eat' | 'sport'; set(m: 'eat' | 'sport'): void; subscribe?(fn: () => void): void };
+  fishMode?: {
+    get(): 'eat' | 'sport';
+    set(m: 'eat' | 'sport'): void;
+    /** ALL, SHORE or BOAT: which water the fish map highlights. */
+    reach?(): 'all' | 'shore' | 'boat';
+    setReach?(r: 'all' | 'shore' | 'boat'): void;
+    subscribe?(fn: () => void): void;
+  };
   explain: (title: string, id: string) => void;
   go: (t: Target) => void;
   /** Reload keeping the view (language, theme and scheme are applied at load). */
@@ -202,6 +209,7 @@ export function mountKineticMap(d: KmDeps) {
     <div class="k-confveil" aria-hidden="true"></div>
     <div class="k-xh" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></div>
     <button type="button" class="k-readbar" id="k-readbar" aria-label="${L2('Readings under the crosshair', 'Lecturas bajo la mira')}"></button>
+    <div class="k-fishsw" id="k-fishsw" hidden></div>
     <div class="k-legmini" id="k-legmini" aria-hidden="true"></div>
     <div class="k-views" role="group" aria-label="${L2('Prepared views', 'Vistas')}"><button type="button" data-view="coast">${L2('Coast', 'Costa')}</button><button type="button" data-view="spot" id="k-vspot"></button></div>
     <div class="k-mapbtns">
@@ -928,6 +936,29 @@ export function mountKineticMap(d: KmDeps) {
     );
   const inspectorHTML = () =>
     `<div class="k-sec-head"><h2>${S.coral ? L2('Reef', 'Arrecife') : L2('Spot', 'Sitio')}</h2><p class="k-mono">${L2('Tap a pin to change', 'Toque un punto')}</p></div><div id="k-cardbox">${S.coral ? coralCardHTML() : spotCardHTML()}</div><section id="k-heresec" class="k-heresec"><div class="k-sec-head"><h2>${L2('Under the crosshair', 'Bajo la mira')}</h2></div>${hereHTML()}</section>`;
+  /**
+   * The fish map's two switches, on the map itself whenever FISH is on (Joseph 2026-11-16: on a phone they were only in
+   * the spot card and the Expand data panel): EAT or SPORT, and which water to highlight, from the shore, by boat or all.
+   */
+  const renderFishSw = () => {
+    const el = $('k-fishsw'), fm = d.fishMode;
+    const on = !!fm && S.act === 'fish' && !S.coral;
+    el.hidden = !on;
+    if (!on || !fm) return (el.innerHTML = '');
+    const m = fm.get(), r = fm.reach?.() ?? 'all';
+    const b = (attr: string, v: string, cur: string, l: string) => `<button type="button" ${attr}="${v}" aria-pressed="${v === cur}">${esc(l)}</button>`;
+    el.innerHTML = `<div class="k-seg" role="group" aria-label="${L2('Fish to eat or sport fish', 'Peces para comer o pesca deportiva')}">${b('data-fsw', 'eat', m, L2('Eat', 'Comer'))}${b('data-fsw', 'sport', m, L2('Sport', 'Deporte'))}</div>${
+      fm.setReach ? `<div class="k-seg" role="group" aria-label="${L2('Where you fish from', 'Desde dónde pesca')}">${b('data-freach', 'all', r, L2('All', 'Todo'))}${b('data-freach', 'shore', r, L2('Shore', 'Orilla'))}${b('data-freach', 'boat', r, L2('Boat', 'Bote'))}</div>` : ''
+    }`;
+  };
+  $('k-fishsw').addEventListener('click', (e) => {
+    const t = (e.target as HTMLElement).closest<HTMLElement>('[data-fsw],[data-freach]');
+    if (!t || !d.fishMode) return;
+    if (t.dataset.fsw) d.fishMode.set(t.dataset.fsw as 'eat' | 'sport');
+    else d.fishMode.setReach?.(t.dataset.freach as 'all' | 'shore' | 'boat');
+    renderFishSw();
+    renderSpot();
+  });
   const renderSpot = () => {
     const dk = $('k-dkspot');
     if (S.coral) {
@@ -961,7 +992,7 @@ export function mountKineticMap(d: KmDeps) {
   };
   $('k-dkspot').addEventListener('click', () => openSheet(S.coral ? 'coral' : 'spot'));
   // The fishing panel's own MODE row changes it too: keep the card's switch in step (PLAN 7.120).
-  d.fishMode?.subscribe?.(() => renderSpot());
+  d.fishMode?.subscribe?.(() => (renderSpot(), renderFishSw()));
 
   /* ---------- pins and ribbons ---------- */
   const coast = mountCoast(map, stage, (id) => pick(id));
@@ -1351,6 +1382,7 @@ export function mountKineticMap(d: KmDeps) {
     renderLegMini();
     renderPins();
     renderSpot();
+    renderFishSw();
     drawScrub();
     renderReadouts();
     if (!WIDE.matches && S.sheet === 'spot' && S.coral) openSheet('coral');
@@ -1363,6 +1395,7 @@ export function mountKineticMap(d: KmDeps) {
     renderLegMini();
     renderPins();
     renderSpot();
+    renderFishSw();
     renderTime();
     drawScrub();
     renderReadouts();
