@@ -33,7 +33,7 @@ describe('swim score', () => {
     expect(swimScore({ ...calm, daylight: false, rip: 'HIGH' }).score).toBe(15);
     expect(swimScore({ ...calm, lightning: true }).score).toBe(5);
     expect(swimScore({ ...calm, rip: 'HIGH' })).toEqual({ score: 15, reasons: ['rip'] });
-    expect(swimScore({ ...calm, breakerM: 1.6 }).reasons[0]).toBe('surf');
+    expect(swimScore({ ...calm, breakerM: 1.6 }).reasons[0]).toBe('dump');
   });
   it('cuts for a moderate rip, wind, rain, heat, cold water, strong UV and sargassum, worst first', () => {
     expect(swimScore({ ...calm, rip: 'MOD' }).score).toBe(55);
@@ -52,5 +52,15 @@ describe('swim score', () => {
   });
   it('leaves out what it does not know', () => {
     expect(swimScore({ rip: 'LOW', breakerM: 0.2, daylight: true }).score).toBe(100);
+  });
+});
+
+describe('shore break scale', () => {
+  it('uses one set of lines everywhere', async () => {
+    const { shoreBand } = await import('./shorebreak');
+    expect(shoreBand(0.49)).toBe('easy');
+    expect(shoreBand(0.5)).toBe('timed');
+    expect(shoreBand(1.3)).toBe('timed');
+    expect(shoreBand(1.31)).toBe('dump');
   });
 });

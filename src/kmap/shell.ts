@@ -25,6 +25,7 @@ import type { Spot as FcSpot } from '../metrics/forecast';
 import { bestTimeView, headline, heroWords, sentence } from '../forecast/view';
 import { hourlyVerdicts, nextWindow } from '../boat/window';
 import { daysAt, readAt, skyMemo, spotsForActivity, type FcActivity, type FcDeps, type FcRead, type Level } from '../forecast/model';
+import { shoreBand } from '../physics/shorebreak';
 import { extrema, predictSeries, tideState } from '../physics/tide';
 import { localDayStart, moonPhase, sunTimes } from '../physics/astro';
 import { LIMON_HARMONICS } from '../data/tides-limon';
@@ -634,8 +635,10 @@ export function mountKineticMap(d: KmDeps) {
       out.push({ k: 'surge', l: L2('Surge', 'Vaivén'), v: n1(sg.uMs), u: 'm/s', s: `${word(sg.band)} · ${sg.depth} m · ±${n1(sg.excursionM)}`, help: 'surge', src: L2('By depth', 'Por prof.'), prof: h.surge, lv: sg.band === 'DANGEROUS' ? 0 : sg.band === 'SURGY' ? 2 : 4 });
     }
     // Surf at the water's edge (the breaker, cut by any reef flat in front): what a swimmer walks into.
-    if ((act('swim') || act('snorkel') || act('surf')) && fin(h.entryM) && !h.land)
-      out.push({ k: 'entry', l: L2('Surf at entry', 'Olas en la orilla'), v: n1(h.entryM), u: 'm', s: h.entryM >= 1.2 ? L2('Big shore break', 'Rompiente fuerte') : h.entryM >= 0.5 ? L2('Waves at the edge', 'Olas en la orilla') : L2('Easy entry', 'Entrada fácil'), val: h.entryM, help: 'diveEntry', lv: h.entryM >= 1.2 ? 0 : h.entryM >= 0.5 ? 2 : 4 });
+    if ((act('swim') || act('snorkel') || act('surf')) && fin(h.entryM) && !h.land) {
+      const sb = shoreBand(h.entryM);
+      out.push({ k: 'entry', l: L2('Shore break', 'Rompiente en la orilla'), v: n1(h.entryM), u: 'm', s: sb === 'dump' ? L2('Dumping waves', 'Olas que revientan en seco') : sb === 'timed' ? L2('Time your entry', 'Espere el momento para entrar') : L2('Easy entry', 'Entrada fácil'), val: h.entryM, help: 'diveEntry', lv: sb === 'dump' ? 0 : sb === 'timed' ? 2 : 4 });
+    }
     if ((has('sst') || has('fronts') || act('swim') || act('dive') || act('spear') || S.coral) && fin(h.sstC) && !h.land)
       out.push({ k: 'sst', l: L2('Water temp', 'Temp. agua'), v: n1(h.sstC), u: '°C', s: h.sstC >= SST_BANDS.WARM ? L2('Warm for here', 'Cálida para aquí') : h.sstC >= SST_BANDS.COOL ? L2('Mid · no wetsuit', 'Media · sin traje') : L2('Cooler for here', 'Fresca para aquí'), val: h.sstC, help: 'sst', src: L2('Satellite', 'Satélite'), cite: ['sst'] });
     if (has('chl') && fin(h.chl) && !h.land)
@@ -822,11 +825,13 @@ export function mountKineticMap(d: KmDeps) {
   /** Clear, labelled links for the water activities: identify what you see, and (fish, spear) kill, bleed, ice. */
   const linksHTML = () => {
     const idAct = S.act === 'fish' || S.act === 'dive' || S.act === 'spear' || S.act === 'snorkel';
+    const safety = `<a class="k-link" href="#notes/water"><span>${L2('Water safety: rips, emergencies', 'Seguridad en el agua: resacas y emergencias')}</span>${ARROW}</a>`;
+    if (S.act === 'swim' || S.act === 'surf' || S.act === 'sail') return `<div class="k-links">${safety}<a class="k-link" href="#notes/aid"><span>${L2('Stung or bitten? First aid', '¿Picadura o mordida? Primeros auxilios')}</span>${ARROW}</a></div>`;
     if (!idAct) return '';
     const id = d.openGuide ? `<button type="button" class="k-link" data-go="identify"><span>${L2('Identify what you see', 'Identifica lo que ves')}</span>${ARROW}</button>` : '';
     const dp = S.act === 'fish' || S.act === 'spear' ? `<a class="k-link" href="#dispatch"><span>${L2('Kill, bleed, ice your catch', 'Mata, desangra y enfría tu pesca')}</span>${ARROW}</a>` : '';
     const nt = `<a class="k-link" href="#notes"><span>${L2('Field notes: rules, rigs, cooking', 'Notas de campo: reglas, aparejos, cocina')}</span>${ARROW}</a><a class="k-link" href="#notes/aid"><span>${L2('Stung or bitten? First aid', '¿Picadura o mordida? Primeros auxilios')}</span>${ARROW}</a>`;
-    return `<div class="k-links">${id}${dp}${nt}</div>`;
+    return `<div class="k-links">${safety}${id}${dp}${nt}</div>`;
   };
   /**
    * Fish and sail: the next boat window from this spot (mockup G: "Boat window · Wed 11 · 05:30–10:00 · Small boat OK"),

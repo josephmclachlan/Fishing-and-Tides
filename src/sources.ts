@@ -44,10 +44,9 @@ export const SOURCES = {
   incopesca: { en: 'INCOPESCA, Costa Rica fishing authority', es: 'INCOPESCA, autoridad de pesca de Costa Rica', u: 'https://www.incopesca.go.cr' },
   nhc: { en: 'US National Hurricane Center', es: 'Centro Nacional de Huracanes de EE. UU.', u: 'https://www.nhc.noaa.gov' },
   aisstream: { en: 'AISStream ship positions', es: 'Posiciones de barcos de AISStream', u: 'https://aisstream.io' },
-  uslarip: { en: 'US Lifesaving Association: rip current statistics', es: 'Asociación de Salvavidas de EE. UU.: estadísticas de corrientes de resaca', u: 'https://www.usla.org/page/RIPCURRENTS' },
-  noaarip: { en: 'NOAA National Weather Service: rip current safety', es: 'Servicio Meteorológico de NOAA: seguridad ante corrientes de resaca', u: 'https://www.weather.gov/safety/ripcurrent' },
+  uslarip: { en: 'Brander and others, US Lifesaving Association study of surf beach rescues, Natural Hazards and Earth System Sciences, 2019', es: 'Estudio de la Asociación de Salvavidas de EE. UU. sobre rescates en playas con oleaje, Natural Hazards and Earth System Sciences, 2019', u: 'https://nhess.copernicus.org/articles/19/389/2019/' },
+  noaarip: { en: 'NOAA National Weather Service: rip current safety', es: 'Servicio Meteorológico de NOAA: seguridad ante corrientes de resaca', u: 'https://oceanservice.noaa.gov/facts/ripcurrent.html' },
   sunscreen: { en: 'NOAA National Ocean Service: skincare chemicals and coral reefs', es: 'Servicio Oceánico Nacional de NOAA: químicos de protectores solares y arrecifes', u: 'https://oceanservice.noaa.gov/news/sunscreen-corals.html' },
-  aya: { en: 'AyA, Costa Rica national water laboratory', es: 'AyA, Laboratorio Nacional de Aguas de Costa Rica', u: 'https://www.aya.go.cr' },
   goesrain: { en: 'NOAA GOES-19 satellite rain-rate estimates', es: 'Estimaciones de lluvia del satélite GOES-19 de NOAA', u: 'https://www.goes-r.gov' },
   who_uv: { en: 'World Health Organization: Global Solar UV Index guide', es: 'Organización Mundial de la Salud: guía del Índice UV Solar Global', u: 'https://www.who.int/publications/i/item/9241590076' },
 } as const satisfies Record<string, Def>;

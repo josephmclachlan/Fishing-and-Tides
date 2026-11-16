@@ -41,7 +41,7 @@ const R = {
   power: { k: 'power', l: () => L2('Wave strength', 'Fuerza de la ola'), id: 'sz-pow', u: () => 'kW/m', sub: () => L2('Per metre of wave front', 'Por metro de frente') },
   drift: { k: 'drift', l: () => L2('Current along the beach', 'Corriente a lo largo de la playa'), id: 'sz-drift', u: () => 'm/s', sub: () => L2('Along the beach', 'A lo largo de la playa') },
   rips: {
-    k: 'rips', l: () => L2('Rip pull', 'Fuerza de resaca'), id: 'sz-rips', tone: true,
+    k: 'rips', l: () => L2('Rip strength if one forms', 'Fuerza de la resaca si se forma'), id: 'sz-rips', tone: true,
     // "MODERATE 0.6" and a reach of "40": the speed big, the word and how far it runs out underneath.
     read: (get) => {
       const m = /^(.*?)\s*([\d.]+)$/.exec(get('sz-rips'));

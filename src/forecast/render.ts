@@ -79,8 +79,9 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
     ${o.guide ? `<nav class="fc-links fc-in" aria-label="${esc(t('fc.links'))}">
       <button type="button" class="fc-link" id="fc-idlink" data-for="fish dive spear snorkel">${GUIDE_ICON}<span><b>${esc(t('fc.idLink'))}</b><small>${esc(t('fc.idLinkSub'))}</small></span><i aria-hidden="true">→</i></button>
       <a class="fc-link" href="#dispatch" data-for="fish spear">${DISPATCH_ICON}<span><b>${esc(t('dp.link'))}</b><small>${esc(t('dp.linkSub'))}</small></span><i aria-hidden="true">→</i></a>
+      <a class="fc-link" href="#notes/water" data-for="surf swim snorkel dive spear fish sail">${GUIDE_ICON}<span><b>${esc(t('nt.waterLink'))}</b><small>${esc(t('nt.waterLinkSub'))}</small></span><i aria-hidden="true">→</i></a>
       <a class="fc-link" href="#notes" data-for="fish spear dive snorkel">${DISPATCH_ICON}<span><b>${esc(t('nt.link'))}</b><small>${esc(t('nt.linkSub'))}</small></span><i aria-hidden="true">→</i></a>
-      <a class="fc-link" href="#notes/aid" data-for="fish spear dive snorkel">${GUIDE_ICON}<span><b>${esc(t('nt.aidLink'))}</b><small>${esc(t('nt.aidLinkSub'))}</small></span><i aria-hidden="true">→</i></a>
+      <a class="fc-link" href="#notes/aid" data-for="surf swim fish spear dive snorkel">${GUIDE_ICON}<span><b>${esc(t('nt.aidLink'))}</b><small>${esc(t('nt.aidLinkSub'))}</small></span><i aria-hidden="true">→</i></a>
     </nav>` : ''}
     <section class="fc-sec fc-in" aria-labelledby="fc-cond-h">
       <div class="fc-sec-head"><h2 id="fc-cond-h">${esc(t('fc.conditions'))}</h2><p class="fc-mono" id="fc-cond-when"></p></div>

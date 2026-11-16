@@ -7,6 +7,7 @@ import type { Block, L, Source } from '../ciguatera/content';
 import type { NtTab } from './route';
 import { rules } from './sections/rules';
 import { aid } from './sections/aid';
+import { water } from './sections/water';
 import { rigs } from './sections/rigs';
 import { release } from './sections/release';
 import { cook } from './sections/cook';
@@ -26,7 +27,7 @@ export interface Section {
 }
 
 export const TITLE = L('Field notes', 'Notas de campo');
-export const SUB = L('RULES · FIRST AID · RIGS · RELEASE · COOKING · SEASONS · WORDS', 'REGLAS · PRIMEROS AUXILIOS · APAREJOS · LIBERAR · COCINAR · TEMPORADAS · PALABRAS');
+export const SUB = L('RULES · WATER SAFETY · FIRST AID · RIGS · RELEASE · COOKING · SEASONS · WORDS', 'REGLAS · SEGURIDAD EN EL AGUA · PRIMEROS AUXILIOS · APAREJOS · LIBERAR · COCINAR · TEMPORADAS · PALABRAS');
 export const NOTE = L(
   'Information from published sources, not legal or medical advice. Rules change, so check with INCOPESCA and SINAC. Superscript numbers point to the sources listed at the end of each section.',
   'Información de fuentes publicadas, no asesoría legal ni médica. Las reglas cambian: confirme con INCOPESCA y SINAC. Los números en superíndice remiten a las fuentes al final de cada sección.',
@@ -35,7 +36,7 @@ export const CHROME = {
   back: { map: L('Map', 'Mapa'), forecast: L('Forecast', 'Pronóstico'), guide: L('Guide', 'Guía'), coral: L('Coral', 'Coral'), ciguatera: L('Ciguatera', 'Ciguatera') },
   backTitle: L('Leave the field notes', 'Salir de las notas de campo'),
   tabs: L('Sections', 'Secciones'),
-  linkLabel: L('Field notes: rules, first aid, rigs, cooking, seasons', 'Notas de campo: reglas, primeros auxilios, aparejos, cocina, temporadas'),
+  linkLabel: L('Field notes: rules, water safety, first aid, rigs, cooking, seasons', 'Notas de campo: reglas, seguridad en el agua, primeros auxilios, aparejos, cocina, temporadas'),
 };
 
-export const SECTIONS: Section[] = [rules, aid, rigs, release, cook, seasons, words];
+export const SECTIONS: Section[] = [rules, water, aid, rigs, release, cook, seasons, words];
