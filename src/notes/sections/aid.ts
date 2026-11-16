@@ -12,105 +12,368 @@ export const aid: Section = {
     '¿Lo picó o lo mordió algo y no sabe qué fue? Busque lo que ve o siente y siga los pasos. Cada entrada dice qué hacer primero, qué no hacer y cuándo llamar al 911.',
   ),
   blocks: [
+    // Emergency numbers
     {
-      k: 'aid',
-      h: L('Emergency numbers', 'Números de emergencia'),
-      t: L(
-        'Call 911 for an ambulance, the Red Cross or the coast guard. Poison centre (Centro Nacional de Control de Intoxicaciones), free, 24 hours: 800-4686-9422 (800-INTOXICA). Hospital: Hospital Dr. Tony Facio Castro in Limón, the region\'s hospital. Talamanca health area (CCSS): Hone Creek, 4003-8250.',
-        'Llame al 911 para ambulancia, Cruz Roja o guardacostas. Centro Nacional de Control de Intoxicaciones, gratis las 24 horas: 800-4686-9422 (800-INTOXICA). Hospital: Hospital Dr. Tony Facio Castro en Limón, el hospital de la región. Área de Salud de Talamanca (CCSS): Hone Creek, 4003-8250.',
-      ),
+      k: 'calls',
+      items: [
+        { n: '911', tel: '911', h: L('Ambulance, Red Cross, coast guard', 'Ambulancia, Cruz Roja, guardacostas'), t: L('Call 911 first.', 'Llame primero al 911.') },
+        { n: '800-4686-9422', tel: '80046869422', h: L('Poison centre', 'Centro de intoxicaciones'), t: L('800-INTOXICA. Centro Nacional de Control de Intoxicaciones, free, 24 hours.', '800-INTOXICA. Centro Nacional de Control de Intoxicaciones, gratis, las 24 horas.') },
+        { n: '4003-8250', tel: '+50640038250', h: L('Talamanca health area (CCSS)', 'Área de Salud de Talamanca (CCSS)'), t: L('Hone Creek.', 'Hone Creek.') },
+        { n: 'LIMÓN', h: L('Hospital Dr. Tony Facio Castro', 'Hospital Dr. Tony Facio Castro'), t: L('In Limón, the region\'s hospital.', 'En Limón, el hospital de la región.') },
+      ],
+    },
+    // 911 now
+    {
+      k: 'flow',
+      alert: true,
+      h: L('Any sting or bite: first', 'Cualquier picadura o mordedura: primero'),
+      steps: [
+        { ico: 'swim', h: L('Get out of the water', 'Salga del agua'), t: L('Then stay calm.', 'Luego mantenga la calma.') },
+        { ico: 'phone', tone: 'stop', h: L('Call 911 at once for any red flag below', 'Llame al 911 de inmediato si hay alguna señal roja') },
+      ],
+    },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'breath', tone: 'stop', h: L('Trouble breathing', 'Dificultad para respirar') },
+        { ico: 'heart', tone: 'stop', h: L('Chest pain', 'Dolor en el pecho') },
+        { ico: 'faint', tone: 'stop', h: L('Fainting', 'Desmayo') },
+        { ico: 'rash', tone: 'stop', h: L('A sting over a large area', 'Picadura en un área grande') },
+        { ico: 'eye', tone: 'stop', h: L('A sting on the face or eyes', 'Picadura en la cara o los ojos') },
+      ],
     },
     {
       k: 'p',
       t: L(
-        'For any sting, first get out of the water and stay calm. Call 911 at once for trouble breathing, chest pain, fainting, a sting over a large area, or a sting on the face or eyes. These steps match the first aid text in the species guide.{nhs}',
-        'Ante cualquier picadura, primero salga del agua y mantenga la calma. Llame de inmediato al 911 si hay dificultad para respirar, dolor en el pecho, desmayo, una picadura en un área grande o en la cara o los ojos. Estos pasos coinciden con el texto de primeros auxilios de la guía de especies.{nhs}',
+        'The steps in this tab match the first aid text in the species guide.{nhs}',
+        'Los pasos de esta pestaña coinciden con el texto de primeros auxilios de la guía de especies.{nhs}',
       ),
     },
+    // Vinegar or seawater
+    { k: 'h', t: L('Vinegar or seawater?', '¿Vinagre o agua de mar?') },
     {
-      k: 'warn',
-      h: L('Vinegar or seawater?', '¿Vinagre o agua de mar?'),
-      t: L(
-        'Rinse any sting with seawater, not fresh water, because fresh water may make the stinging cells fire.{jf}{nhs} Do not use urine.{nhs} Vinegar (household, about 5 percent acetic acid) is often used for box jellyfish and fire coral, but the evidence is weak and mixed: it eased pain in some studies, gave worse pain than no treatment in others, and made stinging cells fire in a study of a sea anemone.{jf}{hwi} For a Portuguese man o\' war (agua mala), rinse with seawater and do not rely on vinegar. If you do not know the animal, rinse with seawater and do not rub. Never use alcohol or sand on a sting.',
-        'Enjuague cualquier picadura con agua de mar, no con agua dulce, porque el agua dulce puede hacer que las células urticantes disparen.{jf}{nhs} No use orina.{nhs} El vinagre (de cocina, con cerca de 5 por ciento de ácido acético) se usa a menudo para medusas cubo y coral de fuego, pero la evidencia es débil y mixta: alivió el dolor en algunos estudios, dio más dolor que no hacer nada en otros, e hizo disparar las células urticantes en un estudio de una anémona de mar.{jf}{hwi} Con una fragata portuguesa (agua mala), enjuague con agua de mar y no cuente con el vinagre. Si no sabe qué animal fue, enjuague con agua de mar y no frote. Nunca use alcohol ni arena en una picadura.',
-      ),
+      k: 'tiles',
+      items: [
+        { ico: 'seawater', tone: 'go', h: L('Seawater: yes', 'Agua de mar: sí'), t: L('Rinse any sting with it. If you do not know the animal, rinse with seawater and do not rub.', 'Enjuague cualquier picadura con ella. Si no sabe qué animal fue, enjuague con agua de mar y no frote.') },
+        { ico: 'notap', tone: 'stop', h: L('Fresh water: no', 'Agua dulce: no'), t: L('It may make the stinging cells fire.{jf}{nhs}', 'Puede hacer que las células urticantes disparen.{jf}{nhs}') },
+        { ico: 'nodrop', tone: 'stop', h: L('Urine: no', 'Orina: no'), t: L('Do not use urine.{nhs}', 'No use orina.{nhs}') },
+        { ico: 'nobottle', tone: 'stop', h: L('Alcohol: never', 'Alcohol: nunca') },
+        { ico: 'nosand', tone: 'stop', h: L('Sand: never', 'Arena: nunca') },
+        { ico: 'jelly', tone: 'warn', h: L('Portuguese man o\' war (agua mala)', 'Fragata portuguesa (agua mala)'), t: L('Rinse with seawater. Do not rely on vinegar.', 'Enjuague con agua de mar. No cuente con el vinagre.') },
+        { ico: 'bottle', tone: 'unk', h: L('Vinegar: Not confirmed', 'Vinagre: No confirmado'), t: L('Household vinegar, about 5 percent acetic acid, is often used for box jellyfish and fire coral. The evidence is weak and mixed: it eased pain in some studies, gave worse pain than no treatment in others, and made stinging cells fire in a study of a sea anemone.{jf}{hwi}', 'El vinagre de cocina, con cerca de 5 por ciento de ácido acético, se usa a menudo para medusas cubo y coral de fuego. La evidencia es débil y mixta: alivió el dolor en algunos estudios, dio más dolor que no hacer nada en otros, e hizo disparar las células urticantes en un estudio de una anémona de mar.{jf}{hwi}') },
+      ],
     },
+    // Hot water soak, used below
+    { k: 'h', t: L('The hot-water soak', 'El remojo en agua caliente') },
+    {
+      k: 'fig',
+      fig: 'soak',
+      label: L('A limb soaking in a bucket of hot water, with a thermometer showing 40 to 45 degrees Celsius', 'Un miembro remojándose en un balde de agua caliente, con un termómetro que marca de 40 a 45 grados Celsius'),
+      tones: ['warn', 'go', 'info'],
+      marks: [
+        L('Test the water with your own hand first. An injured limb may be numb.{nhs}{hwi}', 'Pruebe antes el agua con su propia mano. Un miembro herido puede estar dormido.{nhs}{hwi}'),
+        L('Hot but not scalding, 40 to 45 °C and no hotter. Burns have happened.{hwi}', 'Caliente pero sin quemar, de 40 a 45 °C y no más. Ha habido quemaduras.{hwi}'),
+        L('Keep the limb in for the time given in each entry below.', 'Mantenga el miembro adentro el tiempo que indica cada entrada de abajo.'),
+      ],
+    },
+
+    // Welts and rash
     { k: 'h', t: L('Burning welts or a rash after swimming', 'Ronchas que arden o sarpullido después de nadar') },
     {
-      k: 'ul',
+      k: 'tiles',
       items: [
-        L('What it may be: jellyfish, a Portuguese man o\' war, fire coral, or thimble jellyfish larvae ("sea lice"), which cause an itchy rash under swimsuits.', 'Qué puede ser: medusa, fragata portuguesa, coral de fuego o larvas de medusa dedal ("pulgas de mar"), que causan un sarpullido con comezón bajo el traje de baño.'),
-        L('Do first: lift off any stuck tentacles with tweezers or a gloved hand, without rubbing. Rinse with seawater (vinegar may be tried for fire coral and box jellyfish, but the evidence is weak). Then soak the area in hot but not scalding water, 40 to 45 °C and no hotter, for 20 to 45 minutes.{hwi}{jf} Test the water with your own hand first.', 'Haga primero: retire los tentáculos pegados con pinzas o con un guante, sin frotar. Enjuague con agua de mar (el vinagre puede probarse con coral de fuego y medusa cubo, pero la evidencia es débil). Luego sumerja la zona en agua caliente pero que no queme, de 40 a 45 °C y no más, de 20 a 45 minutos.{hwi}{jf} Pruebe antes el agua con su propia mano.'),
-        L('For sea lice: leave the water, take the swimsuit off before showering, rinse with seawater or vinegar, then shower with fresh water. Wash the swimsuit in hot water with detergent before wearing it again. Hydrocortisone cream and an antihistamine ease the itch.', 'Para pulgas de mar: salga del agua, quítese el traje de baño antes de ducharse, enjuague con agua de mar o vinagre y luego dúchese con agua dulce. Lave el traje de baño en agua caliente con detergente antes de volver a usarlo. La crema de hidrocortisona y un antihistamínico alivian la comezón.'),
-        L('Do not: rub the skin, scrape with sand, or rinse with fresh water first, because it may make stinging cells fire.{jf}', 'No haga: frotar la piel, raspar con arena ni enjuagar primero con agua dulce, porque puede hacer que las células urticantes disparen.{jf}'),
-        L('Call 911 for: trouble breathing, chest pain, fainting, a large stung area, a sting on the face or eyes, or any large box jellyfish sting. See a doctor for fever, blisters, a rash that spreads, or a stung child.', 'Llame al 911 si hay: dificultad para respirar, dolor en el pecho, desmayo, un área grande picada, picadura en la cara o los ojos, o cualquier picadura de medusa cubo grande. Vea a un médico si hay fiebre, ampollas, sarpullido que se extiende o si picó a un niño.'),
+        { ico: 'jelly', h: L('Jellyfish', 'Medusa') },
+        { ico: 'jelly', h: L('Portuguese man o\' war', 'Fragata portuguesa') },
+        { ico: 'coral', h: L('Fire coral', 'Coral de fuego') },
+        { ico: 'rash', h: L('Sea lice', 'Pulgas de mar'), t: L('Thimble jellyfish larvae. An itchy rash under swimsuits.', 'Larvas de medusa dedal. Sarpullido con comezón bajo el traje de baño.') },
       ],
     },
+    {
+      k: 'flow',
+      h: L('Do first', 'Haga primero'),
+      steps: [
+        { ico: 'tweezers', h: L('Lift off tentacles', 'Quite los tentáculos'), t: L('Use tweezers or a gloved hand, without rubbing.', 'Con pinzas o con un guante, sin frotar.') },
+        { ico: 'seawater', h: L('Rinse with seawater', 'Enjuague con agua de mar'), t: L('Vinegar may be tried for fire coral and box jellyfish, but the evidence is weak.', 'El vinagre puede probarse con coral de fuego y medusa cubo, pero la evidencia es débil.') },
+        { ico: 'hotwater', tone: 'warn', h: L('Test the water', 'Pruebe el agua'), t: L('With your own hand first.', 'Primero con su propia mano.') },
+        { ico: 'thermo', tone: 'go', h: L('Soak 20 to 45 min', 'Remoje de 20 a 45 min'), t: L('Hot but not scalding, 40 to 45 °C and no hotter.{hwi}{jf}', 'Caliente pero sin quemar, de 40 a 45 °C y no más.{hwi}{jf}') },
+      ],
+    },
+    {
+      k: 'flow',
+      h: L('Sea lice: itchy rash under the swimsuit', 'Pulgas de mar: comezón bajo el traje de baño'),
+      steps: [
+        { ico: 'swim', h: L('Leave the water', 'Salga del agua') },
+        { ico: 'trunks', h: L('Swimsuit off first', 'Primero quítese el traje'), t: L('Take it off before showering.', 'Quíteselo antes de ducharse.') },
+        { ico: 'shower', h: L('Rinse, then shower', 'Enjuague y dúchese'), t: L('Rinse with seawater or vinegar, then shower with fresh water.', 'Enjuague con agua de mar o vinagre y luego dúchese con agua dulce.') },
+        { ico: 'hotwater', h: L('Wash the swimsuit', 'Lave el traje'), t: L('In hot water with detergent before wearing it again.', 'En agua caliente con detergente antes de volver a usarlo.') },
+        { ico: 'cream', h: L('Ease the itch', 'Alivie la comezón'), t: L('Hydrocortisone cream and an antihistamine.', 'Crema de hidrocortisona y un antihistamínico.') },
+      ],
+    },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'notouch', tone: 'stop', h: L('Do not rub the skin', 'No frote la piel') },
+        { ico: 'nosand', tone: 'stop', h: L('Do not scrape with sand', 'No raspe con arena') },
+        { ico: 'notap', tone: 'stop', h: L('Do not rinse with fresh water first', 'No enjuague primero con agua dulce'), t: L('It may make stinging cells fire.{jf}', 'Puede hacer que las células urticantes disparen.{jf}') },
+      ],
+    },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'phone', tone: 'stop', h: L('Call 911', 'Llame al 911'), t: L('Trouble breathing, chest pain, fainting, a large stung area, a sting on the face or eyes, or any large box jellyfish sting.', 'Dificultad para respirar, dolor en el pecho, desmayo, un área grande picada, picadura en la cara o los ojos, o cualquier picadura de medusa cubo grande.') },
+        { ico: 'hospital', tone: 'warn', h: L('See a doctor', 'Vea a un médico'), t: L('Fever, blisters, a rash that spreads, or a stung child.', 'Fiebre, ampollas, sarpullido que se extiende o si picó a un niño.') },
+      ],
+    },
+
+    // Spines
     { k: 'h', t: L('A puncture with spines', 'Una punción con espinas') },
     {
-      k: 'ul',
+      k: 'tiles',
       items: [
-        L('What it may be: sea urchin, lionfish, scorpionfish or a catfish spine.', 'Qué puede ser: erizo de mar, pez león, pez escorpión o la espina de un bagre.'),
-        L('Do first: pull out the spines you can see with tweezers,{nhs} wash with soap and clean water, and soak the wound in hot water, as hot as the person can stand without scalding and no more than 45 °C, for at least 30 minutes, and up to 90 minutes if the pain returns when it cools.{nhs}{hwi} Hot water eased the pain in most sea urchin cases in one review.{hwi} Check that the tetanus shot is current.', 'Haga primero: saque con pinzas las espinas que se vean,{nhs} lave con jabón y agua limpia y sumerja la herida en agua caliente, tan caliente como la persona aguante sin quemarse y no más de 45 °C, al menos 30 minutos, y hasta 90 minutos si el dolor vuelve al enfriarse.{nhs}{hwi} En una revisión, el agua caliente alivió el dolor en la mayoría de los casos de erizo de mar.{hwi} Revise que la vacuna antitetánica esté al día.'),
-        L('Do not: dig, squeeze, cut, suck or tie the wound.', 'No haga: cavar, apretar, cortar, chupar ni amarrar la herida.'),
-        L('Call 911 for: fainting, trouble breathing or chest pain. See a doctor for spines in a joint, the palm or the sole of the foot, deep punctures, or later swelling, redness or fever.', 'Llame al 911 si hay: desmayo, dificultad para respirar o dolor en el pecho. Vea a un médico si hay espinas en una articulación, la palma o la planta del pie, punciones profundas, o después hinchazón, enrojecimiento o fiebre.'),
+        { ico: 'urchin', h: L('Sea urchin', 'Erizo de mar') },
+        { ico: 'fish', h: L('Lionfish', 'Pez león') },
+        { ico: 'fish', h: L('Scorpionfish', 'Pez escorpión') },
+        { ico: 'fish', h: L('Catfish spine', 'Espina de bagre') },
       ],
     },
+    {
+      k: 'flow',
+      h: L('Do first', 'Haga primero'),
+      steps: [
+        { ico: 'tweezers', h: L('Pull out spines', 'Saque las espinas'), t: L('Pull out the ones you can see, with tweezers.{nhs}', 'Saque con pinzas las que se vean.{nhs}') },
+        { ico: 'soap', h: L('Wash the wound', 'Lave la herida'), t: L('With soap and clean water.', 'Con jabón y agua limpia.') },
+        { ico: 'thermo', tone: 'go', h: L('Soak 30 to 90 min', 'Remoje de 30 a 90 min'), t: L('As hot as the person can stand without scalding, no more than 45 °C. At least 30 minutes, and up to 90 if the pain returns when it cools.{nhs}{hwi} Hot water eased the pain in most sea urchin cases in one review.{hwi}', 'Tan caliente como la persona aguante sin quemarse, no más de 45 °C. Al menos 30 minutos, y hasta 90 si el dolor vuelve al enfriarse.{nhs}{hwi} En una revisión, el agua caliente alivió el dolor en la mayoría de los casos de erizo de mar.{hwi}') },
+        { ico: 'syringe', h: L('Check the tetanus shot', 'Revise la vacuna antitetánica'), t: L('Make sure it is current.', 'Que esté al día.') },
+      ],
+    },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'notouch', tone: 'stop', h: L('Do not dig or squeeze', 'No cave ni apriete') },
+        { ico: 'nocut', tone: 'stop', h: L('Do not cut', 'No corte') },
+        { ico: 'nomouth', tone: 'stop', h: L('Do not suck', 'No chupe') },
+        { ico: 'notie', tone: 'stop', h: L('Do not tie the wound', 'No amarre la herida') },
+      ],
+    },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'phone', tone: 'stop', h: L('Call 911', 'Llame al 911'), t: L('Fainting, trouble breathing or chest pain.', 'Desmayo, dificultad para respirar o dolor en el pecho.') },
+        { ico: 'hospital', tone: 'warn', h: L('See a doctor', 'Vea a un médico'), t: L('Spines in a joint, the palm or the sole of the foot, deep punctures, or later swelling, redness or fever.', 'Espinas en una articulación, la palma o la planta del pie, punciones profundas, o después hinchazón, enrojecimiento o fiebre.') },
+      ],
+    },
+
+    // Stingray
     { k: 'h', t: L('A stingray wound', 'Una herida de raya') },
     {
-      k: 'ul',
-      items: [
-        L('Do first: keep the person calm and out of the water. Rinse with clean water and press gently to control bleeding. Then soak the wound in hot water, 40 to 45 °C, for at least 30 minutes and up to 90, testing the water with your own hand because the injured limb may be numb.{nhs}{hwi} Hot water that is warm but not scalding is the aim, because burns have happened.{hwi}', 'Haga primero: mantenga calmada a la persona y fuera del agua. Enjuague con agua limpia y presione con suavidad para controlar el sangrado. Luego sumerja la herida en agua caliente, de 40 a 45 °C, al menos 30 minutos y hasta 90, probando el agua con su propia mano porque el miembro herido puede estar dormido.{nhs}{hwi} El agua debe estar caliente pero no quemar, porque ha habido quemaduras.{hwi}'),
-        L('Do not: pull out a spine that is deep in the chest, belly or neck. Hold it in place and call 911. Do not cut the wound open.', 'No haga: sacar una espina clavada profundo en el pecho, el abdomen o el cuello. Déjela en su lugar y llame al 911. No abra la herida con un corte.'),
-        L('Every stingray wound needs a doctor the same day, because spine pieces can stay in the wound, infection is common and a tetanus shot may be needed. Call 911 for a wound to the chest, belly, head or neck, heavy bleeding, fainting or trouble breathing.', 'Toda herida de raya necesita un médico el mismo día, porque pueden quedar pedazos de espina, la infección es común y puede hacer falta la vacuna antitetánica. Llame al 911 si la herida es en el pecho, el abdomen, la cabeza o el cuello, si sangra mucho, hay desmayo o dificultad para respirar.'),
+      k: 'flow',
+      h: L('Do first', 'Haga primero'),
+      steps: [
+        { ico: 'stingray', h: L('Calm, out of the water', 'Calma y fuera del agua'), t: L('Keep the person calm and out of the water.', 'Mantenga calmada a la persona y fuera del agua.') },
+        { ico: 'bandage', h: L('Rinse and press', 'Enjuague y presione'), t: L('Rinse with clean water and press gently to control bleeding.', 'Enjuague con agua limpia y presione con suavidad para controlar el sangrado.') },
+        { ico: 'hotwater', tone: 'warn', h: L('Test the water', 'Pruebe el agua'), t: L('With your own hand, because the injured limb may be numb.{nhs}{hwi}', 'Con su propia mano, porque el miembro herido puede estar dormido.{nhs}{hwi}') },
+        { ico: 'thermo', tone: 'go', h: L('Soak 30 to 90 min', 'Remoje de 30 a 90 min'), t: L('40 to 45 °C, at least 30 minutes and up to 90. Warm but not scalding, because burns have happened.{hwi}', 'De 40 a 45 °C, al menos 30 minutos y hasta 90. Caliente pero sin quemar, porque ha habido quemaduras.{hwi}') },
       ],
     },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'notouch', tone: 'stop', h: L('Do not pull out a deep spine', 'No saque una espina profunda'), t: L('A spine deep in the chest, belly or neck: hold it in place and call 911.', 'Una espina clavada profundo en el pecho, el abdomen o el cuello: déjela en su lugar y llame al 911.') },
+        { ico: 'nocut', tone: 'stop', h: L('Do not cut the wound open', 'No abra la herida con un corte') },
+      ],
+    },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'hospital', tone: 'warn', h: L('Doctor the same day', 'Médico el mismo día'), t: L('Every stingray wound needs one: spine pieces can stay in the wound, infection is common and a tetanus shot may be needed.', 'Toda herida de raya necesita uno: pueden quedar pedazos de espina, la infección es común y puede hacer falta la vacuna antitetánica.') },
+        { ico: 'phone', tone: 'stop', h: L('Call 911', 'Llame al 911'), t: L('A wound to the chest, belly, head or neck, heavy bleeding, fainting or trouble breathing.', 'Herida en el pecho, el abdomen, la cabeza o el cuello, sangrado abundante, desmayo o dificultad para respirar.') },
+      ],
+    },
+
+    // Cone shell
     { k: 'h', t: L('A cone shell sting', 'Una picadura de caracol cono') },
     {
-      k: 'ul',
+      k: 'tiles',
       items: [
-        L('Treat any cone shell sting as an emergency. The venom affects the nervous system and can cause paralysis, which may lead to breathing failure and death. There is no antivenom, and the sting site may hurt only a little.{dan}', 'Trate cualquier picadura de caracol cono como una emergencia. El veneno afecta el sistema nervioso y puede causar parálisis, que puede llevar a falla respiratoria y muerte. No hay antiveneno, y el sitio de la picadura puede doler poco.{dan}'),
-        L('Do first: call 911 without waiting for symptoms, keep the person still and watched, and wash the wound with fresh water. A firm pressure bandage over the sting and along the limb, not a tourniquet, is advised.{dan} If breathing stops, give rescue breaths until help arrives.{dan}', 'Haga primero: llame al 911 sin esperar síntomas, mantenga a la persona quieta y vigilada, y lave la herida con agua dulce. Se aconseja un vendaje firme de presión sobre la picadura y a lo largo del miembro, no un torniquete.{dan} Si la respiración se detiene, dé respiración de rescate hasta que llegue ayuda.{dan}'),
-        L('Do not: wait to see if it passes, or cut or suck the wound. Never pick up a cone shell, even one that looks empty.{dan}', 'No haga: esperar a ver si se pasa, ni cortar ni chupar la herida. Nunca levante un caracol cono, aunque parezca vacío.{dan}'),
+        { ico: 'cone', tone: 'stop', h: L('An emergency', 'Una emergencia'), t: L('The venom affects the nervous system and can cause paralysis, which may lead to breathing failure and death.{dan}', 'El veneno afecta el sistema nervioso y puede causar parálisis, que puede llevar a falla respiratoria y muerte.{dan}') },
+        { ico: 'nosyringe', tone: 'stop', h: L('No antivenom', 'No hay antiveneno'), t: L('The sting site may hurt only a little.{dan}', 'El sitio de la picadura puede doler poco.{dan}') },
       ],
     },
+    {
+      k: 'flow',
+      alert: true,
+      h: L('Do first', 'Haga primero'),
+      steps: [
+        { ico: 'phone', tone: 'stop', h: L('Call 911 now', 'Llame al 911 ya'), t: L('Do not wait for symptoms.{dan}', 'No espere síntomas.{dan}') },
+        { ico: 'eye', h: L('Keep still, watch', 'Quieto y vigilado'), t: L('Keep the person still and watched.', 'Mantenga a la persona quieta y vigilada.') },
+        { ico: 'tap', h: L('Wash with fresh water', 'Lave con agua dulce'), t: L('Wash the wound.', 'Lave la herida.') },
+        { ico: 'bandage', h: L('Pressure bandage', 'Vendaje de presión'), t: L('Firm, over the sting and along the limb. Not a tourniquet.{dan}', 'Firme, sobre la picadura y a lo largo del miembro. No un torniquete.{dan}') },
+        { ico: 'breath', h: L('Breathing stops?', '¿Se detiene la respiración?'), t: L('Give rescue breaths until help arrives.{dan}', 'Dé respiración de rescate hasta que llegue ayuda.{dan}') },
+      ],
+    },
+    {
+      k: 'fig',
+      fig: 'wrap',
+      label: L('A limb with a firm pressure bandage over the sting and along the limb', 'Un miembro con un vendaje firme de presión sobre la picadura y a lo largo del miembro'),
+      tones: ['stop', 'go'],
+      marks: [
+        L('The sting site.', 'El sitio de la picadura.'),
+        L('A firm pressure bandage over the sting and along the limb, not a tourniquet.{dan}', 'Un vendaje firme de presión sobre la picadura y a lo largo del miembro, no un torniquete.{dan}'),
+      ],
+    },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'nowait', tone: 'stop', h: L('Do not wait to see if it passes', 'No espere a ver si se pasa') },
+        { ico: 'nocut', tone: 'stop', h: L('Do not cut the wound', 'No corte la herida') },
+        { ico: 'nomouth', tone: 'stop', h: L('Do not suck the wound', 'No chupe la herida') },
+        { ico: 'notie', tone: 'stop', h: L('No tourniquet', 'Sin torniquete'), t: L('Use a pressure bandage.{dan}', 'Use un vendaje de presión.{dan}') },
+        { ico: 'notouch', tone: 'stop', h: L('Never pick up a cone shell', 'Nunca levante un caracol cono'), t: L('Even one that looks empty.{dan}', 'Aunque parezca vacío.{dan}') },
+      ],
+    },
+
+    // Bite
     { k: 'h', t: L('A bite', 'Una mordedura') },
     {
-      k: 'ul',
+      k: 'tiles',
       items: [
-        L('What it may be: moray eel, barracuda, shark or crab.', 'Qué puede ser: morena, barracuda, tiburón o cangrejo.'),
-        L('Do first: press firmly on the wound with a clean cloth to stop the bleeding, then wash it well with clean water and soap and cover it. For a crab, let go of the animal and clean the skin with soap and water.', 'Haga primero: presione firme la herida con una tela limpia para detener el sangrado, luego lávela bien con agua limpia y jabón y cúbrala. Con un cangrejo, suelte al animal y limpie la piel con agua y jabón.'),
-        L('For a shark bite: get everyone out of the water, lay the person flat and keep them warm. If a limb bleeds heavily and pressure is not enough, tie a tourniquet above the wound. Every shark bite, even a small one, needs hospital care.', 'Con una mordedura de tiburón: saque a todos del agua, acueste a la persona y manténgala abrigada. Si un miembro sangra mucho y la presión no basta, ponga un torniquete arriba de la herida. Toda mordedura de tiburón, aun pequeña, necesita hospital.'),
-        L('Do not: pull out broken teeth or large objects, or try to close the wound yourself. Fish bites get infected easily, so a deep cut needs a doctor.', 'No haga: sacar dientes rotos ni objetos grandes, ni intentar cerrar la herida usted mismo. Las heridas de pescado se infectan con facilidad, así que un corte profundo necesita un médico.'),
-        L('Call 911 for: heavy bleeding, any shark bite, or a wound to the chest, neck or belly.', 'Llame al 911 si hay: sangrado abundante, cualquier mordedura de tiburón, o una herida en el pecho, el cuello o el abdomen.'),
+        { ico: 'bite', h: L('Moray eel', 'Morena') },
+        { ico: 'bite', h: L('Barracuda', 'Barracuda') },
+        { ico: 'shark', h: L('Shark', 'Tiburón'), t: L('See the shark bite steps below.', 'Vea abajo los pasos para mordedura de tiburón.') },
+        { ico: 'crab', h: L('Crab', 'Cangrejo'), t: L('Let go of the animal and clean the skin with soap and water.', 'Suelte al animal y limpie la piel con agua y jabón.') },
       ],
     },
+    {
+      k: 'flow',
+      h: L('Do first', 'Haga primero'),
+      steps: [
+        { ico: 'bandage', h: L('Press firmly', 'Presione firme'), t: L('Use a clean cloth to stop the bleeding.', 'Con una tela limpia para detener el sangrado.') },
+        { ico: 'soap', h: L('Wash it well', 'Lávela bien'), t: L('With clean water and soap.', 'Con agua limpia y jabón.') },
+        { ico: 'bandage', h: L('Cover it', 'Cúbrala') },
+      ],
+    },
+    {
+      k: 'flow',
+      alert: true,
+      h: L('Shark bite', 'Mordedura de tiburón'),
+      steps: [
+        { ico: 'swim', h: L('Everyone out of the water', 'Todos fuera del agua') },
+        { ico: 'faint', h: L('Lay flat, keep warm', 'Acueste y abrigue'), t: L('Lay the person flat and keep them warm.', 'Acueste a la persona y manténgala abrigada.') },
+        { ico: 'band', h: L('Heavy limb bleeding', 'Sangrado fuerte de un miembro'), t: L('If pressure is not enough, tie a tourniquet above the wound.', 'Si la presión no basta, ponga un torniquete arriba de la herida.') },
+        { ico: 'hospital', tone: 'stop', h: L('Hospital for every bite', 'Hospital para toda mordedura'), t: L('Even a small shark bite needs hospital care.', 'Aun una mordedura pequeña de tiburón necesita hospital.') },
+      ],
+    },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'notouch', tone: 'stop', h: L('Do not pull out teeth or large objects', 'No saque dientes rotos ni objetos grandes') },
+        { ico: 'nocut', tone: 'stop', h: L('Do not close the wound yourself', 'No intente cerrar la herida usted mismo') },
+      ],
+    },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'phone', tone: 'stop', h: L('Call 911', 'Llame al 911'), t: L('Heavy bleeding, any shark bite, or a wound to the chest, neck or belly.', 'Sangrado abundante, cualquier mordedura de tiburón, o una herida en el pecho, el cuello o el abdomen.') },
+        { ico: 'hospital', tone: 'warn', h: L('See a doctor', 'Vea a un médico'), t: L('A deep cut. Fish bites get infected easily.', 'Un corte profundo. Las heridas de pescado se infectan con facilidad.') },
+      ],
+    },
+
+    // Coral / oyster
     { k: 'h', t: L('A scrape or cut from coral or oyster', 'Un raspón o corte de coral u ostra') },
     {
-      k: 'ul',
+      k: 'tiles',
       items: [
-        L('Do first: rinse with clean water, press to stop the bleeding, wash with soap and water, and cover. Coral and oyster cuts get infected easily, so clean them well and watch them for several days.', 'Haga primero: enjuague con agua limpia, presione para detener el sangrado, lave con jabón y agua y cubra. Los cortes de coral y ostra se infectan con facilidad, así que límpielos bien y obsérvelos varios días.'),
-        L('Do not: leave grit in the cut, or ignore redness, swelling or fever that starts later.', 'No haga: dejar arenilla en el corte, ni ignorar el enrojecimiento, la hinchazón o la fiebre que empiezan después.'),
-        L('See a doctor if the cut is deep, swells, turns red or you have a fever. Call 911 for serious bleeding.', 'Vea a un médico si el corte es profundo, se hincha, se enrojece o hay fiebre. Llame al 911 si el sangrado es grave.'),
+        { ico: 'coral', h: L('Coral', 'Coral') },
+        { ico: 'oyster', h: L('Oyster', 'Ostra') },
       ],
     },
+    {
+      k: 'flow',
+      h: L('Do first', 'Haga primero'),
+      steps: [
+        { ico: 'tap', h: L('Rinse', 'Enjuague'), t: L('With clean water.', 'Con agua limpia.') },
+        { ico: 'bandage', h: L('Press', 'Presione'), t: L('To stop the bleeding.', 'Para detener el sangrado.') },
+        { ico: 'soap', h: L('Wash', 'Lave'), t: L('With soap and water.', 'Con jabón y agua.') },
+        { ico: 'bandage', h: L('Cover', 'Cubra'), t: L('Coral and oyster cuts get infected easily, so clean them well and watch them for several days.', 'Los cortes de coral y ostra se infectan con facilidad, así que límpielos bien y obsérvelos varios días.') },
+      ],
+    },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'nosand', tone: 'stop', h: L('Do not leave grit in the cut', 'No deje arenilla en el corte') },
+        { ico: 'warn', tone: 'stop', h: L('Do not ignore later signs', 'No ignore lo que aparece después'), t: L('Redness, swelling or fever that starts later.', 'Enrojecimiento, hinchazón o fiebre que empiezan después.') },
+      ],
+    },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'hospital', tone: 'warn', h: L('See a doctor', 'Vea a un médico'), t: L('The cut is deep, swells, turns red or you have a fever.', 'El corte es profundo, se hincha, se enrojece o hay fiebre.') },
+        { ico: 'phone', tone: 'stop', h: L('Call 911', 'Llame al 911'), t: L('Serious bleeding.', 'Sangrado grave.') },
+      ],
+    },
+
+    // Sponge itch
     { k: 'h', t: L('Sponge itch', 'Comezón de esponja') },
     {
-      k: 'ul',
-      items: [
-        L('Do first: do not rub. Press adhesive tape on the skin and lift it off to pull out the tiny spicules (glass-like needles), rinse with vinegar, then with fresh water. Hydrocortisone cream helps if you have it.', 'Haga primero: no frote. Pegue y despegue cinta adhesiva sobre la piel para sacar las espículas (agujas diminutas como de vidrio), enjuague con vinagre y luego con agua dulce. La crema de hidrocortisona ayuda si la tiene.'),
-        L('Do not: scratch, or wash with fresh water before lifting the spicules.', 'No haga: rascarse, ni lavar con agua dulce antes de sacar las espículas.'),
-        L('See a doctor the same day if the pain is strong or there are blisters, spreading swelling, fever or joint pain. Call 911 in an emergency.', 'Vea a un médico el mismo día si el dolor es fuerte o hay ampollas, hinchazón que se extiende, fiebre o dolor en una articulación. Llame al 911 en una emergencia.'),
+      k: 'flow',
+      h: L('Do first', 'Haga primero'),
+      steps: [
+        { ico: 'notouch', tone: 'stop', h: L('Do not rub', 'No frote') },
+        { ico: 'tape', h: L('Lift with tape', 'Saque con cinta'), t: L('Press adhesive tape on the skin and lift it off to pull out the tiny spicules (glass-like needles).', 'Pegue y despegue cinta adhesiva sobre la piel para sacar las espículas (agujas diminutas como de vidrio).') },
+        { ico: 'bottle', h: L('Vinegar, then fresh water', 'Vinagre y luego agua dulce'), t: L('Rinse with vinegar, then with fresh water.', 'Enjuague con vinagre y luego con agua dulce.') },
+        { ico: 'cream', h: L('Hydrocortisone cream', 'Crema de hidrocortisona'), t: L('It helps if you have it.', 'Ayuda si la tiene.') },
       ],
     },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'notouch', tone: 'stop', h: L('Do not scratch', 'No se rasque') },
+        { ico: 'notap', tone: 'stop', h: L('No fresh water before the spicules are out', 'Sin agua dulce antes de sacar las espículas') },
+      ],
+    },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'hospital', tone: 'warn', h: L('Doctor the same day', 'Médico el mismo día'), t: L('Strong pain, or blisters, spreading swelling, fever or joint pain.', 'Dolor fuerte, o ampollas, hinchazón que se extiende, fiebre o dolor en una articulación.') },
+        { ico: 'phone', tone: 'stop', h: L('Call 911', 'Llame al 911'), t: L('In an emergency.', 'En una emergencia.') },
+      ],
+    },
+
+    // Fish poisoning
     { k: 'h', t: L('Nausea or tingling after eating fish', 'Náuseas u hormigueo después de comer pescado') },
     {
-      k: 'ul',
+      k: 'tiles',
       items: [
-        L('This can be fish poisoning, such as ciguatera or scombroid. See the Ciguatera page for symptoms and what to do.', 'Esto puede ser intoxicación por pescado, como ciguatera o escombroide. Vea la página de Ciguatera para los síntomas y qué hacer.'),
-        L('Do first: call 911 or go to the nearest clinic and say what was eaten. Keep a sample of the fish if you can. You can also call the poison centre, 800-INTOXICA (800-4686-9422).', 'Haga primero: llame al 911 o vaya a la clínica más cercana y diga qué se comió. Guarde una muestra del pescado si puede. También puede llamar al centro de intoxicaciones, 800-INTOXICA (800-4686-9422).'),
-        L('Do not: induce vomiting, drink alcohol, or wait to see if it passes. Cooking does not make a poisoned fish safe.', 'No haga: provocar el vómito, tomar alcohol ni esperar a ver si se pasa. Cocinar no vuelve seguro un pescado envenenado.'),
-        L('Call 911 at once for numbness or tingling that spreads, weakness, trouble breathing or a slow or irregular pulse.', 'Llame de inmediato al 911 si el adormecimiento u hormigueo se extiende, hay debilidad, dificultad para respirar o pulso lento o irregular.'),
+        { ico: 'sick', h: L('Fish poisoning', 'Intoxicación por pescado'), t: L('Such as ciguatera or scombroid. See the Ciguatera page for symptoms and what to do.', 'Como ciguatera o escombroide. Vea la página de Ciguatera para los síntomas y qué hacer.') },
+      ],
+    },
+    {
+      k: 'flow',
+      h: L('Do first', 'Haga primero'),
+      steps: [
+        { ico: 'phone', h: L('Call 911 or go to a clinic', 'Llame al 911 o vaya a una clínica'), t: L('Go to the nearest clinic and say what was eaten.', 'Vaya a la clínica más cercana y diga qué se comió.') },
+        { ico: 'jar', h: L('Keep a sample', 'Guarde una muestra'), t: L('Keep a sample of the fish if you can.', 'Guarde una muestra del pescado si puede.') },
+        { ico: 'phone', h: L('Poison centre', 'Centro de intoxicaciones'), t: L('You can also call 800-INTOXICA (800-4686-9422).', 'También puede llamar al 800-INTOXICA (800-4686-9422).') },
+      ],
+    },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'nosick', tone: 'stop', h: L('Do not induce vomiting', 'No provoque el vómito') },
+        { ico: 'nobottle', tone: 'stop', h: L('Do not drink alcohol', 'No tome alcohol') },
+        { ico: 'nowait', tone: 'stop', h: L('Do not wait to see if it passes', 'No espere a ver si se pasa') },
+        { ico: 'noflame', tone: 'stop', h: L('Cooking does not make it safe', 'Cocinar no lo vuelve seguro'), t: L('A poisoned fish stays poisoned.', 'Un pescado envenenado sigue envenenado.') },
+      ],
+    },
+    {
+      k: 'flow',
+      alert: true,
+      h: L('Call 911 at once for', 'Llame de inmediato al 911 si hay'),
+      steps: [
+        { ico: 'tingle', tone: 'stop', h: L('Spreading numbness', 'Adormecimiento que se extiende'), t: L('Numbness or tingling that spreads.', 'Adormecimiento u hormigueo que se extiende.') },
+        { ico: 'faint', tone: 'stop', h: L('Weakness', 'Debilidad') },
+        { ico: 'breath', tone: 'stop', h: L('Trouble breathing', 'Dificultad para respirar') },
+        { ico: 'pulse', tone: 'stop', h: L('Slow or irregular pulse', 'Pulso lento o irregular') },
       ],
     },
   ],
