@@ -55,8 +55,8 @@ export const release: Section = {
     {
       k: 'ul',
       items: [
-        L('The best fix is to send the fish back down fast to the depth where it was caught. A descender device (a weight with a lip clamp or an inverted hook, or a weighted basket) does this in about three minutes.{noaa}{fwc}', 'La mejor solución es mandar el pez de vuelta rápido a la profundidad donde se pescó. Un descendedor (un peso con pinza de labio o anzuelo invertido, o una canasta con peso) lo hace en unos tres minutos.{noaa}{fwc}'),
-        L('If you cannot use a descender, venting is a last choice and needs training. Never stab or push back a stomach that comes out of the mouth, because that raises the chance the fish dies.{noaa}', 'Si no puede usar un descendedor, el venteo es la última opción y requiere entrenamiento. Nunca pinche ni empuje hacia adentro un estómago que sale por la boca, porque aumenta la probabilidad de que el pez muera.{noaa}'),
+        L('The best fix is to send the fish back down fast to the depth where it was caught. A descending device (a weight with a lip clamp, an inverted hook, or a fish elevator) does this, and research found it the most effective way to treat barotrauma.{noaa}{fwc}', 'La mejor solución es mandar el pez de vuelta rápido a la profundidad donde se pescó. Un descendedor (un peso con pinza de labio, anzuelo invertido o un elevador de peces) lo hace, y la investigación lo encontró el modo más eficaz de tratar el barotrauma.{noaa}{fwc}'),
+        L('If you cannot use a descender, venting is the alternative, and it needs a proper hollow venting tool, not a knife, ice pick or hook.{noaa}{fwc} Never pierce a stomach that comes out of the mouth.{fwc}', 'Si no puede usar un descendedor, el venteo es la alternativa, y requiere una herramienta de venteo hueca adecuada, no un cuchillo, un punzón de hielo ni un anzuelo.{noaa}{fwc} Nunca pinche un estómago que sale por la boca.{fwc}'),
         L('Honest limits: even with a descender, not every fish lives, and survival is worse from very deep water. If you fish deep and will keep what you catch, fish in a way that leaves you few fish to release, and stop when you have enough.', 'Límites honestos: aun con descendedor, no todos los peces viven, y la supervivencia es peor desde aguas muy profundas. Si pesca profundo y se va a quedar lo que pesque, pesque de modo que le queden pocos peces por soltar, y pare cuando tenga suficiente.'),
       ],
     },
@@ -86,8 +86,8 @@ export const release: Section = {
     fwc: {
       t: 'Florida Fish and Wildlife Conservation Commission, Barotrauma',
       u: 'https://myfwc.com/fishing/saltwater/outreach/barotrauma/',
-      p: 'S',
-      what: L('Descending device types and why they help (search summary only).', 'Tipos de descendedores y por qué ayudan (solo resumen de búsqueda).'),
+      p: 'P',
+      what: L('Barotrauma signs, descending device types, venting tools and why they help.', 'Señales de barotrauma, tipos de descendedores, herramientas de venteo y por qué ayudan.'),
     },
   },
 };

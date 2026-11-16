@@ -41,7 +41,7 @@ export const words: Section = {
         [L('Scombroid', 'Escombroide'), L('A food poisoning from fish that warmed up after being caught, such as tuna, mahi and wahoo. It causes flushing, headache and a rash soon after eating. Ice the fish at once.', 'Una intoxicación por pescado que se calentó después de pescado, como atún, dorado y peto. Causa enrojecimiento, dolor de cabeza y sarpullido poco después de comer. Ponga hielo al pescado de inmediato.')],
         [L('Histamine', 'Histamina'), L('The chemical that builds up in spoiled fish and causes scombroid. Heat and cooking do not break it down.', 'La sustancia química que se acumula en el pescado echado a perder y causa la escombroide. El calor y la cocción no la destruyen.')],
         [L('Family, genus, order', 'Familia, género, orden'), L('Groups used to sort living things. A family holds related genera, and a genus holds closely related species. The order is a larger group above the family.', 'Grupos para clasificar a los seres vivos. Una familia reúne géneros emparentados, y un género reúne especies muy cercanas. El orden es un grupo más grande sobre la familia.')],
-        [L('LC, NT, VU, EN, CR', 'LC, NT, VU, EN, CR'), L('Red List statuses of the IUCN, an international science group, from safest to most threatened: Least Concern, Near Threatened, Vulnerable, Endangered, Critically Endangered.{iucn}', 'Estados de la Lista Roja de la UICN, un grupo científico internacional, del más seguro al más amenazado: Preocupación menor, Casi amenazada, Vulnerable, En peligro y En peligro crítico.{iucn}')],
+        [L('LC, NT, VU, EN, CR', 'LC, NT, VU, EN, CR'), L('Red List statuses of the IUCN, an international science group, from safest to most threatened: Least Concern, Near Threatened, Vulnerable, Endangered, Critically Endangered. The last three are called threatened.{iucn}', 'Estados de la Lista Roja de la UICN, un grupo científico internacional, del más seguro al más amenazado: Preocupación menor, Casi amenazada, Vulnerable, En peligro y En peligro crítico. Las tres últimas se llaman amenazadas.{iucn}')],
         [L('Total length', 'Longitud total'), L('Length from the nose to the tip of the longest tail lobe, with the tail pressed together.', 'Largo desde el hocico hasta la punta del lóbulo más largo de la cola, con la cola cerrada.')],
         [L('Fork length', 'Longitud furcal'), L('Length from the nose to the fork (the notch) in the tail. It is used for tuna, jacks and other fish with a forked tail.', 'Largo desde el hocico hasta la horquilla (la muesca) de la cola. Se usa en atunes, jureles y otros peces de cola bifurcada.')],
         [L('Disc width', 'Ancho de disco'), L('Width of a ray or skate across its flat body, wing tip to wing tip.', 'Ancho de una raya a través de su cuerpo plano, de punta a punta de las aletas.')],
@@ -101,10 +101,10 @@ export const words: Section = {
       what: L('Ciguatera cause, no way to see or cook out the toxin, never eat barracuda.', 'Causa de la ciguatera, la toxina no se ve ni se elimina cocinando, nunca comer barracuda.'),
     },
     iucn: {
-      t: 'IUCN Red List Categories and Criteria',
-      u: 'https://www.iucnredlist.org/resources/categories-and-criteria',
-      p: 'S',
-      what: L('The five statuses used in the guide, from Least Concern to Critically Endangered (summary only).', 'Los cinco estados usados en la guía, de Preocupación menor a En peligro crítico (solo resumen).'),
+      t: 'IUCN Red List Categories and Criteria, Version 3.1, Second edition (2012)',
+      u: 'https://portals.iucn.org/library/sites/library/files/documents/RL-2001-001-2nd.pdf',
+      p: 'P',
+      what: L('The five statuses used in the guide, from Least Concern to Critically Endangered and that Vulnerable, Endangered and Critically Endangered together are called threatened.', 'Los cinco estados usados en la guía, de Preocupación menor a En peligro crítico, y que Vulnerable, En peligro y En peligro crítico juntos se llaman amenazadas.'),
     },
   },
 };

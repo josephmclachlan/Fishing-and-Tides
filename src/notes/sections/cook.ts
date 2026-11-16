@@ -13,25 +13,25 @@ export const cook: Section = {
       k: 'warn',
       h: L('Before you cook', 'Antes de cocinar'),
       t: L(
-        'Cooking does not remove ciguatera, so never rely on a pan or a pot to make a risky fish safe. Read the Ciguatera page before you keep a large reef fish. For how to kill, bleed and ice a fish so it stays safe, and for the histamine rule for mackerel, jack and other fast-spoiling fish, read the Dispatch page.',
-        'Cocinar no elimina la ciguatera, así que nunca cuente con la sartén o la olla para volver seguro un pez riesgoso. Lea la página de Ciguatera antes de quedarse con un pez grande de arrecife. Para saber cómo matar, desangrar y enhielar un pescado para que se mantenga seguro, y la regla de la histamina para la macarela, el jurel y otros peces que se dañan rápido, lea la página de Despacho.',
+        'Cooking does not remove ciguatera, so never rely on a pan or a pot to make a risky fish safe.{cdc} Read the Ciguatera page before you keep a large reef fish. For how to kill, bleed and ice a fish so it stays safe, and for the histamine rule for mackerel, jack and other fast-spoiling fish, read the Dispatch page.',
+        'Cocinar no elimina la ciguatera, así que nunca cuente con la sartén o la olla para volver seguro un pez riesgoso.{cdc} Lea la página de Ciguatera antes de quedarse con un pez grande de arrecife. Para saber cómo matar, desangrar y enhielar un pescado para que se mantenga seguro, y la regla de la histamina para la macarela, el jurel y otros peces que se dañan rápido, lea la página de Despacho.',
       ),
     },
     { k: 'h', t: L('Safe temperatures and leftovers', 'Temperaturas seguras y sobras') },
     {
       k: 'ul',
       items: [
-        L('Cook fish and shellfish until the thickest part reaches 63 °C (145 °F). Without a thermometer, the flesh should be opaque (no longer glassy) and flake easily with a fork.{fdatemp}', 'Cocine el pescado y el marisco hasta que la parte más gruesa llegue a 63 °C (145 °F). Sin termómetro, la carne debe verse opaca (ya no vidriosa) y desmenuzarse fácil con un tenedor.{fdatemp}'),
-        L('Keep raw fish and its juices away from cooked food and from anything eaten raw. Use one board for raw fish and wash it, the knife and your hands with soap and clean water afterwards.', 'Mantenga el pescado crudo y sus jugos lejos de la comida cocida y de lo que se come crudo. Use una tabla para el pescado crudo y lávela, junto con el cuchillo y sus manos, con jabón y agua limpia.'),
-        L('Leftovers: put cooked fish in the fridge or on ice within 2 hours (1 hour on a hot beach day) and eat it within 3 days. Reheat it until steaming hot. Do not keep it at room temperature.', 'Sobras: ponga el pescado cocinado en la nevera o en hielo dentro de 2 horas (1 hora en un día caluroso de playa) y cómalo dentro de 3 días. Recaliéntelo hasta que humee. No lo deje a temperatura ambiente.'),
+        L('Cook fish and shellfish until the thickest part reaches 63 °C (145 °F). Without a thermometer, the flesh should separate easily with a fork.{fdatemp}', 'Cocine el pescado y el marisco hasta que la parte más gruesa llegue a 63 °C (145 °F). Sin termómetro, la carne debe separarse fácil con un tenedor.{fdatemp}'),
+        L('Keep raw fish and its juices away from cooked food and from anything eaten raw. Use one board for raw fish and wash it, the knife and your hands with soap and hot water afterwards.{fdatemp}', 'Mantenga el pescado crudo y sus jugos lejos de la comida cocida y de lo que se come crudo. Use una tabla para el pescado crudo y lávela, junto con el cuchillo y sus manos, con jabón y agua caliente.{fdatemp}'),
+        L('Leftovers: put cooked fish in the fridge or on ice within 2 hours (1 hour when it is hotter than 32 °C, 90 °F). Do not keep it at room temperature.{fdatemp}', 'Sobras: ponga el pescado cocinado en la nevera o en hielo dentro de 2 horas (1 hora si hace más de 32 °C, 90 °F). No lo deje a temperatura ambiente.{fdatemp}'),
       ],
     },
     { k: 'h', t: L('Ceviche (ceviche)', 'Ceviche (ceviche)') },
     {
       k: 'p',
       t: L(
-        'Only fish that is perfectly fresh goes into ceviche. Lime juice changes the flesh but does not kill every germ or break down histamine, so it does not replace cooking. Use only fish that was bled and iced right after it was caught, and that the Dispatch page grades as ceviche-fresh. Never use mackerel, jack or any fish that sat warm. Do not use a large reef fish.',
-        'Solo el pescado perfectamente fresco va en ceviche. El jugo de limón cambia la carne pero no mata todos los microbios ni destruye la histamina, así que no sustituye la cocción. Use solo pescado que se desangró y se enhieló apenas se pescó, y que la página de Despacho califica como fresco para ceviche. Nunca use macarela, jurel ni ningún pescado que estuvo al calor. No use un pez grande de arrecife.',
+        'Only fish that is perfectly fresh goes into ceviche. Lime juice changes the flesh but does not replace cooking: ceviche is a known source of fish parasite infection, and histamine is heat stable.{fdaguide} Use only fish that was bled and iced right after it was caught, and that the Dispatch page grades as ceviche-fresh. Never use mackerel, jack or any fish that sat warm. Do not use a large reef fish.',
+        'Solo el pescado perfectamente fresco va en ceviche. El jugo de limón cambia la carne pero no sustituye la cocción: el ceviche es una fuente conocida de infección por parásitos de pescado, y la histamina resiste el calor.{fdaguide} Use solo pescado que se desangró y se enhieló apenas se pescó, y que la página de Despacho califica como fresco para ceviche. Nunca use macarela, jurel ni ningún pescado que estuvo al calor. No use un pez grande de arrecife.',
       ),
     },
     {
@@ -59,8 +59,8 @@ export const cook: Section = {
     {
       k: 'p',
       t: L(
-        'Rondón is the dish of the Caribbean coast. It is a coconut broth with fish, lobster or crab and starchy roots and green bananas, flavoured with thyme, garlic, onion and a yellow chile called chile panameño. It is often served with flour dumplings.{rondon}',
-        'El rondón es el plato de la costa caribe. Es un caldo de coco con pescado, langosta o cangrejo, raíces con almidón y guineos verdes, sazonado con tomillo, ajo, cebolla y un chile amarillo llamado chile panameño. Suele servirse con bolitas de harina.{rondon}',
+        'Rondón is the dish of the Caribbean coast. It is a coconut broth with fish, lobster or crab and starchy roots and green bananas, flavoured with thyme, garlic, onion and a yellow chile called chile panameño.',
+        'El rondón es el plato de la costa caribe. Es un caldo de coco con pescado, langosta o cangrejo, raíces con almidón y guineos verdes, sazonado con tomillo, ajo, cebolla y un chile amarillo llamado chile panameño.',
       ),
     },
     {
@@ -90,7 +90,7 @@ export const cook: Section = {
         L('Ingredients: 600 g (1.3 lb) fish slices (a Limón classic with Spanish mackerel, only if it was iced fast), 1/2 cup flour, oil for frying, 1 cup white vinegar, 1/2 cup water, 2 onions, 1 carrot, 1 cucumber, 3 cloves garlic, chile panameño to taste, 1 teaspoon salt.', 'Ingredientes: 600 g (1,3 lb) de rodajas de pescado (un clásico limonense con macarela, solo si se enhieló rápido), 1/2 taza de harina, aceite para freír, 1 taza de vinagre blanco, 1/2 taza de agua, 2 cebollas, 1 zanahoria, 1 pepino, 3 dientes de ajo, chile panameño al gusto, 1 cucharadita de sal.'),
         L('1. Salt the slices, dust with flour and fry until golden and cooked through. Let them drain.', '1. Sale las rodajas, enharínelas y fríalas hasta que estén doradas y bien cocidas. Escúrralas.'),
         L('2. Slice the onions, carrot, cucumber and garlic. Boil them 3 minutes in the vinegar, water, salt and chile.', '2. Corte en rodajas las cebollas, la zanahoria, el pepino y el ajo. Hiérvalos 3 minutos en el vinagre, el agua, la sal y el chile.'),
-        L('3. Pour the hot mix over the fish in a glass jar, let it cool, then keep it in the fridge. Eat within 3 days. Vinegar does not destroy histamine, so use only fish that was iced fast.', '3. Vierta la mezcla caliente sobre el pescado en un frasco de vidrio, deje enfriar y guárdelo en la nevera. Cómalo dentro de 3 días. El vinagre no destruye la histamina, así que use solo pescado que se enhieló rápido.'),
+        L('3. Pour the hot mix over the fish in a glass jar, let it cool, then keep it in the fridge. Vinegar does not destroy histamine or reliably remove parasites, so use only fish that was iced fast.{fdaguide}', '3. Vierta la mezcla caliente sobre el pescado en un frasco de vidrio, deje enfriar y guárdelo en la nevera. El vinagre no destruye la histamina ni elimina de forma confiable los parásitos, así que use solo pescado que se enhieló rápido.{fdaguide}'),
       ],
     },
     { k: 'h', t: L('Whole fish in banana leaf (pescado asado en hoja de plátano)', 'Pescado asado en hoja de plátano (grilled whole fish in banana leaf)') },
@@ -117,22 +117,34 @@ export const cook: Section = {
       k: 'ul',
       items: [
         L('Octopus: it is tough until tenderised. Clean it, remove the beak and the ink sac, then beat it on a rock or with a mallet for 5 minutes, or freeze it overnight and thaw it. Simmer it gently in unsalted water with an onion and a bay leaf for 45 to 60 minutes until a knife slides into the thickest arm. Cool it, then grill, fry or add it to ceviche.', 'Pulpo: es duro hasta que se ablanda. Límpielo, quite el pico y la bolsa de tinta y golpéelo contra una piedra o con un mazo por 5 minutos, o congélelo una noche y descongélelo. Cocínelo a fuego muy bajo en agua sin sal con una cebolla y una hoja de laurel de 45 a 60 minutos hasta que un cuchillo entre fácil en el tentáculo más grueso. Enfríelo y luego áselo, fríalo o agréguelo al ceviche.'),
-        L('Lionfish: the venom is only in the spines, not in the flesh, and heat breaks it down. Wear thick gloves and cut off all the spines with kitchen scissors, the 13 on the back, 3 on the belly and 2 on the sides, before you handle the fish. Fillet it as you would a snapper. The white, mild flesh is good fried, in ceviche (if very fresh) or in rondón. Avoid very large lionfish, because ciguatera has been reported in some.', 'Pez león: el veneno está solo en las espinas, no en la carne, y el calor lo destruye. Use guantes gruesos y corte todas las espinas con tijeras de cocina, las 13 del lomo, las 3 del vientre y las 2 de los lados, antes de manipular el pescado. Filetéelo como un pargo. La carne blanca y suave queda bien frita, en ceviche (si está muy fresca) o en rondón. Evite los pez león muy grandes, porque se ha reportado ciguatera en algunos.'),
+        L('Lionfish: the venom is in the spines, not in the flesh. Wear thick puncture-resistant gloves and cut off all the venomous spines of the dorsal, pelvic and anal fins with kitchen scissors before you handle the fish.{lionfish} Fillet it as you would a snapper. The flesh is not venomous and can be fried, baked, steamed or poached like other non-oily fish. It is also good in ceviche (if very fresh) or in rondón.{lionfish}', 'Pez león: el veneno está en las espinas, no en la carne. Use guantes gruesos a prueba de pinchazos y corte todas las espinas venenosas de las aletas dorsal, pélvicas y anal con tijeras de cocina antes de manipular el pescado.{lionfish} Filetéelo como un pargo. La carne no es venenosa y se puede freír, hornear, cocinar al vapor o escalfar como otros pescados no grasos. También queda bien en ceviche (si está muy fresca) o en rondón.{lionfish}'),
       ],
     },
   ],
   sources: {
     fdatemp: {
-      t: 'FoodSafety.gov, Safe Minimum Internal Temperatures (US government chart: fish and shellfish 145 °F, 63 °C)',
-      u: 'https://www.foodsafety.gov/food-safety-charts/safe-minimum-internal-temperatures',
-      p: 'S',
-      what: L('Source of the 63 °C (145 °F) cooking temperature for fish and shellfish.', 'Fuente de los 63 °C (145 °F) para cocinar pescado y marisco.'),
-    },
-    rondon: {
-      t: 'Wikipedia, Rondón (food)',
-      u: 'https://en.wikipedia.org/wiki/Rond%C3%B3n_(food)',
+      t: 'FDA, Selecting and Serving Fresh and Frozen Seafood Safely',
+      u: 'https://www.fda.gov/food/buy-store-serve-safe-food/selecting-and-serving-fresh-and-frozen-seafood-safely',
       p: 'P',
-      what: L('What Caribbean Costa Rican rondón contains: starchy roots, green bananas, thyme, garlic, onion, chile panameño and fish, lobster or crab.', 'Qué lleva el rondón del Caribe de Costa Rica: raíces con almidón, guineos verdes, tomillo, ajo, cebolla, chile panameño y pescado, langosta o cangrejo.'),
+      what: L('Cook seafood to 145 °F (63 °C), flesh that separates with a fork, keep raw and cooked apart, wash boards with soap and hot water, and chill within 2 hours (1 hour above 90 °F).', 'Cocinar el marisco a 63 °C (145 °F), carne que se separa con tenedor, separar crudo y cocido, lavar tablas con jabón y agua caliente, y enfriar en 2 horas (1 hora sobre 32 °C).'),
+    },
+    fdaguide: {
+      t: 'FDA, Fish and Fishery Products Hazards and Controls Guidance (June 2022 edition)',
+      u: 'https://www.fda.gov/food/seafood-guidance-documents-regulatory-information/fish-and-fishery-products-hazards-and-controls-guidance',
+      p: 'P',
+      what: L('Ceviche listed among products implicated in parasite infection, brining and pickling do not eliminate parasites, and histamine is heat stable (chapters 5 and 7, read in the PDF).', 'El ceviche figura entre los productos implicados en infecciones por parásitos, la salmuera y el encurtido no eliminan los parásitos, y la histamina resiste el calor (capítulos 5 y 7, leídos en el PDF).'),
+    },
+    cdc: {
+      t: 'CDC Yellow Book, Food Poisoning from Marine Toxins',
+      u: 'https://www.cdc.gov/yellow-book/hcp/environmental-hazards-risks/food-poisoning-from-marine-toxins.html',
+      p: 'P',
+      what: L('Ciguatoxin is not destroyed by cooking, freezing, pickling, salting or smoking.', 'La ciguatoxina no se destruye al cocinar, congelar, encurtir, salar ni ahumar.'),
+    },
+    lionfish: {
+      t: 'Florida Fish and Wildlife Conservation Commission, Lionfish brochure',
+      u: 'https://archive.myfwc.com/archive/Saltwater%20Fishing/Lionfish/lionfish-brochure.pdf',
+      p: 'S',
+      what: L('Venom is in the spines on the dorsal, pelvic and anal fins, the flesh is not venomous, cook it like non-oily fish, and wear puncture-resistant gloves or cut the spines off (text of the PDF read only in part).', 'El veneno está en las espinas de las aletas dorsal, pélvicas y anal, la carne no es venenosa, se cocina como un pescado no graso, y hay que usar guantes a prueba de pinchazos o cortar las espinas (texto del PDF leído solo en parte).'),
     },
   },
 };
