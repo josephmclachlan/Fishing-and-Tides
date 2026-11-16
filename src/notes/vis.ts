@@ -40,6 +40,11 @@ export type VBlock =
   | { k: 'go'; tab: NtTab; ico: PictId; h: L; t: L }
   /** Illustrated cards: a drawing or pictogram, a title, one line and up to a few short points (rigs, release steps, recipes). */
   | { k: 'cards'; h?: L; items: { fig?: FigId; ico?: PictId; tag?: L; h: L; t?: L; list?: L[]; tone?: Tone }[] }
+  /**
+   * A recipe: a drawing, the dish, one line on what it is, how many it serves, the ingredients as short chips, and
+   * numbered steps, each with an optional time or temperature pill (`at`).
+   */
+  | { k: 'recipe'; fig?: FigId; tag?: L; h: L; t?: L; serves?: L; ings: L[]; steps: { t: L; at?: L }[]; tone?: Tone }
   /** Two columns: what to do and what not to do. */
   | { k: 'dodont'; h?: L; do: L[]; dont: L[] }
   /**
@@ -122,6 +127,13 @@ export function visHtml(b: VBlock, lang: Lang, tx0: Tx, href: (t: NtTab) => stri
           return `<article class="nt-card nt-${c.tone ?? 'info'}">${art}<div class="nt-card-b">${c.tag ? `<p class="nt-tag">${tx(c.tag)}</p>` : ''}<h4>${c.ico ? pict(c.ico) : ''}<span>${tx(c.h)}</span></h4>${c.t ? `<p>${tx(c.t)}</p>` : ''}${c.list?.length ? `<ul>${c.list.map((x) => `<li>${tx(x)}</li>`).join('')}</ul>` : ''}</div></article>`;
         })
         .join('')}</div>`;
+    case 'recipe': {
+      const f = b.fig ? FIGS[b.fig] : undefined;
+      const art = f ? `<svg class="nt-art nt-art-${b.fig}" viewBox="${f.vb}" role="img" aria-label="${tx0(b.h).replace(/<[^>]+>/g, '')}">${f.art(lang)}</svg>` : '';
+      const ings = `<ul class="nt-ings" aria-label="${lang === 'es' ? 'Ingredientes' : 'Ingredients'}">${b.ings.map((x) => `<li>${tx(x)}</li>`).join('')}</ul>`;
+      const steps = `<ol class="nt-rsteps">${b.steps.map((st, i) => `<li><b class="nt-n">${i + 1}</b><span>${tx(st.t)}</span>${st.at ? `<em>${tx(st.at)}</em>` : ''}</li>`).join('')}</ol>`;
+      return `<article class="nt-card nt-recipe nt-${b.tone ?? 'info'}">${art}<div class="nt-card-b">${b.tag ? `<p class="nt-tag">${tx(b.tag)}</p>` : ''}<h4><span>${tx(b.h)}</span>${b.serves ? `<small>${tx(b.serves)}</small>` : ''}</h4>${b.t ? `<p>${tx(b.t)}</p>` : ''}${ings}${steps}</div></article>`;
+    }
     case 'dodont': {
       const col = (cls: string, word: L, items: L[]) => `<div class="nt-dd-${cls}"><h4>${chip(cls === 'do' ? 'go' : 'stop', lang)}<span>${word[lang]}</span></h4><ul>${items.map((x) => `<li>${tx(x)}</li>`).join('')}</ul></div>`;
       return `${head(b.h, tx)}<div class="nt-dd">${col('do', { en: 'Do', es: 'Haga' }, b.do)}${col('dont', { en: 'Do not', es: 'No haga' }, b.dont)}</div>`;

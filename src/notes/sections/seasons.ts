@@ -1,7 +1,9 @@
 import type { Section } from '../content';
 
 const L = (en: string, es: string) => ({ en, es });
+const MON = [L('J', 'E'), L('F', 'F'), L('M', 'M'), L('A', 'A'), L('M', 'M'), L('J', 'J'), L('J', 'J'), L('A', 'A'), L('S', 'S'), L('O', 'O'), L('N', 'N'), L('D', 'D')];
 
+/** SEASONS: the old month table as heat grids (line fishing, rain, closure and nesting). Levels: best 3, good 2, slower 1. */
 export const seasons: Section = {
   id: 'seasons',
   title: L('Seasons', 'Temporadas'),
@@ -10,35 +12,78 @@ export const seasons: Section = {
     'Qué peces locales andan o están buenos cada mes, además de la veda de langosta y la anidación de tortugas.',
   ),
   blocks: [
-    { k: 'h', t: L('How to read this', 'Cómo leer esto') },
-    { k: 'p', t: L('Each row is a month. "Best" means the app rates that fish at its peak that month. "Good" means a fair month, and "slower" means a quieter month, not a closed one. These ratings are the app\'s own rules of thumb for the Caribbean coast, not counts of fish caught, so use them as a guide and ask local fishers.{app}', 'Cada fila es un mes. "Mejor" significa que la app califica ese pez en su punto más alto ese mes. "Bueno" es un mes regular y "más lento" es un mes más tranquilo, no cerrado. Estas calificaciones son reglas prácticas de la app para el Caribe, no conteos de peces capturados, así que úselas como guía y pregunte a los pescadores locales.{app}') },
-    { k: 'table', head: [L('Month', 'Mes'), L('Rain', 'Lluvia'), L('Line fishing', 'Pesca con línea'), L('Closed or nesting', 'Veda o anidación')], rows: [
-      [L('Jan', 'Ene'), L('Wetter', 'Más lluvia'), L('Best: pargo (snapper). Good: jurel (jack). Slower: róbalo (snook).', 'Mejor: pargo. Bueno: jurel. Más lento: róbalo.'), L('Lobster open.', 'Langosta abierta.')],
-      [L('Feb', 'Feb'), L('Drier', 'Más seco'), L('Best: pargo. Good: jurel. Slower: róbalo.', 'Mejor: pargo. Bueno: jurel. Más lento: róbalo.'), L('Lobster open.', 'Langosta abierta.')],
-      [L('Mar', 'Mar'), L('Drier', 'Más seco'), L('Best: jurel. Good: pargo. Slower: róbalo.', 'Mejor: jurel. Bueno: pargo. Más lento: róbalo.'), L('Lobster CLOSED. Leatherback (baula) nesting starts.', 'Langosta en VEDA. Empieza la anidación de la baula.')],
-      [L('Apr', 'Abr'), L('Rains start', 'Empiezan las lluvias'), L('Best: jurel. Good: pargo. Slower: róbalo.', 'Mejor: jurel. Bueno: pargo. Más lento: róbalo.'), L('Lobster CLOSED. Leatherback nesting at its busiest. Hawksbill (carey) may start (CHECK).', 'Langosta en VEDA. Anidación de la baula en su punto más alto. La carey puede empezar (VERIFICAR).')],
-      [L('May', 'May'), L('Wet', 'Lluvioso'), L('Good: jurel. Slower: pargo, róbalo.', 'Bueno: jurel. Más lento: pargo, róbalo.'), L('Lobster CLOSED. Leatherback and hawksbill nesting.', 'Langosta en VEDA. Anidación de baula y carey.')],
-      [L('Jun', 'Jun'), L('Wetter', 'Más lluvia'), L('Good: jurel, róbalo. Slower: pargo.', 'Bueno: jurel, róbalo. Más lento: pargo.'), L('Lobster CLOSED until 30 June. Leatherback and hawksbill nesting.', 'Langosta en VEDA hasta el 30 de junio. Anidación de baula y carey.')],
-      [L('Jul', 'Jul'), L('Wetter', 'Más lluvia'), L('Good: róbalo. Slower: jurel, pargo.', 'Bueno: róbalo. Más lento: jurel, pargo.'), L('Lobster open again. Leatherback nesting ends, green turtle (tortuga verde) starts.', 'Langosta abierta otra vez. Termina la anidación de la baula, empieza la de la tortuga verde.')],
-      [L('Aug', 'Ago'), L('Wet', 'Lluvioso'), L('Best: róbalo. Slower: jurel, pargo.', 'Mejor: róbalo. Más lento: jurel, pargo.'), L('Green and hawksbill turtle nesting.', 'Anidación de tortuga verde y carey.')],
-      [L('Sep', 'Sep'), L('Drier', 'Más seco'), L('Best: róbalo. Good: jurel, pargo.', 'Mejor: róbalo. Bueno: jurel, pargo.'), L('Green and hawksbill turtle nesting.', 'Anidación de tortuga verde y carey.')],
-      [L('Oct', 'Oct'), L('Drier', 'Más seco'), L('Best: róbalo. Good: jurel, pargo.', 'Mejor: róbalo. Bueno: jurel, pargo.'), L('Green and hawksbill turtle nesting ends.', 'Termina la anidación de tortuga verde y carey.')],
-      [L('Nov', 'Nov'), L('Wetter', 'Más lluvia'), L('Best: róbalo, pargo. Good: jurel.', 'Mejor: róbalo, pargo. Bueno: jurel.'), L('Lobster open.', 'Langosta abierta.')],
-      [L('Dec', 'Dic'), L('Wetter', 'Más lluvia'), L('Best: pargo. Good: róbalo, jurel.', 'Mejor: pargo. Bueno: róbalo, jurel.'), L('Lobster open.', 'Langosta abierta.')],
-    ] },
-    { k: 'p', t: L('Rain: the Caribbean coast has two drier spells, February to March and September to October, and the rest of the year is wetter. Look at the current forecast, because rain varies a lot from year to year. Heavy rain muddies the river mouths, which changes where the snook feed.{imn}', 'Lluvia: la costa Caribe tiene dos épocas más secas, de febrero a marzo y de setiembre a octubre, y el resto del año es más lluvioso. Revise el pronóstico actual, porque la lluvia varía mucho de un año a otro. La lluvia fuerte enturbia las desembocaduras de los ríos, lo que cambia dónde se alimenta el róbalo.{imn}') },
+    {
+      k: 'heat',
+      h: L('Line fishing by month', 'Pesca con línea por mes'),
+      cols: MON,
+      rows: [
+        { h: L('Pargo (snapper)', 'Pargo'), v: [3, 3, 2, 2, 1, 1, 1, 1, 2, 2, 3, 3] },
+        { h: L('Jurel (jack)', 'Jurel'), v: [2, 2, 3, 3, 2, 2, 1, 1, 2, 2, 2, 2] },
+        { h: L('Róbalo (snook)', 'Róbalo'), v: [1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3, 2] },
+      ],
+      key: [
+        { v: 3, t: L('Best: the app rates it at its peak', 'Mejor: la app lo califica en su punto más alto') },
+        { v: 2, t: L('Good: a fair month', 'Bueno: un mes regular') },
+        { v: 1, t: L('Slower: quieter, not closed', 'Más lento: más tranquilo, no cerrado') },
+      ],
+      note: L("These ratings are the app's own rules of thumb for the Caribbean coast, not counts of fish caught. Use them as a guide and ask local fishers.{app}", 'Estas calificaciones son reglas prácticas de la app para el Caribe, no conteos de peces capturados. Úselas como guía y pregunte a los pescadores locales.{app}'),
+    },
+    {
+      k: 'heat',
+      h: L('Rain by month', 'Lluvia por mes'),
+      cols: MON,
+      rows: [{ h: L('Rain', 'Lluvia'), hue: 'rain', v: [3, 1, 1, 2, 2, 3, 3, 2, 1, 1, 3, 3] }],
+      key: [
+        { v: 1, hue: 'rain', t: L('Drier', 'Más seco') },
+        { v: 2, hue: 'rain', t: L('Wet, or rains starting', 'Lluvioso, o empiezan las lluvias') },
+        { v: 3, hue: 'rain', t: L('Wetter', 'Más lluvia') },
+      ],
+    },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'rain', h: L('Two drier spells', 'Dos épocas más secas'), t: L('February to March and September to October. The rest of the year is wetter. Rain varies a lot from year to year, so check the current forecast.{imn}', 'De febrero a marzo y de setiembre a octubre. El resto del año es más lluvioso. La lluvia varía mucho de un año a otro, así que revise el pronóstico actual.{imn}') },
+        { ico: 'river', h: L('Heavy rain', 'Lluvia fuerte'), t: L('It muddies the river mouths, which changes where the snook feed.{imn}', 'Enturbia las desembocaduras de los ríos, lo que cambia dónde se alimenta el róbalo.{imn}') },
+      ],
+    },
+    {
+      k: 'heat',
+      h: L('Closed seasons and turtle nesting', 'Vedas y anidación de tortugas'),
+      cols: MON,
+      rows: [
+        { h: L('Lobster (langosta)', 'Langosta'), hue: 'closed', v: [0, 0, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0] },
+        { h: L('Leatherback (baula)', 'Baula'), hue: 'nest', v: [0, 0, 1, 3, 2, 2, 1, 0, 0, 0, 0, 0] },
+        { h: L('Hawksbill (carey)', 'Carey'), hue: 'nest', v: [0, 0, 0, 0, 2, 2, 0, 2, 2, 1, 0, 0] },
+        { h: L('Green turtle (tortuga verde)', 'Tortuga verde'), hue: 'nest', v: [0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0] },
+      ],
+      key: [
+        { v: 3, hue: 'closed', t: L('Lobster closed (until 30 June)', 'Langosta en veda (hasta el 30 de junio)') },
+        { v: 3, hue: 'nest', t: L('Nesting at its busiest', 'Anidación en su punto más alto') },
+        { v: 2, hue: 'nest', t: L('Nesting', 'Anidación') },
+        { v: 1, hue: 'nest', t: L('Starts or ends', 'Empieza o termina') },
+      ],
+    },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'turtle', tone: 'unk', h: L('Not confirmed', 'No confirmado'), t: L('Hawksbill (carey) nesting may start in April.', 'La anidación de la carey puede empezar en abril.') },
+        { ico: 'lobster', tone: 'stop', h: L('Lobster: 1 March to 30 June', 'Langosta: 1 de marzo al 30 de junio'), t: L('Open July to February. See the Rules tab.{lob}', 'Abierta de julio a febrero. Vea la pestaña Reglas.{lob}') },
+        { ico: 'turtle', tone: 'stop', h: L('Turtles are protected', 'Las tortugas están protegidas'), t: L('Never take turtles or their eggs. Watch nesting beaches only on a guided tour.', 'Nunca capture tortugas ni sus huevos. Visite las playas de anidación solo en un tour con guía.') },
+      ],
+    },
     { k: 'h', t: L('Fish with no clear best month', 'Peces sin un mejor mes claro') },
-    { k: 'p', t: L('For these the app treats every month the same, because the best local months are not documented. For offshore fish, ask a local boat captain what is running now.{guide}', 'Para estos la app trata todos los meses igual, porque los mejores meses locales no están documentados. Para peces de mar abierto, pregunte a un capitán local qué anda ahora.{guide}') },
-    { k: 'table', head: [L('Fish', 'Pez'), L('When', 'Cuándo'), L('Note', 'Nota')], rows: [
-      [L('Macarela (Spanish mackerel)', 'Macarela'), L('All year', 'Todo el año'), L('Schools along reef edges in clear water.', 'Anda en cardúmenes por los bordes del arrecife en agua clara.')],
-      [L('Mero and cabrilla (small reef groupers)', 'Mero y cabrilla (meros pequeños de arrecife)'), L('All year', 'Todo el año'), L('Large reef groupers can carry ciguatera (fish poisoning). See the Ciguatera page.', 'Los meros grandes de arrecife pueden tener ciguatera (intoxicación por pescado). Vea la página de Ciguatera.')],
-      [L('Pez león (lionfish)', 'Pez león'), L('All year', 'Todo el año'), L('Eating it is encouraged. Spear only, and see the spearfishing rules.', 'Se anima a comerlo. Solo con arpón, y vea las reglas de pesca submarina.')],
-      [L('Dorado (mahi), peto (wahoo), atún (tuna), barrilete', 'Dorado, peto, atún, barrilete'), L('Mostly warm months, offshore', 'Sobre todo en meses cálidos, mar afuera'), L('Ice them quickly. Ask a local captain for the current months.', 'Póngales hielo pronto. Pregunte a un capitán local por los meses actuales.')],
-      [L('Langosta (lobster)', 'Langosta'), L('Open July to February', 'Abierta de julio a febrero'), L('Closed 1 March to 30 June. See the Rules tab.{lob}', 'Veda del 1 de marzo al 30 de junio. Vea la pestaña Reglas.{lob}')],
-      [L('Pulpo (octopus)', 'Pulpo'), L('All year', 'Todo el año'), L('Found on reef and rubble on night snorkels and dives.', 'Se encuentra en arrecife y cascajo en snorkel y buceo nocturno.')],
-      [L('Jaiba (crab)', 'Jaiba'), L('All year', 'Todo el año'), L('Brackish channels, lagoons and river mouths.', 'Canales salobres, lagunas y desembocaduras.')],
-    ] },
-    { k: 'p', t: L('Turtles are protected. Never take turtles or their eggs, and only watch nesting beaches on a guided tour.', 'Las tortugas están protegidas. Nunca capture tortugas ni sus huevos, y solo visite las playas de anidación en un tour con guía.') },
+    { k: 'p', t: L('The app treats every month the same for these, because the best local months are not documented. For offshore fish, ask a local boat captain what is running now.{guide}', 'La app trata todos los meses igual para estos, porque los mejores meses locales no están documentados. Para peces de mar abierto, pregunte a un capitán local qué anda ahora.{guide}') },
+    {
+      k: 'tiles',
+      items: [
+        { ico: 'fish', h: L('Macarela (Spanish mackerel)', 'Macarela'), t: L('All year. Schools along reef edges in clear water.', 'Todo el año. Anda en cardúmenes por los bordes del arrecife en agua clara.') },
+        { ico: 'fish', tone: 'warn', h: L('Mero and cabrilla (small reef groupers)', 'Mero y cabrilla (meros pequeños de arrecife)'), t: L('All year. Large reef groupers can carry ciguatera (fish poisoning). See the Ciguatera page.', 'Todo el año. Los meros grandes de arrecife pueden tener ciguatera (intoxicación por pescado). Vea la página de Ciguatera.') },
+        { ico: 'spine', h: L('Pez león (lionfish)', 'Pez león'), t: L('All year. Eating it is encouraged. Spear only, and see the spearfishing rules.', 'Todo el año. Se anima a comerlo. Solo con arpón, y vea las reglas de pesca submarina.') },
+        { ico: 'boat', h: L('Dorado (mahi), peto (wahoo), atún (tuna), barrilete', 'Dorado, peto, atún, barrilete'), t: L('Mostly warm months, offshore. Ice them quickly. Ask a local captain for the current months.', 'Sobre todo en meses cálidos, mar afuera. Póngales hielo pronto. Pregunte a un capitán local por los meses actuales.') },
+        { ico: 'octopus', h: L('Pulpo (octopus)', 'Pulpo'), t: L('All year. Found on reef and rubble on night snorkels and dives.', 'Todo el año. Se encuentra en arrecife y cascajo en snorkel y buceo nocturno.') },
+        { ico: 'river', h: L('Jaiba (crab)', 'Jaiba'), t: L('All year. Brackish channels, lagoons and river mouths.', 'Todo el año. Canales salobres, lagunas y desembocaduras.') },
+      ],
+    },
   ],
   sources: {
     app: { t: 'This app, shore and kayak fishing model (docs/FISHING.md, month factors per species)', p: 'P', what: L('Monthly ratings for snook, jack and snapper; mackerel, grouper and lionfish rated the same all year.', 'Calificaciones mensuales de róbalo, jurel y pargo; macarela, mero y pez león iguales todo el año.') },
