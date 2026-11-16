@@ -184,3 +184,16 @@
 .nt-hkey li { display: flex; gap: 6px; align-items: center; }
 .nt-hkey .nt-hv { width: 18px; height: 14px; }
 .nt-art .nt-band.l1, .nt-art .nt-blbl.l1 { --c: var(--fc-lv1); --o: var(--fc-on1); }
+
+/* recipe cards */
+.nt-recipe { margin: 12px 0 16px; }
+.nt-recipe h4 { justify-content: space-between; align-items: baseline; }
+.nt-recipe h4 small { font: 600 11.5px/1 var(--fc-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--fc-ink2); white-space: nowrap; }
+.cig .nt-ings { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; }
+.cig .nt-ings li { padding: 4px 8px; background: var(--fc-block); font-size: 13.5px; line-height: 1.25; }
+.cig .nt-ings li::before { display: none; }
+.cig .nt-rsteps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-top: 1px solid var(--fc-line); }
+.cig .nt-rsteps li { display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; align-items: start; padding: 8px 0; border-bottom: 1px solid var(--fc-line); font-size: 14.5px; line-height: 1.4; }
+.cig .nt-rsteps li::before { display: none; }
+.nt-rsteps .nt-n { display: grid; place-items: center; height: 24px; background: var(--fc-ink); color: var(--fc-bg); font: 700 12px/1 var(--fc-mono); }
+.nt-rsteps em { font-style: normal; font: 700 12px/1.2 var(--fc-mono); padding: 4px 6px; background: var(--fc-lv2); color: var(--fc-on2); white-space: nowrap; }
