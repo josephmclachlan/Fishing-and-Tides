@@ -11,9 +11,9 @@ import type { GlyphId } from '../icons/glyphs';
 import { glyphSvg, squareSvg } from '../icons/glyphs';
 
 /** `weed` is the drawn sargassum sprig itself (sargassum-glyph.ts); `glyph` is a symbol from src/icons, so the key shows the mark the map draws. */
-export type Swatch = 'fill' | 'hatch' | 'dot' | 'ring' | 'line' | 'dash' | 'zone' | 'weed' | 'glyph' | 'none';
+export type Swatch = 'fill' | 'hatch' | 'dot' | 'ring' | 'line' | 'dash' | 'zone' | 'area' | 'weed' | 'glyph' | 'none';
 /** HUD roles, plus the Kinetic Plus crest blue, three steps of its rain ramp (PLAN 7.86) and the weed's own colour. */
-export type SwatchTone = 'amber' | 'green' | 'red' | 'dim' | 'surf' | 'rain0' | 'rain2' | 'rain4' | 'sarg';
+export type SwatchTone = 'amber' | 'green' | 'red' | 'dim' | 'surf' | 'rain0' | 'rain2' | 'rain4' | 'sarg' | 'lv2' | 'lv34';
 /** Symbol tones (src/icons/map-glyphs.ts): ink for neutral things, caution and danger for hazards. */
 export type GlyphTone = 'ink' | 'caution' | 'danger';
 /** A 'glyph' swatch draws the map's own symbol `g` in tone `gt` (and `dim` when the map draws it faded). */
@@ -50,9 +50,9 @@ export const LEGEND: Readonly<Record<LayerId, readonly LegendItem[]>> = {
   rip: [{ sw: 'fill', tone: 'amber' }, { sw: 'fill', tone: 'red' }, { sw: 'glyph', tone: 'amber', g: 'rip', gt: 'caution' }, { sw: 'none', tone: 'dim' }],
   surf: [{ sw: 'glyph', tone: 'green', g: 'curl', lv: '3' }, { sw: 'glyph', tone: 'amber', g: 'curl', lv: '2' }, { sw: 'glyph', tone: 'red', g: 'curl', lv: '1' }, { sw: 'glyph', tone: 'dim', g: 'curl', lv: 'n' }],
   depth: [{ sw: 'line', tone: 'amber' }],
-  reefs: [{ sw: 'none', tone: 'amber' }, { sw: 'none', tone: 'amber' }],
+  reefs: [{ sw: 'area', tone: 'amber' }, { sw: 'none', tone: 'amber' }],
   seamarks: [{ sw: 'glyph', tone: 'amber', g: 'light' }, { sw: 'glyph', tone: 'amber', g: 'buoy' }, { sw: 'glyph', tone: 'amber', g: 'wreck' }, { sw: 'glyph', tone: 'amber', g: 'rock' }, { sw: 'glyph', tone: 'amber', g: 'warn', gt: 'caution' }],
-  fishing: [{ sw: 'fill', tone: 'amber' }, { sw: 'fill', tone: 'green' }, { sw: 'none', tone: 'amber' }, { sw: 'zone', tone: 'green' }, { sw: 'none', tone: 'amber' }],
+  fishing: [{ sw: 'fill', tone: 'lv2' }, { sw: 'fill', tone: 'lv34' }, { sw: 'none', tone: 'amber' }, { sw: 'zone', tone: 'lv34' }, { sw: 'none', tone: 'amber' }],
   spear: [{ sw: 'fill', tone: 'green' }, { sw: 'fill', tone: 'red' }, { sw: 'line', tone: 'amber' }, { sw: 'zone', tone: 'green' }],
   zones: [{ sw: 'line', tone: 'red' }, { sw: 'line', tone: 'amber' }],
   anchorages: [{ sw: 'glyph', tone: 'green', g: 'anchor' }, { sw: 'glyph', tone: 'dim', g: 'anchor', dim: true }],

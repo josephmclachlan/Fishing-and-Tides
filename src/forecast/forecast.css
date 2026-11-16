@@ -201,8 +201,8 @@ body.fc-open { overflow: hidden; }
   background: linear-gradient(var(--d), color-mix(in srgb, var(--fc-bg) 55%, transparent), transparent); transition: opacity 0.25s;
 }
 .fc .fc-rarrow[hidden] { display: none; }
-.fc-rl { --d: 90deg; left: calc(-1 * var(--fc-g-l)); padding-left: var(--fc-g-l); width: calc(44px + var(--fc-g-l)); justify-content: start; }
-.fc-rr { --d: 270deg; right: calc(-1 * var(--fc-g-r)); padding-right: var(--fc-g-r); width: calc(44px + var(--fc-g-r)); justify-content: end; }
+.fc-rarrow.fc-rl { --d: 90deg; left: calc(-1 * var(--fc-g-l)); padding-left: var(--fc-g-l); width: calc(44px + var(--fc-g-l)); justify-content: start; }
+.fc-rarrow.fc-rr { --d: 270deg; right: calc(-1 * var(--fc-g-r)); padding-right: var(--fc-g-r); width: calc(44px + var(--fc-g-r)); justify-content: end; }
 .fc .fc-rarrow:hover { opacity: 0.8; }
 @media (hover: none) { .fc .fc-rarrow { display: none; } }
 .fc-rail { display: flex; align-items: stretch; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; scroll-padding-left: var(--fc-g-l); padding-top: 4px; padding-bottom: 10px; scrollbar-width: none; }
@@ -325,6 +325,12 @@ body.fc-open { overflow: hidden; }
 .fc-hx-key .k-win { background: var(--fc-c-win); opacity: 0.85; }
 .fc-hx-key .k-sun { width: 3px; background: var(--fc-c-sun); }
 .fc-hx-key .k-now { width: 3px; background: var(--fc-ink); }
+.fc-hx-key .k-arr { width: auto; height: auto; font-style: normal; font-weight: 800; font-size: 14px; line-height: 1; color: var(--fc-c-ink2); }
+.fc-hx-key .k-tide { height: 0; border-top: 2px solid var(--fc-c-acc); border-radius: 0; }
+.fc-hx-key .k-rate { flex-basis: 100%; flex-wrap: wrap; gap: 4px 10px; }
+.fc-hx-key .k-rate b { font-weight: 700; }
+.fc-hx-key .k-rate span { display: inline-flex; align-items: center; gap: 4px; }
+.fc-hx-key .k-rate i { background: var(--c); }
 .fc-hx-hint { margin: 8px 0 0; color: var(--fc-ink2); text-transform: none; letter-spacing: 0.02em; }
 
 .fc-foot { margin-top: 44px; border-top: 1px solid var(--fc-line); padding: 16px 0 calc(28px + env(safe-area-inset-bottom, 0px)); color: var(--fc-ink2); }

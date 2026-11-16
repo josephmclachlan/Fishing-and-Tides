@@ -495,6 +495,8 @@ export function mountKineticMap(d: KmDeps) {
   const SW_TONE = {
     amber: 'var(--paint-amber)', green: 'var(--paint-green)', red: 'var(--paint-red)', dim: 'color-mix(in srgb, var(--paint-amber) 40%, transparent)',
     surf: 'var(--t-surf)', rain0: 'var(--r-rain0)', rain2: 'var(--r-rain2)', rain4: 'var(--r-rain4)', sarg: 'var(--m-sarg)',
+    // The fishing water in the beach-rating colours: fair yellow, and good to best as the pale-to-teal ramp.
+    lv2: 'var(--lv2)', lv34: 'var(--lv4)',
   } as const;
   /**
    * A painted field's key (mockup G's ramp keys): the layer's bands in its colours, equal widths, a few edges written

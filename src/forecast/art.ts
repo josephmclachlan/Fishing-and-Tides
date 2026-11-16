@@ -52,7 +52,7 @@ export interface HeroParams {
     pose: (SailPose & { leg: string; otherLeg: string; tackK: string; heel: number; heelGust: number }) | null;
     heelK: string; heelNow: string; reefK: string; noGoK: string; coastK: string; windK: string; ruleK: string;
   };
-  fish?: { illum: number; waxing: boolean; age: number; moon: string; tide: (number | null)[]; nowH: number; best: [number, number] | null; turn: { h: number; label: string } | null; share: number; tideK: string; bestK: string; nowK: string; echo: string };
+  fish?: { illum: number; waxing: boolean; age: number; moon: string; tide: (number | null)[]; nowH: number; best: [number, number] | null; turn: { h: number; label: string } | null; share: number; tideK: string; bestK: string; nowK: string; echo: string; newK?: string; fullK?: string };
   swim?: { rip: 'LOW' | 'MOD' | 'HIGH'; ripK: string; shore: string; flag: string; uv: number | null; uvK: string };
   water?: { visM: number | null; vis: string; depthM: number; waterM: number | null; overReef: string; chop: string; hvis: string; at: string; surge: string; surgeMs: number };
 }
@@ -106,7 +106,7 @@ export function heroParams(r: FcRead, ctx: { deps: FcDeps; ms: number; plan: Pla
       tide: day.map((h) => h.tideM), nowH: (ctx.ms - d0) / H,
       best: win && win.dayMs === d0 ? [(win.startMs - d0) / H, (win.endMs - d0) / H] : null,
       turn: turnH <= 24 ? { h: turnH, label: sentence(t(`fc.tide.next.${tn.next.type}` as Key, { t: localClock(tn.next.t) })) } : null,
-      share: r.share ?? 0, tideK: t('fc.cap.tide'), bestK: t('fc.cap.best'), nowK: t('fc.now'), echo: t('fc.cap.echo', { w: levelWord(r) }),
+      share: r.share ?? 0, tideK: t('fc.cap.tide'), bestK: t('fc.cap.best'), nowK: t('fc.now'), echo: t('fc.cap.echo', { w: levelWord(r) }), newK: t('fc.cap.newMoon'), fullK: t('fc.cap.fullMoon'),
     };
   }
   if (r.swim && r.score !== null) {
@@ -787,7 +787,11 @@ function drawFish(c: Ctx2D, A: Box, tt0: number, a: NonNullable<HeroParams['fish
     c.strokeStyle = d <= age ? rgba(S.fd) : S.soft; c.lineWidth = d % 7 === 0 ? 1.8 : 1;
     c.beginPath(); c.moveTo(cx + Math.cos(an) * (R + 12.5 - l / 2), cy + Math.sin(an) * (R + 12.5 - l / 2)); c.lineTo(cx + Math.cos(an) * (R + 12.5 + l / 2) * 0.98, cy + Math.sin(an) * (R + 12.5 + l / 2) * 0.98); c.stroke();
   }
-  [0, 7, 15, 22].forEach((d) => { const an = -Math.PI / 2 + (d / 29.53) * TAU; c.fillStyle = S.soft; txt(c, String(d), cx + Math.cos(an) * (R + 26), cy + Math.sin(an) * (R + 26), 'center', 8.5, 600); });
+  // The bezel's two named points in words (day 0 new moon at the top, day 15 full moon at the bottom), not bare day numbers.
+  ([[0, a.newK ?? '0', -1], [14.77, a.fullK ?? '15', 1]] as const).forEach(([d, s, side]) => {
+    const an = -Math.PI / 2 + (d / 29.53) * TAU;
+    c.fillStyle = S.soft; txt(c, s, cx + Math.cos(an) * (R + 22) + 12, cy + Math.sin(an) * (R + 22) + side * 4, 'left', 9, 700);
+  });
   const pa = 0.55 + 0.45 * Math.sin(tt * 2);
   c.fillStyle = S.ink; c.beginPath(); c.arc(cx + Math.cos(ageA) * (R + 9), cy + Math.sin(ageA) * (R + 9), 5 + pa * 1.5, 0, TAU); c.fill();
   c.fillStyle = rgba(S.on, 0.16); c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.fill();
@@ -798,7 +802,10 @@ function drawFish(c: Ctx2D, A: Box, tt0: number, a: NonNullable<HeroParams['fish
     c.restore();
   }
   c.strokeStyle = S.ink; c.lineWidth = 1.2; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.stroke();
-  c.fillStyle = S.ink; txt(c, a.moon, cx - R - 16, cy + R + 36, 'left', 10.5, 700);
+  // Two short lines under the bezel ("MOON 43% LIT" / "DAY 7 OF 29"), clear of the FULL mark and the tide's hour labels.
+  const [m1, m2] = a.moon.split(' · ');
+  c.fillStyle = S.ink; txt(c, m1, cx - R - 16, cy + R + 42, 'left', 10.5, 700);
+  if (m2) txt(c, m2, cx - R - 16, cy + R + 55, 'left', 10.5, 700);
   // Today's tide from the harmonic prediction, hour by hour.
   const tv = a.tide.filter(fin);
   const tx0 = cx + R + 46, tx1 = x + w, ty0 = y + 26, ty1 = y + topH - 6, tm = (ty0 + ty1) / 2, amp = (ty1 - ty0) * 0.36;
@@ -814,7 +821,10 @@ function drawFish(c: Ctx2D, A: Box, tt0: number, a: NonNullable<HeroParams['fish
       c.strokeStyle = rgba(S.on, 0.5); c.lineWidth = 1; c.beginPath();
       for (let k = -60; k < 120; k += 5) { c.moveTo(hx(b0) + k, ty1); c.lineTo(hx(b0) + k + 40, ty0 - 4); }
       c.stroke(); c.restore();
-      c.fillStyle = S.ink; txt(c, a.bestK, hx((b0 + b1) / 2), ty0 + 4, 'center', 9.5, 800);
+      // Lower when the tide's turn sits on its own line under the title (Spanish), so the two never touch.
+      c.font = `700 ${(10.5 * 1.12).toFixed(1)}px ${MONO}`;
+      const oneLine = !a.turn || tx0 + c.measureText(a.tideK.toUpperCase()).width + 10 < tx1 - c.measureText(a.turn.label.toUpperCase()).width;
+      c.fillStyle = S.ink; txt(c, a.bestK, hx((b0 + b1) / 2), oneLine ? ty0 + 4 : ty0 + 14, 'center', 9.5, 800);
     }
     c.strokeStyle = S.soft; c.lineWidth = 1; c.beginPath(); c.moveTo(tx0, tm); c.lineTo(tx1, tm); c.stroke();
     c.fillStyle = rgba(S.on, 0.2); c.beginPath(); c.moveTo(hx(0), ty1);

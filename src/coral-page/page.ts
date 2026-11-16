@@ -353,7 +353,7 @@ export function mountCoralPage(deps: CoralPageDeps) {
       return y === year && Number.isFinite(liveMud) ? Math.max(stored ?? -Infinity, liveMud) : stored;
     });
     return `
-      <section class="fc-card"><div class="fc-card-head"><h2>${t('cp.trend')}</h2></div>${heat}</section>
+      <section class="fc-card"><div class="fc-card-head"><h2>${t('cp.trend')}</h2></div>${heat}<p class="cp-cap">${esc(t('cp.heatExplain'))}</p></section>
       <section class="fc-card"><div class="fc-card-head"><h2>${t('cp.mudTrend')}</h2></div>${mud}</section>
       <section class="fc-card"><div class="fc-card-head"><h2>${t('cp.years', { from: years[0] })}</h2></div>
         ${yearBars(years, peaks, { watch: DHW_BLEACHING, high: DHW_SEVERE, cap: 16, highLabel: t('cp.th.high', { v: DHW_SEVERE }), unit: 'DHW' })}

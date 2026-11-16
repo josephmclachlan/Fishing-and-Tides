@@ -9,7 +9,7 @@ import { t } from './i18n';
 import { HIGH_SEA_M } from './layers/waves';
 import { mapTapClaimed } from './here-card';
 
-const TAP_BOX_PX = 9;
+const TAP_BOX_PX = 22;
 /** Layers in the order that wins when several are under the tap. */
 export const TAPPABLE = ['ob-dot', 'ob-label', 'lt-dot', 'st-ring', 'st-label', 'wv-crest'] as const;
 
