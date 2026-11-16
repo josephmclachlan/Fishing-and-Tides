@@ -254,6 +254,20 @@ Let people log what they see (swell size, visibility, water temperature, coral s
 - [ ] 10.10 Fishing: effort and blanks, catches per unit effort per cell with a habitat prior, BITE reliability, cell-level nudge only (**O**, needs 10.4)
 - [ ] 10.11 Spot suggestions from clustered reports for review; coral alert from trusted agreement; admin page for approved observers (**S**, needs 10.4)
 
+Community, points and photo commons (Joseph 2026-11-16; same plan doc, section "Community, ranks and the photo commons"). Opens only to approved people at first; all of it needs accounts and storage from 8.2 and 8.3.
+- [ ] 10.12 "Better or worse than forecast" check: at a spot the app shows today's forecast and asks one-tap "how is it now?" (much lower, lower, as forecast, higher, much higher) plus the value; stored with the forecast snapshot and feeds 10.8 so the rest of today's hours are corrected, fading with lead time, and shown with the evidence and an undo (**S**, needs 10.2, 10.8)
+- [ ] 10.13 Profile and points ledger: append-only `pointsEvents`, pending then vested points, per-discipline totals (**O**, needs 10.4)
+- [ ] 10.14 Tiers, monthly crowns (Fish King/Queen, Surf God/Goddess, Paddle King/Queen, Sail Master, Reef Scout, Reef Guardian, Sea Scholar, Keeper of the Coast), badges, pseudonymous opt-out leaderboards, community goals (**S**, needs 10.13)
+- [ ] 10.15 Anti-gaming: caps, trust scaling, no points for risk or for revealing secret spots, flagged-account review (**O**, needs 10.13)
+- [ ] 10.16 Non-monetary rewards on the account: pins, early access, naming votes, photo credits, volunteer-hours certificate (**S**, needs 10.14)
+- [ ] 10.17 Photo capture on catches and sightings, private and offline (**S**, needs 10.1)
+- [ ] 10.18 Photo upload: licence choice, separate training consent, EXIF stripping, face blur, hidden coordinates for protected species (**O**, needs 10.4)
+- [ ] 10.19 Photo review queue with community agreement and expert confirmation (**O**, needs 10.18)
+- [ ] 10.20 Approved photos into the species guide with credit; open-data export and iNaturalist/GBIF upload (**S**, needs 10.19)
+- [ ] 10.21 Recognition feasibility: embeddings plus nearest neighbours on about 20 common fish, scored by observer and location split (**O**, needs 10.19)
+- [ ] 10.22 In-app photo identify in the browser, blended with local records and the question-based IDENTIFY (7.92); never says a species is safe to eat (**O**, needs 10.21)
+- [ ] 10.23 Fine-tuned model with evaluation gates, model card and static hosting; active-learning queue (**O**, needs 10.22)
+
 ## Phase 11: Water-activity review fixes (from the fresh-eyes review of Surf, Swim, Snorkel and Dive, 2026-11-16; report in project files `swim-snorkel-surf-dive-review/REPORT.md`, finding numbers in brackets)
 Plain full sentences a fisherman cannot misread; sources as numbered superscripts; region Gandoca to Limón only. One PR per task. 11.1 and 11.3 both touch rip wording, and 11.6 shares the citation format with the species guide: coordinate first.
 - [ ] 11.1 One shore-break scale: pick one set of thresholds and use it in the swim score, the BIG SHORE BREAK chip, the card text (tiles.ts) and the dive explainer; explain how RIP RISK relates to RIP PULL (Low risk next to Moderate pull); one name for the entry wave (today: shore break, surf at entry, entry surf, waves at the edge); no unitless "0.07 score" in the hourly strip; no fishing tips (tide, spring-tide bite) on Surf or Swim; reword "an easy drift to swim against" and "stay in as long as you like" on Dive; surf 0.0/10 must not read as POOR [1, 2, 6-10, 14] (**S**)
