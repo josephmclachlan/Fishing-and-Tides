@@ -9,7 +9,7 @@
  * Two modes (PLAN 7.120, Joseph 2026-11-16): EAT, fish to keep and eat (the default and the old set), and SPORT, fish to
  * catch and release (barracuda moved here: no size of it is safe to eat). A species is in exactly one mode.
  */
-export type SpeciesId = 'snook' | 'jack' | 'snapper' | 'mackerel' | 'grouper' | 'grunt' | 'pompano' | 'barracuda' | 'lionfish' | 'permit' | 'bonefish' | 'tarpon';
+export type SpeciesId = 'snook' | 'jack' | 'snapper' | 'mackerel' | 'grouper' | 'grunt' | 'pompano' | 'corvina' | 'mullet' | 'barracuda' | 'lionfish' | 'permit' | 'bonefish' | 'tarpon';
 
 /** EAT: fish to keep and eat. SPORT: fish to catch and release. */
 export type FishMode = 'eat' | 'sport';
@@ -70,6 +70,14 @@ export const SPECIES: readonly Species[] = [
   // Florida pompano (pámpano) and palometa: the surf strip of sandy beaches, eating mole crabs and coquina clams in the
   // wash. Rare here (1 or 2 records), so RULE OF THUMB. The species guide marks it as excellent eating. No local season.
   { id: 'pompano', mode: 'eat', confidence: 'low', depthM: [0.2, 0.4, 3, 8], w: { mouth: 0.1, reef: 0, drop: 0, sand: 0.3, surf: 0.6 }, mouthReachKm: 1, season: Array(12).fill(0.95), water: { visM: [0.3, 0.8, 6, 15], sstC: [20, 24, 30, 33] }, surfHsM: [0.1, 0.4, 1.5, 2.5] },
+  // Corvina (green and Jamaica weakfish, PLAN 7.124): eaten here and rated excellent by the guide. Soft sand and mud
+  // bottom off river mouths, feeding in the stained plume; caught from boats on bottom rigs. Few records (9 in the
+  // occurrence box, 1 near this coast), so RULE OF THUMB: the river mouth reaches 4 km (the plume) and the BITE water term rewards a river
+  // running above its median (fishing/water.ts riverTerm, as for snook). No local season.
+  { id: 'corvina', mode: 'eat', confidence: 'low', depthM: [3, 6, 30, 50], w: { mouth: 0.55, reef: 0, drop: 0.15, sand: 0.3 }, mouthReachKm: 4, season: Array(12).fill(0.95), water: { visM: [0.2, 0.5, 4, 10], sstC: [22, 24, 30, 33] } },
+  // Mullet (lisa and lisa blanca, PLAN 7.124): schools along the beach and in river mouths, taken with a cast net more
+  // than a hook. 45 records in the occurrence box, about 17 near this coast. Stained, shallow water by the mouths and the surf strip. No season.
+  { id: 'mullet', mode: 'eat', confidence: 'low', depthM: [0.1, 0.3, 3, 6], w: { mouth: 0.5, reef: 0, drop: 0, sand: 0.2, surf: 0.3 }, mouthReachKm: 1.5, season: Array(12).fill(0.95), water: { visM: [0.2, 0.5, 5, 12], sstC: [20, 24, 31, 34] } },
   // Barracuda: SPORT, catch and release (the guide's ciguatera advice: no size is lower risk; CDC: never eat it).
   { id: 'barracuda', mode: 'sport', confidence: 'low', depthM: [1.5, 3, 18, 40], w: { mouth: 0.1, reef: 0.55, drop: 0.35 }, mouthReachKm: 1, season: [1, 1, 1, 0.95, 0.9, 0.85, 0.85, 0.9, 0.9, 0.95, 1, 1], water: { visM: [1.5, 4, 20, 40], sstC: [20, 24, 30, 33] }, ciguatera: true },
   // Permit (pámpano, SPORT): catch and release by custom; sand and seagrass beside reef and the surf line. About 3 records.
