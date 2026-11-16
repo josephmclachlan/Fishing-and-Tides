@@ -2,87 +2,20 @@
  * Drawings for the Rigs and Releasing fish tabs. Same rules as art/water.ts: flat line art, page tokens only (classes
  * in notes-rigs.css, prefix `nt-rigs-`), numbered badges match each figure's marks in sections/rigs.ts and release.ts.
  *
- * The knots are drawn with a small kit: each strand is a smooth curve through control points that also carry a depth
- * (z, toward the viewer is positive). Wherever two strands cross, the one nearer the viewer is drawn again on top with
- * a gap cut around it, so every crossing shows the right strand over the other. The knot shapes follow the real tie:
- * an overhand knot is a loop with the end passed once around its lower side (three crossings, over and under in turn),
- * a double one passes it twice (five crossings).
+ * The four knot drawings live in art/knots.ts.
  */
 import { badge, type Fig } from './fig';
 import { RIGS_PICTS } from '../picts/rigs';
+import { clinch, dOf, dropper, n1, palomar, surgeon, type Pt } from './knots';
 
 type Lang = 'en' | 'es';
+
+// ---------------------------------------------------------------- shared bits
+
 const w = (lang: Lang, en: string, es: string) => (lang === 'es' ? es : en);
-const n1 = (v: number) => Math.round(v * 10) / 10;
-
-// ---------------------------------------------------------------- knot kit
-
-/** A control point: x, y and depth z (0 when left out). */
-type C = readonly [number, number, number?];
-interface Pt {
-  x: number;
-  y: number;
-  z: number;
-}
-interface Strand {
-  p: Pt[];
-  cls: string;
-  /** Draw the parts far behind (a coil's back half) in the dimmer ink. */
-  back?: boolean;
-}
-
-const dist = (a: Pt, b: Pt) => Math.hypot(b.x - a.x, b.y - a.y);
-
-/** A Catmull-Rom curve through the control points, sampled about every 2.5 units. */
-export function spline(c: readonly C[]): Pt[] {
-  const q = c.map(([x, y, z = 0]) => ({ x, y, z }));
-  const f = (a: number, b: number, c2: number, d: number, t: number) =>
-    0.5 * (2 * b + (-a + c2) * t + (2 * a - 5 * b + 4 * c2 - d) * t * t + (-a + 3 * b - 3 * c2 + d) * t * t * t);
-  const out: Pt[] = [];
-  for (let i = 0; i < q.length - 1; i++) {
-    const p0 = q[Math.max(0, i - 1)], p1 = q[i], p2 = q[i + 1], p3 = q[Math.min(q.length - 1, i + 2)];
-    const n = Math.max(3, Math.ceil(dist(p1, p2) / 2.5));
-    for (let k = 0; k < n; k++) {
-      const t = k / n;
-      out.push({ x: f(p0.x, p1.x, p2.x, p3.x, t), y: f(p0.y, p1.y, p2.y, p3.y, t), z: f(p0.z, p1.z, p2.z, p3.z, t) });
-    }
-  }
-  out.push(q[q.length - 1]);
-  return out;
-}
-
-/** The curve moved sideways by g(t) (t from 0 at the start to 1 at the end); positive is to the left of travel in screen terms. */
-function offset(p: Pt[], g: (t: number) => number): Pt[] {
-  return p.map((a, i) => {
-    const b = p[Math.min(i + 1, p.length - 1)], c = p[Math.max(i - 1, 0)];
-    const dx = b.x - c.x, dy = b.y - c.y, L = Math.hypot(dx, dy) || 1;
-    const d = g(i / (p.length - 1));
-    return { x: a.x - (dy / L) * d, y: a.y + (dx / L) * d, z: a.z };
-  });
-}
-
-/** A doubled line: out along one side of the centre curve, round the end, back along the other side. One strand. */
-function hairpin(c: Pt[], g: (t: number) => number): Pt[] {
-  const a = offset(c, g), b = offset(c, (t) => -g(t)).reverse();
-  const e = c[c.length - 1], pe = c[c.length - 3];
-  const L = dist(pe, e) || 1, tx = (e.x - pe.x) / L, ty = (e.y - pe.y) / L, nx = -ty, ny = tx;
-  const R = g(1), arc: Pt[] = [];
-  for (let k = 1; k < 10; k++) {
-    const f = (k / 10) * Math.PI;
-    arc.push({ x: e.x + R * (Math.cos(f) * nx + Math.sin(f) * tx), y: e.y + R * (Math.cos(f) * ny + Math.sin(f) * ty), z: e.z });
-  }
-  return [...a, ...arc, ...b];
-}
-
-/** A ring (a hook eye or a swivel eye) whose side at angle `front` is nearest the viewer, so a line threads through it. */
-function ring(cx: number, cy: number, r: number, front: number): Pt[] {
-  const out: Pt[] = [];
-  for (let k = 0; k <= 28; k++) {
-    const t = (k / 28) * 2 * Math.PI;
-    out.push({ x: cx + r * Math.cos(t), y: cy + r * Math.sin(t), z: 1.5 * Math.cos(t - front) });
-  }
-  return out;
-}
+const LN = 'nt-rigs-ln', LD = 'nt-rigs-ld', HK = 'nt-rigs-hk';
+const lbl = (x: number, y: number, t: string, anchor: 'start' | 'middle' | 'end' = 'start', cls = 'nt-lbl nt-lbl-s') =>
+  `<text class="${cls}" x="${x}" y="${y}" text-anchor="${anchor}">${t}</text>`;
 
 /** A J hook hanging from its eye at (x, y): shank down, bend to `dir` (1 right, -1 left), point up with its barb. */
 function jhook(x: number, y: number, s: number, dir: 1 | -1): { p: Pt[]; barb: string } {
@@ -100,268 +33,8 @@ function jhook(x: number, y: number, s: number, dir: 1 | -1): { p: Pt[]; barb: s
   return { p, barb };
 }
 
-const dOf = (p: Pt[]) => 'M' + p.map((a) => `${n1(a.x)} ${n1(a.y)}`).join('L');
-
-function hit(a: Pt, b: Pt, c: Pt, d: Pt): [number, number] | null {
-  const r = (b.x - a.x) * (d.y - c.y) - (b.y - a.y) * (d.x - c.x);
-  if (Math.abs(r) < 1e-9) return null;
-  const t = ((c.x - a.x) * (d.y - c.y) - (c.y - a.y) * (d.x - c.x)) / r;
-  const u = ((c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x)) / r;
-  return t >= 0 && t < 1 && u >= 0 && u < 1 ? [t, u] : null;
-}
-
-function around(p: Pt[], i: number, H: number): Pt[] {
-  let a = i, L = 0;
-  while (a > 0 && L < H) L += dist(p[a], p[--a]);
-  let b = i + 1;
-  L = 0;
-  while (b < p.length - 1 && L < H) L += dist(p[b], p[++b]);
-  return p.slice(a, b + 1);
-}
-
-/** Draws the strands, then redraws the nearer strand at every crossing with a gap around it. */
-function knot(ss: Strand[]): string {
-  let out = ss.map((s) => `<path class="${s.cls}" d="${dOf(s.p)}"/>`).join('');
-  for (const s of ss) {
-    if (!s.back) continue;
-    let run: Pt[] = [];
-    for (const q of [...s.p, { x: 0, y: 0, z: 9 }]) {
-      if (q.z < -0.45) run.push(q);
-      else {
-        if (run.length > 1) out += `<path class="${s.cls} nt-rigs-back" d="${dOf(run)}"/>`;
-        run = [];
-      }
-    }
-  }
-  const ov: { s: number; i: number; z: number }[] = [];
-  for (let a = 0; a < ss.length; a++)
-    for (let b = a; b < ss.length; b++) {
-      const A = ss[a].p, B = ss[b].p;
-      for (let i = 0; i < A.length - 1; i++)
-        for (let j = a === b ? i + 3 : 0; j < B.length - 1; j++) {
-          const r = hit(A[i], A[i + 1], B[j], B[j + 1]);
-          if (!r) continue;
-          const za = A[i].z + (A[i + 1].z - A[i].z) * r[0], zb = B[j].z + (B[j + 1].z - B[j].z) * r[1];
-          if (Math.abs(za - zb) < 1e-6) continue;
-          ov.push(za > zb ? { s: a, i, z: za } : { s: b, i: j, z: zb });
-        }
-    }
-  ov.sort((p, q) => p.z - q.z);
-  for (const o of ov) {
-    const d = dOf(around(ss[o.s].p, o.i, 7));
-    out += `<path class="nt-rigs-halo" d="${d}"/><path class="${ss[o.s].cls}" d="${d}"/>`;
-  }
-  return out;
-}
-
-const LN = 'nt-rigs-ln', LD = 'nt-rigs-ld', HK = 'nt-rigs-hk';
-const G = 2.5; // half the gap of a doubled line
-
-/** A dashed arrow along a curve, with its head at the end. */
-function arrow(c: readonly C[], cls = 'nt-rigs-ar'): string {
-  const p = spline(c), e = p[p.length - 1], q = p[Math.max(0, p.length - 4)];
-  const a = Math.atan2(e.y - q.y, e.x - q.x), h = 6.5;
-  const s = (k: number) => `${n1(e.x - h * Math.cos(a + k))} ${n1(e.y - h * Math.sin(a + k))}`;
-  return `<path class="${cls}" d="${dOf(p)}"/><path class="nt-rigs-arh" d="M${s(0.5)} L${n1(e.x)} ${n1(e.y)} L${s(-0.5)}"/>`;
-}
-
-/** Four step panels in a 320 by 280 box, each numbered in its top left corner. */
-const PW = 154, PH = 134;
-const PANELS: readonly [number, number][] = [[4, 4], [162, 4], [4, 142], [162, 142]];
-function panels(parts: string[]): string {
-  return parts
-    .map((s, i) => {
-      const [x, y] = PANELS[i];
-      return `<g transform="translate(${x} ${y})"><rect class="nt-rigs-pan" x="0" y="0" width="${PW}" height="${PH}"/>${s}${badge(i + 1, 13, 13)}</g>`;
-    })
-    .join('');
-}
-const lbl = (x: number, y: number, t: string, anchor: 'start' | 'middle' | 'end' = 'start', cls = 'nt-lbl nt-lbl-s') =>
-  `<text class="${cls}" x="${x}" y="${y}" text-anchor="${anchor}">${t}</text>`;
-
-/** Scale control points about a centre. */
-const scaleC = (c: readonly C[], cx: number, cy: number, k: number): C[] => c.map(([x, y, z = 0]) => [cx + (x - cx) * k, cy + (y - cy) * k, z] as const);
-
-// ---------------------------------------------------------------- Palomar
-
-const PE: [number, number] = [57, 74]; // the hook eye in every Palomar panel
-const ER = 5.2; // eye radius
-
-/** The doubled line tied in a loose overhand knot, the hook hanging from the bottom bight. */
-const PAL_KNOT: C[] = [
-  [24, 48], [46, 50], [70, 51], [94, 50], [110, 42], [114, 26], [104, 12], [84, 6], [62, 8], [46, 18],
-  [40, 34, 0.4], [44, 50, 1], [48, 63, 0.4], [52, 71, 0], [57, 74, 0], [62, 71, 0], [66, 63, -0.4], [69, 51, -1],
-  [71, 38, -0.3], [77, 30, 0], [85, 34, 0.3], [89, 42, 0.7], [90, 51, 1], [92, 62, 0.4],
-];
-
-function palomar(lang: Lang): string {
-  const gap = (end: number, open: number) => (t: number) => (t < open ? G : G + ((t - open) / (1 - open)) * (end - G));
-  const eye = (front: number) => ring(PE[0], PE[1], ER, front);
-  const h = jhook(PE[0], PE[1] + ER - 4.5, 1.1, -1);
-  const hk = (front: number): Strand[] => [{ p: eye(front), cls: HK }, { p: h.p, cls: HK }];
-  // 1: the doubled line passed through the eye
-  const s1 = hairpin(spline([[6, 0], [20, 18], [34, 40], [47, 61], [57, 74], [67, 86], [81, 97], [98, 104], [114, 106]]), gap(5, 0.85));
-  const p1 = knot([{ p: s1, cls: LN }, ...hk(-2.36)]) + h.barb + lbl(42, 34, '25 cm');
-  // 2: a loose overhand knot in the doubled line, the hook hanging from it
-  const s2 = hairpin(spline([[0, 46], ...PAL_KNOT, [100, 72], [116, 78], [136, 82]]), gap(6, 0.86));
-  const p2 = knot([{ p: s2, cls: LN }, ...hk(Math.PI)]) + h.barb;
-  // 3: the loop end passed over the hook: the hook goes through the loop, in front of one side and behind the other
-  const k3 = spline([[0, 46], ...PAL_KNOT, [97, 69]]);
-  const A = offset(k3, () => G), B = offset(k3, () => -G).reverse();
-  const a1 = A[A.length - 1], b0 = B[0];
-  const loop3 = spline([[a1.x, a1.y], [92, 80], [74, 86, 1.2], [54, 86, 1.2], [36, 88], [26, 96], [30, 105], [46, 106, -1.2], [62, 106, -1.2], [88, 100], [102, 84], [b0.x, b0.y]]);
-  const p3 = knot([{ p: [...A, ...loop3.slice(1, -1), ...B], cls: LN }, ...hk(Math.PI)]) + h.barb + arrow([[126, 96], [116, 118], [80, 126], [44, 122]]);
-  // 4: pulled tight on the eye; the loop sits round the shank below the eye; the short end trimmed
-  const k4 = scaleC(PAL_KNOT, PE[0], PE[1], 0.56);
-  const c4 = spline([...k4, [77, 72], [72, 82], [63, 87], [55, 88]]);
-  const s4 = hairpin(c4, (t) => (t < 0.8 ? 2.2 : 2.2 + ((t - 0.8) / 0.2) * 3.5));
-  const s4z = s4.map((q) => (q.y > 79 && q.x > 48 ? { ...q, z: q.x > 60 ? 1.2 : q.y > 86 ? -1.2 : q.z } : q));
-  const main = spline([[s4[0].x, s4[0].y], [28, 48], [0, 38]]);
-  const tag = s4[s4.length - 1];
-  const p4 =
-    knot([{ p: s4z, cls: LN }, { p: main, cls: LN }, ...hk(Math.PI)]) + h.barb +
-    lbl(26, 29, w(lang, 'MAIN LINE', 'LÍNEA')) + lbl(30, 96, '3 mm', 'end') + `<path class="nt-rigs-dim" d="M30 88 L${n1(tag.x - 1)} ${n1(tag.y + 2)}"/>`;
-  return panels([p1, p2, p3, p4]);
-}
-
-// ---------------------------------------------------------------- improved clinch
-
-function helix(x0: number, x1: number, y: number, a: number, turns: number, phase = 0): Pt[] {
-  const out: Pt[] = [];
-  const n = Math.ceil((x1 - x0) / 1.2);
-  for (let k = 0; k <= n; k++) {
-    const x = x0 + ((x1 - x0) * k) / n, f = phase + (2 * Math.PI * turns * k) / n;
-    out.push({ x, y: y - a * Math.cos(f), z: 1.2 * Math.sin(f) });
-  }
-  return out;
-}
-
-function clinch(lang: Lang): string {
-  const Y = 64, EX = 22, R = 5.5;
-  const h = jhook(EX, Y + R - 4.5, 1.25, 1);
-  const eye = ring(EX, Y, R, 0);
-  const hook = (s: Strand[]) => knot([...s, { p: eye, cls: HK }, { p: h.p, cls: HK }]) + h.barb;
-  const stand = (z = 0) => spline([[154, Y, z], [100, Y, 0], [50, Y, 0], [30, Y, 0], [EX, Y, 0], [14, Y, -0.4]]);
-  const uturn: C[] = [[14, Y, -0.4], [6, Y - 6, -0.5], [7, Y - 15, -0.4], [18, Y - 20, -0.2], [34, Y - 19, 0], [48, Y - 12, 0]];
-  // 1: through the eye and doubled back
-  const s1 = spline([[154, Y, 0.3], [90, Y, 0.3], [40, Y, 0.3], [EX, Y, 0], [14, Y, -0.4], ...uturn.slice(1, 4), [40, Y - 22, 0], [80, Y - 22, 0], [112, Y - 24, 0]]);
-  const p1 = hook([{ p: s1, cls: LN }]) + lbl(150, Y - 32, w(lang, 'SHORT END', 'PUNTA'), 'end');
-  // 2: five turns of the short end round the main line
-  const wraps = helix(52, 122, Y, 10, 5);
-  const tag2 = [...spline(uturn), ...spline([[48, Y - 12], [52, Y - 10]]).slice(1), ...wraps.slice(1), ...spline([[122, Y - 10], [128, Y - 18], [136, Y - 26]]).slice(1)];
-  const p2 = hook([{ p: stand(), cls: LN }, { p: tag2, cls: LN, back: true }]) + lbl(87, Y + 30, '× 5+', 'middle', 'nt-lbl');
-  // 3: the end back through the small loop by the eye, then (arrow) back up through the big loop
-  const tuck = spline([[122, Y - 10], [130, Y - 20], [132, Y - 36], [120, Y - 50], [92, Y - 54], [64, Y - 50], [46, Y - 40], [39, Y - 28, 0.6], [38, Y - 17, 1], [37, Y - 8, 0], [37, Y, -1], [39, Y + 10, -0.6], [42, Y + 20, -0.4]]).slice(1);
-  const tag3 = [...spline(uturn), ...spline([[48, Y - 12], [52, Y - 10]]).slice(1), ...wraps.slice(1), ...tuck];
-  const p3 = hook([{ p: stand(), cls: LN }, { p: tag3, cls: LN, back: true }]) + arrow([[46, Y + 24], [62, Y + 28], [76, Y + 16], [78, Y - 30]]);
-  // 4: pulled down tight against the eye: the turns packed into a neat coil (only their front halves show), the short end trimmed
-  const wraps4 = helix(34, 70, Y, 6.5, 5);
-  const fronts: Strand[] = [];
-  let cur: Pt[] = [];
-  for (const q of [...wraps4, { x: 0, y: 0, z: -9 }]) {
-    if (q.z > 0.05) cur.push({ ...q, z: 2 });
-    else if (cur.length) (fronts.push({ p: cur, cls: LN }), (cur = []));
-  }
-  const p4 =
-    hook([
-      { p: stand(0.2), cls: LN },
-      { p: spline([[14, Y, -0.4], [9, Y - 5, -0.5], [13, Y - 9, -0.3], [26, Y - 8, 0], [34, Y - 6.5, 0]]), cls: LN },
-      ...fronts,
-      { p: spline([[36, Y - 10, 2.4], [42, Y - 18, 2.4], [47, Y - 23, 2.4]]), cls: LN },
-    ]) + lbl(52, Y - 24, '3 mm', 'start');
-  return panels([p1, p2, p3, p4]);
-}
-
-// ---------------------------------------------------------------- dropper loop
-
-/** Two strands twisted round each other along y0, from x0 to x1, the phase running from f0 to f1 (a crossing every half turn). */
-function twist(x0: number, x1: number, y0: number, a: (x: number) => number, f0: number, f1: number, sign: 1 | -1): Pt[] {
-  const out: Pt[] = [];
-  const n = Math.ceil((x1 - x0) / 1);
-  for (let k = 0; k <= n; k++) {
-    const x = x0 + ((x1 - x0) * k) / n, f = f0 + ((f1 - f0) * k) / n;
-    out.push({ x, y: y0 - sign * a(x) * Math.sin(f), z: sign * 1.2 * Math.cos(f) });
-  }
-  return out;
-}
-
-function dropper(): string {
-  // 1: a loop in the line
-  const p1 = knot([{ p: spline([[0, 40], [30, 40], [58, 42], [78, 54], [86, 74], [76, 94], [58, 98], [46, 84], [48, 62, 0.5], [60, 47, 1], [74, 40, 0.5], [100, 36], [154, 36]]), cls: LN }]);
-  // 2: the turns, an opening kept in the middle, the loop hanging below
-  const y0 = 36, A = (x: number) => (x > 62 && x < 92 ? 4.5 + 7 * Math.sin((Math.PI * (x - 62)) / 30) : 4.5);
-  const fL0 = Math.PI / 2, fL1 = fL0 + 5 * Math.PI, fR1 = fL1 + 6 * Math.PI;
-  const run = (sign: 1 | -1) => [...twist(12, 62, y0, A, fL0, fL1, sign), ...twist(62, 92, y0, A, fL1, fL1, sign).slice(1), ...twist(92, 142, y0, A, fL1, fR1, sign).slice(1)];
-  const P1 = run(1), P2 = run(-1);
-  const whole = (legs: Pt[]) => [...spline([[0, 30], [12, 31.5]]), ...P1.slice(1), ...legs.slice(1), ...P2.slice(1), ...spline([[142, 31.5], [154, 30]]).slice(1)];
-  const legs2 = spline([[142, 40.5], [149, 54], [146, 82], [124, 104], [78, 112], [32, 104], [10, 82], [6, 54], [12, 40.5]]);
-  const p2 = knot([{ p: whole(legs2), cls: LN }]) + lbl(77, 66, '6+', 'middle', 'nt-lbl');
-  // 3: the bottom of the loop pushed up through the opening and held
-  const legs3 = spline([
-    [142, 40.5], [149, 54], [146, 84], [126, 104], [100, 100], [86, 76], [83.5, 52, 0.6], [83, 44, 1.2], [82.5, 34, 0], [82, 22, -1.2], [80, 10, -0.5], [77, 4, 0],
-    [73, 10, -0.5], [71.5, 22, -1.2], [71, 34, 0], [71, 44, 1.2], [70.5, 52, 0.6], [67, 76], [54, 100], [28, 104], [10, 84], [6, 54], [12, 40.5],
-  ]);
-  const p3 = knot([{ p: whole(legs3), cls: LN }]) + arrow([[100, 24], [100, 4]]);
-  // 4: pulled tight: the turns packed on each side, the loop standing out at a right angle; still only two ends
-  const y4 = 92, a4 = () => 4.6, g0 = Math.PI / 2, g1 = g0 + 5 * Math.PI;
-  const lead = spline([[0, y4 - 3], [34, y4 - 4.6]]);
-  const L1 = twist(34, 70, y4, a4, g0, g1, 1), L2 = twist(34, 70, y4, a4, g0, g1, -1);
-  const R1 = twist(86, 122, y4, a4, g1, g1 + 5 * Math.PI, 1), R2 = twist(86, 122, y4, a4, g1, g1 + 5 * Math.PI, -1);
-  const tail = spline([[122, y4 - 4.6], [154, y4 - 3]]);
-  const m1 = spline([[70, y4 + 4.6], [78, y4 + 6], [86, y4 + 4.6]]), m2 = spline([[70, y4 - 4.6], [78, y4 - 6], [86, y4 - 4.6]]);
-  const loop4 = spline([[74, y4, 1], [73, y4 - 12, 1], [70, 56], [70, 36], [78, 28], [86, 36], [86, 56], [83, y4 - 12, 1], [82, y4, 1]]);
-  const p4 =
-    knot([
-      { p: [...lead, ...L1.slice(1), ...m1.slice(1), ...R1.slice(1)], cls: LN, back: true },
-      { p: [...L2, ...m2.slice(1), ...R2.slice(1), ...tail.slice(1)], cls: LN, back: true },
-      { p: loop4, cls: LN },
-    ]) + lbl(98, 62, '90°', 'start', 'nt-lbl');
-  return panels([p1, p2, p3, p4]);
-}
-
-// ---------------------------------------------------------------- surgeon's knot
-
-function pair(c: readonly C[], g = G): Strand[] {
-  const p = spline(c);
-  return [{ p: offset(p, () => g), cls: LN }, { p: offset(p, () => -g), cls: LD }];
-}
-
-const SURG2: C[] = [
-  [0, 80], [30, 80], [56, 80], [86, 80], [108, 76], [122, 60], [118, 36], [98, 22], [72, 20], [50, 28], [40, 46, 0.4], [44, 80, 1], [48, 96, 0.4],
-  [56, 104, 0], [64, 98, -0.4], [68, 80, -1], [72, 62, -0.3], [80, 58, 0], [88, 64, 0.3], [92, 80, 1], [98, 98, 0.3], [112, 108], [154, 112],
-];
-const SURG3: C[] = [
-  [0, 84], [24, 84], [50, 84], [80, 84], [108, 84], [126, 74], [132, 52], [122, 30], [98, 18], [70, 18], [48, 26], [36, 46, 0.4], [40, 84, 1], [42, 96, 0.4],
-  [48, 104, 0], [56, 98, -0.4], [58, 84, -1], [60, 68, -0.3], [66, 62, 0], [72, 68, 0.3], [74, 84, 1], [76, 98, 0.3], [82, 104, 0], [88, 98, -0.4],
-  [90, 84, -1], [92, 68, -0.3], [98, 62, 0], [104, 68, 0.3], [106, 84, 1], [110, 100, 0.3], [124, 110], [154, 114],
-];
-
-function surgeon(lang: Lang): string {
-  // 1: the two lines side by side, overlapping
-  const p1 =
-    `<path class="${LN}" d="M0 70 L118 70"/><path class="${LD}" d="M154 63 L34 63"/>` +
-    `<path class="nt-rigs-dim" d="M34 44 V52 M118 44 V52 M34 48 H118"/>` + lbl(76, 40, '20–25 cm', 'middle') +
-    lbl(4, 90, w(lang, 'MAIN LINE', 'LÍNEA')) + lbl(150, 90, w(lang, 'LEADER', 'LÍDER'), 'end');
-  // 2: one overhand knot with both lines held as one
-  const p2 = knot(pair(SURG2));
-  // 3: through the loop a second time
-  const p3 = knot(pair(SURG3));
-  // 4: pulled tight; the two short ends trimmed
-  const k = scaleC(SURG3.slice(2, -1), 82, 66, 0.4);
-  const c4 = spline(k), mainP = offset(c4, () => 2.1), ldrP = offset(c4, () => -2.1);
-  const m0 = mainP[0], l1 = ldrP[ldrP.length - 1];
-  const p4 = knot([
-    { p: [...spline([[0, m0.y - 4], [m0.x, m0.y]]), ...mainP.slice(1)], cls: LN },
-    { p: [...ldrP, ...spline([[l1.x, l1.y], [154, l1.y + 4]]).slice(1)], cls: LD },
-  ]) + lbl(4, 58, w(lang, 'MAIN LINE', 'LÍNEA')) + lbl(150, 102, w(lang, 'LEADER', 'LÍDER'), 'end');
-  return panels([p1, p2, p3, p4]);
-}
-
 // ---------------------------------------------------------------- tackle pieces for the rig drawings
 
-/** An egg sinker the line runs through. */
-const eggSinker = (x: number, y: number, rx = 7, ry = 13) =>
-  `<ellipse class="nt-rigs-sk" cx="${x}" cy="${y}" rx="${rx}" ry="${ry}"/><path class="nt-rigs-thru" d="M${x} ${y - ry + 2} V${y + ry - 2}"/>`;
 /** A barrel swivel standing upright, top eye at y. */
 const swivel = (x: number, y: number) =>
   `<circle class="nt-rigs-sw" cx="${x}" cy="${y}" r="3.2"/><rect class="nt-rigs-swb" x="${x - 3.2}" y="${y + 3.6}" width="6.4" height="9"/><circle class="nt-rigs-sw" cx="${x}" cy="${y + 16.4}" r="3.2"/>`;
@@ -385,25 +58,25 @@ const seabed = (y: number, W = 320) => `<path class="nt-rigs-bed" d="M0 ${y} C40
 
 /** Running-sinker bottom rig: main line, sliding egg sinker, bead, swivel, leader with the current, hook near the bottom. 320 by 300. */
 function rigRun(lang: Lang): string {
-  const X = 92;
+  const B = 264; // where the rig lies on the bottom
   return (
     `<rect class="nt-sea" x="0" y="0" width="320" height="300"/>` + seabed(272) +
     // the current along the bottom
-    `<path class="nt-rigs-cur" d="M136 226 H196 M150 206 H210"/><path class="nt-rigs-curh" d="M190 221 L196 226 L190 231 M204 201 L210 206 L204 211"/>` +
-    lbl(236, 210, w(lang, 'CURRENT', 'CORRIENTE'), 'start') +
-    `<path class="${LN}" d="M${X} 0 V242"/>` +
-    `<path class="nt-rigs-slide" d="M${X} 150 V186"/>` +
-    eggSinker(X, 196) +
-    `<circle class="nt-rigs-bead" cx="${X}" cy="215" r="3.6"/>` + swivel(X, 224) +
-    `<path class="${LD}" d="M${X} 244 C${X + 10} 262 150 256 196 258 S240 262 248 258"/>` +
-    shrimp(266, 268) + hookPath(252, 254, 0.8, 1) +
-    // hand span: from the sinker to the bottom
-    `<path class="nt-rigs-dim" d="M58 209 H66 M58 268 H66 M62 209 V268"/>` + lbl(54, 242, w(lang, '1 SPAN', '1 PALMO'), 'end') +
-    lbl(X + 12, 84, w(lang, 'MAIN LINE', 'LÍNEA PRINCIPAL')) +
-    lbl(X + 14, 186, w(lang, 'SINKER 14–60 g', 'PLOMO 14–60 g')) + lbl(X + 14, 197, '1/2–2 oz') +
-    lbl(X + 14, 222, w(lang, 'BEAD', 'CUENTA')) + lbl(X + 14, 236, w(lang, 'SWIVEL', 'DESTORCEDOR')) +
-    lbl(170, 278, w(lang, 'LEADER 50–80 cm', 'LÍDER 50–80 cm'), 'middle', 'nt-lbl nt-lbl-s nt-rigs-onbed') +
-    badge(1, X - 20, 190) + badge(2, X - 20, 226) + badge(3, 214, 246) + badge(4, 40, 186)
+    `<path class="nt-rigs-cur" d="M200 186 H254 M212 166 H266"/><path class="nt-rigs-curh" d="M248 181 L254 186 L248 191 M260 161 L266 166 L260 171"/>` +
+    lbl(312, 206, w(lang, 'CURRENT', 'CORRIENTE'), 'end') +
+    // main line from the rod, just tight, down to the sinker resting on the bottom
+    `<path class="${LN}" d="M24 60 C36 160 64 228 132 ${B - 2} L150 ${B}"/>` +
+    `<ellipse class="nt-rigs-sk" cx="120" cy="${B - 4}" rx="14" ry="7.5" transform="rotate(12 120 ${B - 4})"/>` +
+    `<path class="nt-rigs-thru" d="M108 ${B - 7} L132 ${B - 1}"/>` +
+    `<circle class="nt-rigs-bead" cx="140" cy="${B - 1}" r="3.6"/>` +
+    `<circle class="nt-rigs-sw" cx="${150}" cy="${B}" r="3.2"/><rect class="nt-rigs-swb" x="153.6" y="${B - 3.2}" width="9" height="6.4"/><circle class="nt-rigs-sw" cx="166.4" cy="${B}" r="3.2"/>` +
+    `<path class="${LD}" d="M170 ${B} C190 ${B - 2} 214 ${B - 6} 236 ${B - 6}"/>` +
+    shrimp(266, B - 2) + hookPath(250, B - 16, 0.8, 1) +
+    lbl(46, 126, w(lang, 'MAIN LINE', 'LÍNEA PRINCIPAL')) +
+    lbl(96, 212, w(lang, 'SINKER 14–60 g', 'PLOMO 14–60 g'), 'start') + lbl(96, 223, '1/2–2 oz', 'start') +
+    lbl(138, 240, w(lang, 'BEAD', 'CUENTA'), 'start') + lbl(138, 251, w(lang, 'SWIVEL', 'DESTORCEDOR'), 'start') +
+    lbl(236, 292, w(lang, 'LEADER 50–80 cm', 'LÍDER 50–80 cm'), 'middle', 'nt-lbl nt-lbl-s nt-rigs-onbed') +
+    badge(1, 84, 208) + badge(2, 154, 286) + badge(3, 214, 244) + badge(4, 28, 170)
   );
 }
 
@@ -614,7 +287,7 @@ function baitMatrix(lang: Lang): string {
   const rows: { id: PictKey; n: string; b: number[]; hook: string }[] = [
     { id: 'rgsnapper', n: w(lang, 'SNAPPER', 'PARGO'), b: [1, 1, 1, 1], hook: '1/0–2/0' },
     { id: 'rgjack', n: w(lang, 'JACK', 'JUREL'), b: [0, 1, 1, 0], hook: '4/0–6/0' },
-    { id: 'rgsnook', n: w(lang, 'SNOOK', 'RÓBALO'), b: [1, 1, 0, 0], hook: '4/0' },
+    { id: 'rgsnook', n: w(lang, 'SNOOK', 'RÓBALO'), b: [1, 1, 0, 0], hook: '4/0–6/0' },
     { id: 'rgmackerel', n: w(lang, 'MACKEREL', 'MACARELA'), b: [0, 1, 1, 0], hook: '1/0–2/0' },
     { id: 'rggrouper', n: w(lang, 'GROUPER', 'MERO'), b: [0, 1, 1, 1], hook: '2/0–4/0' },
   ];
@@ -771,7 +444,7 @@ function rlTurtle(lang: Lang): string {
     `<path class="nt-rigs-head" d="M90 60 C82 52 66 52 60 60 C66 68 82 68 90 60 Z"/>` +
     `<path class="${LN}" d="M62 60 C40 60 30 50 22 30 L14 0"/>` + scissors(14, 54) +
     `<path class="nt-rigs-no" d="M236 70 V30 M228 38 L236 30 L244 38"/>` + stopX(236, 50, 16) +
-    lbl(236, 92, w(lang, 'DO NOT LIFT', 'NO LEVANTE'), 'middle', 'nt-lbl nt-lbl-s nt-rigs-onsea')
+    lbl(236, 92, w(lang, 'NOT BY THE LINE', 'NO POR LA LÍNEA'), 'middle', 'nt-lbl nt-lbl-s nt-rigs-onsea')
   );
 }
 

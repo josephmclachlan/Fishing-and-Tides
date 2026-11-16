@@ -196,7 +196,7 @@ export const cook: Section = {
         { t: L('Cut off all the venomous spines of the dorsal, pelvic and anal fins before you handle the fish.{lionfish}', 'Corte todas las espinas venenosas de las aletas dorsal, pélvicas y anal antes de manipular el pescado.{lionfish}') },
         { t: L('Fillet it as you would a snapper.', 'Filetéelo como un pargo.') },
         { t: L('The flesh is not venomous: fry, bake, steam or poach it like other non-oily fish.{lionfish}', 'La carne no es venenosa: fríala, hornéela, cocínela al vapor o escálfela como otros pescados no grasos.{lionfish}') },
-        { t: L('Also good in ceviche (if very fresh) or in rondón.{lionfish}', 'También queda bien en ceviche (si está muy fresca) o en rondón.{lionfish}') },
+        { t: L('Good in rondón. Lionfish can still carry ciguatera on some Caribbean reefs, so read the Ciguatera page first and ask local fishers.{lfcig}', 'Queda bien en rondón. El pez león igual puede tener ciguatera en algunos arrecifes del Caribe, así que lea antes la página de Ciguatera y pregunte a los pescadores locales.{lfcig}') },
       ],
     },
   ],
@@ -218,6 +218,12 @@ export const cook: Section = {
       u: 'https://www.cdc.gov/yellow-book/hcp/environmental-hazards-risks/food-poisoning-from-marine-toxins.html',
       p: 'P',
       what: L('Ciguatoxin is not destroyed by cooking, freezing, pickling, salting or smoking.', 'La ciguatoxina no se destruye al cocinar, congelar, encurtir, salar ni ahumar.'),
+    },
+    lfcig: {
+      t: 'Hardison et al. 2018, Investigation of ciguatoxins in invasive lionfish from the greater Caribbean region, PLoS ONE 13(6): e0198358',
+      u: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC6010213/',
+      p: 'P',
+      what: L('Of 293 lionfish from 13 places, 0.7% were above the FDA guidance level, but measurable ciguatoxin was found in up to 53% of fish in parts of the eastern Caribbean; lionfish can carry it to levels of concern in ciguatera areas.', 'De 293 peces león de 13 lugares, 0,7% superó el nivel guía de la FDA, pero se halló ciguatoxina medible hasta en 53% de los peces en partes del Caribe oriental; el pez león puede acumularla a niveles preocupantes en zonas de ciguatera.'),
     },
     lionfish: {
       t: 'Florida Fish and Wildlife Conservation Commission, Lionfish brochure',

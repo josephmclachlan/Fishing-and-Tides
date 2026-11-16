@@ -117,13 +117,13 @@ export const release: Section = {
 
     {
       k: 'cards',
-      h: L('Turtles and rays: never lift them', 'Tortugas y rayas: nunca las levante'),
+      h: L('Turtles and rays: never by the line', 'Tortugas y rayas: nunca por la línea'),
       items: [
         {
           fig: 'rlturtle',
           tone: 'stop',
           h: L('Sea turtle', 'Tortuga marina'),
-          t: L('Protected. If one is hooked or tangled, do not lift it by the line, the shell or the flippers.', 'Protegida. Si una queda enganchada o enredada, no la levante por la línea, el caparazón ni las aletas.'),
+          t: L('Protected. If one is hooked or tangled, never lift it by the line or the hook. Lift a small one by its shell or with a net, and keep your hands away from its mouth and flippers.{turtle}', 'Protegida. Si una queda enganchada o enredada, nunca la levante por la línea ni el anzuelo. Levante una pequeña por el caparazón o con una red, y mantenga las manos lejos de la boca y las aletas.{turtle}'),
           list: [
             L('Keep the boat or the line still.', 'Mantenga quieto el bote o la línea.'),
             L('Bring it alongside gently.', 'Acérquela con suavidad.'),
@@ -150,6 +150,12 @@ export const release: Section = {
     },
   ],
   sources: {
+    turtle: {
+      t: 'NOAA Fisheries, Frequently asked questions: release protocols for ESA-listed sea turtles and smalltooth sawfish',
+      u: 'https://www.fisheries.noaa.gov/southeast/resources-fishing/frequently-asked-questions-release-protocols-endangered-species-act',
+      p: 'P',
+      what: L('Bring a hooked turtle aboard with a dip net, never by pulling on the line it is caught on; from a pier or the shore use a net or lift it by the shell.', 'Subir una tortuga enganchada con una red, nunca jalando la línea en que está enganchada; desde un muelle o la orilla usar una red o levantarla por el caparazón.'),
+    },
     cdc: {
       t: 'CDC Yellow Book: Food Poisoning from Marine Toxins',
       u: 'https://www.cdc.gov/yellow-book/hcp/environmental-hazards-risks/food-poisoning-from-marine-toxins.html',

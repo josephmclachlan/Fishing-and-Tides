@@ -54,8 +54,8 @@ export const aid: Section = {
     {
       k: 'tiles',
       items: [
-        { ico: 'seawater', tone: 'go', h: L('Seawater: yes', 'Agua de mar: sí'), t: L('Rinse any sting with it. If you do not know the animal, rinse with seawater and do not rub.', 'Enjuague cualquier picadura con ella. Si no sabe qué animal fue, enjuague con agua de mar y no frote.') },
-        { ico: 'notap', tone: 'stop', h: L('Fresh water: no', 'Agua dulce: no'), t: L('It may make the stinging cells fire.{jf}{nhs}', 'Puede hacer que las células urticantes disparen.{jf}{nhs}') },
+        { ico: 'seawater', tone: 'go', h: L('Jellyfish, fire coral, sea lice: seawater', 'Medusa, coral de fuego, piojo de mar: agua de mar'), t: L('Rinse these stings with seawater and do not rub. If you do not know what stung you, do the same.', 'Enjuague estas picaduras con agua de mar y no frote. Si no sabe qué lo picó, haga lo mismo.') },
+        { ico: 'notap', tone: 'stop', h: L('Jellyfish: no fresh water', 'Medusa: sin agua dulce'), t: L('Fresh water may make the stinging cells left on the skin fire again. For spines, cuts and cone shells, clean fresh water is fine.{jf}{nhs}', 'El agua dulce puede hacer que las células urticantes que quedan en la piel vuelvan a disparar. Para espinas, cortes y conos, el agua dulce limpia está bien.{jf}{nhs}') },
         { ico: 'nodrop', tone: 'stop', h: L('Urine: no', 'Orina: no'), t: L('Do not use urine.{nhs}', 'No use orina.{nhs}') },
         { ico: 'nobottle', tone: 'stop', h: L('Alcohol: never', 'Alcohol: nunca') },
         { ico: 'nosand', tone: 'stop', h: L('Sand: never', 'Arena: nunca') },
@@ -257,9 +257,11 @@ export const aid: Section = {
       alert: true,
       h: L('Shark bite', 'Mordedura de tiburón'),
       steps: [
+        { ico: 'phone', tone: 'stop', h: L('Call 911', 'Llame al 911'), t: L('Or send someone to call while you help.', 'O mande a alguien a llamar mientras usted ayuda.') },
         { ico: 'swim', h: L('Everyone out of the water', 'Todos fuera del agua') },
-        { ico: 'faint', h: L('Lay flat, keep warm', 'Acueste y abrigue'), t: L('Lay the person flat and keep them warm.', 'Acueste a la persona y manténgala abrigada.') },
-        { ico: 'band', h: L('Heavy limb bleeding', 'Sangrado fuerte de un miembro'), t: L('If pressure is not enough, tie a tourniquet above the wound.', 'Si la presión no basta, ponga un torniquete arriba de la herida.') },
+        { ico: 'bandage', tone: 'stop', h: L('Press hard on the wound', 'Presione fuerte la herida'), t: L('Push a cloth or towel hard onto the bleeding and do not let go.', 'Apriete con fuerza una tela o toalla sobre el sangrado y no la suelte.') },
+        { ico: 'band', h: L('Still bleeding from an arm or leg?', '¿Sigue sangrando un brazo o pierna?'), t: L('Tie a tourniquet (a tight band) a hand width above the wound.', 'Ponga un torniquete (una banda bien apretada) un palmo arriba de la herida.') },
+        { ico: 'faint', h: L('Lay flat, keep warm', 'Acueste y abrigue'), t: L('Lay the person flat and keep them warm until help comes.', 'Acueste a la persona y manténgala abrigada hasta que llegue ayuda.') },
         { ico: 'hospital', tone: 'stop', h: L('Hospital for every bite', 'Hospital para toda mordedura'), t: L('Even a small shark bite needs hospital care.', 'Aun una mordedura pequeña de tiburón necesita hospital.') },
       ],
     },
