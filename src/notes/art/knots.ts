@@ -234,26 +234,29 @@ function palomar(lang: Lang): string {
 }
 
 /**
- * The finished Palomar on the same hook: the doubled line goes down through the eye; the overhand knot is a doubled
- * band wrapped round the two lines just above the eye; the loop has slid up and sits round the shank just below the eye.
+ * The finished Palomar on the same hook: two strands go down in front, through the eye and back up behind it; the loop
+ * has slid up past the eye and sits round all of them just above it; the overhand knot sits on top; the short end is cut.
  */
 function palomarDone(lang: Lang): string {
   const H = hook(E[0], E[1], ER);
   const [x, y] = E;
   const top = y - ER;
-  // the two lines (main line on the left, short end on the right) down over the eye's top and into it
-  const main = spline([[x - 3, -6], [x - 3, 30], [x - 3, top - 2, 0.6], [x - 3, top + 2, 1.4], [x - 3, top + 6, -1]]);
-  const tag = spline([[x + 5, 38], [x + 3, 46], [x + 3, top - 2, 0.6], [x + 3, top + 2, 1.4], [x + 3, top + 6, -1]]);
-  // the overhand knot: a doubled band across the front of both lines, its ends going round behind them
-  const band = spline([[x - 14, top - 18, -1], [x - 9, top - 13, 1.6], [x, top - 10, 2], [x + 9, top - 7, 1.6], [x + 14, top - 2, -1]]);
+  /** One strand: down in front at x0, through the eye, back up behind at x1. */
+  const thru = (x0: number, x1: number, y0: number) =>
+    spline([[x0, y0], [x0, top - 4, 0.6], [x0, top + 2, 1.4], [x0, y - 1, 0.4], [(x0 + x1) / 2, y + 3, -1.2], [x1, y - 2, -1.6], [x1, top - 2, -1.6], [x1, top - 30, -1.6]]);
+  const main = thru(x - 3, x - 8, -6);
+  const short = thru(x + 3, x + 8, top - 30);
+  // the loop, slid up past the eye: two turns round all four strands just above it
+  const ring = (cy: number) => spline([[x - 13, cy], [x - 8, cy + 3.5, 2], [x, cy + 4.5, 2.2], [x + 8, cy + 3.5, 2], [x + 13, cy], [x + 8, cy - 3.5, -2.2], [x, cy - 4.5, -2.4], [x - 8, cy - 3.5, -2.2], [x - 13, cy]]);
+  // the overhand knot on top: a doubled band across the front, its ends round the back
+  const band = spline([[x - 15, top - 34, -2], [x - 9, top - 30, 2.4], [x, top - 26, 2.6], [x + 9, top - 22, 2.4], [x + 15, top - 18, -2]]);
   const b1 = offset(band, 2.9), b2 = offset(band, -2.9);
-  // the loop round the shank just below the eye: a closed ring, its front half over the shank, its back half behind
-  const ring = (k: number) => spline([[x - 12, y + 16 + k], [x - 7, y + 20 + k, 1.4], [x, y + 21.5 + k, 1.8], [x + 7, y + 20 + k, 1.4], [x + 12, y + 16 + k], [x + 7, y + 12.5 + k, -1.4], [x, y + 12 + k, -1.8], [x - 7, y + 12.5 + k, -1.4], [x - 12, y + 16 + k]]);
-  const loop = ring;
+  const tag = spline([[x + 6, top - 26, 2.8], [x + 12, top - 34, 2.8], [x + 16, top - 40, 2.8]]);
   return (
-    draw([...H, { p: main, s: 'ln' }, { p: tag, s: 'ln', tips: [true, false] }, { p: b1, s: 'ln' }, { p: b2, s: 'ln' }, { p: loop(0), s: 'ln' }, { p: loop(6), s: 'ln' }]) +
-    arrow([[x - 24, 44], [x - 24, 10]]) + lbl(x - 30, 30, w(lang, 'PULL', 'JALE'), 'end') +
-    lbl(x + 34, 30, '3 mm', 'start') + `<path class="nt-rigs-dim" d="M${x + 32} 28 L${x + 8} 37"/>`
+    draw([...H, { p: main, s: 'ln' }, { p: short, s: 'ln' }, { p: ring(top - 8), s: 'ln' }, { p: ring(top - 15), s: 'ln' }, { p: b1, s: 'ln' }, { p: b2, s: 'ln' }, { p: tag, s: 'ln', tips: [false, true] }]) +
+    arrow([[x - 26, 52], [x - 26, 16]]) + lbl(x - 32, 42, w(lang, 'PULL', 'JALE'), 'end') +
+    lbl(x + 30, 12, '3 mm', 'start') + `<path class="nt-rigs-dim" d="M${x + 30} 15 L${x + 19} ${top - 41}"/>` +
+    lbl(x + 22, top - 6, w(lang, 'LOOP', 'LAZO'), 'start')
   );
 }
 
@@ -296,11 +299,12 @@ export function clinch(lang: Lang): string {
   // 4: pulled tight: the turns pack into a neat coil against the eye; the end trimmed
   const ret = spline([[X + 13, Y, 1.2], [X, Y, 0], [X - 13, Y, -1.2], [X - 16, Y - 6, -0.6], [X - 11, Y - 12.5], [X + 2, Y - 12], [X + 12, Y - 7]]);
   const coil = helix(X + 13, X + 46, Y, 6.5, 5);
-  const tag4 = [...ret, ...coil.slice(1), ...spline([[X + 46, Y - 6.5], [X + 40, Y - 14, 2], [X + 32, Y - 22, 2]]).slice(1)];
+  // the end went back through the big loop, which now lies along the top of the coil: it comes out by the eye end
+  const tag4 = [...ret, ...coil.slice(1), ...spline([[X + 46, Y - 6.5], [X + 40, Y - 10, 2.4], [X + 28, Y - 10, 2.4], [X + 19, Y - 9, 2.4], [X + 16, Y - 16, 2.4], [X + 14, Y - 24, 2.4]]).slice(1)];
   const p4 =
     draw([...H, { p: spline([[162, Y], [100, Y], [X + 13, Y]]), s: 'ln' }, { p: tag4, s: 'ln', tips: [false, true] }]) +
     arrow([[112, Y + 18], [146, Y + 18]]) + lbl(112, Y + 34, w(lang, 'PULL', 'JALE'), 'start') +
-    lbl(64, Y - 34, '3 mm', 'start') + `<path class="nt-rigs-dim" d="M62 ${Y - 36} L${X + 35} ${Y - 24}"/>`;
+    lbl(44, Y - 36, '3 mm', 'start') + `<path class="nt-rigs-dim" d="M42 ${Y - 38} L${X + 16} ${Y - 27}"/>`;
   return panels('cl', [p1, p2, p3, p4]);
 }
 
@@ -394,16 +398,22 @@ export function surgeon(lang: Lang): string {
   // 2: one overhand knot with both lines held as one; 3: the same pair through the loop a second time
   const p2 = draw(pair(SURG2, 12, 140)) + lbl(150, 128, w(lang, 'ONCE', '1 VEZ'), 'end');
   const p3 = draw(pair(SURG3, 12, 140)) + lbl(150, 132, w(lang, 'TWICE', '2 VECES'), 'end');
-  // 4: pulled tight from all four ends: the same knot, small; the two short ends trimmed
-  const k = SURG3.slice(2, -2).map(([x, y, z = 0]) => [80 + (x - 82) * 0.4, 72 + (y - 66) * 0.4, z] as const);
+  // 4: pulled tight from all four ends: the same knot, small; the two short ends trimmed to stubs
+  const k = SURG3.slice(2, -2).map(([x, y, z = 0]) => [80 + (x - 82) * 0.36, 74 + (y - 66) * 0.36, z] as const);
   const first = k[0], last = k[k.length - 1];
-  const c4: C[] = [[-6, first[1] - 2], [first[0] - 20, first[1]], ...k, [last[0] + 20, last[1]], [160, last[1] + 2]];
+  const ldStub = spline([[first[0] + 2, first[1] - 3, 3], [first[0] - 4, first[1] - 9, 3], [first[0] - 8, first[1] - 14, 3]]);
+  const lnStub = spline([[last[0] - 2, last[1] + 3, 3], [last[0] + 4, last[1] + 9, 3], [last[0] + 8, last[1] + 14, 3]]);
   const p4 =
-    draw(pair(c4, first[0] - 3, last[0] + 3, 2.5)) +
-    arrow([[30, 104], [6, 104]]) + arrow([[126, 104], [152, 104]]) + lbl(78, 108, w(lang, 'PULL', 'JALE'), 'middle') +
-    lbl(4, 60, w(lang, 'MAIN LINE', 'LÍNEA')) + lbl(150, 96, w(lang, 'LEADER', 'LÍDER'), 'end') +
-    lbl(80, 30, w(lang, 'ENDS CUT TO 3 mm', 'PUNTAS A 3 mm'), 'middle') +
-    `<path class="nt-rigs-dim" d="M70 34 L${n1(first[0] - 3)} ${n1(first[1] - 6)} M90 34 L${n1(last[0] + 3)} ${n1(last[1] - 4)}"/>`;
+    draw([
+      { p: offset(spline([[-6, first[1] - 1], [first[0] - 20, first[1]], ...k]), 2.5), s: 'ln' },
+      { p: offset(spline([...k, [last[0] + 20, last[1]], [160, last[1] + 1]]), -2.5), s: 'ld' },
+      { p: ldStub, s: 'ld', tips: [false, true] },
+      { p: lnStub, s: 'ln', tips: [false, true] },
+    ]) +
+    arrow([[30, 108], [6, 108]]) + arrow([[126, 108], [152, 108]]) + lbl(78, 112, w(lang, 'PULL', 'JALE'), 'middle') +
+    lbl(4, 50, w(lang, 'MAIN LINE', 'LÍNEA')) + lbl(150, 50, w(lang, 'LEADER', 'LÍDER'), 'end') +
+    lbl(78, 26, w(lang, 'ENDS CUT TO 3 mm', 'PUNTAS A 3 mm'), 'middle') +
+    `<path class="nt-rigs-dim" d="M66 30 L${n1(first[0] - 9)} ${n1(first[1] - 16)} M90 30 Q${n1(last[0] + 18)} 40 ${n1(last[0] + 10)} ${n1(last[1] + 15)}"/>`;
   return panels('su', [p1, p2, p3, p4]);
 }
 

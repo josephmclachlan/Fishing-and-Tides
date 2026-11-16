@@ -137,10 +137,10 @@ export const rigs: Section = {
       fig: 'rgpalomar',
       label: L('Tying a Palomar knot in four steps', 'Cómo hacer el nudo Palomar en cuatro pasos'),
       marks: [
-        L('Fold about 15 cm (6 in) of line in half to make a loop, and push the loop through the eye of the hook.{fwcknots}', 'Doble unos 15 cm (6 pulgadas) de línea por la mitad para hacer un lazo y páselo por el ojo del anzuelo.{fwcknots}'),
+        L('Fold the end of the line back on itself to make a loop about 15 cm (6 in) long, and push the loop through the eye of the hook.{fwcknots}', 'Doble la punta de la línea sobre sí misma para hacer un lazo de unos 15 cm (6 pulgadas) y páselo por el ojo del anzuelo.{fwcknots}'),
         L('With the doubled line, tie a loose overhand knot: make a ring and push the loop end through it. Let the hook hang from the bottom of the ring. Keep the two lines side by side, not twisted.{fwcknots}', 'Con la línea doble haga un nudo simple flojo: forme un anillo y pase el extremo del lazo por dentro. Deje el anzuelo colgando de la parte de abajo del anillo. Mantenga las dos líneas lado a lado, sin torcerlas.{fwcknots}'),
-        L('Open the loop at the end and pass it over the whole hook, so the hook goes through it.{fwcknots}', 'Abra el lazo del final y páselo por encima de todo el anzuelo, de modo que el anzuelo quede adentro.{fwcknots}'),
-        L('Wet the knot. Pull the main line and the short end together so the loop slides up and the knot closes on the eye. Cut the short end to 3 mm.{fwcknots}', 'Moje el nudo. Jale juntas la línea principal y la punta corta para que el lazo suba y el nudo se cierre sobre el ojo. Corte la punta a 3 mm.{fwcknots}'),
+        L('Open the loop at the end and pass it down over the whole hook (arrow), so the hook goes through it.{fwcknots}', 'Abra el lazo del final y páselo hacia abajo por encima de todo el anzuelo (flecha), de modo que el anzuelo quede adentro.{fwcknots}'),
+        L('Wet the knot. Pull the main line and the short end together so the loop slides up past the eye and the knot closes on top of it. Cut the short end to 3 mm.{fwcknots}', 'Moje el nudo. Jale juntas la línea principal y la punta corta para que el lazo suba por encima del ojo y el nudo se cierre sobre él. Corte la punta a 3 mm.{fwcknots}'),
       ],
       alt: L('For hooks and swivels. One of the strongest knots to tie in braided line.{fwcknots}', 'Para anzuelos y destorcedores. Uno de los nudos más fuertes para línea trenzada.{fwcknots}'),
     },
