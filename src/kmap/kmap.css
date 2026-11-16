@@ -202,6 +202,10 @@
 .km .k-lkeys i.k-sw-weed{width:18px;height:auto;background:none;color:var(--k);line-height:0}
 .km .k-lkeys i.k-sw-weed svg{display:block}
 .km .k-lkeys i.k-sw-dash{height:0;background:none;border-top:2px dashed var(--k)}
+/* a circled place (the fishing and spear rings): a dashed ring, not a filled chip */
+.km .k-lkeys i.k-sw-zone{width:20px;height:13px;border-radius:50%;background:none;border:2px dashed var(--k)}
+/* a dashed outline with a faint wash (reefs) */
+.km .k-lkeys i.k-sw-area{height:12px;background:color-mix(in srgb,var(--k) 18%,transparent);border:1.5px dashed var(--k)}
 .km .k-lkeys i.k-sw-glyph{width:20px;height:20px;background:none;display:grid;place-items:center;margin:-3px 0}
 .km .k-lkeys i.k-sw-glyph svg{width:20px;height:20px;overflow:visible}
 .km .k-lkeys i.k-dimg{opacity:.55}

@@ -344,7 +344,7 @@ export function tilesFor(r: FcRead, ctx: ViewCtx): TileView[] {
   });
   const windTile = (kt: number | null, from: number | null, src: (x: TimelineHour) => number | null | undefined, extra = ''): TileView => ({
     kind: 'wind', k: t('fc.wind'), v: kt === null ? dash : `${n0(kt)} kt`,
-    sub: [[cmp(from), extra].filter(Boolean).join(' · '), peakWind(src)].filter(Boolean), tip: tipOf('wind', kt), lv: null, viz: { v: kt, deg: from },
+    sub: [[cmp(from) ? t('fc.windFrom', { dir: cmp(from) }) : '', extra].filter(Boolean).join(' · '), peakWind(src)].filter(Boolean), tip: tipOf('wind', kt), lv: null, viz: { v: kt, deg: from },
   });
   const tideTile = (fishTip = false): TileView => {
     const s = tideNow(env, ms);

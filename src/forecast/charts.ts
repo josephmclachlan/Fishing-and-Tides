@@ -11,7 +11,7 @@
  * canvases: a base (rows, grows in when the activity changes) and a top layer (bands, the now line, the cursor).
  */
 import { uvLevel, type FcActivity, type Level, type TimelineHour } from './model';
-import { arrow, clamp, DISP, MONO, rgba, TAU, txt, type Ctx2D, type TokenName, type Tokens } from './kit';
+import { clamp, DISP, MONO, rgba, TAU, txt, type Ctx2D, type TokenName, type Tokens } from './kit';
 
 export interface Window { startMs: number; endMs: number }
 
@@ -225,7 +225,8 @@ export function chartLayout(a: FcActivity, hours: readonly TimelineHour[], px: n
   specs.forEach((spec, i) => {
     if (spec.wx && !specs[i - 1]?.wx) rows.push({ t: 'head', y: 0, h: 30 });
     const { lo, hi } = rowScale(spec, hours);
-    rows.push({ t: 'data', y: 0, h: spec.wx ? RW : RA, spec, lo, hi, labels: rowLabels(spec, hours), vals: hours.map(spec.value) });
+    // The tide row is taller: each high and low carries two lines of words (HIGH / +0.18).
+    rows.push({ t: 'data', y: 0, h: spec.wx ? RW : spec.id === 'tide' ? RA + 18 : RA, spec, lo, hi, labels: rowLabels(spec, hours), vals: hours.map(spec.value) });
   });
   let y = 0;
   for (const r of rows) (r.y = y), (y += r.h);
@@ -276,6 +277,19 @@ export interface BaseOpts {
   dayName: (ms: number, i: number) => string;
   /** Text for a row label value. */
   text: (spec: RowSpec, v: number) => string;
+  /** The word over a tide high and under a tide low ("HIGH", "LOW"). */
+  extreme?: (high: boolean) => string;
+}
+
+/** A wind arrow with a shaft, pointing the way the wind goes (degrees toward), `s` half its length. */
+function windArrow(c: Ctx2D, x: number, y: number, toward: number, s: number, col: string) {
+  c.save();
+  c.translate(x, y);
+  c.rotate((toward * Math.PI) / 180);
+  c.strokeStyle = col; c.fillStyle = col; c.lineWidth = 1.6; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(0, s); c.lineTo(0, -s * 0.3); c.stroke();
+  c.beginPath(); c.moveTo(0, -s); c.lineTo(s * 0.6, -s * 0.1); c.lineTo(-s * 0.6, -s * 0.1); c.closePath(); c.fill();
+  c.restore();
 }
 /**
  * The chart's base layer: card, header band, nights, rules, the axis, sky glyphs, the rating strip and every row.
@@ -344,7 +358,8 @@ export function drawChartBase(c: Ctx2D, L: ChartLayout, hours: readonly Timeline
       });
     }
     if (o.t !== 'data') continue;
-    const s = o.spec, top = o.y + (s.arrow ? 26 : 15), bot = o.y + o.h - 3;
+    const tideRow = o.spec.id === 'tide';
+    const s = o.spec, top = o.y + (s.arrow ? 28 : tideRow ? 26 : 15), bot = o.y + o.h - (tideRow ? 22 : 3);
     const sy = (v: number) => bot - ((clamp(v, o.lo, o.hi) - o.lo) / (o.hi - o.lo)) * (bot - top);
     const base = s.id === 'tide' ? sy(0) : bot;
     if (s.kind === 'bars') {
@@ -369,7 +384,7 @@ export function drawChartBase(c: Ctx2D, L: ChartLayout, hours: readonly Timeline
           if (d === null || !Number.isFinite(d)) continue;
           c.globalAlpha = pp(i);
           // Points where the wind blows to (FROM + 180).
-          arrow(c, (i + 0.5) * px, o.y + 11, d + 180, 5.5, rgba(T['c-ink2']));
+          windArrow(c, (i + 0.5) * px, o.y + 12, d + 180, 7.5, rgba(T['c-ink2']));
         }
         c.globalAlpha = 1;
       }
@@ -405,10 +420,17 @@ export function drawChartBase(c: Ctx2D, L: ChartLayout, hours: readonly Timeline
         c.fillStyle = rgba(T['c-card']); c.strokeStyle = rgba(T['c-acc']); c.lineWidth = 1.4;
         c.beginPath(); c.arc(x, sy(lb.v), 2.6, 0, TAU); c.fill(); c.stroke();
       }
+      c.fillStyle = I;
+      if (s.id === 'tide' && opt.extreme) {
+        // HIGH over the value above a high, LOW under the value below a low, so the words never sit on the curve.
+        const vy = clamp(lb.below ? sy(lb.v) + 9 : sy(lb.v) - 8, o.y + 16, o.y + o.h - 16);
+        txt(c, opt.text(s, lb.v), x, vy, 'center', 8.5, 600);
+        txt(c, opt.extreme(!lb.below), x, lb.below ? vy + 10 : vy - 10, 'center', 9, 800);
+        continue;
+      }
       let y = lb.below ? sy(lb.v) + 10 : sy(lb.v) - 6;
       y = clamp(y, o.y + 7, o.y + o.h - 5);
-      if (s.arrow && !lb.below) y = Math.max(y, o.y + 21);
-      c.fillStyle = I;
+      if (s.arrow && !lb.below) y = Math.max(y, o.y + 25);
       txt(c, opt.text(s, lb.v), x, y, 'center', 9, 700);
     }
   }

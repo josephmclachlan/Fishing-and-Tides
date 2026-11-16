@@ -110,7 +110,7 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
         <div class="fc-hx-lab" id="fc-hx-lab" aria-hidden="true"></div>
         <div class="fc-hx-sc" id="fc-tl" tabindex="0" role="img" aria-label="${esc(t('fc.hoursAria'))}"><div class="fc-hx-in" id="fc-tl-in"><canvas id="fc-hx-base"></canvas><canvas id="fc-hx-top"></canvas></div></div>
       </div>
-      <p class="fc-hx-hint fc-mono fc-hx-key"><span><i class="k-night"></i>${esc(t('fc.key.night'))}</span><span><i class="k-win"></i>${esc(t('fc.key.win'))}</span><span><i class="k-sun"></i>${esc(t('fc.key.sun'))}</span><span><i class="k-now"></i>${esc(t('fc.key.now'))}</span></p>
+      <p class="fc-hx-hint fc-mono fc-hx-key"><span><i class="k-night"></i>${esc(t('fc.key.night'))}</span><span><i class="k-win"></i>${esc(t('fc.key.win'))}</span><span><i class="k-sun"></i>${esc(t('fc.key.sun'))}</span><span><i class="k-now"></i>${esc(t('fc.key.now'))}</span><span><i class="k-arr" aria-hidden="true">↗</i>${esc(t('fc.key.wind'))}</span><span><i class="k-tide"></i>${esc(t('fc.key.tide'))}</span><span class="k-rate"><b>${esc(t('fc.key.rate'))}</b>${[0, 1, 2, 3, 4].map((l) => `<span><i class="l${l}"></i>${esc(t(`fc.lvl.${l}` as Key))}</span>`).join('')}</span></p>
     </section>
     <footer class="fc-foot fc-in"><p class="fc-note">${esc(t('fc.note'))}</p></footer>
   </div>`;

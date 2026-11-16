@@ -66,6 +66,27 @@ function bars(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, list: [nu
   });
   c.lineCap = 'butt';
 }
+/**
+ * Drifting clouds, each a plain puffy outline (three bumps on a flat base) so it reads as a cloud, not a bar:
+ * [y of the base as a share of h, width as a share of w, unused, drift speed].
+ */
+function clouds(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, list: [number, number, number, number][]) {
+  list.forEach(([yf, lf, , sp], i) => {
+    const W = Math.min(w * lf, h * 1.1), span = w + W, x = (((t * sp + i * 60) % span) + span) % span - W * 0.5, by = h * yf;
+    const parts: [number, number, number][] = [[0.27, -0.2, 0.19], [0.55, -0.3, 0.25], [0.8, -0.17, 0.16]];
+    const circ = (cx: number, cy: number, r: number) => { c.moveTo(cx + r, cy); c.arc(cx, cy, r, 0, Math.PI * 2); };
+    const shape = (grow: number) => {
+      c.beginPath();
+      for (const [u, v, r] of parts) circ(x + u * W, by + v * W, r * W + grow);
+      circ(x + 0.12 * W, by - 0.1 * W, 0.1 * W + grow);
+      circ(x + 0.88 * W, by - 0.1 * W, 0.1 * W + grow);
+      c.rect(x + 0.12 * W, by - 0.2 * W - grow, 0.76 * W, 0.2 * W + 2 * grow);
+    };
+    // Ink a little larger, then the card colour on top: only the outer outline stays.
+    c.fillStyle = P.I; shape(2); c.fill();
+    c.fillStyle = P.B; shape(0); c.fill();
+  });
+}
 function drops(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, n: number, y0: number) {
   c.lineCap = 'round'; c.strokeStyle = P.A; c.lineWidth = 1.8;
   for (let i = 0; i < n; i++) {
@@ -127,10 +148,10 @@ const TV: Record<TileKind, Draw> = {
     const sky = z.sky ?? null;
     const r = Math.min(h * 0.3, w * 0.16), sx = w * 0.22 + r * 0.2, sy = h * 0.42;
     if (sky === 'sun' || sky === 'partly') sun(c, sx, sy, sky === 'sun' ? r * 1.15 : r, t, P);
-    if (sky === 'partly') bars(c, w, h, t, P, [[0.5, 0.62, 5, 7], [0.68, 0.44, 4, -5]]);
-    else if (sky === 'cloud') bars(c, w, h, t, P, [[0.3, 0.6, 7, 6], [0.5, 0.7, 6, -4], [0.7, 0.5, 5, 5]]);
+    if (sky === 'partly') clouds(c, w, h, t, P, [[0.62, 0.55, 0, 7]]);
+    else if (sky === 'cloud') clouds(c, w, h, t, P, [[0.45, 0.5, 0, 6], [0.75, 0.6, 0, -4]]);
     else if (sky === 'showers' || sky === 'rain' || sky === 'storm') {
-      bars(c, w, h, t, P, [[0.16, 0.66, 7, 5], [0.32, 0.5, 6, -4]]);
+      clouds(c, w, h, t, P, [[0.44, 0.6, 0, 5]]);
       drops(c, w, h, t, P, Math.round(8 + 0.3 * (z.rainPct ?? 40) + (sky === 'rain' ? 10 : 0)), h * 0.42);
       if (sky === 'storm') {
         const fl = P.reduced ? 1 : (t % 3.2) < 0.18 ? 1 : 0.35;
@@ -397,7 +418,7 @@ const TV: Record<TileKind, Draw> = {
   },
   squall(c, w, h, t, z, P) {
     const lv = fin(z.v) ? z.v : 0;
-    bars(c, w, h, t, P, [[0.2, 0.5, 10, 5], [0.38, 0.4, 8, -4]]);
+    clouds(c, w, h, t, P, [[0.45, 0.6, 0, 5]]);
     drops(c, w, h, t, P, [2, 8, 16][clamp(Math.round(lv), 0, 2)], h * 0.5);
     if (lv >= 2) { c.fillStyle = P.A; c.beginPath(); const bx = w * 0.7, by = h * 0.45; c.moveTo(bx + 5, by); c.lineTo(bx - 5, by + 16); c.lineTo(bx + 1, by + 16); c.lineTo(bx - 3, by + 30); c.lineTo(bx + 9, by + 12); c.lineTo(bx + 2, by + 12); c.lineTo(bx + 8, by); c.closePath(); c.fill(); }
   },

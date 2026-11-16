@@ -10,7 +10,7 @@ import { LIMON_DATUMS, LIMON_HARMONICS } from './data/tides-limon';
 import { extrema, predictSeries, type Extremum, type Harmonics } from './physics/tide';
 import { sunTimes } from './physics/astro';
 import { REGION, TIDE_STATION } from './region';
-import { dec } from './i18n';
+import { dec, t } from './i18n';
 
 const HOUR_MS = 3.6e6;
 const DAY_MS = 24 * HOUR_MS;
@@ -106,10 +106,12 @@ export function tideChartSvg(day: TideDay, opts: ChartOptions = {}): string {
   for (const e of day.extrema) {
     const px = x(e.t);
     const py = y(e.h);
-    const anchor = px < 30 ? 'start' : px > W - 30 ? 'end' : 'middle';
+    const anchor = px < 40 ? 'start' : px > W - 40 ? 'end' : 'middle';
     const ty = e.type === 'high' ? py - 4 : Math.min(bottom - 2, py + 10);
     parts.push(`<circle class="tc-ex" cx="${f(px)}" cy="${f(py)}" r="2"/>`);
-    parts.push(`<text class="tc-lbl" x="${f(px)}" y="${f(Math.max(9, ty))}" text-anchor="${anchor}">${localClock(e.t)}</text>`);
+    // The word with the time ("HIGH 16:15"), as NOAA tide plots label every turn.
+    const word = t(e.type === 'high' ? 'surf.tide.high' : 'surf.tide.low');
+    parts.push(`<text class="tc-lbl" x="${f(px)}" y="${f(Math.max(9, ty))}" text-anchor="${anchor}">${word} ${localClock(e.t)}</text>`);
   }
   if (opts.cursor !== undefined && opts.cursor >= day.t0 && opts.cursor <= day.t1) {
     const px = f(x(opts.cursor));

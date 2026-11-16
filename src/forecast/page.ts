@@ -424,7 +424,7 @@ export function mountForecastPage(deps: ForecastDeps) {
   const bands = () => (L ? bestBands((plan?.days ?? []).flatMap((d) => (d ? [{ startMs: d.startMs, endMs: d.endMs }] : [])), L.t0) : []);
   const drawBase = () => {
     if (!L || !T) return;
-    drawChartBase(bctx, L, tl, T, chartP, { dayName: (ms, i) => dayLabel(localDayStart(ms, TZ), i), text: (s, v) => rowText(s, v) });
+    drawChartBase(bctx, L, tl, T, chartP, { dayName: (ms, i) => dayLabel(localDayStart(ms, TZ), i), text: (s, v) => rowText(s, v), extreme: (hi) => t(hi ? 'surf.tide.high' : 'surf.tide.low') });
   };
   const drawTop = (tt: number) => {
     if (!L || !T) return;

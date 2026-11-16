@@ -9,6 +9,7 @@ import type { SeaState } from './adapters/waves';
 import { predict, type Harmonics } from './physics/tide';
 import { BEST_FROM_H, BEST_LEN_H, BEST_TO_H } from './metrics/forecast';
 import { dec } from './i18n';
+import { LIMON_DATUMS } from './data/tides-limon';
 
 const HOUR = 3.6e6;
 const KT = 1.94384;
@@ -94,7 +95,7 @@ export interface ChartOptions {
   label?: string;
 }
 
-const LEFT = 34; // room for row labels
+const LEFT = 48; // room for row labels (SNORKEL and the longer Spanish names at 10 px)
 const hx = (W: number, hour: number) => LEFT + (hour / 24) * (W - LEFT);
 const hourTicks = (W: number, y: number) =>
   [0, 6, 12, 18, 24].map((h) => `<text class="sc-hr" x="${f(hx(W, h))}" y="${y}" text-anchor="${h === 0 ? 'start' : h === 24 ? 'end' : 'middle'}">${String(h % 24).padStart(2, '0')}</text>`).join('');
@@ -131,7 +132,7 @@ export function stripsSvg(rows: readonly HourRow[], o: ChartOptions): string {
   const cw = (W - LEFT) / 24;
   const cx = (h: number) => LEFT + (h + 0.5) * cw;
 
-  // Swell: bars up to 3 m (taller clip), period under every third hour, arrow at the top.
+  // Swell: bars on a scale from 0 to 2 m (or the day's largest), period in seconds under every third hour, arrow at the top.
   const sTop = 16, sBase = 62, sMax = Math.max(2, ...rows.map((r) => r.hs ?? 0));
   const bars = rows
     .map((r, h) => {
@@ -141,7 +142,7 @@ export function stripsSvg(rows: readonly HourRow[], o: ChartOptions): string {
     })
     .join('');
   const sArrows = rows.map((r, h) => (h % 3 === 1 && r.swellFrom !== null ? arrow(cx(h), 9, r.swellFrom, 'sc-arr-sw') : '')).join('');
-  const periods = rows.map((r, h) => (h % 3 === 1 && r.tp !== null ? `<text class="sc-val" x="${f(cx(h))}" y="${sBase + 9}" text-anchor="middle">${r.tp.toFixed(0)}S</text>` : '')).join('');
+  const periods = rows.map((r, h) => (h % 3 === 1 && r.tp !== null ? `<text class="sc-val" x="${f(cx(h))}" y="${sBase + 10}" text-anchor="middle">${r.tp.toFixed(0)} S</text>` : '')).join('');
 
   // Wind: line, arrows and a value every third hour.
   const wTop = 88, wBase = 128, wMax = Math.max(15, ...rows.map((r) => r.windKt ?? 0));
@@ -152,13 +153,14 @@ export function stripsSvg(rows: readonly HourRow[], o: ChartOptions): string {
     .map((r, h) => (h % 3 === 1 && r.windKt !== null && r.windFrom !== null ? arrow(cx(h), wy(r.windKt) - 8, r.windFrom, 'sc-arr-wd') + `<text class="sc-val" x="${f(cx(h))}" y="${f(wy(r.windKt) + 11)}" text-anchor="middle">${Math.round(r.windKt)}</text>` : ''))
     .join('');
 
-  // Tide: line over the same axis.
+  // Tide: line over the same axis, on the station's fixed LAT to HAT range like the tide chart, so a small-tide day looks small.
   const tTop = 146, tBase = 172;
-  const tMin = Math.min(...rows.map((r) => r.tideM)), tMax = Math.max(...rows.map((r) => r.tideM));
+  const tMin = Math.min(LIMON_DATUMS.lat, ...rows.map((r) => r.tideM)), tMax = Math.max(LIMON_DATUMS.hat, ...rows.map((r) => r.tideM));
   const ty = (m: number) => tBase - ((m - tMin) / Math.max(0.05, tMax - tMin)) * (tBase - tTop);
   const tLine = `<path class="sc-tide" d="M${rows.map((r, h) => `${f(cx(h))} ${f(ty(r.tideM))}`).join('L')}"/>`;
 
-  const labels = `<text class="sc-lbl" x="0" y="${sTop + 4}">SWELL</text><text class="sc-lbl" x="0" y="${wTop - 2}">WIND</text><text class="sc-lbl" x="0" y="${tTop + 6}">TIDE</text>`;
+  const lab = (y: number, name: string, unit: string) => `<text class="sc-lbl" x="0" y="${y}">${name}</text><text class="sc-lbl sc-unit" x="0" y="${y + 11}">${unit}</text>`;
+  const labels = lab(sTop + 4, 'SWELL', `0–${dec(sMax, Number.isInteger(sMax) ? 0 : 1)} M`) + lab(wTop - 2, 'WIND', 'KT') + lab(tTop + 6, 'TIDE', '');
   const rules = [sBase, wBase, tBase].map((y) => `<line class="sc-rule" x1="${LEFT}" x2="${W}" y1="${y}" y2="${y}"/>`).join('');
   return `<svg class="sc-svg" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${o.label ?? ''}" preserveAspectRatio="xMidYMid meet">${rules}${labels}${bars}${sArrows}${periods}${wLine}${wMarks}${tLine}${cursorAt(W, o, 4, tBase)}${hourTicks(W, H - 6)}</svg>`;
 }
