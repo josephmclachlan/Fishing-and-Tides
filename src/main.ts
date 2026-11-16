@@ -1008,6 +1008,23 @@ const watchWater = (lng: number, lat: number, c: ClarityContext): [number, numbe
   }
   return at;
 };
+/**
+ * Within this distance of a spot pin, the crosshair reads visibility where the spot's own reading comes from (its
+ * swim water, `watchWater`), so the map, Expand data and the forecast agree there (review 2026-11-16, 1.10: at Salsa
+ * Brava the pin's shoreline pixel read 1.6 m, in the surf on the reef flat, while the spot read 5 m). Elsewhere the
+ * crosshair reads its own pixel.
+ */
+const AT_SPOT_M = 300;
+const visPoint = (lng: number, lat: number, c: ClarityContext): [number, number] => {
+  const sp = nearest([lng, lat], SPOTS);
+  const at = sp && sp.distanceM <= AT_SPOT_M ? watchWater(sp.point.lngLat[0], sp.point.lngLat[1], c) : null;
+  return at ?? [lng, lat];
+};
+const visHere = (c: ClarityContext | null, lng: number, lat: number, ms?: number): number | null => {
+  if (!c) return null;
+  const [x, y] = visPoint(lng, lat, c);
+  return clarityAt(ms === undefined ? c : { ...c, ms }, x, y)?.visM ?? null;
+};
 routeDeps = () => ({ env: metricEnv(), vessel: settings.vessel(), validMs: time.validMs() });
 seaCurrent = () => {
   const c = map.getCenter();
@@ -1268,7 +1285,7 @@ const clarityCtx = (): ClarityContext | null =>
       return { hs: s.hs, tp: swell ? s.swellT : s.tm };
     },
   };
-const clarityHud = mountClarityHud(hud, map, clarityCtx);
+const clarityHud = mountClarityHud(hud, map, clarityCtx, visPoint);
 let diveHud: NonNullable<ReturnType<typeof mountDiveHud>> | null = null;
 const diveWind: [number, number] = [0, 0];
 const refreshClarity = () => {
@@ -1441,7 +1458,7 @@ mountHere(map, (lng, lat) => {
     swell: s && Number.isFinite(s.swellHs) ? { hs: s.swellHs, tp: s.swellT, fromDeg: s.swellDir } : null,
     sea: s ? { hs: s.hs, tm: s.tm } : null,
     wind: w,
-    visM: c ? (clarityAt(c, lng, lat)?.visM ?? null) : null,
+    visM: visHere(c, lng, lat),
   };
 }, (title, rows, at) => (explain.showRows(title, rows, at), siteLinks(at)));
 map.on('click', 'rp-site', (e) => {
@@ -1551,10 +1568,7 @@ fetchSeafloor()
         if (!currents || !currentPointAt(currents, bandAt(ms), ms, lng, lat, currentOut)) return null;
         return { ms: Math.hypot(currentOut[0], currentOut[1]), toDeg: (fromDeg(currentOut[0], currentOut[1]) + 180) % 360 };
       },
-      visAt: (lng, lat, ms) => {
-        const c = clarityCtx();
-        return c ? (clarityAt({ ...c, ms }, lng, lat)?.visM ?? null) : null;
-      },
+      visAt: (lng, lat, ms) => visHere(clarityCtx(), lng, lat, ms),
       // Rain, squall and live lightning for the hour, the same cap fishing uses (physics/safety.ts).
       wxAt: (lng, lat, ms) => {
         const near = Math.abs(ms - Date.now()) < 3.6e6 && nearestFlash(flashes, lng, lat, Date.now());
@@ -1745,7 +1759,7 @@ const hereAt = (lng: number, lat: number, ms: number): Here => {
     current: cv ? { kt: Math.hypot(...cv) * KT_PER_MS, toDeg: (fromDeg(...cv) + 180) % 360 } : null,
     sstC: satellite ? (sstAt(satellite, lng, lat, ms)?.value ?? null) : null,
     chl: satellite ? (chlAt(satellite, lng, lat, ms)?.value ?? null) : null,
-    visM: c ? (clarityAt({ ...c, ms }, lng, lat)?.visM ?? null) : null,
+    visM: visHere(c, lng, lat, ms),
     rain: wx ? { mmH: fin(wx.rainMmH) ? wx.rainMmH : null, pct: fin(wx.rainChancePct) ? wx.rainChancePct : null } : null,
     lightningKm: near ? near.km : null,
     rip: st?.result && st.liveSea && close ? { level: withOutflow(st.result.rip, outflowAt(st.pin, ms)).level, spot: close } : null,

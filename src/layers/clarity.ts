@@ -536,7 +536,8 @@ function mountSeen(side: HTMLElement, map: Map, ctx: () => ClarityContext | null
  * its likely range and the main cause (PLAN 6.1, 7.2). Under it, VIS DAYS: midday visibility for
  * the next three days, with how sure each is.
  */
-export function mountClarityHud(root: HTMLElement, map: Map, ctx: () => ClarityContext | null) {
+/** `pointFor` moves the crosshair to where it reads (main.ts: a spot's swim water when the crosshair sits on its pin). */
+export function mountClarityHud(root: HTMLElement, map: Map, ctx: () => ClarityContext | null, pointFor?: (lng: number, lat: number, c: ClarityContext) => [number, number]) {
   const side = root.querySelector<HTMLElement>('.side');
   const sst = side?.querySelector('#sst')?.parentElement;
   if (!side || !sst) return null;
@@ -555,7 +556,9 @@ export function mountClarityHud(root: HTMLElement, map: Map, ctx: () => ClarityC
   const update = () => {
     queued = false;
     const c = ctx();
-    const p = map.getCenter();
+    const m = map.getCenter();
+    const [lng, lat] = c && pointFor ? pointFor(m.lng, m.lat, c) : [m.lng, m.lat];
+    const p = { lng, lat };
     const x = c ? clarityAt(c, p.lng, p.lat) : null;
     el.textContent = x ? visText(x.visM) : '--';
     el.className = 'seg ' + (x ? TONE[x.level] : '');
