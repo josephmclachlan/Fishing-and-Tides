@@ -1,5 +1,5 @@
 /**
- * AIS ships seen near the coast in the last 24 h (PLAN 7.96), relayed by the data build
+ * AIS ships seen near the coast in the last 24 h (PLAN 7.97), relayed by the data build
  * (scripts/forecast/ais.ts) from AISStream. Positions are last known, not live tracks.
  */
 import { cachedFetch, type CacheDeps } from './cache';

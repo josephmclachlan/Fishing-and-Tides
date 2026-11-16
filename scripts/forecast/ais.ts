@@ -1,5 +1,5 @@
 /**
- * AIS ships near the coast (PLAN 7.96) from AISStream. Each build listens for about two minutes in AIS_BOX
+ * AIS ships near the coast (PLAN 7.97) from AISStream. Each build listens for about two minutes in AIS_BOX
  * and merges what it hears into the vessels published by the last build, so the file holds every ship seen in
  * the last 24 h with its last known position. Needs the AISSTREAM_API_KEY repo secret; without it the
  * feed fails and keeps its previous file. No CORS and a secret key, so it is relayed, never fetched by the app.

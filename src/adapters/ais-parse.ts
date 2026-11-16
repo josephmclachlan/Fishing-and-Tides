@@ -1,5 +1,5 @@
 /**
- * AIS ship positions (PLAN 7.96), from AISStream's websocket (aisstream.io, free key, volunteer shore
+ * AIS ship positions (PLAN 7.97), from AISStream's websocket (aisstream.io, free key, volunteer shore
  * receivers). No imports, so the Node data build (scripts/forecast/ais.ts) and the app share it.
  * AIS is self-reported by transponders: small boats, fishing pangas and anything switched off do not show.
  * Advisory only; not for collision avoidance.

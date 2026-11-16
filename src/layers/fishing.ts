@@ -333,7 +333,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
         'text-field': ['step', ['zoom'],
           ['case', ['==', ['get', 'nearly'], 1], nearlyName, name],
           ZONE_WHERE_Z, ['case', ['==', ['get', 'nearly'], 1], ['format', ['get', 'sp'], {}, '\n', {}, ['get', 'where'], { 'font-scale': ZONE_LABEL.whereScale }], ['format', ['get', 'sp'], { 'text-font': ['literal', ['Noto Sans Bold']] }, '\n', {}, ['get', 'where'], { 'font-scale': 0.82, 'text-color': css('--ink2', '#46576C') }]]],
-        'text-font': ['Noto Sans Regular'], 'text-size': ['interpolate', ['linear'], ['zoom'], ...ZONE_LABEL.sizes.flat()], 'text-anchor': ['get', 'anchor'], 'text-offset': ['get', 'off'], 'text-justify': 'auto', 'text-letter-spacing': 0.06, 'text-max-width': 30, 'text-padding': 4,
+        'text-font': ['Noto Sans Regular'], 'text-size': ['interpolate', ['linear'], ['zoom'], ...ZONE_LABEL.sizes.flat()], 'text-anchor': ['get', 'anchor'], 'text-offset': ['get', 'off'], 'text-justify': 'auto', 'text-letter-spacing': 0.06, 'text-max-width': ZONE_LABEL.maxEm, 'text-padding': 2,
         // Drawn over the place names (the map shell keeps this layer on top), so a town or a reef label never knocks a fish
         // name out (Joseph: "very inconsistently displaying"). Zone names don't pile on each other: the best zones are placed
         // first and the rest show as you zoom in.
@@ -359,7 +359,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
       id: 'sp-zone-label', type: 'symbol', source: 'sp-zones', minzoom: ZONE_NAME_Z, filter: ['==', ['geometry-type'], 'Point'],
       layout: {
         'text-field': ['step', ['zoom'], ['format', ['get', 'sp'], { 'text-font': ['literal', ['Noto Sans Bold']] }], ZONE_WHERE_Z, ['format', ['get', 'sp'], { 'text-font': ['literal', ['Noto Sans Bold']] }, '\n', {}, ['get', 'where'], { 'font-scale': 0.82, 'text-color': css('--ink2', '#46576C') }]],
-        'text-font': ['Noto Sans Regular'], 'text-size': ['interpolate', ['linear'], ['zoom'], ZONE_NAME_Z, 10, 13, 12], 'text-anchor': ['get', 'anchor'], 'text-offset': ['get', 'off'], 'text-justify': 'auto', 'text-letter-spacing': 0.06, 'text-max-width': 30, 'text-padding': 4,
+        'text-font': ['Noto Sans Regular'], 'text-size': ['interpolate', ['linear'], ['zoom'], ZONE_NAME_Z, 10, 13, 12], 'text-anchor': ['get', 'anchor'], 'text-offset': ['get', 'off'], 'text-justify': 'auto', 'text-letter-spacing': 0.06, 'text-max-width': ZONE_LABEL.maxEm, 'text-padding': 2,
       },
       paint: { 'text-color': css('--ink', '#0A1626'), 'text-halo-color': css('--m-halo', '#ECEADF'), 'text-halo-width': 1.8 },
     });

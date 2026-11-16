@@ -1,5 +1,5 @@
 /**
- * Listen to AISStream's websocket for a while and fold what arrives into a vessel table (PLAN 7.96).
+ * Listen to AISStream's websocket for a while and fold what arrives into a vessel table (PLAN 7.97).
  * Node 22's built-in WebSocket; the key comes from AISSTREAM_API_KEY and never reaches the browser.
  */
 import { applyAisMessage, type Vessel } from '../../src/adapters/ais-parse.ts';

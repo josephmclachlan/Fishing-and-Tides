@@ -1,7 +1,7 @@
 name: AIS coverage probe
 
 # One-off, manual: listens to AISStream over the coast and a wider box and prints which latitudes ships show up at
-# (PLAN 7.96). Needs the AISSTREAM_API_KEY secret. Safe to delete once coverage is known.
+# (PLAN 7.97). Needs the AISSTREAM_API_KEY secret. Safe to delete once coverage is known.
 on:
   workflow_dispatch:
     inputs:

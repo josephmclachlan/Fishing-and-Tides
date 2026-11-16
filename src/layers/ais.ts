@@ -1,5 +1,5 @@
 /**
- * AIS ships (PLAN 7.96): last known positions from the data build, as dots with a short label (name and speed).
+ * AIS ships (PLAN 7.97): last known positions from the data build, as dots with a short label (name and speed).
  * Colour by size class: green passenger and cargo, amber the rest, dim when the fix is over 3 h old.
  * Style layer ids start with `ai-` (catalog 'ais').
  */

@@ -270,5 +270,5 @@ export const RIP_CREEKS: { name: string; at: [number, number] }[] = [
   { name: 'Quebrada Honta', at: [-82.76308, 9.65474] },
 ];
 
-/** AIS listening box (PLAN 7.96), [[west, south], [east, north]]: the whole coast from Gandoca to Limón and about 40 km of sea. */
+/** AIS listening box (PLAN 7.97), [[west, south], [east, north]]: the whole coast from Gandoca to Limón and about 40 km of sea. */
 export const AIS_BOX: [[number, number], [number, number]] = [[-83.4, 9.4], [-82.4, 10.2]];

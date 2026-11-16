@@ -1,5 +1,5 @@
 /**
- * One-off coverage probe for AIS (PLAN 7.96): listen for N minutes over the coast and over a wider box, and print
+ * One-off coverage probe for AIS (PLAN 7.97): listen for N minutes over the coast and over a wider box, and print
  * how many distinct ships were heard per 0.1° of latitude, so we can say honestly where traffic shows up.
  * Run by .github/workflows/ais-probe.yml (needs AISSTREAM_API_KEY). Usage: node scripts/ais-probe.ts [minutes]
  */

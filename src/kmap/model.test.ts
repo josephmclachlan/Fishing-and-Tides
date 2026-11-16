@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CELL_DEG, KM_LAYERS, MODES, PRESETS, coastNear, isCustom, loadOrders, moveLayer, offered, offsetOfX, orderOf, placePins, PIN_SQUARE, labelRect, privateCells, saveOrders, slots,
+  CELL_DEG, KM_LAYERS, MODES, PRESETS, coastNear, isCustom, loadOrders, moveLayer, offered, offsetOfX, orderOf, placePins, landward, PIN_SQUARE, labelRect, privateCells, saveOrders, slots,
   toggleLayer, xOfOffset, type Mask,
 } from './model';
 import { LAYERS } from '../layers/registry';
@@ -82,6 +82,22 @@ describe('coast ribbon', () => {
 });
 
 describe('rating tiles', () => {
+  it('stay on the landward side of their pin, and drop to the square rather than sit out at sea', () => {
+    const b = { w: 600, h: 600 };
+    const pin = { id: 'a', x: 300, y: 300, w: 80, h: 30, rank: 1, land: [0, -1] as const }; // land to the north
+    const p = placePins([pin], b).get('a')!;
+    expect(p.y + 15).toBeLessThan(300);
+    // Land blocked all round: no seaward fallback.
+    expect(placePins([pin], b, 4, [{ x: 0, y: 0, w: 600, h: 296 }]).has('a')).toBe(false);
+  });
+  it('finds the mainland direction from a land mask', () => {
+    const cols = 40, rows = 40, z = new Uint8Array(cols * rows);
+    for (let r = 0; r < 20; r++) z.fill(1, r * cols, (r + 1) * cols); // northern half is land
+    const mask = { z, cols, rows, lon0: 0, lat0: 0.04, dlon: 0.001, dlat: 0.001 };
+    const d = landward(mask, [0.02, 0.0195], 900)!;
+    expect(d[1]).toBeGreaterThan(0.9);
+    expect(landward({ ...mask, z: new Uint8Array(cols * rows) }, [0.02, 0.02], 900)).toBeNull();
+  });
   it('never overlap, and the better spot keeps its tile', () => {
     const pins = Array.from({ length: 12 }, (_, i) => ({ id: `p${i}`, x: 200 + (i % 3) * 8, y: 200 + i * 6, w: 110, h: 44, rank: i }));
     const at = placePins(pins, { w: 600, h: 600 });

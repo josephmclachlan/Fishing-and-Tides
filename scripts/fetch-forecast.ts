@@ -42,7 +42,7 @@ const FEEDS: Record<string, { build: (dir: string) => Promise<string>; refreshH:
   navwarn: { build: buildNavWarn, refreshH: 6 },
   // NGA World Port Index for the ports near the coast: changes a few times a year, so weekly.
   wpi: { build: buildWpi, refreshH: 168 },
-  // AIS ships near the coast (PLAN 7.96): listens for two minutes each run and merges into the last 24 h; needs AISSTREAM_API_KEY.
+  // AIS ships near the coast (PLAN 7.97): listens for two minutes each run and merges into the last 24 h; needs AISSTREAM_API_KEY.
   ais: { build: buildAis, refreshH: 1 },
   currents: { build: buildCurrents, refreshH: 12, series: ['currents', 'currents-coast'] },
   // Limón airport METAR, hourly while the airport is open; no CORS, so relayed.
