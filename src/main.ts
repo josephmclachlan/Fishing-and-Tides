@@ -1068,7 +1068,7 @@ const forecastPage = mountForecastPage({
       wait();
     }),
   openCoral: ([lng, lat]) => coralPage.open({ reef: nearestCoralReef(lng, lat).id }),
-  openGuide: () => guidePage.open(),
+  openGuide: (mode) => guidePage.open(mode ? { mode } : {}),
   shotStore: cacheShotStore(),
 });
 // The way back to the forecast from the map (PLAN 7.67; Joseph: "make returning to forecast page more obviously
@@ -1704,7 +1704,7 @@ if (MODERN) {
     onCoralSites: (fn) => void coralStore.subscribe(fn),
     forecast: forecastPage,
     openCoralPage: (reef) => coralPage.open({ reef }),
-    openGuide: () => guidePage.open(),
+    openGuide: (mode) => guidePage.open(mode ? { mode } : {}),
     explain: (title, id) => explain.show(title, id),
     go: (tg) => enhancer.go(tg),
     reload,

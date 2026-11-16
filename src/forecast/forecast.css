@@ -421,3 +421,18 @@ body.fc-open { overflow: hidden; }
 @container (min-width: 700px) {
   .fc .fc-tab { font-size: min(44px, 100cqw / 30); gap: 9px; }
 }
+
+/* Labelled links to the species ID guide (fish, dive, spear, snorkel) and to kill, bleed, ice (fish, spear). */
+.fc-links { display: grid; gap: 8px; margin-top: 14px; }
+.fc .fc-link {
+  display: none; grid-template-columns: 28px 1fr auto; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; text-align: left;
+  border: 2px solid var(--fc-ink); background: var(--fc-card); color: var(--fc-ink); text-decoration: none; font: inherit; border-radius: 0; cursor: pointer;
+}
+.fc[data-act='fish'] .fc-link[data-for~='fish'], .fc[data-act='dive'] .fc-link[data-for~='dive'],
+.fc[data-act='spear'] .fc-link[data-for~='spear'], .fc[data-act='snorkel'] .fc-link[data-for~='snorkel'] { display: grid; }
+.fc .fc-link svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: square; stroke-linejoin: miter; }
+.fc .fc-link b { display: block; font-family: var(--fc-mono); font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; }
+.fc .fc-link small { display: block; font-size: 13px; color: var(--fc-ink2); margin-top: 2px; }
+.fc .fc-link i { font-style: normal; font-size: 20px; font-weight: 700; }
+.fc .fc-link:focus-visible { outline: 3px solid var(--fc-ink); outline-offset: 2px; }
+.fc:not([data-act='fish']):not([data-act='dive']):not([data-act='spear']):not([data-act='snorkel']) .fc-links { display: none; }
