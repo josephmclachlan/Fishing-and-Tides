@@ -1,5 +1,6 @@
 /**
- * Fishing rows in the side panel (PLAN 4.5, extended): the target species (arrows), the REACH
+ * Fishing rows in the side panel (PLAN 4.5, extended): the MODE (EAT or SPORT, PLAN 7.120), the target species of
+ * that mode (arrows), the REACH
  * highlight (ALL / SHORE / BOAT), the habitat score at the reticle, the BITE score for the slider time
  * (habitat x timing x water: tide, light, solunar, wind, waves, rain, cloud, squalls, lightning, and the
  * species' water from clarity, sea temperature, chlorophyll and sargassum;
@@ -16,7 +17,7 @@ import { PLACES as HARBOURS } from './data/harbours';
 import { nearestName, uniqueMarks } from './fishing/near-name';
 import type { FishingLayer, Reach } from './layers/fishing';
 import type { TimeStore } from './time';
-import { SPECIES, seasonOf, type SpeciesId } from './fishing/species';
+import { MODES, SPECIES, seasonOf, speciesIn, type FishMode, type SpeciesId } from './fishing/species';
 import { bestWindows, bite, type BiteReason, type BiteWx } from './fishing/bite';
 import { waterTerm, type WaterInputs } from './fishing/water';
 import { catchStats, MIN_CATCHES, type CatchPin } from './fishing/catches';
@@ -63,18 +64,21 @@ const NO_ENV: FishEnv = { at: () => ({}), water: () => ({}), version: () => '' }
 
 const why = (rs: readonly BiteReason[]) => rs.map((r) => t(`bite.r.${r}` as Key)).join(' · ');
 
-export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer, time: TimeStore, initial: SpeciesId, env: FishEnv = NO_ENV, catches: () => readonly CatchPin[] = () => []) {
+export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer, time: TimeStore, initial: SpeciesId, env: FishEnv = NO_ENV, catches: () => readonly CatchPin[] = () => [], onMode: (m: FishMode) => void = () => {}) {
   const side = condSlot(root, 'fishing', 10);
   if (!side) return null;
   side.insertAdjacentHTML(
     'beforeend',
     `<div class="from-coast fish-rows">
+      <div class="ro fish-reach fish-mode"><span class="lbl">${t('fish.mode')}</span><span class="seg sm" id="fish-mode">${MODES.map((m) => `<button type="button" class="tab" data-mode="${m}">${t(`fish.mode.${m}` as Key)}</button>`).join('')}</span></div>
+      <div class="ro" id="fish-sport" hidden><span class="lbl">${t('fish.sport')}</span></div>
       <div class="ro fish-pick"><span class="lbl">${t('fish.target')}</span>
         <button type="button" class="tab" id="fish-prev" aria-label="${t('fish.prev')}">${UI.prev}</button>
         <span class="seg sm green" id="fish-sp">--</span>
         <button type="button" class="tab" id="fish-next" aria-label="${t('fish.next')}">${UI.next}</button></div>
       <div class="ro" id="fish-warn" hidden><span class="lbl red">${t('fish.ciguatera')}</span> <a class="cig-link" href="#ciguatera">${t('fish.ciguateraMore')}</a></div>
       <div class="ro" id="fish-care" hidden><span class="lbl">${t('fish.ciguateraCare')}</span> <a class="cig-link" href="#ciguatera">${t('fish.ciguateraMore')}</a></div>
+      <div class="ro" id="fish-low" hidden><span class="lbl">${t('fish.low')}</span></div>
       <div class="ro fish-reach"><span class="lbl">${t('fish.reach')}</span><span class="seg sm" id="fish-reach">${REACHES.map((r) => `<button type="button" class="tab" data-reach="${r}">${t(`fish.reach.${r}` as Key)}</button>`).join('')}</span></div>
       <div class="ro"><span class="lbl">${t('fish.score')}</span><span class="seg sm green" id="fish-score">--</span></div>
       <div class="ro"><span class="lbl">${t('fish.bite')}</span><span class="seg sm green" id="fish-bite">--</span></div>
@@ -86,13 +90,14 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
       <div class="ro"><span class="lbl">${t('fish.yours')}</span><span class="seg sm" id="fish-yours">--</span></div>
       <div class="ro"><a class="lbl fish-link" href="#dispatch" title="${t('dp.linkSub')}">${t('dp.link')} ${UI.next}</a></div>
       <div class="ro"><a class="lbl fish-link" href="#notes" title="${t('nt.linkSub')}">${t('nt.link')} ${UI.next}</a></div>
-      <div class="ro"><span class="lbl note">${t('fish.note')}</span></div>
+      <div class="ro"><span class="lbl note" id="fish-note">${t('fish.note')}</span></div>
     </div>`,
   );
   const $ = (id: string) => side.querySelector<HTMLElement>('#' + id)!;
   let i = Math.max(0, SPECIES.findIndex((s) => s.id === initial));
   let reach: Reach = loadReach();
   const tabs = [...side.querySelectorAll<HTMLButtonElement>('#fish-reach [data-reach]')];
+  const modeTabs = [...side.querySelectorAll<HTMLButtonElement>('#fish-mode [data-mode]')];
 
   const month = () => new Date(time.validMs()).getUTCMonth();
   let queued = false;
@@ -103,6 +108,9 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     $('fish-sp').textContent = t(`fish.${sp.id}` as Key);
     $('fish-warn').hidden = sp.ciguatera !== true;
     $('fish-care').hidden = sp.ciguatera !== 'caution';
+    $('fish-low').hidden = sp.confidence !== 'low';
+    $('fish-sport').hidden = sp.mode !== 'sport';
+    $('fish-note').textContent = t(sp.mode === 'sport' ? 'fish.note.sport' : 'fish.note');
     const season = t(`season.${seasonOf(sp, month())}` as Key);
     const c = map.getCenter();
     const score = layer.scoreAt(c.lng, c.lat);
@@ -187,11 +195,15 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
   const queue = () => {
     if (!queued) (queued = true), requestAnimationFrame(update);
   };
+  let shownMode = SPECIES[i].mode;
   const apply = () => {
+    // EAT or SPORT changed here (the MODE row, the arrows never cross modes, SHOW ON MAP can): tell the map's spot card.
+    if (SPECIES[i].mode !== shownMode) onMode((shownMode = SPECIES[i].mode));
     layer.setSpecies(SPECIES[i].id);
     layer.setMonth(month());
     layer.setReach(reach);
     tabs.forEach((b) => b.classList.toggle('on', b.dataset.reach === reach));
+    modeTabs.forEach((b) => b.classList.toggle('on', b.dataset.mode === SPECIES[i].mode));
     heavyKey = '';
     try {
       localStorage.setItem(KEY, SPECIES[i].id);
@@ -201,7 +213,22 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     }
     update();
   };
-  const step = (d: number) => ((i = (i + d + SPECIES.length) % SPECIES.length), apply());
+  // The arrows step through the current mode's fish only.
+  const step = (d: number) => {
+    const list = speciesIn(SPECIES[i].mode), k = list.findIndex((s) => s.id === SPECIES[i].id);
+    i = SPECIES.indexOf(list[(k + d + list.length) % list.length]);
+    apply();
+  };
+  /** EAT or SPORT: back to the fish last picked in that mode, else its first. */
+  const lastOf: Partial<Record<FishMode, SpeciesId>> = { [SPECIES[i].mode]: SPECIES[i].id };
+  const setMode = (m: FishMode) => {
+    if (m === SPECIES[i].mode) return;
+    lastOf[SPECIES[i].mode] = SPECIES[i].id;
+    const id = lastOf[m] ?? speciesIn(m)[0].id;
+    i = SPECIES.findIndex((s) => s.id === id);
+    apply();
+  };
+  modeTabs.forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode as FishMode)));
   $('fish-prev').addEventListener('click', () => step(-1));
   $('fish-next').addEventListener('click', () => step(1));
   tabs.forEach((b) => b.addEventListener('click', () => ((reach = b.dataset.reach as Reach), apply())));
@@ -253,5 +280,5 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     const k = SPECIES.findIndex((s) => s.id === id);
     if (k >= 0 && k !== i) ((i = k), apply());
   };
-  return { scoreCatch, refresh: queue, setSpecies };
+  return { scoreCatch, refresh: queue, setSpecies, setMode, mode: () => SPECIES[i].mode };
 }
