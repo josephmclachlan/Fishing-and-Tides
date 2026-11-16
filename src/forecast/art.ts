@@ -892,7 +892,7 @@ function drawSwim(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['swim'
   c.beginPath(); c.moveTo(cx, ay - 10); c.lineTo(cx - 7, ay + 2); c.lineTo(cx + 7, ay + 2); c.closePath(); c.fill();
   txt(c, a.ripK, cx + 12, ay + 4, 'left', 11, 700);
   c.fillStyle = S.soft; txt(c, a.shore, x + w, Y - 14, 'right', 10.5, 600);
-  // A dot in the rip's colour with its plain words (this coast has no flags or lifeguards).
+  // A dot in the rip's colour with its plain words (only Cocles and Playa Negra fly flags).
   const fx0 = x + w * 0.16, fy = Y + (y + h - Y) * 0.78;
   c.beginPath(); c.arc(fx0, fy - 10, 9, 0, TAU);
   c.fillStyle = rgba(S.T[a.rip === 'HIGH' ? 'lv0' : a.rip === 'MOD' ? 'lv2' : 'lv3']); c.fill(); c.lineWidth = 2; c.strokeStyle = S.ink; c.stroke();

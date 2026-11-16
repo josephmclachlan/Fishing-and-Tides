@@ -32,7 +32,7 @@ import { localDayStart } from '../physics/astro';
 import { bestWindow, ratingFor, type OutingMode } from '../physics/outing';
 import { SURF_BREAKS } from '../data/surf-breaks';
 import { SNORKEL_SPOTS } from '../data/snorkel-spots';
-import { BEST_LEN_H, TONE_SCORE, bestTime, buildForecast, sunHours, type Spot } from './forecast';
+import { BEST_LEN_H, TONE_SCORE, bestTime, buildForecast, daylightHours, sunHours, type Spot } from './forecast';
 import { votersFor } from './best-today';
 import { biteTone, fishWindow } from './fish-window';
 import { METRIC_BY_ID, type MetricEnv, type Tone } from './registry';
@@ -159,7 +159,7 @@ function outingDays(outingAt: OutingAt, mode: OutingMode, spot: Spot, start: num
       const s = outingAt(spot, mode, ms, h);
       if (s !== null && Number.isFinite(s)) seen = true;
       return { score: s !== null && Number.isFinite(s) ? s : 0, reasons: [] };
-    }, dayMs, sunHours(dayMs, spot.lngLat[1], spot.lngLat[0]));
+    }, dayMs, daylightHours(dayMs, spot.lngLat[1], spot.lngLat[0]));
     if (!w || !seen) return null;
     return { day: d, dayMs, spot: spot.name, startMs: w.start, endMs: w.end, value: w.peak, tone: outingTone(w.peak), good: w.peak >= 40, rank: w.peak / 100 };
   });
