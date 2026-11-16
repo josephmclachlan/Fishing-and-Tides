@@ -64,7 +64,8 @@ import { styleBaseMap } from './basemap';
 import { emitSchemeChange, roleSnapshot, schemeSwap } from '../layers/paint';
 import { SYNC_EVENT, type SyncStatus } from '../sync-ui';
 import { loadSummary } from '../offline/sync';
-import type { FishInfo, SpearInfo } from '../fishing-hud';
+import type { FishCigua, FishInfo, SpearInfo } from '../fishing-hud';
+import { ciguaSpecies, isRed } from '../fishing/cigua';
 import type { SpeciesId } from '../fishing/species';
 
 type Spot = (typeof SPOTS)[number];
@@ -988,6 +989,7 @@ export function mountKineticMap(d: KmDeps) {
     }</div>${fi && fm.step ? `<div class="k-fbrow">
       <span class="k-fpick"><button type="button" data-fstep="-1" aria-label="${L2('Previous fish', 'Pez anterior')}">‹</button><b>${esc(fi.name)}</b><button type="button" data-fstep="1" aria-label="${L2('Next fish', 'Siguiente pez')}">›</button></span>
       <button type="button" class="k-fchip k-fbest" data-fsheet="times">${best ? `${best.start <= at ? L2('Best now to', 'Mejor ahora hasta') + ' ' + esc(best.range.split('–')[1]) : `${L2('Best', 'Mejor')} ${esc(best.range)}`}` : fi?.wins.length ? L2('Best times are over today', 'Ya pasaron las mejores horas') : L2('No standout time today', 'Ninguna hora destaca hoy')}</button></div>
+      ${fi.cig ? `<div class="k-fbrow">${cigChip(fi.cig)}</div>` : ''}
       <div class="k-fbrow"><button type="button" class="k-fchip" data-fsheet="spots">${svg('<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>')}${L2('Best spots', 'Mejores sitios')}</button>${fm.logCatch ? `<button type="button" class="k-fchip" data-fsheet="catch">${svg('<path d="M12 5v14M5 12h14"/>')}${L2('Catch', 'Captura')}</button>` : ''}</div>` : ''}`;
   };
   /**
@@ -1035,6 +1037,30 @@ export function mountKineticMap(d: KmDeps) {
   /** The fishing panel's capitals as plain words: reasons become small tags, each in sentence case. */
   const tags = (why: string) => (why ? `<span class="k-ftags">${why.split(' · ').map((w) => `<span>${esc(sentence(w))}</span>`).join('')}</span>` : '');
   const placeCase = (x: string) => titleCase(x).replace(/\bKm\b/g, 'km').replace(/\b(De|Del|La|El)\b/g, (w) => w.toLowerCase());
+  /**
+   * Ciguatera on the fish bar (PLAN 7.148, fishing/cigua.ts): red for the high tier, amber otherwise, with the smallest size
+   * to keep among the fish's species. Tapping it opens the fish sheet at the size chart, the same numbers as the guide.
+   */
+  const cigChip = (c: FishCigua) =>
+    `<button type="button" class="k-fchip k-fcig${isRed(c.tier) ? ' k-red' : ''}" data-fsheet="cig">${esc(
+      c.tier === 'never' ? L2('Ciguatera · do not eat', 'Ciguatera · no lo coma') : c.tier === 'rare' || !c.cm ? L2('Ciguatera · rare, see why', 'Ciguatera · rara, vea por qué') : `${L2('Ciguatera · keep under', 'Ciguatera · guarde menos de')} ${c.cm} cm`,
+    )}</button>`;
+  /** The fish sheet's ciguatera section: the tier's sentence and one bar per species with its size to keep. */
+  const cigSheetHTML = (fi: FishInfo) => {
+    if (!fi.cig) return '';
+    const rows = fi.cig.tier === 'never' ? [] : ciguaSpecies(fi.id);
+    const es = L2('en', 'es') === 'es';
+    const li = rows
+      .map((r) => {
+        const name = esc(es ? r.es : r.en);
+        const z = r.size;
+        const v = z.basis === 'never' ? L2('Do not eat', 'No lo coma') : z.cm ? `${z.cm} cm${z.basis === 'estimate' ? ` <small>${L2('est.', 'est.')}</small>` : ''}` : L2('No size known', 'Sin tamaño conocido');
+        return `<li><span>${name}</span><i style="width:${z.cm ? Math.min(100, (z.cm / 80) * 100).toFixed(0) : 0}%"></i><b>${v}</b></li>`;
+      })
+      .join('');
+    const text = fi.id === 'lionfish' ? t('fish.cig.lionfish') : t(`fish.cig.${fi.cig.tier}` as Key);
+    return `<section class="k-fsec" id="k-fcig"><p class="k-mono k-fcap">${L2('Ciguatera', 'Ciguatera')}</p><p class="k-fnote">${esc(sentence(text).replace(/([.:] )([a-z])/g, (_, p, c: string) => p + c.toUpperCase()))}</p>${li ? `<p class="k-mono k-fcap">${L2('Keep under', 'Guarde menos de')}</p><ul class="k-fcz${isRed(fi.cig.tier) ? ' k-red' : ''}">${li}</ul>` : ''}<p><a class="k-flink" href="#ciguatera">${L2('Risk, symptoms, treatment', 'Riesgo, síntomas, tratamiento')}</a></p></section>`;
+  };
   /** The fish sheet: today's BITE strip and every best window, then the best spots near the crosshair (tap to fly). */
   const fishSheetHTML = (fi: FishInfo) => {
     const bars = fi.strip.bars;
@@ -1048,7 +1074,7 @@ export function mountKineticMap(d: KmDeps) {
     const spots = fi.spots.length
       ? fi.spots.map((r) => `<li><button type="button" class="k-fspot${r.on ? ' k-on' : ''}" data-fly="${r.n}"><span class="k-fn">${r.n + 1}</span><span><b>${esc(r.place ? placeCase(r.place) : L2('Unnamed spot', 'Sitio sin nombre'))}</b><small>${esc(sentence(r.line))}</small>${tags(r.why)}</span>${ARROW}</button></li>`).join('')
       : `<li><span>${L2('No good water for this fish within 15 km of the crosshair. Move the map and look again.', 'No hay buena agua para este pez a 15 km de la mira. Mueva el mapa y mire otra vez.')}</span></li>`;
-    return `<section class="k-fsec" id="k-ftimes"><p class="k-mono k-fcap">${L2('Best times today', 'Mejores horas hoy')}${fi.bite !== null ? ` · ${L2('Bite now', 'Picada ahora')} ${fi.bite}/100` : ''}</p>${strip}<ul class="k-fwins">${wins}</ul></section>
+    return `${cigSheetHTML(fi)}<section class="k-fsec" id="k-ftimes"><p class="k-mono k-fcap">${L2('Best times today', 'Mejores horas hoy')}${fi.bite !== null ? ` · ${L2('Bite now', 'Picada ahora')} ${fi.bite}/100` : ''}</p>${strip}<ul class="k-fwins">${wins}</ul></section>
       <section class="k-fsec" id="k-fspots"><p class="k-mono k-fcap">${L2('Best spots near the crosshair', 'Mejores sitios cerca de la mira')}</p><ul class="k-fspots">${spots}</ul></section>`;
   };
   /** + Catch: where and when, of the fish on the map, at the crosshair or the phone's own position (no track needed). */
@@ -1335,6 +1361,7 @@ export function mountKineticMap(d: KmDeps) {
     scrim.classList.toggle('k-on', !WIDE.matches);
     shBody.scrollTop = 0;
     if (part === 'spots') requestAnimationFrame(() => shBody.querySelector('#k-fspots')?.scrollIntoView({ block: 'start' }));
+    else if (part === 'times') requestAnimationFrame(() => shBody.querySelector('#k-ftimes')?.scrollIntoView({ block: 'start' }));
     $('k-laybtn').setAttribute('aria-expanded', String(kind === 'layers'));
   }
   function closeSheet() {
