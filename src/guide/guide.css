@@ -398,3 +398,8 @@
 .gd-id-exp { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--fc-line); }
 .gd-id-exp p { margin: 0 0 6px; font-size: 14px; color: var(--fc-ink2); }
 @media (min-width: 560px) { .gd-exp { flex: 0 0 auto; } }
+
+/* Link to the DISPATCH page (kill, bleed, ice) above the cleaning diagram. */
+.gd a.gd-dispatch { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px; margin: 12px 0 0; padding: 12px 14px; border: 2px solid var(--fc-ink); text-decoration: none; font-size: 14px; }
+.gd a.gd-dispatch b { font-family: var(--fc-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.gd a.gd-dispatch:hover { background: var(--fc-ink); color: var(--fc-bg); }

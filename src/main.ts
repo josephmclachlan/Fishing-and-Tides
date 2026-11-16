@@ -160,6 +160,7 @@ import { mountSpotPage } from './spot-page';
 import { mountForecastPage } from './forecast/page';
 import { mountCoralPage } from './coral-page/page';
 import { mountGuidePage } from './guide/page';
+import { mountDispatchPage } from './dispatch/page';
 import type { FcActivity } from './forecast/model';
 import { fetchSargassum, type SargassumData } from './adapters/sargassum';
 import { currentTheme } from './theme';
@@ -762,6 +763,17 @@ if (coralPanelEl) {
 }
 // SPECIES GUIDE page (PLAN 7.91): every animal and plant from shore to dive depth, on a page of its own (#guide).
 const guidePage = mountGuidePage({
+  storage: safeStorage(),
+  lang: () => settings.lang(),
+  setLang: (l) => {
+    settings.setLang(l);
+    const c = map.getCenter();
+    saveView(safeSession(), { center: [c.lng, c.lat], zoom: map.getZoom() });
+    location.reload();
+  },
+});
+// DISPATCH page (PLAN 7.102): how to kill, bleed and cool a catch, linked from the guide's clean tab and the fishing panel (#dispatch).
+mountDispatchPage({
   storage: safeStorage(),
   lang: () => settings.lang(),
   setLang: (l) => {

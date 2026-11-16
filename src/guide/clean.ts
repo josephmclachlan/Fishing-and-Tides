@@ -284,10 +284,17 @@ export function cleanSvg(k: CleanKey, label: string): string {
 }
 
 /** The diagram and its steps, with the species' own notes after them. */
+const DISPATCH_LINK = W(
+  'Before you clean it: how you kill and bleed a fish decides its flavour and how long it keeps.',
+  'Antes de limpiarlo: cómo matas y desangras un pescado decide su sabor y cuánto dura.',
+);
+const DISPATCH_GO = W('Kill, bleed, ice', 'Matar, desangrar, hielo');
+
 export function cleanHtml(k: CleanKey, lang: Lang, notes?: Txt): string {
   const d = CLEAN[k];
   const name = tr(d.name, lang);
-  return `<figure class="gd-clean">
+  return `<a class="gd-dispatch" href="#dispatch"><span>${esc(tr(DISPATCH_LINK, lang))}</span><b>${esc(tr(DISPATCH_GO, lang))} →</b></a>
+  <figure class="gd-clean">
     ${cleanSvg(k, name)}
     <figcaption><h4>${esc(name)}</h4>
       <ol class="gd-steps">${d.steps.map((s) => `<li${s.at ? ' class="on"' : ''}>${esc(tr(s.t, lang))}</li>`).join('')}</ol>

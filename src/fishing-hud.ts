@@ -83,6 +83,7 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
       <div class="bite-wins" id="fish-wins"></div>
       <details class="fishx" open><summary><span class="lbl">${t('fish.spots')}</span></summary><div id="fish-spots" class="fish-spots"></div></details>
       <div class="ro"><span class="lbl">${t('fish.yours')}</span><span class="seg sm" id="fish-yours">--</span></div>
+      <div class="ro"><a class="lbl fish-link" href="#dispatch" title="${t('dp.linkSub')}">${t('dp.link')} ›</a></div>
       <div class="ro"><span class="lbl note">${t('fish.note')}</span></div>
     </div>`,
   );
