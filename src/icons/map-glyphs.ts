@@ -5,7 +5,7 @@
  */
 import type { Map } from 'maplibre-gl';
 import { onSchemeChange } from '../layers/paint';
-import { GLYPH_IDS, glyphLayers, padOf, type GlyphId, type GlyphPaint, type GlyphShape } from './glyphs';
+import { GLYPH_IDS, KEY_W, glyphLayers, padOf, type GlyphId, type GlyphPaint, type GlyphShape } from './glyphs';
 
 /** Neutral things in ink with the map's label halo; hazards in the severity colours with a dark keyline. */
 export type Tone = 'ink' | 'caution' | 'danger';
@@ -74,6 +74,32 @@ export function glyphImage(g: GlyphId, paint: GlyphPaint): ImageData {
   return ctx.getImageData(0, 0, n, n);
 }
 
+/** Rating levels a rated place can take: lv0 (very poor) to lv4 (great), `n` none or not worked out. */
+export const LEVELS = ['0', '1', '2', '3', '4', 'n'] as const;
+export type Level = (typeof LEVELS)[number];
+/** Glyphs that sit on a rating square (rated places keep the square; the symbol inside says what kind). */
+export const SQUARED: readonly GlyphId[] = ['curl'];
+export const squareId = (g: GlyphId, lv: Level) => `g-${g}-sq${lv}`;
+
+/** A rated place: a square in the rating colour with a keyline, the glyph inside in the level's text colour. */
+export function squareImage(g: GlyphId, lv: Level): ImageData {
+  const n = 24 * PR;
+  const c = document.createElement('canvas');
+  c.width = c.height = n;
+  const ctx = c.getContext('2d')!;
+  ctx.scale(PR, PR);
+  ctx.fillStyle = tok(`--lv${lv}`, '#C9D3DE');
+  ctx.strokeStyle = tok('--g-key', '#0A1626');
+  ctx.lineWidth = KEY_W;
+  ctx.fillRect(1.5, 1.5, 21, 21);
+  ctx.strokeRect(1.5, 1.5, 21, 21);
+  ctx.translate(12, 12);
+  ctx.scale(0.66, 0.66);
+  ctx.translate(-12, -12);
+  for (const l of glyphLayers(g, { fill: tok(`--on${lv}`, '#0A1626') })) draw(ctx, l.shape, l.paint, l.grow);
+  return ctx.getImageData(0, 0, n, n);
+}
+
 const repaint = new WeakSet<Map>();
 /** Add every glyph in every tone to the map (once per style); a light/dark switch redraws them in the new colours. */
 export function addGlyphImages(map: Map) {
@@ -84,6 +110,7 @@ export function addGlyphImages(map: Map) {
       if (!map.hasImage(id)) map.addImage(id, glyphImage(g, paint), { pixelRatio: PR });
     }
   }
+  for (const g of SQUARED) for (const lv of LEVELS) if (!map.hasImage(squareId(g, lv))) map.addImage(squareId(g, lv), squareImage(g, lv), { pixelRatio: PR });
   if (repaint.has(map)) return;
   repaint.add(map);
   onSchemeChange(() => {
@@ -91,5 +118,6 @@ export function addGlyphImages(map: Map) {
       const paint = tonePaint(t);
       for (const g of GLYPH_IDS) if (map.hasImage(imageId(g, t))) map.updateImage(imageId(g, t), glyphImage(g, paint));
     }
+    for (const g of SQUARED) for (const lv of LEVELS) if (map.hasImage(squareId(g, lv))) map.updateImage(squareId(g, lv), squareImage(g, lv));
   });
 }

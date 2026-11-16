@@ -114,5 +114,14 @@ export function glyphSvg(id: GlyphId, p: GlyphPaint, size = 24, cls = ''): strin
   return `<svg${cls ? ` class="${cls}"` : ''} width="${px}" height="${px}" viewBox="${-pad} ${-pad} ${24 + pad * 2} ${24 + pad * 2}" aria-hidden="true">${body}</svg>`;
 }
 
+/**
+ * A rated place as SVG: a square in the rating colour `bg` with a keyline, the glyph inside in `fg` (the map draws the
+ * same in src/icons/map-glyphs.ts `squareImage`). Pure.
+ */
+export function squareSvg(id: GlyphId, bg: string, fg: string, key: string, size = 24): string {
+  const body = glyphLayers(id, { fill: fg }).map((l) => shapeSvg(l.shape, l.paint, l.grow)).join('');
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="1.5" width="21" height="21" style="fill:${bg};stroke:${key};stroke-width:${KEY_W}"/><g transform="translate(12 12) scale(.66) translate(-12 -12)">${body}</g></svg>`;
+}
+
 /** The glyph in `currentColor` with no halo, for buttons, badges and type. Pure. */
 export const glyphInline = (id: GlyphId, cls = '') => glyphSvg(id, { fill: 'currentColor', ink: 'var(--glyph-ink, #fff)' }, 24, cls).replace(/ width="[^"]+" height="[^"]+"/, '');
