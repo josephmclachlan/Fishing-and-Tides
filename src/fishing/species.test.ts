@@ -6,7 +6,7 @@ describe('species catalog', () => {
   it('has text for every species and consistent weights and ranges', () => {
     for (const s of SPECIES) {
       expect(`fish.${s.id}` in en).toBe(true);
-      expect(s.w.mouth + s.w.reef + s.w.drop).toBeCloseTo(1);
+      expect(s.w.mouth + s.w.reef + s.w.drop + (s.w.sand ?? 0) + (s.w.grass ?? 0) + (s.w.surf ?? 0)).toBeCloseTo(1);
       expect(s.season).toHaveLength(12);
       const [a, b, c, d] = s.depthM;
       expect(a < b && b <= c && c < d).toBe(true);

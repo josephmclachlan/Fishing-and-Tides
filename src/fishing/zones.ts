@@ -13,8 +13,8 @@
  *   5. Zones are ranked by size × quality, Σ(best − minScore + 0.1), and kept at least `sepKm` apart.
  */
 
-export type ZoneWhy = 'mouth' | 'reef' | 'drop' | 'front' | 'weed';
-const WHYS: readonly ZoneWhy[] = ['mouth', 'reef', 'front', 'weed', 'drop'];
+export type ZoneWhy = 'mouth' | 'reef' | 'drop' | 'front' | 'weed' | 'surf' | 'sand';
+const WHYS: readonly ZoneWhy[] = ['mouth', 'reef', 'front', 'weed', 'surf', 'sand', 'drop'];
 
 export interface ZoneCell<S extends string = string> {
   lng: number;
@@ -112,7 +112,7 @@ export function fishZones<S extends string>(cells: readonly ZoneCell<S>[], opt: 
     const species = mean.filter((x, i) => i < 2 && x.m >= mean[0].m * 0.85 && x.m > 0).map((x) => x.id);
     const score = g.reduce((a, x) => a + x.b, 0) / g.length;
     // The structure most cells share: mouth, reef, front, weed, then drop when tied.
-    const n = { mouth: 0, reef: 0, drop: 0, front: 0, weed: 0 } as Record<ZoneWhy, number>;
+    const n = { mouth: 0, reef: 0, drop: 0, front: 0, weed: 0, surf: 0, sand: 0 } as Record<ZoneWhy, number>;
     for (const { c } of g) for (const w of c.why) n[w]++;
     const top = WHYS.reduce<ZoneWhy | null>((a, w) => (n[w] >= 0.4 * g.length && (!a || n[w] > n[a]) ? w : a), null);
     const depths = g.map((x) => x.c.depthM);

@@ -20,6 +20,22 @@ The four weights sum to 1. They start from hand-written rules and are fitted to 
 
 **Grunts and two more snappers** (PLAN 7.121). Grunts (ronco: Caesar, Spanish, French, bluestriped, white, black and tomtate grunts and sailor's choice, plus the burros, porkfish and black margate) join EAT. The species guide marks all of them as eaten on this coast, and they are the most recorded eating fish here (254 records in the occurrence box, about 140 Haemulon records between Limón and Sixaola). They school over reef and rubble by day and feed over the sand and seagrass beside it at night, so the reef term carries their score: depth 1 to 35 m (ideal 2 to 20), reef 0.7, drop-off 0.2, river mouth 0.1, no local season data so the season is flat. Yellowtail snapper (rabirrubia, *Ocyurus chrysurus*) and mahogany snapper (*Lutjanus mahogoni*) join the snapper records (253 to 293). The occurrence build can now refetch only some species (`OCC_ONLY=grunt,snapper npm run data:occurrences`) and keep the rest of the file, because GBIF throttles cloud machines.
 
+**Sand, seagrass and the surf strip** (PLAN 7.122). Three more habitat terms join river mouth, reef and drop-off (`src/fishing/cells.ts`, `habitat.ts`):
+
+- *Sand* and *seagrass*: the share of the bottom within ~440 m that the Allen Coral Atlas maps as sand or seagrass, sampled 4 × 4 per cell because the patches are mostly smaller than a cell. Sand counts in full at 40 % of the bottom, seagrass at 10 % (the beds here are small: at most about 5 % around any cell). The Atlas covers Cahuita to Manzanillo, down to about 10 to 15 m, so north of Cahuita and south of Manzanillo both read 0.
+- *Surf strip*: the open beach's breaking band, 1 within 150 m of the coast and 0 by 450 m, times the share of the bottom that is not reef (a reef flat breaks the waves offshore of it). The ~460 m depth grid cannot see a beach's slope, so this is a fixed width, not the day's breaker line.
+- The BITE water term reads the day's offshore wave height for surf feeders (`water.ts surfFit`): ×1.05 inside the species' ideal surf, down to ×0.8 outside its limits, with the reasons SURF STIRS UP FOOD or SURF TOO FLAT OR TOO BIG.
+
+New species, all RULE OF THUMB because records are few (occurrence box: pompano 18, permit 5, bonefish 7):
+
+| Species | Mode | Depth, m | Prior weights | Surf it likes, m |
+|---|---|---|---|---|
+| Pompano (pámpano amarillo, and palometa) | EAT | 0.2–8 (0.4–3) | surf .6, sand .3, mouth .1 | 0.4–1.5 |
+| Permit (pámpano) | SPORT | 0.3–25 (1–12) | sand .3, reef .25, surf .25, drop .1, seagrass .1 | 0.2–1.5 |
+| Bonefish (macabí) | SPORT | 0.1–6 (0.3–2) | sand .45, seagrass .35, mouth .2 | none (calm water) |
+
+Snook moves 0.15 of its river-mouth weight to the surf strip (river mouths here all open onto surf beaches). Species with weight 0 on a term keep 0 through the fit, so the other species' maps do not change. Zones and BEST SPOTS can now give SURF LINE and SAND as the reason.
+
 Species (`src/fishing/species.ts`): **eating fish only** (before 7.120), from the eating-fish audit of 2026-11-04 (local catch per the 2017 UCR census of the Caribe Sur and other Spanish and English sources): snook (róbalo), jack (jurel: crevalle, horse-eye, bar jack, blue runner), snapper (pargo), Spanish mackerel (macarela), small reef groupers (cabrilla, coney, hinds, black grouper), barracuda and lionfish (pez león, invasive, eaten locally and its catch encouraged; an amber note, not the red warning, says ciguatera is rare in lionfish but has been found in some Caribbean ones, Robertson et al. 2014). Tarpon was dropped as a release-only sport fish. Grouper and barracuda show a ciguatera warning beside the picker. Goliath grouper (reportedly protected) and Nassau grouper (endangered) are left out of the records. Drum and croaker are present in the records but have no local evidence of being fished for food, so they are not targets. Mackerel, grouper and lionfish have no local season data, so their season factor is flat.
 
 **What this is not.** The depth ranges, mouth reach and seasons are angling rules of thumb written by hand, and the weights are those rules updated by a few dozen records (below), not checked with local guides. Rips are not in the score. Tide, light, solunar, weather, clarity, temperature, chlorophyll and sargassum are in the BITE score and BEST SPOTS below, not in the heat. The score is not a catch forecast. Treat it as a way to pick where to look, and check closed seasons and protected areas (PROTECTED layer, PLAN 6.8) before fishing.

@@ -35,9 +35,11 @@ export interface WaterInputs {
   sarg?: SargLevel | null;
   /** The nearest plume river: distance from the place to its mouth, km, and its flow as a share of the median. */
   river?: { km: number; ratio: number } | null;
+  /** Offshore significant wave height, m (for the surf feeders, PLAN 7.122). */
+  hsM?: number | null;
 }
 
-export type WaterReason = 'murky' | 'clearwater' | 'temp' | 'sargassum' | 'goodwater' | 'riverup' | 'flood' | 'riverlow';
+export type WaterReason = 'murky' | 'clearwater' | 'temp' | 'sargassum' | 'goodwater' | 'riverup' | 'flood' | 'riverlow' | 'surfgood' | 'surfpoor';
 
 export interface WaterTerm {
   /** 0..1, or null when nothing about the water is known. */
@@ -75,6 +77,16 @@ export function riverTerm(sp: Species, river: WaterInputs['river']): { factor: n
   return { factor: 1, why: null };
 }
 
+/**
+ * Surf feeders (PLAN 7.122): a multiplier from the offshore wave height, 1.05 inside the species' ideal surf, falling
+ * to 0.8 outside its limits (softFit), 1 for species without a surf range or with no wave forecast.
+ */
+export function surfFit(sp: Species, hsM: number | null | undefined): { factor: number; why: WaterReason | null } {
+  if (!sp.surfHsM || !ok(hsM)) return { factor: 1, why: null };
+  const f = softFit(hsM, sp.surfHsM, 0);
+  return { factor: 0.8 + 0.25 * f, why: f >= 1 ? 'surfgood' : f < 0.5 ? 'surfpoor' : null };
+}
+
 export function waterTerm(sp: Species, w: WaterInputs): WaterTerm {
   const parts: [number, number][] = [];
   const reasons: WaterReason[] = [];
@@ -95,6 +107,8 @@ export function waterTerm(sp: Species, w: WaterInputs): WaterTerm {
   if (sarg < 1) reasons.unshift('sargassum');
   const rv = riverTerm(sp, w.river);
   if (rv.why) reasons.push(rv.why);
+  const sf = surfFit(sp, w.hsM);
+  if (sf.why) reasons.push(sf.why);
   if (water !== null && water >= 0.95 && ok(w.visM) && sarg === 1) reasons.push('goodwater');
-  return { water, factor: (water === null ? 1 : 0.6 + 0.4 * water) * sarg * rv.factor, reasons };
+  return { water, factor: (water === null ? 1 : 0.6 + 0.4 * water) * sarg * rv.factor * sf.factor, reasons };
 }

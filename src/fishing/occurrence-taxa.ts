@@ -10,6 +10,10 @@ export const OCCURRENCE_TAXA: Record<string, string[]> = {
   grouper: ['Cephalopholis cruentata', 'Cephalopholis fulva', 'Epinephelus guttatus', 'Epinephelus adscensionis', 'Epinephelus morio', 'Mycteroperca bonaci', 'Mycteroperca tigris'],
   // Grunts (PLAN 7.121): the ronco and burro species the species guide marks as eaten on this coast.
   grunt: ['Haemulon carbonarium', 'Haemulon macrostomum', 'Haemulon flavolineatum', 'Haemulon sciurus', 'Haemulon plumierii', 'Haemulon bonariense', 'Haemulon parra', 'Haemulon aurolineatum', 'Anisotremus virginicus', 'Anisotremus surinamensis'],
+  // Surf and sand fish (PLAN 7.122): pompano and palometa (EAT), permit and bonefish (SPORT).
+  pompano: ['Trachinotus carolinus', 'Trachinotus goodei'],
+  permit: ['Trachinotus falcatus'],
+  bonefish: ['Albula vulpes', 'Albula nemoptera'],
   barracuda: ['Sphyraena barracuda'],
   lionfish: ['Pterois volitans', 'Pterois miles'],
   mahi: ['Coryphaena hippurus'],
