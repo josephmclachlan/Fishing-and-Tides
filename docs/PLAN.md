@@ -204,6 +204,7 @@ Built last, once Phases 2 to 6 are in. Each reuses the adapters, the layer regis
 - [x] 7.133 Field notes visual, part 4: Rules, Cooking, Seasons (month heat grid) and Words.
   Part 4 of 4, builds on 7.130.
 - [x] 7.134 Field notes for each activity (Joseph 2026-11-16: "a field guide unique to each activity, and the first items should be the most relevant (rigs, release) and the last items the most general (first aid etc)"): `#notes?for=<activity>` shows only that activity's tabs, most specific first and First aid and Glossary last (`ACT_TABS` in `src/notes/route.ts`), with the activity in the title and an All field notes link. Dive safety split out of Water safety into its own tab. Forecast chips, map spot links and the fishing panel open their activity's version.
+- [x] 7.135 Fish map switches on the map (Joseph 2026-11-16: "Where can I find the boat vs shore selector... Or the sport vs eat? I can't see either in mobile"): when FISH is on, EAT / SPORT and ALL / SHORE / BOAT sit on the map under the readings (`#k-fishsw` in `src/kmap/shell.ts`), one tap each, kept in step with the spot card and the fishing panel (`setReach`/`reach` in `src/fishing-hud.ts`, the `fishMode` bridge in `src/main.ts`).
 
 ## Phase 8: History and logs (see docs/HISTORY.md)
 Save what the app sees so it can show the past, and keep private logs (catches, coral sites) in a database only approved people can read. One PR per step.

@@ -198,10 +198,10 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
   const queue = () => {
     if (!queued) (queued = true), requestAnimationFrame(update);
   };
-  let shownMode = SPECIES[i].mode;
+  let shownMode = SPECIES[i].mode, shownReach = reach;
   const apply = () => {
-    // EAT or SPORT changed here (the MODE row, the arrows never cross modes, SHOW ON MAP can): tell the map's spot card.
-    if (SPECIES[i].mode !== shownMode) onMode((shownMode = SPECIES[i].mode));
+    // EAT or SPORT, or the reach, changed here (the MODE and REACH rows, SHOW ON MAP): tell the map's switches and spot card.
+    if (SPECIES[i].mode !== shownMode || reach !== shownReach) onMode(((shownReach = reach), (shownMode = SPECIES[i].mode)));
     layer.setSpecies(SPECIES[i].id);
     layer.setMonth(month());
     layer.setReach(reach);
@@ -283,5 +283,9 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     const k = SPECIES.findIndex((s) => s.id === id);
     if (k >= 0 && k !== i) ((i = k), apply());
   };
-  return { scoreCatch, refresh: queue, setSpecies, setMode, mode: () => SPECIES[i].mode };
+  /** ALL, SHORE or BOAT from outside (the map's switch over the fish map). */
+  const setReach = (r: Reach) => {
+    if (r !== reach && REACHES.includes(r)) ((reach = r), apply());
+  };
+  return { scoreCatch, refresh: queue, setSpecies, setMode, mode: () => SPECIES[i].mode, setReach, reach: () => reach };
 }
