@@ -19,7 +19,7 @@ import { coastTest, rgbaWord, seaImage, type SeaImage } from './sea-image';
 import { bandColours, bandOf, smoothField } from './bands';
 import { baseScore, habitatScore, seasonFactor } from '../fishing/habitat';
 import { fitWeights, recordCells, type HabitatFit } from '../fishing/fit';
-import { SPECIES, speciesById, speciesIn, type SpeciesId } from '../fishing/species';
+import { SPECIES, speciesById, speciesIn, type FishMode, type SpeciesId } from '../fishing/species';
 import { occurrenceBoost, recordsFor, withEvidence } from '../fishing/occurrences';
 import type { OccurrenceFile } from '../fishing/occurrence-taxa';
 import { catchRecords, type CatchPin } from '../fishing/catches';
@@ -90,6 +90,8 @@ export interface FishingLayer {
   /** Best separated spots (>= 600 m apart) for the current species, month and reach, best first. */
   bestSpots(n: number, near?: { lng: number; lat: number }, maxKm?: number): Spot[];
   setSpecies(id: SpeciesId): void;
+  /** EAT or SPORT: which mode's fish the zones and heat show (a species can be in both, PLAN 7.148). */
+  setMode(m: FishMode): void;
   /** 0-based month (UTC) the season factor uses. */
   setMonth(month: number): void;
   /** Habitat score 0..1 at a point for the current species and month, or null outside the fishing reach. */
@@ -112,10 +114,11 @@ export interface FishingLayer {
   spearSpots(n: number, near: { lng: number; lat: number }, maxKm: number): Spot[];
 }
 
-export function mountFishing(map: Map, input: FishingInput, initial: { species: SpeciesId; month: number }, occurrences: OccurrenceFile | null = null): FishingLayer {
+export function mountFishing(map: Map, input: FishingInput, initial: { species: SpeciesId; month: number; mode?: FishMode }, occurrences: OccurrenceFile | null = null): FishingLayer {
   const built = buildCells(input);
   const jobs = { zones: {}, spear: {}, rules: {} };
   let sp = speciesById(initial.species);
+  let mode: FishMode = initial.mode ?? sp.modes[0];
   let month = initial.month;
   const amber = cssColour('--amber', '#ffb000');
   // The theme's lift (paint.ts): these washes are 3 to 32 %, made for a black sea, and vanish on the light one.
@@ -175,10 +178,10 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     ];
   };
   const buildZones = () => {
-    const key = `${month}|${reach}|${catchKey}|${rules.length}|${boatKey}|${sp.mode}`;
+    const key = `${month}|${reach}|${catchKey}|${rules.length}|${boatKey}|${mode}`;
     if (key === zoneKey) return false;
     zoneKey = key;
-    const inMode = speciesIn(sp.mode);
+    const inMode = speciesIn(mode);
     // Shore and kayak water: every eating fish, each in the zones it earns (fishing/zones.ts NEAR_ZONES).
     const cells: ZoneCell<SpeciesId>[] = [];
     for (const [i, c] of built.cells.entries()) {
@@ -209,7 +212,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     // The mode's boat fish only: mahi, tuna, wahoo, kingfish and silk snapper for EAT, sailfish and marlin for SPORT.
     const far =
       boat && reach !== 'shore'
-        ? speciesZones(boat.filter((c) => !parkAt(c.lng, c.lat)), OFFSHORE.filter((o) => o.mode === sp.mode).map((o) => o.id), FAR_ZONES).flatMap((z) => {
+        ? speciesZones(boat.filter((c) => !parkAt(c.lng, c.lat)), OFFSHORE.filter((o) => o.modes.includes(mode)).map((o) => o.id), FAR_ZONES).flatMap((z) => {
             const at = nearestName(z.lng, z.lat, marks);
             const off = at ? t('fish.zone.off', { km: Math.round(at.km), name: at.name.toUpperCase() }) : '';
             const where = [t('fish.reach.boat'), z.why ? t(`fish.why.${z.why}` as Key) : '', depthText(z.depthM), off].filter(Boolean).join(' · ');
@@ -294,7 +297,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   const heatWord = (v: number) => (v === v ? heatWords[bandOf(HEAT_STEPS, v)] : 0);
   const heatImage = () => {
     heatZ.set(heatBase);
-    const inMode = speciesIn(sp.mode);
+    const inMode = speciesIn(mode);
     const season = inMode.map((x) => seasonFactor(x, month));
     for (const [i, c] of built.cells.entries()) {
       const p = geojson.features[i].properties as Record<string, number>;
@@ -315,7 +318,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   };
   let heatKey = '';
   const paint = () => {
-    const key = `${month}|${reach}|${catchKey}|${sp.mode}`;
+    const key = `${month}|${reach}|${catchKey}|${mode}`;
     if (key === heatKey || !map.getSource('fh-heat')) return;
     heatKey = key;
     const img = heatImage();
@@ -331,7 +334,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   const add = () => {
     if (map.getSource('fh-heat')) return;
     const img = heatImage();
-    heatKey = `${month}|${reach}|${catchKey}|${sp.mode}`;
+    heatKey = `${month}|${reach}|${catchKey}|${mode}`;
     map.addSource('fh-heat', { type: 'image', url: heatUrl(img), coordinates: img.coordinates });
     // Fades in past the coast tier and steps back to a tint by the spot tier, where the zones and the reefs carry the detail.
     // Zoomed in it stays strong enough to read which water is better (PLAN 7.85).
@@ -505,10 +508,14 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
       return out;
     },
     setSpecies(id) {
-      const was = sp.mode;
       sp = speciesById(id);
       paint();
-      if (sp.mode !== was) refreshZones();
+    },
+    setMode(m) {
+      if (m === mode) return;
+      mode = m;
+      paint();
+      refreshZones();
     },
     setMonth(m) {
       month = m;

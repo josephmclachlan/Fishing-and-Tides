@@ -657,6 +657,14 @@
 .km .k-fishsw .k-fchip{appearance:none;cursor:pointer;border:0;height:36px;display:flex;align-items:center;gap:6px;padding:0 11px;background:var(--c-card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.18);border-radius:2px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
 .km .k-fishsw .k-fchip svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.6}
 .km .k-fishsw .k-fchip.k-fbest{background:var(--ink);color:var(--bg)}
+.km .k-fishsw .k-fchip.k-fcig{background:var(--lv2);color:var(--ink);box-shadow:none}
+.km .k-fishsw .k-fchip.k-fcig.k-red{background:var(--lv0);color:#fff}
+.km .k-fcz{list-style:none;margin:6px 0 8px;padding:0;display:flex;flex-direction:column;gap:4px}
+.km .k-fcz li{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto;gap:8px;align-items:center;font-size:13px}
+.km .k-fcz li i{display:block;height:8px;background:var(--lv2);min-width:0}
+.km .k-fcz.k-red li i{background:var(--lv0)}
+.km .k-fcz li b{font-family:var(--mono);font-size:12px;white-space:nowrap}
+.km .k-flink{color:var(--c-acc);font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
 .km .k-fishsw .k-fchip.k-fhand{cursor:default;background:var(--lv2);color:var(--ink);box-shadow:none}
 :root[data-scheme="dark"].km .k-fishsw .k-fchip.k-fhand{color:var(--bg)}
 .km .k-cpick{display:flex;margin-bottom:10px}

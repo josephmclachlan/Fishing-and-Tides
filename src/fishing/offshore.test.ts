@@ -44,9 +44,9 @@ describe('offshore scoring: mixed layer (PLAN 7.18)', () => {
 describe('SPORT boat fish (PLAN 7.123)', () => {
   it('marks sailfish and marlin SPORT and keeps marlin off the shelf', () => {
     const by = (id: string) => OFFSHORE.find((s) => s.id === id)!;
-    expect(by('sailfish').mode).toBe('sport');
-    expect(by('marlin').mode).toBe('sport');
-    expect(OFFSHORE.filter((s) => s.mode === 'eat').map((s) => s.id)).toEqual(['mahi', 'tuna', 'wahoo', 'kingfish', 'silksnapper']);
+    expect(by('sailfish').modes).toEqual(['sport']);
+    expect(by('marlin').modes).toEqual(['sport']);
+    expect(OFFSHORE.filter((s) => s.modes.includes('eat')).map((s) => s.id)).toEqual(['mahi', 'tuna', 'wahoo', 'kingfish', 'silksnapper']);
     const blue = { sstC: 28, chl: 0.1, frontKm: 1, slopeMPerKm: 40, mldM: 20 };
     expect(offshoreScore(by('marlin'), { ...blue, depthM: 120 })).toBe(0);
     expect(offshoreScore(by('marlin'), { ...blue, depthM: 1500 })).toBeGreaterThan(0.9);
