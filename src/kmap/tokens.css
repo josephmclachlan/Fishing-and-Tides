@@ -8,7 +8,7 @@
   --uv0:#3E9F68; --uv1:#E8B620; --uv2:#EE8628; --uv3:#DF4430; --uv4:#8150C0;
   --lv0:#F2634A; --lv1:#F59A3D; --lv2:#F4C542; --lv3:#A5DBC2; --lv4:#0C6B66; --lvn:#C9D3DE;
   --on0:#1B0905; --on1:#1F0E02; --on2:#1D1604; --on3:#07241A; --on4:#F2FAF7; --onn:#0A1626;
-  --ac0:#CF3A20; --ac1:#C0620F; --ac2:#A67800; --ac3:#1F8A5E; --ac4:#0C6B66; --acn:#46576C;
+  --ac0:#CF3A20; --ac1:#C0620F; --ac2:#A67800; --ac3:#1F8A5E; --ac4:#0C6B67; /* one step off --lv4 (#0C6B66): the scheme swap tells map colours apart by value */ --acn:#46576C;
   --field:var(--lvn); --on-field:var(--onn); --ac:var(--acn);
   /* map */
   --m-sea-a:#D9E7F3; --m-sea-b:#7EA2C8; --m-land:#E2DFD1; --m-land-b:#D6D3C3; --m-topo:#C4C0AE; --m-coast:#0A1626; --m-halo:#ECEADF; --m-lab:#46576C; --m-sealab:#5D7590;

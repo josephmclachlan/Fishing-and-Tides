@@ -16,7 +16,7 @@ import { chaikin, clipLines, contour } from '../physics/bathy';
 import type { GridSeries } from '../adapters/pack';
 import type { SatelliteData } from '../adapters/satellite';
 import { rgbaWord, seaImage, type CoastTest, type Corners, type SeaImage } from './sea-image';
-import { lifted, paintColour as cssColour, paintLift, type Lift } from './paint';
+import { lifted, onSchemeChange, paintColour as cssColour, paintLift, type Lift } from './paint';
 import { fieldWord, setFieldSteps, smoothField, sstSteps } from './bands';
 
 const FONT = ['Noto Sans Regular'];
@@ -140,14 +140,14 @@ export interface SstCoast {
  */
 export function mountSst(map: Map, d: SatelliteData, sea?: SstCoast) {
   const amber = cssColour('--amber', '#ffb000');
-  const lift = paintLift();
+  let lift = paintLift();
   // Kinetic Plus paints the temperature in its ramp's bands, a quarter degree each around the region's water that
   // day (bands.ts, PLAN 7.79); the amber isotherms stay on top as the old map drew them.
   const g = d.sst?.meta.grid ?? d.sstCoast?.meta.grid;
   const z = d.sst?.values.sst?.at(-1) ?? d.sstCoast?.values.sst?.at(-1);
   const steps = g && z ? sstSteps(g, z, REGION.bounds) : null;
   if (steps) setFieldSteps('sst', steps);
-  const word = fieldWord('sst', lift);
+  let word = fieldWord('sst', lift);
   // The fills read a lightly blurred copy (smoothField): the 0.01° nest comes in flat blocks a band edge would trace.
   const soft = (x: GridSeries | null | undefined): GridSeries | null => {
     const last = x?.values.sst?.at(-1);
@@ -157,11 +157,13 @@ export function mountSst(map: Map, d: SatelliteData, sea?: SstCoast) {
   // The isotherms follow the same softened map, so each one runs along a band edge.
   let data = features({ sst, sstCoast }, sea?.water);
   const COAST = TIER_ZOOM.COAST;
-  const colours = {
+  const readColours = () => ({
     green: rgb(cssColour('--green', '#39ff7a'), [57, 255, 122]),
-    amber: rgb(amber, [255, 176, 0]),
+    amber: rgb(cssColour('--amber', '#ffb000'), [255, 176, 0]),
     red: rgb(cssColour('--red', '#ff3b2f'), [255, 59, 47]),
-  };
+  });
+  let colours = readColours();
+  let curCoast = sea?.coast;
   // Macro tier: the whole 0.05° map. Coast tier: the 0.01° nest, with the 0.05° map around it
   // (holed where the nest is) so the tint doesn't stop at the nest's edge. Hard switch at the tier
   // edge: a cross-fade of two translucent fills shows the nest as a box.
@@ -175,7 +177,7 @@ export function mountSst(map: Map, d: SatelliteData, sea?: SstCoast) {
     if (coast) fills.push({ k: 'coast', img: coast, zoom: sst ? { minzoom: COAST } : {} });
     return fills;
   };
-  let fills = makeFills(sea?.coast);
+  let fills = makeFills(curCoast);
   const isGrid = (g: string) => ['==', ['get', 'grid'], g] as ['==', ['get', string], string];
   const add = () => {
     if (map.getSource('ss')) return;
@@ -200,8 +202,17 @@ export function mountSst(map: Map, d: SatelliteData, sea?: SstCoast) {
   };
   if (map.getLayer('grat-macro') || map.isStyleLoaded()) add();
   else map.once('style.load', add);
+  // A light/dark switch re-bakes the fills in the new ramp from the data already held; the isotherms' amber is swapped by schemeSwap.
+  onSchemeChange(() => {
+    lift = paintLift();
+    word = fieldWord('sst', lift);
+    colours = readColours();
+    fills = makeFills(curCoast);
+    for (const { k, img } of fills) (map.getSource(`ss-fill-${k}`) as ImageSource | undefined)?.updateImage({ url: fillUrl(img), coordinates: img.coordinates });
+  });
   return {
     setCoast(next: SstCoast) {
+      curCoast = next.coast;
       data = features({ sst, sstCoast }, next.water);
       (map.getSource('ss') as GeoJSONSource | undefined)?.setData(data);
       fills = makeFills(next.coast);

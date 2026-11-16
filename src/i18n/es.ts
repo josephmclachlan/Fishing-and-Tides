@@ -1211,7 +1211,7 @@ export const es: Dict = {
   'legend.sargassum.what': 'Sargazo flotante visto por satélite y hacia dónde va a la deriva.',
   'legend.sargassum.1': 'Cuadros ámbar: sargazo visto (más brillo, más sargazo)',
   'legend.sargassum.2': 'Rayado tenue: el satélite no pudo ver aquí (nubes), así que es desconocido, no limpio',
-  'legend.sargassum.3': 'Matas de sargazo sobre líneas punteadas: masas a la deriva siguiendo su trayectoria pronosticada, desde la hora de la barra durante las próximas 18 horas',
+  'legend.sargassum.3': 'Ramitas de sargazo (tallo, hojas y flotadores redondos) sobre líneas punteadas: masas a la deriva siguiendo su trayectoria pronosticada, desde la hora de la barra durante las próximas 18 horas',
   'legend.sargassum.4': 'Etiqueta SARGASSUM en una playa: se espera que llegue sargazo en 5 días',
   'legend.weather.what': 'Lluvia vista por el satélite GOES-19 en la última hora, adelantada hasta 2 horas según hacia dónde se mueven las celdas (y moviéndose en el mapa a esa velocidad medida), y tormentas tropicales activas del centro de huracanes de EE. UU. (normalmente muy lejos de esta costa).',
   'legend.weather.1': 'Anillo con nombre y categoría: una tormenta',
