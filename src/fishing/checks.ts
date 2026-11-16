@@ -5,7 +5,7 @@
  */
 import { cachedFetch, type CacheDeps } from '../adapters/cache';
 import { freshness, inRange, type Check } from '../verify/types';
-import type { OccurrenceFile } from './occurrence-taxa';
+import type { OccurrenceFile } from '../species/kinds';
 
 const DAY = 86_400_000;
 const FILE = 'data/fishing/occurrences.json';

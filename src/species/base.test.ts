@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import guideIndex from '../../public/data/guide/index.json';
 import genText from './base.gen.ts?raw';
-import { OCCURRENCE_TAXA } from '../fishing/occurrence-taxa';
+import { OCCURRENCE_TAXA } from './kinds';
 import { BASE } from './base.gen';
 import { baseModule, buildBase, type GuideIndexRow, type GuideSpecies } from './build';
 

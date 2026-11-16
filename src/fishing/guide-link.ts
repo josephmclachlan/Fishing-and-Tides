@@ -1,47 +1,25 @@
 /**
- * Where the fishing model and the species guide meet. The model works on the kinds of fish in fishing/species.ts
- * (snook, jack, snapper, mackerel, grouper, grunt, pompano, corvina, mullet; barracuda, permit, bonefish, tarpon for sport; lionfish; lobster, octopus, cigua by hand); the guide has a page per species. `fishKindFor` says which kind a guide species
- * belongs to (so its page can show it on the fish map), and `guideSearchFor` is the guide search that lists a kind's
- * species (so "Likely catch" can link to them). Latin names, so the search works in both languages.
+ * Where the fishing model and the species guide meet, both read from the one catalogue of kinds (species/kinds.ts):
+ * shore kinds (fishing/species.ts) and boat kinds (fishing/offshore.ts). `fishKindFor` says which kind a guide species
+ * belongs to (so its page can show it on the fish map), and `guideLinkFor` is the guide link for a kind (so "Likely
+ * catch" can link to it): straight to the species page when the kind is one species, else the guide search that lists
+ * its species. Latin names, so the search works in both languages.
  */
-import { OCCURRENCE_TAXA } from './occurrence-taxa';
-import type { SpeciesId } from './species';
+import { BASE } from '../species/base.gen';
+import { KINDS, kindForSci, type KindEntry, type KindId } from '../species/kinds';
+import { guideHash } from '../guide/route';
 
-const KINDS: readonly SpeciesId[] = ['snook', 'jack', 'snapper', 'mackerel', 'grouper', 'grunt', 'pompano', 'corvina', 'mullet', 'mojarra', 'goatfish', 'squid', 'flounder', 'squirrelfish', 'spadefish', 'barracuda', 'lionfish', 'permit', 'bonefish', 'tarpon', 'lobster', 'octopus', 'cigua'];
-
-/** The model kind a species (by scientific name) belongs to, or null when the fish map has no zone for it. */
-export function fishKindFor(sci: string): SpeciesId | null {
-  const s = sci.trim().toLowerCase();
-  return KINDS.find((k) => OCCURRENCE_TAXA[k]?.some((n) => n.toLowerCase() === s)) ?? null;
-}
+/** The kind a species (by scientific name) belongs to, or null when the fish map has no zone for it. */
+export const fishKindFor = (sci: string): KindId | null => kindForSci(sci);
 
 /** The guide search that lists a kind's species. */
-export const GUIDE_SEARCH: Record<SpeciesId, string> = {
-  snook: 'Centropomus',
-  jack: 'Caranx',
-  snapper: 'Lutjanus',
-  mackerel: 'Scomberomorus',
-  grouper: 'Epinephelidae',
-  grunt: 'Haemulidae',
-  pompano: 'Trachinotus',
-  corvina: 'Sciaenidae',
-  mullet: 'Mugil',
-  mojarra: 'Gerreidae',
-  goatfish: 'Mullidae',
-  squid: 'Sepioteuthis',
-  flounder: 'Bothus lunatus',
-  squirrelfish: 'Holocentrus',
-  spadefish: 'Chaetodipterus',
-  permit: 'Trachinotus falcatus',
-  bonefish: 'Albula',
-  tarpon: 'Megalops',
-  lobster: 'Panulirus',
-  octopus: 'Octopus',
-  cigua: 'Cittarium',
-  barracuda: 'Sphyraena',
-  lionfish: 'Pterois',
-};
+export const GUIDE_SEARCH: Readonly<Record<KindId, string>> = Object.fromEntries(Object.entries(KINDS).map(([k, v]) => [k, v.search])) as Record<KindId, string>;
 
-const NOT_FISH: ReadonlySet<SpeciesId> = new Set(['lobster', 'octopus', 'cigua', 'squid']);
-/** The guide link for a kind: the edible list of fish (or, for the by-hand catch, every edible species), searched. */
-export const guideLinkFor = (k: SpeciesId): string => `#guide/${NOT_FISH.has(k) ? 'edible' : 'edible-fish'}?q=${encodeURIComponent(GUIDE_SEARCH[k])}`;
+/** The guide link for a kind: its species page when it is one species, else the edible list of fish (or, for the by-hand catch and squid, every edible species), searched. */
+export function guideLinkFor(k: KindId): string {
+  const e: KindEntry = KINDS[k];
+  const group = e.notFish ? null : 'fish';
+  const only = e.taxa.length === 1 ? BASE[e.taxa[0]] : undefined;
+  if (only) return guideHash({ mode: 'edible', group, id: only.id });
+  return `#guide/${e.notFish ? 'edible' : 'edible-fish'}?q=${encodeURIComponent(e.search)}`;
+}

@@ -8,7 +8,7 @@
  * the nudge stays as a local term for spots the four habitat components don't explain.
  */
 import { haversineM } from '../geo';
-import type { OccurrenceFile } from './occurrence-taxa';
+import type { OccurrenceFile } from '../species/kinds';
 
 export const RECORD_RADIUS_M = 2000;
 export const BOOST_PER_RECORD = 0.1;

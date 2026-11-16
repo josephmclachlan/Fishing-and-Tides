@@ -21,7 +21,7 @@ import { baseScore, habitatScore, seasonFactor } from '../fishing/habitat';
 import { fitWeights, recordCells, type HabitatFit } from '../fishing/fit';
 import { SPECIES, speciesById, speciesIn, type FishMode, type SpeciesId } from '../fishing/species';
 import { occurrenceBoost, recordsFor, withEvidence } from '../fishing/occurrences';
-import type { OccurrenceFile } from '../fishing/occurrence-taxa';
+import type { OccurrenceFile } from '../species/kinds';
 import { catchRecords, type CatchPin } from '../fishing/catches';
 import { liftedTagged, paintColour as cssColour, paintLift, themeVar, onSchemeChange } from './paint';
 import { ANCHOR_OFFSET, ZONE_LABEL, FAR_ZONES, fishZones, NEAR_ZONES, nearlyZones, speciesZones, zoneLabel, zoneRing, type Zone, type ZoneCell, type ZoneWhy } from '../fishing/zones';
@@ -216,7 +216,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
             const at = nearestName(z.lng, z.lat, marks);
             const off = at ? t('fish.zone.off', { km: Math.round(at.km), name: at.name.toUpperCase() }) : '';
             const where = [t('fish.reach.boat'), z.why ? t(`fish.why.${z.why}` as Key) : '', depthText(z.depthM), off].filter(Boolean).join(' · ');
-            return zoneFeatures(z, z.species.map((id) => t(`boat.sp.${id}` as Key)).join(' · '), where, true);
+            return zoneFeatures(z, z.species.map((id) => t(`fish.${id}` as Key)).join(' · '), where, true);
           })
         : [];
     zonesGj.features = [...nearly, ...far, ...near];
