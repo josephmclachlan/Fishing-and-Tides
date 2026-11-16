@@ -117,6 +117,8 @@ export interface Eat {
   riskNote?: Txt;
   rules?: Txt;
   rulesCheck?: boolean;
+  /** Taking it is banned in Costa Rica: the catch and clean tabs still show, as emergency (survival) information only. */
+  illegal?: boolean;
   methods?: Method[];
   bait?: Txt;
   lures?: Txt;
@@ -203,6 +205,8 @@ export interface Entry {
   rec?: Rec;
   look?: Look;
   edible?: Edible;
+  /** Taking it is banned here (eat.illegal): kept off the edible list, food notes shown as emergency use only. */
+  illegal?: boolean;
   quality?: number;
   methods?: Method[];
   risks?: Risk[];
