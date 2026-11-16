@@ -21,7 +21,7 @@
  *   sargassum  1 for NONE or LOW at the nearest beach, 0.6 MODERATE, 0.3 HIGH (mats foul the entry and hide the bottom; optional)
  *   runoff  1, or 0.6 when a river mouth is within 8 km and runs at 3 times its median or the catchment had 25 mm or more
  *           (rule of thumb, not a measurement; optional)
- *   entry   1 up to 0.5 m of breaking surf at the shore, 0 at 1.5 m and above (you cannot get in or out through it; the breaker
+ *   entry   1 up to 0.5 m of breaking surf at the shore, 0 at 1.3 m and above (you cannot get in or out through it; the breaker
  *           height already carries the swell direction, refraction and sheltering of the spot model; optional)
  *   rip     LOW 1, MOD 0.8, HIGH 0.4 at the entry (swept off the reef; optional, only given for the hour the rip model ran)
  *   rain    1 up to 2 mm/h, 0.3 at 10 mm/h and above (optional input; left out when unknown)
@@ -29,6 +29,7 @@
  * Weather safety caps the whole score afterwards: score × safetyTerm (physics/safety.ts, shared with fishing).
  * Lightning within 25 km leaves at most 10, a squall HIGH 25%, a squall WATCH 70%.
  */
+import { SHORE_DUMP_M, SHORE_EASY_M } from './shorebreak';
 import { safetyTerm, type SquallLevel } from './safety';
 
 export type SargLevel = 'NONE' | 'LOW' | 'MODERATE' | 'HIGH';
@@ -128,7 +129,7 @@ export function outingScore(i: OutingInputs, kind: OutingKind = 'outing'): Outin
   if (i.sstC !== undefined && Number.isFinite(i.sstC)) terms.push(['cold', 1 - 0.6 * ramp(26 - i.sstC, 0, 6)]);
   if (i.sarg) terms.push(['sargassum', i.sarg === 'HIGH' ? 0.3 : i.sarg === 'MODERATE' ? 0.6 : 1]);
   if (i.runoff !== undefined) terms.push(['runoff', i.runoff ? 0.6 : 1]);
-  if (i.breakerM !== undefined && Number.isFinite(i.breakerM)) terms.push(['entry', 1 - ramp(i.breakerM, 0.5, 1.5)]);
+  if (i.breakerM !== undefined && Number.isFinite(i.breakerM)) terms.push(['entry', 1 - ramp(i.breakerM, SHORE_EASY_M, SHORE_DUMP_M)]);
   if (i.rip) terms.push(['rip', i.rip === 'HIGH' ? 0.4 : i.rip === 'MOD' ? 0.8 : 1]);
   if (i.currentMs !== undefined && Number.isFinite(i.currentMs)) terms.push(['current', 1 - ramp(i.currentMs, ...b.current)]);
   if (i.rainMmH !== undefined && Number.isFinite(i.rainMmH)) terms.push(['rain', 1 - 0.7 * ramp(i.rainMmH, 2, 10)]);
@@ -147,24 +148,42 @@ export interface OutingDay { dayStart: number; best: OutingWindow | null }
 
 const H = 3.6e6;
 
-/** Best window of one local day: hourly from sunrise to sunset (`span`, local hours [fromH, toH); 07:00 to 17:00 when not given), the run of hours within 10% of the day's best. */
-export function bestWindow(at: (ms: number, localHour: number) => OutingScore, dayStart: number, span: { fromH: number; toH: number } = { fromH: 7, toH: 17 }): OutingWindow | null {
+/** Fallback hours when a caller gives no sunrise and sunset, and the longest window offered. Callers pass the day's real daylight as `span`. */
+export const WINDOW_FROM_H = 7, WINDOW_TO_H = 17, WINDOW_MAX_H = 4;
+
+/**
+ * Best window of one local day: hourly over the day's daylight (`span`, local hours [fromH, toH), from that day's sunrise and
+ * sunset; 07:00 to 17:00 only when the caller gives none), then the run of hours within 10%
+ * of the day's best. A run longer than WINDOW_MAX_H hours is cut to the WINDOW_MAX_H hours with the highest mean score, so a flat
+ * day reads "09:00 to 13:00" and not "the whole day".
+ */
+export function bestWindow(at: (ms: number, localHour: number) => OutingScore, dayStart: number, span: { fromH: number; toH: number } = { fromH: WINDOW_FROM_H, toH: WINDOW_TO_H }): OutingWindow | null {
   const hours: { t: number; s: OutingScore }[] = [];
   for (let h = span.fromH; h < span.toH; h++) hours.push({ t: dayStart + h * H, s: at(dayStart + h * H, h) });
+  if (!hours.length) return null;
   const top = hours.reduce((a, b) => (b.s.score > a.s.score ? b : a));
   if (top.s.score <= 0) return null;
   const cut = top.s.score * 0.9;
   let a = hours.indexOf(top), b = a;
   while (a > 0 && hours[a - 1].s.score >= cut) a--;
   while (b < hours.length - 1 && hours[b + 1].s.score >= cut) b++;
+  if (b - a + 1 > WINDOW_MAX_H) {
+    let bestA = a, bestSum = -1;
+    for (let k = a; k + WINDOW_MAX_H - 1 <= b; k++) {
+      const sum = hours.slice(k, k + WINDOW_MAX_H).reduce((x, y) => x + y.s.score, 0);
+      if (sum > bestSum) (bestSum = sum), (bestA = k);
+    }
+    a = bestA;
+    b = a + WINDOW_MAX_H - 1;
+  }
   return { start: hours[a].t, end: hours[b].t + H, peak: top.s.score, reasons: top.s.reasons };
 }
 
 /** The best time of each of `days` local days from the one starting at `firstDayStart`, and the index of the best day. */
-export function outlook(at: (ms: number, localHour: number) => OutingScore, firstDayStart: number, days = 7): { days: OutingDay[]; bestDay: number } {
+export function outlook(at: (ms: number, localHour: number) => OutingScore, firstDayStart: number, days = 7, spanOf?: (dayStart: number) => { fromH: number; toH: number }): { days: OutingDay[]; bestDay: number } {
   const out = Array.from({ length: days }, (_, k) => {
     const dayStart = firstDayStart + k * 24 * H;
-    return { dayStart, best: bestWindow(at, dayStart) };
+    return { dayStart, best: bestWindow(at, dayStart, spanOf?.(dayStart)) };
   });
   let bestDay = -1, peak = 0;
   out.forEach((d, k) => d.best && d.best.peak > peak && ((peak = d.best.peak), (bestDay = k)));

@@ -25,6 +25,7 @@ import type { Spot as FcSpot } from '../metrics/forecast';
 import { bestTimeView, headline, heroWords, sentence } from '../forecast/view';
 import { hourlyVerdicts, nextWindow } from '../boat/window';
 import { daysAt, readAt, skyMemo, spotsForActivity, type FcActivity, type FcDeps, type FcRead, type Level } from '../forecast/model';
+import { shoreBand } from '../physics/shorebreak';
 import { extrema, predictSeries, tideState } from '../physics/tide';
 import { localDayStart, moonPhase, sunTimes } from '../physics/astro';
 import { LIMON_HARMONICS } from '../data/tides-limon';
@@ -114,7 +115,7 @@ export interface KmDeps {
   openCoralPage: (reef: string) => void;
   /** The species guide (PLAN 7.91). */
   openGuide?: (mode?: 'identify' | 'edible') => void;
-  /** What the fish map shows (PLAN 7.111): EAT, fish to keep and eat, or SPORT, fish to catch and release. */
+  /** What the fish map shows (PLAN 7.120): EAT, fish to keep and eat, or SPORT, fish to catch and release. */
   fishMode?: { get(): 'eat' | 'sport'; set(m: 'eat' | 'sport'): void; subscribe?(fn: () => void): void };
   explain: (title: string, id: string) => void;
   go: (t: Target) => void;
@@ -635,8 +636,10 @@ export function mountKineticMap(d: KmDeps) {
       out.push({ k: 'surge', l: L2('Surge', 'Vaivén'), v: n1(sg.uMs), u: 'm/s', s: `${word(sg.band)} · ${sg.depth} m · ±${n1(sg.excursionM)}`, help: 'surge', src: L2('by depth', 'por prof.'), prof: h.surge, lv: sg.band === 'DANGEROUS' ? 0 : sg.band === 'SURGY' ? 2 : 4 });
     }
     // Surf at the water's edge (the breaker, cut by any reef flat in front): what a swimmer walks into.
-    if ((act('swim') || act('snorkel') || act('surf')) && fin(h.entryM) && !h.land)
-      out.push({ k: 'entry', l: L2('Surf at entry', 'Olas en la orilla'), v: n1(h.entryM), u: 'm', s: h.entryM >= 1.2 ? L2('Big shore break', 'Rompiente fuerte') : h.entryM >= 0.5 ? L2('Waves at the edge', 'Olas en la orilla') : L2('Easy entry', 'Entrada fácil'), val: h.entryM, help: 'diveEntry', lv: h.entryM >= 1.2 ? 0 : h.entryM >= 0.5 ? 2 : 4 });
+    if ((act('swim') || act('snorkel') || act('surf')) && fin(h.entryM) && !h.land) {
+      const sb = shoreBand(h.entryM);
+      out.push({ k: 'entry', l: L2('Shore break', 'Rompiente en la orilla'), v: n1(h.entryM), u: 'm', s: sb === 'dump' ? L2('Dumping waves', 'Olas que revientan en seco') : sb === 'timed' ? L2('Time your entry', 'Espere el momento para entrar') : L2('Easy entry', 'Entrada fácil'), val: h.entryM, help: 'diveEntry', lv: sb === 'dump' ? 0 : sb === 'timed' ? 2 : 4 });
+    }
     if ((has('sst') || has('fronts') || act('swim') || act('dive') || act('spear') || S.coral) && fin(h.sstC) && !h.land)
       out.push({ k: 'sst', l: L2('Water temp', 'Temp. agua'), v: n1(h.sstC), u: '°C', s: h.sstC >= SST_BANDS.WARM ? L2('Warm for here', 'Cálida para aquí') : h.sstC >= SST_BANDS.COOL ? L2('Mid · no wetsuit', 'Media · sin traje') : L2('Cooler for here', 'Fresca para aquí'), val: h.sstC, help: 'sst', src: L2('satellite', 'satélite') });
     if (has('chl') && fin(h.chl) && !h.land)
@@ -681,7 +684,7 @@ export function mountKineticMap(d: KmDeps) {
   };
   let lastR: Reading[] = [];
   const hereHTML = () =>
-    `<button type="button" class="k-expand" data-expand>${svg('<path d="M3 3h5M3 3v5M17 17h-5M17 17v-5M3 3l5.5 5.5M17 17l-5.5-5.5"/>', '0 0 20 20')}<span>${L2('Expand data', 'Ampliar datos')}</span>${ARROW}</button><p class="k-here-ll k-mono"><span>${esc(llTxt())}</span><span>${L2('Layers on · tap to explain', 'Capas activas · toque para explicar')}</span></p><div class="k-tiles"></div><section class="k-dtls" hidden><h3 class="k-mono">${L2('In detail', 'En detalle')}<span>${L2('From Expand data', 'De Ampliar datos')}</span></h3><div class="k-dtlg"></div></section>`;
+    `<button type="button" class="k-expand" data-expand>${svg('<path d="M3 3h5M3 3v5M17 17h-5M17 17v-5M3 3l5.5 5.5M17 17l-5.5-5.5"/>', '0 0 20 20')}<span>${L2('Expand data', 'Ampliar datos')}</span>${ARROW}</button><p class="k-here-ll k-mono"><span>${esc(llTxt())}</span><span>${L2('Layers on · tap to explain', 'Capas activas · toque para explicar')}</span></p><p class="k-here-note k-mono">${L2(`These readings are for the crosshair, not for ${spot().name}. Open a spot to read that place.`, `Estas lecturas son de la mira, no de ${spot().name}. Abra un punto para leer ese lugar.`)}</p><div class="k-tiles"></div><section class="k-dtls" hidden><h3 class="k-mono">${L2('In detail', 'En detalle')}<span>${L2('From Expand data', 'De Ampliar datos')}</span></h3><div class="k-dtlg"></div></section>`;
   /** The old map's finer rows for the activity (detail.ts), as compact cards under the tiles; each opens Expand data. */
   const condRoot = () => document.getElementById('cond-panel');
   const detailHTML = (x: Detail) =>
@@ -814,7 +817,7 @@ export function mountKineticMap(d: KmDeps) {
     <div class="k-sacts"><button type="button" class="k-go" data-go="fc"><span>${L2('Open forecast', 'Abrir pronóstico')}</span>${ARROW}</button><button type="button" class="k-go2" data-go="centre">${L2('Centre', 'Centrar')}</button>${d.openGuide ? `<button type="button" class="k-go2" data-go="guide">${L2('Species', 'Especies')}</button>` : ''}</div>${fishModeHTML()}${linksHTML()}${boatLine(s, t0)}`;
   };
   /**
-   * EAT or SPORT for the fish map (PLAN 7.111, Joseph 2026-11-16): which fish the heat and the circled zones are for. The
+   * EAT or SPORT for the fish map (PLAN 7.120, Joseph 2026-11-16): which fish the heat and the circled zones are for. The
    * spot's rating above stays the eating-fish one.
    */
   const fishModeHTML = () => {
@@ -826,11 +829,14 @@ export function mountKineticMap(d: KmDeps) {
   /** Clear, labelled links for the water activities: identify what you see, and (fish, spear) kill, bleed, ice. */
   const linksHTML = () => {
     const idAct = S.act === 'fish' || S.act === 'dive' || S.act === 'spear' || S.act === 'snorkel';
+    const safety = `<a class="k-link" href="#notes/water"><span>${L2('Water safety: rips, emergencies, dive rules', 'Seguridad en el agua: resacas, emergencias, buceo')}</span>${ARROW}</a>`;
+    if (S.act === 'surf') return `<div class="k-links">${safety}<a class="k-link" href="#notes/surf"><span>${L2('Surf: etiquette, wave size, hazards by break', 'Surf: etiqueta, tamaño de ola, peligros por rompiente')}</span>${ARROW}</a><a class="k-link" href="#notes/aid"><span>${L2('Stung or bitten? First aid', '¿Picadura o mordida? Primeros auxilios')}</span>${ARROW}</a></div>`;
+    if (S.act === 'swim' || S.act === 'sail') return `<div class="k-links">${safety}<a class="k-link" href="#notes/aid"><span>${L2('Stung or bitten? First aid', '¿Picadura o mordida? Primeros auxilios')}</span>${ARROW}</a></div>`;
     if (!idAct) return '';
-    const id = d.openGuide ? `<button type="button" class="k-link" data-go="identify"><span>${L2('Identify what you see', 'Identifica lo que ves')}</span>${ARROW}</button>` : '';
     const dp = S.act === 'fish' || S.act === 'spear' ? `<a class="k-link" href="#dispatch"><span>${L2('Kill, bleed, ice your catch', 'Mata, desangra y enfría tu pesca')}</span>${ARROW}</a>` : '';
     const nt = `<a class="k-link" href="#notes"><span>${L2('Field notes: rules, rigs, cooking', 'Notas de campo: reglas, aparejos, cocina')}</span>${ARROW}</a><a class="k-link" href="#notes/aid"><span>${L2('Stung or bitten? First aid', '¿Picadura o mordida? Primeros auxilios')}</span>${ARROW}</a>`;
-    return `<div class="k-links">${id}${dp}${nt}</div>`;
+    const id = d.openGuide ? `<button type="button" class="k-link" data-go="identify"><span>${L2('Identify what you see', 'Identifica lo que ves')}</span>${ARROW}</button>` : '';
+    return `<div class="k-links">${safety}${id}${dp}${nt}</div>`;
   };
   /**
    * Fish and sail: the next boat window from this spot (mockup G: "Boat window · Wed 11 · 05:30–10:00 · Small boat OK"),
@@ -934,7 +940,7 @@ export function mountKineticMap(d: KmDeps) {
     }
   };
   $('k-dkspot').addEventListener('click', () => openSheet(S.coral ? 'coral' : 'spot'));
-  // The fishing panel's own MODE row changes it too: keep the card's switch in step (PLAN 7.111).
+  // The fishing panel's own MODE row changes it too: keep the card's switch in step (PLAN 7.120).
   d.fishMode?.subscribe?.(() => renderSpot());
 
   /* ---------- pins and ribbons ---------- */

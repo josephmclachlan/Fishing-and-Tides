@@ -39,6 +39,12 @@ describe('best time and best day', () => {
     expect(w.end).toBe(13 * 3.6e6);
     expect(w.peak).toBe(100);
   });
+  it('stays inside the daylight it is given and is never longer than four hours, even on a flat day', () => {
+    const w = bestWindow(() => ({ score: 80, reasons: [] }), 0, { fromH: 6, toH: 18 })!;
+    expect(w.start).toBeGreaterThanOrEqual(6 * 3.6e6);
+    expect(w.end).toBeLessThanOrEqual(18 * 3.6e6);
+    expect(w.end - w.start).toBe(4 * 3.6e6);
+  });
   it('returns null when no hour is usable', () => {
     expect(bestWindow(() => ({ score: 0, reasons: ['surge'] }), 0)).toBeNull();
   });

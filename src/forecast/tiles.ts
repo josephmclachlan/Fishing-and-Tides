@@ -8,6 +8,7 @@
  */
 import type { TileKind, TileViz } from './view';
 import { arrow, clamp, D2R, DISP, moonPath, rgba, sq, TAU, txt, type Ctx2D, type RGB } from './kit';
+import { shoreBand } from '../physics/shorebreak';
 
 const fin = (x: number | null | undefined): x is number => typeof x === 'number' && Number.isFinite(x);
 
@@ -25,7 +26,7 @@ export function tipBand(kind: TipKind, v: number | null): string | null {
     case 'wind': case 'chop': return v >= 20 ? 'strong' : v >= 12 ? 'breezy' : v >= 5 ? 'light' : 'calm';
     case 'gust': return v >= 25 ? 'strong' : v >= 18 ? 'gusty' : 'steady';
     case 'swell': return v >= 2 ? 'big' : v >= 1 ? 'solid' : v >= 0.5 ? 'fun' : 'small';
-    case 'breaker': return v > 1.3 ? 'dump' : v >= 0.6 ? 'time' : 'easy';
+    case 'breaker': { const b = shoreBand(v); return b === 'timed' ? 'time' : b; }
     case 'current': return v >= 1 ? 'strong' : v >= 0.5 ? 'mod' : 'easy';
     case 'reef': return v < 0.8 ? 'shallow' : 'ok';
     case 'boat': return v >= 75 ? 'smooth' : v >= 50 ? 'lively' : 'rough';

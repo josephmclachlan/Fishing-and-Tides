@@ -6,7 +6,7 @@
  * weights `w` are only the prior: fit.ts updates them from the OBIS/GBIF records (PLAN 4.4).
  * Depth range, mouth reach and season are used as written.
  *
- * Two modes (PLAN 7.111, Joseph 2026-11-16): EAT, fish to keep and eat (the default and the old set), and SPORT, fish to
+ * Two modes (PLAN 7.120, Joseph 2026-11-16): EAT, fish to keep and eat (the default and the old set), and SPORT, fish to
  * catch and release (barracuda moved here: no size of it is safe to eat). A species is in exactly one mode.
  */
 export type SpeciesId = 'snook' | 'jack' | 'snapper' | 'mackerel' | 'grouper' | 'barracuda' | 'lionfish';
