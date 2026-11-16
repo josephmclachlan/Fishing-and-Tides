@@ -11,6 +11,9 @@ import { compass8 } from './surf-breaks';
 import { windFetchM, shelterClass } from './physics/fetch';
 import type { Grid } from './physics/bathy';
 import type { Place } from './data/harbours';
+import { nearestPort, type WpiPort } from './adapters/wpi';
+
+const SAILING_DIRECTIONS = 'https://msi.nga.mil/Publications/SailingDirections';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
@@ -44,13 +47,22 @@ export function mountHarboursHud(root: HTMLElement, map: Map, deps: HarboursDeps
   document.addEventListener('keydown', (e) => e.key === 'Escape' && (card.hidden = true));
 
   let here: Place | null = null;
+  let ports: readonly WpiPort[] = [];
   $('an-info').addEventListener('click', () => {
     if (!here) return;
     card.innerHTML = `<div class="ph">${esc(here.name)}<button type="button" class="tab rules-close">${t('rules.close')}</button></div>
       <ul class="rules-list">${here.sources.map((s) => `<li><a class="rule-src" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.name)}</a></li>`).join('')}</ul>
+      ${wpiBlock(here)}
       <p class="rules-advice">${t('place.advice')}</p>`;
     card.hidden = false;
   });
+
+  const wpiBlock = (p: Place) => {
+    const port = nearestPort(ports, p.lngLat);
+    const rows = port ? Object.entries(port.facts).map(([k, v]) => `<li>${t(`place.wpi.${k}` as Key)}: ${esc(v)}</li>`).join('') : '';
+    const head = port ? `<div class="lbl">${t('place.wpi', { name: esc(port.name) })}</div><ul class="rules-list">${rows}</ul>` : '';
+    return `${head}<ul class="rules-list"><li><a class="rule-src" href="${SAILING_DIRECTIONS}" target="_blank" rel="noopener noreferrer">${t('place.sailingDirections')}</a></li></ul>`;
+  };
 
   let queued = false;
   const update = () => {
@@ -77,5 +89,5 @@ export function mountHarboursHud(root: HTMLElement, map: Map, deps: HarboursDeps
   };
   map.on('move', queue);
   update();
-  return { refresh: queue };
+  return { refresh: queue, setPorts: (p: readonly WpiPort[]) => void (ports = p) };
 }
