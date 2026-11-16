@@ -331,14 +331,14 @@ export function tilesFor(r: FcRead, ctx: ViewCtx): TileView[] {
     kind: 'wind', k: t('fc.wind'), v: kt === null ? dash : `${n0(kt)} kt`,
     sub: [[cmp(from), extra].filter(Boolean).join(' · '), peakWind(src)].filter(Boolean), tip: tipOf('wind', kt), lv: null, viz: { v: kt, deg: from },
   });
-  const tideTile = (): TileView => {
+  const tideTile = (fishTip = false): TileView => {
     const s = tideNow(env, ms);
     const series = dayHours.map((x) => x.tideM);
     const turn = s.next.t - d0 < DAY ? (s.next.t - d0) / H : null;
     return {
       kind: 'tide', k: t('fc.tide'), v: `${signed2(s.h)} m`,
       sub: [`${t(s.rising ? 'fc.tide.rising' : 'fc.tide.falling')} · ${t(`fc.tide.next.${s.next.type}` as Key, { t: localClock(s.next.t) })}`],
-      tip: t(s.rising ? 'tip.tide.up' : 'tip.tide.down'), lv: null, viz: { series, at, turnAt: turn, turnHigh: s.next.type === 'high' },
+      tip: fishTip ? t(s.rising ? 'tip.tide.up' : 'tip.tide.down') : null, lv: null, viz: { series, at, turnAt: turn, turnHigh: s.next.type === 'high' },
     };
   };
   const windowTile = (): TileView => ({
@@ -372,7 +372,7 @@ export function tilesFor(r: FcRead, ctx: ViewCtx): TileView[] {
       weather(),
       { kind: 'catch', k: t('fc.catch'), v: names[0] ?? dash, sub: [names.slice(1).join(' · ')], tip: t('tip.fish'), lv: null, viz: { count: names.length }, links: f.species.map(guideLinkFor) },
       { kind: 'moon', k: t('fc.moon'), v: `${n0(f.moonIllum * 100)}%`, sub: [`${sentence(t(`astro.moon.${f.moonPhase}` as Key))} · ${t('fc.moonDay', { d: n0(age) })}`], tip: tipOf('moon', f.moonIllum), lv: null, viz: { v: f.moonIllum, waxing: f.moonPhase <= 4 } },
-      tideTile(), windTile(hourWind.kt, hourWind.from, (x) => x.windKt), water(), uvTile(h?.uv ?? null), windowTile(),
+      tideTile(true), windTile(hourWind.kt, hourWind.from, (x) => x.windKt), water(), uvTile(h?.uv ?? null), windowTile(),
     ];
   }
   if (r.water && r.activity === 'snorkel') {
