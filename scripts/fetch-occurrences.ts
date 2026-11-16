@@ -7,8 +7,14 @@
  * boat species, in a box around the region. The two overlap, so records are merged when species,
  * position (rounded to ~100 m) and year match. Records are sparse here (tens, not thousands), so
  * the app uses them as a modest nudge to the habitat score, never as the score. Needs Node 22.18+.
+ *
+ *   OCC_ONLY=grunt,snapper npm run data:occurrences
+ *
+ * refetches only those species and keeps the rest of the existing file (GBIF answers 429 to cloud machines after a
+ * burst, so a full run there can fail; calls are paced and a 429 waits longer before the retry). Behind an HTTPS proxy
+ * (cloud sessions) run it with NODE_USE_ENV_PROXY=1, or Node fetches directly and GBIF answers 429.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { REGION } from '../src/region.ts';
 import { OCCURRENCE_TAXA, type OccurrenceFile } from '../src/fishing/occurrence-taxa.ts';
 
@@ -18,15 +24,16 @@ const BOX = { w: w0 - PAD, s: s0 - PAD, e: e0 + PAD, n: n0 + PAD };
 const OUT = 'public/data/fishing';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function json(url: string, tries = 3): Promise<any> {
+async function json(url: string, tries = 5): Promise<any> {
   for (let i = 0; ; i++) {
+    await sleep(400);
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(40_000) });
-      if (!res.ok) throw new Error(`${res.status} ${url}`);
+      if (!res.ok) throw Object.assign(new Error(`${res.status} ${url}`), { status: res.status });
       return await res.json();
     } catch (err) {
       if (i >= tries - 1) throw err;
-      await sleep(1500 * (i + 1));
+      await sleep(((err as { status?: number }).status === 429 ? 15_000 : 1500) * (i + 1));
     }
   }
 }
@@ -53,8 +60,14 @@ async function gbif(name: string): Promise<Rec[]> {
   }
 }
 
+const only = (process.env.OCC_ONLY ?? '').split(',').filter(Boolean);
+const old: OccurrenceFile | null = only.length && existsSync(`${OUT}/occurrences.json`) ? JSON.parse(readFileSync(`${OUT}/occurrences.json`, 'utf8')) : null;
 const species: OccurrenceFile['species'] = {};
 for (const [id, names] of Object.entries(OCCURRENCE_TAXA)) {
+  if (old && !only.includes(id) && old.species[id]) {
+    species[id] = old.species[id];
+    continue;
+  }
   const seen = new Set<string>();
   const pts: [number, number, number | null][] = [];
   for (const name of names)
