@@ -33,3 +33,14 @@ describe('modes', () => {
     expect(speciesIn('eat').map((s) => s.id)).not.toContain('barracuda');
   });
 });
+
+describe('by-hand catch (PLAN 7.125)', () => {
+  it('closes lobster from March to June and keeps the by-hand catch in EAT', async () => {
+    const { seasonOf } = await import('./species');
+    const lobster = speciesById('lobster');
+    expect([2, 3, 4, 5].map((m) => seasonOf(lobster, m))).toEqual(['closed', 'closed', 'closed', 'closed']);
+    expect(seasonOf(lobster, 1)).not.toBe('closed');
+    expect(seasonOf(lobster, 6)).not.toBe('closed');
+    for (const id of ['lobster', 'octopus', 'cigua'] as const) expect(speciesById(id)).toMatchObject({ mode: 'eat', byHand: true });
+  });
+});

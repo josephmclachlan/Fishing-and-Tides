@@ -79,6 +79,7 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
       <div class="ro" id="fish-warn" hidden><span class="lbl red">${t('fish.ciguatera')}</span> <a class="cig-link" href="#ciguatera">${t('fish.ciguateraMore')}</a></div>
       <div class="ro" id="fish-care" hidden><span class="lbl">${t('fish.ciguateraCare')}</span> <a class="cig-link" href="#ciguatera">${t('fish.ciguateraMore')}</a></div>
       <div class="ro" id="fish-low" hidden><span class="lbl">${t('fish.low')}</span></div>
+      <div class="ro" id="fish-hand" hidden><span class="lbl">${t('fish.byhand')}</span></div>
       <div class="ro fish-reach"><span class="lbl">${t('fish.reach')}</span><span class="seg sm" id="fish-reach">${REACHES.map((r) => `<button type="button" class="tab" data-reach="${r}">${t(`fish.reach.${r}` as Key)}</button>`).join('')}</span></div>
       <div class="ro"><span class="lbl">${t('fish.score')}</span><span class="seg sm green" id="fish-score">--</span></div>
       <div class="ro"><span class="lbl">${t('fish.bite')}</span><span class="seg sm green" id="fish-bite">--</span></div>
@@ -109,6 +110,7 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     $('fish-warn').hidden = sp.ciguatera !== true;
     $('fish-care').hidden = sp.ciguatera !== 'caution';
     $('fish-low').hidden = sp.confidence !== 'low';
+    $('fish-hand').hidden = !sp.byHand;
     $('fish-sport').hidden = sp.mode !== 'sport';
     $('fish-note').textContent = t(sp.mode === 'sport' ? 'fish.note.sport' : 'fish.note');
     const season = t(`season.${seasonOf(sp, month())}` as Key);

@@ -40,7 +40,9 @@ describe('habitatScore', () => {
         const s = habitatScore(sp, { depthM: 5, mouthKm: 0, reef: 1, slopeMPerKm: 100 }, m);
         expect(s).toBeGreaterThanOrEqual(0);
         expect(s).toBeLessThanOrEqual(1);
-        expect(seasonFactor(sp, m)).toBeGreaterThanOrEqual(0.7);
+        // 0 only in a closed season (lobster, PLAN 7.125); otherwise a nudge.
+        const f = seasonFactor(sp, m);
+        expect(f === 0 || f >= 0.7).toBe(true);
       }
   });
   it('wraps months', () => {
