@@ -63,3 +63,11 @@ for venomous spines and most stings, vinegar for box jellies and fire coral, sea
 Portuguese man o' war, firm pressure and a tourniquet only when pressure fails for heavy bleeding, and no cutting,
 sucking, urine or alcohol. Fishing rules quoted from INCOPESCA and SINAC that could not be read in full are marked
 CHECK.
+
+## Emergency food (Joseph 2026-11-16)
+
+The guide doubles as a survival guide, so how to catch, clean and cook a species is kept even when taking it is banned
+or it is not normally eaten. The edible list still shows only legal food. A species with food notes beyond its rules
+gets the Catch and Clean tabs anyway: a red "Illegal to take in Costa Rica: emergency use only" banner when the
+research sets `eat.illegal` or the species is protected, and an amber "Not normally eaten" banner when it is marked
+not edible or toxic (`emergencyHtml` in src/guide/render.ts).
