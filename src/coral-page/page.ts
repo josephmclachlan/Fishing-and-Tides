@@ -84,6 +84,9 @@ const RISK_ICONS: Record<RiskId, string> = {
 };
 const LOCK = svg('<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>', 'cp-lock');
 const CHEVRON = svg('<path d="M9 5l7 7-7 7"/>');
+/** Badge symbols from the shared set (src/icons/glyphs.ts): the law's shield, the unchecked question mark. */
+const SHIELD = svg('<path d="M12 2.8l7.5 2.7v6c0 4.8-3.2 8.3-7.5 9.9-4.3-1.6-7.5-5.1-7.5-9.9v-6z"/>', 'cp-pg');
+const QMARK = svg('<path d="M9.3 9.2a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2 1-1.2 1.9v.6"/><path d="M12 17.2v.6"/>', 'cp-pg');
 const LINK_OUT = svg('<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>');
 
 /** One gauge: a track from 0 to `max` washed green → amber → red at the two thresholds, a marker at the value. */
@@ -415,8 +418,10 @@ export function mountCoralPage(deps: CoralPageDeps) {
   }
 
   // --- GUIDE
-  const iucnLevel = (s: CoralSpecies['status']): Level => (s === 'CR' ? 0 : s === 'EN' ? 1 : s === 'VU' || s === 'NT' ? 2 : 3);
-  const sctldLevel = (s: CoralSpecies['sctld']): Level => (s === 'high' ? 0 : s === 'mid' ? 2 : 3);
+  // Status and risk pills use the badge grammar of the species guide (PLAN 7.107): IUCN critically endangered and endangered
+  // in ink, the rest outlined (one IUCN look on both pages); disease risk on the severity scale, not the rating colours.
+  const iucnPill = (s: CoralSpecies['status']) => (s === 'CR' || s === 'EN' ? 'b-ink' : 'b-out');
+  const sctldPill = (s: CoralSpecies['sctld']) => (s === 'high' ? 'b-dan' : s === 'mid' ? 'b-cau' : 'b-out');
   const keep = (s: CoralSpecies) =>
     speciesFilter === 'all' || (speciesFilter === 'cr' && s.status === 'CR') || (speciesFilter === 'sctld' && s.sctld === 'high') || (speciesFilter === 'heat' && !!s.heatSensitive) || (speciesFilter === 'local' && !!s.localSctld);
   function guideHtml() {
@@ -430,7 +435,7 @@ export function mountCoralPage(deps: CoralPageDeps) {
         <div class="cp-chips" role="group" aria-label="${t('cp.filter')}">${filters}</div>
         <div class="cp-species">${list.map((s) => `<article class="cp-spc">
           <h3>${esc(titleCase(t(`cg.${s.id}.name` as Key)))}</h3><i>${esc(s.name)}</i>
-          <div class="cp-tags"><span class="cp-pill ${lc(iucnLevel(s.status))}">${esc(soften(t(`coral.iucn.${s.status}` as Key)))}</span><span class="cp-pill ${lc(sctldLevel(s.sctld))}">${esc(soften(t(`coral.sctld.${s.sctld}` as Key)))}</span>${s.localSctld ? `<span class="cp-pill l1">${esc(soften(t('coral.sctld.local')))}</span>` : ''}${s.heatSensitive ? `<span class="cp-pill l2">${esc(soften(t('coral.heatSens')))}</span>` : ''}</div>
+          <div class="cp-tags"><span class="cp-pill ${iucnPill(s.status)}">${esc(soften(t(`coral.iucn.${s.status}` as Key)))}</span><span class="cp-pill ${sctldPill(s.sctld)}">${esc(soften(t(`coral.sctld.${s.sctld}` as Key)))}</span>${s.localSctld ? `<span class="cp-pill b-dan">${esc(soften(t('coral.sctld.local')))}</span>` : ''}${s.heatSensitive ? `<span class="cp-pill b-cau">${esc(soften(t('coral.heatSens')))}</span>` : ''}</div>
           <p>${esc(t(`cg.${s.id}.tip` as Key))}</p></article>`).join('')}</div>
       </section>`;
   }
@@ -440,7 +445,7 @@ export function mountCoralPage(deps: CoralPageDeps) {
   function rulesHtml() {
     return `
       <section class="fc-card"><div class="fc-card-head"><h2>${t('cp.rules')}</h2></div>
-        <ul class="cp-rules">${CORAL_RULES.map((r) => `<li><span class="cp-pill ${r.confidence === 'official' ? 'l3' : 'l2'}">${r.confidence === 'official' ? t('cp.official') : t('cp.check')}</span><p>${esc(soften(t(`crule.${r.id}` as Key)))}</p><a href="${esc(r.source.url)}" target="_blank" rel="noopener noreferrer">${t('cp.source', { s: esc(r.source.name) })} ${LINK_OUT}</a></li>`).join('')}</ul>
+        <ul class="cp-rules">${CORAL_RULES.map((r) => `<li><span class="cp-pill ${r.confidence === 'official' ? 'b-out' : 'b-chk'}">${r.confidence === 'official' ? `${SHIELD}${t('cp.official')}` : `${QMARK}${t('cp.check')}`}</span><p>${esc(soften(t(`crule.${r.id}` as Key)))}</p><a href="${esc(r.source.url)}" target="_blank" rel="noopener noreferrer">${t('cp.source', { s: esc(r.source.name) })} ${LINK_OUT}</a></li>`).join('')}</ul>
       </section>
       <section class="fc-card"><div class="fc-card-head"><h2>${t('cp.etiquette')}</h2></div>
         <ul class="cp-etiq">${CORAL_ETIQUETTE.map((id) => `<li>${esc(t(`cet.${id}` as Key))}</li>`).join('')}</ul>

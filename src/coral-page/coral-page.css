@@ -86,6 +86,14 @@
   font-family: var(--fc-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.35;
 }
 .cp-hero .cp-pill { background: var(--fc-on-field); color: var(--fc-field); }
+/* Badge grammar shared with the species guide (PLAN 7.107): ink for a plain fact, outlines for status, the severity
+   scale for risk, dashed for not checked. Levels (l0..l4) stay for how good a reef or a visit is. */
+.cp-pill.b-ink { background: var(--fc-ink); color: var(--fc-bg); }
+.cp-pill.b-out { background: none; color: var(--fc-ink); box-shadow: inset 0 0 0 1.5px var(--fc-ink); }
+.cp-pill.b-cau { background: var(--fc-sev-caution); color: var(--fc-sev-on-caution); }
+.cp-pill.b-dan { background: var(--fc-sev-danger); color: var(--fc-sev-on); }
+.cp-pill.b-chk { background: none; color: var(--fc-ink); border: 1.5px dashed var(--fc-ink); padding: 2px 6px 1px; }
+.cp-pill .cp-pg { width: 12px; height: 12px; margin-right: 4px; fill: none; stroke: currentColor; stroke-width: 2.2; flex: none; }
 .cp-cap { margin: 12px 0 0; color: var(--fc-ink2); font-size: 12.5px; line-height: 1.45; max-width: 90ch; }
 
 /* --- today's stresses: tiles with a level bar on top and a tip on tap */

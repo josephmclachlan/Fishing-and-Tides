@@ -6,6 +6,7 @@
  * the drawers off `body[data-sheet]` only inside the phone media query).
  */
 import type { Map } from 'maplibre-gl';
+import { UI } from './icons/ui';
 import { t } from './i18n';
 
 export type SheetId = 'watch' | 'find' | 'cond' | 'time' | 'layers' | 'boat' | 'coral' | 'settings' | 'check' | 'obs' | 'spot';
@@ -55,7 +56,7 @@ export function closeButton(onClick: () => void): HTMLButtonElement {
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'sheet-x';
-  b.textContent = '✕';
+  b.innerHTML = UI.close;
   b.setAttribute('aria-label', t('ui.close'));
   b.addEventListener('click', onClick);
   return b;
