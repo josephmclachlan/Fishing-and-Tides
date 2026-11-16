@@ -1,6 +1,6 @@
 /** FIELD NOTES page HTML: pure string builders over content.ts and sections/*.ts, so they are tested without a DOM. */
-import { sizesHtml } from '../ciguatera/sizes';
-import { GRADE_WORDS, type Block, type Grade, type L, type Source } from '../ciguatera/content';
+import { isText, textBlock } from '../ciguatera/view';
+import type { L, Source } from '../ciguatera/content';
 import { ALL_NOTES, SECTIONS, type NBlock, type Section } from './content';
 import { visHtml } from './vis';
 import { notesHash, tabsFor, type NtAct, type NtTab } from './route';
@@ -29,47 +29,10 @@ export function cited(text: string, cites: Cites, sources: Record<string, Source
 }
 const tx = (l: L, lang: Lang, c: Cites, s: Record<string, Source>): string => cited(l[lang], c, s);
 
-/** Bar width on a log scale from 1 to 10,000, as a percentage with a visible minimum. */
-export const barPct = (v: number): number => Math.max(3, Math.min(100, (Math.log10(Math.max(v, 1)) / 4) * 100));
-const fmt = (v: number): string => (v >= 100 ? Math.round(v).toLocaleString('en-US') : String(v));
-
-const TEXT_KINDS = new Set(['p', 'h', 'ul', 'warn', 'aid', 'table', 'graded', 'bars']);
-const isText = (b: NBlock): b is Block => TEXT_KINDS.has(b.k);
-
-const GRADE_LEVEL: Record<Grade, number> = { strong: 4, weak: 2, case: 2, expert: 3, none: 1, against: 0 };
-
-function block(b0: NBlock, lang: Lang, c: Cites, S: Record<string, Source>, href: (t: NtTab) => string = notesHash): string {
-  if (!isText(b0)) return visHtml(b0, lang, (l) => tx(l, lang, c, S), href);
-  const b = b0;
-  switch (b.k) {
-    case 'p':
-      return `<p>${tx(b.t, lang, c, S)}</p>`;
-    case 'h':
-      return `<h3 class="cig-h fc-mono">${tx(b.t, lang, c, S)}</h3>`;
-    case 'ul':
-      return `<ul class="cig-ul">${b.items.map((i) => `<li>${tx(i, lang, c, S)}</li>`).join('')}</ul>`;
-    case 'warn':
-      return `<section class="cig-box cig-warn"><h4 class="fc-mono">${tx(b.h, lang, c, S)}</h4><p>${tx(b.t, lang, c, S)}</p></section>`;
-    case 'aid':
-      return `<section class="cig-box cig-aid"><h4 class="fc-mono">${tx(b.h, lang, c, S)}</h4><p>${tx(b.t, lang, c, S)}</p></section>`;
-    case 'table':
-      return `<div class="cig-tw"><table class="cig-t"><thead><tr>${b.head.map((h) => `<th scope="col" class="fc-mono">${tx(h, lang, c, S)}</th>`).join('')}</tr></thead><tbody>${b.rows
-        .map((r) => `<tr>${r.map((cell, i) => (i === 0 ? `<th scope="row">${tx(cell, lang, c, S)}</th>` : `<td>${tx(cell, lang, c, S)}</td>`)).join('')}</tr>`)
-        .join('')}</tbody></table></div>`;
-    case 'graded':
-      return `<ul class="cig-gr">${b.rows
-        .map((r) => `<li class="cig-g l${GRADE_LEVEL[r.grade]}"><span class="cig-chip fc-mono">${tx(GRADE_WORDS[r.grade], lang, c, S)}</span><b>${tx(r.item, lang, c, S)}</b><span>${tx(r.note, lang, c, S)}</span></li>`)
-        .join('')}</ul>`;
-    case 'bars':
-      return `<ul class="cig-bars">${b.rows
-        .map((r) => {
-          const val = r.hi ? `${fmt(r.lo)} to ${fmt(r.hi)}` : fmt(r.lo);
-          return `<li><span class="cig-bl">${tx(r.label, lang, c, S)}${r.note ? ` <em>${tx(r.note, lang, c, S)}</em>` : ''}</span><span class="cig-bt"><i style="width:${barPct(r.hi ?? r.lo).toFixed(1)}%"></i></span><b class="fc-mono">${esc(val)}</b></li>`;
-        })
-        .join('')}</ul><p class="cig-axis fc-mono">${esc(lang === 'es' ? 'ESCALA LOGARÍTMICA, 1 A 10.000' : 'LOG SCALE, 1 TO 10,000')}${b.cite ? cited(`{${b.cite}}`, c, S) : ''}</p>`;
-    case 'sizes':
-      return sizesHtml(b.kinds, lang) + (b.cite ? cited(`{${b.cite}}`, c, S) : '');
-  }
+function block(b: NBlock, lang: Lang, c: Cites, S: Record<string, Source>, href: (t: NtTab) => string = notesHash): string {
+  const t = (l: L) => tx(l, lang, c, S);
+  if (!isText(b)) return visHtml(b, lang, t, href);
+  return textBlock(b, lang, t, (k) => cited(`{${k}}`, c, S));
 }
 
 /** The section's sources in the order they were first cited, each with its number and whether it was read in full. */

@@ -22,7 +22,13 @@
 .cig-box h4 { margin: 0 0 4px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
 .cig-box p { margin: 0; }
 .cig-warn { --c: var(--fc-lv0); }
-.cig-aid { --c: var(--fc-ink); }
+.cig-aid { --c: var(--fc-ink); background: var(--fc-card); border: 1px solid var(--fc-line); border-left: 8px solid var(--fc-ink); }
+
+/* On every tab but "If you think you have it": the emergency signs and a link there (graphics review C-2). */
+.cig .cig-sos { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; margin: 0 0 16px; padding: 10px 12px; text-decoration: none; background: var(--fc-lv0); color: var(--fc-on0); border: 2px solid var(--fc-ink); }
+.cig-sos strong { font: 800 15px/1.25 var(--fc-body); }
+.cig-sos span { grid-column: 1; font-size: 14px; line-height: 1.35; }
+.cig-sos .cig-ico { grid-column: 2; grid-row: 1 / span 2; width: 22px; height: 22px; stroke-width: 2.6; }
 
 .cig-tw { overflow-x: auto; margin: 10px 0; }
 .cig-t { width: 100%; border-collapse: collapse; font-size: 15px; }
@@ -32,23 +38,92 @@
 
 .cig-gr { list-style: none; margin: 10px 0; padding: 0; }
 .cig-g { display: grid; grid-template-columns: minmax(8.5em, auto) 1fr; gap: 2px 14px; padding: 10px 0; border-bottom: 1px solid var(--fc-line); }
-.cig-g .cig-chip { grid-row: span 2; align-self: start; padding: 3px 8px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; text-align: center; background: var(--c); color: var(--o); }
+.cig-g .cig-chip { grid-row: span 2; align-self: start; display: grid; gap: 4px; justify-items: center; padding: 4px 8px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; text-align: center; background: var(--fc-block); color: var(--fc-ink); border: 1px solid var(--fc-line); }
 .cig-g b { font-weight: 700; }
-.cig-g.l0 { --c: var(--fc-lv0); --o: var(--fc-on0); }
-.cig-g.l1 { --c: var(--fc-lvn); --o: var(--fc-onn); }
-.cig-g.l2 { --c: var(--fc-lv2); --o: var(--fc-on2); }
-.cig-g.l3 { --c: var(--fc-lv3); --o: var(--fc-on3); }
-.cig-g.l4 { --c: var(--fc-lv4); --o: var(--fc-on4); }
-@media (max-width: 520px) { .cig-g { grid-template-columns: 1fr; } .cig-g .cig-chip { grid-row: auto; justify-self: start; } }
+.cig-pips { display: flex; gap: 3px; }
+.cig-pips i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--fc-ink2); }
+.cig-pips i.on { background: var(--fc-ink); border-color: var(--fc-ink); }
+.cig-g.cig-bad .cig-chip { background: var(--fc-lv0); color: var(--fc-on0); border-color: var(--fc-ink); }
+.cig-g .cig-chip { justify-self: start; }
+@media (max-width: 520px) { .cig-g { grid-template-columns: 1fr; } .cig-g .cig-chip { grid-row: auto; grid-auto-flow: column; align-items: center; } }
 
-.cig-bars { list-style: none; margin: 10px 0 2px; padding: 0; }
+.cig-bhead { margin: 4px 0 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.cig-bars { list-style: none; margin: 6px 0 2px; padding: 0; }
 .cig-bars li { display: grid; grid-template-columns: minmax(9em, 14em) 1fr 6.5em; gap: 10px; align-items: center; padding: 5px 0; }
 .cig-bars em { font-style: normal; color: var(--fc-ink2); font-size: 13px; }
-.cig-bt { height: 14px; background: var(--fc-block); }
-.cig-bt i { display: block; height: 100%; background: var(--fc-ink); }
+/* The track carries a faint line at every power of ten (every quarter on the log scale, every 25 on a percent scale). */
+.cig-bt { position: relative; height: 14px; background: var(--fc-block) linear-gradient(90deg, var(--fc-line) 1px, transparent 1px) 0 0 / 25% 100%; }
+.cig-bt i { position: absolute; left: 0; top: 0; display: block; height: 100%; background: var(--fc-ink); }
+.cig-bt i.cig-rng { background: color-mix(in srgb, var(--fc-ink) 40%, var(--fc-block)); }
 .cig-bars b { text-align: right; font-size: 13px; }
-.cig-axis { margin: 2px 0 12px; font-size: 11px; letter-spacing: 0.08em; color: var(--fc-ink2); }
-@media (max-width: 520px) { .cig-bars li { grid-template-columns: 1fr 5.5em; } .cig-bt { grid-column: 1 / -1; grid-row: 2; } }
+.cig-ghost .cig-bl { font-weight: 700; }
+.cig-ghost .cig-bt { background: none; border: 2px dashed var(--fc-ink2); }
+.cig-ghost b { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.cig-ax { padding-top: 0 !important; }
+.cig-axt { position: relative; height: 16px; font: 700 11px/16px var(--fc-mono); color: var(--fc-ink2); }
+.cig-axt span { position: absolute; top: 0; transform: translateX(-50%); }
+.cig-axt span:first-child { transform: none; }
+.cig-axt span:last-child { transform: translateX(-100%); }
+.cig-range .cig-bt i { background: var(--fc-ink); }
+.cig-range .cig-stop .cig-bt i { background: var(--fc-lv0); outline: 1px solid var(--fc-ink); }
+.cig-range .cig-stop .cig-bl { font-weight: 700; }
+.cig-key { margin: 4px 0 14px; font-size: 14px; color: var(--fc-ink2); }
+@media (max-width: 520px) {
+  .cig-bars li { grid-template-columns: 1fr 5.5em; }
+  .cig-bt, .cig-axt { grid-column: 1 / -1; grid-row: 2; }
+  .cig-ax > span:not(.cig-axt) { display: none; }
+}
+
+/* Species risk (C-4): a big chip, the fish, and its evidence behind a tap. */
+.cig-risk { list-style: none; margin: 10px 0; padding: 0; }
+.cig-risk li { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--fc-line); }
+.cig-risk .nt-an { width: 64px; height: 48px; display: block; }
+.cig-risk li.cig-noan { grid-template-columns: 1fr; }
+.cig-risk div { display: grid; gap: 3px; justify-items: start; min-width: 0; }
+.cig-rchip { padding: 3px 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: var(--c); color: var(--o); border: 1px solid var(--fc-ink); }
+.cig-risk b { font-size: 16px; }
+.cig-rnote { font-size: 14px; color: var(--fc-ink2); }
+.cig-risk details { font-size: 14px; color: var(--fc-ink2); }
+.cig-risk summary { cursor: pointer; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 0; }
+.cig-risk details p { margin: 2px 0 0; }
+.cig-risk .r0 { --c: var(--fc-lv0); --o: var(--fc-on0); }
+.cig-risk .r0 .cig-rchip { font-size: 14px; padding: 4px 10px; }
+.cig-risk .r1 { --c: var(--fc-lv1); --o: var(--fc-on1); }
+.cig-risk .r2 { --c: var(--fc-lv2); --o: var(--fc-on2); }
+.cig-risk .rn { --c: var(--fc-lvn); --o: var(--fc-onn); }
+.cig-risk .rx { --c: var(--fc-card); --o: var(--fc-ink); }
+.cig-risk .rx .cig-rchip { border-style: dashed; }
+
+/* Never-eat tiles on the risk tab. */
+.nt-anim li.nt-stop { background: color-mix(in srgb, var(--fc-lv0) 22%, var(--fc-card)); border: 2px solid var(--fc-lv0); }
+
+/* The ciguatera drawings (notes/art/cigua.ts). */
+.nt-art .cg-meat { fill: color-mix(in srgb, var(--fc-ink2) 30%, var(--fc-card)); }
+.nt-art .cg-tox { fill: var(--fc-lv0); stroke: var(--fc-ink); }
+.nt-art .cg-gut { stroke: var(--fc-lv0); stroke-width: 7; }
+.nt-art .cg-cav { fill: color-mix(in srgb, var(--fc-lv0) 12%, var(--fc-card)); stroke-dasharray: 4 3; stroke-width: 1.5; }
+.nt-art .cg-fin { fill: color-mix(in srgb, var(--fc-ink2) 18%, var(--fc-block)); stroke-width: 1.5; }
+.nt-art .cg-eye { fill: var(--fc-ink); stroke: none; }
+.nt-art .cg-ln { stroke-width: 1.5; }
+.nt-art .cg-lead { stroke: var(--fc-ink2); stroke-width: 1.2; }
+.nt-art .cg-pan { fill: color-mix(in srgb, var(--fc-sea-a) 22%, var(--fc-card)); stroke: none; }
+.nt-art .cg-arr { stroke-width: 2.4; }
+.nt-art .cg-rock { fill: color-mix(in srgb, var(--fc-sand) 70%, var(--fc-card)); stroke-width: 1.5; }
+.nt-art .cg-alg { fill: var(--fc-ac3); stroke: none; }
+.nt-art .cg-fish { fill: var(--fc-card); stroke-width: 1.6; }
+.nt-art .cg-skin { fill: color-mix(in srgb, var(--fc-sand) 80%, var(--fc-card)); stroke-width: 1.6; }
+.nt-art .cg-hair { fill: var(--fc-ink); stroke: none; }
+.nt-art .cg-shirt { fill: color-mix(in srgb, var(--fc-sea-b) 50%, var(--fc-card)); stroke-width: 1.6; }
+.nt-art .cg-plate { fill: var(--fc-card); stroke-width: 1.6; }
+.nt-art .cg-trk { fill: var(--fc-card); stroke: var(--fc-line); stroke-width: 1; }
+.nt-art .cg-tbar { fill: var(--fc-lv0); stroke: none; }
+.nt-art .cg-meal { stroke-width: 2; }
+.nt-art .cg-grid { stroke: var(--fc-line); stroke-width: 1; }
+.nt-art .cg-axis { stroke-width: 1.5; }
+.nt-art .cg-bar { stroke: var(--fc-ink); stroke-width: 1; }
+.nt-art .cg-b-warn { fill: var(--fc-lv2); }
+.nt-art .cg-b-stop { fill: var(--fc-lv0); }
+.nt-art .cg-b-long { fill: color-mix(in srgb, var(--fc-ink2) 45%, var(--fc-card)); }
 
 .cig-src { padding-left: 22px; }
 .cig-src li { margin: 10px 0; }
