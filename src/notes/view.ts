@@ -1,7 +1,8 @@
 /** FIELD NOTES page HTML: pure string builders over content.ts and sections/*.ts, so they are tested without a DOM. */
 import { GRADE_WORDS, type Block, type Grade, type L, type Source } from '../ciguatera/content';
-import { SECTIONS, type Section } from './content';
-import type { NtTab } from './route';
+import { SECTIONS, type NBlock, type Section } from './content';
+import { visHtml } from './vis';
+import { notesHash, type NtTab } from './route';
 
 type Lang = 'en' | 'es';
 export const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -31,9 +32,14 @@ const tx = (l: L, lang: Lang, c: Cites, s: Record<string, Source>): string => ci
 export const barPct = (v: number): number => Math.max(3, Math.min(100, (Math.log10(Math.max(v, 1)) / 4) * 100));
 const fmt = (v: number): string => (v >= 100 ? Math.round(v).toLocaleString('en-US') : String(v));
 
+const TEXT_KINDS = new Set(['p', 'h', 'ul', 'warn', 'aid', 'table', 'graded', 'bars']);
+const isText = (b: NBlock): b is Block => TEXT_KINDS.has(b.k);
+
 const GRADE_LEVEL: Record<Grade, number> = { strong: 4, weak: 2, case: 2, expert: 3, none: 1, against: 0 };
 
-function block(b: Block, lang: Lang, c: Cites, S: Record<string, Source>): string {
+function block(b0: NBlock, lang: Lang, c: Cites, S: Record<string, Source>): string {
+  if (!isText(b0)) return visHtml(b0, lang, (l) => tx(l, lang, c, S), notesHash);
+  const b = b0;
   switch (b.k) {
     case 'p':
       return `<p>${tx(b.t, lang, c, S)}</p>`;

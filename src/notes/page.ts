@@ -10,6 +10,7 @@ import { notesHash, parseNotesRoute, type NtTab } from './route';
 import { esc, sectionHtml, tabsHtml } from './view';
 import '../forecast/forecast.css';
 import '../ciguatera/ciguatera.css';
+import './notes.css';
 
 const SCHEME_KEY = 'ft.fcScheme';
 type Store = Pick<Storage, 'getItem' | 'setItem'> | undefined;
