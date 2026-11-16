@@ -64,7 +64,7 @@ const NO_ENV: FishEnv = { at: () => ({}), water: () => ({}), version: () => '' }
 
 const why = (rs: readonly BiteReason[]) => rs.map((r) => t(`bite.r.${r}` as Key)).join(' · ');
 
-export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer, time: TimeStore, initial: SpeciesId, env: FishEnv = NO_ENV, catches: () => readonly CatchPin[] = () => []) {
+export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer, time: TimeStore, initial: SpeciesId, env: FishEnv = NO_ENV, catches: () => readonly CatchPin[] = () => [], onMode: (m: FishMode) => void = () => {}) {
   const side = condSlot(root, 'fishing', 10);
   if (!side) return null;
   side.insertAdjacentHTML(
@@ -195,7 +195,10 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
   const queue = () => {
     if (!queued) (queued = true), requestAnimationFrame(update);
   };
+  let shownMode = SPECIES[i].mode;
   const apply = () => {
+    // EAT or SPORT changed here (the MODE row, the arrows never cross modes, SHOW ON MAP can): tell the map's spot card.
+    if (SPECIES[i].mode !== shownMode) onMode((shownMode = SPECIES[i].mode));
     layer.setSpecies(SPECIES[i].id);
     layer.setMonth(month());
     layer.setReach(reach);

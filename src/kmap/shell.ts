@@ -115,7 +115,7 @@ export interface KmDeps {
   /** The species guide (PLAN 7.91). */
   openGuide?: (mode?: 'identify' | 'edible') => void;
   /** What the fish map shows (PLAN 7.111): EAT, fish to keep and eat, or SPORT, fish to catch and release. */
-  fishMode?: { get(): 'eat' | 'sport'; set(m: 'eat' | 'sport'): void };
+  fishMode?: { get(): 'eat' | 'sport'; set(m: 'eat' | 'sport'): void; subscribe?(fn: () => void): void };
   explain: (title: string, id: string) => void;
   go: (t: Target) => void;
   /** Reload keeping the view (language, theme and scheme are applied at load). */
@@ -934,6 +934,8 @@ export function mountKineticMap(d: KmDeps) {
     }
   };
   $('k-dkspot').addEventListener('click', () => openSheet(S.coral ? 'coral' : 'spot'));
+  // The fishing panel's own MODE row changes it too: keep the card's switch in step (PLAN 7.111).
+  d.fishMode?.subscribe?.(() => renderSpot());
 
   /* ---------- pins and ribbons ---------- */
   const coast = mountCoast(map, stage, (id) => pick(id));

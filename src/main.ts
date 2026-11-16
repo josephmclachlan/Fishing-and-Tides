@@ -598,6 +598,7 @@ const boatStore = createBoatStore(safeStorage());
 let scoreCatch: CatchScorer | null = null;
 let fishSetSpecies: ((id: SpeciesId) => void) | null = null;
 let fishHudMode: { set(m: FishMode): void; get(): FishMode } | null = null;
+const fishModeListeners = new Set<() => void>();
 /**
  * EAT or SPORT for the fish map (PLAN 7.111): through the fishing panel once it is up, else remembered as that mode's
  * first fish, which the panel picks up when it mounts (the mode is the species' own).
@@ -613,6 +614,8 @@ const fishMode = {
       /* private mode */
     }
   },
+  /** Called when the fishing panel changes the mode itself, so the map's spot card follows. */
+  subscribe: (fn: () => void) => void fishModeListeners.add(fn),
 };
 // Offshore read for the BOAT drawer (PLAN 7.17): depth and ledge from the seafloor grids, satellite
 // temperature, chlorophyll and fronts, and floating sargassum, scored per boat species.
@@ -1583,7 +1586,7 @@ fetchSeafloor()
         // Your logged catches join the habitat fit and the YOUR CATCHES check (PLAN 7.16).
         const pins = () => boatStore.state().pins;
         layer.setCatches(pins());
-        const fishHud = mountFishingHud(hud, map, layer, time, species, fishEnv, pins);
+        const fishHud = mountFishingHud(hud, map, layer, time, species, fishEnv, pins, () => fishModeListeners.forEach((fn) => fn()));
         scoreCatch = fishHud?.scoreCatch ?? null;
         fishSetSpecies = fishHud?.setSpecies ?? null;
         fishHudMode = fishHud ? { set: fishHud.setMode, get: fishHud.mode } : null;
