@@ -1,1 +1,54 @@
-/* Rules, Cooking, Seasons and Words tabs: styles only those tabs use. Shared blocks are in notes.css. */
+/* Rules, Cooking, Seasons and Words tabs: styles only those tabs use. Shared blocks are in notes.css. Colours from page tokens only. */
+
+/* cooking and glossary drawings: fills (the shared .nt-art rule leaves every shape unfilled) */
+.nt-art .nt-m-body { fill: color-mix(in srgb, var(--fc-ink) 12%, var(--fc-block)); }
+.nt-art .nt-m-red { fill: color-mix(in srgb, var(--fc-ac0) 60%, var(--fc-block)); }
+.nt-art .nt-m-fire { fill: color-mix(in srgb, var(--fc-ac1) 75%, var(--fc-block)); stroke: var(--fc-ac0); stroke-width: 1.5; }
+.nt-art .nt-m-lime { fill: color-mix(in srgb, var(--fc-ac3) 60%, var(--fc-block)); }
+.nt-art .nt-m-leaf { fill: color-mix(in srgb, var(--fc-ac3) 45%, var(--fc-block)); }
+.nt-art .nt-m-milk { fill: var(--fc-card); }
+.nt-art .nt-m-coco { fill: color-mix(in srgb, var(--fc-sand) 70%, var(--fc-ink) 15%); }
+.nt-art .nt-m-root { fill: var(--fc-sand); }
+.nt-art .nt-m-ring { fill: none; stroke-width: 2.4; }
+.nt-art .nt-m-pan { fill: color-mix(in srgb, var(--fc-ink) 28%, var(--fc-block)); }
+.nt-art .nt-m-pan.nt-m-open { fill: color-mix(in srgb, var(--fc-ink) 28%, var(--fc-block)); }
+.nt-art .nt-m-handle, .nt-art .nt-m-line, .nt-art .nt-m-string { stroke-width: 3.5; }
+.nt-art .nt-m-line { stroke: var(--fc-ink); stroke-width: 2.4; }
+.nt-art .nt-m-string { stroke: var(--fc-sand); }
+.nt-art .nt-m-lid { fill: color-mix(in srgb, var(--fc-ink) 22%, var(--fc-block)); }
+.nt-art .nt-m-glass { fill: color-mix(in srgb, var(--fc-sea-a) 18%, var(--fc-block)); }
+.nt-art .nt-m-ice { fill: color-mix(in srgb, var(--fc-sea-a) 40%, var(--fc-card)); stroke-width: 1.8; }
+.nt-art .nt-m-cube { fill: var(--fc-card); stroke-width: 1.6; }
+.nt-art .nt-m-cut { stroke-width: 1.8; stroke-dasharray: 3 3; }
+.nt-art .nt-m-arm { stroke-width: 7; stroke: color-mix(in srgb, var(--fc-ink) 35%, var(--fc-block)); }
+.nt-art .nt-m-spine { stroke: var(--fc-ac0); stroke-width: 3; }
+.nt-art .nt-m-bad { fill: var(--fc-ac0); }
+.nt-art .nt-m-probe { stroke-width: 3.5; }
+.nt-art .nt-m-dial { fill: var(--fc-ink); }
+.nt-art .nt-m-dialt { fill: var(--fc-bg); }
+.nt-art .nt-m-fork { stroke-width: 3; }
+.nt-art .nt-m-eye, .nt-art .nt-m-knot { fill: currentColor; stroke: none; }
+.nt-art .nt-m-tag rect { fill: var(--fc-ink); stroke: none; }
+.nt-art .nt-m-tag text { fill: var(--fc-bg); }
+.nt-art .nt-m-big { font: 800 34px/1 var(--fc-disp); font-variation-settings: 'wdth' 70; fill: var(--fc-ac0); }
+.nt-art .nt-m-buoy { fill: var(--fc-ac0); stroke: var(--fc-ink); stroke-width: 2; }
+.nt-art .nt-m-boat { fill: var(--fc-card); }
+.nt-art .nt-m-main { stroke-width: 5; }
+.nt-art .nt-m-lead { stroke-width: 3; }
+.nt-art .nt-m-tip { stroke-width: 1.5; }
+.nt-art .nt-m-barb { stroke-width: 1.5; stroke-dasharray: 2 2; }
+.nt-art .nt-m-env { fill: color-mix(in srgb, var(--fc-sea-a) 28%, var(--fc-block)); stroke: none; }
+.nt-art .nt-m-wave { stroke: var(--fc-sea-b); stroke-width: 1.8; }
+.nt-art .nt-m-moon { fill: var(--fc-block); stroke-width: 1.8; }
+.nt-art .nt-m-moonf { fill: var(--fc-ink); stroke-width: 1.8; }
+.nt-art .nt-m-warmw { fill: color-mix(in srgb, var(--fc-ac1) 32%, var(--fc-block)); stroke: none; }
+.nt-art .nt-m-midw { fill: color-mix(in srgb, var(--fc-ink) 8%, var(--fc-block)); stroke: none; }
+.nt-art .nt-m-coldw { fill: color-mix(in srgb, var(--fc-sea-b) 50%, var(--fc-block)); stroke: none; }
+.nt-art circle.nt-m-bub { fill: none; stroke: var(--fc-sea-b); stroke-width: 1.8; animation: nt-m-up 2.4s ease-in infinite; }
+.nt-art .nt-m-steam { stroke: var(--fc-ink2); stroke-width: 2; opacity: 0.5; animation: nt-m-fade 2.2s ease-in-out infinite; }
+@keyframes nt-m-up { 0% { transform: translateY(8px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(-22px); opacity: 0; } }
+@keyframes nt-m-fade { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.65; } }
+@media (prefers-reduced-motion: reduce) {
+  .nt-art circle.nt-m-bub, .nt-art .nt-m-steam { animation: none; }
+  .nt-art circle.nt-m-bub { opacity: 0.8; }
+}
