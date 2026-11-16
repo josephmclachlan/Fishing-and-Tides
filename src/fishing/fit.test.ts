@@ -48,7 +48,7 @@ describe('fitWeights', () => {
   });
 
   it('recovers the weights that made the records when the prior is weak', () => {
-    const truth: Weights = { base: 0.1, mouth: 0.5, reef: 0.1, drop: 0.3 };
+    const truth: Weights = { base: 0.1, mouth: 0.5, reef: 0.1, drop: 0.3, sand: 0, grass: 0, surf: 0 };
     const fit = fitWeights(snapper, cells, sample(truth, 4000), { priorRecords: 0 });
     for (const k of COMPONENTS) expect(fit.weights[k]).toBeCloseTo(truth[k], 1);
     expect(sum(fit.weights)).toBeCloseTo(1, 9);
@@ -56,7 +56,7 @@ describe('fitWeights', () => {
   });
 
   it('moves further from the prior the less it counts', () => {
-    const recs = sample({ base: 0.1, mouth: 0.8, reef: 0.05, drop: 0.05 }, 30);
+    const recs = sample({ base: 0.1, mouth: 0.8, reef: 0.05, drop: 0.05, sand: 0, grass: 0, surf: 0 }, 30);
     const mouth = (n0: number) => fitWeights(snapper, cells, recs, { priorRecords: n0 }).weights.mouth;
     expect(mouth(5)).toBeGreaterThan(mouth(20));
     expect(mouth(20)).toBeGreaterThan(mouth(200));
@@ -82,7 +82,7 @@ describe('checks', () => {
   it('AUC is high when records sit on the best habitat, and held-out gain rewards a true signal', () => {
     const reefCells = cells.map((_, i) => i).filter((i) => cells[i].f.reef === 1).slice(0, 20);
     expect(auc(snapper, cells, reefCells, priorWeights(snapper))).toBeGreaterThan(0.9);
-    const recs = [...new Set(sample({ base: 0.05, mouth: 0.85, reef: 0.05, drop: 0.05 }, 60))];
+    const recs = [...new Set(sample({ base: 0.05, mouth: 0.85, reef: 0.05, drop: 0.05, sand: 0, grass: 0, surf: 0 }, 60))];
     expect(heldOutGain(snapper, cells, recs)).toBeGreaterThan(0);
   });
 });

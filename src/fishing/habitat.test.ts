@@ -4,7 +4,8 @@ import { SPECIES, speciesById } from './species';
 
 const snook = speciesById('snook');
 const snapper = speciesById('snapper');
-const base = { depthM: 3, mouthKm: 0, reef: 0, slopeMPerKm: 0 };
+// On the beach's surf strip, as every river mouth here is (PLAN 7.122 gave snook a surf term).
+const base = { depthM: 3, mouthKm: 0, reef: 0, slopeMPerKm: 0, surf: 1 };
 
 describe('trapezoid', () => {
   it('rises, holds, falls', () => {
@@ -45,5 +46,20 @@ describe('habitatScore', () => {
   it('wraps months', () => {
     expect(seasonFactor(snook, 12)).toBe(seasonFactor(snook, 0));
     expect(seasonFactor(snook, -1)).toBe(seasonFactor(snook, 11));
+  });
+});
+
+describe('sand, seagrass and surf terms (PLAN 7.122)', () => {
+  it('puts pompano in the surf strip and bonefish on sand and seagrass, not on reef', () => {
+    const pompano = speciesById('pompano'), bonefish = speciesById('bonefish');
+    const reef = { depthM: 1.5, mouthKm: 5, reef: 1, slopeMPerKm: 0 };
+    expect(habitatScore(pompano, { ...reef, reef: 0, surf: 1, sand: 0.4 }, 0)).toBeGreaterThan(0.8);
+    expect(habitatScore(pompano, reef, 0)).toBeLessThan(0.1);
+    expect(habitatScore(bonefish, { ...reef, reef: 0, sand: 0.4, grass: 0.1 }, 0)).toBeGreaterThan(0.75);
+    expect(habitatScore(bonefish, reef, 0)).toBeLessThan(0.1);
+  });
+  it('leaves species without the new terms unchanged by them', () => {
+    const f = { depthM: 15, mouthKm: 5, reef: 0.5, slopeMPerKm: 20 };
+    expect(habitatScore(snapper, { ...f, sand: 1, grass: 1, surf: 1 }, 0)).toBe(habitatScore(snapper, f, 0));
   });
 });

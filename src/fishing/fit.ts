@@ -65,7 +65,7 @@ export function recordCells(lattice: Lattice, index: Int32Array, cells: readonly
   return [...hit].sort((a, b) => a - b);
 }
 
-const zeros = (): Weights => ({ base: 0, mouth: 0, reef: 0, drop: 0 });
+const zeros = (): Weights => ({ base: 0, mouth: 0, reef: 0, drop: 0, sand: 0, grass: 0, surf: 0 });
 
 function normalise(w: Weights): Weights {
   let s = 0;
