@@ -59,6 +59,7 @@ export const dive: Section = {
       h: L('Feeling wrong after a dive', 'Se siente mal después de bucear'),
       steps: [
         { ico: 'phone', h: L('Call 911', 'Llame al 911'), t: L('Or get to the nearest emergency room. Odd tiredness, joint pain, numbness or trouble with balance all count.{danhelp}', 'O vaya a la sala de emergencias más cercana. Cansancio raro, dolor en las articulaciones, adormecimiento o problemas de equilibrio cuentan.{danhelp}') },
+        { ico: 'faint', h: L('Lie them down, give oxygen', 'Acuéstelo, dele oxígeno'), t: L('Keep the diver lying down. Give oxygen if the boat or dive shop has it, and water to drink if they are awake and can swallow.{dandcs}', 'Mantenga al buzo acostado. Dele oxígeno si la lancha o la tienda de buceo tiene, y agua si está despierto y puede tragar.{dandcs}') },
         { ico: 'phone', h: L('Then call DAN', 'Luego llame a DAN'), t: L('The Divers Alert Network emergency line, 24 hours: +1 919 684 9111.{danhelp}', 'La línea de emergencia de Divers Alert Network, 24 horas: +1 919 684 9111.{danhelp}') },
         { ico: 'nochamber', tone: 'stop', h: L('Let DAN pick the chamber', 'Que DAN elija la cámara'), t: L('Do not just turn up at one. Not every chamber treats every case, so let the doctors or DAN choose.{danhelp}', 'No llegue sin avisar a una. No todas las cámaras tratan todos los casos, así que deje que los médicos o DAN decidan.{danhelp}') },
         { ico: 'ask', tone: 'unk', h: L('Ask before you dive', 'Pregunte antes de bucear'), t: L('The nearest chamber to this coast is Not confirmed. Ask your dive shop where they would take you.', 'La cámara más cercana a esta costa es No confirmada. Pregunte a su tienda de buceo adónde le llevarían.') },
@@ -149,6 +150,12 @@ export const dive: Section = {
       u: 'https://dansa.org/blog/2021/04/15/flying-after-diving',
       p: 'S',
       what: L('At least 12 hours after a single no-decompression dive and at least 18 hours after repeated dives or several days of diving.', 'Al menos 12 horas tras una inmersión sin descompresión y al menos 18 horas tras inmersiones repetidas o varios días de buceo.'),
+    },
+    dandcs: {
+      t: 'Divers Alert Network, Treating decompression sickness (the bends)',
+      u: 'https://dan.org/safety-prevention/diver-safety/divers-blog/treating-decompression-sickness-the-bends/',
+      p: 'S',
+      what: L('Give emergency oxygen straight away when the bends is suspected, give fluids, then contact DAN or the nearest medical facility; oxygen can make symptoms ease for a while, so the diver still needs a doctor.', 'Dar oxígeno de emergencia de inmediato si se sospecha enfermedad descompresiva, dar líquidos y luego contactar a DAN o al centro médico más cercano; el oxígeno puede aliviar los síntomas un tiempo, así que el buzo igual necesita un médico.'),
     },
     danhelp: {
       t: 'Divers Alert Network, Emergency assistance',

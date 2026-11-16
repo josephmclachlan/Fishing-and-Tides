@@ -39,8 +39,11 @@
 .nt-art .nt-m-barb { stroke-width: 1.5; stroke-dasharray: 2 2; }
 .nt-art .nt-m-env { fill: color-mix(in srgb, var(--fc-sea-a) 28%, var(--fc-block)); stroke: none; }
 .nt-art .nt-m-wave { stroke: var(--fc-sea-b); stroke-width: 1.8; }
-.nt-art .nt-m-moon { fill: var(--fc-block); stroke-width: 1.8; }
-.nt-art .nt-m-moonf { fill: var(--fc-ink); stroke-width: 1.8; }
+.fc[data-scheme='dark'] .nt-art .nt-m-wave { stroke: var(--fc-sea-a); }
+/* Moons: the unlit part dark (ink in light mode, the page block in dark mode), the lit part moon-white. */
+.nt-art .nt-m-moon { fill: var(--fc-ink); stroke: var(--fc-ink); stroke-width: 1.8; }
+.fc[data-scheme='dark'] .nt-art .nt-m-moon { fill: var(--fc-block); }
+.nt-art .nt-m-moonf { fill: var(--fc-moon); stroke: var(--fc-ink); stroke-width: 1.8; }
 .nt-art .nt-m-warmw { fill: color-mix(in srgb, var(--fc-ac1) 32%, var(--fc-block)); stroke: none; }
 .nt-art .nt-m-midw { fill: color-mix(in srgb, var(--fc-ink) 8%, var(--fc-block)); stroke: none; }
 .nt-art .nt-m-coldw { fill: color-mix(in srgb, var(--fc-sea-b) 50%, var(--fc-block)); stroke: none; }

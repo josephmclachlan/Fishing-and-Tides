@@ -120,3 +120,18 @@
   .nt-fig:has(> svg[class*='nt-art-rg']), .nt-fig:has(> svg[class*='nt-art-rl']) { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); gap: 8px 24px; align-items: start; }
   .nt-fig:has(> svg[class*='nt-art-rg']) .nt-marks, .nt-fig:has(> svg[class*='nt-art-rl']) .nt-marks { margin-top: 0; }
 }
+
+/* Knots (art/knots.ts): rope = dark outline under a light core; the leader's core is green; hooks in the second ink. */
+.nt-art .nt-kn-o { stroke: var(--fc-ink); stroke-width: 4.8; stroke-linecap: butt; }
+.nt-art .nt-kn-f { stroke-width: 2.5; stroke-linecap: round; }
+.nt-art .nt-kn-ln { stroke: var(--fc-card); }
+.nt-art .nt-kn-ld { stroke: var(--fc-lv3); }
+.nt-art .nt-kn-tip.nt-kn-ln { fill: var(--fc-card); }
+.nt-art .nt-kn-tip.nt-kn-ld { fill: var(--fc-lv3); }
+.nt-art .nt-kn-halo { stroke: var(--fc-block); stroke-width: 7.6; stroke-linecap: butt; }
+.nt-art .nt-kn-halo-hk { stroke-width: 7; }
+.nt-art .nt-kn-tipo { fill: var(--fc-ink); stroke: none; }
+.nt-art .nt-kn-tip { stroke: none; }
+.nt-art .nt-kn-hk { stroke: var(--fc-ink2); stroke-width: 3; fill: none; }
+.fc[data-scheme='dark'] .nt-art .nt-kn-ln { stroke: color-mix(in srgb, var(--fc-ink) 22%, var(--fc-block)); }
+.fc[data-scheme='dark'] .nt-art .nt-kn-tip.nt-kn-ln { fill: color-mix(in srgb, var(--fc-ink) 22%, var(--fc-block)); }

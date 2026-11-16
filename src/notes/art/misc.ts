@@ -181,7 +181,7 @@ export function lionfishArt(lang: Lang): string {
     spines.map((d) => `<path class="nt-m-spine" d="${d}"/>`).join('') +
     fish(160, 78, 2.1) +
     '<path class="nt-m-cut" d="M126 62L132 96M146 58L152 98M166 58L172 98"/>' +
-    txt(244, 30, w(lang, 'VENOM', 'VENENO'), 'start', 'nt-lbl nt-m-bad') + txt(236, 112, w(lang, 'FLESH: SAFE', 'CARNE: SEGURA'), 'start')
+    txt(244, 30, w(lang, 'VENOM', 'VENENO'), 'start', 'nt-lbl nt-m-bad') + txt(236, 112, w(lang, 'FLESH: NO VENOM', 'CARNE: SIN VENENO'), 'start')
   );
 }
 
@@ -212,23 +212,35 @@ export function widthsArt(lang: Lang): string {
 
 /** Tides across a month: big (spring) near new and full moon, small (neap) near the half moons. A sketch, 320 by 156. */
 export function tidesArt(lang: Lang): string {
+  // A smooth rise and fall about once a day (this coast is mostly one high and one low a day), its size swelling at new
+  // and full moon (spring) and shrinking at the half moons (neap). Moons drawn as seen from here: unlit part dark.
   const x = (d: number) => 20 + (d / 29.5) * 280;
-  const amp = (d: number) => 0.62 + 0.38 * Math.cos((4 * Math.PI * d) / 29.5);
-  const pts: [number, number][] = [];
-  for (let d = 0; d <= 29.5; d += 0.25) pts.push([x(d), 70 - 38 * amp(d) * Math.sin(2 * Math.PI * d * 1.0)]);
-  const line = pts.map(([px, py], i) => `${i ? 'L' : 'M'}${px.toFixed(1)} ${py.toFixed(1)}`).join('');
+  const amp = (d: number) => 0.6 + 0.4 * Math.cos((4 * Math.PI * d) / 29.5);
+  const pts: string[] = [];
+  for (let d = 0; d <= 29.5; d += 0.04) pts.push(`${x(d).toFixed(1)} ${(70 - 36 * amp(d) * Math.sin(2 * Math.PI * d)).toFixed(1)}`);
   const env: string[] = [];
-  for (let d = 0; d <= 29.5; d += 0.5) env.push(`${x(d).toFixed(1)} ${(70 - 38 * amp(d)).toFixed(1)}`);
-  for (let d = 29.5; d >= 0; d -= 0.5) env.push(`${x(d).toFixed(1)} ${(70 + 38 * amp(d)).toFixed(1)}`);
-  const moon = (d: number, kind: 'new' | 'half' | 'full') =>
-    `<circle class="${kind === 'full' ? 'nt-m-moonf' : 'nt-m-moon'}" cx="${x(d)}" cy="136" r="8"/>` + (kind === 'half' ? `<path class="nt-m-moonf" d="M${x(d)} 128A8 8 0 0 1 ${x(d)} 144Z"/>` : '');
+  for (let d = 0; d <= 29.5; d += 0.5) env.push(`${x(d).toFixed(1)} ${(70 - 36 * amp(d)).toFixed(1)}`);
+  for (let d = 29.5; d >= 0; d -= 0.5) env.push(`${x(d).toFixed(1)} ${(70 + 36 * amp(d)).toFixed(1)}`);
+  const Y = 128, R = 8;
+  const moon = (d: number, kind: 'new' | 'first' | 'full' | 'last', name: string) => {
+    const cx = x(d);
+    const lit =
+      kind === 'full' ? `<circle class="nt-m-moonf" cx="${cx}" cy="${Y}" r="${R}"/>`
+      : kind === 'new' ? ''
+      : `<path class="nt-m-moonf" d="M${cx} ${Y - R}A${R} ${R} 0 0 ${kind === 'first' ? 1 : 0} ${cx} ${Y + R}Z"/>`;
+    const anchor = d < 1 ? 'start' : d > 28.5 ? 'end' : 'middle';
+    const tx = d < 1 ? cx - R : d > 28.5 ? cx + R : cx;
+    return `<circle class="nt-m-moon" cx="${cx}" cy="${Y}" r="${R}"/>` + lit + txt(tx, Y + 22, name, anchor);
+  };
+  const NEW = w(lang, 'NEW', 'NUEVA'), FULL = w(lang, 'FULL', 'LLENA'), HALF = w(lang, 'HALF', 'CUARTO');
   return (
     `<polygon class="nt-m-env" points="${env.join(' ')}"/>` +
     '<path class="nt-rule" d="M16 70H304"/>' +
-    `<path class="nt-m-wave" d="${line}"/>` +
-    moon(0.2, 'new') + moon(7.4, 'half') + moon(14.75, 'full') + moon(22.1, 'half') + moon(29.3, 'new') +
-    txt(x(14.75), 15, w(lang, 'SPRING', 'VIVA'), 'middle') + txt(x(7.4), 15, w(lang, 'NEAP', 'MUERTA'), 'middle') + txt(x(22.1), 15, w(lang, 'NEAP', 'MUERTA'), 'middle') +
-    badge(1, x(14.75) + 38, 14) + badge(2, x(22.1) + 36, 14)
+    `<path class="nt-m-wave" d="M${pts.join('L')}"/>` +
+    moon(0.3, 'new', NEW) + moon(7.4, 'first', HALF) + moon(14.75, 'full', FULL) + moon(22.1, 'last', HALF) + moon(29.2, 'new', NEW) +
+    txt(x(0.3) - 8, 16, w(lang, 'SPRING', 'VIVA'), 'start') + txt(x(14.75), 16, w(lang, 'SPRING', 'VIVA'), 'middle') + txt(x(29.2) + 8, 16, w(lang, 'SPRING', 'VIVA'), 'end') +
+    txt(x(7.4), 16, w(lang, 'NEAP', 'MUERTA'), 'middle') + txt(x(22.1), 16, w(lang, 'NEAP', 'MUERTA'), 'middle') +
+    badge(1, x(14.75) - 32, 12) + badge(2, x(22.1) - 26, 12)
   );
 }
 
@@ -302,7 +314,7 @@ export const MISC_FIGS = {
   lionfish: { vb: '0 0 320 130', art: lionfishArt },
   fishparts: { vb: '0 0 320 176', art: fishArt },
   widths: { vb: '0 0 320 130', art: widthsArt },
-  tides: { vb: '0 0 320 156', art: tidesArt },
+  tides: { vb: '0 0 320 160', art: tidesArt },
   thermo: { vb: '0 0 320 150', art: thermoArt },
   floatline: { vb: '0 0 320 176', art: floatArt },
   descender: { vb: '0 0 320 176', art: descendArt },
