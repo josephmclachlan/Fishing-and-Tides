@@ -61,8 +61,8 @@
 .nt-art .nt-t-back { stroke: var(--fc-ac3); stroke-dasharray: none; }
 .nt-art .nt-swimmer circle { fill: var(--fc-ink); stroke: var(--fc-bg); stroke-width: 2.5; }
 .nt-art .nt-swim0 { display: none; }
-.nt-art .nt-lbl { font: 700 10px/1 var(--fc-mono); letter-spacing: 0.08em; }
-.nt-art .nt-lbl-s { font-size: 9px; font-weight: 600; }
+.nt-art .nt-lbl { font: 700 11px/1 var(--fc-mono); letter-spacing: 0.06em; }
+.nt-art .nt-lbl-s { font-size: 10px; font-weight: 700; }
 .nt-art .nt-lbl-in { fill: var(--fc-ink); paint-order: stroke; stroke: color-mix(in srgb, var(--fc-sea-b) 55%, var(--fc-block)); stroke-width: 5px; stroke-linejoin: round; }
 .nt-art .nt-band { stroke: none; fill: var(--c); }
 .nt-art .nt-band.l3, .nt-art .nt-blbl.l3 { --c: var(--fc-lv3); --o: var(--fc-on3); }
@@ -94,7 +94,8 @@
 /* big numbers */
 .nt-stats { list-style: none; margin: 8px 0 18px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); border-top: 2px solid var(--fc-ink); }
 .nt-stats li { padding: 12px 0; border-bottom: 1px solid var(--fc-line); }
-.nt-big { display: block; font: 800 clamp(34px, 8vw, 52px)/0.92 var(--fc-disp); font-variation-settings: 'wdth' 70; letter-spacing: -0.01em; color: var(--fc-ac0); overflow-wrap: anywhere; }
+.nt-big { display: block; font: 800 clamp(34px, 8vw, 52px)/0.92 var(--fc-disp); font-variation-settings: 'wdth' 70; letter-spacing: -0.01em; color: var(--fc-ink); overflow-wrap: anywhere; }
+.nt-stats .nt-stop .nt-big { color: var(--fc-ac0); }
 .nt-stats p { margin: 6px 0 0; font-size: 14px; line-height: 1.4; color: var(--fc-ink2); max-width: 40ch; }
 
 /* tap to call */

@@ -61,7 +61,7 @@ export const rules: Section = {
     {
       k: 'stats',
       items: [
-        { n: L('1 Mar to 30 Jun', '1 mar a 30 jun'), t: L('Caribbean spiny lobster (langosta) is closed every year. Do not catch, keep, buy or sell it. It is a Central American regional rule, and INCOPESCA confirmed it for Costa Rica in 2012 and 2013.{osp}{lob}{lob13}', 'La langosta espinosa del Caribe tiene veda todos los años. No la capture, guarde, compre ni venda. Es una norma regional centroamericana, y INCOPESCA la confirmó para Costa Rica en 2012 y 2013.{osp}{lob}{lob13}') },
+        { n: L('1 Mar to 30 Jun', '1 mar a 30 jun'), tone: 'stop', t: L('Caribbean spiny lobster (langosta) is closed every year. Do not catch, keep, buy or sell it. It is a Central American regional rule, and INCOPESCA confirmed it for Costa Rica in 2012 and 2013.{osp}{lob}{lob13}', 'La langosta espinosa del Caribe tiene veda todos los años. No la capture, guarde, compre ni venda. Es una norma regional centroamericana, y INCOPESCA la confirmó para Costa Rica en 2012 y 2013.{osp}{lob}{lob13}') },
         { n: L('140 mm', '140 mm'), t: L('Smallest tail allowed when open. Do not take lobsters carrying eggs or in moult.{osp}', 'Cola mínima permitida cuando está abierta. No se pueden llevar langostas con huevos ni en muda.{osp}') },
       ],
     },

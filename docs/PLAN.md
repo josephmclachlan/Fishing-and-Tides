@@ -262,7 +262,7 @@ Visual first, plain full sentences, numbered superscript sources. Grouped PRs, w
 - [x] 12.2 Water and surf drawings: rip labels, shore break as waves, surf peak with real surfers and wave direction, wave sizes against a person, dive depth people and limit zones
 - [x] 12.3 Rigs and release drawings: descender how-to strip, cast net steps, hand line frame, lionfish fans, ray and turtle shapes, leader-heavier note
 - [x] 12.4 First aid page: incident index and big headings, recognisable animal tiles, soak and pressure-wrap drawings
-- [ ] 12.5 Glossary and cooking drawings: fish parts, widths, float line, tackle hooks, temperature probe, pans; label size and colour fixes
+- [x] 12.5 Glossary and cooking drawings: fish parts, widths, float line, tackle hooks, temperature probe, pans; label size and colour fixes
 - [ ] 12.6 Dispatch, ciguatera, guide cleaning, forecast and map explainer fixes (from other-findings.md)
 
 ## Phase 9: Final review (last, after every task above)
