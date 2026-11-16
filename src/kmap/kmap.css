@@ -135,7 +135,9 @@
 .km .k-dk-btns{display:flex;gap:6px}
 .km .k-dk-btns button{appearance:none;cursor:pointer;height:36px;min-width:36px;border:2px solid var(--ink);background:none;border-radius:2px;display:grid;place-items:center;padding:0 8px;font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .km .k-dk-btns button svg{width:14px;height:14px;fill:currentColor}
-.km .k-dk-btns .k-best{border-color:var(--c-win);background:var(--c-win);color:#fff}
+/* Dark text on the green, which reads in sunlight (white on it was 3.5:1, 2:1 in dark): the light scheme's ink, the dark scheme's ground. */
+.km .k-dk-btns .k-best{border-color:var(--c-win);background:var(--c-win);color:var(--ink)}
+:root[data-scheme="dark"].km .k-dk-btns .k-best{color:var(--bg)}
 .km .k-scrub{position:relative;height:74px;cursor:ew-resize;touch-action:none;outline-offset:2px}
 .km .k-scrub canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .km .k-dk-foot{display:none}
