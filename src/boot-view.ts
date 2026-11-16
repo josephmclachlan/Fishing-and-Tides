@@ -61,7 +61,7 @@ ${[0, 1, 2, 3, 4, 5, 6, 7].map((n) => `.sc-load .sc-run:nth-child(${n + 1}){anim
 .sc-load .sc-ic{opacity:0;transform:scale(.35) rotate(-30deg);transition:transform .7s cubic-bezier(.2,1.35,.4,1),opacity .35s ease;filter:drop-shadow(0 0 5px var(--c))}
 .sc-load .sc-d.sc-on .sc-dot{transform:scale(2.6);opacity:0;animation:none}
 .sc-load .sc-d.sc-on .sc-ic{opacity:1;transform:none}
-.sc-load .sc-lt{height:14px;margin-top:18px;font-size:10.5px;letter-spacing:.12em;color:var(--sc-ink2);text-transform:uppercase;white-space:nowrap;transition:opacity .25s ease}
+.sc-load .sc-lt{height:14px;margin-top:18px;font-size:10.5px;letter-spacing:.12em;color:var(--sc-ink2);text-transform:uppercase;white-space:nowrap;transition:opacity .12s ease}
 .sc-load .sc-lt.sc-swap{opacity:0}
 @media (prefers-reduced-motion:reduce){.sc-load *,.sc-load{animation:none!important;transition:none!important}.sc-load .sc-run,.sc-load .sc-now{opacity:1;transform:none}.sc-load .sc-lw,.sc-load .sc-ls{opacity:1;transform:none}}
 `.trim();
