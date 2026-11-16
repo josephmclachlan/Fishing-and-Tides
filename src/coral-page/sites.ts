@@ -13,6 +13,7 @@
  * stays on this device. Returns markup for page.ts to place, and handles its own events on the page body.
  */
 import { t, type Key } from '../i18n';
+import { UI } from '../icons/ui';
 import { CORAL_REEFS } from '../region';
 import { ACTIONS, MEASURES, MEASURE_LIMITS, SITE_KINDS, STATUSES, cleanMeasures, photosOf, type ActionId, type Conditions, type CoralSite, type CoralStatus, type CoralStore, type SiteKind, type Visit } from '../coral/store';
 import { conditionRows, dateInputMs, lastVisit, localDay, measureRows, nextMission, overdue, parseTags, photosNewestFirst, photoTime, type Row } from '../coral/folder-view';
@@ -274,7 +275,7 @@ export function mountSites(host: HTMLElement, body: HTMLElement, deps: SitesDeps
       <section class="fc-card"><div class="fc-card-head"><h2>${esc(s_('coral.openMissions'))} (${open.length})</h2></div>
         ${open.length ? `<ul class="cp-mlist">${open.map((m) => `<li class="${overdue(m, now) ? 'late' : ''}">
           <div><span class="cp-m-date">${esc(dayDate(m.t, lang))}${overdue(m, now) ? ` <span class="cp-pill l0">${t('cp.overdue')}</span>` : ''}</span><b>${esc(m.goal || '--')}</b>${m.actions.length ? `<small>${m.actions.map((a) => esc(s_(`coral.act.${a}` as Key))).join(', ')}</small>` : ''}${m.notes ? `<p class="cp-notes">${esc(m.notes)}</p>` : ''}</div>
-          <div class="cp-btns"><button type="button" class="cp-btn primary" data-x-start="${m.id}">${t('cp.logMission')}</button><button type="button" class="cp-btn danger" data-x-delmission="${m.id}" aria-label="${t('coral.remove')}">✕</button></div>
+          <div class="cp-btns"><button type="button" class="cp-btn primary" data-x-start="${m.id}">${t('cp.logMission')}</button><button type="button" class="cp-btn danger" data-x-delmission="${m.id}" aria-label="${t('coral.remove')}">${UI.close}</button></div>
         </li>`).join('')}</ul>` : `<p class="cp-cap">${t('cp.noMissions')}</p>`}
       </section>
       ${done.length ? `<section class="fc-card"><div class="fc-card-head"><h2>${esc(s_('coral.doneMissions'))}</h2></div><ul class="cp-missions">${done.map((m) => `<li><button type="button" data-x-gotovisit="${m.doneVisitId}"><span class="cp-m-date">${esc(dayDate(s.visits.find((v) => v.id === m.doneVisitId)?.t ?? m.t, lang))}</span><span class="cp-m-goal"><b>✓ ${esc(m.goal || '--')}</b></span><span></span>${I.chev}</button></li>`).join('')}</ul></section>` : ''}`;
@@ -381,7 +382,7 @@ export function mountSites(host: HTMLElement, body: HTMLElement, deps: SitesDeps
     viewer.innerHTML = `<div class="cp-v-in">
       <div class="cp-v-top"><b>${esc(s.name || t('cp.unnamed'))} · ${esc(dayDate(photoTime(p), lang))}</b><span>${i + 1} / ${list.length}</span><button type="button" class="fc-tool" data-v="close" aria-label="${esc(s_('coral.close'))}">✕</button></div>
       <div class="cp-v-img">${viewUrl ? `<img src="${viewUrl}" alt="${esc(p.caption || t('coral.photoAlt'))}">` : `<p>${esc(s_('coral.photoMissing'))}</p>`}
-        <button type="button" class="cp-v-nav prev" data-v="prev" ${i <= 0 ? 'disabled' : ''} aria-label="◀">${I.back}</button><button type="button" class="cp-v-nav next" data-v="next" ${i >= list.length - 1 ? 'disabled' : ''} aria-label="▶">${I.chev}</button></div>
+        <button type="button" class="cp-v-nav prev" data-v="prev" ${i <= 0 ? 'disabled' : ''} aria-label="${t('cp.photoPrev')}">${I.back}</button><button type="button" class="cp-v-nav next" data-v="next" ${i >= list.length - 1 ? 'disabled' : ''} aria-label="${t('cp.photoNext')}">${I.chev}</button></div>
       <p class="cp-cap">${esc(s_('coral.photoFrom'))}: ${v ? `${esc(dayDate(v.t, lang))} · ${esc(statusName(v.status))}` : esc(s_('coral.sitePhoto'))}</p>
       <label class="cp-field"><span>${esc(s_('coral.caption'))}</span><input class="cp-in" id="cpv-cap" type="text" maxlength="200" value="${esc(p.caption)}"></label>
       <label class="cp-field"><span>${esc(s_('coral.tags'))}</span><input class="cp-in" id="cpv-tags" type="text" maxlength="200" value="${esc(p.tags.join(', '))}"></label>

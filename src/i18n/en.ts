@@ -1821,6 +1821,8 @@ export const en = {
   'cp.never': 'Not visited yet',
   'cp.bleached': '{n}% bleached',
   'cp.next': 'Next: {d} · {goal}',
+  'cp.photoPrev': 'Previous photo',
+  'cp.photoNext': 'Next photo',
   'cp.counts': '{v} visits · {p} photos',
   'cp.noSites': 'No sites logged yet',
   'cp.near': 'Near {reef}',

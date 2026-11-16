@@ -4,6 +4,7 @@
  * ring on the map opens its folder too. Private and on this device (src/coral/store.ts). Phone: a sheet.
  */
 import type { Map } from 'maplibre-gl';
+import { UI } from './icons/ui';
 import { t, type Key } from './i18n';
 import { closeButton, PHONE_QUERY, type Sheets } from './sheets';
 import { ACTIONS, MEASURES, MEASURE_LIMITS, SITE_KINDS, STATUSES, cleanMeasures, photosOf, type ActionId, type LocSource, type Conditions, type CoralSite, type CoralStatus, type CoralStore, type SiteKind, type Visit } from './coral/store';
@@ -209,7 +210,7 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
       <textarea id="c-mnotes" rows="2" maxlength="1000" placeholder="${t('coral.missionNotes')}" aria-label="${t('coral.missionNotes')}"></textarea>
       <div class="boat-btns"><button type="button" class="tab" id="c-mplan">${t('coral.planMission')}</button></div>
       <div class="lbl cf-sub">${t('coral.openMissions')} (${open.length})</div>
-      <ul class="boat-pins">${open.map((m) => `<li><span class="tab pin-go${overdue(m, now) ? ' cr-red' : ''}">${day(m.t)} ${esc(m.goal || '--')}${m.actions.length ? ` · ${m.actions.map((a) => t(`coral.act.${a}` as Key)).join(', ')}` : ''}${m.notes ? `<br><span class="cf-notes">${esc(m.notes)}</span>` : ''}</span><button type="button" class="tab" data-start="${m.id}">${t('coral.startMission')}</button><button type="button" class="tab pin-x" data-del-mission="${m.id}" aria-label="${t('coral.remove')}">✕</button></li>`).join('')}</ul>
+      <ul class="boat-pins">${open.map((m) => `<li><span class="tab pin-go${overdue(m, now) ? ' cr-red' : ''}">${day(m.t)} ${esc(m.goal || '--')}${m.actions.length ? ` · ${m.actions.map((a) => t(`coral.act.${a}` as Key)).join(', ')}` : ''}${m.notes ? `<br><span class="cf-notes">${esc(m.notes)}</span>` : ''}</span><button type="button" class="tab" data-start="${m.id}">${t('coral.startMission')}</button><button type="button" class="tab pin-x" data-del-mission="${m.id}" aria-label="${t('coral.remove')}">${UI.close}</button></li>`).join('')}</ul>
       ${done.length ? `<div class="lbl cf-sub">${t('coral.doneMissions')}</div><ul class="boat-pins">${done.map((m) => `<li><button type="button" class="tab pin-go" data-goto-visit="${m.doneVisitId}">${day(s.visits.find((v) => v.id === m.doneVisitId)?.t ?? m.t)} ✓ ${esc(m.goal || '--')}</button></li>`).join('')}</ul>` : ''}`;
   }
 
@@ -246,7 +247,7 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     $('c-kind').textContent = t(`coral.kind.${kind}` as Key);
     $('c-list').innerHTML = [...sites]
       .reverse()
-      .map((s) => `<li data-id="${s.id}"><button type="button" class="tab pin-go${s.id === sel ? ' on' : ''}">${esc(s.name || t('coral.unnamed'))} · ${t(`coral.kind.${s.kind}` as Key)}</button><button type="button" class="tab pin-x" aria-label="${t('coral.remove')}">✕</button></li>`)
+      .map((s) => `<li data-id="${s.id}"><button type="button" class="tab pin-go${s.id === sel ? ' on' : ''}">${esc(s.name || t('coral.unnamed'))} · ${t(`coral.kind.${s.kind}` as Key)}</button><button type="button" class="tab pin-x" aria-label="${t('coral.remove')}">${UI.close}</button></li>`)
       .join('');
     const s = site();
     if (!s) {
@@ -318,8 +319,8 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
       <input id="cv-cap" type="text" maxlength="200" value="${esc(p.caption)}" placeholder="${t('coral.caption')}" aria-label="${t('coral.caption')}">
       <input id="cv-tags" type="text" maxlength="200" value="${esc(p.tags.join(', '))}" placeholder="${t('coral.tags')}" aria-label="${t('coral.tags')}">
       <div class="boat-btns">
-        <button type="button" class="tab" id="cv-prev" ${i <= 0 ? 'disabled' : ''}>◀</button>
-        <button type="button" class="tab" id="cv-next" ${i >= list.length - 1 ? 'disabled' : ''}>▶</button>
+        <button type="button" class="tab" id="cv-prev" ${i <= 0 ? 'disabled' : ''}>${UI.prev}</button>
+        <button type="button" class="tab" id="cv-next" ${i >= list.length - 1 ? 'disabled' : ''}>${UI.next}</button>
         <button type="button" class="tab" id="cv-del">${t('coral.photoRemove')}</button>
         <button type="button" class="tab" id="cv-close">${t('coral.close')}</button>
       </div>`;

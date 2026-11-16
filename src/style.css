@@ -1001,3 +1001,7 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 
 /* Link from the fishing panel to the DISPATCH page (kill, bleed, ice). */
 .fish-link { color: var(--amber); text-decoration: underline; text-underline-offset: 3px; }
+
+/* The interface's own icons (src/icons/ui.ts, PLAN 7.107): one close, one pager pair, one chevron, one star. */
+.ui-i { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: square; vertical-align: -0.14em; flex: none; }
+.ui-i.ui-fill { fill: currentColor; stroke-width: 1.5; stroke-linejoin: round; }

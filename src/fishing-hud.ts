@@ -7,6 +7,7 @@
  * species and reach are remembered on the device.
  */
 import { condSlot } from './cond-groups';
+import { UI } from './icons/ui';
 import type { Map } from 'maplibre-gl';
 import { t, type Key } from './i18n';
 import { PLUME_RIVERS, RAIN_TOWNS, REGION, SPOTS } from './region';
@@ -69,9 +70,9 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     'beforeend',
     `<div class="from-coast fish-rows">
       <div class="ro fish-pick"><span class="lbl">${t('fish.target')}</span>
-        <button type="button" class="tab" id="fish-prev" aria-label="${t('fish.prev')}">‹</button>
+        <button type="button" class="tab" id="fish-prev" aria-label="${t('fish.prev')}">${UI.prev}</button>
         <span class="seg sm green" id="fish-sp">--</span>
-        <button type="button" class="tab" id="fish-next" aria-label="${t('fish.next')}">›</button></div>
+        <button type="button" class="tab" id="fish-next" aria-label="${t('fish.next')}">${UI.next}</button></div>
       <div class="ro" id="fish-warn" hidden><span class="lbl red">${t('fish.ciguatera')}</span> <a class="cig-link" href="#ciguatera">${t('fish.ciguateraMore')}</a></div>
       <div class="ro" id="fish-care" hidden><span class="lbl">${t('fish.ciguateraCare')}</span> <a class="cig-link" href="#ciguatera">${t('fish.ciguateraMore')}</a></div>
       <div class="ro fish-reach"><span class="lbl">${t('fish.reach')}</span><span class="seg sm" id="fish-reach">${REACHES.map((r) => `<button type="button" class="tab" data-reach="${r}">${t(`fish.reach.${r}` as Key)}</button>`).join('')}</span></div>
@@ -83,7 +84,7 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
       <div class="bite-wins" id="fish-wins"></div>
       <details class="fishx" open><summary><span class="lbl">${t('fish.spots')}</span></summary><div id="fish-spots" class="fish-spots"></div></details>
       <div class="ro"><span class="lbl">${t('fish.yours')}</span><span class="seg sm" id="fish-yours">--</span></div>
-      <div class="ro"><a class="lbl fish-link" href="#dispatch" title="${t('dp.linkSub')}">${t('dp.link')} ›</a></div>
+      <div class="ro"><a class="lbl fish-link" href="#dispatch" title="${t('dp.linkSub')}">${t('dp.link')} ${UI.next}</a></div>
       <div class="ro"><span class="lbl note">${t('fish.note')}</span></div>
     </div>`,
   );
