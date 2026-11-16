@@ -114,6 +114,12 @@ export function mountWatchPanel(
   outingAt: () => OutingAt | undefined = () => undefined,
 ) {
   let state: WatchState = loadWatch(store);
+  // The Kinetic Plus map has no WATCH panel to pick or clear a region, so a region saved by the old map would draw
+  // a ring nobody can explain or remove. Clear it there (the saved metrics and activity are kept).
+  if (document.documentElement.classList.contains('km') && state.region) {
+    state = { ...state, region: null };
+    saveWatch(store, state);
+  }
   // Until the user picks anything, the metrics follow the activity chosen in CONDITIONS (J4).
   let picked = hasSavedWatch(store);
   const persist = () => ((picked = true), saveWatch(store, state));
