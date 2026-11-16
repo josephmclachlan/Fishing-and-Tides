@@ -2004,7 +2004,7 @@ export const en = {
   'dp.back.map': 'Map',
   'dp.back.forecast': 'Forecast',
   'dp.back.guide': 'Guide',
-  'dp.backTitle': 'Leave this page',
+  'dp.backTitle': 'Back',
   'dp.link': 'Handling: kill, bleed, ice',
   'dp.linkSub': 'How you kill and cool a fish decides its flavour and shelf life',
   'dp.nav': 'Sections',

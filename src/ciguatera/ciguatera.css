@@ -52,9 +52,12 @@
 
 .cig-src { padding-left: 22px; }
 .cig-src li { margin: 10px 0; }
+.cig-sup { font-size: 0.7em; line-height: 0; vertical-align: super; font-weight: 700; margin-left: 1px; }
+.cig .cig-sup a { text-decoration: none; padding: 0 1px; }
 .cig-src a { text-decoration: underline; text-underline-offset: 2px; }
 .cig-p { display: inline-block; padding: 0 5px; font-size: 11px; border: 1px solid var(--fc-ink2); }
 .cig-w { color: var(--fc-ink2); font-size: 14px; }
 
 /* The link that opens this page from a warning. */
 .cig-link { display: inline-block; margin-top: 6px; padding: 4px 0; font: 700 13px/1.2 var(--fc-mono, monospace); text-transform: uppercase; letter-spacing: 0.04em; text-decoration: underline; text-underline-offset: 3px; background: none; border: 0; color: inherit; cursor: pointer; }
+.cig-hit { background: color-mix(in srgb, var(--fc-lv2) 35%, transparent); }

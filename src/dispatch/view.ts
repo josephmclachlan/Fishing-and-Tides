@@ -4,7 +4,7 @@
  */
 import { t } from '../i18n';
 import {
-  CHART_H as CHART_TITLE, CHART_NOTE, CHART_P, GRADE_HELP, GRADE_KEY, GRADES, ICE_LIMIT_KEY, HIST_CLOCK, HIST_FACTS, HIST_H, HIST_P,
+  CHART_H as CHART_TITLE, CHART_NOTE, CHART_P, GRADE_HELP, GRADE_KEY, GRADES, ICE_LIMIT_KEY, HIST_CLOCK, HIST_GROUPS, HIST_H, HIST_P, HIST_VS, HIST_VS_H, HIST_VS_HEAD, HIST_VS_LINK,
   HIST_SPECIES, ICE_LIMIT, METHODS, METHODS_H, METHODS_P, MISTAKES, MISTAKES_H, MISTAKES_P, ROUTINE, ROUTINE_H, ROWS, SCIENCE_H, SCIENCE_P,
   SECTION_LABELS, EST_MARK, SOURCES, SOURCES_H, SOURCES_P, STATS, STEPS, tr, type Fact, type Lang, type MethodId, type Txt,
 } from './content';
@@ -27,9 +27,19 @@ export function hoursLabel(h: number): string {
 }
 
 /** A fact with its source marks: [n] for each source, EST for the page's own estimate. */
+/** Source numbers shown on the page follow first appearance (1 before 2); reset at the start of each render. */
+let cited: number[] = [];
+export const resetCitations = (): void => { cited = []; };
+const shown = (n: number): number => {
+  let i = cited.indexOf(n);
+  if (i < 0) i = cited.push(n) - 1;
+  return i + 1;
+};
+
 export function factHtml(f: Fact, lang: Lang): string {
-  const src = f.src?.length
-    ? ` <span class="dp-src">${f.src.map((n) => `<span title="${esc(SOURCES[n - 1]?.n ?? '')}">[${n}]</span>`).join(' ')}</span>`
+  const nums = f.src?.length ? f.src.map((n) => ({ n, d: shown(n) })).sort((a, b) => a.d - b.d) : [];
+  const src = nums.length
+    ? `<sup class="dp-src">${nums.map(({ n, d }) => `<span title="${esc(SOURCES[n - 1]?.n ?? '')}">${d}</span>`).join(' ')}</sup>`
     : '';
   const est = f.est ? ` <span class="dp-est" title="${esc(t('dp.estTitle'))}">${esc(tr(EST_MARK, lang))}</span>` : '';
   return `${esc(tr(f.t, lang))}${src}${est}`;
@@ -137,10 +147,19 @@ export function histamineHtml(lang: Lang): string {
   const clock = HIST_CLOCK.map(
     (c, i) => `<li class="dp-ck l${i === 0 ? 0 : i === 1 ? 1 : 2}"><span class="dp-ckbar" style="width:${pct(c.h / max)}"><b>${c.h} h</b></span><p>${factHtml({ t: c.label, src: c.src }, lang)}</p></li>`,
   ).join('');
+  const group = (g: (typeof HIST_GROUPS)[number]) =>
+    `<div class="dp-hg" id="dp-hg-${g.id}"><h3>${esc(tr(g.h, lang))}</h3><ul class="dp-facts">${g.facts.map((f) => `<li>${factHtml(f, lang)}</li>`).join('')}</ul></div>`;
+  const vsRows = HIST_VS.map((r) => `<tr><th scope="row">${esc(tr(r[0], lang))}</th><td>${esc(tr(r[1], lang))}</td><td>${esc(tr(r[2], lang))}</td></tr>`).join('');
+  const vs = `<div class="dp-hg" id="dp-hg-vs"><h3>${esc(tr(HIST_VS_H, lang))}</h3>
+    <div class="dp-vs-w"><table class="dp-vs"><thead><tr><th></th><th scope="col">${esc(tr(HIST_VS_HEAD[1], lang))}</th><th scope="col">${esc(tr(HIST_VS_HEAD[2], lang))}</th></tr></thead><tbody>${vsRows}</tbody></table></div>
+    <p><a class="dp-link" href="#ciguatera">${esc(tr(HIST_VS_LINK, lang))} →</a></p></div>`;
+  const [first, ...rest] = HIST_GROUPS;
   return `<section class="dp-sec" id="dp-histamine" data-s="histamine">${sectionHead('histamine', tr(SECTION_LABELS.histamine, lang), tr(HIST_H, lang), tr(HIST_P, lang))}
     <p class="dp-species">${esc(tr(HIST_SPECIES, lang))}</p>
-    <ul class="dp-clock">${clock}</ul>
-    <ul class="dp-facts">${HIST_FACTS.map((f) => `<li>${factHtml(f, lang)}</li>`).join('')}</ul></section>`;
+    ${group(first)}
+    <div class="dp-hg"><h3>${esc(lang === 'es' ? 'El reloj: cuándo debe estar en hielo' : 'The clock: when it must be on ice')}</h3><ul class="dp-clock">${clock}</ul></div>
+    ${rest.map(group).join('')}
+    ${vs}</section>`;
 }
 
 export function routineHtml(lang: Lang): string {
@@ -150,5 +169,5 @@ export function routineHtml(lang: Lang): string {
 
 export function sourcesHtml(lang: Lang): string {
   return `<section class="dp-sec" id="dp-sources" data-s="sources">${sectionHead('sources', tr(SECTION_LABELS.sources, lang), tr(SOURCES_H, lang), tr(SOURCES_P, lang))}
-    <ol class="dp-srcs">${SOURCES.map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.n)}</a></li>`).join('')}</ol></section>`;
+    <ol class="dp-srcs">${[...cited, ...SOURCES.map((_, i) => i + 1).filter((n) => !cited.includes(n))].map((n) => SOURCES[n - 1]).map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.n)}</a></li>`).join('')}</ol></section>`;
 }

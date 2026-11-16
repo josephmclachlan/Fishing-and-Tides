@@ -156,6 +156,16 @@ export function mountCiguateraPage(deps: CiguateraPageDeps) {
     }
   });
   $('cig-back').addEventListener('click', () => close());
+  // A superscript number scrolls to its source; it must not become the page's own link (any other hash hides the page).
+  $('cig-body').addEventListener('click', (e) => {
+    const a = (e.target as Element).closest<HTMLAnchorElement>('a[href^="#cig-src-"]');
+    if (!a) return;
+    e.preventDefault();
+    const src = el.querySelector<HTMLElement>(a.getAttribute('href')!);
+    src?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    src?.classList.add('cig-hit');
+    window.setTimeout(() => src?.classList.remove('cig-hit'), 1600);
+  });
 
   /** Open on a tab, from the fishing panel, a species card or any ciguatera warning. */
   const open = (opts: { tab?: CgTab } = {}) => {
