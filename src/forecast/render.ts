@@ -26,6 +26,8 @@ export const ICONS: Record<FcActivity, string> = {
 export const icon = (a: FcActivity) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[a]}</svg>`;
 const MAP_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>';
 const GUIDE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12c3-4.5 7-6 11-4.5 2 .8 3.6 2.5 4.6 4.5-1 2-2.6 3.7-4.6 4.5C10 18 6 16.5 3 12zM18.6 12L22 8.5v7z"/><path d="M8 11.5v.5"/></svg>';
+/** A knife over a drop: kill, bleed and ice (PLAN 7.103). */
+const DISPATCH_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14L16 4l2 2L8 16zM8 16l-2 4M18 14c0 2-1.3 3.5-3 3.5S12 16 12 14c0-1.6 3-5 3-5s3 3.4 3 5z"/></svg>';
 const CORAL_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-9M12 15l-4-4V7M12 12l4-4V5M8 11l-3-2M16 8l3-1M6 21h12"/></svg>';
 const THEME_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 2a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg>';
 const GO_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
@@ -73,6 +75,10 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
         <button type="button" class="fc-best" id="fc-best" hidden></button>
       </div>
     </section>
+    ${o.guide ? `<nav class="fc-links fc-in" aria-label="${esc(t('fc.links'))}">
+      <button type="button" class="fc-link" id="fc-idlink" data-for="fish dive spear snorkel">${GUIDE_ICON}<span><b>${esc(t('fc.idLink'))}</b><small>${esc(t('fc.idLinkSub'))}</small></span><i aria-hidden="true">→</i></button>
+      <a class="fc-link" href="#dispatch" data-for="fish spear">${DISPATCH_ICON}<span><b>${esc(t('dp.link'))}</b><small>${esc(t('dp.linkSub'))}</small></span><i aria-hidden="true">→</i></a>
+    </nav>` : ''}
     <section class="fc-sec fc-in" aria-labelledby="fc-cond-h">
       <div class="fc-sec-head"><h2 id="fc-cond-h">${esc(t('fc.conditions'))}</h2><p class="fc-mono" id="fc-cond-when"></p></div>
       <div class="fc-tiles" id="fc-tiles"></div>

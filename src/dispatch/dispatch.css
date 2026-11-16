@@ -70,16 +70,21 @@
 .dp-fine { margin: 8px 0 0; padding: 10px 12px; font-size: 13px; color: var(--fc-ink2); border-left: 4px solid var(--fc-ac1); max-width: 70ch; }
 
 /* --- the diagram */
-.dp-diagram { margin: 0 0 18px; display: grid; gap: 12px; }
-.dp-fish { width: 100%; max-width: 560px; height: auto; background: var(--fc-card); padding: 8px; color: var(--fc-ink); }
-.dp-fish path { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.dp-fish .dp-eye { fill: currentColor; }
-.dp-fish .dp-cut { stroke: var(--fc-ac0); stroke-width: 3.5; stroke-dasharray: 5 4; }
-.dp-fish .dp-wire { stroke: var(--fc-ac1); stroke-width: 2.5; stroke-dasharray: 1 5; }
-.dp-fish .dp-arrow { stroke: var(--fc-ac0); stroke-width: 3; }
-.dp-bd circle { fill: var(--fc-ink); }
+.dp-diagram { margin: 0 0 14px; display: grid; gap: 10px; }
+.dp-art { width: 100%; height: auto; background: var(--fc-block); padding: 6px; color: var(--fc-ink); }
+.dp-art path, .dp-art rect { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.dp-art .dp-eye { fill: currentColor; }
+.dp-art .dp-cut { stroke: var(--fc-ac0); stroke-width: 3.5; stroke-dasharray: 5 4; }
+.dp-art .dp-wire { stroke: var(--fc-ac1); stroke-width: 2.5; stroke-dasharray: 1 5; }
+.dp-art .dp-arrow, .dp-art .dp-hit { stroke: var(--fc-ac0); stroke-width: 3; }
+.dp-art .dp-club { stroke-width: 7; stroke: var(--fc-ink); }
+.dp-art .dp-clubhead { stroke-width: 11; stroke: var(--fc-ink); }
+.dp-art .dp-water { stroke: var(--fc-sea-a); stroke-width: 3; }
+.dp-art .dp-blood { stroke: var(--fc-ac0); stroke-width: 2.5; stroke-dasharray: 3 3; }
+.dp-art .dp-cube { fill: var(--fc-card); stroke: var(--fc-sea-b); stroke-width: 2; }
+.dp-art .dp-clock { fill: currentColor; font-family: var(--fc-mono); font-size: 11px; font-weight: 700; }
+.dp-bd circle { fill: var(--fc-ink); stroke: none; }
 .dp-bd text { fill: var(--fc-bg); font-family: var(--fc-mono); font-size: 10px; font-weight: 700; }
-.dp-diagram h4 { margin: 0 0 8px; font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 76; font-size: 20px; text-transform: uppercase; line-height: 1; }
 .dp-marks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .dp-marks li { display: flex; gap: 10px; align-items: baseline; }
 .dp-marks b { flex: 0 0 22px; height: 22px; display: inline-grid; place-items: center; background: var(--fc-ink); color: var(--fc-bg); font-family: var(--fc-mono); font-size: 12px; }
@@ -129,7 +134,6 @@
   .dp-stats li > span { display: block; margin-top: 4px; }
   .dp-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dp-rh b { font-size: 16px; }
-  .dp-diagram { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: center; }
   .dp-routine { grid-template-columns: repeat(5, 1fr); border-top: 2px solid var(--fc-ink); }
   .dp-routine li { display: block; padding: 16px 14px 16px 0; border-bottom: 0; }
   .dp-axis .dp-axis-ice { display: block; }

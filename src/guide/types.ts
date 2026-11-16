@@ -109,6 +109,15 @@ export interface Photo {
   from: 'inaturalist' | 'commons';
 }
 
+/** Ciguatera size advice: a published limit for this species, a reasoned estimate, or no known size link. */
+export interface CiguaSize {
+  basis: 'published' | 'estimate' | 'none';
+  maxKg?: number;
+  maxCm?: number;
+  advice: Txt;
+  sources?: string[];
+}
+
 export interface Eat {
   quality?: number;
   local?: boolean;
@@ -117,6 +126,8 @@ export interface Eat {
   riskNote?: Txt;
   rules?: Txt;
   rulesCheck?: boolean;
+  /** Size to keep to lower the ciguatera risk, for this species (research/cigua-size). */
+  ciguaSize?: CiguaSize;
   /** Taking it is banned in Costa Rica: the catch and clean tabs still show, as emergency (survival) information only. */
   illegal?: boolean;
   methods?: Method[];

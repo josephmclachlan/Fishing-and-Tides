@@ -95,12 +95,19 @@ export const METHODS_P = W(
   'Pick the one you can do every time. A fast club and a gill cut beats a perfect ikejime you skip when the fish are biting.',
   'Escoge la que puedas hacer siempre. Un garrotazo rápido y un corte de agalla ganan a un ikejime perfecto que te saltas cuando pican.',
 );
-export interface Method { id: string; name: Txt; tag: Txt; steps: Txt[]; note?: Fact }
+export type MethodId = 'ikejime' | 'club' | 'bleed' | 'slurry';
+export interface Method { id: MethodId; name: Txt; tag: Txt; /** What each number on the drawing points at. */ marks: Txt[]; steps: Txt[]; note?: Fact }
 export const METHODS: Method[] = [
   {
     id: 'ikejime',
     name: W('Ikejime', 'Ikejime'),
     tag: W('Best flavour and keeping', 'Mejor sabor y duración'),
+    marks: [
+      W('Spike: behind and above the eye', 'Punzón: detrás y arriba del ojo'),
+      W('Cut behind the gills, both sides', 'Corte detrás de las agallas, ambos lados'),
+      W('Cut at the base of the tail', 'Corte en la base de la cola'),
+      W('Wire down the spine (optional)', 'Alambre por la columna (opcional)'),
+    ],
     steps: [
       W('Hold the fish still, wet cloth over the eyes. Get it out of the water and do it at once.', 'Sujeta el pescado quieto, con un trapo mojado en los ojos. Sácalo del agua y hazlo de una vez.'),
       W('Spike the brain: a sharp point just behind and above the eye, between the eye and the gill cover, angled in. The mouth opens and the body shivers once.', 'Punza el cerebro: una punta afilada justo detrás y arriba del ojo, entre el ojo y la tapa de la agalla, en ángulo hacia adentro. La boca se abre y el cuerpo tiembla una vez.'),
@@ -114,6 +121,10 @@ export const METHODS: Method[] = [
     id: 'club',
     name: W('Club, then cut', 'Garrote y corte'),
     tag: W('Quick, free, works on a rocking boat', 'Rápido, gratis, sirve en lancha movida'),
+    marks: [
+      W('Blow: top of the head, over the brain', 'Golpe: en lo alto de la cabeza, sobre el cerebro'),
+      W('Then cut both gill arches', 'Luego corta los dos arcos de las agallas'),
+    ],
     steps: [
       W('One hard blow on top of the head, over the brain. Not the nose, not the gill cover.', 'Un golpe fuerte en lo alto de la cabeza, sobre el cerebro. No en la nariz ni en la tapa de la agalla.'),
       W('Check it worked: gill cover stops moving, the eye no longer rolls when you turn the fish.', 'Verifica que funcionó: la tapa de la agalla deja de moverse y el ojo ya no gira al voltear el pescado.'),
@@ -127,6 +138,10 @@ export const METHODS: Method[] = [
     id: 'bleed',
     name: W('Gill cut, bled in seawater', 'Corte de agalla, desangrado en agua de mar'),
     tag: W('Never skip it', 'Nunca te lo saltes'),
+    marks: [
+      W('Cut both gill arches', 'Corta los dos arcos de las agallas'),
+      W('Head down in seawater, 3 min or more', 'Cabeza abajo en agua de mar, 3 min o más'),
+    ],
     steps: [
       W('After the blow or spike, slice through both gill arches (or the throat) with a sharp knife.', 'Tras el golpe o el punzón, corta los dos arcos de las agallas (o la garganta) con un cuchillo afilado.'),
       W('Drop the fish head down in a bucket of fresh seawater, or trail it on a line, so the heart pumps the blood out.', 'Echa el pescado con la cabeza hacia abajo en un balde de agua de mar limpia, o arrástralo en un cordel, para que el corazón bombee la sangre.'),
@@ -139,6 +154,10 @@ export const METHODS: Method[] = [
     id: 'slurry',
     name: W('Ice slurry', 'Hielo en agua'),
     tag: W('The step that saves tuna, mahi and mackerel', 'El paso que salva atún, dorado y macarela'),
+    marks: [
+      W('Half ice, half seawater: near 0 °C', 'Mitad hielo, mitad agua de mar: cerca de 0 °C'),
+      W('Fish covered, bled first, in shade', 'Pescado cubierto, desangrado antes, a la sombra'),
+    ],
     steps: [
       W('Fill the cooler with about half ice and half seawater, so it is near 0 °C. Water touches every part of the fish; plain ice leaves air gaps.', 'Llena la hielera con mitad hielo y mitad agua de mar, para que quede cerca de 0 °C. El agua toca todo el pescado; el hielo solo deja huecos de aire.'),
       W('Put the fish in as soon as it has bled. Keep it covered, in shade.', 'Mete el pescado apenas se desangre. Mantenlo cubierto y a la sombra.'),
@@ -148,17 +167,6 @@ export const METHODS: Method[] = [
     note: { t: W('Slurry cools fastest because water touches the whole fish. The 1:1 ratio is the usual advice; leave small fish in salty slurry for hours and salt gets into them.', 'El hielo en agua enfría más rápido porque el agua toca todo el pescado. La proporción 1:1 es el consejo habitual; deja pescado chico horas en agua salada y le entra sal.'), src: [13, 12] },
   },
 ];
-/** Diagram labels for the spike, cuts and wire, matching ikejime's steps. */
-export const DIAGRAM = {
-  title: W('Where the spike and the cuts go', 'Dónde va el punzón y los cortes'),
-  marks: [
-    W('Spike: behind and above the eye', 'Punzón: detrás y arriba del ojo'),
-    W('Cut behind the gills, both sides', 'Corte detrás de las agallas, ambos lados'),
-    W('Cut at the base of the tail', 'Corte en la base de la cola'),
-    W('Wire down the spine (optional)', 'Alambre por la columna (opcional)'),
-  ] as Txt[],
-};
-
 // --- mistakes
 export const MISTAKES_H = W('Four mistakes that cost you the fish', 'Cuatro errores que te cuestan el pescado');
 export const MISTAKES_P = W(
