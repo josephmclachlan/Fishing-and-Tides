@@ -17,6 +17,10 @@ export const OCCURRENCE_TAXA: Record<string, string[]> = {
   mullet: ['Mugil curema', 'Mugil liza'],
   permit: ['Trachinotus falcatus'],
   bonefish: ['Albula vulpes', 'Albula nemoptera'],
+  // By hand (PLAN 7.125).
+  lobster: ['Panulirus argus', 'Panulirus guttatus'],
+  octopus: ['Octopus insularis', 'Octopus briareus'],
+  cigua: ['Cittarium pica'],
   barracuda: ['Sphyraena barracuda'],
   lionfish: ['Pterois volitans', 'Pterois miles'],
   mahi: ['Coryphaena hippurus'],

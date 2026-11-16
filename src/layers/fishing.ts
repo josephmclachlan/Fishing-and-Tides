@@ -181,8 +181,8 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
         if (!inReach(c.coastM) || rule[i] === 2) continue;
         const s = {} as Record<SpeciesId, number>;
         for (const x of inMode) s[x.id] = Math.min(1, habitatScore(x, c.f, month, fits[x.id].weights) * (1 + boostAt(x.id, c.lng, c.lat)));
-        // Lionfish are taken by spear: none in any protected area.
-        if (rule[i] && 'lionfish' in s) s.lionfish = 0;
+        // Lionfish are taken by spear, lobster, octopus and cigua by hand: none in any protected area.
+        if (rule[i]) for (const x of inMode) if (x.id === 'lionfish' || x.byHand) s[x.id] = 0;
         const why: ZoneWhy[] = [];
         if (c.f.mouthKm < 0.8) why.push('mouth');
         if (c.f.reef >= 0.3) why.push('reef');
