@@ -608,6 +608,7 @@ export const en = {
   'fish.reach': 'REACH',
   'fish.reach.all': 'ALL',
   'fish.reach.shore': 'SHORE',
+  'fish.reach.kayak': 'KAYAK',
   'fish.reach.boat': 'BOAT',
   'fish.bite': 'BITE',
   'fish.biteWhy': 'WHY',

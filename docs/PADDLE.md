@@ -32,7 +32,13 @@ Craft numbers (`CRAFT`): kayak easy wind 10 kt, hard 18, cap 24; offshore penalt
 
 ## Fishing from a kayak
 
-Decision for the FISH tab is in `docs/FISHING.md` (PLAN task for the FISH kayak option).
+**Decision (Claude, 2026-11-16): yes, FISH gets a KAYAK reach**, because it changes three real things:
+
+1. *Reach.* The shore and kayak fish cells already run out to 1,500 m (`REACH_M`), but the old REACH switch only had SHORE (400 m) and BOAT (everything past that, with the offshore boat zones). The 400 to 1,500 m band is exactly what a kayak reaches and a cast does not, so it had no name and was lumped in with the boat.
+2. *Which water.* KAYAK shows that band only and none of the far boat zones (mahi, tuna, sailfish), which a kayak cannot reach safely.
+3. *Conditions.* A good bite is no reason to go out in a wind blowing out to sea, so with KAYAK on, the FISH bar shows today's paddle verdict for the beach and hour (the PADDLE tab's score and its worst reason).
+
+What it does not change: the fish, their scores and the ciguatera notes are the same as SHORE and BOAT. The boat species and their ciguatera line stay hidden under KAYAK.
 
 ## Sources
 

@@ -759,3 +759,5 @@
 .km .k-keybtn svg,.km .k-keyx svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.6}
 .km .k-keyhd{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .km .k-keyx{appearance:none;cursor:pointer;display:flex;align-items:center;gap:4px;height:28px;padding:0 8px;border:1px solid var(--line);background:none;color:var(--ink);font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:2px}
+/* The paddle verdict chip under KAYAK may be long in Spanish or on a 320 px phone: it wraps inside the screen instead of running off it. */
+.km .k-fishsw span.k-fchip{height:auto;min-height:36px;max-width:100%;padding-block:6px;white-space:normal;line-height:1.25}

@@ -53,6 +53,10 @@ import {
   GROUPS, MODES, OLD_PRESET, isCustom, isMode, isOwnLayer, layerDef, loadOrders, moveLayer, offered, orderOf, saveOrders, toggleLayer,
   type KmGroup, type KmLayer, type Mask, type Mode,
 } from './model';
+import { mountPaddleMap } from './paddle-map';
+import type { PaddleMark } from './paddle-geo';
+import { pushOf } from '../forecast/view';
+import { hex, tok } from './dom';
 import { ARROW, BACK, CLOSE, GRIP, ICON, L2, LOCK, PLUS, compass, esc, fin, levelWord, modeName, resetTokens, setKmLang, svg } from './dom';
 import { mountCoast, type PinData } from './coast';
 import { readDetails, type Detail } from './detail';
@@ -130,8 +134,8 @@ export interface KmDeps {
     get(): 'eat' | 'sport';
     set(m: 'eat' | 'sport'): void;
     /** ALL, SHORE or BOAT: which water the fish map highlights. */
-    reach?(): 'all' | 'shore' | 'boat';
-    setReach?(r: 'all' | 'shore' | 'boat'): void;
+    reach?(): 'all' | 'shore' | 'kayak' | 'boat';
+    setReach?(r: 'all' | 'shore' | 'kayak' | 'boat'): void;
     subscribe?(fn: () => void): void;
     /** The fish bar (PLAN 7.143): step the fish, its best windows and spots, fly to a spot, log a catch. */
     step?(d: number): void;
@@ -459,7 +463,7 @@ export function mountKineticMap(d: KmDeps) {
     ({ core: L2('Ratings', 'Calificación'), ocean: L2('Ocean', 'Océano'), water: L2('Water', 'Agua'), weather: L2('Weather', 'Tiempo'), beach: L2('Beach and fishing', 'Playa y pesca'), seafloor: L2('Seafloor', 'Fondo'), rules: L2('Rules and places', 'Reglas y lugares'), coral: L2('Coral', 'Coral') })[g];
   /** Mockup G's layer names where they say more than the old map's short labels. */
   const KM_NAMES: Partial<Record<KmLayer, [string, string]>> = {
-    rating: ['Beach ratings', 'Calificación de playas'], obs: ['Live observations', 'Observaciones en vivo'], heat: ['Heat stress', 'Estrés térmico'], private: ['Private sites', 'Sitios privados'],
+    rating: ['Beach ratings', 'Calificación de playas'], range: ['Paddle range and wind', 'Alcance y viento para remar'], obs: ['Live observations', 'Observaciones en vivo'], heat: ['Heat stress', 'Estrés térmico'], private: ['Private sites', 'Sitios privados'],
     waves: ['Swell crests', 'Crestas del oleaje'], currents: ['Current', 'Corriente'], weather: ['Rain and storms', 'Lluvia y tormentas'],
     fishing: ['Fishing spots', 'Zonas de pesca'], depth: ['Seafloor depth', 'Profundidad'], zones: ['Zones and rules', 'Zonas y reglas'],
     seamarks: ['Seamarks and wrecks', 'Balizas y naufragios'], anchorages: ['Harbours', 'Puertos y fondeaderos'], ais: ['Ships (AIS)', 'Barcos (AIS)'],
@@ -482,6 +486,8 @@ export function mountKineticMap(d: KmDeps) {
   const ownLegend = (id: KmLayer) =>
     id === 'rating'
       ? keys([['lv0', levelWord(0)], ['lv1', levelWord(1)], ['lv2', levelWord(2)], ['lv3', levelWord(3)], ['lv4', levelWord(4)]])
+      : id === 'range'
+        ? `${keys([['lv3', L2('Dashed half-circle: how far to go', 'Semicírculo: hasta dónde ir')], ['lv0', L2('Red arrow: wind blowing out to sea', 'Flecha roja: viento hacia mar abierto')], ['ink', L2('Dark arrow: wind along or toward the beach', 'Flecha oscura: viento hacia la playa o a lo largo')]])}<p class="k-lgnote">${L2('The half-circle is how far from the beach to paddle today, in the rating colour; no circle means stay on the beach. The arrow is where the wind sends you if you stop paddling, and it is red when that is out to sea.', 'El semicírculo es hasta dónde remar hoy desde la playa, en el color de la calificación; sin círculo, quédese en la playa. La flecha es hacia dónde lo lleva el viento si deja de remar, y es roja si es hacia mar abierto.')}</p>`
       : id === 'heat'
         ? keys([['lv3', L2('No stress', 'Sin estrés')], ['lv2', L2('Watch', 'Vigilancia')], ['lv1', L2('Warning', 'Aviso')], ['lv0', L2('Alert 1 or higher', 'Alerta 1 o más')]])
         : id === 'private'
@@ -535,7 +541,7 @@ export function mountKineticMap(d: KmDeps) {
     return items.length ? `<ul class="k-lkeys">${items.map((it) => `<li>${keySw(it)}<span>${esc(it.l)}</span></li>`).join('')}</ul>` : '';
   };
   const explainLayer = (id: KmLayer) => {
-    if (isOwnLayer(id)) return `<p class="k-lgnote">${esc(id === 'rating' ? L2('Each beach in the rating colour of the chosen activity, for the hour on the slider: the same score as the forecast page. Each beach carries a small chip with its headline number, and the chosen beach also shows its name; tap one for the spot card. Beaches too close together for their chips show as dots until you zoom in.', 'Cada playa en el color de su calificación para la actividad y la hora elegidas, igual que la página de pronóstico. Cada playa lleva una pequeña ficha con su número, y la playa elegida también su nombre; toque una para ver el spot. Las playas demasiado juntas se ven como puntos hasta que acerque el mapa.') : id === 'heat' ? L2('Each tracked reef in the colour of its NOAA Coral Reef Watch alert, the same as on the coral page. The number is the degree heating weeks: heat built up over 12 weeks. Alert 1 means bleaching is likely.', 'Cada arrecife en el color de su alerta de NOAA Coral Reef Watch, igual que en la página de coral. El número son las semanas-grado de calor: el calor acumulado en 12 semanas. Alerta 1 significa blanqueo probable.') : L2('Restoration sites in your private field log, drawn only as the 5 km cell they fall in, so nobody can read an exact site off the screen.', 'Sitios de restauración de su bitácora privada, dibujados solo como la celda de 5 km, para que nadie lea un sitio exacto en la pantalla.'))}</p>`;
+    if (isOwnLayer(id)) return `<p class="k-lgnote">${esc(id === 'range' ? L2('The half-circle is how far from the beach to paddle today, in the rating colour; no circle means stay on the beach. The arrow is where the wind sends you if you stop paddling, and it is red when that is out to sea.', 'El semicírculo es hasta dónde remar hoy desde la playa, en el color de la calificación; sin círculo, quédese en la playa. La flecha es hacia dónde lo lleva el viento si deja de remar, y es roja si es hacia mar abierto.') : id === 'rating' ? L2('Each beach in the rating colour of the chosen activity, for the hour on the slider: the same score as the forecast page. Each beach carries a small chip with its headline number, and the chosen beach also shows its name; tap one for the spot card. Beaches too close together for their chips show as dots until you zoom in.', 'Cada playa en el color de su calificación para la actividad y la hora elegidas, igual que la página de pronóstico. Cada playa lleva una pequeña ficha con su número, y la playa elegida también su nombre; toque una para ver el spot. Las playas demasiado juntas se ven como puntos hasta que acerque el mapa.') : id === 'heat' ? L2('Each tracked reef in the colour of its NOAA Coral Reef Watch alert, the same as on the coral page. The number is the degree heating weeks: heat built up over 12 weeks. Alert 1 means bleaching is likely.', 'Cada arrecife en el color de su alerta de NOAA Coral Reef Watch, igual que en la página de coral. El número son las semanas-grado de calor: el calor acumulado en 12 semanas. Alerta 1 significa blanqueo probable.') : L2('Restoration sites in your private field log, drawn only as the 5 km cell they fall in, so nobody can read an exact site off the screen.', 'Sitios de restauración de su bitácora privada, dibujados solo como la celda de 5 km, para que nadie lea un sitio exacto en la pantalla.'))}</p>`;
     // What the layer is, plus its notes with no mark of their own; the marks themselves are the key under the row.
     // A painted field's colour meanings (its fills are bands on the key, not chips) join the notes.
     const notes = LEGEND[id].map((it, i) => (it.sw === 'none' || SHORT_KEY.has(id) || ((FIELD_OF[id] || id === 'fishing') && it.sw === 'fill') ? t(legendItemKey(id, i + 1) as Key) : '')).filter(Boolean);
@@ -651,13 +657,14 @@ export function mountKineticMap(d: KmDeps) {
   /** One line of the desktop key: the layer's marks as small swatches, its name, and what it shows (in full on hover). */
   const OWN_WHAT: Record<string, [string, string]> = {
     rating: ['Each beach in its rating colour for this activity', 'Cada playa en el color de su calificación'],
+    range: ['How far to paddle from each beach, and where the wind pushes you', 'Hasta dónde remar desde cada playa y hacia dónde lo empuja el viento'],
     heat: ['Each reef in its coral heat alert colour', 'Cada arrecife en el color de su alerta de calor'],
     private: ['Your logged sites, as 5 km cells', 'Sus sitios, como celdas de 5 km'],
   };
   /** A layer's marks as small swatches: rating squares, a colour ramp for a painted field, then up to `n` of its marks. */
   const keySwatches = (id: KmLayer, n = 3) => {
     const lv = (ns: number[]) => ns.map((x) => `<i class="k-lmlv" style="--k:var(--lv${x})"></i>`).join('');
-    if (isOwnLayer(id)) return id === 'rating' ? lv([0, 1, 2, 3, 4]) : id === 'heat' ? lv([3, 2, 1, 0]) : `<i class="k-sw-glyph">${glyphSvg('lock', GLYPH_PAINT.ink, 14)}</i>`;
+    if (isOwnLayer(id)) return id === 'rating' ? lv([0, 1, 2, 3, 4]) : id === 'range' ? `<i class="k-lmramp" style="background:linear-gradient(90deg,var(--lv3),var(--lv0))"></i>` : id === 'heat' ? lv([3, 2, 1, 0]) : `<i class="k-sw-glyph">${glyphSvg('lock', GLYPH_PAINT.ink, 14)}</i>`;
     const fk = FIELD_OF[id];
     const ramp = (cols: readonly string[]) => `<i class="k-lmramp" style="background:linear-gradient(90deg,${cols.join(',')})"></i>`;
     const marks = LEGEND[id].filter((it) => it.sw !== 'none' && !((fk || id === 'fishing') && it.sw === 'fill')).slice(0, n).map(keySw).join('');
@@ -1107,9 +1114,12 @@ export function mountKineticMap(d: KmDeps) {
     const b = (attr: string, v: string, cur: string, l: string) => `<button type="button" ${attr}="${v}" aria-pressed="${v === cur}">${esc(l)}</button>`;
     // The window on now or next at the slider time: one that has already ended today would send people out too late.
     const at = time.validMs(), best = fi?.wins.find((w) => w.end > at);
+    // KAYAK reach: the same paddle verdict the PADDLE tab gives for this beach and hour, so a good bite never sends anyone out in an offshore wind.
+    const kp = r === 'kayak' ? rate('paddle', spot(), time.validMs()) : null;
+    const kayakRow = kp ? `<div class="k-fbrow"><span class="k-fchip">${svg(ICON.paddle)}${L2('Paddling today', 'Remar hoy')}: ${esc(levelWord(kp.level))}${kp.paddle?.reasons[0] ? ` · ${esc(t(`paddle.r.${kp.paddle.reasons[0]}` as Key))}` : ''}</span></div>` : '';
     el.innerHTML = `<div class="k-fbrow"><div class="k-seg" role="group" aria-label="${L2('Fish to eat or sport fish', 'Peces para comer o pesca deportiva')}">${b('data-fsw', 'eat', m, L2('Eat', 'Comer'))}${b('data-fsw', 'sport', m, L2('Sport', 'Deporte'))}</div>${
-      fm.setReach ? `<div class="k-seg" role="group" aria-label="${L2('Where you fish from', 'Desde dónde pesca')}">${b('data-freach', 'all', r, L2('All', 'Todo'))}${b('data-freach', 'shore', r, L2('Shore', 'Orilla'))}${b('data-freach', 'boat', r, L2('Boat', 'Bote'))}</div>` : ''
-    }</div>${fi && fm.step ? `<div class="k-fbrow">
+      fm.setReach ? `<div class="k-seg" role="group" aria-label="${L2('Where you fish from', 'Desde dónde pesca')}">${b('data-freach', 'all', r, L2('All', 'Todo'))}${b('data-freach', 'shore', r, L2('Shore', 'Orilla'))}${b('data-freach', 'kayak', r, 'Kayak')}${b('data-freach', 'boat', r, L2('Boat', 'Bote'))}</div>` : ''
+    }</div>${kayakRow}${fi && fm.step ? `<div class="k-fbrow">
       <span class="k-fpick"><button type="button" data-fstep="-1" aria-label="${L2('Previous fish', 'Pez anterior')}">‹</button>${fm.pick ? `<button type="button" class="k-fname" data-fsheet="menu" aria-haspopup="dialog" aria-label="${L2('Pick a fish', 'Elegir un pez')}: ${esc(fi.name)}"><b>${esc(fi.name)}</b>${CARET}</button>` : `<b>${esc(fi.name)}</b>`}<button type="button" data-fstep="1" aria-label="${L2('Next fish', 'Siguiente pez')}">›</button></span>
       <button type="button" class="k-fchip k-fbest" data-fsheet="times">${best ? `${best.start <= at ? L2('Best now to', 'Mejor ahora hasta') + ' ' + esc(best.range.split('–')[1]) : `${L2('Best', 'Mejor')} ${esc(best.range)}`}` : fi?.wins.length ? L2('Best times are over today', 'Ya pasaron las mejores horas') : L2('No standout time today', 'Ninguna hora destaca hoy')}</button></div>
       ${fi.cig ? `<div class="k-fbrow">${cigChip(fi.cig)}</div>` : ''}
@@ -1180,7 +1190,7 @@ export function mountKineticMap(d: KmDeps) {
     if (t.dataset.fsheet) return openSheet(t.dataset.fsheet === 'catch' ? 'catch' : 'fish', t.dataset.fsheet);
     if (t.dataset.fstep) return d.fishMode.step?.(Number(t.dataset.fstep));
     if (t.dataset.fsw) d.fishMode.set(t.dataset.fsw as 'eat' | 'sport');
-    else d.fishMode.setReach?.(t.dataset.freach as 'all' | 'shore' | 'boat');
+    else d.fishMode.setReach?.(t.dataset.freach as 'all' | 'shore' | 'kayak' | 'boat');
     renderFishSw();
     renderSpot();
   });
@@ -1369,6 +1379,7 @@ export function mountKineticMap(d: KmDeps) {
 
   /* ---------- pins and ribbons ---------- */
   const coast = mountCoast(map, stage, (id) => pick(id));
+  const paddleMap = mountPaddleMap(map);
   const pick = (id: string) => {
     if (S.coral) {
       S.reef = id;
@@ -1399,6 +1410,22 @@ export function mountKineticMap(d: KmDeps) {
     });
     coast.set(pins, spot().name);
     coast.setVisible(on('rating'));
+    // PADDLE: how far to go from each beach and where the wind sends you (kmap/paddle-geo.ts).
+    paddleMap.set(
+      S.act === 'paddle' && on('range')
+        ? actSpots().flatMap((s): PaddleMark[] => {
+            const x = rate('paddle', s, t0).paddle;
+            if (!x) return [];
+            const pu = pushOf(x);
+            return [{
+              id: s.name, lngLat: s.lngLat, facing: x.facingDeg ?? 0, rangeKm: x.rangeKm,
+              towardDeg: x.windFromDeg === null ? null : (x.windFromDeg + 180) % 360, effKt: x.effWindKt, offshore: pu.side === 'offshore',
+              col: hex(tok(rate('paddle', s, t0).level === null ? 'lvn' : `lv${rate('paddle', s, t0).level}`)), danger: hex(tok('lv0')), ink: hex(tok('ink')),
+            }];
+          })
+        : [],
+      S.act === 'paddle' && on('range'),
+    );
   };
 
   /* ---------- time dock ---------- */
@@ -1799,6 +1826,7 @@ export function mountKineticMap(d: KmDeps) {
     styleBaseMap(map);
     schemeSwap(map as never, before, roleSnapshot());
     coast.recolour();
+    paddleMap.recolour();
     scrub.draw();
     renderAll();
     emitSchemeChange();

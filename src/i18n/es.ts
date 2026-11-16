@@ -587,6 +587,7 @@ export const es: Dict = {
   'fish.reach': 'ALCANCE',
   'fish.reach.all': 'TODO',
   'fish.reach.shore': 'ORILLA',
+  'fish.reach.kayak': 'KAYAK',
   'fish.reach.boat': 'BOTE',
   'fish.bite': 'PICADA',
   'fish.biteWhy': 'POR QUÉ',

@@ -18,7 +18,7 @@ export const MODES: readonly Mode[] = ['surf', 'fish', 'swim', 'snorkel', 'dive'
 export const isMode = (x: unknown): x is Mode => typeof x === 'string' && (MODES as readonly string[]).includes(x);
 
 /** The map's own layers, drawn by src/kmap, beside the old registry's. */
-export type OwnLayer = 'rating' | 'heat' | 'private';
+export type OwnLayer = 'rating' | 'range' | 'heat' | 'private';
 export type KmLayer = LayerId | OwnLayer;
 export type KmGroup = 'core' | 'ocean' | 'water' | 'weather' | 'beach' | 'seafloor' | 'rules' | 'coral';
 export const GROUPS: readonly KmGroup[] = ['core', 'ocean', 'water', 'weather', 'beach', 'seafloor', 'rules', 'coral'];
@@ -34,10 +34,13 @@ export interface KmLayerDef {
   feeds: readonly string[];
   /** Only offered in CORAL mode. */
   coralOnly?: boolean;
+  /** Only offered in PADDLE mode. */
+  paddleOnly?: boolean;
 }
 
 export const KM_LAYERS: readonly KmLayerDef[] = [
   { id: 'rating', group: 'core', src: { en: 'Our spot models', es: 'Modelos propios por sitio' }, cite: [], feeds: ['waves', 'weather', 'spotwind'] },
+  { id: 'range', group: 'core', src: { en: 'Our paddle model', es: 'Nuestro modelo de remo' }, cite: [], feeds: ['waves', 'weather', 'spotwind'], paddleOnly: true },
   { id: 'waves', group: 'ocean', src: { en: 'Wave model, adjusted for the seabed', es: 'Modelo de olas, ajustado al fondo' }, cite: ['ww3', 'wam', 'gebco'], feeds: ['waves'] },
   { id: 'wind', group: 'ocean', src: { en: 'Weather models, fitted to satellite wind', es: 'Modelos del tiempo, ajustados al viento por satélite' }, cite: ['ecmwf', 'gfs', 'ascat'], feeds: ['wind'] },
   { id: 'currents', group: 'ocean', src: { en: 'Ocean current forecast', es: 'Pronóstico de corrientes' }, cite: ['smoc'], feeds: ['currents'] },
@@ -64,7 +67,7 @@ export const KM_LAYERS: readonly KmLayerDef[] = [
 ];
 export const layerDef = (id: KmLayer) => KM_LAYERS.find((l) => l.id === id)!;
 export const isKmLayer = (x: unknown): x is KmLayer => typeof x === 'string' && KM_LAYERS.some((l) => l.id === x);
-export const isOwnLayer = (x: KmLayer): x is OwnLayer => x === 'rating' || x === 'heat' || x === 'private';
+export const isOwnLayer = (x: KmLayer): x is OwnLayer => x === 'rating' || x === 'range' || x === 'heat' || x === 'private';
 
 /**
  * Starting layers per mode, top first (mockup G, approved 2026-11-11), with lightning wherever people are in or on
@@ -78,12 +81,12 @@ export const PRESETS: Readonly<Record<Mode, readonly KmLayer[]>> = {
   dive: ['rating', 'lightning', 'seamarks', 'currents', 'zones', 'reefs', 'clarity', 'depth'],
   spear: ['rating', 'lightning', 'spear', 'currents', 'zones', 'reefs', 'clarity', 'depth'],
   sail: ['rating', 'lightning', 'weather', 'obs', 'wind', 'currents', 'waves', 'anchorages', 'ais', 'seamarks'],
-  paddle: ['rating', 'lightning', 'wind', 'waves', 'currents', 'rip', 'weather', 'reefs', 'zones', 'anchorages'],
+  paddle: ['rating', 'range', 'lightning', 'wind', 'waves', 'currents', 'rip', 'weather', 'reefs', 'zones', 'anchorages'],
   coral: ['private', 'heat', 'zones', 'reefs', 'sst'],
 };
 
 /** Layers offered in a mode: the coral-only ones only in CORAL, BEACH RATINGS not in CORAL. */
-export const offered = (m: Mode): KmLayer[] => KM_LAYERS.filter((l) => (m === 'coral' ? l.id !== 'rating' : !l.coralOnly)).map((l) => l.id);
+export const offered = (m: Mode): KmLayer[] => KM_LAYERS.filter((l) => (m === 'coral' ? l.id !== 'rating' && !l.paddleOnly : !l.coralOnly && (m === 'paddle' || !l.paddleOnly))).map((l) => l.id);
 
 export type Orders = Partial<Record<Mode, KmLayer[]>>;
 const KEY = 'ft.km.layers';

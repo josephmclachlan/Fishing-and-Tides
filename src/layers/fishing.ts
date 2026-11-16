@@ -81,7 +81,8 @@ export async function fetchMouths(base: string = import.meta.env.BASE_URL): Prom
 
 /** Cells within this distance of the beach count as shore water (cast, wade or a short paddle), m. */
 export const SHORE_M = 400;
-export type Reach = 'all' | 'shore' | 'boat';
+/** KAYAK: the water a paddle reaches, past the cast (SHORE_M) out to the end of the shore cells (cells.ts REACH_M), with no boat zones. */
+export type Reach = 'all' | 'shore' | 'kayak' | 'boat';
 export type SpotWhy = 'mouth' | 'reef' | 'drop' | 'surf' | 'sand';
 export interface Spot { lng: number; lat: number; score: number; depthM: number; coastM: number; why: SpotWhy[]; mouthKm: number }
 
@@ -125,7 +126,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   let L = paintLift('strong');
   const o = (a: number) => liftedTagged(a, L);
   let reach: Reach = 'all';
-  const inReach = (coastM: number) => reach === 'all' || (reach === 'shore' ? coastM <= SHORE_M : coastM > SHORE_M);
+  const inReach = (coastM: number) => reach === 'all' || (reach === 'shore' ? coastM <= SHORE_M : coastM > SHORE_M);  // KAYAK = BOAT for the cells, which end at REACH_M
 
   // Records nudge a species' score where it has been seen (src/fishing/occurrences.ts), and fit the weights (fit.ts).
   // Only records near the cells can nudge them (occurrenceBoost looks 0.03° out), so drop the rest once (PLAN 5.4).
@@ -212,7 +213,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     // Boat water beyond the cast: the offshore species on the day's satellite water (FAR_ZONES), not inside a national park.
     // The mode's boat fish only: mahi, tuna, wahoo, kingfish and silk snapper for EAT, sailfish and marlin for SPORT.
     const far =
-      boat && reach !== 'shore'
+      boat && reach !== 'shore' && reach !== 'kayak'
         ? speciesZones(boat.filter((c) => !parkAt(c.lng, c.lat)), OFFSHORE.filter((o) => o.modes.includes(mode)).map((o) => o.id), FAR_ZONES).flatMap((z) => {
             const at = nearestName(z.lng, z.lat, marks);
             const off = at ? t('fish.zone.off', { km: Math.round(at.km), name: at.name.toUpperCase() }) : '';

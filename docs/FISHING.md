@@ -120,7 +120,7 @@ The BOAT tab opens a drawer (a sheet on phones, see `src/sheets.ts`). It works w
 
 ## Reading the map and the BITE score (PLAN 4.8)
 
-**Heat.** Amber only: nothing is drawn below fair (0.3), faint amber for fair water and a firmer fill for the best. **REACH** highlights SHORE (within 400 m of the beach: cast, wade, short paddle), BOAT (beyond 400 m) or ALL. **BEST SPOTS** lists up to five separated cells (>= 600 m apart) within 15 km of the reticle with plain reasons (river mouth, reef, drop-off); tap one to fly there.
+**Heat.** Amber only: nothing is drawn below fair (0.3), faint amber for fair water and a firmer fill for the best. **REACH** highlights SHORE (within 400 m of the beach: cast, wade), KAYAK (400 m to the end of the shore cells at 1,500 m, no far boat zones, with today's paddle verdict, `docs/PADDLE.md`), BOAT (beyond 400 m, with the boat zones) or ALL. **BEST SPOTS** lists up to five separated cells (>= 600 m apart) within 15 km of the reticle with plain reasons (river mouth, reef, drop-off); tap one to fly there.
 
 **BITE** (`src/fishing/bite.ts`) says how good the timing is at the reticle for the slider time:
 
