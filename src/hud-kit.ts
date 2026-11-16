@@ -1,4 +1,5 @@
 /** HUD component kit (PLAN 1.2). Pure string builders; styles live in style.css. */
+import { glyphInline } from './icons/glyphs';
 
 export type Tone = '' | 'green' | 'red';
 
@@ -33,7 +34,9 @@ export function alertStrip(id: string): string {
 
 export function setAlert(el: HTMLElement, message: string | null) {
   el.hidden = !message;
-  el.textContent = message ? `⚠ ${message}` : '';
+  // The warning triangle from the symbol set (PLAN 7.106) instead of the "⚠" character, which every font draws differently.
+  el.innerHTML = message ? `${glyphInline('danger', 'al-g')}<span></span>` : '';
+  if (message) el.querySelector('span')!.textContent = message;
 }
 
 function clamp01(n: number) {
