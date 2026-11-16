@@ -6,10 +6,12 @@
  * fish is going off (bands from Japanese freshness work; secondary sources, see content.ts SOURCES).
  *
  * The curves are ESTIMATES, built from a few measured anchors:
- *  - On ice K climbs about 0.4 % an hour (Kyoto flathead flounder: 7 % at 30 h and 30 % at 54 h with spinal cord
- *    destroyed, 17 % and 37 % without; about 0.4 %/h either side).
+ *  - On ice (0 °C) K climbs about 0.2 % an hour, about 5 % a day. Tomioka and Endo 1984 measured 0.2 to 8.4 % a day at
+ *    0 °C across 14 species (1.4 to 5.0 in red-meat fish). The Kyoto flathead flounder test (K 7 % at 30 h and 30 % at
+ *    54 h with the spinal cord destroyed, 17 % and 37 % with the brainstem cut) was kept at 4 to 5 °C, so its 0.8 to
+ *    1 % an hour is a fridge rate, not an ice rate. It also fits the page's fridge line: about twice the ice rate.
  *  - Spoilage runs about e^(0.12 T) times as fast at T °C as at 0 °C (Dalgaard and Huss 1994), about 25 to 30 times at
- *    28 to 30 °C, so a fish left in the tropical shade lasts hours, not days. The warm rate here (5 %/h) is chosen so
+ *    28 to 30 °C, so a fish left in the tropical shade lasts hours, not days. The warm rate here (5 %/h, 25 times the ice rate) is chosen so
  *    a bled fish in the shade reaches K 60 in 9 to 12 h, the 8 to 12 h edibility range estimated for 30 °C.
  *  - Starting K is higher the harder the fish fought and the longer it took to die (stress uses up ATP and glycogen
  *    before death: Huss 1995; Ando et al. 1996 for the delay in rigor from destroying the spinal cord).
@@ -32,7 +34,7 @@ export interface Curve {
   phases: readonly Phase[];
 }
 
-export const ICE_RATE = 0.4;
+export const ICE_RATE = 0.2;
 export const WARM_RATE = 5;
 
 export const CURVES: Record<Method, Curve> = {

@@ -1820,6 +1820,8 @@ export const es: Dict = {
   'cp.never': 'Aún sin visitas',
   'cp.bleached': '{n}% blanqueado',
   'cp.next': 'Próxima: {d} · {goal}',
+  'cp.photoPrev': 'Foto anterior',
+  'cp.photoNext': 'Foto siguiente',
   'cp.counts': '{v} visitas · {p} fotos',
   'cp.noSites': 'Aún no hay sitios registrados',
   'cp.near': 'Cerca de {reef}',

@@ -19,6 +19,8 @@
   --fc-uv0: #3e9f68; --fc-uv1: #e8b620; --fc-uv2: #ee8628; --fc-uv3: #df4430; --fc-uv4: #8150c0;
   --fc-lv0: #f2634a; --fc-lv1: #f59a3d; --fc-lv2: #f4c542; --fc-lv3: #a5dbc2; --fc-lv4: #0c6b66; --fc-lvn: #c9d3de;
   --fc-on0: #1b0905; --fc-on1: #1f0e02; --fc-on2: #1d1604; --fc-on3: #07241a; --fc-on4: #f2faf7; --fc-onn: #0a1626;
+  /* The severity scale (src/kmap/tokens.css --sev-*), for hazard badges on the forecast, coral and guide pages. */
+  --fc-sev-caution: #f2a900; --fc-sev-danger: #e23b26; --fc-sev-on: #ffffff; --fc-sev-on-caution: #1d1604;
   --fc-ac0: #cf3a20; --fc-ac1: #c0620f; --fc-ac2: #a67800; --fc-ac3: #1f8a5e; --fc-ac4: #0c6b66; --fc-acn: #46576c;
   --fc-disp: 'Anybody Variable', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
   --fc-body: 'Geist Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -43,6 +45,7 @@
   --fc-uv0: #4db57d; --fc-uv1: #e2b53a; --fc-uv2: #f0913a; --fc-uv3: #e6543c; --fc-uv4: #a077e3;
   --fc-lv0: #cf4a31; --fc-lv1: #d9772e; --fc-lv2: #d6a62a; --fc-lv3: #5ba987; --fc-lv4: #0a4d49; --fc-lvn: #1c2735;
   --fc-on0: #170603; --fc-on1: #1a0b02; --fc-on2: #181103; --fc-on3: #05190f; --fc-on4: #e4f5f0; --fc-onn: #edf3fa;
+  --fc-sev-caution: #ffc53d; --fc-sev-danger: #ff5b45; --fc-sev-on: #170603; --fc-sev-on-caution: #181103;
   --fc-ac0: #ff7d63; --fc-ac1: #ffa05a; --fc-ac2: #f2c94c; --fc-ac3: #7cd5ae; --fc-ac4: #41c3b4; --fc-acn: #a2b2c5;
   --fc-accent-ink: #04121f; --fc-foam: #d8ecff; --fc-sea-a: #2a8ad6; --fc-sea-b: #0a3a66; --fc-murk: #304a45; --fc-coral: #ff8a78; --fc-jelly: #c99bff;
   color-scheme: dark;

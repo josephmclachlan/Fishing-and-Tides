@@ -4,7 +4,7 @@ A page for the people who catch the fish: how a fish dies decides how it tastes 
 
 ## The chart is an estimate
 Freshness is the K-value (Saito 1959). Each way of handling a fish is a start K and a rate of rise, in `model.ts`:
-- On ice K rises about 0.4 %/h (Kyoto flathead flounder: 7 % at 30 h and 30 % at 54 h with the spinal cord destroyed, 17 % and 37 % without; read through a summary, verify).
+- On ice (0 °C) K rises about 0.2 %/h, about 5 %/day (Tomioka and Endo 1984: 0.2 to 8.4 %/day at 0 °C across 14 species, abstract read on J-STAGE). The Kyoto flathead flounder report (7 % at 30 h, 30 % at 54 h with the spinal cord destroyed; 17 % and 37 % with the brainstem cut) was kept at 4 to 5 °C, so it is a fridge rate: read in full 2026-11-16.
 - Spoilage is about e^(0.12 T) times as fast at T °C as at 0 °C (Dalgaard and Huss 1994, in Huss 1995). The warm rate (5 %/h) puts a bled fish in the shade at K 60 after 9 to 12 h, the 8 to 12 h edibility range worked out for 30 °C from a 10 to 14 day ice life.
 - The start K of each method (5 to 35 %) is a judgement. No Costa Rican or tropical-species K data was found.
 - Bands 20 / 40 / 60 % are from Japanese freshness guides (secondary).
