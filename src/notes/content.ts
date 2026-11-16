@@ -4,12 +4,13 @@
  * Local edible fish only: no sport-fish advice.
  */
 import type { Block, L, Source } from '../ciguatera/content';
-import type { NtTab } from './route';
+import { tabsFor, type NtAct, type NtTab } from './route';
 import type { VBlock } from './vis';
 import { rules } from './sections/rules';
 import { surf } from './sections/surf';
 import { aid } from './sections/aid';
 import { water } from './sections/water';
+import { dive } from './sections/dive';
 import { rigs } from './sections/rigs';
 import { release } from './sections/release';
 import { cook } from './sections/cook';
@@ -32,7 +33,7 @@ export interface Section {
 }
 
 export const TITLE = L('Field notes', 'Notas de campo');
-export const SUB = L('RULES · SURF · WATER SAFETY · FIRST AID · RIGS · RELEASE · COOKING · SEASONS · WORDS', 'REGLAS · SURF · SEGURIDAD EN EL AGUA · PRIMEROS AUXILIOS · APAREJOS · LIBERAR · COCINAR · TEMPORADAS · PALABRAS');
+export const SUB = L('RULES · SURF · WATER SAFETY · DIVE SAFETY · FIRST AID · RIGS · RELEASE · COOKING · SEASONS · WORDS', 'REGLAS · SURF · SEGURIDAD EN EL AGUA · SEGURIDAD EN EL BUCEO · PRIMEROS AUXILIOS · APAREJOS · LIBERAR · COCINAR · TEMPORADAS · PALABRAS');
 export const NOTE = L(
   'Information from published sources, not legal or medical advice. Rules change, so check with INCOPESCA and SINAC. Superscript numbers point to the sources listed at the end of each section.',
   'Información de fuentes publicadas, no asesoría legal ni médica. Las reglas cambian: confirme con INCOPESCA y SINAC. Los números en superíndice remiten a las fuentes al final de cada sección.',
@@ -44,4 +45,20 @@ export const CHROME = {
   linkLabel: L('Field notes: rules, water safety, first aid, rigs, cooking, seasons', 'Notas de campo: reglas, seguridad en el agua, primeros auxilios, aparejos, cocina, temporadas'),
 };
 
-export const SECTIONS: Section[] = [rules, surf, water, aid, rigs, release, cook, seasons, words];
+export const SECTIONS: Section[] = [rules, surf, water, dive, aid, rigs, release, cook, seasons, words];
+
+/** The activity names shown in the title of an activity's own field notes. */
+export const ACT_NAME: Record<NtAct, L> = {
+  fish: L('Fishing', 'Pesca'),
+  spear: L('Spearfishing', 'Pesca submarina'),
+  surf: L('Surf', 'Surf'),
+  snorkel: L('Snorkel', 'Snorkel'),
+  dive: L('Diving', 'Buceo'),
+  swim: L('Swimming', 'Natación'),
+  sail: L('Sailing', 'Vela'),
+};
+export const ALL_NOTES = L('All field notes', 'Todas las notas de campo');
+
+/** The line under the title: the tabs shown, in order. */
+export const subFor = (act: NtAct | undefined, lang: 'en' | 'es'): string =>
+  act ? tabsFor(act).map((t) => SECTIONS.find((s) => s.id === t)!.title[lang].toUpperCase()).join(' · ') : SUB[lang];

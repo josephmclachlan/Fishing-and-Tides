@@ -1,8 +1,8 @@
 /** FIELD NOTES page HTML: pure string builders over content.ts and sections/*.ts, so they are tested without a DOM. */
 import { GRADE_WORDS, type Block, type Grade, type L, type Source } from '../ciguatera/content';
-import { SECTIONS, type NBlock, type Section } from './content';
+import { ALL_NOTES, SECTIONS, type NBlock, type Section } from './content';
 import { visHtml } from './vis';
-import { notesHash, type NtTab } from './route';
+import { notesHash, tabsFor, type NtAct, type NtTab } from './route';
 
 type Lang = 'en' | 'es';
 export const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -37,8 +37,8 @@ const isText = (b: NBlock): b is Block => TEXT_KINDS.has(b.k);
 
 const GRADE_LEVEL: Record<Grade, number> = { strong: 4, weak: 2, case: 2, expert: 3, none: 1, against: 0 };
 
-function block(b0: NBlock, lang: Lang, c: Cites, S: Record<string, Source>): string {
-  if (!isText(b0)) return visHtml(b0, lang, (l) => tx(l, lang, c, S), notesHash);
+function block(b0: NBlock, lang: Lang, c: Cites, S: Record<string, Source>, href: (t: NtTab) => string = notesHash): string {
+  if (!isText(b0)) return visHtml(b0, lang, (l) => tx(l, lang, c, S), href);
   const b = b0;
   switch (b.k) {
     case 'p':
@@ -84,13 +84,17 @@ export function sourcesHtml(lang: Lang, c: Cites, SOURCES: Record<string, Source
 export const sectionOf = (tab: NtTab): Section => SECTIONS.find((s) => s.id === tab) ?? SECTIONS[0];
 
 /** One section, its markers numbered from 1 and its sources listed in that order. */
-export function sectionHtml(tab: NtTab, lang: Lang): string {
+/** `act`: keep links to other tabs inside that activity's field notes when the tab is one of its own. */
+export function sectionHtml(tab: NtTab, lang: Lang, act?: NtAct): string {
+  const href = (t: NtTab) => notesHash(t, act && tabsFor(act).includes(t) ? act : undefined);
   const s = sectionOf(tab);
   const c: Cites = { order: [] };
-  const body = s.blocks.map((b) => block(b, lang, c, s.sources)).join('');
+  const body = s.blocks.map((b) => block(b, lang, c, s.sources, href)).join('');
   return `<h2 class="cig-title">${esc(s.title[lang])}</h2><p class="cig-lede">${tx(s.lede, lang, c, s.sources)}</p>${body}${sourcesHtml(lang, c, s.sources)}`;
 }
 
-export function tabsHtml(active: NtTab, lang: Lang, href: (t: NtTab) => string): string {
-  return SECTIONS.map((s) => `<a role="tab" class="cig-tab" href="${esc(href(s.id))}" data-tab="${s.id}" aria-selected="${s.id === active}"${s.id === active ? '' : ' tabindex="-1"'}>${esc(s.title[lang])}</a>`).join('');
+export function tabsHtml(active: NtTab, lang: Lang, href: (t: NtTab) => string, act?: NtAct): string {
+  const tabs = tabsFor(act).map((id) => sectionOf(id));
+  const all = act ? `<a class="cig-tab nt-all" href="${esc(notesHash())}">${esc(ALL_NOTES[lang])} →</a>` : '';
+  return tabs.map((s) => `<a role="tab" class="cig-tab" href="${esc(href(s.id))}" data-tab="${s.id}" aria-selected="${s.id === active}"${s.id === active ? '' : ' tabindex="-1"'}>${esc(s.title[lang])}</a>`).join('') + all;
 }

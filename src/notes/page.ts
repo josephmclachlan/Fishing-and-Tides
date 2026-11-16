@@ -5,8 +5,8 @@
  */
 import { t } from '../i18n';
 import { landing, MAP_HASH } from '../forecast/model';
-import { CHROME, NOTE, SUB, TITLE } from './content';
-import { notesHash, parseNotesRoute, type NtTab } from './route';
+import { ACT_NAME, CHROME, NOTE, TITLE, subFor } from './content';
+import { notesHash, parseNotesRoute, type NtAct, type NtTab } from './route';
 import { esc, sectionHtml, tabsHtml } from './view';
 import '../forecast/forecast.css';
 import '../ciguatera/ciguatera.css';
@@ -65,7 +65,7 @@ export function mountNotesPage(deps: NotesPageDeps) {
           <button type="button" class="fc-ctl fc-sq fc-themeb" id="nt-scheme" aria-label="${t('fc.scheme')}" title="${t('fc.scheme')}"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 2a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg></button>
         </div>
         <h1 id="nt-h1">${esc(TITLE[lang])}</h1>
-        <p class="fc-subline fc-mono"><b>${esc(SUB[lang])}</b></p>
+        <p class="fc-subline fc-mono"><b id="nt-sub"></b></p>
       </header>
       <nav class="cig-tabs fc-in" id="nt-tabs" role="tablist" aria-label="${esc(CHROME.tabs[lang])}"></nav>
       <main class="cig-body fc-in" id="nt-body" role="tabpanel"></main>
@@ -96,12 +96,15 @@ export function mountNotesPage(deps: NotesPageDeps) {
   );
 
   let tab: NtTab = 'rules';
+  let act: NtAct | undefined;
   let pushed = false;
   let cameFrom: From = 'map';
 
   const render = () => {
-    $('nt-tabs').innerHTML = tabsHtml(tab, lang, notesHash);
-    $('nt-body').innerHTML = sectionHtml(tab, lang);
+    $('nt-tabs').innerHTML = tabsHtml(tab, lang, (t) => notesHash(t, act), act);
+    $('nt-h1').textContent = act ? `${TITLE[lang]}: ${ACT_NAME[act][lang]}` : TITLE[lang];
+    $('nt-sub').textContent = subFor(act, lang);
+    $('nt-body').innerHTML = sectionHtml(tab, lang, act);
     $('nt-body').setAttribute('aria-label', tab);
   };
 
@@ -129,8 +132,9 @@ export function mountNotesPage(deps: NotesPageDeps) {
       cameFrom = fromHash_(new URL(e.oldURL).hash);
       pushed = true; // opened by a link: the browser added the entry, so back is one step
     }
-    const changed = r.tab !== tab;
+    const changed = r.tab !== tab || r.act !== act;
     tab = r.tab;
+    act = r.act;
     if (el.hidden) show();
     else if (changed) (render(), (el.scrollTop = 0), $('nt-page').scrollTo?.(0, 0));
   };
@@ -172,11 +176,12 @@ export function mountNotesPage(deps: NotesPageDeps) {
   });
 
   /** Open on a tab, from the fishing panel, a species card or any ciguatera warning. */
-  const open = (opts: { tab?: NtTab } = {}) => {
+  const open = (opts: { tab?: NtTab; act?: NtAct } = {}) => {
     cameFrom = fromHash_(location.hash);
     const from = location.href;
-    tab = opts.tab ?? 'rules';
-    const h = notesHash(tab);
+    act = opts.act;
+    const h = notesHash(opts.tab, act);
+    tab = parseNotesRoute(h)!.tab;
     if (!parseNotesRoute(location.hash)) {
       history.pushState({ nt: 1 }, '', h);
       pushed = true;

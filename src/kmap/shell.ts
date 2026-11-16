@@ -56,6 +56,7 @@ import { readDetails, type Detail } from './detail';
 import { mountScrub } from './scrub';
 import { barHTML, drawTiles, tileHTML, type Reading } from './tiles';
 import { citer, type SourceId } from '../sources';
+import { isNtAct, notesHash, type NtAct } from '../notes/route';
 import { styleBaseMap } from './basemap';
 import { emitSchemeChange, roleSnapshot, schemeSwap } from '../layers/paint';
 
@@ -835,17 +836,27 @@ export function mountKineticMap(d: KmDeps) {
     const b = (v: 'eat' | 'sport', l: string) => `<button type="button" data-fmode="${v}" aria-pressed="${m === v}">${esc(l)}</button>`;
     return `<div class="k-fmode"><span class="k-mono">${L2('Map shows', 'El mapa muestra')}</span><div class="k-seg">${b('eat', L2('Fish to eat', 'Peces para comer'))}${b('sport', L2('Sport fish', 'Pesca deportiva'))}</div>${m === 'sport' ? `<p class="k-mono">${L2('Catch and release. These fish are not safe or not good to eat.', 'Pesque y suelte. Estos peces no son seguros o no son buenos para comer.')}</p>` : ''}</div>`;
   };
-  /** Clear, labelled links for the water activities: identify what you see, and (fish, spear) kill, bleed, ice. */
+  /**
+   * Clear, labelled links for the water activities: this activity's own field notes (its tabs only, most specific first),
+   * first aid, identify what you see, and (fish, spear) kill, bleed, ice.
+   */
+  const NT_LINK: Record<NtAct, [string, string]> = {
+    fish: ['Field notes: rigs, release, rules, cooking', 'Notas de campo: aparejos, liberar, reglas, cocina'],
+    spear: ['Field notes: rules, rigs, cooking, dive safety', 'Notas de campo: reglas, aparejos, cocina, buceo'],
+    surf: ['Field notes: etiquette, wave size, rips', 'Notas de campo: etiqueta, tamaño de ola, resacas'],
+    snorkel: ['Field notes: dive safety, park rules, rips', 'Notas de campo: buceo, reglas de parques, resacas'],
+    dive: ['Field notes: dive safety, park rules, rips', 'Notas de campo: buceo, reglas de parques, resacas'],
+    swim: ['Field notes: rips, emergencies', 'Notas de campo: resacas, emergencias'],
+    sail: ['Field notes: rips, emergencies', 'Notas de campo: resacas, emergencias'],
+  };
   const linksHTML = () => {
-    const idAct = S.act === 'fish' || S.act === 'dive' || S.act === 'spear' || S.act === 'snorkel';
-    const safety = `<a class="k-link" href="#notes/water"><span>${L2('Water safety: rips, emergencies, dive rules', 'Seguridad en el agua: resacas, emergencias, buceo')}</span>${ARROW}</a>`;
-    if (S.act === 'surf') return `<div class="k-links">${safety}<a class="k-link" href="#notes/surf"><span>${L2('Surf: etiquette, wave size, hazards by break', 'Surf: etiqueta, tamaño de ola, peligros por rompiente')}</span>${ARROW}</a><a class="k-link" href="#notes/aid"><span>${L2('Stung or bitten? First aid', '¿Picadura o mordida? Primeros auxilios')}</span>${ARROW}</a></div>`;
-    if (S.act === 'swim' || S.act === 'sail') return `<div class="k-links">${safety}<a class="k-link" href="#notes/aid"><span>${L2('Stung or bitten? First aid', '¿Picadura o mordida? Primeros auxilios')}</span>${ARROW}</a></div>`;
-    if (!idAct) return '';
-    const dp = S.act === 'fish' || S.act === 'spear' ? `<a class="k-link" href="#dispatch"><span>${L2('Kill, bleed, ice your catch', 'Mata, desangra y enfría tu pesca')}</span>${ARROW}</a>` : '';
-    const nt = `<a class="k-link" href="#notes"><span>${L2('Field notes: rules, rigs, cooking', 'Notas de campo: reglas, aparejos, cocina')}</span>${ARROW}</a><a class="k-link" href="#notes/aid"><span>${L2('Stung or bitten? First aid', '¿Picadura o mordida? Primeros auxilios')}</span>${ARROW}</a>`;
-    const id = d.openGuide ? `<button type="button" class="k-link" data-go="identify"><span>${L2('Identify what you see', 'Identifica lo que ves')}</span>${ARROW}</button>` : '';
-    return `<div class="k-links">${safety}${id}${dp}${nt}</div>`;
+    const act = S.act as string;
+    if (!isNtAct(act)) return '';
+    const idAct = act === 'fish' || act === 'dive' || act === 'spear' || act === 'snorkel';
+    const nt = `<a class="k-link" href="${notesHash(undefined, act)}"><span>${L2(...NT_LINK[act])}</span>${ARROW}</a><a class="k-link" href="${notesHash('aid', act)}"><span>${L2('Stung or bitten? First aid', '¿Picadura o mordida? Primeros auxilios')}</span>${ARROW}</a>`;
+    const dp = act === 'fish' || act === 'spear' ? `<a class="k-link" href="#dispatch"><span>${L2('Kill, bleed, ice your catch', 'Mata, desangra y enfría tu pesca')}</span>${ARROW}</a>` : '';
+    const id = idAct && d.openGuide ? `<button type="button" class="k-link" data-go="identify"><span>${L2('Identify what you see', 'Identifica lo que ves')}</span>${ARROW}</button>` : '';
+    return `<div class="k-links">${nt}${id}${dp}</div>`;
   };
   /**
    * Fish and sail: the next boat window from this spot (mockup G: "Boat window · Wed 11 · 05:30–10:00 · Small boat OK"),

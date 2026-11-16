@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SECTIONS } from './content';
-import { NT_TABS, notesHash, parseNotesRoute } from './route';
+import { ACT_TABS, NT_ACTS, NT_TABS, notesHash, parseNotesRoute } from './route';
 import { cited, esc, sectionHtml, tabsHtml } from './view';
 
 describe('notes route', () => {
@@ -11,6 +11,25 @@ describe('notes route', () => {
     expect(parseNotesRoute('#guide')).toBeNull();
     expect(notesHash('seasons')).toBe('#notes/seasons');
     expect(notesHash('rules')).toBe('#notes');
+  });
+
+  it('gives each activity its own tabs, most specific first and general last', () => {
+    expect(parseNotesRoute('#notes?for=fish')).toEqual({ tab: 'rigs', act: 'fish' });
+    expect(parseNotesRoute('#notes/aid?for=surf')).toEqual({ tab: 'aid', act: 'surf' });
+    // a tab the activity does not have falls back to its first
+    expect(parseNotesRoute('#notes/rigs?for=surf')).toEqual({ tab: 'surf', act: 'surf' });
+    // an unknown activity is the full page
+    expect(parseNotesRoute('#notes/aid?for=golf')).toEqual({ tab: 'aid' });
+    expect(notesHash(undefined, 'fish')).toBe('#notes?for=fish');
+    expect(notesHash('rigs', 'fish')).toBe('#notes?for=fish');
+    expect(notesHash('aid', 'dive')).toBe('#notes/aid?for=dive');
+    for (const a of NT_ACTS) {
+      const tabs = ACT_TABS[a];
+      expect(new Set(tabs).size).toBe(tabs.length);
+      expect(tabs.slice(-2)).toEqual(['aid', 'words']);
+      for (const t of tabs) expect(parseNotesRoute(notesHash(t, a))).toEqual({ tab: t, act: a });
+    }
+    expect(ACT_TABS.fish.slice(0, 2)).toEqual(['rigs', 'release']);
   });
 });
 
@@ -61,5 +80,9 @@ describe('notes content', () => {
     expect(cited('x{b} y{a}{b} <i>', c, src)).toContain('1</a></sup> y<sup class="cig-sup"><a href="#cig-src-1" aria-label="source 1">1</a>,<a href="#cig-src-2"');
     expect(esc('<&>')).toBe('&lt;&amp;&gt;');
     expect(tabsHtml('aid', 'en', notesHash)).toContain('aria-selected="true"');
+    const surf = tabsHtml('surf', 'en', (t) => notesHash(t, 'surf'), 'surf');
+    expect(surf).not.toContain('Rigs');
+    expect(surf.indexOf('Surf')).toBeLessThan(surf.indexOf('First aid'));
+    expect(surf).toContain('All field notes');
   });
 });
