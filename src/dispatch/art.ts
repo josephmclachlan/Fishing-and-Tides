@@ -54,7 +54,7 @@ function bleed(): string {
     '<g transform="translate(89 90.7) rotate(-90) scale(0.42)">' + FISH + GILL_CUT + '</g>' +
     // blood drifting out of the gills into the water
     '<path class="dp-blood" d="M118 64 C126 60 130 68 138 64 M120 72 C128 70 132 78 142 74 M104 66 C98 62 94 70 86 66"/>' +
-    // the clock: three minutes or more
+    // the clock: about three minutes
     '<text class="dp-clock" x="176" y="44">3 min</text>' +
     '<path class="dp-body" d="M188 56 m-9 0 a9 9 0 1 0 18 0 a9 9 0 1 0 -18 0 M188 56 L188 50 M188 56 L193 58"/>' +
     badge(1, 130, 56) + badge(2, 96, 84)
@@ -73,7 +73,7 @@ function slurry(): string {
     '<g transform="translate(56 40) scale(0.5)">' + FISH + '</g>' +
     cube(34, 50, -10) + cube(42, 68, 8) + cube(62, 70, -6) + cube(84, 72, 12) + cube(104, 64, -8) +
     cube(124, 52, 10) + cube(140, 68, -4) + cube(158, 54, 8) + cube(172, 70, -12) + cube(148, 36, 4) + cube(70, 32, -8) +
-    '<text class="dp-clock" x="100" y="16">≈ 0 °C</text>' +
+    '<text class="dp-clock" x="100" y="16">≈ 0 °C / 32 °F</text>' +
     badge(1, 180, 60) + badge(2, 110, 46)
   );
 }

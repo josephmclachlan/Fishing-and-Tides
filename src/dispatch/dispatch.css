@@ -6,7 +6,7 @@
 .dp .dp-body { padding-bottom: 8px; }
 .dp-lead { font-size: clamp(17px, 2.4vw, 21px); line-height: 1.4; max-width: 56ch; margin: 6px 0 22px; }
 .dp-big { font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 70; font-size: clamp(44px, 8vw, 72px); line-height: 0.9; letter-spacing: -0.02em; }
-.dp-src { font-family: var(--fc-mono); font-size: 11px; font-weight: 600; color: var(--fc-ink2); white-space: nowrap; }
+.dp-src { font-family: var(--fc-mono); font-size: 0.72em; font-weight: 600; color: var(--fc-ink2); white-space: nowrap; margin-left: 1px; vertical-align: super; line-height: 0; }
 .dp-src span { cursor: help; }
 .dp-est { font-size: 0.9em; font-style: italic; color: var(--fc-ac1); white-space: nowrap; }
 
@@ -145,3 +145,15 @@
 @media (min-width: 760px) { .dp-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 24px; } }
 .dp-alt { margin: 10px 0 0; padding-left: 10px; border-left: 4px solid var(--fc-sea-a); font-size: 13.5px; color: var(--fc-ink2); }
 .dp-art .dp-ear { fill: none; stroke: currentColor; stroke-width: 2; }
+
+/* --- histamine: groups and the ciguatera comparison */
+.dp-hg { margin: 0 0 22px; }
+.dp-hg h3 { margin: 0 0 8px; font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 74; font-size: clamp(22px, 3.6vw, 28px); line-height: 1; text-transform: uppercase; }
+.dp-vs-w { overflow-x: auto; margin: 0 0 10px; }
+.dp-vs { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 14px; }
+.dp-vs th, .dp-vs td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--fc-line); }
+.dp-vs thead th { font-family: var(--fc-mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid var(--fc-ink); }
+.dp-vs tbody th { font-family: var(--fc-mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fc-ink2); width: 16%; }
+.dp a.dp-link { display: inline-block; padding: 10px 14px; border: 2px solid var(--fc-ink); text-decoration: none; font-family: var(--fc-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.dp a.dp-link:hover { background: var(--fc-ink); color: var(--fc-bg); }
+.dp .fc-ctl.fc-back span { display: inline; }
