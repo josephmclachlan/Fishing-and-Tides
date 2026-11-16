@@ -147,16 +147,35 @@ export interface OutingDay { dayStart: number; best: OutingWindow | null }
 
 const H = 3.6e6;
 
-/** Best window of one local day: hourly from sunrise to sunset (`span`, local hours [fromH, toH); 07:00 to 17:00 when not given), the run of hours within 10% of the day's best. */
-export function bestWindow(at: (ms: number, localHour: number) => OutingScore, dayStart: number, span: { fromH: number; toH: number } = { fromH: 7, toH: 17 }): OutingWindow | null {
+/** Earliest and latest local hours a snorkel or dive window may cover, and the longest window offered. Night outings are scored, but a "best time" is always daylight. */
+export const WINDOW_FROM_H = 7, WINDOW_TO_H = 17, WINDOW_MAX_H = 4;
+
+/**
+ * Best window of one local day: hourly from sunrise to sunset (`span`, local hours [fromH, toH); 07:00 to 17:00 when not given),
+ * never earlier than 07:00 or later than 17:00 (the sun is low and the water dark outside that), then the run of hours within 10%
+ * of the day's best. A run longer than WINDOW_MAX_H hours is cut to the WINDOW_MAX_H hours with the highest mean score, so a flat
+ * day reads "09:00 to 13:00" and not "the whole day".
+ */
+export function bestWindow(at: (ms: number, localHour: number) => OutingScore, dayStart: number, span: { fromH: number; toH: number } = { fromH: WINDOW_FROM_H, toH: WINDOW_TO_H }): OutingWindow | null {
   const hours: { t: number; s: OutingScore }[] = [];
-  for (let h = span.fromH; h < span.toH; h++) hours.push({ t: dayStart + h * H, s: at(dayStart + h * H, h) });
+  const from = Math.max(span.fromH, WINDOW_FROM_H), to = Math.min(span.toH, WINDOW_TO_H);
+  for (let h = from; h < to; h++) hours.push({ t: dayStart + h * H, s: at(dayStart + h * H, h) });
+  if (!hours.length) return null;
   const top = hours.reduce((a, b) => (b.s.score > a.s.score ? b : a));
   if (top.s.score <= 0) return null;
   const cut = top.s.score * 0.9;
   let a = hours.indexOf(top), b = a;
   while (a > 0 && hours[a - 1].s.score >= cut) a--;
   while (b < hours.length - 1 && hours[b + 1].s.score >= cut) b++;
+  if (b - a + 1 > WINDOW_MAX_H) {
+    let bestA = a, bestSum = -1;
+    for (let k = a; k + WINDOW_MAX_H - 1 <= b; k++) {
+      const sum = hours.slice(k, k + WINDOW_MAX_H).reduce((x, y) => x + y.s.score, 0);
+      if (sum > bestSum) (bestSum = sum), (bestA = k);
+    }
+    a = bestA;
+    b = a + WINDOW_MAX_H - 1;
+  }
   return { start: hours[a].t, end: hours[b].t + H, peak: top.s.score, reasons: top.s.reasons };
 }
 

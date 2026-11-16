@@ -16,10 +16,10 @@ describe('best windows follow the sun (Joseph, 2026-11-11)', () => {
     expect(r.toH).toBeLessThanOrEqual(18);
     expect(sunHours(DAY0, LAT, LNG, 1)).toEqual({ fromH: r.fromH - 1, toH: r.toH + 1 });
   });
-  it('the outing search reads only the hours between sunrise and sunset', () => {
+  it('the outing search reads only daylight hours, never before 07:00 or after 17:00', () => {
     const seen: number[] = [];
     bestWindow((_ms, h) => (seen.push(h), { score: 50, reasons: [] }), DAY0, { fromH: 6, toH: 17 });
-    expect(seen[0]).toBe(6);
+    expect(seen[0]).toBe(7);
     expect(seen[seen.length - 1]).toBe(16);
   });
 });
