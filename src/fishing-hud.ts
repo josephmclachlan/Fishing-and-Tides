@@ -24,6 +24,7 @@ import { catchStats, MIN_CATCHES, type CatchPin } from './fishing/catches';
 import { speciesById } from './fishing/species';
 import { OFFSHORE } from './fishing/offshore';
 import { ciguaBoatHtml, ciguaNoteHtml } from './fishing/cigua-note';
+import { SPEAR_TARGETS } from './fishing/spear';
 import { LIMON_HARMONICS } from './data/tides-limon';
 import { localDayStart } from './physics/astro';
 import { clock } from './astro-hud';
@@ -31,6 +32,7 @@ import { clock } from './astro-hud';
 const esc = (x: string) => x.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]!);
 const KEY = 'ft.fishing.species';
 const REACH_KEY = 'ft.fishing.reach';
+const SPEAR_KEY = 'ft.spear.target';
 const REACHES: readonly Reach[] = ['all', 'shore', 'boat'];
 const SPOT_RADIUS_KM = 15;
 /** Habitat candidates re-ranked by today's water for BEST SPOTS. */
@@ -64,9 +66,18 @@ export interface FishEnv {
 }
 const NO_ENV: FishEnv = { at: () => ({}), water: () => ({}), version: () => '' };
 
+/** One of the day's best windows, its clock range and why, in words. */
+export interface FishWin { start: number; end: number; range: string; why: string }
+/** One BEST SPOTS row: its place name, the score, depth and distance line, and its reasons. */
+export interface FishSpotRow { n: number; place: string; line: string; why: string; score: number; lng: number; lat: number; on: boolean }
+/** The day's BITE strip: each step's bar height (percent of the day's best) and whether it falls in a best window. */
+export interface FishStrip { day: number; bars: readonly { t: number; pct: number; win: boolean }[] }
+export interface SpearInfo { target: SpeciesId | null; targets: readonly SpeciesId[]; spots: readonly FishSpotRow[] }
+export interface FishInfo { id: SpeciesId; name: string; bite: number | null; wins: readonly FishWin[]; strip: FishStrip; spots: readonly FishSpotRow[] }
+
 const why = (rs: readonly BiteReason[]) => rs.map((r) => t(`bite.r.${r}` as Key)).join(' · ');
 
-export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer, time: TimeStore, initial: SpeciesId, env: FishEnv = NO_ENV, catches: () => readonly CatchPin[] = () => [], onMode: (m: FishMode) => void = () => {}) {
+export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer, time: TimeStore, initial: SpeciesId, env: FishEnv = NO_ENV, catches: () => readonly CatchPin[] = () => [], onMode: (m: FishMode) => void = () => {}, onInfo: () => void = () => {}) {
   const side = condSlot(root, 'fishing', 10);
   if (!side) return null;
   side.insertAdjacentHTML(
@@ -142,6 +153,7 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     $('fish-bite-why').textContent = reasons;
     $('fish-bite-why').parentElement!.hidden = !reasons;
     $('fish-bite').className = 'seg sm ' + (now.bite >= 60 ? 'green' : '');
+    lastBite = now.bite;
 
     // The day's strip and best windows: timing plus each hour's forecast wind, waves, rain, cloud and squalls.
     const day = localDayStart(time.validMs(), REGION.tzOffsetH);
@@ -159,6 +171,8 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
       const inWin = (tt: number) => windows.some((w) => tt >= w.start && tt < w.end);
       const top = Math.max(1, ...series.map((s) => s.bite));
       $('fish-strip').innerHTML = series.map((s) => `<i class="${inWin(s.t) ? 'win' : ''}" style="height:${Math.max(6, Math.round((s.bite / top) * 100))}%"></i>`).join('') + '<b class="bite-now"></b>';
+      lastStrip = { day, bars: series.map((x) => ({ t: x.t, pct: Math.max(6, Math.round((x.bite / top) * 100)), win: inWin(x.t) })) };
+      lastWins = windows.map((w) => ({ start: w.start, end: w.end, range: `${clock(w.start)}–${clock(w.end)}`, why: why(w.reasons) }));
       $('fish-times').textContent = windows.length ? windows.map((w) => `${clock(w.start)}–${clock(w.end)}`).slice(0, 1).join('') : '--';
       $('fish-wins').innerHTML = windows.map((w) => `<div><span class="seg sm green">${clock(w.start)}–${clock(w.end)}</span> <span class="lbl">${why(w.reasons)}</span></div>`).join('');
     }
@@ -167,6 +181,7 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
 
     $('fish-spots').innerHTML = spotsHtml();
     yours();
+    onInfo();
   };
   // YOUR CATCHES (PLAN 7.16): BITE at your logged catches of this species against their days' means.
   const yours = () => {
@@ -179,6 +194,11 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
   // While the map flies to a tapped spot the list keeps its order and distances from where the user was.
   let frozen: { lng: number; lat: number; n: number } | null = null;
   let lastList: (ReturnType<FishingLayer["bestSpots"]>[number] & { water: string[] })[] | null = null;
+  /** What the map's fish bar shows (PLAN 7.143): the same windows and spots as these rows. */
+  let lastBite: number | null = null;
+  let lastWins: FishWin[] = [];
+  let lastStrip: FishStrip = { day: 0, bars: [] };
+  let lastRows: FishSpotRow[] = [];
   const spotsHtml = () => {
     const c = frozen ?? map.getCenter();
     // Habitat picks the candidates; the water there today (clarity, temperature, chlorophyll, sargassum) re-ranks them.
@@ -193,17 +213,17 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
     lastList = spots;
+    lastRows = spots.map((s, n) => {
+      const km = Math.hypot((s.lng - c.lng) * Math.cos((c.lat * Math.PI) / 180), s.lat - c.lat) * 111.32;
+      const near = nearestName(s.lng, s.lat, marks);
+      const place = near ? t(near.at ? 'fish.spot.at' : 'fish.spot.near', { name: near.name, km: near.km.toFixed(1) }) : '';
+      const line = t('fish.spot.line', { score: Math.round(s.score * 100), depth: s.depthM.toFixed(0), km: km.toFixed(1) });
+      const why = [...s.why.map((w) => t(`fish.why.${w}` as Key)), ...s.water.map((w) => t(`bite.r.${w}` as Key))].join(' · ');
+      return { n, place, line, why, score: Math.round(s.score * 100), lng: s.lng, lat: s.lat, on: frozen?.n === n };
+    });
     if (!spots.length) return `<div class="lbl note">${t('fish.nospots')}</div>`;
-    return spots
-      .map((s, n) => {
-        const km = Math.hypot((s.lng - c.lng) * Math.cos((c.lat * Math.PI) / 180), s.lat - c.lat) * 111.32;
-        const near = nearestName(s.lng, s.lat, marks);
-        const place = near ? t(near.at ? 'fish.spot.at' : 'fish.spot.near', { name: near.name, km: near.km.toFixed(1) }) : '';
-        const line = t('fish.spot.line', { score: Math.round(s.score * 100), depth: s.depthM.toFixed(0), km: km.toFixed(1) });
-        const why = [...s.why.map((w) => t(`fish.why.${w}` as Key)), ...s.water.map((w) => t(`bite.r.${w}` as Key))].join(' · ');
-        const on = frozen?.n === n ? ' on' : '';
-        return `<button type="button" class="spot${on}" data-n="${n}" data-lng="${s.lng}" data-lat="${s.lat}"><span class="seg sm green">${n + 1}</span> <span class="spot-name">${esc(place)}</span> <span class="lbl">${line}</span> <span class="lbl note">${why}</span></button>`;
-      })
+    return lastRows
+      .map((r) => `<button type="button" class="spot${r.on ? ' on' : ''}" data-n="${r.n}" data-lng="${r.lng}" data-lat="${r.lat}"><span class="seg sm green">${r.n + 1}</span> <span class="spot-name">${esc(r.place)}</span> <span class="lbl">${r.line}</span> <span class="lbl note">${r.why}</span></button>`)
       .join('');
   };
   const queue = () => {
@@ -246,12 +266,17 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
   $('fish-prev').addEventListener('click', () => step(-1));
   $('fish-next').addEventListener('click', () => step(1));
   tabs.forEach((b) => b.addEventListener('click', () => ((reach = b.dataset.reach as Reach), apply())));
+  /** Fly to BEST SPOTS row n; the list keeps its order and distances from where the user was until they move the map. */
+  const flySpot = (n: number) => {
+    const r = lastRows[n];
+    if (!r) return;
+    const c = frozen ?? map.getCenter();
+    frozen = { lng: c.lng, lat: c.lat, n };
+    map.flyTo({ center: [r.lng, r.lat], zoom: Math.max(map.getZoom(), 12.5), duration: 1200 });
+  };
   $('fish-spots').addEventListener('click', (ev) => {
     const b = (ev.target as HTMLElement).closest<HTMLElement>('.spot');
-    if (!b) return;
-    const c = frozen ?? map.getCenter();
-    frozen = { lng: c.lng, lat: c.lat, n: Number(b.dataset.n) };
-    map.flyTo({ center: [Number(b.dataset.lng), Number(b.dataset.lat)], zoom: Math.max(map.getZoom(), 12.5), duration: 1200 });
+    if (b) flySpot(Number(b.dataset.n));
   });
   // A drag, pinch or search by the user lets the list follow the map again.
   map.on('movestart', (e) => {
@@ -298,5 +323,44 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
   const setReach = (r: Reach) => {
     if (r !== reach && REACHES.includes(r)) ((reach = r), apply());
   };
-  return { scoreCatch, refresh: queue, setSpecies, setMode, mode: () => SPECIES[i].mode, setReach, reach: () => reach };
+  /**
+   * SPEAR (PLAN 7.143): the picked target, remembered on the device (null: every spear fish), and the best open water for it
+   * near the crosshair, named as BEST SPOTS names its rows. Lobster in its closed season falls back to every spear fish.
+   */
+  let spearT: SpeciesId | null = null;
+  try {
+    const v = localStorage.getItem(SPEAR_KEY) as SpeciesId | null;
+    spearT = v && SPEAR_TARGETS.includes(v) ? v : null;
+  } catch {
+    /* private mode */
+  }
+  const spearOpen = (id: SpeciesId) => speciesById(id).season[month()] > 0;
+  const spearTarget = () => (spearT && spearOpen(spearT) ? spearT : null);
+  const setSpearTarget = (id: SpeciesId | null) => {
+    spearT = id;
+    layer.setSpearTarget(spearTarget());
+    try {
+      if (id) localStorage.setItem(SPEAR_KEY, id);
+      else localStorage.removeItem(SPEAR_KEY);
+    } catch {
+      /* private mode */
+    }
+  };
+  layer.setSpearTarget(spearTarget());
+  time.subscribe(() => layer.setSpearTarget(spearTarget()));
+  const spearInfo = () => {
+    const c = map.getCenter();
+    const rows: FishSpotRow[] = layer.spearSpots(5, { lng: c.lng, lat: c.lat }, SPOT_RADIUS_KM).map((s, n) => {
+      const km = Math.hypot((s.lng - c.lng) * Math.cos((c.lat * Math.PI) / 180), s.lat - c.lat) * 111.32;
+      const near = nearestName(s.lng, s.lat, marks);
+      const place = near ? t(near.at ? 'fish.spot.at' : 'fish.spot.near', { name: near.name, km: near.km.toFixed(1) }) : '';
+      const line = t('fish.spot.line', { score: Math.round(s.score * 100), depth: s.depthM.toFixed(0), km: km.toFixed(1) });
+      return { n, place, line, why: s.why.map((w) => t(`fish.why.${w}` as Key)).join(' · '), score: Math.round(s.score * 100), lng: s.lng, lat: s.lat, on: false };
+    });
+    return { target: spearTarget(), targets: SPEAR_TARGETS.filter(spearOpen), spots: rows };
+  };
+  /** The map's fish bar (PLAN 7.143): the fish, its BITE, the day's best windows and the best spots near the crosshair. */
+  const info = (): FishInfo => ({ id: SPECIES[i].id, name: t(`fish.${SPECIES[i].id}` as Key), bite: lastBite, wins: lastWins, strip: lastStrip, spots: lastRows });
+  const flyTo = (lng: number, lat: number) => map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 12.5), duration: 1200 });
+  return { scoreCatch, refresh: queue, setSpecies, setMode, mode: () => SPECIES[i].mode, setReach, reach: () => reach, step, info, flySpot, spearInfo, setSpearTarget, flyTo };
 }

@@ -106,6 +106,10 @@ export interface FishingLayer {
   setRules(zones: readonly ZonePoly[]): void;
   /** Boat water scored per offshore species on a ~2 km grid for the day on the slider (main.ts), or null: its zones. */
   setBoat(cells: readonly ZoneCell<OffshoreId>[] | null, key: string): void;
+  /** SPEAR: one picked target (a spear fish, or lobster or octopus by hand), or null for every spear fish (PLAN 7.143). */
+  setSpearTarget(id: SpeciesId | null): void;
+  /** SPEAR: the best separated cells near a point where spearing is open, for the picked target(s), best first. */
+  spearSpots(n: number, near: { lng: number; lat: number }, maxKm: number): Spot[];
 }
 
 export function mountFishing(map: Map, input: FishingInput, initial: { species: SpeciesId; month: number }, occurrences: OccurrenceFile | null = null): FishingLayer {
@@ -226,8 +230,10 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   const spearGj: FeatureCollection = { type: 'FeatureCollection', features: [] };
   const spearZonesGj: FeatureCollection = { type: 'FeatureCollection', features: [] };
   let spearKey = '';
+  let spearTarget: SpeciesId | null = null;
+  const spearIds = () => (spearTarget ? [spearTarget] : SPEAR_SPECIES);
   const buildSpear = () => {
-    const key = `${month}|${catchKey}|${rules.length}`;
+    const key = `${month}|${catchKey}|${rules.length}|${spearTarget}`;
     if (key === spearKey) return false;
     spearKey = key;
     const feats: FeatureCollection['features'] = [];
@@ -236,13 +242,13 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
       const win = spearWindow(c.f.depthM);
       if (win <= 0) continue;
       const by: Partial<Record<SpeciesId, number>> = {};
-      for (const id of SPEAR_SPECIES) by[id] = Math.min(1, habitatScore(speciesById(id), c.f, month, fits[id].weights) * (1 + boostAt(id, c.lng, c.lat)));
-      const sc = spearScore(by, c.f.depthM);
+      for (const id of spearIds()) by[id] = Math.min(1, habitatScore(speciesById(id), c.f, month, fits[id].weights) * (1 + boostAt(id, c.lng, c.lat)));
+      const sc = spearScore(by, c.f.depthM, spearIds());
       if (sc < 0.3) continue;
       feats.push({ type: 'Feature', properties: { sp: Math.round(sc * 100) / 100, law: law[i] }, geometry: shapes[i] });
       if (law[i] !== 0) continue;
       const s = {} as Record<SpeciesId, number>;
-      for (const id of SPEAR_SPECIES) s[id] = (by[id] ?? 0) * win;
+      for (const id of spearIds()) s[id] = (by[id] ?? 0) * win;
       const why: ZoneWhy[] = [];
       if (c.f.reef >= 0.3) why.push('reef');
       if (c.f.slopeMPerKm >= 20) why.push('drop');
@@ -469,6 +475,35 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
       refreshZones();
     },
     bestSpots: spotsFor,
+    setSpearTarget(id) {
+      if (id === spearTarget) return;
+      spearTarget = id;
+      refreshSpear();
+    },
+    spearSpots(n, near, maxKm) {
+      const kmTo = (lng: number, lat: number) => Math.hypot((lng - near.lng) * Math.cos((near.lat * Math.PI) / 180), lat - near.lat) * 111.32;
+      const scored = built.cells
+        .map((c, i) => ({ c, i }))
+        .filter(({ c, i }) => law[i] === 0 && spearWindow(c.f.depthM) > 0 && kmTo(c.lng, c.lat) <= maxKm)
+        .map(({ c }) => {
+          const by: Partial<Record<SpeciesId, number>> = {};
+          for (const id of spearIds()) by[id] = Math.min(1, habitatScore(speciesById(id), c.f, month, fits[id].weights) * (1 + boostAt(id, c.lng, c.lat)));
+          return { c, score: spearScore(by, c.f.depthM, spearIds()) };
+        })
+        .filter((x) => x.score >= 0.3)
+        .sort((a, b) => b.score - a.score);
+      const out: Spot[] = [];
+      for (const { c, score } of scored) {
+        if (out.length >= n) break;
+        if (out.some((o) => Math.hypot((o.lng - c.lng) * Math.cos((c.lat * Math.PI) / 180), o.lat - c.lat) * 111.32 < 0.6)) continue;
+        const why: SpotWhy[] = [];
+        if (c.f.reef >= 0.3) why.push('reef');
+        if (c.f.slopeMPerKm >= 20) why.push('drop');
+        if ((c.f.sand ?? 0) >= 0.2) why.push('sand');
+        out.push({ lng: c.lng, lat: c.lat, score, depthM: c.f.depthM, coastM: c.coastM, why, mouthKm: c.f.mouthKm });
+      }
+      return out;
+    },
     setSpecies(id) {
       const was = sp.mode;
       sp = speciesById(id);

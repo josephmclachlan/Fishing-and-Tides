@@ -90,7 +90,8 @@ import { mountSeafloorHud } from './seafloor-hud';
 import { fetchZones, mountZones, zoneName } from './layers/zones';
 import { mountZonesHud } from './zones-hud';
 import { fetchMouths, fetchOccurrences, mountFishing, type FishingLayer, type Reach } from './layers/fishing';
-import { loadReach, loadSpecies, mountFishingHud } from './fishing-hud';
+import { loadReach, loadSpecies, mountFishingHud, type FishInfo, type SpearInfo } from './fishing-hud';
+import { BOAT_SPECIES } from './boat/species';
 import { SPECIES, speciesById, speciesIn, type FishMode, type SpeciesId } from './fishing/species';
 import { layers, type ActivityId } from './layers/registry';
 import { mountMotionKey } from './layers/motion-key';
@@ -598,8 +599,9 @@ const boatStore = createBoatStore(safeStorage());
 // Catches logged in the BOAT drawer store their BITE once the fishing panel is up (PLAN 7.16).
 let scoreCatch: CatchScorer | null = null;
 let fishSetSpecies: ((id: SpeciesId) => void) | null = null;
-let fishHudMode: { set(m: FishMode): void; get(): FishMode; setReach(r: Reach): void; reach(): Reach } | null = null;
+let fishHudMode: { set(m: FishMode): void; get(): FishMode; setReach(r: Reach): void; reach(): Reach; step(d: number): void; info(): FishInfo; flySpot(n: number): void; spearInfo(): SpearInfo; setSpearTarget(id: SpeciesId | null): void; flyTo(lng: number, lat: number): void } | null = null;
 const fishModeListeners = new Set<() => void>();
+const fishInfoListeners = new Set<() => void>();
 /**
  * EAT or SPORT for the fish map (PLAN 7.120): through the fishing panel once it is up, else remembered as that mode's
  * first fish, which the panel picks up when it mounts (the mode is the species' own).
@@ -627,6 +629,24 @@ const fishMode = {
   },
   /** Called when the fishing panel changes the mode or reach itself, so the map's switches and spot card follow. */
   subscribe: (fn: () => void) => void fishModeListeners.add(fn),
+  /** The map's fish bar (PLAN 7.143): step the fish, read its best times and spots, fly to one, log a catch. */
+  step: (d: number) => fishHudMode?.step(d),
+  info: (): FishInfo | null => fishHudMode?.info() ?? null,
+  flySpot: (n: number) => fishHudMode?.flySpot(n),
+  onInfo: (fn: () => void) => void fishInfoListeners.add(fn),
+  /** A catch of the fish on the map at a place (the crosshair or the phone's position), as the BOAT drawer logs it. */
+  spearInfo: (): SpearInfo | null => fishHudMode?.spearInfo() ?? null,
+  setSpearTarget: (id: SpeciesId | null) => (fishHudMode?.setSpearTarget(id), fishInfoListeners.forEach((fn) => fn())),
+  flyTo: (lng: number, lat: number) => fishHudMode?.flyTo(lng, lat),
+  logCatch: (at: { lng: number; lat: number }, as?: string): { id: string; species: string } => {
+    const id = as ?? fishHudMode?.info().id ?? loadSpecies();
+    const species = (BOAT_SPECIES as readonly string[]).includes(id) ? id : 'other';
+    const now = Date.now();
+    const scored = scoreCatch?.(at.lng, at.lat, now, species) ?? null;
+    const pin = boatStore.addPin({ lng: at.lng, lat: at.lat, t: now }, 'catch', { species, depthM: depthAt?.(at.lng, at.lat), ...(scored ?? {}) });
+    return { id: pin.id, species };
+  },
+  undoCatch: (id: string) => boatStore.removePin(id),
 };
 // Offshore read for the BOAT drawer (PLAN 7.17): depth and ledge from the seafloor grids, satellite
 // temperature, chlorophyll and fronts, and floating sargassum, scored per boat species.
@@ -1600,10 +1620,11 @@ fetchSeafloor()
         // Your logged catches join the habitat fit and the YOUR CATCHES check (PLAN 7.16).
         const pins = () => boatStore.state().pins;
         layer.setCatches(pins());
-        const fishHud = mountFishingHud(hud, map, layer, time, species, fishEnv, pins, () => fishModeListeners.forEach((fn) => fn()));
+        const fishHud = mountFishingHud(hud, map, layer, time, species, fishEnv, pins, () => fishModeListeners.forEach((fn) => fn()), () => fishInfoListeners.forEach((fn) => fn()));
         scoreCatch = fishHud?.scoreCatch ?? null;
         fishSetSpecies = fishHud?.setSpecies ?? null;
-        fishHudMode = fishHud ? { set: fishHud.setMode, get: fishHud.mode, setReach: fishHud.setReach, reach: fishHud.reach } : null;
+        fishHudMode = fishHud ? { set: fishHud.setMode, get: fishHud.mode, setReach: fishHud.setReach, reach: fishHud.reach, step: fishHud.step, info: fishHud.info, flySpot: fishHud.flySpot, spearInfo: fishHud.spearInfo, setSpearTarget: fishHud.setSpearTarget, flyTo: fishHud.flyTo } : null;
+        fishInfoListeners.forEach((fn) => fn());
         boatStore.subscribe(() => (layer.setCatches(pins()), fishHud?.refresh()));
       })
       .catch((err) => console.warn('fishing layer unavailable', err));
