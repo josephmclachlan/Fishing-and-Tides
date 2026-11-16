@@ -401,7 +401,7 @@
 .km body.km-on #hud>.panel.open,
 .km body.km-on[data-sheet="cond"] #hud>#cond-panel,
 .km body.km-on #hud .help-card{visibility:visible}
-.km body.km-on #hud .intro,.km body.km-on #hud .reticle,.km body.km-on #hud .alert{display:none!important}
+.km body.km-on #hud .reticle,.km body.km-on #hud .alert{display:none!important}
 
 /* ---------- rating tiles on the spots (coast.ts) ---------- */
 .km .k-pins{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
@@ -606,3 +606,10 @@
 .km .k-links{display:grid;gap:8px;margin-top:8px}
 .km .k-link{appearance:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:0 14px;border:2px solid var(--ink);background:none;color:var(--ink);text-decoration:none;font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:2px;text-align:left}
 .km .k-link svg{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:square}
+
+/* Superscript source numbers on tiles and layer rows, and the numbered list under them (src/sources.ts). */
+.km sup.gd-cite{font-size:.72em;line-height:0;margin-left:1px;font-weight:700;vertical-align:super}
+.km .k-tsrc:empty{display:none}
+.km .k-tsrc .gd-fn,.km .k-composer .gd-fn,.km .k-feeds + .gd-fn,.km .gd-fn{margin-top:12px}
+.km .gd-fn h4{font-family:var(--k-mono,inherit);color:var(--ink2)}
+.km .gd-fn ol{color:var(--ink2);font-size:11.5px}

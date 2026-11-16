@@ -55,6 +55,7 @@ import { mountCoast, type PinData } from './coast';
 import { readDetails, type Detail } from './detail';
 import { mountScrub } from './scrub';
 import { barHTML, drawTiles, tileHTML, type Reading } from './tiles';
+import { citer, type SourceId } from '../sources';
 import { styleBaseMap } from './basemap';
 import { emitSchemeChange, roleSnapshot, schemeSwap } from '../layers/paint';
 
@@ -406,7 +407,7 @@ export function mountKineticMap(d: KmDeps) {
     ({ core: L2('Ratings', 'Calificación'), ocean: L2('Ocean', 'Océano'), water: L2('Water', 'Agua'), weather: L2('Weather', 'Tiempo'), beach: L2('Beach and fishing', 'Playa y pesca'), seafloor: L2('Seafloor', 'Fondo'), rules: L2('Rules and places', 'Reglas y lugares'), coral: L2('Coral', 'Coral') })[g];
   /** Mockup G's layer names where they say more than the old map's short labels. */
   const KM_NAMES: Partial<Record<KmLayer, [string, string]>> = {
-    rating: ['Beach ratings', 'Calificación de playas'], heat: ['Heat stress', 'Estrés térmico'], private: ['Private sites', 'Sitios privados'],
+    rating: ['Beach ratings', 'Calificación de playas'], obs: ['Live observations', 'Observaciones en vivo'], heat: ['Heat stress', 'Estrés térmico'], private: ['Private sites', 'Sitios privados'],
     waves: ['Swell crests', 'Crestas del oleaje'], currents: ['Current', 'Corriente'], weather: ['Rain and storms', 'Lluvia y tormentas'],
     fishing: ['Fishing spots', 'Zonas de pesca'], depth: ['Seafloor depth', 'Profundidad'], zones: ['Zones and rules', 'Zonas y reglas'],
     seamarks: ['Seamarks and wrecks', 'Balizas y naufragios'], anchorages: ['Harbours', 'Puertos y fondeaderos'], ais: ['Ships (AIS)', 'Barcos (AIS)'],
@@ -456,7 +457,7 @@ export function mountKineticMap(d: KmDeps) {
   const FIELD_OF: Partial<Record<KmLayer, FieldKind>> = { sst: 'sst', clarity: 'vis', chl: 'chl' };
   const fieldKey = (kind: FieldKind) => {
     const cols = bandCss(kind), n = cols.length, { at, unit } = FIELD_TICKS[kind];
-    const num = (x: number) => (settings.lang() === 'es' ? String(x).replace('.', ',') : String(x));
+    const num = (x: number) => String(x);
     return `<div class="k-rampw"><div class="k-ramp" aria-hidden="true">${cols.map((c) => `<i style="--k:${c}"></i>`).join('')}</div><em class="k-mono">${esc(unit)}</em><div class="k-rampl k-mono">${at.map((x) => `<span style="left:${((FIELD_STEPS[kind].indexOf(x) + 1) * 100) / n}%">${esc(num(x))}</span>`).join('')}</div></div>`;
   };
   /** Layers whose key uses short labels (`legend.<id>.key.<n>`, 2 to 4 words); their full item text moves to the "?" explainer. */
@@ -490,19 +491,20 @@ export function mountKineticMap(d: KmDeps) {
   const composerHTML = () => {
     const o = order(), m = mode();
     const rest = offered(m).filter((x) => !o.includes(x));
-    return `<div class="k-preset"><div class="k-pl"><span class="k-pv">${esc(modeName(m))}</span><span class="k-pc">${isCustom(orders, m) ? L2('Mine', 'Mía') : L2('Preset', 'Preset')}</span></div><button type="button" class="k-tbtn" data-reset ${isCustom(orders, m) ? '' : 'disabled'}>${L2('Reset', 'Restablecer')}</button></div>
-    <p class="k-lc-cap k-mono"><span>${o.length} ${L2('on', 'activas')}</span><span>${L2('Top draws over', 'Arriba se dibuja encima')}</span></p>
+    const cite = citer(settings.lang());
+    return cite.finish(`<div class="k-preset"><div class="k-pl"><span class="k-pv">${esc(modeName(m))}</span><span class="k-pc">${isCustom(orders, m) ? L2('Mine', 'Mía') : L2('Standard', 'Estándar')}</span></div><button type="button" class="k-tbtn" data-reset ${isCustom(orders, m) ? '' : 'disabled'}>${L2('Reset', 'Restablecer')}</button></div>
+    <p class="k-lc-cap k-mono"><span>${o.length} ${L2('on', 'activas')}</span><span>${L2('Top layer is drawn over the rest', 'La de arriba se dibuja encima')}</span></p>
     <ol class="k-lrows">${o
       .map((id, i) => {
         const a = ageOf(id), lg = legend(id);
-        return `<li class="k-lrow" data-id="${id}"><button type="button" class="k-hdl" data-move="${id}" aria-label="${L2('Move', 'Mover')} ${esc(layerName(id))}: ${L2('arrow keys', 'flechas')}">${GRIP}</button><div class="k-lb"><div class="k-ln"><span class="k-ix">${String(i + 1).padStart(2, '0')}</span>${esc(layerName(id))}<button type="button" class="k-q" data-info="${id}" aria-expanded="${openInfo.has(id)}" aria-label="${L2('What this shows', 'Qué muestra')}">?</button></div><p class="k-lsrc k-mono">${esc(layerDef(id).src)} · <span class="${a.cls}">${esc(a.txt)}</span></p>${lg ? `<div class="k-lg">${lg}</div>` : ''}${openInfo.has(id) ? `<div class="k-linfo">${explainLayer(id)}</div>` : ''}</div><button type="button" class="k-sw" role="switch" aria-checked="true" data-off="${id}" aria-label="${L2('Turn off', 'Apagar')} ${esc(layerName(id))}"></button></li>`;
+        return `<li class="k-lrow" data-id="${id}"><button type="button" class="k-hdl" data-move="${id}" aria-label="${L2('Move', 'Mover')} ${esc(layerName(id))}: ${L2('arrow keys', 'flechas')}">${GRIP}</button><div class="k-lb"><div class="k-ln"><span class="k-ix">${String(i + 1).padStart(2, '0')}</span>${esc(layerName(id))}<button type="button" class="k-q" data-info="${id}" aria-expanded="${openInfo.has(id)}" aria-label="${L2('What this shows', 'Qué muestra')}">?</button></div><p class="k-lsrc k-mono">${esc(L2(layerDef(id).src.en, layerDef(id).src.es))}${cite.mark(...layerDef(id).cite)} · <span class="${a.cls}">${esc(a.txt)}</span></p>${lg ? `<div class="k-lg">${lg}</div>` : ''}${openInfo.has(id) ? `<div class="k-linfo">${explainLayer(id)}</div>` : ''}</div><button type="button" class="k-sw" role="switch" aria-checked="true" data-off="${id}" aria-label="${L2('Turn off', 'Apagar')} ${esc(layerName(id))}"></button></li>`;
       })
       .join('')}</ol>
     <div class="k-addh"><b>${L2('Add a layer', 'Añadir capa')}</b><span class="k-mono">${rest.length}</span></div>
     ${GROUPS.map((g) => {
       const ls = rest.filter((x) => layerDef(x).group === g);
       return ls.length ? `<p class="k-addg k-mono">${esc(groupName(g))}</p><div class="k-adds">${ls.map((x) => `<button type="button" class="k-addc" data-add="${x}">${PLUS}${esc(layerName(x))}</button>`).join('')}</div>` : '';
-    }).join('')}`;
+    }).join('')}`, L2('SOURCES', 'FUENTES'));
   };
   const bindComposer = (el: HTMLElement) => {
     el.querySelector('[data-reset]')?.addEventListener('click', () => {
@@ -620,18 +622,18 @@ export function mountKineticMap(d: KmDeps) {
     const has = (id: KmLayer) => o.includes(id);
     /** The activity's own readings, never in CORAL (its layers say what it reads). */
     const act = (a: FcActivity) => !S.coral && S.act === a;
-    if (S.coral && h.heat) out.push({ k: 'heat', l: 'DHW', v: n1(h.heat.dhw), u: '°C-wk', s: `${titleCase(h.heat.reef)}`, help: 'diveCoral', val: h.heat.dhw, src: 'CRW' });
+    if (S.coral && h.heat) out.push({ k: 'heat', l: 'DHW', v: n1(h.heat.dhw), u: '°C-wk', s: `${titleCase(h.heat.reef)}`, help: 'diveCoral', val: h.heat.dhw, src: L2('Satellite', 'Satélite'), cite: ['crw'] });
     if ((has('waves') || has('surf') || (has('rating') && act('surf'))) && h.swell && !h.land)
-      out.push({ k: 'swell', l: L2('Swell', 'Oleaje'), v: n1(h.swell.hs), u: 'm', s: `${Math.round(h.swell.tp)} s · ${L2('from', 'de')} ${compass(h.swell.fromDeg)}`, deg: h.swell.fromDeg, trains: h.swell.trains, help: 'swell', src: 'WW3' });
+      out.push({ k: 'swell', l: L2('Swell', 'Oleaje'), v: n1(h.swell.hs), u: 'm', s: `${Math.round(h.swell.tp)} s · ${L2('from', 'de')} ${compass(h.swell.fromDeg)}`, deg: h.swell.fromDeg, trains: h.swell.trains, help: 'swell', src: L2('Wave model', 'Modelo de olas'), cite: ['ww3', 'wam'] });
     if ((has('wind') || act('sail') || act('surf')) && h.wind)
-      out.push({ k: 'wind', l: L2('Wind', 'Viento'), v: n0(h.wind.kt), u: 'kt', s: `${compass(h.wind.fromDeg)}${fin(h.wind.gustKt) ? ` · ${L2('gusts', 'ráfagas')} ${n0(h.wind.gustKt)}` : ''}`, deg: h.wind.fromDeg, help: 'wind', src: 'ECMWF · GFS' });
+      out.push({ k: 'wind', l: L2('Wind', 'Viento'), v: n0(h.wind.kt), u: 'kt', s: `${compass(h.wind.fromDeg)}${fin(h.wind.gustKt) ? ` · ${L2('gusts', 'ráfagas')} ${n0(h.wind.gustKt)}` : ''}`, deg: h.wind.fromDeg, help: 'wind', src: L2('Weather models', 'Modelos del tiempo'), cite: ['ecmwf', 'gfs'] });
     if ((has('currents') || act('snorkel') || act('dive') || act('spear')) && h.current && !h.land)
-      out.push({ k: 'current', l: L2('Current', 'Corriente'), v: n1(h.current.kt), u: 'kt', s: `${L2('sets', 'hacia')} ${compass(h.current.toDeg)}`, deg: h.current.toDeg, help: 'current', src: 'SMOC' });
+      out.push({ k: 'current', l: L2('Current', 'Corriente'), v: n1(h.current.kt), u: 'kt', s: `${L2('sets', 'hacia')} ${compass(h.current.toDeg)}`, deg: h.current.toDeg, help: 'current', src: L2('Ocean model', 'Modelo del océano'), cite: ['smoc'] });
     // The old DIVE & SNORKEL rows (dive-hud.ts): bed surge at each depth, scored at 2 m for snorkel and 6 m for dive.
     if ((act('snorkel') || act('dive') || act('spear') || (has('reefs') && !S.coral)) && h.surge?.length && !h.land) {
       const at = act('dive') || act('spear') ? 6 : 2, sg = h.surge.find((x) => x.depth === at) ?? h.surge[0];
       const word = (b: string) => (b === 'DANGEROUS' ? L2('Dangerous', 'Peligroso') : b === 'SURGY' ? L2('Surgy', 'Con vaivén') : L2('Calm', 'Calmo'));
-      out.push({ k: 'surge', l: L2('Surge', 'Vaivén'), v: n1(sg.uMs), u: 'm/s', s: `${word(sg.band)} · ${sg.depth} m · ±${n1(sg.excursionM)}`, help: 'surge', src: L2('by depth', 'por prof.'), prof: h.surge, lv: sg.band === 'DANGEROUS' ? 0 : sg.band === 'SURGY' ? 2 : 4 });
+      out.push({ k: 'surge', l: L2('Surge', 'Vaivén'), v: n1(sg.uMs), u: 'm/s', s: `${word(sg.band)} · ${sg.depth} m · ±${n1(sg.excursionM)}`, help: 'surge', src: L2('By depth', 'Por prof.'), prof: h.surge, lv: sg.band === 'DANGEROUS' ? 0 : sg.band === 'SURGY' ? 2 : 4 });
     }
     // Surf at the water's edge (the breaker, cut by any reef flat in front): what a swimmer walks into.
     if ((act('swim') || act('snorkel') || act('surf')) && fin(h.entryM) && !h.land) {
@@ -639,18 +641,18 @@ export function mountKineticMap(d: KmDeps) {
       out.push({ k: 'entry', l: L2('Shore break', 'Rompiente en la orilla'), v: n1(h.entryM), u: 'm', s: sb === 'dump' ? L2('Dumping waves', 'Olas que revientan en seco') : sb === 'timed' ? L2('Time your entry', 'Espere el momento para entrar') : L2('Easy entry', 'Entrada fácil'), val: h.entryM, help: 'diveEntry', lv: sb === 'dump' ? 0 : sb === 'timed' ? 2 : 4 });
     }
     if ((has('sst') || has('fronts') || act('swim') || act('dive') || act('spear') || S.coral) && fin(h.sstC) && !h.land)
-      out.push({ k: 'sst', l: L2('Water temp', 'Temp. agua'), v: n1(h.sstC), u: '°C', s: h.sstC >= SST_BANDS.WARM ? L2('Warm for here', 'Cálida para aquí') : h.sstC >= SST_BANDS.COOL ? L2('Mid · no wetsuit', 'Media · sin traje') : L2('Cooler for here', 'Fresca para aquí'), val: h.sstC, help: 'sst', src: L2('satellite', 'satélite') });
+      out.push({ k: 'sst', l: L2('Water temp', 'Temp. agua'), v: n1(h.sstC), u: '°C', s: h.sstC >= SST_BANDS.WARM ? L2('Warm for here', 'Cálida para aquí') : h.sstC >= SST_BANDS.COOL ? L2('Mid · no wetsuit', 'Media · sin traje') : L2('Cooler for here', 'Fresca para aquí'), val: h.sstC, help: 'sst', src: L2('Satellite', 'Satélite'), cite: ['sst'] });
     if (has('chl') && fin(h.chl) && !h.land)
-      out.push({ k: 'chl', l: L2('Chlorophyll', 'Clorofila'), v: h.chl >= 1 ? n1(h.chl) : h.chl.toFixed(2), u: 'mg/m³', s: h.chl >= 0.7 ? L2('Green water', 'Agua verde') : h.chl >= 0.2 ? L2('Green water edge', 'Borde de agua verde') : L2('Blue water', 'Agua azul'), val: h.chl, help: 'chl', src: 'VIIRS' });
+      out.push({ k: 'chl', l: L2('Chlorophyll', 'Clorofila'), v: h.chl >= 1 ? n1(h.chl) : h.chl.toFixed(2), u: 'mg/m³', s: h.chl >= 0.7 ? L2('Green water', 'Agua verde') : h.chl >= 0.2 ? L2('Green water edge', 'Borde de agua verde') : L2('Blue water', 'Agua azul'), val: h.chl, help: 'chl', src: L2('Satellite', 'Satélite'), cite: ['chl'] });
     if ((has('clarity') || act('snorkel') || act('dive') || act('spear')) && fin(h.visM) && !h.land)
-      out.push({ k: 'clarity', l: L2('Visibility', 'Visibilidad'), v: h.visM >= 10 ? n0(h.visM) : n1(h.visM), u: 'm', s: h.visM < CLARITY_BANDS.fair ? L2('Poor · murky', 'Mala · turbia') : h.visM < CLARITY_BANDS.good ? L2('Fair · hazy', 'Regular · algo turbia') : L2('Good · clear', 'Buena · clara'), val: h.visM, help: 'vis', src: 'Kd490' });
+      out.push({ k: 'clarity', l: L2('Visibility', 'Visibilidad'), v: h.visM >= 10 ? n0(h.visM) : n1(h.visM), u: 'm', s: h.visM < CLARITY_BANDS.fair ? L2('Poor · murky', 'Mala · turbia') : h.visM < CLARITY_BANDS.good ? L2('Fair · hazy', 'Regular · algo turbia') : L2('Good · clear', 'Buena · clara'), val: h.visM, help: 'vis', src: L2('Satellite', 'Satélite'), cite: ['kd490'] });
     if (has('sargassum') && h.sarg) out.push({ k: 'sarg', l: L2('Sargassum', 'Sargazo'), v: t(`sarg.level.${h.sarg.level}` as Key) || h.sarg.level, u: '', s: titleCase(h.sarg.beach), help: 'sargassum', lv: h.sarg.level === 'HIGH' ? 0 : h.sarg.level === 'MED' || h.sarg.level === 'MOD' ? 2 : 4 });
     if ((has('weather') || act('swim') || act('sail')) && h.rain)
-      out.push({ k: 'rain', l: L2('Rain', 'Lluvia'), v: fin(h.rain.mmH) ? n1(h.rain.mmH) : '--', u: 'mm/h', s: fin(h.rain.pct) ? `${n0(h.rain.pct)}% ${L2('chance', 'prob.')}` : '', val: h.rain.mmH ?? 0, help: 'rain', src: L2('4 models', '4 modelos') });
+      out.push({ k: 'rain', l: L2('Rain', 'Lluvia'), v: fin(h.rain.mmH) ? n1(h.rain.mmH) : '--', u: 'mm/h', s: fin(h.rain.pct) ? `${n0(h.rain.pct)}% ${L2('chance', 'prob.')}` : '', val: h.rain.mmH ?? 0, help: 'rain', src: L2('4 models', '4 modelos'), cite: ['models'] });
     // The old WEATHER rows: air, real feel, humidity and cloud.
     if ((has('weather') || act('swim') || act('sail') || act('fish')) && fin(h.airC))
-      out.push({ k: 'air', l: L2('Air', 'Aire'), v: n0(h.airC), u: '°C', s: [fin(h.feelsC) ? `${L2('Feels', 'Sens.')} ${n0(h.feelsC)}°` : '', fin(h.humidityPct) ? `${n0(h.humidityPct)}% ${L2('humid', 'HR')}` : ''].filter(Boolean).join(' · '), val: h.cloudPct ?? 0, help: 'air', src: L2('blend', 'mezcla') });
-    if (has('lightning') && fin(h.lightningKm) && h.lightningKm < 60) out.push({ k: 'lightning', l: L2('Lightning', 'Rayos'), v: n0(h.lightningKm), u: 'km', s: h.lightningKm < 25 ? L2('Get out of the water', 'Salga del agua') : L2('Nearest flash', 'Rayo más cercano'), val: h.lightningKm, help: 'lightningNear', src: 'GLM', ...(h.lightningKm < 25 ? { warn: 'bolt' as const } : {}) });
+      out.push({ k: 'air', l: L2('Air', 'Aire'), v: n0(h.airC), u: '°C', s: [fin(h.feelsC) ? `${L2('Feels', 'Sens.')} ${n0(h.feelsC)}°` : '', fin(h.humidityPct) ? `${n0(h.humidityPct)}% ${L2('humid', 'HR')}` : ''].filter(Boolean).join(' · '), val: h.cloudPct ?? 0, help: 'air', src: L2('Blend', 'Mezcla'), cite: ['models'] });
+    if (has('lightning') && fin(h.lightningKm) && h.lightningKm < 60) out.push({ k: 'lightning', l: L2('Lightning', 'Rayos'), v: n0(h.lightningKm), u: 'km', s: h.lightningKm < 25 ? L2('Get out of the water', 'Salga del agua') : L2('Nearest flash', 'Rayo más cercano'), val: h.lightningKm, help: 'lightningNear', src: L2('Satellite', 'Satélite'), cite: ['glm'], ...(h.lightningKm < 25 ? { warn: 'bolt' as const } : {}) });
     if ((has('rip') || act('swim') || act('surf')) && h.rip) {
       const lv = h.rip.level === 'HIGH' ? 0 : h.rip.level === 'MOD' ? 2 : 4;
       out.push({ k: 'rip', l: L2('Rip risk', 'Resaca'), v: h.rip.level === 'HIGH' ? L2('High', 'Alta') : h.rip.level === 'MOD' ? L2('Mod', 'Mod') : L2('Low', 'Baja'), u: '', s: titleCase(h.rip.spot), lv, help: 'rip' });
@@ -663,17 +665,17 @@ export function mountKineticMap(d: KmDeps) {
     if ((has('depth') || has('reefs') || act('dive') || act('spear') || act('snorkel') || act('fish')) && fin(h.depthM) && !h.land) {
       // With the tide on top, as the old WATER OVER REEF row read it (chart depth is to mean sea level).
       const wet = h.depthM + td.m;
-      out.push({ k: 'depth', l: L2('Depth', 'Prof.'), v: h.depthM >= 10 ? n0(h.depthM) : n1(h.depthM), u: 'm', s: `${L2('With tide', 'Con marea')} ${wet >= 10 ? n0(wet) : n1(wet)} m · ${L2('not for navigation', 'no para navegar')}`, val: h.depthM, help: 'depth', src: 'GEBCO' });
+      out.push({ k: 'depth', l: L2('Depth', 'Prof.'), v: h.depthM >= 10 ? n0(h.depthM) : n1(h.depthM), u: 'm', s: `${L2('With tide', 'Con marea')} ${wet >= 10 ? n0(wet) : n1(wet)} m · ${L2('not for navigation', 'no para navegar')}`, val: h.depthM, help: 'depth', src: L2('Seafloor map', 'Mapa del fondo'), cite: ['gebco'] });
     }
     if (has('zones') && h.zone) out.push({ k: 'zone', l: L2('Protected', 'Protegida'), v: '', u: '', s: h.zone, help: 'zone', lv: null });
     const turn = td.hi && td.lo ? (td.hi.t < td.lo.t ? td.hi : td.lo) : td.hi ?? td.lo;
-    out.push({ k: 'tide', l: L2('Tide', 'Marea'), v: `${td.m >= 0 ? '+' : ''}${td.m.toFixed(2)}`, u: 'm', s: `${td.rising ? L2('Rising', 'Subiendo') : L2('Falling', 'Bajando')}${turn ? ` · ${turn.type === 'high' ? L2('high', 'alta') : L2('low', 'baja')} ${hm(turn.t)}` : ''}`, curve: td.curve, at: td.at, help: 'tide', src: L2('exact', 'exacta') });
+    out.push({ k: 'tide', l: L2('Tide', 'Marea'), v: `${td.m >= 0 ? '+' : ''}${td.m.toFixed(2)}`, u: 'm', s: `${td.rising ? L2('Rising', 'Subiendo') : L2('Falling', 'Bajando')}${turn ? ` · ${turn.type === 'high' ? L2('high', 'alta') : L2('low', 'baja')} ${hm(turn.t)}` : ''}`, curve: td.curve, at: td.at, help: 'tide', src: L2('Exact', 'Exacta') });
     // The old SUN & MOON rows (astro-hud.ts): the day's light and the moon the bite tables run on.
     if (act('fish') || act('surf')) {
       const c0 = map.getCenter(), day = localDayStart(t0, tz), sun = sunTimes(day, c0.lat, c0.lng), mp = moonPhase(t0);
-      out.push({ k: 'sky', l: L2('Sun and moon', 'Sol y luna'), v: n0(mp.illumination * 100), u: '%', s: L2(...MOON_NAMES[mp.name]), sun: [sun.sunrise ? hm(sun.sunrise) : '--', sun.sunset ? hm(sun.sunset) : '--'], val: mp.illumination, deg: mp.elongation, help: 'bwMoon', src: L2('exact', 'exacto') });
+      out.push({ k: 'sky', l: L2('Sun and moon', 'Sol y luna'), v: n0(mp.illumination * 100), u: '%', s: L2(...MOON_NAMES[mp.name]), sun: [sun.sunrise ? hm(sun.sunrise) : '--', sun.sunset ? hm(sun.sunset) : '--'], val: mp.illumination, deg: mp.elongation, help: 'bwMoon', src: L2('Exact', 'Exacto') });
     }
-    if (fin(h.uv)) out.push({ k: 'uv', l: 'UV', v: n0(h.uv), u: '', s: uvWord(h.uv), val: h.uv, help: 'uv', src: 'CAMS' });
+    if (fin(h.uv)) out.push({ k: 'uv', l: 'UV', v: n0(h.uv), u: '', s: uvWord(h.uv), val: h.uv, help: 'uv', src: L2('Forecast', 'Pronóstico'), cite: ['cams'] });
     return out;
   };
   const llTxt = () => {
@@ -709,7 +711,14 @@ export function mountKineticMap(d: KmDeps) {
   const fillTiles = (el: HTMLElement) => {
     const box = el.querySelector<HTMLElement>('.k-tiles');
     if (!box) return;
-    box.innerHTML = lastR.map(tileHTML).join('');
+    const cite = citer(settings.lang());
+    const done = cite.finish(lastR.map((r) => tileHTML(r, cite)).join(''), L2('SOURCES', 'FUENTES'));
+    const cut = done.indexOf('<section class="gd-blk gd-fn">');
+    box.innerHTML = cut < 0 ? done : done.slice(0, cut);
+    // The tiles' sources, numbered in the order the tiles read, in a list under them.
+    let list = box.nextElementSibling as HTMLElement | null;
+    if (!list?.classList.contains('k-tsrc')) (list = document.createElement('div')), (list.className = 'k-tsrc'), box.after(list);
+    list.innerHTML = cut < 0 ? '' : done.slice(cut);
     box.querySelectorAll<HTMLElement>('.k-tile').forEach((tl, i) =>
       tl.addEventListener('click', () => {
         const r = lastR[i];
@@ -761,7 +770,7 @@ export function mountKineticMap(d: KmDeps) {
       moon: [L2('Moon', 'Luna'), r.fish ? `${n0(r.fish.moonIllum * 100)}<small>%</small>` : '--'],
       rip: [L2('Rip', 'Resaca'), h.rip ? (h.rip.level === 'HIGH' ? L2('High', 'Alta') : h.rip.level === 'MOD' ? 'Mod' : L2('Low', 'Baja')) : '--'],
       vis: [L2('Visibility', 'Visib.'), fin(r.water?.visM) ? `${n0(r.water!.visM!)}<small>m</small>` : '--'],
-      surge: [L2('Surge', 'Surge'), fin(r.water?.surgeMs) ? `${n1(r.water!.surgeMs!)}<small>m/s</small>` : '--'],
+      surge: [L2('Surge', 'Vaivén'), fin(r.water?.surgeMs) ? `${n1(r.water!.surgeMs!)}<small>m/s</small>` : '--'],
       gust: [L2('Gusts', 'Ráfagas'), fin(r.sail?.gustKt) ? `${n0(r.sail!.gustKt!)}<small>kt</small>` : '--'],
       sea: [L2('Swell', 'Oleaje'), fin(r.sail?.swellM) ? `${n1(r.sail!.swellM!)}<small>m</small>` : '--'],
       air: [L2('Air', 'Aire'), fin(h.airC) ? `${n0(h.airC)}°` : '--'],
@@ -886,7 +895,7 @@ export function mountKineticMap(d: KmDeps) {
       }),
     );
   const inspectorHTML = () =>
-    `<div class="k-sec-head"><h2>${S.coral ? L2('Reef', 'Arrecife') : 'Spot'}</h2><p class="k-mono">${L2('Tap a pin to change', 'Toque un punto')}</p></div><div id="k-cardbox">${S.coral ? coralCardHTML() : spotCardHTML()}</div><section id="k-heresec" class="k-heresec"><div class="k-sec-head"><h2>${L2('Under the crosshair', 'Bajo la mira')}</h2></div>${hereHTML()}</section>`;
+    `<div class="k-sec-head"><h2>${S.coral ? L2('Reef', 'Arrecife') : L2('Spot', 'Sitio')}</h2><p class="k-mono">${L2('Tap a pin to change', 'Toque un punto')}</p></div><div id="k-cardbox">${S.coral ? coralCardHTML() : spotCardHTML()}</div><section id="k-heresec" class="k-heresec"><div class="k-sec-head"><h2>${L2('Under the crosshair', 'Bajo la mira')}</h2></div>${hereHTML()}</section>`;
   const renderSpot = () => {
     const dk = $('k-dkspot');
     if (S.coral) {
@@ -909,13 +918,13 @@ export function mountKineticMap(d: KmDeps) {
         const b = railR.querySelector<HTMLElement>('#k-cardbox')!;
         b.innerHTML = S.coral ? coralCardHTML() : spotCardHTML();
         bindCard(b);
-        railR.querySelector('.k-sec-head h2')!.textContent = S.coral ? L2('Reef', 'Arrecife') : 'Spot';
+        railR.querySelector('.k-sec-head h2')!.textContent = S.coral ? L2('Reef', 'Arrecife') : L2('Spot', 'Sitio');
       }
     }
     if (S.sheet === 'spot' || S.sheet === 'coral') {
       shBody.innerHTML = S.coral ? coralCardHTML() : spotCardHTML();
       bindCard(shBody);
-      shTitle.textContent = S.coral ? L2('Reef', 'Arrecife') : 'Spot';
+      shTitle.textContent = S.coral ? L2('Reef', 'Arrecife') : L2('Spot', 'Sitio');
     }
   };
   $('k-dkspot').addEventListener('click', () => openSheet(S.coral ? 'coral' : 'spot'));
@@ -1199,6 +1208,7 @@ export function mountKineticMap(d: KmDeps) {
     <div class="k-setrow"><div><b>Enhance</b><small>${L2('Pull back, pan and zoom in when you pick a place', 'Alejar, mover y acercar al elegir un lugar')}</small></div>${seg('enh', [['off', 'Off'], ['on', 'On']], settings.enhance() ? 'on' : 'off')}</div>
     <div class="k-setrow"><div><b>${L2('Sounds', 'Sonidos')}</b></div>${seg('snd', [['off', 'Off'], ['on', 'On']], settings.sound() ? 'on' : 'off')}</div>
     <div class="k-setrow"><div><b>${L2('Vessel', 'Embarcación')}</b><small>${L2('For the boat verdict and route', 'Para el veredicto y la ruta del bote')}</small></div>${seg('ves', [['small', L2('Small boat', 'Bote')], ['dinghy', L2('Dinghy', 'Panga')], ['yacht', L2('Yacht', 'Velero')]], settings.vessel())}</div>
+    <div class="k-tools"><button type="button" class="k-toolb" data-about><span><b>${L2('About', 'Acerca')}</b><small>${L2('How to read this app', 'Cómo leer esta app')}</small></span>${ARROW}</button></div>
     <div class="k-addh"><b>${L2('Tools', 'Herramientas')}</b><span class="k-mono">${L2('Everything from the classic map', 'Todo el mapa clásico')}</span></div>
     <div class="k-tools">${d.tools.map((x) => `<button type="button" class="k-toolb" data-tool="${x.id}"><span><b>${esc(x.label)}</b><small>${esc(x.sub)}</small></span>${ARROW}</button>`).join('')}</div>`;
   const bindSettings = (el: HTMLElement) => {
@@ -1216,27 +1226,29 @@ export function mountKineticMap(d: KmDeps) {
         }),
       ),
     );
+    el.querySelector('[data-about]')?.addEventListener('click', () => (closeSheet(), document.dispatchEvent(new Event('ft:about'))));
     el.querySelectorAll<HTMLElement>('[data-tool]').forEach((b) => b.addEventListener('click', () => openTool(b.dataset.tool as SheetId | 'sync')));
   };
 
-  const FEEDS: [string, string, string][] = [
-    ['waves', L2('Waves', 'Olas'), 'ECMWF WAM · WW3'], ['wind', L2('Wind map', 'Mapa de viento'), 'ECMWF · GFS'], ['spotwind', L2('Wind at the spots', 'Viento en los spots'), L2('4 models', '4 modelos')],
-    ['weather', L2('Weather', 'Tiempo'), 'IFS · UKMO · GFS · ICON'], ['currents', L2('Currents', 'Corrientes'), 'Copernicus SMOC'], ['raincells', L2('Rain nowcast', 'Lluvia ahora'), 'IMERG'],
-    ['lightning', L2('Lightning', 'Rayos'), 'GOES GLM'], ['sst', L2('Sea temperature', 'Temp. del mar'), L2('satellite', 'satélite')], ['chl', L2('Ocean colour', 'Color del océano'), L2('satellite', 'satélite')],
-    ['sargassum', 'Sargassum', 'USF SaWS'], ['river', L2('River flow', 'Caudal de ríos'), 'GloFAS'], ['coral', L2('Coral heat', 'Calor del coral'), 'NOAA CRW'],
-    ['gauge', L2('Tide gauge', 'Mareógrafo'), 'IOC Limón'], ['metar', L2('Airport', 'Aeropuerto'), 'METAR MRLM'], ['uv', 'UV', 'CAMS'],
+  const FEEDS: [string, string, string, SourceId[]][] = [
+    ['waves', L2('Waves', 'Olas'), L2('Wave models', 'Modelos de olas'), ['ww3', 'wam']], ['wind', L2('Wind map', 'Mapa de viento'), L2('Weather models', 'Modelos del tiempo'), ['ecmwf', 'gfs']], ['spotwind', L2('Wind at the spots', 'Viento en los spots'), L2('4 models', '4 modelos'), ['models']],
+    ['weather', L2('Weather', 'Tiempo'), L2('4 weather models', '4 modelos del tiempo'), ['models']], ['currents', L2('Currents', 'Corrientes'), L2('Ocean model', 'Modelo del océano'), ['smoc']], ['raincells', L2('Rain nowcast', 'Lluvia ahora'), L2('Satellite rain', 'Lluvia por satélite'), ['imerg']],
+    ['lightning', L2('Lightning', 'Rayos'), L2('Satellite', 'Satélite'), ['glm']], ['sst', L2('Sea temperature', 'Temp. del mar'), L2('Satellite', 'Satélite'), ['sst']], ['chl', L2('Ocean colour', 'Color del océano'), L2('Satellite', 'Satélite'), ['chl']],
+    ['sargassum', L2('Sargassum', 'Sargazo'), L2('Satellite', 'Satélite'), ['usf']], ['river', L2('River flow', 'Caudal de ríos'), L2('River forecast', 'Pronóstico de ríos'), ['glofas']], ['coral', L2('Coral heat', 'Calor del coral'), L2('Satellite', 'Satélite'), ['crw']],
+    ['gauge', L2('Tide gauge', 'Mareógrafo'), L2('Limón station', 'Estación de Limón'), ['ioc']], ['metar', L2('Airport', 'Aeropuerto'), L2('Limón airport', 'Aeropuerto de Limón'), ['metar']], ['uv', 'UV', L2('UV forecast', 'Pronóstico UV'), ['cams']],
   ];
   const ageHTML = () => {
     const now = Date.now();
-    return `<p class="k-mono k-fcap">${L2('Age of each feed, from its own fetch time', 'Edad de cada fuente, desde su propia descarga')}</p><div class="k-feeds">${FEEDS.map(([f, n, src]) => {
+    const cite = citer(settings.lang());
+    return cite.finish(`<p class="k-mono k-fcap">${L2('Age of each feed, from its own fetch time', 'Edad de cada fuente, desde su propia descarga')}</p><div class="k-feeds">${FEEDS.map(([f, n, src, ids]) => {
       const a = dataAge.get(f);
       const age = a ? now - a.fetchedAt : NaN, st = a ? ageState(age) : 'none';
       // Neutral while usable; only stale data takes the caution colour (green, amber and red belong to the rating scale).
       const col = st === 'stale' ? 'var(--sev-caution)' : st === 'none' ? 'var(--lvn)' : 'var(--c-bar)';
       const h = age / H;
       const txt = !a ? '--' : h < 1 ? `${Math.max(1, Math.round(age / 6e4))} min` : h < 48 ? `${Math.round(h)} h` : `${Math.round(h / 24)} d`;
-      return `<div class="k-feed" style="--fc:${col}"><i></i><span>${esc(n)}<small>${esc(src)}${a?.fromCache ? ` · ${L2('offline copy', 'copia sin conexión')}` : ''}</small></span><b>${esc(txt)}</b></div>`;
-    }).join('')}<div class="k-feed" style="--fc:var(--c-bar)"><i></i><span>${L2('Tides, sun and moon', 'Mareas, sol y luna')}<small>${L2('Computed on this device, exact', 'Calculado en este dispositivo')}</small></span><b>—</b></div></div><button type="button" class="k-go2 k-all" data-check>${L2('System check', 'Revisión del sistema')}${ARROW}</button>`;
+      return `<div class="k-feed" style="--fc:${col}"><i></i><span>${esc(n)}<small>${esc(src)}${cite.mark(...ids)}${a?.fromCache ? ` · ${L2('offline copy', 'copia sin conexión')}` : ''}</small></span><b>${esc(txt)}</b></div>`;
+    }).join('')}<div class="k-feed" style="--fc:var(--c-bar)"><i></i><span>${L2('Tides, sun and moon', 'Mareas, sol y luna')}<small>${L2('Computed on this device, exact', 'Calculado en este dispositivo')}</small></span><b>—</b></div></div><button type="button" class="k-go2 k-all" data-check>${L2('System check', 'Revisión del sistema')}${ARROW}</button>`, L2('SOURCES', 'FUENTES'));
   };
   const renderAge = () => {
     const o = dataAge.oldest();

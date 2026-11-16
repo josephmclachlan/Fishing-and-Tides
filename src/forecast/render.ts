@@ -75,6 +75,7 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
         <button type="button" class="fc-best" id="fc-best" hidden></button>
       </div>
     </section>
+    <p class="fc-down-msg fc-in" id="fc-down" role="status" hidden>${esc(t('fc.unavailable'))}</p>
     ${o.guide ? `<nav class="fc-links fc-in" aria-label="${esc(t('fc.links'))}">
       <button type="button" class="fc-link" id="fc-idlink" data-for="fish dive spear snorkel">${GUIDE_ICON}<span><b>${esc(t('fc.idLink'))}</b><small>${esc(t('fc.idLinkSub'))}</small></span><i aria-hidden="true">→</i></button>
       <a class="fc-link" href="#dispatch" data-for="fish spear">${DISPATCH_ICON}<span><b>${esc(t('dp.link'))}</b><small>${esc(t('dp.linkSub'))}</small></span><i aria-hidden="true">→</i></a>
@@ -203,8 +204,7 @@ export function chartLabelsHtml(L: ChartLayout): string {
       const id = o.spec.id;
       const unit = id === 'uv' ? '' : t(`fc.unit.${id}` as Key);
       const sc = id === 'tide' ? `±${o.hi.toFixed(2)}` : `${scaleText(o.lo)}–${scaleText(o.hi)}`;
-      const none = o.vals.every((v) => v === null || !Number.isFinite(v));
-      return `<div class="fc-rl" ${at}><span>${esc(t(`fc.row.${id}` as Key))}</span><em>${unit ? `${esc(unit)} · ` : ''}${esc(sc)}${none ? ` ${esc(t('fc.noRow'))}` : ''}</em></div>`;
+      return `<div class="fc-rl" ${at}><span>${esc(t(`fc.row.${id}` as Key))}</span><em>${unit ? `${esc(unit)} · ` : ''}${esc(sc)}</em></div>`;
     })
     .join('');
 }
