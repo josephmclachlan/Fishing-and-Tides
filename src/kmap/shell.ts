@@ -834,7 +834,7 @@ export function mountKineticMap(d: KmDeps) {
     const bt = bestWindow();
     const lv = r.level === null ? 'n' : r.level;
     // The score beside the word only where the big number is not already it (as the forecast hero).
-    const rs = r.score === null || r.activity === 'fish' || r.activity === 'swim' ? '' : r.activity === 'surf' ? `${n1(r.score)}<small>/10</small>` : `${n0(r.score)}<small>/100</small>`;
+    const rs = r.score === null || r.activity === 'fish' || r.activity === 'swim' ? '' : `${n0(r.score)}<small>/100</small>`;
     // The words line under the number (mockup G: "Waist to chest high, clean"): the forecast hero's own words.
     const words = sentence(heroWords(r, { plan: planFor(S.act, s), ms: t0 }));
     return `<article class="k-scard k-lv${lv}" aria-label="${esc(titleCase(s.name))}">

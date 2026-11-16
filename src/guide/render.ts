@@ -377,7 +377,8 @@ function statusBadges(s: Species, lang: Lang): string {
   if (st?.iucn && st.iucn !== 'NE' && !(ban && THREAT.has(st.iucn))) out.push(`<span class="gd-b iucn i-${st.iucn}">${esc(tx(IUCN_WORDS[st.iucn], lang))}</span>`);
   if (st?.cites) out.push(`<span class="gd-b prot">${icon(ICONS.shield)}CITES ${esc(st.cites)}</span>`);
   if (st?.origin === 'invasive' || st?.origin === 'introduced') out.push(`<span class="gd-b introd">${esc(t('gd.flag.introduced'))}</span>`);
-  if (s.check) out.push(`<span class="gd-b chk" title="${esc(t('gd.checkTitle'))}">${icon(ICONS.check)}${esc(t('gd.check'))}</span>`);
+  // No "Not confirmed" here: it read as if the species itself were unconfirmed (snook). It sits beside the line
+  // that needs checking instead (Joseph 2026-11-16).
   return out.length ? `<div class="gd-badges">${out.join('')}</div>` : '';
 }
 
@@ -478,7 +479,7 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
     case 'sources':
       return (
         block(t('gd.h.local'), s.recWhy ? `<p>${esc(s.recWhy)}${s.recCheck ? checkMark() : ''}</p>` : '') +
-        block(t('gd.h.check'), pText(s.check, lang), 'gd-chk') +
+        block(t('gd.h.check'), txt(s.check, lang) ? `<p>${checkMark().trim()} ${esc(txt(s.check, lang))}</p>` : '', 'gd-chk') +
         block(t('gd.h.evidence'), s.evidence?.length ? `<ul class="gd-ev">${s.evidence.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '') +
         block(
           t('gd.h.sources'),

@@ -2,7 +2,7 @@
  * BREAK rows in the side panel from the coast tier in (PLAN 6.4): the nearest catalog break within
  * 1.5 km of the reticle, its type and the way it faces, its hazards, and a CHECK tag when the guides
  * disagree or only one covers it. INFO opens a card with the guides it came from. The SURF row is
- * the surf model's rating (PLAN 6.3): band, score out of 10 and the wind relative to the shore.
+ * the surf model's rating (PLAN 6.3): band, score out of 100 and the wind relative to the shore.
  */
 import { condSlot } from './cond-groups';
 import type { Map } from 'maplibre-gl';
@@ -65,7 +65,7 @@ export function mountSurfHud(root: HTMLElement, map: Map, quality: (name: string
     $('sb-info').hidden = !hit;
     const q = hit ? quality(hit.name) : undefined;
     const qEl = $('sb-q');
-    qEl.textContent = q ? `${t(`surf.band.${q.band}` as Key)} ${q.score.toFixed(1)} · ${t(`surf.wind.${q.windKind}` as Key)}` : '--';
+    qEl.textContent = q ? `${t(`surf.band.${q.band}` as Key)} ${Math.round(q.score * 10)}/100 · ${t(`surf.wind.${q.windKind}` as Key)}` : '--';
     const cl = q?.factors.clean;
     const sEl = $('sb-surf');
     sEl.textContent = cl === undefined ? '--' : t(cl >= 0.9 ? 'surf.clean.ok' : cl >= 0.7 ? 'surf.clean.mixed' : 'surf.clean.messy');

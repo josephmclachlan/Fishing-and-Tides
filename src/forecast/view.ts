@@ -163,7 +163,7 @@ export interface HeroView {
   words: string;
   level: Level | null;
   word: string;
-  /** The score on its own scale where the headline is not already it: "6.8/10" (surf), "72/100" (snorkel, dive, sail). */
+  /** The score on its own scale where the headline is not already it: "68/100" (surf, snorkel, dive, sail). */
   score: string | null;
   /** The rating bar: 0..10 segments filled (the score's share of its scale × 10). */
   segs: number;
@@ -171,7 +171,7 @@ export interface HeroView {
 }
 export function heroView(r: FcRead, ctx: Pick<ViewCtx, 'plan' | 'ms'>): HeroView {
   const hl = headline(r);
-  const score = r.score === null ? null : r.activity === 'surf' ? `${n1(r.score)}/10` : r.activity === 'fish' || r.activity === 'swim' ? null : `${n0(r.score)}/100`;
+  const score = r.score === null ? null : r.activity === 'fish' || r.activity === 'swim' ? null : `${n0(r.score)}/100`;
   return {
     label: t(`fc.metric.${r.activity}` as Key), value: hl.value, unit: hl.unit, words: heroWords(r, ctx),
     level: r.level, word: levelWord(r), score, segs: r.share === null ? 0 : Math.max(0, Math.min(10, r.share * 10)), reasons: reasons(r),

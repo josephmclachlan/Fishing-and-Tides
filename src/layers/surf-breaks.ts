@@ -30,7 +30,7 @@ export function breakFeatures(quality: (name: string) => SurfQuality | undefined
     type: 'FeatureCollection',
     features: SURF_BREAKS.map((b) => {
       const q = quality(b.name);
-      const rating = q ? `\n${t(`surf.band.${q.band}` as Key)} ${q.score.toFixed(1)}` : '';
+      const rating = q ? `\n${t(`surf.band.${q.band}` as Key)} ${Math.round(q.score * 10)}/100` : '';
       return {
         type: 'Feature',
         properties: { name: b.name, label: SPOT_NAMES.has(b.name.toUpperCase()) ? '' : breakLabel(b, false), detail: breakLabel(b, true) + rating, check: b.confidence === 'check', band: q?.band ?? 'NONE' },
