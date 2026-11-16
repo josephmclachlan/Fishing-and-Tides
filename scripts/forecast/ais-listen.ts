@@ -4,7 +4,7 @@
  */
 import { applyAisMessage, type Vessel } from '../../src/adapters/ais-parse.ts';
 
-export async function listenAis(box: readonly [readonly [number, number], readonly [number, number]], seconds: number, table: Map<number, Vessel>): Promise<{ heard: number; positions: number }> {
+export async function listenAis(box: readonly [readonly [number, number], readonly [number, number]], seconds: number, table: Map<number, Vessel>, opts: { noFilter?: boolean } = {}): Promise<{ heard: number; positions: number }> {
   const key = process.env.AISSTREAM_API_KEY;
   if (!key) throw new Error('AISSTREAM_API_KEY is not set');
   const [[w, s], [e, n]] = box;
@@ -17,7 +17,7 @@ export async function listenAis(box: readonly [readonly [number, number], readon
     ws.addEventListener('open', () => {
       opened = true;
       // AISStream wants [lat, lon] corners and the subscription within 3 s of connecting.
-      ws.send(JSON.stringify({ APIKey: key, BoundingBoxes: [[[s, w], [n, e]]], FilterMessageTypes: ['PositionReport', 'StandardClassBPositionReport', 'ShipStaticData'] }));
+      ws.send(JSON.stringify({ APIKey: key, BoundingBoxes: [[[s, w], [n, e]]], ...(opts.noFilter ? {} : { FilterMessageTypes: ['PositionReport', 'StandardClassBPositionReport', 'ShipStaticData'] }) }));
     });
     ws.addEventListener('message', async (ev) => {
       try {

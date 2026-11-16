@@ -1,5 +1,5 @@
 /**
- * Map work that waits until the map is first shown (PLAN 7.101). The forecast page is the app's main page and covers
+ * Map work that waits until the map is first shown (PLAN 7.102). The forecast page is the app's main page and covers
  * the map, so drawing work done for the map at start-up (sea images, circled zones, crest lines, rip shading) only
  * slowed the forecast down. The feeds still load once, at start-up, for both pages; only what turns them into map
  * drawings waits here, and runs when the map first opens, one job per task so the map stays responsive.

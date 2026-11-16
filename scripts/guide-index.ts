@@ -51,6 +51,22 @@ function readLook(id: string): Look | undefined {
   }
 }
 
+/** The edibility recheck (research/edible/out/<id>.json): only its food and safety fields, laid over the species. */
+const EDIBLE_FIELDS = ['edible', 'edibleNote', 'edibleScope', 'eat', 'danger', 'sources', 'check'] as const;
+function readEdible(id: string): Partial<Species> | undefined {
+  const f = join(SRC, 'research', 'edible', 'out', `${id}.json`);
+  if (!existsSync(f)) return undefined;
+  try {
+    const r = JSON.parse(readFileSync(f, 'utf8')) as Partial<Species>;
+    const out: Record<string, unknown> = {};
+    for (const k of EDIBLE_FIELDS) if (r[k] !== undefined && r[k] !== null) out[k] = r[k];
+    return out as Partial<Species>;
+  } catch {
+    problems.push(`edible/out/${id}.json does not parse`);
+    return undefined;
+  }
+}
+
 const SRC = process.argv[2] ?? process.env.GUIDE_SRC ?? '/mnt/project-files/species-guide';
 const OUT = join(import.meta.dirname, '..', 'public', 'data', 'guide');
 const ID = /^[a-z0-9-]{1,80}$/;
@@ -68,6 +84,7 @@ const list: Species[] = [];
 const problems: string[] = [];
 let dropped = 0;
 let guessed = 0;
+let recheck = 0;
 for (const f of readdirSync(outDir).filter((n) => n.endsWith('.json')).sort()) {
   const id = f.slice(0, -5);
   let s: Species;
@@ -80,6 +97,11 @@ for (const f of readdirSync(outDir).filter((n) => n.endsWith('.json')).sort()) {
   if (s.tier === 'drop') {
     dropped++;
     continue;
+  }
+  const edited = readEdible(id);
+  if (edited) {
+    Object.assign(s, edited);
+    recheck++;
   }
   if (!ID.test(id) || s.id !== id) problems.push(`${f}: id "${s.id}" does not match the file name`);
   else if (s.tier !== 'full' && s.tier !== 'list') problems.push(`${f}: tier "${s.tier}"`);
@@ -138,7 +160,7 @@ writeFileSync(join(OUT, 'index.json'), JSON.stringify(index));
 
 const full = kept.filter((s) => s.tier === 'full').length;
 console.log(
-  `guide: ${kept.length} species (${full} full, ${kept.length - full} also recorded), ${thumbs.size} with photos, ${dropped} dropped, ${guessed} looks guessed from text, ${removed} stale files removed; ` +
+  `guide: ${kept.length} species (${full} full, ${kept.length - full} also recorded), ${thumbs.size} with photos, ${dropped} dropped, ${guessed} looks guessed from text, ${recheck} edibility rechecks, ${removed} stale files removed; ` +
     `index ${(statSync(join(OUT, 'index.json')).size / 1024).toFixed(0)} KB`,
 );
 if (problems.length) console.warn(`${problems.length} problem(s):\n  ${problems.join('\n  ')}`);
