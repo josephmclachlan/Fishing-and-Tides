@@ -26,6 +26,7 @@
  */
 import { trapezoid } from './habitat';
 import { softFit } from './water';
+import type { CiguaTier } from './cigua';
 
 export type OffshoreId = 'mahi' | 'tuna' | 'wahoo' | 'kingfish' | 'silksnapper' | 'sailfish' | 'marlin';
 type Range = readonly [number, number, number, number];
@@ -40,14 +41,16 @@ export interface OffshoreSpecies {
   chl: Range;
   /** Term weights (missing = 0). */
   w: Partial<Record<Term, number>>;
+  /** Ciguatera tier (fishing/cigua.ts), as for the shore fish: shown in the fish panel's BOAT FISH rows and the BOAT drawer. */
+  ciguatera?: CiguaTier;
 }
 
 export const OFFSHORE: readonly OffshoreSpecies[] = [
   { id: 'mahi', mode: 'eat', depthM: [30, 150, 5000, 8000], sstC: [21, 24, 29, 31], chl: [0.03, 0.1, 0.6, 2], w: { front: 0.35, weed: 0.3, temp: 0.2, chl: 0.15, mix: 0.15 } },
   { id: 'tuna', mode: 'eat', depthM: [80, 300, 5000, 8000], sstC: [22, 24, 29, 31], chl: [0.03, 0.1, 0.6, 2], w: { front: 0.45, temp: 0.3, chl: 0.25, mix: 0.2 } },
-  { id: 'wahoo', mode: 'eat', depthM: [40, 100, 1000, 3000], sstC: [22, 24, 28, 30], chl: [0.03, 0.1, 0.6, 2], w: { front: 0.35, drop: 0.3, temp: 0.2, chl: 0.15, mix: 0.15 } },
-  { id: 'kingfish', mode: 'eat', depthM: [8, 20, 60, 120], sstC: [21, 23, 28, 30], chl: [0.1, 0.3, 3, 8], w: { front: 0.35, temp: 0.3, chl: 0.2, drop: 0.15, mix: 0.1 } },
-  { id: 'silksnapper', mode: 'eat', depthM: [60, 100, 250, 350], sstC: [0, 0, 99, 99], chl: [0, 0, 99, 99], w: { drop: 1 } },
+  { id: 'wahoo', mode: 'eat', depthM: [40, 100, 1000, 3000], sstC: [22, 24, 28, 30], chl: [0.03, 0.1, 0.6, 2], w: { front: 0.35, drop: 0.3, temp: 0.2, chl: 0.15, mix: 0.15 }, ciguatera: 'rare' },
+  { id: 'kingfish', mode: 'eat', depthM: [8, 20, 60, 120], sstC: [21, 23, 28, 30], chl: [0.1, 0.3, 3, 8], w: { front: 0.35, temp: 0.3, chl: 0.2, drop: 0.15, mix: 0.1 }, ciguatera: 'listed' },
+  { id: 'silksnapper', mode: 'eat', depthM: [60, 100, 250, 350], sstC: [0, 0, 99, 99], chl: [0, 0, 99, 99], w: { drop: 1 }, ciguatera: 'listed' },
   { id: 'sailfish', mode: 'sport', depthM: [30, 100, 2000, 5000], sstC: [23, 25, 29, 31], chl: [0.03, 0.1, 0.5, 1.5], w: { front: 0.35, temp: 0.3, chl: 0.2, mix: 0.15 } },
   { id: 'marlin', mode: 'sport', depthM: [200, 1000, 6000, 8000], sstC: [24, 26, 30, 32], chl: [0.02, 0.05, 0.3, 1], w: { front: 0.35, temp: 0.3, chl: 0.2, drop: 0.15, mix: 0.1 } },
 ];

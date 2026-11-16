@@ -4,6 +4,8 @@
  * see sheets.ts, so on a phone it slides over the map like the others). The map layer is in
  * layers/boat.ts.
  */
+import { OFFSHORE } from './fishing/offshore';
+import { strictestCm } from './fishing/cigua';
 import type { Map } from 'maplibre-gl';
 import { UI } from './icons/ui';
 import { mldLevel } from './adapters/mld';
@@ -76,6 +78,7 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     <div class="ro"><span class="lbl">${t('boat.charts')}</span><span class="seg sm"><a class="rule-src" href="https://map.openseamap.org/?zoom=11&lat=${REGION.center[1]}&lon=${REGION.center[0]}" target="_blank" rel="noopener noreferrer">${t('boat.charts.osm')}</a> · <a class="rule-src" href="https://www.noonsite.com/destinations/costa-rica/" target="_blank" rel="noopener noreferrer">${t('boat.charts.noonsite')}</a></span></div>
     <ul class="nw-list" id="b-nw-list" title="${t('boat.notices.src')}"></ul>
     <div class="ro"><span class="lbl">${t('boat.offshore')}</span><span class="seg sm" id="b-off">--</span></div>
+    <div class="ro" id="b-off-cig" hidden><span class="lbl"></span> <a class="cig-link" href="#ciguatera">${t('fish.ciguateraMore')}</a></div>
     <div class="ro"><span class="lbl">${t('route.title')}</span><span class="seg sm" id="rt-leg">--</span></div>
     <div class="ro"><span class="lbl">${t('route.time')}</span><span class="seg sm" id="rt-eta">--</span></div>
     <div class="ro"><span class="lbl">${t('route.sail')}</span><span class="seg sm" id="rt-sail">--</span></div>
@@ -182,6 +185,13 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     $('b-front').textContent = !o ? '--' : o.front ? `${o.front.km.toFixed(1)} ${t('unit.km')} ${COMPASS[Math.round(o.front.bearingDeg / 45) % 8]} · ${t(`boat.front.${o.front.kind}` as Key)}` : t('boat.front.none');
     $('b-mld').textContent = !o || o.mldM === null ? '--' : `${Math.round(o.mldM)} ${t('unit.m')} · ${t(`boat.mld.${mldLevel(o.mldM)}` as Key)}`;
     $('b-off').innerHTML = !o || !o.scores.length ? '--' : o.scores.slice(0, 2).map((s) => `<span class="${s.score >= 0.6 ? 'green' : ''}">${t(`boat.sp.${s.id}` as Key)} ${Math.round(s.score * 100)}</span>`).join(' · ');
+    // Ciguatera for the boat fish shown (fishing/cigua.ts): the size to keep, the same as the fish panel and the guide.
+    const cig = (o?.scores.slice(0, 2) ?? []).flatMap((x) => {
+      const tier = OFFSHORE.find((f) => f.id === x.id)?.ciguatera, name = t(`boat.sp.${x.id}` as Key), cm = strictestCm(x.id);
+      return !tier ? [] : tier !== 'rare' && cm ? [t('boat.cig', { name, cm })] : [t('boat.cig.rare', { name })];
+    });
+    $('b-off-cig').hidden = !cig.length;
+    $('b-off-cig').querySelector('.lbl')!.textContent = cig.join('. ');
     renderRoute();
     $('b-list').innerHTML = s.pins
       .slice(-5)

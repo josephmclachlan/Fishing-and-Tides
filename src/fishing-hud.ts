@@ -22,6 +22,8 @@ import { bestWindows, bite, type BiteReason, type BiteWx } from './fishing/bite'
 import { waterTerm, type WaterInputs } from './fishing/water';
 import { catchStats, MIN_CATCHES, type CatchPin } from './fishing/catches';
 import { speciesById } from './fishing/species';
+import { OFFSHORE } from './fishing/offshore';
+import { ciguaBoatHtml, ciguaNoteHtml } from './fishing/cigua-note';
 import { LIMON_HARMONICS } from './data/tides-limon';
 import { localDayStart } from './physics/astro';
 import { clock } from './astro-hud';
@@ -76,12 +78,11 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
         <button type="button" class="tab" id="fish-prev" aria-label="${t('fish.prev')}">${UI.prev}</button>
         <span class="seg sm green" id="fish-sp">--</span>
         <button type="button" class="tab" id="fish-next" aria-label="${t('fish.next')}">${UI.next}</button></div>
-      <div class="ro" id="fish-warn" hidden><span class="lbl red">${t('fish.ciguatera')}</span> <a class="cig-link" href="#ciguatera">${t('fish.ciguateraMore')}</a></div>
-      <div class="ro" id="fish-size" hidden><span class="lbl">${t('fish.ciguateraSize')}</span> <a class="cig-link" href="#ciguatera">${t('fish.ciguateraMore')}</a></div>
-      <div class="ro" id="fish-care" hidden><span class="lbl">${t('fish.ciguateraCare')}</span> <a class="cig-link" href="#ciguatera">${t('fish.ciguateraMore')}</a></div>
+      <div class="ro fish-cig" id="fish-cig" hidden></div>
       <div class="ro" id="fish-low" hidden><span class="lbl" id="fish-low-t">${t('fish.low')}</span></div>
       <div class="ro" id="fish-hand" hidden><span class="lbl">${t('fish.byhand')}</span></div>
       <div class="ro fish-reach"><span class="lbl">${t('fish.reach')}</span><span class="seg sm" id="fish-reach">${REACHES.map((r) => `<button type="button" class="tab" data-reach="${r}">${t(`fish.reach.${r}` as Key)}</button>`).join('')}</span></div>
+      <div class="ro fish-cig" id="fish-cig-boat" hidden></div>
       <div class="ro"><span class="lbl">${t('fish.score')}</span><span class="seg sm green" id="fish-score">--</span></div>
       <div class="ro"><span class="lbl">${t('fish.bite')}</span><span class="seg sm green" id="fish-bite">--</span></div>
       <div class="ro fish-bite-why" hidden><span class="lbl">${t('fish.biteWhy')}</span><span class="seg sm" id="fish-bite-why"></span></div>
@@ -104,13 +105,21 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
   const month = () => new Date(time.validMs()).getUTCMonth();
   let queued = false;
   let heavyKey = '';
+  let cigKey = '';
   const update = () => {
     queued = false;
     const sp = SPECIES[i];
     $('fish-sp').textContent = t(`fish.${sp.id}` as Key);
-    $('fish-warn').hidden = sp.ciguatera !== true;
-    $('fish-care').hidden = sp.ciguatera !== 'caution';
-    $('fish-size').hidden = sp.ciguatera !== 'size';
+    // Ciguatera (fishing/cigua.ts): the picked fish, and with the boat in reach the mode's boat fish that carry it.
+    if (cigKey !== `${sp.id}|${reach}`) {
+      cigKey = `${sp.id}|${reach}`;
+      const cig = ciguaNoteHtml(sp.id, sp.ciguatera);
+      $('fish-cig').innerHTML = cig;
+      $('fish-cig').hidden = !cig;
+      const boatCig = reach === 'shore' ? '' : ciguaBoatHtml(OFFSHORE.filter((o) => o.mode === sp.mode && o.ciguatera).map((o) => o.id));
+      $('fish-cig-boat').innerHTML = boatCig;
+      $('fish-cig-boat').hidden = !boatCig;
+    }
     $('fish-low').hidden = sp.confidence !== 'low';
     $('fish-low-t').textContent = t(sp.noLocalRecord ? (`fish.low.${sp.id}` as Key) : 'fish.low');
     $('fish-hand').hidden = !sp.byHand;
