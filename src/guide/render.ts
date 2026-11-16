@@ -22,6 +22,10 @@ import { bandText, depthLines, pips, sizeMain, sizeMax, timesText, weightText } 
 export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 export const icon = (body: string, cls = '') => `<svg viewBox="0 0 24 24" aria-hidden="true"${cls ? ` class="${cls}"` : ''}>${body}</svg>`;
 
+/** A link from a ciguatera warning to the CIGUATERA page (PLAN 7.99). */
+const ciguateraLink = (risks: readonly string[]): string =>
+  risks.includes('ciguatera') ? `<p><a class="cig-link" href="#ciguatera">${esc(t('gd.ciguateraLink'))}</a></p>` : '';
+
 export const ICONS = {
   all: '<rect x="4" y="4" width="6.5" height="6.5"/><rect x="13.5" y="4" width="6.5" height="6.5"/><rect x="4" y="13.5" width="6.5" height="6.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5"/>',
   edible: '<path d="M7 3v8M4.5 3v5a2.5 2.5 0 0 0 5 0V3M7 11v10"/><path d="M17 21V3c-2.5 1.5-3.5 4-3.5 8h3.5"/>',
@@ -239,7 +243,7 @@ export function introHtml(mode: GdMode): string {
   if (mode === 'edible')
     return `<div class="gd-intro"><aside class="gd-eat"><h3>${icon(ICONS.edible)}${esc(t('gd.eat.title'))}</h3><ul>${(['cigua', 'scombroid', 'shellfish', 'rules'] as const)
       .map((k) => `<li>${esc(t(`gd.eat.${k}`))}</li>`)
-      .join('')}</ul></aside></div>`;
+      .join('')}</ul><p><a class="cig-link" href="#ciguatera">${esc(t('gd.ciguateraLink'))}</a></p></aside></div>`;
   return '';
 }
 
@@ -376,7 +380,7 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
           .filter(([, v]) => txt(v, lang))
           .map(([k, v]) => `<dt>${esc(t(k))}</dt><dd>${esc(txt(v, lang))}</dd>`)
           .join('')}</dl>` +
-        (e.risks?.length ? block(t('gd.h.eatRisk'), chips(e.risks.map((r) => tx(RISK_WORDS[r], lang))) + pText(e.riskNote, lang), 'gd-warn') : '')
+        (e.risks?.length ? block(t('gd.h.eatRisk'), chips(e.risks.map((r) => tx(RISK_WORDS[r], lang))) + pText(e.riskNote, lang) + ciguateraLink(e.risks), 'gd-warn') : '')
       );
     }
     case 'clean':
@@ -388,7 +392,7 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
           ? `<section class="gd-blk gd-dz lv${d.level}"><h4 class="fc-mono">${esc(t('gd.h.danger'))} · ${esc(tx(LEVEL_WORDS[d.level], lang))}</h4>${chips(d.kinds.map((k) => tx(KIND_WORDS[k], lang)))}${pText(d.what, lang)}</section>` +
             block(t('gd.h.firstAid'), pText(d.firstAid, lang), 'gd-aid')
           : '') +
-        (e?.risks?.length ? block(t('gd.h.eatRisk'), chips(e.risks.map((r) => tx(RISK_WORDS[r], lang))) + pText(e.riskNote, lang), 'gd-warn') : '') +
+        (e?.risks?.length ? block(t('gd.h.eatRisk'), chips(e.risks.map((r) => tx(RISK_WORDS[r], lang))) + pText(e.riskNote, lang) + ciguateraLink(e.risks), 'gd-warn') : '') +
         block(t('gd.h.edible'), (s.edible ? `<p><b>${esc(tx(EDIBLE_WORDS[s.edible], lang))}</b></p>` : '') + pText(s.edibleNote, lang)) +
         (d || s.edible === 'toxic' || e?.risks?.length ? sosHtml() : '')
       );
