@@ -68,3 +68,16 @@ describe('chart geometry', () => {
     expect(segments('ikejime').map((x) => x.grade)).toEqual(['raw', 'good']);
   });
 });
+
+import { METHODS as METHOD_TEXT } from './content';
+import { ART_MARKS, methodArt } from './art';
+describe('method drawings', () => {
+  it('has one drawing per method with a numbered badge for each mark in its list', () => {
+    for (const m of METHOD_TEXT) {
+      const svg = methodArt(m.id);
+      expect(m.marks.length).toBe(ART_MARKS[m.id]);
+      for (let n = 1; n <= m.marks.length; n++) expect(svg).toContain(`>${n}</text>`);
+      expect(svg).not.toContain(`>${m.marks.length + 1}</text>`);
+    }
+  });
+});
