@@ -343,6 +343,14 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     const k = SPECIES.findIndex((s) => s.id === id);
     if (k >= 0 && k !== i) ((i = k), apply());
   };
+  /** A fish picked from the map's fish menu under its EAT or SPORT heading: that fish, in that mode (permit is in both). */
+  const pick = (id: SpeciesId, m?: FishMode) => {
+    const k = SPECIES.findIndex((s) => s.id === id);
+    if (k < 0) return;
+    if (m && m !== mode && SPECIES[k].modes.includes(m)) ((lastOf[mode] = SPECIES[i].id), (mode = m));
+    i = k;
+    apply();
+  };
   /** ALL, SHORE or BOAT from outside (the map's switch over the fish map). */
   const setReach = (r: Reach) => {
     if (r !== reach && REACHES.includes(r)) ((reach = r), apply());
@@ -389,5 +397,5 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     return { id: sp.id, name: t(`fish.${sp.id}` as Key), bite: lastBite, wins: lastWins, strip: lastStrip, spots: lastRows, cig: sp.ciguatera ? { tier: sp.ciguatera, cm: strictestCm(sp.id) } : null };
   };
   const flyTo = (lng: number, lat: number) => map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 12.5), duration: 1200 });
-  return { scoreCatch, refresh: queue, setSpecies, setMode, mode: () => mode, setReach, reach: () => reach, step, info, flySpot, spearInfo, setSpearTarget, flyTo };
+  return { scoreCatch, refresh: queue, setSpecies, pick, setMode, mode: () => mode, setReach, reach: () => reach, step, info, flySpot, spearInfo, setSpearTarget, flyTo };
 }

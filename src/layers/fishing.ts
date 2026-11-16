@@ -171,7 +171,8 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     const ring = zoneRing(z, 48, isWater);
     // The name just outside the oval on the open-sea side, clear of the beach and its rating tiles.
     const lab = zoneLabel(z, ring, isWater);
-    const props = { lv: z.level, far: far ? 1 : 0, nearly: nearly ? 1 : 0, sp: names, where, anchor: lab.anchor, off: ANCHOR_OFFSET[lab.anchor] };
+    // `ids` (|snook|tarpon|) lets the picked fish's zones stand out (`emphasise`) without rebuilding them.
+    const props = { lv: z.level, far: far ? 1 : 0, nearly: nearly ? 1 : 0, sp: names, ids: `|${z.species.join('|')}|`, where, anchor: lab.anchor, off: ANCHOR_OFFSET[lab.anchor] };
     return [
       { type: 'Feature' as const, properties: props, geometry: { type: 'Polygon' as const, coordinates: [ring] } },
       { type: 'Feature' as const, properties: props, geometry: { type: 'Point' as const, coordinates: lab.at } },
@@ -297,7 +298,12 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   const heatWord = (v: number) => (v === v ? heatWords[bandOf(HEAT_STEPS, v)] : 0);
   const heatImage = () => {
     heatZ.set(heatBase);
-    const inMode = speciesIn(mode);
+    // The picked fish's water (Joseph 2026-11-16: the picker has to show on the map), or every fish of the mode when the
+    // picked one has no water within reach (a boat fish, or out of season).
+    const all = speciesIn(mode);
+    const one = all.filter((x) => x.id === sp.id);
+    const has = one.length > 0 && seasonFactor(one[0], month) > 0 && built.cells.some((c, i) => inReach(c.coastM) && (geojson.features[i].properties as Record<string, number>)[sp.id] >= 0.3);
+    const inMode = has ? one : all;
     const season = inMode.map((x) => seasonFactor(x, month));
     for (const [i, c] of built.cells.entries()) {
       const p = geojson.features[i].properties as Record<string, number>;
@@ -317,24 +323,55 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     return cv.toDataURL('image/png');
   };
   let heatKey = '';
+  /**
+   * The fish picked in the FISH bar stands out (Joseph 2026-11-16: "I cycle through fish and see nothing change"): every
+   * fish of the mode stays circled (Joseph 2026-11-11), but the picked fish's zones keep full colour and their names are
+   * placed first, while the rest step back to a faint outline.
+   */
+  const emphasise = () => {
+    if (!map.getLayer('fh-zone-fill')) return;
+    const hit: ExpressionSpecification = ['in', `|${sp.id}|`, ['get', 'ids']];
+    const fade = (on: number, off: number): ExpressionSpecification => ['interpolate', ['linear'], ['zoom'], ZONE_Z, 0, ZONE_Z + 0.5, ['case', hit, on, off]];
+    map.setPaintProperty('fh-zone-fill', 'fill-opacity', fade(0.42, 0.06));
+    map.setPaintProperty('fh-zone-line', 'line-opacity', fade(1, 0.3));
+    map.setPaintProperty('fh-zone-far', 'line-opacity', fade(1, 0.3));
+    map.setPaintProperty('fh-zone-nearly', 'line-opacity', fade(0.9, 0.25));
+    map.setPaintProperty('fh-zone-label', 'text-opacity', ['case', hit, 1, 0.4]);
+    map.setLayoutProperty('fh-zone-label', 'symbol-sort-key', ['-', ['*', 10, ['get', 'nearly']], ['+', ['get', 'lv'], ['case', hit, 100, 0]]]);
+  };
+  // Baked heat per month, reach, catches, mode and fish: cycling back through the fish is instant. A new bake waits a frame,
+  // so the bar answers the tap first, and a quick run of taps bakes only the fish it stops on.
+  const heatCache = new globalThis.Map<string, { url: string; coordinates: SeaImage['coordinates'] }>();
+  let bakeTimer = 0;
   const paint = () => {
-    const key = `${month}|${reach}|${catchKey}|${mode}`;
+    const key = `${month}|${reach}|${catchKey}|${mode}|${sp.id}`;
     if (key === heatKey || !map.getSource('fh-heat')) return;
     heatKey = key;
-    const img = heatImage();
-    (map.getSource('fh-heat') as ImageSource).updateImage({ url: heatUrl(img), coordinates: img.coordinates });
+    const show = (h: { url: string; coordinates: SeaImage['coordinates'] }) => (map.getSource('fh-heat') as ImageSource | undefined)?.updateImage(h);
+    const hit = heatCache.get(key);
+    if (hit) return void show(hit);
+    window.clearTimeout(bakeTimer);
+    bakeTimer = window.setTimeout(() => {
+      if (key !== heatKey) return;
+      const img = heatImage();
+      const h = { url: heatUrl(img), coordinates: img.coordinates };
+      if (heatCache.size >= 24) heatCache.clear();
+      heatCache.set(key, h);
+      show(h);
+    }, 120);
   };
   // A light/dark switch re-bakes the heat in the new ramp and lift; the zones' colours and opacities are swapped by schemeSwap.
   onSchemeChange(() => {
     L = paintLift('strong');
     heatWords = makeHeatWords(readHeatStops());
     heatKey = '';
+    heatCache.clear();
     paint();
   });
   const add = () => {
     if (map.getSource('fh-heat')) return;
     const img = heatImage();
-    heatKey = `${month}|${reach}|${catchKey}|${mode}`;
+    heatKey = `${month}|${reach}|${catchKey}|${mode}|${sp.id}`;
     map.addSource('fh-heat', { type: 'image', url: heatUrl(img), coordinates: img.coordinates });
     // Fades in past the coast tier and steps back to a tint by the spot tier, where the zones and the reefs carry the detail.
     // Zoomed in it stays strong enough to read which water is better (PLAN 7.85).
@@ -367,6 +404,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
       },
       paint: { 'text-color': ['case', ['==', ['get', 'nearly'], 1], css('--ink2', '#46576C'), css('--ink', '#0A1626')], 'text-halo-color': css('--m-halo', '#ECEADF'), 'text-halo-width': 1.8 },
     });
+    emphasise();
     // SPEAR: the cells (green), the banned water that would be good (red), the CHECK water (dashed amber) and the circled zones.
     buildSpear();
     map.addSource('sp', { type: 'geojson', data: spearGj });
@@ -510,6 +548,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     setSpecies(id) {
       sp = speciesById(id);
       paint();
+      emphasise();
     },
     setMode(m) {
       if (m === mode) return;

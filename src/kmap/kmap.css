@@ -660,6 +660,17 @@
 .km .k-fishsw .k-fpick{display:flex;align-items:center;height:36px;background:var(--c-card);box-shadow:0 1px 3px rgba(0,0,0,.18);border-radius:2px}
 .km .k-fishsw .k-fpick b{min-width:76px;text-align:center;font-family:var(--disp);font-weight:800;font-variation-settings:"wdth" 78;font-size:16px;text-transform:uppercase;padding:0 2px;color:var(--ink)}
 .km .k-fishsw .k-fpick button{appearance:none;cursor:pointer;border:0;background:none;width:36px;height:36px;font-size:20px;font-weight:700;color:var(--ink)}
+.km .k-fishsw .k-fpick .k-fname{width:auto;display:flex;align-items:center;gap:3px;padding:0 4px;border-left:1px solid var(--c-grid2);border-right:1px solid var(--c-grid2)}
+.km .k-fishsw .k-fpick .k-fname svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.6}
+.km .k-fmh{margin:14px 0 6px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.km .k-fmh:first-child{margin-top:2px}
+.km .k-fmenu{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:6px}
+.km .k-fmtile{appearance:none;cursor:pointer;width:100%;min-height:52px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;padding:8px 10px;text-align:left;background:var(--c-card);color:var(--ink);border:1px solid var(--c-grid2);border-radius:2px}
+.km .k-fmtile b{font-family:var(--disp);font-weight:800;font-variation-settings:"wdth" 78;font-size:16px;line-height:1.05;text-transform:uppercase}
+.km .k-fmtile small{font-family:var(--mono);font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2)}
+.km .k-fmtile small.k-fmwarn{color:var(--sev-danger,var(--ink2))}
+.km .k-fmtile.k-on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.km .k-fmtile.k-on small{color:inherit;opacity:.8}
 .km .k-fishsw .k-fchip{appearance:none;cursor:pointer;border:0;height:36px;display:flex;align-items:center;gap:6px;padding:0 11px;background:var(--c-card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.18);border-radius:2px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
 .km .k-fishsw .k-fchip svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.6}
 .km .k-fishsw .k-fchip.k-fbest{background:var(--ink);color:var(--bg)}
