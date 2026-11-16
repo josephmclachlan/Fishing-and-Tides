@@ -195,7 +195,7 @@ Built last, once Phases 2 to 6 are in. Each reuses the adapters, the layer regis
 - [x] 7.130 Field notes visual, part 1 (Joseph 2026-11-16: "these are literally just walls of text ... fill every single one of these sections with graphics, images, animations"): visual blocks (`src/notes/vis.ts`: step flows, pictogram tiles, drawings with numbered marks, big numbers, tap-to-call, bars, side-by-side, illustrated cards, do and do not, heat grid), pictograms (`icons.ts`), drawings (`art/`). Water safety rebuilt first (animated rip escape, shore-break heights against an adult, depth chart, park comparison) and Surf.
   Part 1 of 4; all critical facts kept, citations still numbered in reading order, English and Spanish.
 
-- [ ] 7.131 Field notes visual, part 2: First aid as symptom-to-steps picture flows.
+- [x] 7.131 Field notes visual, part 2: First aid as symptom-to-steps picture flows.
   Part 2 of 4, builds on 7.130.
 
 - [ ] 7.132 Field notes visual, part 3: Rigs and Releasing fish as rig and knot drawings and illustrated release steps.
