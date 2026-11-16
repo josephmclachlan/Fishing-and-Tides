@@ -4,5 +4,5 @@
  * only (sailfish dropped: release-only sport fish; old sailfish pins still show). Names are
  * i18n keys `boat.sp.<id>`.
  */
-export const BOAT_SPECIES = ['snook', 'jack', 'snapper', 'mackerel', 'grouper', 'grunt', 'pompano', 'barracuda', 'lionfish', 'permit', 'bonefish', 'silksnapper', 'mahi', 'wahoo', 'kingfish', 'tuna', 'other'] as const;
+export const BOAT_SPECIES = ['snook', 'jack', 'snapper', 'mackerel', 'grouper', 'grunt', 'pompano', 'barracuda', 'lionfish', 'permit', 'bonefish', 'tarpon', 'silksnapper', 'mahi', 'wahoo', 'kingfish', 'tuna', 'other'] as const;
 export type BoatSpecies = (typeof BOAT_SPECIES)[number];

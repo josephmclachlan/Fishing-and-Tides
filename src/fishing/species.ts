@@ -9,7 +9,7 @@
  * Two modes (PLAN 7.120, Joseph 2026-11-16): EAT, fish to keep and eat (the default and the old set), and SPORT, fish to
  * catch and release (barracuda moved here: no size of it is safe to eat). A species is in exactly one mode.
  */
-export type SpeciesId = 'snook' | 'jack' | 'snapper' | 'mackerel' | 'grouper' | 'grunt' | 'pompano' | 'barracuda' | 'lionfish' | 'permit' | 'bonefish';
+export type SpeciesId = 'snook' | 'jack' | 'snapper' | 'mackerel' | 'grouper' | 'grunt' | 'pompano' | 'barracuda' | 'lionfish' | 'permit' | 'bonefish' | 'tarpon';
 
 /** EAT: fish to keep and eat. SPORT: fish to catch and release. */
 export type FishMode = 'eat' | 'sport';
@@ -79,6 +79,10 @@ export const SPECIES: readonly Species[] = [
   { id: 'barracuda', mode: 'sport', confidence: 'low', depthM: [1.5, 3, 18, 40], w: { mouth: 0.1, reef: 0.55, drop: 0.35 }, mouthReachKm: 1, season: [1, 1, 1, 0.95, 0.9, 0.85, 0.85, 0.9, 0.9, 0.95, 1, 1], water: { visM: [1.5, 4, 20, 40], sstC: [20, 24, 30, 33] }, ciguatera: true },
   // Permit (pámpano, SPORT): catch and release by custom; sand and seagrass beside reef and the surf line. About 3 records.
   { id: 'permit', mode: 'sport', confidence: 'low', depthM: [0.3, 1, 12, 25], w: { mouth: 0, reef: 0.25, drop: 0.1, sand: 0.3, grass: 0.1, surf: 0.25 }, mouthReachKm: 1, season: Array(12).fill(0.95), water: { visM: [0.5, 1.5, 15, 30], sstC: [22, 24, 30, 33] }, surfHsM: [0, 0.2, 1.5, 2.5] },
+  // Tarpon (sábalo, SPORT, PLAN 7.123): catch and release (Vulnerable, poor eating). Rolls at river mouths and along the
+  // surf line in stained water. 12 records in the occurrence box, about 3 near this coast, so RULE OF THUMB. Season from the Caribbean tarpon fishery to the
+  // north (Barra del Colorado: best January to May and September to October), kept narrow.
+  { id: 'tarpon', mode: 'sport', confidence: 'low', depthM: [0.5, 1, 10, 25], w: { mouth: 0.6, reef: 0.1, drop: 0.1, surf: 0.2 }, mouthReachKm: 1.5, season: [1, 1, 1, 1, 0.95, 0.85, 0.85, 0.9, 1, 1, 0.95, 0.95], water: { visM: [0.2, 0.5, 4, 10], sstC: [22, 25, 31, 34] } },
   // Bonefish (macabí, SPORT): shallow sand and seagrass, often near mangrove creek mouths. This coast has no wide flats
   // (the tide moves a few tens of centimetres), which is why it is rare here (about 6 records). Calm water: no surf term.
   { id: 'bonefish', mode: 'sport', confidence: 'low', depthM: [0.1, 0.3, 2, 6], w: { mouth: 0.2, reef: 0, drop: 0, sand: 0.45, grass: 0.35 }, mouthReachKm: 1, season: Array(12).fill(0.95), water: { visM: [0.5, 1.5, 15, 30], sstC: [22, 25, 31, 34] } },
