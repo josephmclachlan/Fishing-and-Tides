@@ -488,23 +488,40 @@ function mountSeen(side: HTMLElement, map: Map, ctx: () => ClarityContext | null
     stat.textContent = v ? t('clarity.seen.stat', v) : n ? String(n) : '--';
     stat.title = v ? t('clarity.seen.statTitle', v) : '';
   };
+  // LOG opens a small form under the row (it used a browser prompt, which some phones and the map shell hide).
+  const form = side.querySelector<HTMLFormElement>('#vis-form')!;
+  const input = form.querySelector<HTMLInputElement>('#vis-in')!;
+  const ask = form.querySelector<HTMLElement>('#vis-ask')!;
+  const msg = side.querySelector<HTMLElement>('#vis-msg')!;
+  let at: { lng: number; lat: number; x: ReturnType<typeof clarityAt> } | null = null;
   side.querySelector('#vis-log')!.addEventListener('click', () => {
+    if (!form.hidden) return void (form.hidden = true);
     const p = map.getCenter();
     const c = ctx();
-    const now = Date.now();
-    const x = c ? clarityAt({ ...c, ms: now }, p.lng, p.lat, undefined, undefined, { terms: true }) : null;
+    const x = c ? clarityAt({ ...c, ms: Date.now() }, p.lng, p.lat, undefined, undefined, { terms: true }) : null;
+    at = { lng: p.lng, lat: p.lat, x };
     const said = x ? `${visText(x.visM)} ${t('unit.m')} (${visText(x.visLo)}–${visText(x.visHi)})` : '--';
-    const typed = window.prompt(t('clarity.seen.ask', { app: said }));
-    if (typed === null) return;
-    const seen = parseSeen(typed);
-    if (!seen) return void window.alert(t('clarity.seen.bad'));
+    ask.textContent = t('clarity.seen.ask', { app: said });
+    msg.textContent = '';
+    input.value = '';
+    form.hidden = false;
+    input.focus();
+  });
+  form.querySelector('#vis-cancel')!.addEventListener('click', () => (form.hidden = true));
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const seen = parseSeen(input.value);
+    if (!seen || !at) return void (msg.textContent = t('clarity.seen.bad'));
+    const now = Date.now(), x = at.x;
     const app: VisApp | null = x ? { visM: x.visM, visLo: x.visLo, visHi: x.visHi, cause: x.cause, confidence: x.confidence, ...x.terms } : null;
-    store.add({ id: crypto.randomUUID?.() ?? String(now), t: now, lng: p.lng, lat: p.lat, ...seen, app });
+    store.add({ id: crypto.randomUUID?.() ?? String(now), t: now, lng: at.lng, lat: at.lat, ...seen, app });
+    form.hidden = true;
+    msg.textContent = t('clarity.seen.saved');
     show();
   });
   side.querySelector('#vis-csv')!.addEventListener('click', () => {
     const xs = store.list();
-    if (!xs.length) return void window.alert(t('clarity.seen.empty'));
+    if (!xs.length) return void (msg.textContent = t('clarity.seen.empty'));
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([seenCSV(xs)], { type: 'text/csv' }));
     a.download = `vis-seen-${new Date().toISOString().slice(0, 10)}.csv`;
@@ -526,7 +543,8 @@ export function mountClarityHud(root: HTMLElement, map: Map, ctx: () => ClarityC
   sst.insertAdjacentHTML(
     'afterend',
     `${readout(t('clarity.vis'), 'vis', t('unit.m'))}<div class="ro"><span class="lbl">${t('clarity.days')}</span><span class="seg sm" id="vis-days">--</span></div>`
-      + `<div class="ro"><span class="lbl">${t('clarity.seen')}</span><span class="seg sm" id="vis-seen"><button type="button" class="tab" id="vis-log">${t('clarity.seen.log')}</button><span id="vis-stat">--</span><button type="button" class="tab" id="vis-csv">${t('clarity.seen.csv')}</button></span></div>`,
+      + `<div class="ro"><span class="lbl">${t('clarity.seen')}</span><span class="seg sm" id="vis-seen"><button type="button" class="tab" id="vis-log">${t('clarity.seen.log')}</button><span id="vis-stat">--</span><button type="button" class="tab" id="vis-csv">${t('clarity.seen.csv')}</button></span></div>`
+      + `<form class="vis-form" id="vis-form" hidden><label class="lbl" id="vis-ask" for="vis-in"></label><input id="vis-in" class="vis-in" inputmode="decimal" autocomplete="off" enterkeyhint="done" placeholder="${t('clarity.seen.hint')}"><span class="vis-btns"><button type="submit" class="tab">${t('clarity.seen.save')}</button><button type="button" class="tab" id="vis-cancel">${t('clarity.seen.cancel')}</button></span></form><p class="lbl vis-msg" id="vis-msg" role="status"></p>`,
   );
   mountSeen(side, map, ctx);
   const el = side.querySelector<HTMLElement>('#vis')!;
