@@ -151,7 +151,7 @@ function handline(lang: Lang): string {
     hookPath(252, 84, 0.9, 1) +
     lbl(62, 130, w(lang, '30–50 m OF LINE', '30–50 m DE LÍNEA'), 'middle', 'nt-lbl') +
     lbl(142, 22, '20–40 lb · 9–18 kg', 'middle', 'nt-lbl') +
-    lbl(296, 130, w(lang, 'SINKER IF NEEDED', 'PLOMO SI HACE FALTA'), 'end', 'nt-lbl') +
+    lbl(292, 130, w(lang, 'SINKER IF NEEDED', 'PLOMO SI HACE FALTA'), 'end', 'nt-lbl') +
     `<path class="nt-rigs-dim" d="M262 118 L242 82"/>`
   );
 }
@@ -299,7 +299,7 @@ function baitMatrix(lang: Lang): string {
     { id: 'rgcut', t: w(lang, 'CUT', 'TIRA') },
     { id: 'rgcrab', t: w(lang, 'CRAB', 'JAIBA') },
   ];
-  const cx = (i: number) => 134 + i * 36, HX = 290, top = 58, rh = 38;
+  const cx = (i: number) => 130 + i * 36, HX = 282, top = 58, rh = 38;
   const rows: { id: PictKey; n: string; b: number[]; hook: string }[] = [
     { id: 'rgsnapper', n: w(lang, 'SNAPPER', 'PARGO'), b: [1, 1, 1, 1], hook: '1/0–2/0' },
     { id: 'rgjack', n: w(lang, 'JACK', 'JUREL'), b: [0, 1, 1, 0], hook: '4/0–6/0' },
@@ -355,8 +355,8 @@ function lionfish(lang: Lang): string {
     `<path class="nt-rigs-spine" d="${dorsal}"/>` +
     `<path class="nt-rigs-spine" d="M100 126 L94 158 M106 126 L104 160"/>` +
     `<path class="nt-rigs-spine" d="M196 122 L206 150 M204 120 L216 146 M212 118 L226 140"/>` +
-    lbl(312, 184, w(lang, 'RED: VENOMOUS SPINES', 'ROJO: ESPINAS VENENOSAS'), 'end', 'nt-lbl nt-rigs-dz') +
-    lbl(316, 170, w(lang, 'FANS: NO VENOM', 'ABANICOS: SIN VENENO'), 'end', 'nt-lbl nt-lbl-s') +
+    lbl(312, 184, w(lang, 'RED: VENOMOUS SPINES', 'ROJO: ESPINAS VENENOSAS'), 'end', 'nt-lbl nt-lbl-s nt-rigs-dz') +
+    lbl(312, 170, w(lang, 'FANS: NO VENOM', 'ABANICOS: SIN VENENO'), 'end', 'nt-lbl nt-lbl-s') +
     badge(1, 92, 30) + badge(2, 86, 166) + badge(3, 236, 154)
   );
 }

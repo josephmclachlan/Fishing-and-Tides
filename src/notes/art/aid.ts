@@ -59,7 +59,7 @@ export function wrapArt(lang: Lang): string {
     '<path class="nt-head" d="M232 26 H64"/><path class="nt-head" d="M72 20 L64 26 L72 32"/>' +
     `<text class="nt-lbl" x="148" y="16" text-anchor="middle">${w(lang, 'WRAP FROM THE HAND UP', 'ENVUELVA DESDE LA MANO')}</text>` +
     `<text class="nt-lbl" x="142" y="110" text-anchor="middle">${w(lang, 'SPLINT', 'TABLILLA')}</text>` +
-    `<text class="nt-lbl" x="306" y="90" text-anchor="end">${w(lang, 'PINK?', '¿ROSADOS?')}</text>` +
+    `<text class="nt-lbl" x="312" y="108" text-anchor="end">${w(lang, 'PINK?', '¿ROSADOS?')}</text>` +
     badge(1, 140, 92) + badge(2, 248, 26) + badge(3, 36, 108) + badge(4, 306, 34)
   );
 }

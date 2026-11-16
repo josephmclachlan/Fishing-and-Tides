@@ -29,8 +29,8 @@ export type VBlock =
   | { k: 'tiles'; h?: L; items: { ico: PictId; h: L; t?: L; tone?: Tone }[] }
   /** A drawing with its numbered marks; `tones` colours each mark's badge; `alt` is the one line under it. */
   | { k: 'fig'; fig: FigId; label: L; marks: L[]; tones?: Tone[]; alt?: L }
-  /** Big numbers or short phrases with one line each. */
-  | { k: 'stats'; items: { n: L; t: L }[] }
+  /** Big numbers or short phrases with one line each, in ink; `tone: 'stop'` prints a closed season or a limit in red. */
+  | { k: 'stats'; items: { n: L; t: L; tone?: Tone }[] }
   /** Tap-to-call cards. */
   | { k: 'calls'; items: { n: string; tel?: string; h: L; t?: L }[] }
   /** Linear bars from 0 to `max`, labelled in `unit`. */
@@ -105,7 +105,7 @@ export function visHtml(b: VBlock, lang: Lang, tx0: Tx, href: (t: NtTab) => stri
       return `<figure class="nt-fig"><svg class="nt-art nt-art-${b.fig}" viewBox="${f.vb}" role="img" aria-label="${tx0(b.label).replace(/<[^>]+>/g, '')}">${f.art(lang)}</svg><figcaption><ol class="nt-marks">${marks}</ol>${b.alt ? `<p class="nt-alt">${tx(b.alt)}</p>` : ''}</figcaption></figure>`;
     }
     case 'stats':
-      return `<ul class="nt-stats">${b.items.map((s) => `<li><b class="nt-big">${tx(s.n)}</b><p>${tx(s.t)}</p></li>`).join('')}</ul>`;
+      return `<ul class="nt-stats">${b.items.map((s) => `<li${s.tone ? ` class="nt-${s.tone}"` : ''}><b class="nt-big">${tx(s.n)}</b><p>${tx(s.t)}</p></li>`).join('')}</ul>`;
     case 'calls':
       return `<ul class="nt-calls">${b.items
         .map((c) => {

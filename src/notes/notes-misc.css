@@ -44,7 +44,7 @@
 .nt-art .nt-m-moon { fill: var(--fc-ink); stroke: var(--fc-ink); stroke-width: 1.8; }
 .fc[data-scheme='dark'] .nt-art .nt-m-moon { fill: var(--fc-block); }
 .nt-art .nt-m-moonf { fill: var(--fc-moon); stroke: var(--fc-ink); stroke-width: 1.8; }
-.nt-art .nt-m-warmw { fill: color-mix(in srgb, var(--fc-ac1) 32%, var(--fc-block)); stroke: none; }
+.nt-art .nt-m-warmw { fill: color-mix(in srgb, var(--fc-lv1) 50%, var(--fc-block)); stroke: none; }
 .nt-art .nt-m-midw { fill: color-mix(in srgb, var(--fc-ink) 8%, var(--fc-block)); stroke: none; }
 .nt-art .nt-m-coldw { fill: color-mix(in srgb, var(--fc-sea-b) 50%, var(--fc-block)); stroke: none; }
 .nt-art circle.nt-m-bub { fill: none; stroke: var(--fc-sea-b); stroke-width: 1.8; animation: nt-m-up 2.4s ease-in infinite; }
@@ -55,3 +55,29 @@
   .nt-art circle.nt-m-bub, .nt-art .nt-m-steam { animation: none; }
   .nt-art circle.nt-m-bub { opacity: 0.8; }
 }
+/* graphics review 12.5 */
+.nt-art .nt-m-fillet { fill: color-mix(in srgb, var(--fc-card) 70%, var(--fc-coral) 30%); }
+.nt-art .nt-m-flk { stroke: var(--fc-ink2); stroke-width: 1.2; }
+.nt-art .nt-m-flake { fill: color-mix(in srgb, var(--fc-card) 70%, var(--fc-coral) 30%); stroke-width: 1.4; }
+.nt-art .nt-m-dialok { fill: var(--fc-lv3); }
+.nt-art .nt-m-dialt2 { fill: var(--fc-on3); font: 800 17px/1 var(--fc-mono); }
+.nt-art .nt-m-oil { fill: color-mix(in srgb, var(--fc-lv2) 55%, transparent); stroke: none; }
+.nt-art circle.nt-m-bubo { stroke: var(--fc-ac2); }
+.nt-art .nt-m-sauce { fill: var(--fc-card); }
+.nt-art .nt-m-herb { stroke: var(--fc-ac3); stroke-width: 2.4; }
+.nt-art .nt-m-plate { fill: var(--fc-card); }
+.nt-art .nt-m-rice { fill: var(--fc-card); stroke-dasharray: 2 2; }
+.nt-art .nt-m-water { fill: color-mix(in srgb, var(--fc-sea-a) 30%, var(--fc-block)); stroke: none; }
+.nt-art .nt-m-scute { fill: var(--fc-ink2); stroke-width: 1; }
+.nt-art .nt-m-flag { fill: var(--fc-sev-danger); }
+.nt-art .nt-m-flagd { stroke: var(--fc-foam); stroke-width: 5; }
+.nt-art .nt-m-gun { stroke-width: 2.4; }
+.nt-art .nt-m-snork { stroke-width: 2.4; }
+.nt-art .nt-m-torso { stroke-width: 7; }
+.nt-art .nt-m-limb { stroke-width: 3; }
+.nt-art .nt-m-finp, .nt-art .nt-m-head { fill: currentColor; stroke: none; }
+.nt-art .nt-m-mask { fill: var(--fc-sea-a); stroke-width: 1.4; }
+.nt-art .nt-m-clip { stroke-width: 2.4; }
+.nt-art .nt-m-wt { fill: var(--fc-ink2); stroke-width: 1.4; }
+.nt-art .nt-m-hk { stroke-width: 3; }
+.nt-art circle.nt-m-hk { fill: none; }
