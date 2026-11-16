@@ -8,6 +8,7 @@
 import type { SeaState } from './adapters/waves';
 import { predict, type Harmonics } from './physics/tide';
 import { BEST_FROM_H, BEST_LEN_H, BEST_TO_H } from './metrics/forecast';
+import { dec } from './i18n';
 
 const HOUR = 3.6e6;
 const KT = 1.94384;
@@ -232,7 +233,7 @@ export function roseSvg(d: RoseData, o: { width?: number; label?: string; names:
     const [x, y] = polar(cx, cy, R + 12, a);
     return `<text class="sc-lbl" x="${fmt(x)}" y="${fmt(y + 3)}" text-anchor="middle">${'NESW'[i]}</text>`;
   }).join('');
-  const legend: string[] = d.trains.map((t) => `<tspan class="sc-rose-${t.kind}-t">${o.names[t.kind]} ${t.hs.toFixed(1)}M${t.tp ? ' ' + t.tp.toFixed(0) + 'S' : ''} ${compassName(t.from)}</tspan>`);
+  const legend: string[] = d.trains.map((t) => `<tspan class="sc-rose-${t.kind}-t">${o.names[t.kind]} ${dec(t.hs, 1)}M${t.tp ? ' ' + dec(t.tp, 0) + 'S' : ''} ${compassName(t.from)}</tspan>`);
   if (d.wind) legend.push(`<tspan class="sc-rose-wind-t">${o.names.wind} ${Math.round(d.wind.kt)}KN ${compassName(d.wind.from)}</tspan>`);
   if (d.facing !== null) legend.push(`<tspan class="sc-rose-shore-t">${o.names.shore} ${compassName(d.facing)}</tspan>`);
   const H = 164 + legend.length * 15;

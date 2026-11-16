@@ -10,7 +10,7 @@
 import { condSlot } from './cond-groups';
 import { UI } from './icons/ui';
 import type { Map } from 'maplibre-gl';
-import { t, type Key } from './i18n';
+import { dec, t, type Key } from './i18n';
 import { PLUME_RIVERS, RAIN_TOWNS, REGION, SPOTS } from './region';
 import { SURF_BREAKS } from './data/surf-breaks';
 import { PLACES as HARBOURS } from './data/harbours';
@@ -234,8 +234,8 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     lastRows = spots.map((s, n) => {
       const km = Math.hypot((s.lng - c.lng) * Math.cos((c.lat * Math.PI) / 180), s.lat - c.lat) * 111.32;
       const near = nearestName(s.lng, s.lat, marks);
-      const place = near ? t(near.at ? 'fish.spot.at' : 'fish.spot.near', { name: near.name, km: near.km.toFixed(1) }) : '';
-      const line = t('fish.spot.line', { score: Math.round(s.score * 100), depth: s.depthM.toFixed(0), km: km.toFixed(1) });
+      const place = near ? t(near.at ? 'fish.spot.at' : 'fish.spot.near', { name: near.name, km: dec(near.km, 1) }) : '';
+      const line = t('fish.spot.line', { score: Math.round(s.score * 100), depth: s.depthM.toFixed(0), km: dec(km, 1) });
       const why = [...s.why.map((w) => t(`fish.why.${w}` as Key)), ...s.water.map((w) => t(`bite.r.${w}` as Key))].join(' · ');
       return { n, place, line, why, score: Math.round(s.score * 100), lng: s.lng, lat: s.lat, on: frozen?.n === n };
     });
@@ -377,8 +377,8 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     const rows: FishSpotRow[] = layer.spearSpots(5, { lng: c.lng, lat: c.lat }, SPOT_RADIUS_KM).map((s, n) => {
       const km = Math.hypot((s.lng - c.lng) * Math.cos((c.lat * Math.PI) / 180), s.lat - c.lat) * 111.32;
       const near = nearestName(s.lng, s.lat, marks);
-      const place = near ? t(near.at ? 'fish.spot.at' : 'fish.spot.near', { name: near.name, km: near.km.toFixed(1) }) : '';
-      const line = t('fish.spot.line', { score: Math.round(s.score * 100), depth: s.depthM.toFixed(0), km: km.toFixed(1) });
+      const place = near ? t(near.at ? 'fish.spot.at' : 'fish.spot.near', { name: near.name, km: dec(near.km, 1) }) : '';
+      const line = t('fish.spot.line', { score: Math.round(s.score * 100), depth: s.depthM.toFixed(0), km: dec(km, 1) });
       return { n, place, line, why: s.why.map((w) => t(`fish.why.${w}` as Key)).join(' · '), score: Math.round(s.score * 100), lng: s.lng, lat: s.lat, on: false };
     });
     return { target: spearTarget(), targets: SPEAR_TARGETS.filter(spearOpen), spots: rows };

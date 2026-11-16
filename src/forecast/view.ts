@@ -10,7 +10,7 @@
 import { guideLinkFor } from '../fishing/guide-link';
 import { SPECIES, type SpeciesId } from '../fishing/species';
 import { strictestCm } from '../fishing/cigua';
-import { t, type Key } from '../i18n';
+import { dec, t, type Key } from '../i18n';
 import { localDayStart, moonPhase } from '../physics/astro';
 import { tideState } from '../physics/tide';
 import { REGION } from '../region';
@@ -29,10 +29,10 @@ const H = 3.6e6, DAY = 864e5;
 const TZ = REGION.tzOffsetH;
 const fin = (x: number | null | undefined): x is number => typeof x === 'number' && Number.isFinite(x);
 
-export const n1 = (x: number) => x.toFixed(1);
+export const n1 = (x: number) => dec(x, 1);
 export const n0 = (x: number) => Math.round(x).toString();
 /** Signed metres to 0.01 with a real minus: "+0.18", "−0.09". */
-export const signed2 = (x: number) => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(2);
+export const signed2 = (x: number) => (x >= 0 ? '+' : '−') + dec(Math.abs(x), 2);
 /** "PLAYA COCLES" → "Playa Cocles"; "LIMÓN" → "Limón". */
 export const titleCase = (s: string) => s.toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (_, a: string, b: string) => a + b.toUpperCase());
 
@@ -407,7 +407,7 @@ export function tilesFor(r: FcRead, ctx: ViewCtx): TileView[] {
     const x = r.water;
     return [
       weather(),
-      { kind: 'surge', k: t('fc.surge', { d: x.depthM }), v: `${x.surgeMs.toFixed(2)} m/s`, sub: [t(`fc.surge.${x.surge}` as Key)], tip: t(`tip.surge.${x.surge}` as Key), lv: null, viz: { v: x.surgeMs } },
+      { kind: 'surge', k: t('fc.surge', { d: x.depthM }), v: `${dec(x.surgeMs, 2)} m/s`, sub: [t(`fc.surge.${x.surge}` as Key)], tip: t(`tip.surge.${x.surge}` as Key), lv: null, viz: { v: x.surgeMs } },
       current(x.currentKt),
       water(t('fc.sst')),
       entry(x.breakerM, x.rip),
@@ -490,7 +490,7 @@ export function daysView(plan: Plan, read: (ms: number) => FcRead, uvs: readonly
 /** A chart row's value as the readout and the labels show it: its decimals, the tide signed to 0.01 m. */
 export function rowText(spec: Pick<RowSpec, 'id' | 'decimals'>, v: number): string {
   if (spec.id === 'tide') return signed2(v);
-  return spec.decimals === 0 ? n0(v) : v.toFixed(spec.decimals);
+  return spec.decimals === 0 ? n0(v) : dec(v, spec.decimals);
 }
 
 const SKY_KIND_WORD: Record<SkyKind, Key> = { sun: 'fc.sky.sun', moon: 'fc.sky.clear', 'partly-sun': 'fc.sky.partly', 'partly-moon': 'fc.sky.partly', cloud: 'fc.sky.cloud', rain: 'fc.sky.showers', storm: 'fc.sky.storm' };

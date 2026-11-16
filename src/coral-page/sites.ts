@@ -12,7 +12,7 @@
  * Same store and actions as the map's CORAL drawer (src/coral/store.ts, src/coral/actions.ts): everything
  * stays on this device. Returns markup for page.ts to place, and handles its own events on the page body.
  */
-import { t, type Key } from '../i18n';
+import { dec, t, type Key } from '../i18n';
 import { UI } from '../icons/ui';
 import { CORAL_REEFS } from '../region';
 import { ACTIONS, MEASURES, MEASURE_LIMITS, SITE_KINDS, STATUSES, cleanMeasures, photosOf, type ActionId, type Conditions, type CoralSite, type CoralStatus, type CoralStore, type SiteKind, type Visit } from '../coral/store';
@@ -283,7 +283,7 @@ export function mountSites(host: HTMLElement, body: HTMLElement, deps: SitesDeps
 
   function conditionsHtml(s: CoralSite) {
     const h = deps.historyAt(s);
-    const f1 = (x: number | null | undefined) => (x === null || x === undefined || !Number.isFinite(x) ? '--' : x.toFixed(1));
+    const f1 = (x: number | null | undefined) => (x === null || x === undefined || !Number.isFinite(x) ? '--' : dec(x, 1));
     const visits = s.visits.map((v) => ({ t: v.t, cls: lc(statusLevelOf(v.status)), title: `${shortDate(v.t, lang)} · ${statusName(v.status)}` }));
     const month = (ms: number) => monthName(ms, lang);
     const charts = h
@@ -443,7 +443,7 @@ export function mountSites(host: HTMLElement, body: HTMLElement, deps: SitesDeps
     if (!target || !files.length) return;
     const r = await addPhotos(store, target, files, (k, n) => say(s_('coral.photoSaving', { k, n }), 0));
     if (r.failed) say(s_('coral.photoFail'));
-    else if (r.farKm >= 1) say(s_('coral.photoFar', { km: r.farKm.toFixed(1) }), 6000);
+    else if (r.farKm >= 1) say(s_('coral.photoFar', { km: dec(r.farKm, 1) }), 6000);
     else say(s_('coral.photosAdded', { n: files.length }));
   });
   $<HTMLInputElement>('cps-site-photo').addEventListener('change', async () => {

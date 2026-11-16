@@ -8,6 +8,7 @@ import { glyphSvg, type GlyphId } from '../icons/glyphs';
 import { bandColours, FIELD_STEPS, FIELD_TICKS, fieldIndex, fieldStops, type FieldKind } from '../layers/bands';
 import type { Citer, SourceId } from '../sources';
 import { D2R, esc, fitCanvas, L2, MONO, rgba, TAU, tok } from './dom';
+import { dec } from '../i18n';
 
 export interface Reading {
   k: string;
@@ -173,7 +174,7 @@ export function drawTiles(el: HTMLElement, R: readonly Reading[], accent: string
         c.textAlign = 'left';
         c.fillStyle = rgba(tok('ink2'));
         c.font = `600 9px ${MONO}`;
-        (r.trains ?? []).slice(0, 3).forEach((t, k) => c.fillText(`${t.hs.toFixed(1)} m ${Math.round(t.tp)} s`, h + 4, h * 0.3 + k * 13));
+        (r.trains ?? []).slice(0, 3).forEach((t, k) => c.fillText(`${dec(t.hs, 1)} m ${Math.round(t.tp)} s`, h + 4, h * 0.3 + k * 13));
         break;
       }
       case 'sst':

@@ -7,7 +7,7 @@ import { condSlot } from './cond-groups';
 import type { Map } from 'maplibre-gl';
 import { nearest } from './geo';
 import { panelHeader, readout } from './hud-kit';
-import { t, type Key } from './i18n';
+import { dec, t, type Key } from './i18n';
 import { SPOTS } from './region';
 import type { SpotPhysics } from './spot-physics';
 
@@ -38,14 +38,14 @@ export function mountSurfZoneHud(root: HTMLElement, map: Map, spots: SpotPhysics
       return;
     }
     const b = r.waves.breaker;
-    $('sz-hb').textContent = b.Hb.toFixed(1);
+    $('sz-hb').textContent = dec(b.Hb, 1);
     // Behind a reef flat, what still reaches the water's edge (PLAN 7.59); on an open beach the same as the breaker.
-    $('sz-shore').textContent = (r.shore?.Hb ?? b.Hb).toFixed(1);
+    $('sz-shore').textContent = dec((r.shore?.Hb ?? b.Hb), 1);
     $('sz-type').textContent = b.type ? t(`sz.type.${b.type}` as Key) : '--';
     $('sz-pow').textContent = b.powerKWm.toFixed(0);
-    $('sz-drift').textContent = Math.abs(b.longshoreMs).toFixed(1);
+    $('sz-drift').textContent = dec(Math.abs(b.longshoreMs), 1);
     const rips = $('sz-rips');
-    rips.textContent = `${t(`rip.str.${r.rip.strength}` as Key)} ${r.rip.speedMs.toFixed(1)}`;
+    rips.textContent = `${t(`rip.str.${r.rip.strength}` as Key)} ${dec(r.rip.speedMs, 1)}`;
     rips.className = 'seg sm ' + (r.rip.level === 'HIGH' ? 'red' : r.rip.level === 'MOD' ? '' : 'green');
     $('sz-ripl').textContent = String(Math.round(r.rip.lengthM / 10) * 10);
   };

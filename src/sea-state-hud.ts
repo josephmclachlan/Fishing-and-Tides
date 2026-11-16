@@ -4,7 +4,7 @@
  * wind sea); `simPartitions` (tagged SIM) stands in when the feed has none (mock, OUTLOOK climatology).
  */
 import { condSlot } from './cond-groups';
-import { t, type Key } from './i18n';
+import { dec, t, type Key } from './i18n';
 import { opposingMs, seaState, simPartitions, withCurrent } from './physics/sea-state';
 import { feedPartitions } from './sea-partitions';
 import type { SeaState as Waves } from './adapters/waves';
@@ -59,14 +59,14 @@ export function mountSeaStateHud(root: HTMLElement, getData: () => Conditions, s
     // Current against the waves steepens them (physics/sea-state.ts currentFactor); the comfort score above already includes it.
     const speed = c ? Math.hypot(c.u, c.v) : 0;
     const opp = c ? opposingMs(base, c) : null;
-    $('ss-curr').textContent = !c ? '--' : `${(speed * 1.94384).toFixed(1)} ${t('unit.kt')}${speed >= 0.1 && opp !== null ? ' · ' + t(opp / speed > 0.5 ? 'sea.curr.against' : opp / speed < -0.5 ? 'sea.curr.with' : 'sea.curr.cross') : ''}`;
+    $('ss-curr').textContent = !c ? '--' : `${dec((speed * 1.94384), 1)} ${t('unit.kt')}${speed >= 0.1 && opp !== null ? ' · ' + t(opp / speed > 0.5 ? 'sea.curr.against' : opp / speed < -0.5 ? 'sea.curr.with' : 'sea.curr.cross') : ''}`;
     $('ss-curr').className = `seg sm wrap ${opp !== null && speed >= 0.25 && opp / speed > 0.5 ? 'red' : ''}`;
     const tone = s.comfort === 'comfortable' ? 'green' : s.comfort === 'lively' ? '' : 'red';
     $('ss-comfort').textContent = t(`sea.${s.comfort}` as Key);
     $('ss-comfort').className = `seg sm ${tone}`;
     $('ss-score').textContent = `${s.score}/100`;
     $('ss-detail').textContent =
-      t('sea.detail', { h: s.totalHm.toFixed(1), tp: s.meanPeriodS.toFixed(0), steep: t(`sea.steep.${steepWord(s.steepness)}` as Key) }) +
+      t('sea.detail', { h: dec(s.totalHm, 1), tp: dec(s.meanPeriodS, 0), steep: t(`sea.steep.${steepWord(s.steepness)}` as Key) }) +
       ` · ${t(`sea.dominant.${s.dominant}` as Key)}${s.confusion > 0.5 ? ` · ${t('sea.cross')}` : ''}`;
     if (deps) {
       // ONSHORE / OFFSHORE / ALONG SHORE after the wind direction (persona review J8): offshore wind carries a dinghy or kayak out.
@@ -80,7 +80,7 @@ export function mountSeaStateHud(root: HTMLElement, getData: () => Conditions, s
       const v = boatVerdict({ vessel: deps.vessel(), windKt: getData().windKt, hsM: s.totalHm, comfort: s.score, windSide: side, ...deps.safety() });
       $('bv-verdict').textContent = t(`verdict.${v.verdict}` as Key);
       $('bv-verdict').className = `seg sm ${v.verdict === 'go' ? 'green' : v.verdict === 'nogo' ? 'red' : ''}`;
-      const why = v.reasons.slice(0, 3).map((r) => t(`verdict.why.${r.id}` as Key, { kt: Math.round(r.value ?? 0), m: (r.value ?? s.totalHm).toFixed(1) }));
+      const why = v.reasons.slice(0, 3).map((r) => t(`verdict.why.${r.id}` as Key, { kt: Math.round(r.value ?? 0), m: dec((r.value ?? s.totalHm), 1) }));
       $('bv-why').textContent = (why.length ? why.join(' · ') : t('verdict.why.none')) + (real ? '' : ` · ${t('verdict.sim')}`);
     }
   };

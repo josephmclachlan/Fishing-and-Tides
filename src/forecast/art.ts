@@ -21,7 +21,7 @@
  *
  * Also the live-map card's radar (rings in real kilometres when the map capture gives its scale).
  */
-import { t, type Key } from '../i18n';
+import { dec, t, type Key } from '../i18n';
 import { localClock } from '../tide-chart';
 import { localDayStart } from '../physics/astro';
 import { REGION } from '../region';
@@ -393,7 +393,7 @@ function drawSurf(c: Ctx2D, A: Box, tt: number, s: NonNullable<HeroParams['surf'
     const yy = base - m * mpx;
     c.strokeStyle = S.faint; c.lineWidth = 1; c.setLineDash([2, 4]); c.beginPath(); c.moveTo(lx, yy); c.lineTo(rx, yy); c.stroke(); c.setLineDash([]);
     c.fillStyle = S.ink; txt(c, n, x + w, yy, 'right', 10.5, 700);
-    c.fillStyle = S.soft; txt(c, m.toFixed(1), x, yy, 'left', 10.5);
+    c.fillStyle = S.soft; txt(c, dec(m, 1), x, yy, 'left', 10.5);
   }
   c.strokeStyle = S.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(lx, base); c.lineTo(rx, base); c.stroke();
   c.fillStyle = S.soft; txt(c, '0 m', x, base, 'left', 10.5);

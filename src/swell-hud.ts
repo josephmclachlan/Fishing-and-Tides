@@ -5,7 +5,7 @@
  * period and direction. Past day 16 (OUTLOOK) the climatology has no split: only the total shows.
  */
 import { condSlot } from './cond-groups';
-import { t, type Key } from './i18n';
+import { dec, t, type Key } from './i18n';
 import { waveParts, type SeaState, type WaveTrain } from './adapters/waves';
 import { compass8 } from './surf-breaks';
 
@@ -32,7 +32,7 @@ export function mountSwellHud(root: HTMLElement, seaAt: () => SeaState | null) {
     const key = JSON.stringify([s?.hs, s?.tm, s?.dir, parts]);
     if (key === last) return;
     last = key;
-    $('sw-hs').textContent = s ? `${s.hs.toFixed(1)}${t('unit.m')}${Number.isFinite(s.tm) ? ` · ${s.tm.toFixed(0)}${t('unit.s')}` : ''} · ${compass8(s.dir)}` : '--';
+    $('sw-hs').textContent = s ? `${dec(s.hs, 1)}${t('unit.m')}${Number.isFinite(s.tm) ? ` · ${dec(s.tm, 0)}${t('unit.s')}` : ''} · ${compass8(s.dir)}` : '--';
     for (let i = 0; i < 3; i++) {
       const p = parts[i];
       $(`swr-${i}`).hidden = !p;
@@ -41,7 +41,7 @@ export function mountSwellHud(root: HTMLElement, seaAt: () => SeaState | null) {
       const per = Number.isFinite(p.t) ? ` · ${p.t.toFixed(0)}${t('unit.s')}` : '';
       const dir = Number.isFinite(p.dir) ? ` · ${compass8(p.dir)}` : '';
       const el = $(`sw-${i}`);
-      el.textContent = `${p.hs.toFixed(1)}${t('unit.m')}${per}${dir}`;
+      el.textContent = `${dec(p.hs, 1)}${t('unit.m')}${per}${dir}`;
       el.title = Number.isFinite(p.dir) ? `${pad3(p.dir)}${t('unit.deg')}` : '';
       el.className = `seg sm ${p.kind !== 'windSea' && p.t >= GROUND_S ? 'green' : ''}`;
     }

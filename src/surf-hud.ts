@@ -6,7 +6,7 @@
  */
 import { condSlot } from './cond-groups';
 import type { Map } from 'maplibre-gl';
-import { t, type Key } from './i18n';
+import { dec, t, type Key } from './i18n';
 import { breaksNear, compass8 } from './surf-breaks';
 import type { SurfBreak } from './data/surf-breaks';
 import { suitFor } from './physics/outing';
@@ -82,7 +82,7 @@ export function mountSurfHud(root: HTMLElement, map: Map, quality: (name: string
     $('sb-warn').className = 'seg sm ' + (warn ? 'red' : '');
     const sst = q?.info?.sstC;
     const uv = q?.info?.uv;
-    $('sb-sst').textContent = typeof sst === 'number' ? `${sst.toFixed(1)} ${t('unit.degC')} · ${t(`dive.suit.${suitFor(sst)}` as Key)}` : '--';
+    $('sb-sst').textContent = typeof sst === 'number' ? `${dec(sst, 1)} ${t('unit.degC')} · ${t(`dive.suit.${suitFor(sst)}` as Key)}` : '--';
     $('sb-uv').textContent = typeof uv === 'number' && Number.isFinite(uv) ? `${uv.toFixed(0)} · ${t(uv >= 11 ? 'surf.uv.extreme' : uv >= 8 ? 'surf.uv.high' : uv >= 6 ? 'surf.uv.mod' : 'surf.uv.low')}` : '--';
     $('sb-uv').className = 'seg sm ' + (typeof uv !== 'number' || !Number.isFinite(uv) ? '' : uv >= 8 ? 'red' : uv >= 6 ? '' : 'green');
     sEl.className = 'seg sm ' + (cl === undefined ? '' : cl >= 0.9 ? 'green' : cl < 0.7 ? 'red' : '');

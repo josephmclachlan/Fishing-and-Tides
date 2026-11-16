@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { en } from './en';
 import { es } from './es';
-import { dictFor, hemispheres, pickLang, setDict, t, type Dict } from './index';
+import { dec, dictFor, hemispheres, pickLang, setDict, t, type Dict } from './index';
 import { ACTIVITIES, LAYERS } from '../layers/registry';
 import { BANDS } from '../time';
 
@@ -67,5 +67,16 @@ describe('pickLang', () => {
     expect(pickLang(null, ['fr', 'de'])).toBe('en');
     expect(pickLang('xx', [])).toBe('en');
     expect(pickLang(null)).toBe('en');
+  });
+});
+
+describe('dec (review 2026-11-16, 5.5)', () => {
+  it('writes a decimal comma in Spanish and a point in English', () => {
+    setDict(es);
+    expect(dec(0.5, 1)).toBe('0,5');
+    expect(dec(-1.234, 2)).toBe('-1,23');
+    expect(dec(12, 0)).toBe('12');
+    setDict(en);
+    expect(dec(0.5, 1)).toBe('0.5');
   });
 });

@@ -5,7 +5,7 @@
  */
 import { condSlot } from './cond-groups';
 import type { Map } from 'maplibre-gl';
-import { t, type Key } from './i18n';
+import { dec, t, type Key } from './i18n';
 import { nearestPlace } from './harbours';
 import { compass8 } from './surf-breaks';
 import { windFetchM, shelterClass } from './physics/fetch';
@@ -71,7 +71,7 @@ export function mountHarboursHud(root: HTMLElement, map: Map, deps: HarboursDeps
     const hit = nearestPlace(c.lng, c.lat);
     here = hit?.place ?? null;
     $('an-name').textContent = hit ? `${hit.place.name} · ${t(`place.kind.${hit.place.kind}` as Key)}${hit.place.confidence === 'check' ? ` · ${t('place.check')}` : ''}` : t('place.none');
-    $('an-dist').textContent = hit ? `${(hit.distanceM / 1000).toFixed(1)} KM` : '--';
+    $('an-dist').textContent = hit ? `${dec((hit.distanceM / 1000), 1)} KM` : '--';
     $('an-info').hidden = !hit;
     const land = deps.land();
     if (!land) {
@@ -82,7 +82,7 @@ export function mountHarboursHud(root: HTMLElement, map: Map, deps: HarboursDeps
     const from = deps.windFromDeg();
     const f = windFetchM(land, c.lng, c.lat, from);
     $('an-shelter').textContent = t(`shelter.${shelterClass(f)}` as Key);
-    $('an-fetch').textContent = t('shelter.fetch', { km: (f / 1000).toFixed(1), dir: compass8(from) });
+    $('an-fetch').textContent = t('shelter.fetch', { km: dec((f / 1000), 1), dir: compass8(from) });
   };
   const queue = () => {
     if (!queued) (queued = true), requestAnimationFrame(update);

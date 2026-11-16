@@ -33,6 +33,15 @@ export function setDict(next: Dict) {
 /** The language in use now. */
 export const activeLang = (): Lang => (dict === es ? 'es' : 'en');
 
+/**
+ * A number with `d` decimals as the reader writes it: Costa Rica and the rest of Spanish use a decimal comma
+ * ("0,5 m"), English a point (review 2026-11-16, 5.5). For text only; never for CSS, SVG, keys or values parsed back.
+ */
+export const dec = (x: number, d: number): string => {
+  const s = x.toFixed(d);
+  return dict === es ? s.replace('.', ',') : s;
+};
+
 /** Text for `key`, with `{name}` placeholders filled from `vars`. Falls back to English. */
 export function t(key: Key, vars?: Record<string, string | number>): string {
   const s = dict[key] ?? en[key];

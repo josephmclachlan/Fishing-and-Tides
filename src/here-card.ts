@@ -3,7 +3,7 @@
  * hour: swell, sea, wind, depth and visibility. Pure row-building here; main.ts supplies the samplers.
  */
 import type { Map } from 'maplibre-gl';
-import { t } from './i18n';
+import { dec, t } from './i18n';
 
 export interface HereSample {
   /** Water depth, m; undefined on land or off the grid. */
@@ -18,18 +18,18 @@ export interface HereSample {
 const POINTS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
 export const compass = (deg: number) => POINTS[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16];
 const KT = 3600 / 1852;
-const visText = (v: number) => (v >= 20 ? '20+' : v.toFixed(v < 3 ? 1 : 0));
+const visText = (v: number) => (v >= 20 ? '20+' : dec(v, v < 3 ? 1 : 0));
 
 /** Label/value pairs for the card, in reading order; land shows only what is true on land. */
 export function hereRows(s: HereSample): [string, string][] {
   const rows: [string, string][] = [];
   if (s.land) rows.push([t('here.land'), '—']);
   else {
-    if (s.swell && Number.isFinite(s.swell.hs)) rows.push([t('here.swell'), `${s.swell.hs.toFixed(1)} m · ${s.swell.tp.toFixed(0)} s · ${t('here.from')} ${compass(s.swell.fromDeg)}`]);
-    if (s.sea && Number.isFinite(s.sea.hs)) rows.push([t('here.wave'), `${s.sea.hs.toFixed(1)} m · ${s.sea.tm.toFixed(0)} s`]);
+    if (s.swell && Number.isFinite(s.swell.hs)) rows.push([t('here.swell'), `${dec(s.swell.hs, 1)} m · ${dec(s.swell.tp, 0)} s · ${t('here.from')} ${compass(s.swell.fromDeg)}`]);
+    if (s.sea && Number.isFinite(s.sea.hs)) rows.push([t('here.wave'), `${dec(s.sea.hs, 1)} m · ${dec(s.sea.tm, 0)} s`]);
   }
   if (s.wind && Number.isFinite(s.wind.ms)) rows.push([t('here.wind'), `${(s.wind.ms * KT).toFixed(0)} kt ${t('here.from')} ${compass(s.wind.fromDeg)}`]);
-  if (!s.land && s.depthM !== undefined) rows.push([t('here.depth'), `${s.depthM.toFixed(s.depthM < 10 ? 1 : 0)} m`]);
+  if (!s.land && s.depthM !== undefined) rows.push([t('here.depth'), `${dec(s.depthM, s.depthM < 10 ? 1 : 0)} m`]);
   if (!s.land && s.visM != null && Number.isFinite(s.visM)) rows.push([t('here.vis'), `${visText(s.visM)} m`]);
   return rows;
 }
