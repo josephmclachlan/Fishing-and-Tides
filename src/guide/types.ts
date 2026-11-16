@@ -85,6 +85,7 @@ export type Iucn = (typeof IUCN)[number];
 
 export interface Size { common?: number; max?: number; measure?: Measure; unit?: 'cm' | 'mm' | 'm' }
 export interface Depth { min?: number; max?: number; usualMin?: number; usualMax?: number }
+export interface Fact { kind: 'name' | 'fact'; text: Txt }
 export interface Status { iucn?: Iucn; origin?: 'native' | 'introduced' | 'invasive'; protectedCR?: boolean; cites?: string }
 export interface Taxon { phylum?: string; class?: string; order?: string; family?: string; genus?: string }
 export interface Danger { kinds: DangerKind[]; level: 1 | 2 | 3; what?: Txt; firstAid?: Txt }
@@ -166,6 +167,8 @@ export interface Species {
   feedsAt?: When[];
   lifespan?: Txt;
   about?: Txt;
+  /** Fun facts (research/facts/out, Joseph 2026-11-16): where the name comes from first, then surprising true things. */
+  facts?: Fact[];
   idTips?: Txt;
   lookalikes?: { sci: string; tip: Txt }[];
   variants?: { key: VariantKey; text: Txt }[];

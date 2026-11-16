@@ -8,7 +8,7 @@
  * shellfish and ciguatera guidance); docs/GUIDE.md lists the sources.
  */
 import { ART, type ArtKey } from './art';
-import type { CleanKey, Lang, Txt } from './types';
+import type { CleanKey, Group, Lang, Txt } from './types';
 
 interface Step { t: Txt; /** Where its number sits on the drawing, if it has a place there. */ at?: [number, number] }
 interface Diagram {
@@ -96,7 +96,7 @@ export const CLEAN: Record<CleanKey, Diagram> = {
       { t: W('Cut off the 2 spines under the belly (the pelvic fins).', 'Corta las 2 espinas debajo de la panza (aletas pélvicas).'), at: [28, 54] },
       { t: W('Cut off the 3 spines in front of the tail on the underside (the anal fin).', 'Corta las 3 espinas de abajo, delante de la cola (aleta anal).'), at: [76, 54] },
       { t: W('Put the spines in a closed container: they can still sting after the fish is dead.', 'Pon las espinas en un recipiente cerrado: todavía pueden picar con el pez muerto.') },
-      { t: W('Fillet it like any round fish (no need to scale if you skin the fillets). The meat is white, mild and safe: the venom is only in the spines.', 'Filetéalo como cualquier pez (no hace falta escamar si le quitas la piel). La carne es blanca, suave y segura: el veneno solo está en las espinas.') },
+      { t: W('Fillet it like any round fish (no need to scale if you skin the fillets). The meat is white and mild. The venom is only in the spines, not in the meat.', 'Filetéalo como cualquier pez (no hace falta escamar si le quitas la piel). La carne es blanca y suave. El veneno solo está en las espinas, no en la carne.') },
       { t: W('If a spine pricks you: put the wound in water as hot as you can stand without burning (about 45 °C) for 30 to 90 minutes, and see a doctor if the pain is strong or it swells.', 'Si una espina te pica: mete la herida en agua tan caliente como aguantes sin quemarte (unos 45 °C) de 30 a 90 minutos, y ve al médico si el dolor es fuerte o se hincha.') },
     ],
   },
@@ -298,14 +298,38 @@ const DISPATCH_CATCH = W(
 export const dispatchLinkHtml = (lang: Lang): string =>
   `<a class="gd-dispatch" href="#dispatch"><span>${esc(tr(DISPATCH_CATCH, lang))}</span><b>${esc(tr(DISPATCH_GO, lang))} →</b></a>`;
 
-export function cleanHtml(k: CleanKey, lang: Lang, notes?: Txt): string {
+/** Which drawings fit which group (Joseph 2026-11-16: a jellyfish was shown the small-fish steps). */
+const CLEAN_FOR: Partial<Record<Group, readonly CleanKey[]>> = {
+  fish: ['fillet-round', 'whole-small', 'steak-large', 'skin-tough', 'lionfish', 'flatfish', 'eel'],
+  'sharks-rays': ['shark', 'ray-wing'],
+  crustaceans: ['lobster', 'crab', 'shrimp'],
+  cephalopods: ['octopus', 'squid'],
+  molluscs: ['conch', 'bivalve'],
+  echinoderms: ['urchin'],
+  'plants-algae': ['seaweed'],
+};
+export const cleanFits = (g: Group, k: CleanKey) => !!CLEAN_FOR[g]?.includes(k);
+/** The kill, bleed and ice page is about fish, sharks and rays only. */
+export const hasDispatch = (g: Group) => g === 'fish' || g === 'sharks-rays';
+const PREP = W('How to prepare it', 'Cómo prepararlo');
+const OWN = W('For this species', 'Para esta especie');
+const GENERAL = W('General steps', 'Pasos generales');
+
+/**
+ * The clean tab: the drawing and its steps with the species' own notes after them, or, for a species no drawing fits
+ * (a sea cucumber, a bird, a coconut), only its own notes.
+ */
+export function cleanHtml(k: CleanKey | undefined, lang: Lang, notes: Txt | undefined, group: Group): string {
+  const link = hasDispatch(group) ? `<a class="gd-dispatch" href="#dispatch"><span>${esc(tr(DISPATCH_LINK, lang))}</span><b>${esc(tr(DISPATCH_GO, lang))} →</b></a>` : '';
+  // This species' own steps come first: they say what the general drawing below cannot (spines to cut, a shell, no scales).
+  const own = notes ? `<section class="gd-blk gd-own"><h4 class="fc-mono">${esc(tr(k && cleanFits(group, k) ? OWN : PREP, lang))}</h4><p>${esc(tr(notes, lang))}</p></section>` : '';
+  if (!k || !cleanFits(group, k)) return own ? link + own : '';
   const d = CLEAN[k];
   const name = tr(d.name, lang);
-  return `<a class="gd-dispatch" href="#dispatch"><span>${esc(tr(DISPATCH_LINK, lang))}</span><b>${esc(tr(DISPATCH_GO, lang))} →</b></a>
+  return `${link}${own}
   <figure class="gd-clean">
     ${cleanSvg(k, name)}
-    <figcaption><h4>${esc(name)}</h4>
+    <figcaption><h4>${esc(own ? tr(GENERAL, lang) + ': ' + name : name)}</h4>
       <ol class="gd-steps">${d.steps.map((s) => `<li${s.at ? ' class="on"' : ''}>${esc(tr(s.t, lang))}</li>`).join('')}</ol>
-      ${notes ? `<p class="gd-note">${esc(tr(notes, lang))}</p>` : ''}
     </figcaption></figure>`;
 }
