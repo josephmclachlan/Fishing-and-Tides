@@ -9,3 +9,4 @@
 .nt-art .nt-x2 { stroke: var(--fc-sev-danger); stroke-width: 3.4; }
 .nt-art .nt-paddle { stroke: var(--fc-ink); stroke-dasharray: 2 6; }
 .nt-art .nt-band.l1 { --c: var(--fc-lv1); }
+.nt-art .nt-swell { stroke: var(--fc-ink2); stroke-width: 2; }

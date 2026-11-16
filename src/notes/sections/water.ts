@@ -82,14 +82,14 @@ export const water: Section = {
     {
       k: 'fig',
       fig: 'shore',
-      label: L('Shore break heights next to a standing adult', 'Alturas del rompiente junto a un adulto de pie'),
+      label: L('Waves dumping on the beach, next to a standing adult', 'Olas que revientan en la playa, junto a un adulto de pie'),
       tones: ['go', 'warn', 'stop'],
       marks: [
         L('Under 0.5 m: easy to wade in and out.', 'Menos de 0.5 m: es fácil entrar y salir.'),
-        L('0.5 to 1.3 m: wait for a lull between sets, walk in fast and keep facing the sea. Small children and weak swimmers stay out.', 'De 0.5 a 1.3 m: espere una pausa entre series, entre rápido y mire siempre al mar. Niños pequeños y nadadores débiles se quedan fuera.'),
+        L('0.5 to 1.3 m: waves come in sets, a group of bigger waves every few minutes. Wait for the quiet spell after a set, walk in fast and keep facing the sea. Small children and weak swimmers stay out.', 'De 0.5 a 1.3 m: las olas llegan en series, un grupo de olas más grandes cada pocos minutos. Espere la calma después de una serie, entre rápido y mire siempre al mar. Niños pequeños y nadadores débiles se quedan fuera.'),
         L('Over 1.3 m: waves dump hard on the sand and can knock you down and injure you badly. Stay out.', 'Más de 1.3 m: las olas revientan fuerte en la arena y pueden tumbarle y lesionarle gravemente. No entre.'),
       ],
-      alt: L('Every score and card in the app uses these same two lines.', 'Todos los puntajes y tarjetas de la app usan estas mismas dos líneas.'),
+      alt: L('Not confirmed: 0.5 m and 1.3 m are our own rule of thumb, not a published standard. Every score and card in the app uses these same two heights.', 'No confirmado: 0.5 m y 1.3 m son nuestra propia regla práctica, no un estándar publicado. Todos los puntajes y tarjetas de la app usan estas mismas dos alturas.'),
     },
     {
       k: 'go',
