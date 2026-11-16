@@ -6,11 +6,11 @@ import { t } from '../i18n';
 import {
   CHART_H as CHART_TITLE, CHART_NOTE, CHART_P, GRADE_HELP, GRADE_KEY, GRADES, ICE_LIMIT_KEY, HIST_CLOCK, HIST_GROUPS, HIST_H, HIST_P, HIST_VS, HIST_VS_H, HIST_VS_HEAD, HIST_VS_LINK,
   HIST_SPECIES, ICE_LIMIT, METHODS, METHODS_H, METHODS_P, MISTAKES, MISTAKES_H, MISTAKES_P, ROUTINE, ROUTINE_H, ROWS, SCIENCE_H, SCIENCE_P,
-  SECTION_LABELS, EST_MARK, SOURCES, SOURCES_H, SOURCES_P, STATS, STEPS, tr, type Fact, type Lang, type MethodId, type Txt,
+  SECTION_LABELS, EST_MARK, SOURCES, SOURCES_H, SOURCES_P, STATS, STAT_TONE, STEPS, CHART_SUB, AXIS_NOTE, tr, type Fact, type Lang, type MethodId, type Txt,
 } from './content';
 import { gradeOf, hoursTo, K_BANDS, kAt, posOf, segments, type Grade, type Method } from './model';
 import { DP_SECTIONS } from './route';
-import { methodArt } from './art';
+import { ART_VB, methodArt, scienceArt } from './art';
 
 export const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const pct = (x: number) => `${(x * 100).toFixed(2)}%`;
@@ -53,7 +53,7 @@ export function navHtml(lang: Lang): string {
 }
 
 export function statsHtml(lang: Lang): string {
-  return `<ul class="dp-stats">${STATS.map((s) => `<li><b class="dp-big">${esc(s.n)}</b><span class="fc-mono">${esc(tr(s.unit, lang))}</span><p>${factHtml({ t: s.what, src: s.src }, lang)}</p></li>`).join('')}</ul>`;
+  return `<ul class="dp-stats">${STATS.map((s) => `<li class="dp-${s.tone}"><b class="dp-big">${esc(s.n)}</b><span class="fc-mono"><em>${esc(tr(STAT_TONE[s.tone], lang))}</em> ${esc(tr(s.unit, lang))}</span><p>${factHtml({ t: s.what, src: s.src }, lang)}</p></li>`).join('')}</ul>`;
 }
 
 const TICKS = [1, 6, 12, 24, 48, 72];
@@ -76,6 +76,7 @@ export function chartHtml(lang: Lang, startHours: number): string {
   const presets = [1, 6, 12, 24, 72].map((h) => `<button type="button" class="dp-chip" data-h="${h}">${hoursLabel(h)}</button>`).join('');
   return `<section class="dp-sec dp-chart-sec" id="dp-chart" data-s="chart">
     ${sectionHead('chart', tr(SECTION_LABELS.chart, lang), tr(CHART_TITLE, lang), tr(CHART_P, lang))}
+    <p class="dp-sub fc-mono">${esc(tr(CHART_SUB, lang))}</p>
     <ul class="dp-legend">${legend}</ul>
     <p class="dp-read" id="dp-read" aria-live="polite"></p>
     <div class="dp-scrub">
@@ -87,6 +88,7 @@ export function chartHtml(lang: Lang, startHours: number): string {
       <div class="dp-axis" aria-hidden="true">${ticks}</div>
       ${rows}
     </div>
+    <p class="dp-axnote">${esc(tr(AXIS_NOTE, lang))}</p>
     <p class="dp-help">${esc(tr(GRADE_HELP, lang))}</p>
     <p class="dp-help dp-ike">${esc(ikejimeLine(lang))}</p>
     <p class="dp-fine">${esc(tr(CHART_NOTE, lang))}</p>
@@ -116,7 +118,7 @@ export function readoutText(h: number, lang: Lang): string {
 export function figureHtml(m: { id: MethodId; name: Txt; marks: Txt[] }, lang: Lang): string {
   const label = tr(m.name, lang);
   const marks = m.marks.map((x, i) => `<li><b>${i + 1}</b>${esc(tr(x, lang))}</li>`).join('');
-  return `<figure class="dp-diagram"><svg class="dp-art" viewBox="0 0 220 96" role="img" aria-label="${esc(label)}">${methodArt(m.id)}</svg><figcaption><ol class="dp-marks">${marks}</ol></figcaption></figure>`;
+  return `<figure class="dp-diagram"><svg class="dp-art" viewBox="${ART_VB[m.id]}" role="img" aria-label="${esc(label)}">${methodArt(m.id, lang)}</svg><figcaption><ol class="dp-marks">${marks}</ol></figcaption></figure>`;
 }
 
 export function methodsHtml(lang: Lang): string {
@@ -147,29 +149,47 @@ export function mistakesHtml(lang: Lang): string {
 
 export function scienceHtml(lang: Lang): string {
   const steps = STEPS.map(
-    (s) => `<li class="dp-step"><h3>${esc(tr(s.name, lang))}</h3>${s.body.map((f) => `<p>${factHtml(f, lang)}</p>`).join('')}</li>`,
+    (s) => {
+      // A picture and the first fact; the study details fold away (graphics review D-9).
+      const [first, ...more] = s.body;
+      const fold = more.length ? `<details class="dp-more"><summary class="fc-mono">${lang === 'es' ? 'Más detalle' : 'More detail'}</summary>${more.map((f) => `<p>${factHtml(f, lang)}</p>`).join('')}</details>` : '';
+      return `<li class="dp-step"><h3>${esc(tr(s.name, lang))}</h3><svg class="dp-art dp-sci" viewBox="0 0 160 64" aria-hidden="true">${scienceArt(s.id, lang)}</svg><p>${factHtml(first, lang)}</p>${fold}</li>`;
+    },
   ).join('');
   return `<section class="dp-sec" id="dp-science" data-s="science">${sectionHead('science', tr(SECTION_LABELS.science, lang), tr(SCIENCE_H, lang), tr(SCIENCE_P, lang))}<ol class="dp-steplist">${steps}</ol></section>`;
 }
 
 export function histamineHtml(lang: Lang): string {
-  const max = Math.max(...HIST_CLOCK.map((c) => c.h));
-  const clock = HIST_CLOCK.map(
-    (c, i) => `<li class="dp-ck l${i === 0 ? 0 : i === 1 ? 1 : 2}"><span class="dp-ckbar" style="width:${pct(c.h / max)}"><b>${c.h} h</b></span><p>${factHtml({ t: c.label, src: c.src }, lang)}</p></li>`,
-  ).join('');
+  const clock = `${clockRuler(lang)}<ol class="dp-ckl">${HIST_CLOCK.map((c, i) => `<li class="${i === 0 ? 'dp-ck-stop' : 'dp-ck-grey'}"><b class="fc-mono">${c.h} h</b><p>${factHtml({ t: c.label, src: c.src }, lang)}</p></li>`).join('')}</ol>`;
   const group = (g: (typeof HIST_GROUPS)[number]) =>
     `<div class="dp-hg" id="dp-hg-${g.id}"><h3>${esc(tr(g.h, lang))}</h3><ul class="dp-facts">${g.facts.map((f) => `<li>${factHtml(f, lang)}</li>`).join('')}</ul></div>`;
-  const vsRows = HIST_VS.map((r) => `<tr><th scope="row">${esc(tr(r[0], lang))}</th><td>${esc(tr(r[1], lang))}</td><td>${esc(tr(r[2], lang))}</td></tr>`).join('');
+  const [, scom, cig] = HIST_VS_HEAD.map((h) => esc(tr(h, lang)));
+  const vsRows = HIST_VS.map((r) => `<li><h4 class="fc-mono">${esc(tr(r[0], lang))}</h4><div class="dp-vs-s"><b class="fc-mono">${scom}</b><span>${esc(tr(r[1], lang))}</span></div><div class="dp-vs-c"><b class="fc-mono">${cig}</b><span>${esc(tr(r[2], lang))}</span></div></li>`).join('');
   const vs = `<div class="dp-hg" id="dp-hg-vs"><h3>${esc(tr(HIST_VS_H, lang))}</h3>
-    <div class="dp-vs-w"><table class="dp-vs"><thead><tr><th></th><th scope="col">${esc(tr(HIST_VS_HEAD[1], lang))}</th><th scope="col">${esc(tr(HIST_VS_HEAD[2], lang))}</th></tr></thead><tbody>${vsRows}</tbody></table></div>
+    <ul class="dp-vs">${vsRows}</ul>
     <p><a class="dp-link" href="#ciguatera">${esc(tr(HIST_VS_LINK, lang))} →</a></p></div>`;
   const [first, ...rest] = HIST_GROUPS;
   return `<section class="dp-sec" id="dp-histamine" data-s="histamine">${sectionHead('histamine', tr(SECTION_LABELS.histamine, lang), tr(HIST_H, lang), tr(HIST_P, lang))}
     <p class="dp-species">${esc(tr(HIST_SPECIES, lang))}</p>
     ${group(first)}
-    <div class="dp-hg"><h3>${esc(lang === 'es' ? 'El reloj: cuándo debe estar en hielo' : 'The clock: when it must be on ice')}</h3><ul class="dp-clock">${clock}</ul></div>
+    <div class="dp-hg"><h3>${esc(lang === 'es' ? 'El reloj: cuándo debe estar en hielo' : 'The clock: when it must be on ice')}</h3>${clock}</div>
     ${rest.map(group).join('')}
     ${vs}</section>`;
+}
+
+/** The histamine clock as a ruler from 0 to 12 hours: a red flag at 6 h, the rule for our heat; 9 h and 12 h greyed. */
+export function clockRuler(lang: Lang): string {
+  const x = (h: number) => 14 + (h / 12) * 300;
+  let s = `<path class="dp-line" d="M${x(0)} 52 H${x(12)}"/>`;
+  for (let h = 0; h <= 12; h++) s += `<path class="dp-line" d="M${x(h)} 52 V${h % 3 ? 56 : 60}"/>`;
+  for (const h of [0, 3, 6, 9, 12]) s += `<text class="dp-lbl" x="${x(h)}" y="72" text-anchor="middle">${h} h</text>`;
+  s += `<rect class="dp-ck-zone" x="${x(0)}" y="40" width="${x(6) - x(0)}" height="12"/>`;
+  s += `<path class="dp-flag-pole" d="M${x(6)} 8 V52"/><path class="dp-flag" d="M${x(6)} 8 H${x(6) + 74} L${x(6) + 66} 17 L${x(6) + 74} 26 H${x(6)} Z"/>`;
+  s += `<text class="dp-lbl dp-flag-t" x="${x(6) + 5}" y="21">${lang === 'es' ? 'HIELO YA' : 'ICE BY NOW'}</text>`;
+  // 9 h only when it is cooler than our usual day, 12 h only with the gills and guts out: greyed, under the hours.
+  const grey: [number, string, string][] = [[9, 'IF COOLER', 'SI MÁS FRESCO'], [12, 'IF GUTTED', 'SIN TRIPAS']];
+  grey.forEach(([h, en, es], i) => (s += `<path class="dp-grey-pole" d="M${x(h)} 40 V52"/><text class="dp-lbl dp-grey-t" x="${x(h)}" y="${88 + i * 12}" text-anchor="${h === 12 ? 'end' : 'middle'}">${lang === 'es' ? es : en}</text>`));
+  return `<svg class="dp-art dp-ruler" viewBox="0 0 328 104" role="img" aria-label="${lang === 'es' ? 'En hielo dentro de 6 horas con nuestro calor' : 'On ice within 6 hours in our heat'}">${s}</svg>`;
 }
 
 export function routineHtml(lang: Lang): string {
