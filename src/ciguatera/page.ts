@@ -11,6 +11,8 @@ import { CHROME, NOTE, SUB, TITLE } from './content';
 import { ciguateraHash, parseCiguateraRoute, type CgTab } from './route';
 import { esc, sectionHtml, tabsHtml } from './view';
 import '../forecast/forecast.css';
+import '../notes/notes.css';
+import '../notes/notes-aid.css';
 import './ciguatera.css';
 
 const SCHEME_KEY = 'ft.fcScheme';
