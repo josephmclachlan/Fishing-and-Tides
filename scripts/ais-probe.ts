@@ -9,9 +9,9 @@ import { listenAis } from './forecast/ais-listen.ts';
 
 const minutes = Number(process.argv[2] ?? 8);
 const WIDE: [[number, number], [number, number]] = [[-84.5, 8.5], [-81.0, 11.5]];
-const run = async (label: string, box: typeof AIS_BOX, secs: number) => {
+const run = async (label: string, box: typeof AIS_BOX, secs: number, opts: { noFilter?: boolean } = {}) => {
   const t = new Map<number, Vessel>();
-  const r = await listenAis(box, secs, t);
+  const r = await listenAis(box, secs, t, opts);
   const v = [...t.values()].filter((x) => Number.isFinite(x.lngLat[0]));
   console.log(`\n== ${label}: ${r.heard} messages, ${r.positions} position reports, ${v.length} ships with a position`);
   console.log('ships per 0.1° of latitude (south to north):', JSON.stringify(Object.fromEntries(Object.entries(latitudeBands(v)).sort())));
@@ -19,6 +19,9 @@ const run = async (label: string, box: typeof AIS_BOX, secs: number) => {
 };
 // Control: Colón / Cristóbal on Panama's Caribbean side is one of the busiest AIS areas in the region, so hearing nothing
 // there too would mean the listener or key is at fault, not the coast.
+// If even the whole world with no message filter is silent, the stream itself is not delivering to us (key tier or service),
+// not our box or filter.
+await run('WORLD, NO FILTER', [[-180, -90], [180, 90]], 30, { noFilter: true });
 await run('CONTROL BOX (Colón, Panama)', [[-80.2, 9.2], [-79.6, 9.5]], 60);
 await run('COAST BOX (Gandoca to Limón)', AIS_BOX, Math.round(minutes * 30));
 await run('WIDE BOX (Bocas del Toro to Nicaragua border region)', WIDE, Math.round(minutes * 30));
