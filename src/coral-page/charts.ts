@@ -8,6 +8,7 @@
  *    value labelled, month ticks, and logged visits as ticks coloured by status.
  *  - yearBars: one bar per year, height by that year's peak, coloured by band, the HIGH line across.
  */
+import { dec } from '../i18n';
 export interface Trend {
   /** Day stamps, epoch ms, oldest first. */
   days: readonly number[];
@@ -32,7 +33,7 @@ export interface ChartOpts {
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const pct = (x: number) => `${(Math.round(x * 100) / 100).toString()}%`;
-const fmt = (v: number) => (Math.abs(v) >= 10 ? v.toFixed(0) : v.toFixed(1));
+const fmt = (v: number) => (Math.abs(v) >= 10 ? dec(v, 0) : dec(v, 1));
 /** Band class of a value: `l3` under watch, `l2` under high, `l0` from high. */
 export const bandCls = (v: number, watch: number, high: number) => (v >= high ? 'l0' : v >= watch ? 'l2' : 'l3');
 
@@ -88,7 +89,7 @@ export function yearBars(years: readonly number[], peaks: readonly (number | nul
     const label = last || (yr % step === 0 && years.length - 1 - i >= Math.min(2, step)) ? `<em>${yr}</em>` : '';
     if (p === null || !Number.isFinite(p)) return `<span class="cp-yb cp-yb-none" title="${yr}: --">${label}</span>`;
     const hh = Math.max(2, (Math.min(p, b.cap) / b.cap) * 100);
-    return `<span class="cp-yb ${bandCls(p, b.watch, b.high)}${i === years.length - 1 ? ' now' : ''}" title="${yr}: ${p.toFixed(1)} ${esc(b.unit)}" style="--i:${i}"><i style="height:${pct(hh)}"></i>${label}</span>`;
+    return `<span class="cp-yb ${bandCls(p, b.watch, b.high)}${i === years.length - 1 ? ' now' : ''}" title="${yr}: ${dec(p, 1)} ${esc(b.unit)}" style="--i:${i}"><i style="height:${pct(hh)}"></i>${label}</span>`;
   }).join('');
   const yHigh = 100 - (b.high / b.cap) * 100;
   return `<div class="cp-chart cp-years">

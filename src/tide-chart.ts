@@ -10,6 +10,7 @@ import { LIMON_DATUMS, LIMON_HARMONICS } from './data/tides-limon';
 import { extrema, predictSeries, type Extremum, type Harmonics } from './physics/tide';
 import { sunTimes } from './physics/astro';
 import { REGION, TIDE_STATION } from './region';
+import { dec } from './i18n';
 
 const HOUR_MS = 3.6e6;
 const DAY_MS = 24 * HOUR_MS;
@@ -55,7 +56,7 @@ export function localClock(ms: number, tzOffsetH: number = REGION.tzOffsetH): st
 }
 
 /** Signed height in m, two decimals: "+0.21", "-0.08". */
-export const signedM = (h: number) => (h >= 0 ? '+' : '−') + Math.abs(h).toFixed(2);
+export const signedM = (h: number) => (h >= 0 ? '+' : '−') + dec(Math.abs(h), 2);
 
 export interface ChartOptions {
   /** Cursor time (the slider), drawn when inside the day. */

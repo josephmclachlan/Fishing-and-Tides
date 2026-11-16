@@ -3,7 +3,7 @@
  * NOAA Coral Reef Watch DHW and alert, the 12-week build-up, every year's peak since 1985, and today's
  * stresses (risk rows from src/coral/risks.ts). The site log below it is coral-panel.ts.
  */
-import { t, type Key } from './i18n';
+import { dec, t, type Key } from './i18n';
 import { ALERT_KEYS, coralNow, type CoralData, type CoralReef } from './adapters/coral';
 import type { CoralHistory } from './coral/history';
 import { peakFor } from './coral/history';
@@ -91,12 +91,12 @@ export function mountCoralHeat(panel: HTMLElement, deps: CoralHeatDeps) {
       <details class="cr-all"><summary class="lbl">${t('coral.allReefs', { n: d.reefs.length })}</summary><ul class="cr-list">${list}</ul></details>
       <div class="ro"><span class="lbl">${t('coral.reef')}</span><span class="seg sm">${esc(reef.name)}</span></div>
       ${sitesHtml(reef.id)}
-      <div class="ro"><span class="lbl">DHW</span><span class="seg cr-${tone}">${Number.isFinite(now.dhw) ? now.dhw.toFixed(1) : '--'}</span><span class="cr-lvl cr-${tone}">${alert}</span><span class="lbl">${Number.isFinite(now.dhwDay) ? dated(now.dhwDay) : ''}</span></div>
+      <div class="ro"><span class="lbl">DHW</span><span class="seg cr-${tone}">${Number.isFinite(now.dhw) ? dec(now.dhw, 1) : '--'}</span><span class="cr-lvl cr-${tone}">${alert}</span><span class="lbl">${Number.isFinite(now.dhwDay) ? dated(now.dhwDay) : ''}</span></div>
       <div class="ro"><span class="lbl">${t('coral.bestVisit')}</span>${
         visit
           ? `<span class="seg sm green">${t('coral.bestVisitAt', { when: visit.when, hours: visit.hours })}</span>${
               visit.visM !== null
-                ? `<span class="seg sm cr-${VIS_TONE[clarityLevel(visit.visM)]}">${t('coral.bestVisitVis', { m: visit.visM < 10 ? visit.visM.toFixed(1) : Math.round(visit.visM) })}</span>`
+                ? `<span class="seg sm cr-${VIS_TONE[clarityLevel(visit.visM)]}">${t('coral.bestVisitVis', { m: visit.visM < 10 ? dec(visit.visM, 1) : Math.round(visit.visM) })}</span>`
                 : ''
             }`
           : `<span class="seg sm">${t('coral.bestVisitNone')}</span>`
@@ -137,7 +137,7 @@ export function mountCoralHeat(panel: HTMLElement, deps: CoralHeatDeps) {
     });
     const tone = mudTone(m.level);
     return `
-      <div class="ro"><span class="lbl">${t('coral.mud')}</span><span class="seg cr-${tone}">${Number.isFinite(m.mw) ? m.mw.toFixed(1) : '--'}</span><span class="cr-lvl cr-${tone}">${t(`coral.lvl.${m.level}` as Key)}</span><span class="lbl">${Number.isFinite(m.day) ? dated(m.day) : ''}</span></div>
+      <div class="ro"><span class="lbl">${t('coral.mud')}</span><span class="seg cr-${tone}">${Number.isFinite(m.mw) ? dec(m.mw, 1) : '--'}</span><span class="cr-lvl cr-${tone}">${t(`coral.lvl.${m.level}` as Key)}</span><span class="lbl">${Number.isFinite(m.day) ? dated(m.day) : ''}</span></div>
       <div class="lbl">${t('coral.mudTrend')}</div>
       ${dhwTrendSvg(m.trend, 280, 64, MUD_BANDS)}
       ${years.length ? `<div class="lbl">${t('coral.mudPeaks', { from: years[0] })}</div>${peaksSvg(years, peaks, 280, 56, MUD_BANDS)}` : ''}

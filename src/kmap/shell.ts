@@ -45,7 +45,7 @@ import { resolveTarget, type Target } from '../target';
 import { nextSeasons, spawnWindows } from '../coral/spawning';
 import { ALERT_KEYS, alertForDhw } from '../adapters/coral-parse';
 import { alertLevelOf } from '../coral-page/view';
-import { t, type Key } from '../i18n';
+import { dec, t, type Key } from '../i18n';
 import { saveScheme, currentScheme, storedScheme } from '../theme';
 import { BANDS } from '../time';
 import type { TimeStore } from '../time';
@@ -180,7 +180,7 @@ const put = (s: Pick<Storage, 'setItem'> | undefined, k: string, v: string) => {
 };
 
 const titleCase = (s: string) => s.toLowerCase().replace(/(^|[\s·-])(\p{L})/gu, (_, a: string, b: string) => a + b.toUpperCase());
-const n1 = (x: number) => x.toFixed(1);
+const n1 = (x: number) => dec(x, 1);
 const n0 = (x: number) => String(Math.round(x));
 
 export function mountKineticMap(d: KmDeps) {
@@ -782,7 +782,7 @@ export function mountKineticMap(d: KmDeps) {
     if ((has('sst') || has('fronts') || act('swim') || act('dive') || act('spear') || S.coral) && fin(h.sstC) && !h.land)
       out.push({ k: 'sst', l: L2('Water temp', 'Temp. agua'), v: n1(h.sstC), u: '°C', s: h.sstC >= SST_BANDS.WARM ? L2('Warm for here', 'Cálida para aquí') : h.sstC >= SST_BANDS.COOL ? L2('Mid · no wetsuit', 'Media · sin traje') : L2('Cooler for here', 'Fresca para aquí'), val: h.sstC, help: 'sst', src: L2('Satellite', 'Satélite'), cite: ['sst'] });
     if (has('chl') && fin(h.chl) && !h.land)
-      out.push({ k: 'chl', l: L2('Chlorophyll', 'Clorofila'), v: h.chl >= 1 ? n1(h.chl) : h.chl.toFixed(2), u: 'mg/m³', s: h.chl >= 0.7 ? L2('Green water', 'Agua verde') : h.chl >= 0.2 ? L2('Green water edge', 'Borde de agua verde') : L2('Blue water', 'Agua azul'), val: h.chl, help: 'chl', src: L2('Satellite', 'Satélite'), cite: ['chl'] });
+      out.push({ k: 'chl', l: L2('Chlorophyll', 'Clorofila'), v: h.chl >= 1 ? n1(h.chl) : dec(h.chl, 2), u: 'mg/m³', s: h.chl >= 0.7 ? L2('Green water', 'Agua verde') : h.chl >= 0.2 ? L2('Green water edge', 'Borde de agua verde') : L2('Blue water', 'Agua azul'), val: h.chl, help: 'chl', src: L2('Satellite', 'Satélite'), cite: ['chl'] });
     if ((has('clarity') || act('snorkel') || act('dive') || act('spear')) && fin(h.visM) && !h.land)
       out.push({ k: 'clarity', l: L2('Visibility', 'Visibilidad'), v: h.visM >= 10 ? n0(h.visM) : n1(h.visM), u: 'm', s: h.visM < CLARITY_BANDS.fair ? L2('Poor · murky', 'Mala · turbia') : h.visM < CLARITY_BANDS.good ? L2('Fair · hazy', 'Regular · algo turbia') : L2('Good · clear', 'Buena · clara'), val: h.visM, help: 'vis', src: L2('Satellite', 'Satélite'), cite: ['kd490'] });
     if (has('sargassum') && h.sarg) out.push({ k: 'sarg', l: L2('Sargassum', 'Sargazo'), v: t(`sarg.level.${h.sarg.level}` as Key) || h.sarg.level, u: '', s: titleCase(h.sarg.beach), help: 'sargassum', lv: h.sarg.level === 'HIGH' ? 0 : h.sarg.level === 'MED' || h.sarg.level === 'MOD' ? 2 : 4 });
@@ -808,7 +808,7 @@ export function mountKineticMap(d: KmDeps) {
     }
     if (has('zones') && h.zone) out.push({ k: 'zone', l: L2('Protected', 'Protegida'), v: '', u: '', s: h.zone, help: 'zone', lv: null });
     const turn = td.hi && td.lo ? (td.hi.t < td.lo.t ? td.hi : td.lo) : td.hi ?? td.lo;
-    out.push({ k: 'tide', l: L2('Tide', 'Marea'), v: `${td.m >= 0 ? '+' : ''}${td.m.toFixed(2)}`, u: 'm', s: `${td.rising ? L2('Rising', 'Subiendo') : L2('Falling', 'Bajando')}${turn ? ` · ${turn.type === 'high' ? L2('high', 'alta') : L2('low', 'baja')} ${hm(turn.t)}` : ''}`, curve: td.curve, at: td.at, help: 'tide', src: L2('Exact', 'Exacta') });
+    out.push({ k: 'tide', l: L2('Tide', 'Marea'), v: `${td.m >= 0 ? '+' : ''}${dec(td.m, 2)}`, u: 'm', s: `${td.rising ? L2('Rising', 'Subiendo') : L2('Falling', 'Bajando')}${turn ? ` · ${turn.type === 'high' ? L2('high', 'alta') : L2('low', 'baja')} ${hm(turn.t)}` : ''}`, curve: td.curve, at: td.at, help: 'tide', src: L2('Exact', 'Exacta') });
     // The old SUN & MOON rows (astro-hud.ts): the day's light and the moon the bite tables run on.
     if (act('fish') || act('surf')) {
       const c0 = map.getCenter(), day = localDayStart(t0, tz), sun = sunTimes(day, c0.lat, c0.lng), mp = moonPhase(t0);
@@ -902,7 +902,7 @@ export function mountKineticMap(d: KmDeps) {
     const C: Record<string, [string, string]> = {
       swell: [L2('Swell', 'Oleaje'), h.swell ? `${n1(h.swell.hs)}<small>m</small>` : '--'],
       wind: [L2('Wind', 'Viento'), h.wind ? `${n0(h.wind.kt)}<small>kt ${compass(h.wind.fromDeg)}</small>` : '--'],
-      tide: [L2('Tide', 'Marea'), `${td.m >= 0 ? '+' : ''}${td.m.toFixed(2)}<small>m</small>`],
+      tide: [L2('Tide', 'Marea'), `${td.m >= 0 ? '+' : ''}${dec(td.m, 2)}<small>m</small>`],
       uv: ['UV', fin(h.uv) ? n0(h.uv) : '--'],
       water: [L2('Water', 'Agua'), fin(r.water?.sstC) ? `${n1(r.water!.sstC!)}°` : fin(h.sstC) ? `${n1(h.sstC)}°` : '--'],
       current: [L2('Current', 'Corriente'), fin(r.water?.currentKt) ? `${n1(r.water!.currentKt!)}<small>kt</small>` : h.current ? `${n1(h.current.kt)}<small>kt</small>` : '--'],
@@ -1632,7 +1632,7 @@ export function mountKineticMap(d: KmDeps) {
     const s = loadSummary(storage);
     if (!s) return L2('Never saved on this device yet.', 'Todavía no se ha guardado en este dispositivo.');
     const when = new Date(s.at).toLocaleString(settings.lang() === 'es' ? 'es-CR' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Costa_Rica' });
-    return L2(`Last saved ${when}, ${(s.bytes / 1e6).toFixed(s.bytes < 1e7 ? 1 : 0)} MB.`, `Guardado por última vez ${when}, ${(s.bytes / 1e6).toFixed(s.bytes < 1e7 ? 1 : 0)} MB.`);
+    return L2(`Last saved ${when}, ${dec((s.bytes / 1e6), s.bytes < 1e7 ? 1 : 0)} MB.`, `Guardado por última vez ${when}, ${dec((s.bytes / 1e6), s.bytes < 1e7 ? 1 : 0)} MB.`);
   };
   document.addEventListener(SYNC_EVENT, (e) => {
     syncSt = (e as CustomEvent<SyncStatus>).detail;

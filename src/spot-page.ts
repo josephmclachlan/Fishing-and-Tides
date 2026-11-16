@@ -8,7 +8,7 @@
 import type { Map } from 'maplibre-gl';
 import { UI } from './icons/ui';
 import { nearest } from './geo';
-import { t, type Key } from './i18n';
+import { dec, t, type Key } from './i18n';
 import { daySky, localDayStart } from './physics/astro';
 import { surgeProfile } from './physics/surge';
 import { REGION, SPOTS } from './region';
@@ -165,14 +165,14 @@ export function mountSpotPage(root: HTMLElement, map: Map, deps: SpotPageDeps) {
     }
     const b = r.waves.breaker;
     // Behind a reef flat, also what reaches the water's edge (PLAN 7.59).
-    const shore = r.shore && r.shore.share >= 0.1 && r.shore.Hb < b.Hb - 0.05 ? ` · ${t('sz.shore')} ${r.shore.Hb.toFixed(1)} ${t('unit.m')}` : '';
-    set('sp-hb', `${b.Hb.toFixed(1)} ${t('unit.m')}${b.type ? ' ' + t(`sz.type.${b.type}` as Key) : ''}${shore}`);
-    set('sp-rip', `${t(`rip.${r.rip.level}` as Key)} · ${t(`rip.str.${r.rip.strength}` as Key)} ${r.rip.speedMs.toFixed(1)} ${t('unit.ms')}`, r.rip.level === 'HIGH' ? 'red' : r.rip.level === 'MOD' ? '' : 'green');
-    set('sp-drift', `${Math.abs(b.longshoreMs).toFixed(1)} ${t('unit.ms')}`);
+    const shore = r.shore && r.shore.share >= 0.1 && r.shore.Hb < b.Hb - 0.05 ? ` · ${t('sz.shore')} ${dec(r.shore.Hb, 1)} ${t('unit.m')}` : '';
+    set('sp-hb', `${dec(b.Hb, 1)} ${t('unit.m')}${b.type ? ' ' + t(`sz.type.${b.type}` as Key) : ''}${shore}`);
+    set('sp-rip', `${t(`rip.${r.rip.level}` as Key)} · ${t(`rip.str.${r.rip.strength}` as Key)} ${dec(r.rip.speedMs, 1)} ${t('unit.ms')}`, r.rip.level === 'HIGH' ? 'red' : r.rip.level === 'MOD' ? '' : 'green');
+    set('sp-drift', `${dec(Math.abs(b.longshoreMs), 1)} ${t('unit.ms')}`);
     const q = st.surf;
     set('sp-surf', q ? `${t(`surf.band.${q.band}` as Key)} ${Math.round(q.score * 10)}/100` : t('spot.noBreak'), q && (q.band === 'GOOD' || q.band === 'EPIC') ? 'green' : '');
     const s6 = surgeProfile(st.sea.Hs, st.sea.Tp, r.waves.refraction.K, r.waves.refraction.depth, [6])[0];
-    set('sp-dive', s6 ? `${t(`dive.band.${s6.band}` as Key)} ${s6.uMs.toFixed(1)} ${t('unit.ms')}` : '--', !s6 ? '' : s6.band === 'DANGEROUS' ? 'red' : s6.band === 'SURGY' ? '' : 'green');
+    set('sp-dive', s6 ? `${t(`dive.band.${s6.band}` as Key)} ${dec(s6.uMs, 1)} ${t('unit.ms')}` : '--', !s6 ? '' : s6.band === 'DANGEROUS' ? 'red' : s6.band === 'SURGY' ? '' : 'green');
   };
 
   /** Open the page on a spot by name, or the one nearest the map centre. */

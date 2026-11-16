@@ -22,7 +22,7 @@ import { coastTest, rgbaWord, seaImage, type SeaImage } from './sea-image';
 import { memberMean, type CatchmentRain } from '../adapters/catchment-rain';
 import { flowRatio, type RiverFlow } from '../adapters/river-flow';
 import { readout } from '../hud-kit';
-import { t, type Key } from '../i18n';
+import { dec, t, type Key } from '../i18n';
 import { parseSeen, seenCSV, seenStats, seenStore, type VisApp } from '../vis-seen';
 import { NO_LIFT, lifted, onSchemeChange, paintColour as cssColour, paintLift, type Lift } from './paint';
 
@@ -471,7 +471,7 @@ export function noonAhead(ms: number, k: number, tzOffsetH: number = REGION.tzOf
   return Math.floor(local / 864e5) * 864e5 + 12 * H - tzOffsetH * H + k * 864e5;
 }
 
-const visText = (v: number) => (v >= 20 ? '20+' : v.toFixed(v < 3 ? 1 : 0));
+const visText = (v: number) => (v >= 20 ? '20+' : dec(v, v < 3 ? 1 : 0));
 
 /**
  * VIS SEEN row (PLAN 7.48): LOG asks for the visibility you saw at the cross-hair and stores it with what the

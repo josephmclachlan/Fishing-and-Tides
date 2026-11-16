@@ -12,7 +12,7 @@ import { daylightHours } from './metrics/forecast';
 import { nearest } from './geo';
 import { compassName } from './spot-charts';
 import { panelHeader } from './hud-kit';
-import { t, type Key } from './i18n';
+import { dec, t, type Key } from './i18n';
 import { LIMON_HARMONICS } from './data/tides-limon';
 import { tideFixNow } from './corrections';
 import { localDayStart, sunAltitude } from './physics/astro';
@@ -135,28 +135,28 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
     OUTING_DEPTHS.forEach((d, i) => {
       const s = profile?.[i];
       const el = $(String(d));
-      el.textContent = s ? `${t(`dive.band.${s.band}` as Key)} ${s.uMs.toFixed(1)} ${t('unit.ms')} ±${s.excursionM.toFixed(1)}${t('unit.m')}` : '--';
+      el.textContent = s ? `${t(`dive.band.${s.band}` as Key)} ${dec(s.uMs, 1)} ${t('unit.ms')} ±${dec(s.excursionM, 1)}${t('unit.m')}` : '--';
       el.className = 'seg sm ' + (!s ? '' : s.band === 'DANGEROUS' ? 'red' : s.band === 'SURGY' ? '' : 'green');
     });
     const chart = env.depthAt(c.lng, c.lat);
     const water = chart === undefined ? null : chart + tideM(time.validMs());
-    $('water').textContent = water === null ? '--' : `${water.toFixed(1)} ${t('unit.m')}`;
+    $('water').textContent = water === null ? '--' : `${dec(water, 1)} ${t('unit.m')}`;
     $('water').className = 'seg sm ' + (water === null ? '' : water < 0.5 ? 'red' : water < 1.5 ? '' : 'green');
     const cur = env.currentAt(c.lng, c.lat, time.validMs());
-    $('current').textContent = cur ? `${cur.ms.toFixed(2)} ${t('unit.ms')} → ${compassName(cur.toDeg)}` : '--';
+    $('current').textContent = cur ? `${dec(cur.ms, 2)} ${t('unit.ms')} → ${compassName(cur.toDeg)}` : '--';
     $('current').className = 'seg sm ' + (!cur ? '' : cur.ms >= 0.45 ? 'red' : cur.ms >= 0.15 ? '' : 'green');
     const sst = env.waterAt(c.lng, c.lat, time.validMs()).sstC;
-    $('sst').textContent = typeof sst === 'number' ? `${sst.toFixed(1)} ${t('unit.degC')} · ${t(`dive.suit.${suitFor(sst)}` as Key)}` : '--';
+    $('sst').textContent = typeof sst === 'number' ? `${dec(sst, 1)} ${t('unit.degC')} · ${t(`dive.suit.${suitFor(sst)}` as Key)}` : '--';
     $('sst').className = 'seg sm ' + (typeof sst !== 'number' ? '' : sst >= 26 ? 'green' : sst >= 22 ? '' : 'red');
     const uv = env.wxAt(c.lng, c.lat, time.validMs()).uv;
     $('uv').textContent = typeof uv === 'number' ? `${uv.toFixed(0)} · ${uv >= 8 ? t('dive.uv.cover') : uv >= 6 ? t('dive.uv.high') : t('dive.uv.ok')}` : '--';
     $('uv').className = 'seg sm ' + (typeof uv !== 'number' ? '' : uv >= 8 ? 'red' : uv >= 6 ? '' : 'green');
     const heat = env.coralAt(c.lng, c.lat);
-    $('coral').textContent = heat && Number.isFinite(heat.dhw) ? `${heat.dhw.toFixed(1)} ${t('dive.coral.unit')} · ${t(`dive.coral.a${heat.alert ?? 0}` as Key)} · ${heat.name}` : '--';
+    $('coral').textContent = heat && Number.isFinite(heat.dhw) ? `${dec(heat.dhw, 1)} ${t('dive.coral.unit')} · ${t(`dive.coral.a${heat.alert ?? 0}` as Key)} · ${heat.name}` : '--';
     $('coral').className = 'seg sm ' + (!heat || heat.alert === null ? '' : heat.alert >= 3 ? 'red' : heat.alert >= 1 ? '' : 'green');
     // What a swimmer meets at the water's edge: the breaker outside, cut by any reef flat in front (PLAN 7.59).
     const hb = r ? r.shore?.Hb ?? r.waves.breaker.Hb : undefined;
-    $('entry').textContent = r && Number.isFinite(hb) ? `${(hb as number).toFixed(1)} ${t('unit.m')} · ${t('dive.rip')} ${t(`dive.rip.${r.rip.level}` as Key)}` : '--';
+    $('entry').textContent = r && Number.isFinite(hb) ? `${dec((hb as number), 1)} ${t('unit.m')} · ${t('dive.rip')} ${t(`dive.rip.${r.rip.level}` as Key)}` : '--';
     $('entry').className = 'seg sm ' + (!r || !Number.isFinite(hb) ? '' : (hb as number) > SHORE_DUMP_M || r.rip.level === 'HIGH' ? 'red' : (hb as number) >= SHORE_EASY_M || r.rip.level === 'MOD' ? '' : 'green');
     // SPEAR only: may you spear here? (park and closed water: no; refuge with no rule found: ask SINAC; else yes, with the permit and card)
     const law = env.spearAt?.(c.lng, c.lat) ?? 'ok';

@@ -3,7 +3,7 @@
  * so the page can be rendered and checked without a browser (render.test.ts builds every block from a fixed
  * fixture and compares the numbers in it with the model's). page.ts puts these into the DOM and draws the canvases.
  */
-import { t, type Key } from '../i18n';
+import { dec, t, type Key } from '../i18n';
 import type { FcActivity, Level } from './model';
 import { NT_ACTS, notesHash } from '../notes/route';
 import type { ChartLayout } from './charts';
@@ -194,7 +194,7 @@ export function readoutHtml(r: ReadoutView): string {
 }
 
 /** The pinned label column beside the charts: each row's name, unit and scale. */
-const scaleText = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(Math.abs(v) < 1 ? 2 : 1));
+const scaleText = (v: number) => (Number.isInteger(v) ? String(v) : dec(v, Math.abs(v) < 1 ? 2 : 1));
 export function chartLabelsHtml(L: ChartLayout): string {
   return L.rows
     .map((o) => {
@@ -205,7 +205,7 @@ export function chartLabelsHtml(L: ChartLayout): string {
       if (o.t !== 'data') return `<div class="fc-rl rt" ${at}><span>${esc(t('fc.row.rating'))}</span></div>`;
       const id = o.spec.id;
       const unit = id === 'uv' ? '' : t(`fc.unit.${id}` as Key);
-      const sc = id === 'tide' ? `±${o.hi.toFixed(2)}` : `${scaleText(o.lo)}–${scaleText(o.hi)}`;
+      const sc = id === 'tide' ? `±${dec(o.hi, 2)}` : `${scaleText(o.lo)}–${scaleText(o.hi)}`;
       return `<div class="fc-rl" ${at}><span>${esc(t(`fc.row.${id}` as Key))}</span><em>${unit ? `${esc(unit)} · ` : ''}${esc(sc)}</em></div>`;
     })
     .join('');

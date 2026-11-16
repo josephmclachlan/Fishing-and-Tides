@@ -18,7 +18,7 @@
  * Privacy: logged sites come only from the on-device store (src/coral/store.ts) and are drawn only here and
  * in the owner's drawer. Nothing on this page is fetched with or sends a site.
  */
-import { t, type Key } from '../i18n';
+import { dec, t, type Key } from '../i18n';
 import { CORAL_REEFS } from '../region';
 import { ALERT_KEYS, coralNow, DHW_BLEACHING, DHW_SEVERE, type CoralData } from '../adapters/coral';
 import type { MudNow } from '../adapters/mud';
@@ -63,7 +63,7 @@ const put = (s: Store, k: string, v: string) => {
   }
 };
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
-const f1 = (x: number) => (Number.isFinite(x) ? x.toFixed(1) : '--');
+const f1 = (x: number) => (Number.isFinite(x) ? dec(x, 1) : '--');
 const svg = (body: string, cls = '') => `<svg viewBox="0 0 24 24" aria-hidden="true"${cls ? ` class="${cls}"` : ''}>${body}</svg>`;
 
 const TAB_ICONS: Record<CpTab, string> = {
@@ -282,7 +282,7 @@ export function mountCoralPage(deps: CoralPageDeps) {
     const lv = alertLevelOf(n?.alert);
     const ml = riskLevelOf(m?.level);
     const v = deps.visit(id);
-    const sst = n && Number.isFinite(n.sst) ? t('cp.sst', { t: n.sst.toFixed(1), a: `${n.sstAnomaly >= 0 ? '+' : ''}${f1(n.sstAnomaly)}` }) : '';
+    const sst = n && Number.isFinite(n.sst) ? t('cp.sst', { t: dec(n.sst, 1), a: `${n.sstAnomaly >= 0 ? '+' : ''}${f1(n.sstAnomaly)}` }) : '';
     const visit = v
       ? `<button type="button" class="fc-best cp-visit" data-forecast="${esc(v.spot)}"><span class="fc-mono">${t('cp.bestVisit')}</span><span class="fc-bw">${esc(v.when)} · ${esc(v.hours)}</span>${v.visM !== null ? `<span class="fc-bv">${t('cp.bestVisitVis', { m: v.visM < 10 ? v.visM.toFixed(1) : Math.round(v.visM) })}</span>` : '<span></span>'}<span class="cp-visit-go fc-mono">${t('cp.bestVisitGo', { spot: esc(titleCase(v.spot)) })} ${CHEVRON}</span></button>`
       : `<div class="fc-best cp-visit"><span class="fc-mono">${t('cp.bestVisit')}</span><span class="fc-bw">${t('cp.bestVisitNone')}</span></div>`;

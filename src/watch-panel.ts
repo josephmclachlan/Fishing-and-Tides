@@ -10,7 +10,7 @@ import type { Map, GeoJSONSource } from 'maplibre-gl';
 import { UI } from './icons/ui';
 import type { FeatureCollection } from 'geojson';
 import { REGION, SPOTS } from './region';
-import { t, type Key } from './i18n';
+import { dec, t, type Key } from './i18n';
 import { PHONE_QUERY, closeButton, type Sheets } from './sheets';
 import { METRICS, METRIC_BY_ID, METRIC_PRESETS, MAX_TRACKED, type MetricEnv } from './metrics/registry';
 import { buildForecast, spotsIn, type Region, type WatchForecast } from './metrics/forecast';
@@ -60,7 +60,7 @@ export function alikeText(p: Plan): string | null {
   return p.alike.length ? t('watch.alike', { days: p.alike.map((d) => dayName(p.startMs + d * 864e5)).join(', ') }) : null;
 }
 
-const fmt = (v: number | null, decimals: number) => (v === null ? '--' : v.toFixed(decimals));
+const fmt = (v: number | null, decimals: number) => (v === null ? '--' : dec(v, decimals));
 
 /** The activity's own score for each day (best window, best spot), the best day marked, and what the score is made of. */
 export function planHtml(p: Plan): string {

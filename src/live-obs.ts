@@ -17,7 +17,7 @@ import type { GridSeries } from './adapters/pack';
 import { agoWords } from './adapters/data-age';
 
 const ago = (ms: number) => agoWords(ms, (n, u) => t(`ago.${u}` as Key, { n }));
-import { t, type Key } from './i18n';
+import { dec, t, type Key } from './i18n';
 import { closeButton, type Sheets } from './sheets';
 import type { TideFix } from './physics/tide-fix';
 import { appliedScale, type WindFix } from './adapters/wind-fix';
@@ -121,7 +121,7 @@ export function obsRows(d: ObsInputs, now = Date.now()): ObsRow[] {
 const RANK: Record<Fresh, number> = { red: 0, amber: 1, green: 2 };
 export const worstFresh = (rows: readonly ObsRow[]): Fresh => rows.reduce<Fresh>((w, r) => (RANK[r.fresh] < RANK[w] ? r.fresh : w), 'green');
 
-const sign = (x: number, d = 2) => `${x >= 0 ? '+' : ''}${x.toFixed(d)}`;
+const sign = (x: number, d = 2) => `${x >= 0 ? '+' : ''}${dec(x, d)}`;
 const KT_PER_MS = 3600 / 1852;
 const pad3 = (x: number) => String(Math.round(x) % 360).padStart(3, '0');
 
@@ -135,7 +135,7 @@ export function valueText(r: ObsRow): string {
     return `${m.windFromDeg === null ? t('obs.vrb') : `${pad3(m.windFromDeg)}°`} ${Math.round(m.windKt)} ${t('unit.kt')}${m.gustKt ? ` G${Math.round(m.gustKt)}` : ''}`;
   }
   if (r.scat) return `${pad3(r.scat.fromDeg)}° ${Math.round(r.scat.speedMs * KT_PER_MS)} ${t('unit.kt')}`;
-  if (r.pass && Number.isFinite(r.pass.mean)) return r.id === 'sst-pass' ? `${r.pass.mean.toFixed(1)} ${t('unit.degC')}` : `${r.pass.mean.toFixed(2)} ${t('obs.mgm3')}`;
+  if (r.pass && Number.isFinite(r.pass.mean)) return r.id === 'sst-pass' ? `${dec(r.pass.mean, 1)} ${t('unit.degC')}` : `${dec(r.pass.mean, 2)} ${t('obs.mgm3')}`;
   return '--';
 }
 
@@ -162,7 +162,7 @@ export function fixRows(f: ObsInputs['fixes']): { name: string; value: string; d
       : { name: t('obs.fix.wind'), value: '--', tone: '', detail: t('obs.fix.none') },
     tf
       ? { name: t('obs.fix.tide'), value: `${sign(tf.offsetM)} ${t('unit.m')}`, tone: CONF_TONE[tf.confidence],
-          detail: t('obs.fix.tideDetail', { c: t(`wx.conf.${tf.confidence}` as Key), h: tf.hours, s: tf.sigmaM.toFixed(2) }) }
+          detail: t('obs.fix.tideDetail', { c: t(`wx.conf.${tf.confidence}` as Key), h: tf.hours, s: dec(tf.sigmaM, 2) }) }
       : { name: t('obs.fix.tide'), value: '--', tone: '', detail: t('obs.fix.none') },
   ];
 }

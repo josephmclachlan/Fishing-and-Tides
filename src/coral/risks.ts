@@ -16,6 +16,7 @@
  *  - LOW TIDE: lowest predicted tide at Limón in the next 24 h. The Caribbean range is small, so only the
  *    lowest spring lows (towards LAT −0.29 m) leave the reef flats awash in the sun. ≤ −0.20 m watch.
  */
+import { dec } from '../i18n';
 export type RiskLevel = 'ok' | 'watch' | 'high' | 'none';
 export type RiskId = 'heat' | 'sediment' | 'runoff' | 'sargassum' | 'swell' | 'lowtide';
 
@@ -54,7 +55,7 @@ export function coralRisks(i: RiskInputs): RiskRow[] {
   const heat: RiskLevel = i.alert === null ? 'none' : i.alert >= 3 ? 'high' : i.alert >= 1 ? 'watch' : 'ok';
   const sarg: RiskLevel = i.sargassum === null ? 'none' : i.sargassum === 'HIGH' ? 'high' : i.sargassum === 'NONE' ? 'ok' : 'watch';
   const low: RiskLevel = i.lowTideM === null || !Number.isFinite(i.lowTideM) ? 'none' : i.lowTideM <= RISK.lowTideWatch ? 'watch' : 'ok';
-  const f = (x: number | null, d: number, unit: string) => (x === null || !Number.isFinite(x) ? '' : `${x.toFixed(d)}${unit}`);
+  const f = (x: number | null, d: number, unit: string) => (x === null || !Number.isFinite(x) ? '' : `${dec(x, d)}${unit}`);
   return [
     { id: 'heat', level: heat, value: '' },
     { id: 'sediment', level: band(i.flowRatio, RISK.flowWatch, RISK.flowHigh), value: f(i.flowRatio, 1, '×') },

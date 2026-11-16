@@ -17,7 +17,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import { tierForZoom, type Tier } from './region';
 import { CELL_SPAN, LOCK_STEPS, RESOLVE_CELL_PX, cellBlockAt, nextTier, zoomBlock } from './zoom';
 import { cameraAltitudeM, toDDM } from './geo';
-import { hemispheres, t as tr } from './i18n';
+import { dec, hemispheres, t as tr } from './i18n';
 import { sizeOf } from './layout-size'; // 't' is the resolve progress below
 
 /** Camera altitude for the map's current view, m. */
@@ -27,7 +27,7 @@ export function mapAltitudeM(map: MapLibreMap): number {
 }
 
 export function formatAltitude(m: number): string {
-  return m >= 10_000 ? `${(m / 1000).toFixed(0)}KM` : m >= 1000 ? `${(m / 1000).toFixed(1)}KM` : `${m.toFixed(0)}M`;
+  return m >= 10_000 ? `${dec((m / 1000), 0)}KM` : m >= 1000 ? `${dec((m / 1000), 1)}KM` : `${dec(m, 0)}M`;
 }
 
 /** Track the zoom tier and publish it as body[data-tier]. Detail changes; no transition plays. */

@@ -5,7 +5,7 @@
  */
 import type { Map } from 'maplibre-gl';
 import { UI } from './icons/ui';
-import { t, type Key } from './i18n';
+import { dec, t, type Key } from './i18n';
 import { closeButton, PHONE_QUERY, type Sheets } from './sheets';
 import { ACTIONS, MEASURES, MEASURE_LIMITS, SITE_KINDS, STATUSES, cleanMeasures, photosOf, type ActionId, type LocSource, type Conditions, type CoralSite, type CoralStatus, type CoralStore, type SiteKind, type Visit } from './coral/store';
 import { conditionRows, dateInputMs, lastVisit, localDay, measureRows, nextMission, overdue, parseTags, photosNewestFirst, photoTime, type Row } from './coral/folder-view';
@@ -220,7 +220,7 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
   const flowTone = (x: number | null | undefined) => (x === null || x === undefined ? '' : x >= RISK.flowHigh ? 'red' : x >= RISK.flowWatch ? 'amber' : 'green');
   function conditionsHtml(s: CoralSite) {
     const h = historyAt(s);
-    const f1 = (x: number | null | undefined) => (x === null || x === undefined || !Number.isFinite(x) ? '--' : x.toFixed(1));
+    const f1 = (x: number | null | undefined) => (x === null || x === undefined || !Number.isFinite(x) ? '--' : dec(x, 1));
     const atVisits = [...s.visits].reverse().map((v) => {
       const c = v.conditions;
       return `<tr><td>${day(v.t)}</td><td class="${cr(statusTone(v.status))}">${t(`coral.st.${v.status}` as Key)}</td><td>${f1(c?.dhw)}</td><td>${f1(c?.mudWeeks)}</td><td>${f1(c?.sstC)}</td><td class="${cr(flowTone(c?.flowRatio))}">${f1(c?.flowRatio)}</td><td>${f1(c?.hsM)}</td><td>${f1(v.secchiM)}</td><td>${v.sedimentPct ?? '--'}</td><td>${v.bleachPct ?? '--'}</td></tr>`;
@@ -489,7 +489,7 @@ export function mountCoralPanel(root: HTMLElement, map: Map, store: CoralStore, 
     if (!target || !files.length) return;
     const r = await addPhotos(store, target, files, (k, n) => ($('c-msg').textContent = t('coral.photoSaving', { k, n })));
     if (r.failed) say(t('coral.photoFail'));
-    else if (r.farKm >= 1) say(t('coral.photoFar', { km: r.farKm.toFixed(1) }));
+    else if (r.farKm >= 1) say(t('coral.photoFar', { km: dec(r.farKm, 1) }));
     else say(t('coral.photosAdded', { n: files.length }));
   });
 

@@ -10,7 +10,7 @@ import type { Map } from 'maplibre-gl';
 import { UI } from './icons/ui';
 import { mldLevel } from './adapters/mld';
 import type { NavWarning } from './adapters/navwarn';
-import { t, type Key } from './i18n';
+import { dec, t, type Key } from './i18n';
 import { closeButton, type Sheets } from './sheets';
 import { LOG_SPECIES } from './species/kinds';
 import { createGps, type GpsState } from './boat/gps';
@@ -149,7 +149,7 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     const clear = () => ['rt-leg', 'rt-eta', 'rt-sail', 'rt-worst'].forEach((id) => (($(id).textContent = '--'), ($(id).className = 'seg sm')));
     if (!rStart || !rEnd || !d) return clear();
     const r = readRoute(d.env, d.vessel, rStart, rEnd, sp, d.validMs);
-    $('rt-leg').textContent = `${r.leg.distanceNm.toFixed(1)} ${t('unit.nm')} · ${String(Math.round(r.leg.bearingDeg)).padStart(3, '0')}°`;
+    $('rt-leg').textContent = `${dec(r.leg.distanceNm, 1)} ${t('unit.nm')} · ${String(Math.round(r.leg.bearingDeg)).padStart(3, '0')}°`;
     const min = Math.round(r.durationMs / 60000);
     const sunset = daySky(localDayStart(d.validMs, REGION.tzOffsetH), rStart[1], rStart[0]).sun.sunset;
     const dark = sunset !== null && r.arriveMs > sunset;
@@ -167,10 +167,10 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     const g = gps.state();
     $('b-gps').textContent = t(`boat.gps.${g}` as Key);
     $('b-gps').className = 'seg sm ' + (g === 'ok' ? 'green' : g === 'denied' || g === 'unavailable' ? 'red' : '');
-    $('b-dist').textContent = (distanceM / M_PER_NM).toFixed(1);
+    $('b-dist').textContent = dec((distanceM / M_PER_NM), 1);
     $('b-time').textContent = hhmm(durationMs);
     const kt = recentSpeedKt(s.points);
-    $('b-spd').textContent = kt === null ? '--' : kt.toFixed(1);
+    $('b-spd').textContent = kt === null ? '--' : dec(kt, 1);
     $('b-pins').textContent = String(s.pins.length);
     $('b-rec').textContent = s.recording ? t('boat.stop') : t('boat.rec');
     $('b-rec').classList.toggle('on', s.recording);
@@ -182,7 +182,7 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     $('b-depth').textContent = !sh ? '--' : `${sh.depthM === null ? '--' : Math.round(sh.depthM * 10) / 10} ${t('unit.m')} · ${t(`boat.shoal.${sh.level}` as Key)}${sh.level !== 'clear' && sh.minM !== null && sh.minBearingDeg !== null ? ` · ${Math.round(sh.minM * 10) / 10} ${t('unit.m')} ${COMPASS[Math.round(sh.minBearingDeg / 45) % 8]}` : ''}${sh.reef ? ` · ${t('boat.shoal.reef')}` : ''}`;
     $('b-depth').className = 'seg sm ' + (sh?.level === 'danger' ? 'red' : sh?.level === 'clear' ? 'green' : '');
     const o = offshore()?.(c.lng, c.lat);
-    $('b-front').textContent = !o ? '--' : o.front ? `${o.front.km.toFixed(1)} ${t('unit.km')} ${COMPASS[Math.round(o.front.bearingDeg / 45) % 8]} · ${t(`boat.front.${o.front.kind}` as Key)}` : t('boat.front.none');
+    $('b-front').textContent = !o ? '--' : o.front ? `${dec(o.front.km, 1)} ${t('unit.km')} ${COMPASS[Math.round(o.front.bearingDeg / 45) % 8]} · ${t(`boat.front.${o.front.kind}` as Key)}` : t('boat.front.none');
     $('b-mld').textContent = !o || o.mldM === null ? '--' : `${Math.round(o.mldM)} ${t('unit.m')} · ${t(`boat.mld.${mldLevel(o.mldM)}` as Key)}`;
     $('b-off').innerHTML = !o || !o.scores.length ? '--' : o.scores.slice(0, 2).map((s) => `<span class="${s.score >= 0.6 ? 'green' : ''}">${t(`fish.${s.id}` as Key)} ${Math.round(s.score * 100)}</span>`).join(' · ');
     // Ciguatera for the boat fish shown (fishing/cigua.ts): the size to keep, the same as the fish panel and the guide.
