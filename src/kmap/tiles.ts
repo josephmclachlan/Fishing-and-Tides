@@ -6,6 +6,7 @@
  */
 import { glyphSvg, type GlyphId } from '../icons/glyphs';
 import { bandColours, FIELD_STEPS, FIELD_TICKS, fieldIndex, fieldStops, type FieldKind } from '../layers/bands';
+import type { Citer, SourceId } from '../sources';
 import { D2R, esc, fitCanvas, L2, MONO, rgba, TAU, tok } from './dom';
 
 export interface Reading {
@@ -15,8 +16,9 @@ export interface Reading {
   v: string;
   u: string;
   s: string;
-  /** Source caption on the tile. */
+  /** Source caption on the tile, in plain words (what kind of source it is), and the sources it cites. */
   src?: string;
+  cite?: readonly SourceId[];
   /** Explainer id (src/explain.ts HELP ids). */
   help?: string;
   /** Direction for arrows and roses: FROM for wind and swell, TOWARD for current. */
@@ -41,8 +43,8 @@ export interface Reading {
 export const barHTML = (R: readonly Reading[]) =>
   R.map((r) => `<span class="k-rc${r.warn ? ' k-rcw' : r.lv !== undefined && r.lv !== null ? ` k-here k-lv${r.lv}` : ''}" data-k="${r.k}"><span>${r.warn ? glyphSvg(r.warn, { fill: 'currentColor' }, 12) : ''}${esc(r.l)}</span><b>${esc(r.v)}<small>${esc(r.u)}</small></b></span>`).join('');
 
-export const tileHTML = (r: Reading) =>
-  `<button type="button" class="k-tile" data-k="${r.k}"${r.help ? ` data-help="${r.help}"` : ''}><span class="k-tt k-mono"><span>${esc(r.l)}</span><span class="k-src">${esc(r.src ?? '')}</span></span><canvas aria-hidden="true"></canvas><span class="k-tv">${esc(r.v)}<small>${esc(r.u)}</small></span><span class="k-ts">${esc(r.s)}</span></button>`;
+export const tileHTML = (r: Reading, c: Citer) =>
+  `<button type="button" class="k-tile" data-k="${r.k}"${r.help ? ` data-help="${r.help}"` : ''}><span class="k-tt k-mono"><span>${esc(r.l)}</span><span class="k-src">${esc(r.src ?? '')}${r.cite ? c.mark(...r.cite) : ''}</span></span><canvas aria-hidden="true"></canvas><span class="k-tv">${esc(r.v)}<small>${esc(r.u)}</small></span><span class="k-ts">${esc(r.s)}</span></button>`;
 
 export function drawTiles(el: HTMLElement, R: readonly Reading[], accent: string) {
   el.querySelectorAll<HTMLElement>('.k-tile').forEach((tl, i) => {

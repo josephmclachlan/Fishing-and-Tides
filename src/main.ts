@@ -444,7 +444,8 @@ bindMapLayers(map, layers);
 // Say why a switched-on layer shows nothing (clarity review CL15 to CL17).
 mountLayerNotes(hud, map, layers, () => (satellite ? baseConditions().waterTempC : null));
 mountSettingsUi(hud, settings);
-mountIntro(hud, safeStorage());
+// On the body, not the hidden classic HUD, so it also shows over the forecast page and the new map (it was never seen there).
+mountIntro(document.body, safeStorage());
 // Which moving lines are which, while two or more are on (clarity review CL5).
 mountMotionKey(hud, layers, () => sheets.open('layers'), map);
 mountSounds(document, settings.sound);
