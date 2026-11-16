@@ -18,16 +18,23 @@
  *
  * Silk snapper (pargo seda) is a bottom fish caught by hand line at 100 to 250 m: only depth and
  * the drop term count for it.
+ *
+ * SPORT boat fish (PLAN 7.123, Joseph 2026-11-16): sailfish and blue marlin, catch and release here. No records on this
+ * coast, so these are the same kind of rules: sailfish hunt bait on colour and temperature edges over the outer shelf and
+ * slope; blue marlin keep to warm, clear blue water past the shelf edge (1,000 m is only 16 to 23 km off Limón to
+ * Manzanillo, GEBCO), on fronts and ledges. They show only when the map is on SPORT.
  */
 import { trapezoid } from './habitat';
 import { softFit } from './water';
 
-export type OffshoreId = 'mahi' | 'tuna' | 'wahoo' | 'kingfish' | 'silksnapper';
+export type OffshoreId = 'mahi' | 'tuna' | 'wahoo' | 'kingfish' | 'silksnapper' | 'sailfish' | 'marlin';
 type Range = readonly [number, number, number, number];
 type Term = 'temp' | 'chl' | 'front' | 'weed' | 'drop' | 'mix';
 
 export interface OffshoreSpecies {
   id: OffshoreId;
+  /** EAT or SPORT, as the shore species (fishing/species.ts). */
+  mode: 'eat' | 'sport';
   depthM: Range;
   sstC: Range;
   chl: Range;
@@ -36,11 +43,13 @@ export interface OffshoreSpecies {
 }
 
 export const OFFSHORE: readonly OffshoreSpecies[] = [
-  { id: 'mahi', depthM: [30, 150, 5000, 8000], sstC: [21, 24, 29, 31], chl: [0.03, 0.1, 0.6, 2], w: { front: 0.35, weed: 0.3, temp: 0.2, chl: 0.15, mix: 0.15 } },
-  { id: 'tuna', depthM: [80, 300, 5000, 8000], sstC: [22, 24, 29, 31], chl: [0.03, 0.1, 0.6, 2], w: { front: 0.45, temp: 0.3, chl: 0.25, mix: 0.2 } },
-  { id: 'wahoo', depthM: [40, 100, 1000, 3000], sstC: [22, 24, 28, 30], chl: [0.03, 0.1, 0.6, 2], w: { front: 0.35, drop: 0.3, temp: 0.2, chl: 0.15, mix: 0.15 } },
-  { id: 'kingfish', depthM: [8, 20, 60, 120], sstC: [21, 23, 28, 30], chl: [0.1, 0.3, 3, 8], w: { front: 0.35, temp: 0.3, chl: 0.2, drop: 0.15, mix: 0.1 } },
-  { id: 'silksnapper', depthM: [60, 100, 250, 350], sstC: [0, 0, 99, 99], chl: [0, 0, 99, 99], w: { drop: 1 } },
+  { id: 'mahi', mode: 'eat', depthM: [30, 150, 5000, 8000], sstC: [21, 24, 29, 31], chl: [0.03, 0.1, 0.6, 2], w: { front: 0.35, weed: 0.3, temp: 0.2, chl: 0.15, mix: 0.15 } },
+  { id: 'tuna', mode: 'eat', depthM: [80, 300, 5000, 8000], sstC: [22, 24, 29, 31], chl: [0.03, 0.1, 0.6, 2], w: { front: 0.45, temp: 0.3, chl: 0.25, mix: 0.2 } },
+  { id: 'wahoo', mode: 'eat', depthM: [40, 100, 1000, 3000], sstC: [22, 24, 28, 30], chl: [0.03, 0.1, 0.6, 2], w: { front: 0.35, drop: 0.3, temp: 0.2, chl: 0.15, mix: 0.15 } },
+  { id: 'kingfish', mode: 'eat', depthM: [8, 20, 60, 120], sstC: [21, 23, 28, 30], chl: [0.1, 0.3, 3, 8], w: { front: 0.35, temp: 0.3, chl: 0.2, drop: 0.15, mix: 0.1 } },
+  { id: 'silksnapper', mode: 'eat', depthM: [60, 100, 250, 350], sstC: [0, 0, 99, 99], chl: [0, 0, 99, 99], w: { drop: 1 } },
+  { id: 'sailfish', mode: 'sport', depthM: [30, 100, 2000, 5000], sstC: [23, 25, 29, 31], chl: [0.03, 0.1, 0.5, 1.5], w: { front: 0.35, temp: 0.3, chl: 0.2, mix: 0.15 } },
+  { id: 'marlin', mode: 'sport', depthM: [200, 1000, 6000, 8000], sstC: [24, 26, 30, 32], chl: [0.02, 0.05, 0.3, 1], w: { front: 0.35, temp: 0.3, chl: 0.2, drop: 0.15, mix: 0.1 } },
 ];
 
 export interface OffshoreInputs {
