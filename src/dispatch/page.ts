@@ -10,7 +10,7 @@ import { LEDE, TITLE, tr, type Lang } from './content';
 import { hourAt } from './model';
 import type { Method } from './model';
 import { dispatchHash, parseDispatchRoute, type DpSection } from './route';
-import { chartHtml, esc, gradeAt, GRADE_LEVEL, hoursLabel, methodsHtml, mistakesHtml, navHtml, readoutText, routineHtml, scienceHtml, histamineHtml, sourcesHtml, statsHtml } from './view';
+import { resetCitations, chartHtml, esc, gradeAt, GRADE_LEVEL, hoursLabel, methodsHtml, mistakesHtml, navHtml, readoutText, routineHtml, scienceHtml, histamineHtml, sourcesHtml, statsHtml } from './view';
 import { GRADES } from './content';
 import '../forecast/forecast.css';
 import './dispatch.css';
@@ -56,6 +56,7 @@ export function mountDispatchPage(deps: DispatchPageDeps) {
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-modal', 'true');
   el.setAttribute('aria-labelledby', 'dp-title');
+  resetCitations();
   el.innerHTML = `
     <div class="fc-page" id="dp-page">
       <header class="fc-top fc-in">

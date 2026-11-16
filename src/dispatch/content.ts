@@ -30,6 +30,9 @@ export const SOURCES: Source[] = [
   { n: 'FAO, Chilling fish (ice slurry is the fastest chilling medium)', url: 'https://www.fao.org/4/y5013e/y5013e04.htm' },
   { n: 'Saito, Arai and Matsuyoshi 1959, Nippon Suisan Gakkaishi 24:749 (the K-value); bands 20 / 40 / 60 % from Japanese freshness guides (secondary)', url: 'https://www2.kaiyodai.ac.jp/~tomoaki/images/academic/2001.4.pdf' },
   { n: 'Segura and Campos 1990, Rev. Biol. Trop. (post-harvest losses in the Golfo Dulce, Pacific: poor icing in small boats; the only Costa Rican study found)', url: 'https://revistas.ucr.ac.cr/index.php/rbt/article/download/25439/25691/65226' },
+  { n: 'US CDC Yellow Book 2018, Food poisoning from marine toxins (scombroid: antihistamines usually work well); read through a search summary', url: 'https://wwwnc.cdc.gov/travel/yellowbook/2018/the-pre-travel-consultation/food-poisoning-from-marine-toxins' },
+  { n: 'California Department of Public Health, Scombroid fish poisoning (onset minutes to hours, resembles an allergic reaction, severe cases may need epinephrine); read through a search summary', url: 'https://www.cdph.ca.gov/Programs/CID/DCDC/Pages/ScombroidFish%20Poisoning.aspx' },
+  { n: 'StatPearls, Scombroid Toxicity (usually resolves in 12 to 48 hours); read through a search summary', url: 'https://www.ncbi.nlm.nih.gov/books/NBK499871' },
 ];
 
 // --- header
@@ -287,8 +290,8 @@ export const STEPS: Step[] = [
 // --- histamine
 export const HIST_H = W('Tuna, mahi, mackerel: the 6-hour rule', 'Atún, dorado, macarela: la regla de las 6 horas');
 export const HIST_P = W(
-  'These fish are rich in histidine, an amino acid. Once the fish warms up, bacteria on the skin, gills and gut turn it into histamine, the chemical behind allergic reactions. Histamine is not destroyed by cooking, smoking, salting or freezing, and the fish does not have to smell bad.',
-  'Estos peces son ricos en histidina, un aminoácido. Cuando el pescado se calienta, las bacterias de la piel, las agallas y las tripas la convierten en histamina, la sustancia detrás de las reacciones alérgicas. La histamina no se destruye cocinando, ahumando, salando ni congelando, y el pescado no tiene que oler mal.',
+  'Scombroid poisoning, also called histamine fish poisoning, is the illness you get from eating fish that was kept warm. It is easy to prevent and hard to spot on the plate.',
+  'La intoxicación escombroide, también llamada intoxicación por histamina del pescado, es la enfermedad que se contrae al comer pescado que estuvo caliente. Es fácil de prevenir y difícil de notar en el plato.',
 );
 export const HIST_SPECIES = W(
   'Tuna and bonito (atún, barrilete), mahi-mahi (dorado), mackerels (macarela, carite, sierra), wahoo (peto), marlin, and jacks can form it too.',
@@ -300,14 +303,66 @@ export const HIST_CLOCK: Clock[] = [
   { h: 9, label: W('Within 9 hours when the air and water are 28.3 °C or cooler', 'Dentro de 9 horas cuando el aire y el agua están a 28,3 °C o menos'), src: [1] },
   { h: 12, label: W('Up to 12 hours if the gills and guts are removed before icing', 'Hasta 12 horas si se le quitan las agallas y las tripas antes de enhielar'), src: [1] },
 ];
-export const HIST_FACTS: Fact[] = [
-  { t: W('In a lab test, mahi-mahi seeded with a histamine-making bacterium reached 600 ppm after 12 hours at 25 °C, and 380 ppm after 24 hours at 15 °C. Kept at 4 °C, it stayed under 30 ppm even after 4 days. (ppm means parts per million.)', 'En una prueba de laboratorio, el mahi-mahi al que se le agregó una bacteria productora de histamina llegó a 600 ppm a las 12 horas a 25 °C, y a 380 ppm a las 24 horas a 15 °C. Mantenido a 4 °C, se quedó en menos de 30 ppm aun después de 4 días. (ppm significa partes por millón.)'), src: [7] },
-  { t: W('Mackerel held at 32 °C reached 50 ppm after 12 hours and 100 ppm after 16 (a review of earlier studies).', 'La macarela a 32 °C llegó a 50 ppm a las 12 horas y a 100 ppm a las 16 (una revisión de estudios anteriores).'), src: [8] },
-  { t: W('The US FDA’s guidance level is 50 ppm. Fish that made people sick were usually above 200 ppm and often above 500 ppm.', 'El nivel de guía de la FDA de Estados Unidos es 50 ppm. Los pescados que enfermaron a personas casi siempre pasaban de 200 ppm y a menudo de 500 ppm.'), src: [1] },
-  { t: W('Symptoms start from minutes to a few hours after eating: flushed face, burning or peppery mouth, headache, hives, sweating, racing heart, stomach cramps and diarrhoea, sometimes wheezing. They last from 12 hours to a few days.', 'Los síntomas empiezan de minutos a pocas horas después de comer: cara enrojecida, boca ardiente o picante, dolor de cabeza, ronchas, sudor, corazón acelerado, cólicos y diarrea, a veces silbidos al respirar. Duran de 12 horas a unos días.'), src: [1] },
-  { t: W('If someone has trouble breathing, faints or has a racing heart, call 911 or get to the clinic. If one person at the table gets sick, throw the rest of the fish away.', 'Si alguien tiene dificultad para respirar, se desmaya o tiene el corazón muy acelerado, llama al 911 o ve a la clínica. Si una persona de la mesa se enferma, bota el resto del pescado.') },
-  { t: W('Big tuna (over about 9 kg) heat up inside after death. Pack ice into the belly and the gill cavity, and never leave a dead fish hanging on a line.', 'El atún grande (más de unos 9 kg) se calienta por dentro después de morir. Mete hielo en la panza y en las agallas, y nunca dejes un pescado muerto colgando de un cordel.'), src: [10, 1] },
+export interface HistGroup { id: string; h: Txt; facts: Fact[] }
+export const HIST_GROUPS: HistGroup[] = [
+  {
+    id: 'cause',
+    h: W('What causes it', 'Qué la causa'),
+    facts: [
+      { t: W('The poison is histamine in the fish. You do not catch it from a germ.', 'El veneno es la histamina que hay en el pescado. No se contagia por un germen.'), src: [1] },
+      { t: W('Tuna, mahi and mackerel are rich in an amino acid called histidine. When the fish is warm, bacteria from its skin, gills and gut turn the histidine into histamine.', 'El atún, el dorado y la macarela son ricos en un aminoácido llamado histidina. Cuando el pescado está caliente, las bacterias de su piel, sus agallas y sus tripas convierten la histidina en histamina.'), src: [1] },
+      { t: W('Histamine is the same chemical your body releases in an allergic reaction. Eating a lot of it gives allergy-like symptoms.', 'La histamina es la misma sustancia que su cuerpo libera en una reacción alérgica. Comer mucha da síntomas parecidos a los de una alergia.'), src: [17] },
+    ],
+  },
+  {
+    id: 'build',
+    h: W('How fast it builds up', 'Qué tan rápido se acumula'),
+    facts: [
+      { t: W('In a lab test, mahi-mahi seeded with a histamine-making bacterium reached 600 ppm after 12 hours at 25 °C, and 380 ppm after 24 hours at 15 °C. Kept at 4 °C, it stayed under 30 ppm even after 4 days. (ppm means parts per million.)', 'En una prueba de laboratorio, el mahi-mahi al que se le agregó una bacteria productora de histamina llegó a 600 ppm a las 12 horas a 25 °C, y a 380 ppm a las 24 horas a 15 °C. Mantenido a 4 °C, se quedó en menos de 30 ppm aun después de 4 días. (ppm significa partes por millón.)'), src: [7] },
+      { t: W('Mackerel held at 32 °C reached 50 ppm after 12 hours and 100 ppm after 16 (a review of earlier studies).', 'La macarela a 32 °C llegó a 50 ppm a las 12 horas y a 100 ppm a las 16 (una revisión de estudios anteriores).'), src: [8] },
+      { t: W('The US FDA’s guidance level is 50 ppm. Fish that made people sick were usually above 200 ppm and often above 500 ppm.', 'El nivel de guía de la FDA de Estados Unidos es 50 ppm. Los pescados que enfermaron a personas casi siempre pasaban de 200 ppm y a menudo de 500 ppm.'), src: [1] },
+      { t: W('Big tuna (over about 9 kg) heat up inside after death. Pack ice into the belly and the gill cavity, and never leave a dead fish hanging on a line.', 'El atún grande (más de unos 9 kg) se calienta por dentro después de morir. Mete hielo en la panza y en las agallas, y nunca dejes un pescado muerto colgando de un cordel.'), src: [10, 1] },
+    ],
+  },
+  {
+    id: 'effects',
+    h: W('What it does to you', 'Qué le hace a usted'),
+    facts: [
+      { t: W('Symptoms start from a few minutes to a few hours after eating. They look like an allergic reaction: a flushed face, a tingling or burning mouth, headache, hives or a rash, sweating, a racing or pounding heart, stomach cramps and diarrhoea, and sometimes wheezing.', 'Los síntomas empiezan de unos minutos a unas horas después de comer. Se parecen a una reacción alérgica: cara enrojecida, boca con hormigueo o ardor, dolor de cabeza, ronchas o sarpullido, sudor, corazón acelerado o latiendo fuerte, cólicos y diarrea, y a veces silbidos al respirar.'), src: [1, 17] },
+      { t: W('Most people get better without treatment. The illness lasts from 12 hours to a few days, and one review says it usually clears in 12 to 48 hours.', 'La mayoría mejora sin tratamiento. La enfermedad dura de 12 horas a unos días, y una revisión dice que normalmente pasa en 12 a 48 horas.'), src: [1, 18] },
+      { t: W('Severe cases can bring trouble breathing, a drop in blood pressure or a very fast heartbeat.', 'Los casos graves pueden causar dificultad para respirar, baja de presión o latidos muy rápidos.'), src: [1] },
+    ],
+  },
+  {
+    id: 'help',
+    h: W('What to do if someone gets sick', 'Qué hacer si alguien se enferma'),
+    facts: [
+      { t: W('Antihistamine medicines, the kind used for hay fever and allergies, usually work well. Mild cases often need no treatment.', 'Los antihistamínicos, los que se usan para la rinitis alérgica y las alergias, suelen funcionar bien. Los casos leves a menudo no necesitan tratamiento.'), src: [16, 17] },
+      { t: W('Call 911 or go to the clinic if there is trouble breathing, fainting or a racing heart, or if the person has other medical conditions. A doctor can give stronger treatment, such as adrenaline (epinephrine).', 'Llame al 911 o vaya a la clínica si hay dificultad para respirar, desmayo o corazón acelerado, o si la persona tiene otras enfermedades. Un médico puede dar un tratamiento más fuerte, como adrenalina (epinefrina).'), src: [17] },
+      { t: W('If one person at the table gets sick, nobody should eat any more of that fish.', 'Si una persona de la mesa se enferma, nadie debe comer más de ese pescado.') },
+    ],
+  },
+  {
+    id: 'safe',
+    h: W('Cooking, freezing and smell do not make it safe', 'Cocinar, congelar y el olor no la hacen segura'),
+    facts: [
+      { t: W('Histamine is not destroyed by cooking, smoking, salting or freezing. A fish with a lot of histamine may still look and smell normal. Only keeping the fish cold from the start prevents it.', 'La histamina no se destruye cocinando, ahumando, salando ni congelando. Un pescado con mucha histamina puede verse y oler normal. Solo mantener el pescado frío desde el principio lo evita.'), src: [1] },
+    ],
+  },
 ];
+
+/** Scombroid beside ciguatera, the other fish illness here; the ciguatera page (#ciguatera) has the detail. */
+export const HIST_VS_H = W('Not the same as ciguatera', 'No es lo mismo que la ciguatera');
+export const HIST_VS_HEAD: [Txt, Txt, Txt] = [W('', ''), W('Scombroid (histamine)', 'Escombroide (histamina)'), W('Ciguatera', 'Ciguatera')];
+export const HIST_VS: [Txt, Txt, Txt][] = [
+  [W('Caused by', 'La causa'), W('Bacteria turning histidine into histamine in warm fish', 'Bacterias que convierten la histidina en histamina en pescado caliente'), W('A toxin from reef algae that builds up in big reef fish', 'Una toxina de algas de arrecife que se acumula en peces grandes de arrecife')],
+  [W('Fish', 'Pescados'), W('Tuna, mahi, mackerel and other fish that were kept warm', 'Atún, dorado, macarela y otros pescados que estuvieron calientes'), W('Large reef fish such as barracuda, snapper and grouper', 'Peces grandes de arrecife como la barracuda, el pargo y el mero')],
+  [W('Starts', 'Empieza'), W('Minutes to a few hours after eating', 'De minutos a unas horas después de comer'), W('Usually 3 to 6 hours after eating, sometimes later', 'Normalmente 3 a 6 horas después de comer, a veces más tarde')],
+  [W('Feels like', 'Se siente como'), W('An allergy: flushing, rash, headache, racing heart', 'Una alergia: enrojecimiento, sarpullido, dolor de cabeza, corazón acelerado'), W('Stomach upset first, then tingling and numbness, and hot and cold feeling reversed', 'Primero malestar de estómago, luego hormigueo y adormecimiento, y lo frío y lo caliente se sienten al revés')],
+  [W('Lasts', 'Dura'), W('12 hours to a few days', 'De 12 horas a unos días'), W('Days to months', 'De días a meses')],
+  [W('Prevented by', 'Se previene con'), W('Ice within 6 hours of death', 'Hielo dentro de 6 horas de muerto'), W('Not eating big reef fish, and never the head, liver, guts or roe. Cold does not help.', 'No comer peces grandes de arrecife, y nunca la cabeza, el hígado, las tripas ni las huevas. El frío no ayuda.')],
+];
+export const HIST_VS_LINK = W('Read the ciguatera page', 'Lee la página de la ciguatera');
 
 // --- routine
 export const ROUTINE_H = W('The five-step routine', 'La rutina de cinco pasos');
