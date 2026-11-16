@@ -113,7 +113,7 @@ export interface KmDeps {
   forecast: { open(o?: { spot?: string; activity?: FcActivity }): void; isOpen(): boolean; where(): { spot: string; activity: FcActivity } };
   openCoralPage: (reef: string) => void;
   /** The species guide (PLAN 7.91). */
-  openGuide?: (mode?: 'identify') => void;
+  openGuide?: (mode?: 'identify' | 'edible') => void;
   explain: (title: string, id: string) => void;
   go: (t: Target) => void;
   /** Reload keeping the view (language, theme and scheme are applied at load). */
@@ -874,7 +874,7 @@ export function mountKineticMap(d: KmDeps) {
           if (!WIDE.matches) closeSheet();
         } else if (k === 'fc') d.forecast.open({ spot: spot().name, activity: S.act });
         else if (k === 'coralpage') d.openCoralPage(reef()?.id ?? 'cahuita');
-        else if (k === 'guide') d.openGuide?.();
+        else if (k === 'guide') d.openGuide?.(S.act === 'fish' || S.act === 'spear' ? 'edible' : undefined);
         else if (k === 'identify') d.openGuide?.('identify');
       }),
     );

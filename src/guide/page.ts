@@ -286,7 +286,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       (ix) => {
         idx = ix;
         for (const e of ix.entries) hays.set(e.id, haystack(e)), bySci.set(e.sci.toLowerCase(), e.id);
-        $('gd-sub').textContent = t('gd.sub', { n: ix.entries.filter((e) => e.tier === 'full').length });
+        $('gd-sub').textContent = t('gd.sub', { n: ix.entries.filter((e) => e.tier === 'full' && (f.expanded || isHere(e))).length });
         render();
         if (openId) drawDetail();
       },
@@ -352,6 +352,9 @@ export function mountGuidePage(deps: GuidePageDeps) {
       idStep = 'kind';
       render();
       toId();
+    } else if ((b = hit('[data-setlang]'))) {
+      const l = b.dataset.setlang as Lang;
+      if (l !== deps.lang()) deps.setLang(l);
     } else if ((b = hit('[data-fav]')) && openId) {
       if (favs.has(openId)) favs.delete(openId);
       else favs.add(openId);
@@ -400,7 +403,12 @@ export function mountGuidePage(deps: GuidePageDeps) {
   el.addEventListener('change', (ev) => {
     const s = ev.target as HTMLInputElement | HTMLSelectElement;
     if (s.dataset.f === 'records') (f.records = (s as HTMLInputElement).checked), render();
-    else if (s.dataset.f === 'expanded') (f.expanded = (s as HTMLInputElement).checked), put(storage, EXP_KEY, f.expanded ? '1' : ''), render();
+    else if (s.dataset.f === 'expanded') {
+      f.expanded = (s as HTMLInputElement).checked;
+      put(storage, EXP_KEY, f.expanded ? '1' : '');
+      if (idx) $('gd-sub').textContent = t('gd.sub', { n: idx.entries.filter((e) => e.tier === 'full' && (f.expanded || isHere(e))).length });
+      render();
+    }
     else if (s.dataset.pick === 'sort') (f.sort = s.value as SortKey), put(storage, SORT_KEY, f.sort), render();
     else if (s.dataset.pick === 'by') {
       if (mode === 'danger') dangerBy = s.value as GroupBy;
