@@ -23,16 +23,15 @@ export const SOURCES: Source[] = [
   { n: 'Nofima, Bleeding and residual blood in fish (cod: most blood out in 3 min; fish that die unbled keep more)', url: 'https://nofima.com/worth-knowing/bleeding-and-residual-blood-in-fish/' },
   { n: 'Lin et al. 2016, J Food Drug Anal 24(2):305 (histamine in mahi-mahi at 4, 15, 25 and 37 °C)', url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC9339573' },
   { n: 'Visciano et al. 2012, Front Microbiol 3:188 (review: histamine in mackerel, mahi, tuna by time and temperature)', url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC3366335' },
-  { n: 'Kyoto Prefecture fisheries report on flathead flounder (K 7 % against 17 % at 30 h with the spinal cord destroyed); read through a summary only, to verify', url: 'https://www.pref.kyoto.jp/kaiyo/documents/41-2.pdf' },
+  { n: 'Kyoto Prefecture Marine Center 2019, flathead flounder kept at 4 to 5 °C (K 7 % against 17 % at 30 h with the spinal cord destroyed against the brainstem cut)', url: 'https://www.pref.kyoto.jp/kaiyo/documents/41-2.pdf' },
   { n: 'CRFM, Guide to Food Safety Hazards in Caribbean Fishery Products (scombrotoxin, ice at sea)', url: 'https://portal.crfm.int/it/dataset/9cce9a4b-a2b8-4a4b-bafa-5095c764be2a/resource/7585f3c9-f6a8-46e5-860f-d2a0863aa4a8/download/guide_to_food_safety_hazards_in_caribbean_fishery_products_sp._no._11.pdf' },
   { n: 'WOAH Aquatic Animal Health Code, ch. 7.3 (stunning and killing farmed fish: spiking, percussion; asphyxia and unstunned bleeding rated poor)', url: 'https://www.woah.org/fileadmin/Home/eng/Health_standards/aahc/current/chapitre_welfare_stunning_killing.pdf' },
   { n: 'AFTCO, The complete guide to ike jime (spike place, gill and tail cuts, wire, 1:1 slurry)', url: 'https://aftco.com/blogs/ocean-to-table/the-complete-guide-to-ike-jime' },
   { n: 'FAO, Chilling fish (ice slurry is the fastest chilling medium)', url: 'https://www.fao.org/4/y5013e/y5013e04.htm' },
   { n: 'Saito, Arai and Matsuyoshi 1959, Nippon Suisan Gakkaishi 24:749 (the K-value); bands 20 / 40 / 60 % from Japanese freshness guides (secondary)', url: 'https://www2.kaiyodai.ac.jp/~tomoaki/images/academic/2001.4.pdf' },
   { n: 'Segura and Campos 1990, Rev. Biol. Trop. (post-harvest losses in the Golfo Dulce, Pacific: poor icing in small boats; the only Costa Rican study found)', url: 'https://revistas.ucr.ac.cr/index.php/rbt/article/download/25439/25691/65226' },
-  { n: 'US CDC Yellow Book 2018, Food poisoning from marine toxins (scombroid: antihistamines usually work well); read through a search summary', url: 'https://wwwnc.cdc.gov/travel/yellowbook/2018/the-pre-travel-consultation/food-poisoning-from-marine-toxins' },
-  { n: 'California Department of Public Health, Scombroid fish poisoning (onset minutes to hours, resembles an allergic reaction, severe cases may need epinephrine); read through a search summary', url: 'https://www.cdph.ca.gov/Programs/CID/DCDC/Pages/ScombroidFish%20Poisoning.aspx' },
-  { n: 'StatPearls, Scombroid Toxicity (usually resolves in 12 to 48 hours); read through a search summary', url: 'https://www.ncbi.nlm.nih.gov/books/NBK499871' },
+  { n: 'US CDC Yellow Book, Food poisoning from marine toxins (scombroid: cause, symptoms, onset, duration, antihistamines, heat and freezing)', url: 'https://www.cdc.gov/yellow-book/hcp/environmental-hazards-risks/food-poisoning-from-marine-toxins.html' },
+  { n: 'Tomioka and Endo 1984, Nippon Suisan Gakkaishi 50(5):889 (K-value rise at 0 °C in 14 fish species: 0.2 to 8.4 % a day)', url: 'https://www.jstage.jst.go.jp/article/suisan1932/50/5/50_5_889/_article/-char/ja' },
 ];
 
 // --- header
@@ -273,7 +272,8 @@ export const STEPS: Step[] = [
     name: W('5  The flavour fades', '5  El sabor se va'),
     body: [
       { t: W('After death, the fish’s fuel (ATP) breaks down step by step. One step, called IMP, gives fresh fish its savoury “umami” taste. The later steps, called inosine and hypoxanthine, taste flat and slightly bitter.', 'Tras la muerte, el combustible del pescado (ATP) se degrada paso a paso. Un paso, llamado IMP, da al pescado fresco su sabor sabroso, “umami”. Los pasos posteriores, llamados inosina e hipoxantina, saben planos y algo amargos.'), src: [5] },
-      { t: W('The K-value measures how much has already passed IMP, so a low K means fresh. In flounder, destroying the spinal cord kept K at 7 % at 30 hours, against 17 % for a fish that struggled.', 'El valor K mide cuánto ya pasó el IMP, así que una K baja significa fresco. En lenguado, destruir la médula mantuvo la K en 7 % a las 30 horas, contra 17 % en un pescado que luchó.'), src: [9] },
+      { t: W('The K-value measures how much has already passed IMP, so a low K means fresh. In flathead flounder kept at 4 to 5 °C, destroying the spinal cord kept K at 7 % at 30 hours, against 17 % when the brainstem was cut instead.', 'El valor K mide cuánto ya pasó el IMP, así que una K baja significa fresco. En lenguado a 4–5 °C, destruir la médula mantuvo la K en 7 % a las 30 horas, contra 17 % cuando solo se cortó el tronco encefálico.'), src: [9] },
+      { t: W('On ice (0 °C, 32 °F) the K-value of a fish rises about 5 points a day. Across 14 species it ranged from 0.2 to 8.4 points a day, so some fish keep their freshness far longer than others.', 'En hielo (0 °C, 32 °F) el valor K de un pescado sube unos 5 puntos por día. En 14 especies varió de 0,2 a 8,4 puntos por día, así que unos pescados conservan su frescura mucho más tiempo que otros.'), src: [17] },
     ],
   },
   {
@@ -311,7 +311,7 @@ export const HIST_GROUPS: HistGroup[] = [
     facts: [
       { t: W('The poison is histamine in the fish. You do not catch it from a germ.', 'El veneno es la histamina que hay en el pescado. No se contagia por un germen.'), src: [1] },
       { t: W('Tuna, mahi and mackerel are rich in an amino acid called histidine. When the fish is warm, bacteria from its skin, gills and gut turn the histidine into histamine.', 'El atún, el dorado y la macarela son ricos en un aminoácido llamado histidina. Cuando el pescado está caliente, las bacterias de su piel, sus agallas y sus tripas convierten la histidina en histamina.'), src: [1] },
-      { t: W('Histamine is the same chemical your body releases in an allergic reaction. Eating a lot of it gives allergy-like symptoms.', 'La histamina es la misma sustancia que su cuerpo libera en una reacción alérgica. Comer mucha da síntomas parecidos a los de una alergia.'), src: [17] },
+      { t: W('Histamine is the same chemical your body releases in an allergic reaction. Eating a lot of it gives allergy-like symptoms.', 'La histamina es la misma sustancia que su cuerpo libera en una reacción alérgica. Comer mucha da síntomas parecidos a los de una alergia.'), src: [16] },
     ],
   },
   {
@@ -328,17 +328,17 @@ export const HIST_GROUPS: HistGroup[] = [
     id: 'effects',
     h: W('What it does to you', 'Qué le hace a usted'),
     facts: [
-      { t: W('Symptoms start from a few minutes to a few hours after eating. They look like an allergic reaction: a flushed face, a tingling or burning mouth, headache, hives or a rash, sweating, a racing or pounding heart, stomach cramps and diarrhoea, and sometimes wheezing.', 'Los síntomas empiezan de unos minutos a unas horas después de comer. Se parecen a una reacción alérgica: cara enrojecida, boca con hormigueo o ardor, dolor de cabeza, ronchas o sarpullido, sudor, corazón acelerado o latiendo fuerte, cólicos y diarrea, y a veces silbidos al respirar.'), src: [1, 17] },
-      { t: W('Most people get better without treatment. The illness lasts from 12 hours to a few days, and one review says it usually clears in 12 to 48 hours.', 'La mayoría mejora sin tratamiento. La enfermedad dura de 12 horas a unos días, y una revisión dice que normalmente pasa en 12 a 48 horas.'), src: [1, 18] },
-      { t: W('Severe cases can bring trouble breathing, a drop in blood pressure or a very fast heartbeat.', 'Los casos graves pueden causar dificultad para respirar, baja de presión o latidos muy rápidos.'), src: [1] },
+      { t: W('Symptoms usually start 10 to 60 minutes after eating. They look like an allergic reaction: a flushed face and upper body that looks sunburnt, a severe headache, itching, a racing or pounding heart, blurred vision, stomach cramps and diarrhoea.', 'Los síntomas suelen empezar de 10 a 60 minutos después de comer. Se parecen a una reacción alérgica: cara y parte superior del cuerpo enrojecidas como quemadas por el sol, dolor de cabeza fuerte, picazón, corazón acelerado o latiendo fuerte, visión borrosa, cólicos y diarrea.'), src: [1, 16] },
+      { t: W('Left untreated, the symptoms usually clear within 12 hours, but can last up to 48 hours.', 'Sin tratamiento, los síntomas suelen pasar en 12 horas, pero pueden durar hasta 48 horas.'), src: [16] },
+      { t: W('Rarely, it causes trouble breathing, a dangerous heart rhythm, or low blood pressure that needs a hospital.', 'Rara vez causa dificultad para respirar, un ritmo del corazón peligroso o presión baja que necesita hospital.'), src: [16] },
     ],
   },
   {
     id: 'help',
     h: W('What to do if someone gets sick', 'Qué hacer si alguien se enferma'),
     facts: [
-      { t: W('Antihistamine medicines, the kind used for hay fever and allergies, usually work well. Mild cases often need no treatment.', 'Los antihistamínicos, los que se usan para la rinitis alérgica y las alergias, suelen funcionar bien. Los casos leves a menudo no necesitan tratamiento.'), src: [16, 17] },
-      { t: W('Call 911 or go to the clinic if there is trouble breathing, fainting or a racing heart, or if the person has other medical conditions. A doctor can give stronger treatment, such as adrenaline (epinephrine).', 'Llame al 911 o vaya a la clínica si hay dificultad para respirar, desmayo o corazón acelerado, o si la persona tiene otras enfermedades. Un médico puede dar un tratamiento más fuerte, como adrenalina (epinefrina).'), src: [17] },
+      { t: W('Antihistamine medicines, the kind used for hay fever and allergies, usually work well.', 'Los antihistamínicos, los que se usan para la rinitis alérgica y las alergias, suelen funcionar bien.'), src: [16] },
+      { t: W('Call 911 or go to the clinic if there is trouble breathing, fainting or a racing heart, or if the person has other medical conditions.', 'Llame al 911 o vaya a la clínica si hay dificultad para respirar, desmayo o corazón acelerado, o si la persona tiene otras enfermedades.') },
       { t: W('If one person at the table gets sick, nobody should eat any more of that fish.', 'Si una persona de la mesa se enferma, nadie debe comer más de ese pescado.') },
     ],
   },
