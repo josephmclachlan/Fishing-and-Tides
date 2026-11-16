@@ -2,7 +2,13 @@
  * FIELD NOTES pictograms: line glyphs on a 24 px grid, drawn in the page's ink (`currentColor`), 2 px strokes, round
  * ends. `x` adds the diagonal "do not" bar in the danger colour. Pure strings; styles in notes.css (`.nt-i`).
  * Kept apart from the map's symbol set (src/icons/glyphs.ts), which is filled shapes sized for the map.
+ * Tabs add their own pictograms in picts/<group>.ts; they are merged into PICTS here.
  */
+import { SURF_PICTS } from './picts/surf';
+import { AID_PICTS } from './picts/aid';
+import { RIGS_PICTS } from './picts/rigs';
+import { MISC_PICTS } from './picts/misc';
+
 export interface Pict {
   /** Stroked path data. */
   d: string;
@@ -16,7 +22,7 @@ const SWIMMER = 'M3 14l5-3 4 3 4-2M2 19c2-1.5 3.5-1.5 5 0s3.5 1.5 5 0 3.5-1.5 5 
 const CORAL = 'M12 21v-8M12 13L8 9M8 9V5M8 9L5 7.5M12 13l4-3.5M16 9.5V6M16 9.5l3-1M12 17l-3-1.5M5 21h14';
 const HAND = 'M8 13V6a1.4 1.4 0 0 1 2.8 0v5M10.8 10.5V4.6a1.4 1.4 0 0 1 2.8 0v5.9M13.6 10.5V5.6a1.4 1.4 0 0 1 2.8 0v7.4c0 4.5-2.6 7.5-5.8 7.5-2.5 0-4-1.4-5.6-4.2L3.8 13.6a1.4 1.4 0 0 1 2.4-1.4L8 14';
 
-export const PICTS = {
+const BASE = {
   phone: { d: 'M6.5 3h3.2l1.6 4.6-2.2 1.5a11 11 0 0 0 5.8 5.8l1.5-2.2 4.6 1.6v3.2a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.2 2 2 0 0 1 6.5 3z' },
   shout: { d: 'M3 10v4h3l7 4.5v-13L6 10zM16.5 9a4 4 0 0 1 0 6M19 6.5a7.6 7.6 0 0 1 0 11' },
   ring: { d: 'M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0zM15.5 12a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0zM12 4v4.5M12 15.5V20M4 12h4.5M15.5 12H20' },
@@ -60,6 +66,8 @@ export const PICTS = {
   current: { d: 'M3 8c3-2 6 2 9 0s6-2 9 0M3 13c3-2 6 2 9 0s6-2 9 0M14 18h7M18 15l3 3-3 3' },
   depth: { d: 'M12 3v18M8 6h4M8 10h4M8 14h4M8 18h4M15 15l3 3 3-3M18 9v9' },
 } as const satisfies Record<string, Pict>;
+
+export const PICTS = { ...BASE, ...SURF_PICTS, ...AID_PICTS, ...RIGS_PICTS, ...MISC_PICTS };
 export type PictId = keyof typeof PICTS;
 
 /** One pictogram, inline, sized by CSS. Decorative: the words next to it carry the meaning. */

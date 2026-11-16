@@ -11,6 +11,10 @@ import { esc, sectionHtml, tabsHtml } from './view';
 import '../forecast/forecast.css';
 import '../ciguatera/ciguatera.css';
 import './notes.css';
+import './notes-surf.css';
+import './notes-aid.css';
+import './notes-rigs.css';
+import './notes-misc.css';
 
 const SCHEME_KEY = 'ft.fcScheme';
 type Store = Pick<Storage, 'getItem' | 'setItem'> | undefined;

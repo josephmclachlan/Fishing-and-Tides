@@ -4,11 +4,11 @@
  * Flat line art in the page's ink, the sea and the rating colours from the page's tokens. Numbered badges match each
  * figure's list of marks in sections/water.ts. Words inside a drawing are short labels only.
  */
+import { badge, type Fig } from './fig';
+
 type Lang = 'en' | 'es';
 const w = (lang: Lang, en: string, es: string) => (lang === 'es' ? es : en);
 
-export const badge = (n: number, x: number, y: number) =>
-  `<g class="nt-bd"><circle cx="${x}" cy="${y}" r="8.5"/><text x="${x}" y="${y + 3.7}" text-anchor="middle">${n}</text></g>`;
 
 /** A row of breaking waves: small curls from x0 to x1 along y. */
 const breakers = (x0: number, x1: number, y: number) => {
@@ -87,3 +87,9 @@ export function depthArt(lang: Lang): string {
     line(30, w(lang, 'ADVANCED · 30 m', 'AVANZADO · 30 m'), 4)
   );
 }
+
+export const WATER_FIGS = {
+  rip: { vb: '0 0 320 236', art: ripArt },
+  shore: { vb: '0 0 320 168', art: shoreArt },
+  depth: { vb: '0 0 320 252', art: depthArt },
+} satisfies Record<string, Fig>;

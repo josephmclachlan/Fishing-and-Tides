@@ -7,17 +7,18 @@
 import type { L } from '../ciguatera/content';
 import type { NtTab } from './route';
 import { pict, type PictId } from './icons';
-import { depthArt, ripArt, shoreArt } from './art/water';
+import { WATER_FIGS } from './art/water';
+import { SURF_FIGS } from './art/surf';
+import { AID_FIGS } from './art/aid';
+import { RIGS_FIGS } from './art/rigs';
+import { MISC_FIGS } from './art/misc';
 
 type Lang = 'en' | 'es';
 /** How a tile or cell reads: good, take care, do not, not confirmed, or plain information. */
 export type Tone = 'go' | 'warn' | 'stop' | 'unk' | 'info';
 
-export const FIGS = {
-  rip: { vb: '0 0 320 236', art: ripArt },
-  shore: { vb: '0 0 320 168', art: shoreArt },
-  depth: { vb: '0 0 320 252', art: depthArt },
-} as const;
+/** Every drawing, by id. Each tab group keeps its own in art/<group>.ts. */
+export const FIGS = { ...WATER_FIGS, ...SURF_FIGS, ...AID_FIGS, ...RIGS_FIGS, ...MISC_FIGS };
 export type FigId = keyof typeof FIGS;
 
 export type VBlock =
@@ -36,7 +37,16 @@ export type VBlock =
   /** Two or more places side by side, row by row. */
   | { k: 'compare'; cols: L[]; rows: { ico: PictId; h: L; cells: { tone: Tone; t: L }[] }[] }
   /** A card that opens another tab. */
-  | { k: 'go'; tab: NtTab; ico: PictId; h: L; t: L };
+  | { k: 'go'; tab: NtTab; ico: PictId; h: L; t: L }
+  /** Illustrated cards: a drawing or pictogram, a title, one line and up to a few short points (rigs, release steps, recipes). */
+  | { k: 'cards'; h?: L; items: { fig?: FigId; ico?: PictId; tag?: L; h: L; t?: L; list?: L[]; tone?: Tone }[] }
+  /** Two columns: what to do and what not to do. */
+  | { k: 'dodont'; h?: L; do: L[]; dont: L[] }
+  /**
+   * A heat grid: one row per thing, one cell per column (months), each cell a level 0 to 3 (none, low, good, best).
+   * `hue` picks the colour ramp: fish (green), closed (red), nest (blue), rain (blue-grey). `key` names each level used.
+   */
+  | { k: 'heat'; h?: L; cols: L[]; rows: { h: L; v: number[]; hue?: 'fish' | 'closed' | 'nest' | 'rain' }[]; key: { v: number; hue?: 'fish' | 'closed' | 'nest' | 'rain'; t: L }[]; note?: L };
 
 export type Tx = (l: L) => string;
 
@@ -104,5 +114,25 @@ export function visHtml(b: VBlock, lang: Lang, tx0: Tx, href: (t: NtTab) => stri
     }
     case 'go':
       return `<a class="nt-go" href="${href(b.tab)}">${pict(b.ico)}<span><strong>${tx(b.h)}</strong><span>${tx(b.t)}</span></span><svg class="nt-i nt-arr" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>`;
+    case 'cards':
+      return `${head(b.h, tx)}<div class="nt-cards">${b.items
+        .map((c) => {
+          const f = c.fig ? FIGS[c.fig] : undefined;
+          const art = f ? `<svg class="nt-art nt-art-${c.fig}" viewBox="${f.vb}" role="img" aria-label="${tx0(c.h).replace(/<[^>]+>/g, '')}">${f.art(lang)}</svg>` : '';
+          return `<article class="nt-card nt-${c.tone ?? 'info'}">${art}<div class="nt-card-b">${c.tag ? `<p class="nt-tag">${tx(c.tag)}</p>` : ''}<h4>${c.ico ? pict(c.ico) : ''}<span>${tx(c.h)}</span></h4>${c.t ? `<p>${tx(c.t)}</p>` : ''}${c.list?.length ? `<ul>${c.list.map((x) => `<li>${tx(x)}</li>`).join('')}</ul>` : ''}</div></article>`;
+        })
+        .join('')}</div>`;
+    case 'dodont': {
+      const col = (cls: string, word: L, items: L[]) => `<div class="nt-dd-${cls}"><h4>${chip(cls === 'do' ? 'go' : 'stop', lang)}<span>${word[lang]}</span></h4><ul>${items.map((x) => `<li>${tx(x)}</li>`).join('')}</ul></div>`;
+      return `${head(b.h, tx)}<div class="nt-dd">${col('do', { en: 'Do', es: 'Haga' }, b.do)}${col('dont', { en: 'Do not', es: 'No haga' }, b.dont)}</div>`;
+    }
+    case 'heat': {
+      const cols = b.cols.map((c) => `<span class="nt-hc">${tx(c)}</span>`).join('');
+      const rows = b.rows
+        .map((r) => `<div class="nt-hr"><span class="nt-hl">${tx(r.h)}</span>${r.v.map((v, i) => `<i class="nt-hv h${Math.max(0, Math.min(3, v))} nt-hue-${r.hue ?? 'fish'}" title="${b.cols[i]?.[lang] ?? ''}"></i>`).join('')}</div>`)
+        .join('');
+      const key = b.key.map((k) => `<li><i class="nt-hv h${k.v} nt-hue-${k.hue ?? 'fish'}"></i>${tx(k.t)}</li>`).join('');
+      return `${head(b.h, tx)}<div class="nt-heat-w"><div class="nt-heat" style="--n:${b.cols.length}"><div class="nt-hr nt-hhead"><span class="nt-hl"></span>${cols}</div>${rows}</div></div><ul class="nt-hkey">${key}</ul>${b.note ? `<p class="nt-alt">${tx(b.note)}</p>` : ''}`;
+    }
   }
 }
