@@ -88,6 +88,12 @@ describe('modes', () => {
     expect(ALL.filter((e) => inView(e, 'danger', null)).map((e) => e.id)).toEqual(['lutjanus-apodus', 'pterois-volitans', 'sphoeroides-testudineus']);
     expect(ALL.filter((e) => inView(e, 'all', 'corals')).map((e) => e.id)).toEqual(['acropora-palmata']);
     expect(poisonToEat(puffer)).toBe(true);
+    // A food fish whose only eating danger is ciguatera shows the ciguatera risk, not "poisonous to eat".
+    const cig = { edible: 'caution' as const, risks: ['ciguatera' as const], danger: { kinds: ['toxic-to-eat' as const], level: 2 as const } };
+    expect(poisonToEat(cig)).toBe(false);
+    expect(riskToEat(cig)).toBe(true);
+    expect(poisonToEat({ ...cig, danger: { ...cig.danger, level: 3 as const } })).toBe(true);
+    expect(poisonToEat({ ...cig, edible: 'no' as const })).toBe(true);
     expect(riskToEat(schoolmaster)).toBe(true);
     expect(isDanger(elkhorn)).toBe(false);
   });
