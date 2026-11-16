@@ -11,6 +11,7 @@
  */
 import type { LayerId } from '../layers/registry';
 import type { FcActivity } from '../forecast/model';
+import type { SourceId } from '../sources';
 
 export type Mode = FcActivity | 'coral';
 export const MODES: readonly Mode[] = ['surf', 'fish', 'swim', 'snorkel', 'dive', 'spear', 'sail', 'coral'];
@@ -26,7 +27,9 @@ export interface KmLayerDef {
   id: KmLayer;
   group: KmGroup;
   /** Where the data comes from, as shown under the layer's name. */
-  src: string;
+  src: { en: string; es: string };
+  /** Sources of the layer, shown as superscript numbers (src/sources.ts). */
+  cite: readonly SourceId[];
   /** Data-age feeds (adapters/data-age.ts) whose newest fetch dates this layer; none = a static file. */
   feeds: readonly string[];
   /** Only offered in CORAL mode. */
@@ -34,30 +37,30 @@ export interface KmLayerDef {
 }
 
 export const KM_LAYERS: readonly KmLayerDef[] = [
-  { id: 'rating', group: 'core', src: 'Spot models', feeds: ['waves', 'weather', 'spotwind'] },
-  { id: 'waves', group: 'ocean', src: 'WW3 · GEBCO refraction', feeds: ['waves'] },
-  { id: 'wind', group: 'ocean', src: 'ECMWF · GFS · ASCAT fit', feeds: ['wind'] },
-  { id: 'currents', group: 'ocean', src: 'Copernicus SMOC', feeds: ['currents'] },
-  { id: 'sst', group: 'water', src: 'Satellite SST', feeds: ['sst', 'sst-coast'] },
-  { id: 'chl', group: 'water', src: 'VIIRS chlorophyll', feeds: ['chl'] },
-  { id: 'fronts', group: 'water', src: 'SST · chlorophyll fronts', feeds: ['sst', 'chl'] },
-  { id: 'clarity', group: 'water', src: 'Kd490 · river plumes', feeds: ['chl', 'river', 'rain'] },
-  { id: 'sargassum', group: 'water', src: 'USF SaWS · drift', feeds: ['sargassum'] },
-  { id: 'weather', group: 'weather', src: 'Rain nowcast · storms', feeds: ['raincells', 'storms'] },
-  { id: 'lightning', group: 'weather', src: 'GOES GLM', feeds: ['lightning'] },
-  { id: 'obs', group: 'weather', src: 'Gauge · METAR · passes', feeds: ['gauge', 'metar'] },
-  { id: 'rip', group: 'beach', src: 'Rip model · river flow', feeds: ['waves', 'river'] },
-  { id: 'surf', group: 'beach', src: 'Surf break catalogue', feeds: ['waves'] },
-  { id: 'fishing', group: 'beach', src: 'Habitat · BITE · OBIS', feeds: ['weather'] },
-  { id: 'spear', group: 'beach', src: 'Habitat · INCOPESCA · SINAC', feeds: [] },
-  { id: 'depth', group: 'seafloor', src: 'GEBCO 2026', feeds: [] },
-  { id: 'reefs', group: 'seafloor', src: 'Allen Coral Atlas', feeds: [] },
-  { id: 'seamarks', group: 'seafloor', src: 'OpenStreetMap seamarks', feeds: [] },
-  { id: 'zones', group: 'rules', src: 'SINAC', feeds: [] },
-  { id: 'anchorages', group: 'rules', src: 'Harbours · anchorages', feeds: [] },
-  { id: 'ais', group: 'rules', src: 'AISStream · last 24 h', feeds: ['ais'] },
-  { id: 'heat', group: 'coral', src: 'NOAA Coral Reef Watch', feeds: ['coral'], coralOnly: true },
-  { id: 'private', group: 'coral', src: 'This device only', feeds: [], coralOnly: true },
+  { id: 'rating', group: 'core', src: { en: 'Our spot models', es: 'Modelos propios por sitio' }, cite: [], feeds: ['waves', 'weather', 'spotwind'] },
+  { id: 'waves', group: 'ocean', src: { en: 'Wave model, adjusted for the seabed', es: 'Modelo de olas, ajustado al fondo' }, cite: ['ww3', 'wam', 'gebco'], feeds: ['waves'] },
+  { id: 'wind', group: 'ocean', src: { en: 'Weather models, fitted to satellite wind', es: 'Modelos del tiempo, ajustados al viento por satélite' }, cite: ['ecmwf', 'gfs', 'ascat'], feeds: ['wind'] },
+  { id: 'currents', group: 'ocean', src: { en: 'Ocean current forecast', es: 'Pronóstico de corrientes' }, cite: ['smoc'], feeds: ['currents'] },
+  { id: 'sst', group: 'water', src: { en: 'Satellite sea temperature', es: 'Temperatura del mar por satélite' }, cite: ['sst'], feeds: ['sst', 'sst-coast'] },
+  { id: 'chl', group: 'water', src: { en: 'Satellite ocean colour', es: 'Color del océano por satélite' }, cite: ['chl'], feeds: ['chl'] },
+  { id: 'fronts', group: 'water', src: { en: 'Edges in temperature and colour', es: 'Bordes de temperatura y color' }, cite: ['sst', 'chl'], feeds: ['sst', 'chl'] },
+  { id: 'clarity', group: 'water', src: { en: 'Satellite water clarity and river plumes', es: 'Claridad del agua por satélite y plumas de ríos' }, cite: ['kd490', 'glofas'], feeds: ['chl', 'river', 'rain'] },
+  { id: 'sargassum', group: 'water', src: { en: 'Satellite sargassum and where it drifts', es: 'Sargazo por satélite y hacia dónde va' }, cite: ['usf'], feeds: ['sargassum'] },
+  { id: 'weather', group: 'weather', src: { en: 'Rain clouds and storms', es: 'Nubes de lluvia y tormentas' }, cite: ['goesrain', 'nhc'], feeds: ['raincells', 'storms'] },
+  { id: 'lightning', group: 'weather', src: { en: 'Lightning seen from space', es: 'Rayos vistos desde el espacio' }, cite: ['glm'], feeds: ['lightning'] },
+  { id: 'obs', group: 'weather', src: { en: 'Tide gauge and airport reports', es: 'Mareógrafo y reportes del aeropuerto' }, cite: ['ioc', 'metar'], feeds: ['gauge', 'metar'] },
+  { id: 'rip', group: 'beach', src: { en: 'Our rip current model, with river flow', es: 'Nuestro modelo de resaca, con caudal de ríos' }, cite: ['glofas'], feeds: ['waves', 'river'] },
+  { id: 'surf', group: 'beach', src: { en: 'Our list of surf breaks', es: 'Nuestra lista de rompientes' }, cite: [], feeds: ['waves'] },
+  { id: 'fishing', group: 'beach', src: { en: 'Fish habitat, bite model and fish records', es: 'Hábitat, modelo de picada y registros de peces' }, cite: ['obis'], feeds: ['weather'] },
+  { id: 'spear', group: 'beach', src: { en: 'Habitat and spearfishing rules', es: 'Hábitat y reglas de pesca submarina' }, cite: ['incopesca', 'sinac'], feeds: [] },
+  { id: 'depth', group: 'seafloor', src: { en: 'Seafloor depth map', es: 'Mapa de profundidad del fondo' }, cite: ['gebco'], feeds: [] },
+  { id: 'reefs', group: 'seafloor', src: { en: 'Reef and seabed map', es: 'Mapa de arrecifes y fondo' }, cite: ['acoral'], feeds: [] },
+  { id: 'seamarks', group: 'seafloor', src: { en: 'Sea marks such as buoys and wrecks', es: 'Marcas marinas como boyas y naufragios' }, cite: ['seamarks'], feeds: [] },
+  { id: 'zones', group: 'rules', src: { en: 'Protected areas', es: 'Áreas protegidas' }, cite: ['sinac'], feeds: [] },
+  { id: 'anchorages', group: 'rules', src: { en: 'Harbours and anchorages', es: 'Puertos y fondeaderos' }, cite: [], feeds: [] },
+  { id: 'ais', group: 'rules', src: { en: 'Ship positions, last 24 h', es: 'Posiciones de barcos, últimas 24 h' }, cite: ['aisstream'], feeds: ['ais'] },
+  { id: 'heat', group: 'coral', src: { en: 'Coral heat stress', es: 'Estrés por calor del coral' }, cite: ['crw'], feeds: ['coral'], coralOnly: true },
+  { id: 'private', group: 'coral', src: { en: 'This device only', es: 'Solo este dispositivo' }, cite: [], feeds: [], coralOnly: true },
 ];
 export const layerDef = (id: KmLayer) => KM_LAYERS.find((l) => l.id === id)!;
 export const isKmLayer = (x: unknown): x is KmLayer => typeof x === 'string' && KM_LAYERS.some((l) => l.id === x);

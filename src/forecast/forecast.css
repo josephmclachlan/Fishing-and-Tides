@@ -442,3 +442,8 @@ body.fc-open { overflow: hidden; }
 
 /* The LIKELY CATCH names open the guide on that kind of fish. */
 .fc .fc-t-go { color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }
+
+/* The feeds are down: one sentence in place of tiles, days and charts full of "--". */
+.fc-down-msg { margin: 14px 0; padding: 14px 16px; border-left: 3px solid var(--fc-ink2); background: var(--fc-c-card); font-size: 15px; line-height: 1.4; }
+.fc-down-msg[hidden] { display: none; }
+.fc-down .fc-sec { display: none; }

@@ -34,7 +34,7 @@ export const signed2 = (x: number) => (x >= 0 ? '+' : '−') + Math.abs(x).toFix
 /** "PLAYA COCLES" → "Playa Cocles"; "LIMÓN" → "Limón". */
 export const titleCase = (s: string) => s.toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (_, a: string, b: string) => a + b.toUpperCase());
 /** HUD caps to a sentence: "MOVING TIDE" → "Moving tide". */
-export const sentence = (s: string) => (s ? s[0].toUpperCase() + s.slice(1).toLowerCase() : s);
+export const sentence = (s: string) => (s ? (s[0].toUpperCase() + s.slice(1).toLowerCase()).replace(/°c\b/g, '°C') : s);
 /** Compass point for degrees FROM, with W in the active language; '' without a direction. */
 export const cmp = (deg: number | null | undefined) => (fin(deg) ? compassName(deg).replace(/W/g, t('hemi.W')) : '');
 /** Local hour of the day, 0..23. */

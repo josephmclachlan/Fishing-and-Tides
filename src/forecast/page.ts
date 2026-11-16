@@ -304,6 +304,10 @@ export function mountForecastPage(deps: ForecastDeps) {
     if (reduced && T) engine.still();
     // Shimmer placeholders while the feeds load (first 20 s); after that a plain "no data".
     el.classList.toggle('fc-loading', r.level === null && Date.now() - openedAt < 20_000);
+    // The feeds are down (or still empty after 20 s): one message instead of tiles, days and charts full of "--".
+    const down = r.level === null && Date.now() - openedAt >= 20_000;
+    el.classList.toggle('fc-down', down);
+    ($('fc-down') as HTMLElement).hidden = !down;
     $('fc-now').hidden = sel === null;
   };
 
