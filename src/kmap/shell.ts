@@ -66,7 +66,7 @@ import { SYNC_EVENT, type SyncStatus } from '../sync-ui';
 import { loadSummary } from '../offline/sync';
 import type { FishCigua, FishInfo, SpearInfo } from '../fishing-hud';
 import { ciguaSpecies, isRed } from '../fishing/cigua';
-import type { SpeciesId } from '../fishing/species';
+import { speciesById, speciesIn, type SpeciesId } from '../fishing/species';
 
 type Spot = (typeof SPOTS)[number];
 const asSpot = (s: FcSpot | undefined): Spot => (s ? (SPOTS.find((x) => x.name === s.name) ?? SPOTS[0]) : SPOTS[0]);
@@ -135,6 +135,8 @@ export interface KmDeps {
     subscribe?(fn: () => void): void;
     /** The fish bar (PLAN 7.143): step the fish, its best windows and spots, fly to a spot, log a catch. */
     step?(d: number): void;
+    /** A fish picked from the fish menu, under its EAT or SPORT heading. */
+    pick?(id: SpeciesId, m?: 'eat' | 'sport'): void;
     info?(): FishInfo | null;
     flySpot?(n: number): void;
     onInfo?(fn: () => void): void;
@@ -1087,7 +1089,7 @@ export function mountKineticMap(d: KmDeps) {
     el.innerHTML = `<div class="k-fbrow"><div class="k-seg" role="group" aria-label="${L2('Fish to eat or sport fish', 'Peces para comer o pesca deportiva')}">${b('data-fsw', 'eat', m, L2('Eat', 'Comer'))}${b('data-fsw', 'sport', m, L2('Sport', 'Deporte'))}</div>${
       fm.setReach ? `<div class="k-seg" role="group" aria-label="${L2('Where you fish from', 'Desde dónde pesca')}">${b('data-freach', 'all', r, L2('All', 'Todo'))}${b('data-freach', 'shore', r, L2('Shore', 'Orilla'))}${b('data-freach', 'boat', r, L2('Boat', 'Bote'))}</div>` : ''
     }</div>${fi && fm.step ? `<div class="k-fbrow">
-      <span class="k-fpick"><button type="button" data-fstep="-1" aria-label="${L2('Previous fish', 'Pez anterior')}">‹</button><b>${esc(fi.name)}</b><button type="button" data-fstep="1" aria-label="${L2('Next fish', 'Siguiente pez')}">›</button></span>
+      <span class="k-fpick"><button type="button" data-fstep="-1" aria-label="${L2('Previous fish', 'Pez anterior')}">‹</button>${fm.pick ? `<button type="button" class="k-fname" data-fsheet="menu" aria-haspopup="dialog" aria-label="${L2('Pick a fish', 'Elegir un pez')}: ${esc(fi.name)}"><b>${esc(fi.name)}</b>${CARET}</button>` : `<b>${esc(fi.name)}</b>`}<button type="button" data-fstep="1" aria-label="${L2('Next fish', 'Siguiente pez')}">›</button></span>
       <button type="button" class="k-fchip k-fbest" data-fsheet="times">${best ? `${best.start <= at ? L2('Best now to', 'Mejor ahora hasta') + ' ' + esc(best.range.split('–')[1]) : `${L2('Best', 'Mejor')} ${esc(best.range)}`}` : fi?.wins.length ? L2('Best times are over today', 'Ya pasaron las mejores horas') : L2('No standout time today', 'Ninguna hora destaca hoy')}</button></div>
       ${fi.cig ? `<div class="k-fbrow">${cigChip(fi.cig)}</div>` : ''}
       <div class="k-fbrow"><button type="button" class="k-fchip" data-fsheet="spots">${svg('<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>')}${L2('Best spots', 'Mejores sitios')}</button>${fm.logCatch ? `<button type="button" class="k-fchip" data-fsheet="catch">${svg('<path d="M12 5v14M5 12h14"/>')}${L2('Catch', 'Captura')}</button>` : ''}</div>` : ''}`;
@@ -1096,17 +1098,43 @@ export function mountKineticMap(d: KmDeps) {
    * SPEAR's bar (Joseph 2026-11-16, "shouldn't spear get similar items?"): the target (every spear fish, one of them, or lobster
    * or octopus by hand), the spot's best spear window, the best open water near the crosshair, and + Catch.
    */
+  const CARET = svg('<path d="M6 9l6 6 6-6"/>');
   const spearName = (id: SpeciesId | null) => (id ? t(`fish.${id}` as Key) : L2('All spear fish', 'Todos los peces'));
   const spearBarHTML = () => {
     const si = d.fishMode?.spearInfo?.() ?? null;
     if (!si) return '';
     const bt = bestWindow();
     const hand = si.target === 'lobster' || si.target === 'octopus';
-    return `<div class="k-fbrow"><span class="k-fpick"><button type="button" data-sstep="-1" aria-label="${L2('Previous target', 'Objetivo anterior')}">‹</button><b>${esc(spearName(si.target))}</b><button type="button" data-sstep="1" aria-label="${L2('Next target', 'Siguiente objetivo')}">›</button></span>${
+    return `<div class="k-fbrow"><span class="k-fpick"><button type="button" data-sstep="-1" aria-label="${L2('Previous target', 'Objetivo anterior')}">‹</button><button type="button" class="k-fname" data-fsheet="smenu" aria-haspopup="dialog" aria-label="${L2('Pick a target', 'Elegir un objetivo')}: ${esc(spearName(si.target))}"><b>${esc(spearName(si.target))}</b>${CARET}</button><button type="button" data-sstep="1" aria-label="${L2('Next target', 'Siguiente objetivo')}">›</button></span>${
       hand ? `<span class="k-fchip k-fhand">${L2('By hand, not the spear gun', 'A mano, no con arpón')}</span>` : ''
     }</div>
       <div class="k-fbrow"><button type="button" class="k-fchip k-fbest" data-fsheet="spot">${bt.kind === 'hidden' || bt.kind === 'none' ? L2('No good window this week', 'Sin buena ventana esta semana') : `${L2('Best', 'Mejor')} ${esc(bt.when)}`}</button></div>
       <div class="k-fbrow"><button type="button" class="k-fchip" data-fsheet="spearspots">${svg('<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>')}${L2('Best spots', 'Mejores sitios')}</button>${d.fishMode?.logCatch ? `<button type="button" class="k-fchip" data-fsheet="catch">${svg('<path d="M12 5v14M5 12h14"/>')}${L2('Catch', 'Captura')}</button>` : ''}</div>`;
+  };
+  /**
+   * The fish menu (Joseph 2026-11-16: "an in-app rectangular menu showing all the fish and catch, under sport and eat
+   * headings"): every fish as a tile under EAT (fish, then what is taken by hand) and SPORT, the picked one marked, and a
+   * fish out of season this month said so. A fish in both (permit) shows under both and picks that mode.
+   */
+  const fishTile = (id: SpeciesId, attr: string, on: boolean, note: string, warn = false) =>
+    `<li><button type="button" class="k-fmtile${on ? ' k-on' : ''}" ${attr} aria-pressed="${on}"><b>${esc(t(`fish.${id}` as Key))}</b>${note ? `<small class="${warn ? 'k-fmwarn' : ''}">${esc(note)}</small>` : ''}</button></li>`;
+  const fishMenuHTML = () => {
+    const fi = d.fishMode?.info?.(), m = d.fishMode?.get() ?? 'eat', mo = new Date(time.validMs()).getUTCMonth();
+    const tile = (id: SpeciesId, mode: 'eat' | 'sport') => {
+      const off = !(speciesById(id).season[mo] > 0);
+      return fishTile(id, `data-fpick="${id}" data-fpmode="${mode}"`, fi?.id === id && m === mode, off ? L2('Out of season', 'Fuera de temporada') : '', off);
+    };
+    const eat = speciesIn('eat'), sport = speciesIn('sport');
+    const grid = (h: string, ids: readonly SpeciesId[], mode: 'eat' | 'sport') => (ids.length ? `<h3 class="k-mono k-fmh">${h}</h3><ul class="k-fmenu">${ids.map((id) => tile(id, mode)).join('')}</ul>` : '');
+    return grid(L2('Eat', 'Comer'), eat.filter((s) => !s.byHand).map((s) => s.id), 'eat')
+      + grid(L2('Eat · by hand', 'Comer · a mano'), eat.filter((s) => s.byHand).map((s) => s.id), 'eat')
+      + grid(L2('Sport', 'Deporte'), sport.map((s) => s.id), 'sport');
+  };
+  const spearMenuHTML = (si: SpearInfo) => {
+    const fish = si.targets.filter((id) => !speciesById(id).byHand), hand = si.targets.filter((id) => speciesById(id).byHand);
+    return `<ul class="k-fmenu"><li><button type="button" class="k-fmtile${si.target === null ? ' k-on' : ''}" data-spick="all" aria-pressed="${si.target === null}"><b>${L2('All spear fish', 'Todos los peces')}</b></button></li></ul>`
+      + `<h3 class="k-mono k-fmh">${L2('Spear', 'Arpón')}</h3><ul class="k-fmenu">${fish.map((id) => fishTile(id, `data-spick="${id}"`, si.target === id, '')).join('')}</ul>`
+      + (hand.length ? `<h3 class="k-mono k-fmh">${L2('By hand, not the spear gun', 'A mano, no con arpón')}</h3><ul class="k-fmenu">${hand.map((id) => fishTile(id, `data-spick="${id}"`, si.target === id, '')).join('')}</ul>` : '');
   };
   const spearSheetHTML = (si: SpearInfo) => `<p class="k-mono k-fcap">${L2('Open water for', 'Agua abierta para')} ${esc(spearName(si.target).toLowerCase())} · 3–15 m · ${L2('parks and closed water left out', 'sin parques ni aguas cerradas')}</p><ul class="k-fspots">${
     si.spots.length
@@ -1126,6 +1154,7 @@ export function mountKineticMap(d: KmDeps) {
     }
     if (t.dataset.fsheet === 'spot') return openSheet('spot');
     if (t.dataset.fsheet === 'spearspots') return openSheet('spear');
+    if (t.dataset.fsheet === 'menu' || t.dataset.fsheet === 'smenu') return openSheet(t.dataset.fsheet === 'menu' ? 'fishmenu' : 'spearmenu');
     if (t.dataset.fsheet === 'catch') catchAs = null;
     if (t.dataset.fsheet) return openSheet(t.dataset.fsheet === 'catch' ? 'catch' : 'fish', t.dataset.fsheet);
     if (t.dataset.fstep) return d.fishMode.step?.(Number(t.dataset.fstep));
@@ -1204,7 +1233,16 @@ export function mountKineticMap(d: KmDeps) {
     };
     // One listener for the fish and catch sheets, whose bodies are rebuilt as the fish, day or crosshair change.
     shBody.addEventListener('click', (e) => {
-      if (S.sheet !== 'fish' && S.sheet !== 'catch' && S.sheet !== 'spear') return;
+      if (S.sheet !== 'fish' && S.sheet !== 'catch' && S.sheet !== 'spear' && S.sheet !== 'fishmenu' && S.sheet !== 'spearmenu') return;
+      const mp = (e.target as HTMLElement).closest<HTMLElement>('[data-fpick],[data-spick]');
+      if (mp) {
+        if (mp.dataset.fpick) d.fishMode?.pick?.(mp.dataset.fpick as SpeciesId, mp.dataset.fpmode as 'eat' | 'sport');
+        else d.fishMode?.setSpearTarget?.(mp.dataset.spick === 'all' ? null : (mp.dataset.spick as SpeciesId));
+        closeSheet();
+        renderFishSw();
+        renderSpot();
+        return;
+      }
       const sf = (e.target as HTMLElement).closest<HTMLElement>('[data-sfly]');
       if (sf) {
         const [lng, lat] = sf.dataset.sfly!.split(',').map(Number);
@@ -1448,6 +1486,14 @@ export function mountKineticMap(d: KmDeps) {
       if (!si) return;
       shTitle.textContent = L2('Best spear spots', 'Mejores sitios de pesca submarina');
       shBody.innerHTML = spearSheetHTML(si);
+    } else if (kind === 'fishmenu') {
+      shTitle.textContent = L2('Pick a fish', 'Elija un pez');
+      shBody.innerHTML = fishMenuHTML();
+    } else if (kind === 'spearmenu') {
+      const si = d.fishMode?.spearInfo?.();
+      if (!si) return;
+      shTitle.textContent = L2('Pick a spear target', 'Elija un objetivo');
+      shBody.innerHTML = spearMenuHTML(si);
     } else if (kind === 'catch') {
       const fi = d.fishMode?.info?.() ?? null;
       if (S.act === 'spear') catchAs ??= d.fishMode?.spearInfo?.()?.target ?? 'grouper';

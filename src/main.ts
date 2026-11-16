@@ -599,7 +599,7 @@ const boatStore = createBoatStore(safeStorage());
 // Catches logged in the BOAT drawer store their BITE once the fishing panel is up (PLAN 7.16).
 let scoreCatch: CatchScorer | null = null;
 let fishSetSpecies: ((id: SpeciesId) => void) | null = null;
-let fishHudMode: { set(m: FishMode): void; get(): FishMode; setReach(r: Reach): void; reach(): Reach; step(d: number): void; info(): FishInfo; flySpot(n: number): void; spearInfo(): SpearInfo; setSpearTarget(id: SpeciesId | null): void; flyTo(lng: number, lat: number): void } | null = null;
+let fishHudMode: { set(m: FishMode): void; get(): FishMode; setReach(r: Reach): void; reach(): Reach; step(d: number): void; pick(id: SpeciesId, m?: FishMode): void; info(): FishInfo; flySpot(n: number): void; spearInfo(): SpearInfo; setSpearTarget(id: SpeciesId | null): void; flyTo(lng: number, lat: number): void } | null = null;
 const fishModeListeners = new Set<() => void>();
 const fishInfoListeners = new Set<() => void>();
 /**
@@ -631,6 +631,8 @@ const fishMode = {
   subscribe: (fn: () => void) => void fishModeListeners.add(fn),
   /** The map's fish bar (PLAN 7.143): step the fish, read its best times and spots, fly to one, log a catch. */
   step: (d: number) => fishHudMode?.step(d),
+  /** A fish picked from the map's fish menu, under its EAT or SPORT heading. */
+  pick: (id: SpeciesId, m?: FishMode) => fishHudMode?.pick(id, m),
   info: (): FishInfo | null => fishHudMode?.info() ?? null,
   flySpot: (n: number) => fishHudMode?.flySpot(n),
   onInfo: (fn: () => void) => void fishInfoListeners.add(fn),
@@ -1650,7 +1652,7 @@ fetchSeafloor()
         const fishHud = mountFishingHud(hud, map, layer, time, species, fishEnv, pins, () => fishModeListeners.forEach((fn) => fn()), () => fishInfoListeners.forEach((fn) => fn()));
         scoreCatch = fishHud?.scoreCatch ?? null;
         fishSetSpecies = fishHud?.setSpecies ?? null;
-        fishHudMode = fishHud ? { set: fishHud.setMode, get: fishHud.mode, setReach: fishHud.setReach, reach: fishHud.reach, step: fishHud.step, info: fishHud.info, flySpot: fishHud.flySpot, spearInfo: fishHud.spearInfo, setSpearTarget: fishHud.setSpearTarget, flyTo: fishHud.flyTo } : null;
+        fishHudMode = fishHud ? { set: fishHud.setMode, get: fishHud.mode, setReach: fishHud.setReach, reach: fishHud.reach, step: fishHud.step, pick: fishHud.pick, info: fishHud.info, flySpot: fishHud.flySpot, spearInfo: fishHud.spearInfo, setSpearTarget: fishHud.setSpearTarget, flyTo: fishHud.flyTo } : null;
         fishInfoListeners.forEach((fn) => fn());
         boatStore.subscribe(() => (layer.setCatches(pins()), fishHud?.refresh()));
       })
