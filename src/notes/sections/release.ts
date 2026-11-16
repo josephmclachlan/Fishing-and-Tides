@@ -89,12 +89,14 @@ export const release: Section = {
     {
       k: 'fig',
       fig: 'rldesc',
-      label: L('Three kinds of descending device', 'Tres tipos de descendedor'),
+      label: L('How to use a descender, in four steps', 'Cómo usar un descendedor, en cuatro pasos'),
       marks: [
-        L('A weight with a lip clamp.{noaa}{fwc}', 'Un peso con pinza de labio.{noaa}{fwc}'),
-        L('An inverted hook on a weight.{noaa}{fwc}', 'Un anzuelo invertido con peso.{noaa}{fwc}'),
-        L('A fish elevator.{noaa}{fwc}', 'Un elevador de peces.{noaa}{fwc}'),
+        L('Clip the descender, a weight with a clamp, to the fish’s lip. Work fast and keep the fish wet.{noaa}{fwc}', 'Sujete el descendedor, un peso con una pinza, al labio del pez. Trabaje rápido y mantenga el pez mojado.{noaa}{fwc}'),
+        L('Lower it on your line, quickly, down to the depth where you caught it.{noaa}{fwc}', 'Bájelo con su línea, rápido, hasta la profundidad donde lo pescó.{noaa}{fwc}'),
+        L('Give the line a sharp tug. The clamp opens and the fish swims off. Some clamps open on their own at a depth you set.{noaa}{fwc}', 'Dé un jalón seco a la línea. La pinza se abre y el pez se va nadando. Algunas pinzas se abren solas a la profundidad que usted fija.{noaa}{fwc}'),
+        L('Reel the empty weight back up.', 'Recoja el peso vacío.'),
       ],
+      alt: L('Other kinds work the same way: an upside-down hook on a weight that holds the lip, or a fish elevator, a weighted crate that opens at the bottom.{noaa}{fwc}', 'Otros tipos funcionan igual: un anzuelo invertido con peso que sostiene el labio, o un elevador de peces, una caja con peso que se abre en el fondo.{noaa}{fwc}'),
     },
     {
       k: 'tiles',

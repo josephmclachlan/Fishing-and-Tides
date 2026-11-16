@@ -45,15 +45,15 @@ export const rigs: Section = {
       label: L('Main line and leader strength for each fish, in pounds', 'Resistencia de la línea principal y del líder para cada pez, en libras'),
       marks: [
         L(
-          'Solid bar: the main line. Snapper and small grouper 10 to 20 lb (4.5 to 9 kg), snook and mackerel 20 to 30 lb (9 to 14 kg). The hand line is 20 to 40 lb (9 to 18 kg).',
-          'Barra llena: la línea principal. Pargo y mero pequeño 10 a 20 lb (4,5 a 9 kg), róbalo y macarela 20 a 30 lb (9 a 14 kg). El cordel es de 20 a 40 lb (9 a 18 kg).',
+          'Solid bar: the main line. lb (pounds) is how hard the line can be pulled before it breaks. Snapper and small grouper 10 to 20 lb (4.5 to 9 kg), snook and mackerel 20 to 30 lb (9 to 14 kg). The hand line is 20 to 40 lb (9 to 18 kg).',
+          'Barra llena: la línea principal. Las lb (libras) dicen cuánto jalón aguanta la línea antes de romperse. Pargo y mero pequeño 10 a 20 lb (4,5 a 9 kg), róbalo y macarela 20 a 30 lb (9 a 14 kg). El cordel es de 20 a 40 lb (9 a 18 kg).',
         ),
         L(
-          'Open bar: the leader (líder), the last 0.5 to 1 m before the hook, thicker or tougher so teeth, gill covers and rocks cannot cut it easily. Thin fluorocarbon 20 to 30 lb for shy snapper, 40 to 60 lb (18 to 27 kg) for snook.',
-          'Barra vacía: el líder, los últimos 0,5 a 1 m antes del anzuelo, más grueso o más fuerte para que dientes, agallas y rocas no lo corten fácil. Fluorocarbono delgado de 20 a 30 lb para el pargo desconfiado, de 40 a 60 lb (18 a 27 kg) para el róbalo.',
+          'Open bar: the leader (líder), the last 0.5 to 1 m before the hook. It is heavier than the main line on purpose, because it is the part that rubs on teeth, gill covers and rocks. Fluorocarbon (a stiff line that is hard to see in water) 20 to 30 lb for shy snapper, 40 to 60 lb (18 to 27 kg) for snook.',
+          'Barra vacía: el líder, los últimos 0,5 a 1 m antes del anzuelo. Es más grueso que la línea principal a propósito, porque es la parte que roza con dientes, agallas y rocas. Fluorocarbono (una línea rígida que casi no se ve en el agua) de 20 a 30 lb para el pargo desconfiado, de 40 a 60 lb (18 a 27 kg) para el róbalo.',
         ),
         L('Mackerel has sharp teeth: use a short piece of light wire or heavy fluorocarbon as the leader.', 'La macarela tiene dientes filosos: use de líder un tramo corto de cable fino o fluorocarbono grueso.'),
-        L('Jack fights hard: 30 to 50 lb (14 to 23 kg) braid and a strong leader.', 'El jurel pelea fuerte: trenzado de 30 a 50 lb (14 a 23 kg) y un líder fuerte.'),
+        L('Jack fights hard: 30 to 50 lb (14 to 23 kg) braid, a woven line that is very strong for how thin it is, and a strong leader.', 'El jurel pelea fuerte: trenzado de 30 a 50 lb (14 a 23 kg), una línea tejida muy fuerte para lo delgada que es, y un líder fuerte.'),
       ],
     },
     {
@@ -223,12 +223,12 @@ export const rigs: Section = {
     {
       k: 'fig',
       fig: 'rgnet',
-      label: L('Throwing a cast net: holding it, the net opening in the air, sinking and closing', 'Lanzar la atarraya: cómo sostenerla, la red abierta en el aire, hundiéndose y cerrándose'),
+      label: L('Throwing a cast net: holding it, the net opening in the air, lying open on the bottom, and pulled closed', 'Lanzar la atarraya: cómo sostenerla, la red abierta en el aire, abierta en el fondo y cerrada al jalar'),
       marks: [
         L('Hold the lead line (the rim with the weights) in one hand and a third of the net in the other, with the rest looped over your arm.', 'Sostenga con una mano la línea de plomos del borde y con la otra un tercio de la red, con el resto doblado sobre el brazo.'),
-        L('Spin your body and throw so the net opens into a circle and lands flat.', 'Gire el cuerpo y lance para que la red se abra en círculo y caiga plana.'),
-        L('Wait for it to sink.', 'Espere a que se hunda.'),
-        L('Pull the hand line slowly to close it.', 'Jale la cuerda despacio para cerrarla.'),
+        L('Spin your body and throw so the net spreads open like a skirt and lands flat.', 'Gire el cuerpo y lance para que la red se abra como una falda y caiga plana.'),
+        L('Wait until it sinks and lies open on the bottom, over the fish.', 'Espere a que se hunda y quede abierta en el fondo, sobre los peces.'),
+        L('Pull the hand line slowly. The weights come together and close the net into a bag with the fish inside. Lift it out.', 'Jale la cuerda despacio. Los plomos se juntan y cierran la red como una bolsa con los peces adentro. Sáquela.'),
       ],
       alt: L('Practise on land first. Check local rules for nets in protected areas.', 'Practique primero en tierra. Revise las reglas locales sobre redes en áreas protegidas.'),
     },

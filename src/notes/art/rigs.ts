@@ -136,17 +136,23 @@ function rigPat(lang: Lang): string {
 
 // ---------------------------------------------------------------- outfits (card drawings, 300 by 140)
 
+/** A hand line: a round plastic spool held in the hand, line wound on it, then a leader, a sinker and a hook. 300 by 140. */
 function handline(lang: Lang): string {
   return (
-    `<circle class="nt-rigs-spool" cx="64" cy="66" r="40"/><circle class="nt-rigs-wound" cx="64" cy="66" r="24"/><circle class="nt-rigs-hub" cx="64" cy="66" r="12"/>` +
-    `<path class="${LN}" d="M88 46 C140 36 170 48 196 56"/>` +
-    `<circle class="nt-rigs-knot" cx="198" cy="57" r="3"/>` +
-    `<path class="${LD}" d="M200 58 C220 64 234 70 246 78"/>` +
-    `<ellipse class="nt-rigs-sk nt-rigs-opt" cx="224" cy="66" rx="5" ry="8" transform="rotate(-62 224 66)"/>` +
-    hookPath(250, 80, 0.9, 1) +
-    lbl(64, 128, w(lang, '30–50 m', '30–50 m'), 'middle') +
-    lbl(142, 30, '20–40 lb · 9–18 kg', 'middle') +
-    lbl(296, 128, w(lang, 'SINKER IF NEEDED', 'PLOMO SI HACE FALTA'), 'end')
+    `<circle class="nt-rigs-spool" cx="62" cy="64" r="42"/><circle class="nt-rigs-wound" cx="62" cy="64" r="28"/><circle class="nt-rigs-hub" cx="62" cy="64" r="14"/>` +
+    // four fingers through the middle, gripping the inner rim
+    `<path class="nt-rigs-hand" d="M50 56 a4 4 0 0 1 8 0 v8 a4 4 0 0 1 -8 0 Z M58 54 a4 4 0 0 1 8 0 v10 a4 4 0 0 1 -8 0 Z M66 56 a4 4 0 0 1 8 0 v8 a4 4 0 0 1 -8 0 Z M48 66 C46 84 52 100 62 112 L82 112 C80 98 78 86 76 66 Z"/>` +
+    `<path class="${LN}" d="M90 36 C140 30 170 42 196 52"/>` +
+    `<circle class="nt-rigs-knot" cx="198" cy="53" r="3"/>` +
+    `<path class="${LD}" d="M200 54 C214 58 222 62 228 66"/>` +
+    // an egg sinker on the leader, just above the hook
+    `<path class="nt-rigs-sk" d="M226 60 C232 56 242 60 244 68 C246 76 238 80 232 76 C226 72 222 64 226 60 Z"/>` +
+    `<path class="${LD}" d="M242 74 C246 78 248 80 250 82"/>` +
+    hookPath(252, 84, 0.9, 1) +
+    lbl(62, 130, w(lang, '30–50 m OF LINE', '30–50 m DE LÍNEA'), 'middle', 'nt-lbl') +
+    lbl(142, 22, '20–40 lb · 9–18 kg', 'middle', 'nt-lbl') +
+    lbl(296, 130, w(lang, 'SINKER IF NEEDED', 'PLOMO SI HACE FALTA'), 'end', 'nt-lbl') +
+    `<path class="nt-rigs-dim" d="M262 118 L242 82"/>`
   );
 }
 
@@ -180,7 +186,7 @@ function spinning(lang: Lang): string {
 
 /** Main line and leader strength per fish, on one pound scale. 320 by 248. */
 function lines(lang: Lang): string {
-  const x = (lb: number) => 104 + lb * 3.4, top = 40, rh = 32;
+  const x = (lb: number) => 104 + lb * 3.3, top = 40, rh = 32;
   const rows: { n: string; m?: [number, number]; l?: [number, number]; note?: string }[] = [
     { n: w(lang, 'HAND LINE', 'CORDEL'), m: [20, 40] },
     { n: w(lang, 'SNAPPER', 'PARGO'), m: [10, 20], l: [20, 30] },
@@ -196,12 +202,12 @@ function lines(lang: Lang): string {
       let s = lbl(96, y + 15, r.n, 'end', 'nt-lbl');
       if (r.m) s += `<rect class="nt-rigs-bar" x="${x(r.m[0])}" y="${y + 6}" width="${x(r.m[1]) - x(r.m[0])}" height="9"/>`;
       if (r.l) s += `<rect class="nt-rigs-barl" x="${x(r.l[0])}" y="${y + 18}" width="${x(r.l[1]) - x(r.l[0])}" height="8"/>`;
-      if (r.note) s += lbl(r.m ? x(r.m[1]) + 6 : x(0), y + 15, r.note, 'start');
+      if (r.note) s += lbl(r.m ? x(r.m[0]) : x(0), y + 28, r.note, 'start');
       return s;
     })
     .join('');
   return (
-    grid + body + lbl(x(60), top + rows.length * rh + 28, 'lb', 'end') +
+    grid + body + lbl(312, top + rows.length * rh + 28, w(lang, 'lb = POUNDS OF PULL BEFORE IT BREAKS', 'lb = LIBRAS DE JALÓN ANTES DE ROMPERSE'), 'end') +
     `<rect class="nt-rigs-bar" x="104" y="8" width="20" height="9"/>` + lbl(130, 16, w(lang, 'MAIN LINE', 'LÍNEA')) +
     `<rect class="nt-rigs-barl" x="208" y="9" width="20" height="8"/>` + lbl(234, 16, w(lang, 'LEADER', 'LÍDER')) +
     badge(1, 92, 12) + badge(2, 196, 12) + badge(3, 14, top + 4 * rh + 11) + badge(4, 14, top + 5 * rh + 11)
@@ -236,7 +242,7 @@ function hooks(lang: Lang): string {
 
 // ---------------------------------------------------------------- cast net
 
-/** Throwing a cast net: held ready, opening into a flat circle, sinking, closed by the hand line. 320 by 180. */
+/** Throwing a cast net: held ready, opening like a skirt in the air, lying open on the bottom, pulled closed into a bag. 320 by 180. */
 function castnet(lang: Lang): string {
   const S = 96;
   const weights = (cx: number, cy: number, rx: number, ry: number, n: number) =>
@@ -244,6 +250,12 @@ function castnet(lang: Lang): string {
       const t = (i / n) * 2 * Math.PI;
       return `<circle class="nt-rigs-dot" cx="${n1(cx + rx * Math.cos(t))}" cy="${n1(cy + ry * Math.sin(t))}" r="2.2"/>`;
     }).join('');
+  /** A cone of net from its top (x, top) down to a rim ellipse at (x, rim). */
+  const skirt = (x: number, top: number, rim: number, rx: number, ry: number) =>
+    `<path class="nt-rigs-netf" d="M${x} ${top} L${x - rx} ${rim} A${rx} ${ry} 0 0 0 ${x + rx} ${rim} Z"/>` +
+    `<path class="nt-rigs-mesh" d="${[-0.66, -0.33, 0, 0.33, 0.66].map((k) => `M${x} ${top} L${n1(x + k * rx)} ${n1(rim + ry * Math.sqrt(1 - k * k))}`).join(' ')}"/>` +
+    `<ellipse class="nt-rigs-netc" cx="${x}" cy="${rim}" rx="${rx}" ry="${ry}"/>` + weights(x, rim, rx, ry, 14);
+  const fishDots = (x: number, y: number) => `<path class="nt-rigs-mini" d="M${x} ${y} l8 -3 v6 Z M${x + 12} ${y + 2} l8 -3 v6 Z M${x - 10} ${y + 3} l8 -3 v6 Z"/>`;
   return (
     `<rect class="nt-sea" x="104" y="${S}" width="216" height="${180 - S}"/><path class="nt-rigs-surf" d="M104 ${S} H320"/>` +
     `<path class="nt-rigs-bank" d="M0 ${S} H104 L118 180 H0 Z"/>` +
@@ -251,17 +263,21 @@ function castnet(lang: Lang): string {
     `<g class="nt-man"><circle cx="40" cy="22" r="7"/><path d="M40 30 V62 M40 62 L30 ${S} M40 62 L52 ${S} M40 38 L58 50 M40 38 L24 52"/></g>` +
     `<path class="nt-rigs-net" d="M58 50 C70 58 72 80 62 88 C52 80 50 62 58 50 Z M24 52 C14 62 16 80 26 84"/>` +
     `<path class="nt-rigs-mesh" d="M60 58 L66 80 M56 62 L64 86"/>` +
-    // 2: in the air, opening into a circle, landing flat
-    `<path class="nt-rigs-ar" d="M66 40 C100 10 150 10 176 42"/><path class="nt-rigs-arh" d="M168 40 L176 42 L176 34"/>` +
-    `<ellipse class="nt-rigs-netc" cx="180" cy="72" rx="40" ry="11"/>` + weights(180, 72, 40, 11, 14) +
-    `<path class="nt-rigs-mesh" d="M140 72 H220 M150 66 L210 78 M150 78 L210 66 M180 61 V83"/>` +
-    // 3 and 4: sunk to the bottom, then the hand line pulls the weighted rim closed
+    // 2: in the air, spread open like a skirt
+    `<path class="nt-rigs-ar" d="M66 40 C88 14 118 10 140 22"/><path class="nt-rigs-arh" d="M132 18 L140 22 L134 29"/>` +
+    skirt(176, 26, 64, 42, 10) +
+    // 3: lying open on the bottom over the fish, the hand line running back to shore
     seabed(170) +
-    `<path class="nt-rigs-netc" d="M256 ${S - 30} V${S + 30} M256 ${S + 30} C236 ${S + 36} 230 ${S + 60} 230 ${S + 70} M256 ${S + 30} C276 ${S + 36} 282 ${S + 60} 282 ${S + 70}"/>` +
-    weights(256, S + 70, 26, 3, 9) +
-    `<path class="nt-rigs-ar" d="M296 ${S + 10} V${S - 26}"/><path class="nt-rigs-arh" d="M291 ${S - 19} L296 ${S - 26} L301 ${S - 19}"/>` +
-    lbl(180, 104, w(lang, 'FLAT CIRCLE', 'CÍRCULO PLANO'), 'middle', 'nt-lbl nt-lbl-s nt-rigs-onsea') +
-    badge(1, 14, 80) + badge(2, 132, 34) + badge(3, 212, 150) + badge(4, 304, 52)
+    skirt(196, 144, 162, 44, 7) + fishDots(190, 157) +
+    // 4: the hand line pulled, the weighted rim drawn together into a bag with the fish inside
+    `<path class="${LN}" d="M282 ${S - 30} V108"/>` +
+    `<path class="nt-rigs-netf" d="M282 108 C262 116 262 146 282 150 C302 146 302 116 282 108 Z"/>` +
+    `<path class="nt-rigs-mesh" d="M282 108 L276 150 M282 108 L288 150 M282 108 L268 136 M282 108 L296 136"/>` +
+    weights(282, 150, 9, 2.5, 7) + fishDots(278, 136) +
+    `<path class="nt-rigs-ar" d="M302 ${S + 20} V${S - 24}"/><path class="nt-rigs-arh" d="M297 ${S - 17} L302 ${S - 24} L307 ${S - 17}"/>` +
+    lbl(196, 130, w(lang, 'OPEN ON THE BOTTOM', 'ABIERTA EN EL FONDO'), 'middle', 'nt-lbl nt-lbl-s nt-rigs-onsea') +
+    lbl(270, 84, w(lang, 'PULL', 'JALE'), 'end', 'nt-lbl nt-lbl-s') +
+    badge(1, 14, 80) + badge(2, 122, 52) + badge(3, 140, 150) + badge(4, 306, 136)
   );
 }
 
@@ -317,20 +333,30 @@ function lionfish(lang: Lang): string {
     const x = 104 + i * 9.5, base = 70 - Math.sin((i / 12) * Math.PI) * 6, len = 46 - Math.abs(i - 3) * 2.6;
     return `M${n1(x)} ${n1(base)} L${n1(x - 6 + i * 0.6)} ${n1(base - len)}`;
   }).join(' ');
+  // the skin between the spines reaches about two thirds of the way up each one
+  const sp = Array.from({ length: 13 }, (_, i) => {
+    const x = 104 + i * 9.5, base = 70 - Math.sin((i / 12) * Math.PI) * 6, len = (46 - Math.abs(i - 3) * 2.6) * 0.62;
+    return [x - (6 - i * 0.6) * 0.62, base - len, x, base] as const;
+  });
+  const memb = 'M' + sp.map(([tx, ty]) => `${n1(tx)} ${n1(ty)}`).join(' L') + ` L${n1(sp[12][2])} ${n1(sp[12][3] + 4)} L${n1(sp[0][2])} ${n1(sp[0][3] + 4)} Z`;
   return (
-    // fan-like pectoral fins (not venomous) behind the head
-    `<path class="nt-rigs-fin" d="M112 112 C130 140 150 170 176 182 M112 112 C140 136 172 150 200 158 M112 112 C146 126 180 130 210 128 M112 112 C122 146 128 168 140 186"/>` +
+    // the big feathery fans at the sides (pectoral fins): striking, but with no venom
+    `<path class="nt-rigs-fan" d="M112 110 C116 150 126 176 140 188 C158 184 184 172 210 150 C214 138 214 130 212 124 C180 124 140 118 112 110 Z"/>` +
+    `<path class="nt-rigs-fin" d="M112 112 C130 140 150 170 176 182 M112 112 C140 136 172 150 200 158 M112 112 C146 126 180 130 210 128 M112 112 C122 146 128 168 140 186 M112 112 C136 150 150 172 156 186 M112 112 C150 140 180 146 206 142"/>` +
     // body, head left
     `<path class="nt-rigs-lion" d="M40 104 C52 80 86 68 130 70 C180 72 220 84 240 100 C220 116 180 128 130 128 C86 128 52 122 40 104 Z"/>` +
     `<path class="nt-rigs-stripe" d="M76 80 C70 96 72 112 78 124 M100 74 C94 94 96 112 100 128 M128 70 C122 92 124 112 128 128 M156 72 C150 92 152 112 156 126 M184 76 C178 94 180 110 184 122 M210 84 C206 96 206 106 210 114"/>` +
     `<circle class="nt-rigs-dot" cx="58" cy="96" r="3.2"/><path class="nt-rigs-fin" d="M40 104 L50 108"/>` +
     // tail fin and soft rear dorsal and anal rays
     `<path class="nt-rigs-fin" d="M240 100 C262 82 284 84 296 100 C284 116 262 118 240 100 Z M226 90 L246 74 M226 114 L248 126"/>` +
+    // the frilly skin between the back spines, then the venomous spines themselves
+    `<path class="nt-rigs-memb" d="${memb}"/>` +
     // venomous spines
     `<path class="nt-rigs-spine" d="${dorsal}"/>` +
     `<path class="nt-rigs-spine" d="M100 126 L94 158 M106 126 L104 160"/>` +
     `<path class="nt-rigs-spine" d="M196 122 L206 150 M204 120 L216 146 M212 118 L226 140"/>` +
-    lbl(316, 182, w(lang, 'VENOMOUS SPINES', 'ESPINAS VENENOSAS'), 'end', 'nt-lbl nt-lbl-s nt-rigs-dz') +
+    lbl(312, 184, w(lang, 'RED: VENOMOUS SPINES', 'ROJO: ESPINAS VENENOSAS'), 'end', 'nt-lbl nt-rigs-dz') +
+    lbl(316, 170, w(lang, 'FANS: NO VENOM', 'ABANICOS: SIN VENENO'), 'end', 'nt-lbl nt-lbl-s') +
     badge(1, 92, 30) + badge(2, 86, 166) + badge(3, 236, 154)
   );
 }
@@ -444,20 +470,21 @@ function rlTurtle(lang: Lang): string {
     `<path class="nt-rigs-head" d="M90 60 C82 52 66 52 60 60 C66 68 82 68 90 60 Z"/>` +
     `<path class="${LN}" d="M62 60 C40 60 30 50 22 30 L14 0"/>` + scissors(14, 54) +
     `<path class="nt-rigs-no" d="M236 70 V30 M228 38 L236 30 L244 38"/>` + stopX(236, 50, 16) +
-    lbl(236, 92, w(lang, 'NOT BY THE LINE', 'NO POR LA LÍNEA'), 'middle', 'nt-lbl nt-lbl-s nt-rigs-onsea')
+    lbl(226, 92, w(lang, 'NOT BY THE LINE', 'NO POR LA LÍNEA'), 'middle', 'nt-lbl nt-lbl-s nt-rigs-onsea')
   );
 }
 
-/** A stingray from above: the venomous spine on the tail. 280 by 120. */
+/** A stingray from above, head left: a diamond-shaped disc, eyes on top, a long thin tail with the spine near its base. 280 by 120. */
 function rlRay(lang: Lang): string {
   return (
     `<rect class="nt-sea" x="0" y="0" width="280" height="120"/>` +
-    `<path class="nt-rigs-shell" d="M60 60 C70 30 104 18 120 20 C136 18 170 30 180 60 C170 86 136 96 120 96 C104 96 70 86 60 60 Z"/>` +
-    `<circle class="nt-rigs-dot" cx="112" cy="40" r="2.4"/><circle class="nt-rigs-dot" cx="128" cy="40" r="2.4"/>` +
-    `<path class="nt-rigs-tail" d="M180 60 C206 60 228 62 270 70"/><path class="nt-rigs-spine" d="M204 61 L222 54"/>` +
-    lbl(222, 44, w(lang, 'SPINE', 'ESPINA'), 'middle', 'nt-lbl nt-lbl-s nt-rigs-dz') +
-    `<path class="${LN}" d="M70 60 C40 60 30 40 24 0"/>` + scissors(14, 36) +
-    lbl(120, 112, w(lang, 'DO NOT LIFT · CUT THE LINE', 'NO LEVANTE · CORTE LA LÍNEA'), 'middle', 'nt-lbl nt-lbl-s nt-rigs-onsea')
+    `<path class="nt-rigs-ray" d="M62 60 C76 50 100 26 132 12 C142 30 166 48 184 60 C166 72 142 90 132 108 C100 94 76 70 62 60 Z"/>` +
+    `<path class="nt-rigs-fin" d="M80 60 C110 56 150 56 176 60"/>` +
+    `<circle class="nt-rigs-dot" cx="84" cy="53" r="2.4"/><circle class="nt-rigs-dot" cx="84" cy="67" r="2.4"/>` +
+    `<path class="nt-rigs-tail" d="M184 60 C210 60 236 62 274 70"/><path class="nt-rigs-spine" d="M200 60 L222 52"/>` +
+    lbl(222, 44, w(lang, 'SPINE', 'ESPINA'), 'middle', 'nt-lbl nt-rigs-dz') +
+    `<path class="${LN}" d="M64 60 C40 60 30 40 24 0"/>` + scissors(14, 36) +
+    lbl(140, 114, w(lang, 'DO NOT LIFT · CUT THE LINE', 'NO LEVANTE · CORTE LA LÍNEA'), 'middle', 'nt-lbl nt-lbl-s nt-rigs-onsea')
   );
 }
 
@@ -489,24 +516,37 @@ function baro(lang: Lang): string {
   );
 }
 
-/** The three kinds of descender: weighted lip clamp, inverted hook, fish elevator (a weighted crate). 320 by 150. */
+/**
+ * How to use a lip-clamp descender, in four steps: clip it to the lip, lower the fish to the depth where it was caught,
+ * tug the line so the clamp lets go, reel the weight back up. 320 by 180.
+ */
 function descenders(lang: Lang): string {
-  const col = (x: number, s: string) => `<g transform="translate(${x} 0)">${s}</g>`;
-  const clamp =
-    `<path class="${LN}" d="M30 0 V44"/><path class="nt-rigs-clip" d="M30 44 l-5 8 M30 44 l5 8"/>` +
-    fish(30, 40, 0.62, false) + `<path class="${LN}" d="M30 58 V70"/><path class="nt-rigs-sk" d="M23 70 h14 l-3 16 h-8 z"/>`;
-  const inv =
-    `<path class="${LN}" d="M30 0 V58"/><path class="nt-rigs-sk" d="M23 58 h14 l-3 18 h-8 z"/>` +
-    `<path class="${HK}" d="M30 76 V88 C30 96 20 96 20 88 V80"/><path class="${HK}" d="M20 80 l-3 5"/>` +
-    fish(22, 64, 0.62, false);
-  const crate =
-    `<path class="${LN}" d="M50 0 V30"/><path class="nt-rigs-crate" d="M22 30 H78 V96 M22 30 V96 M22 52 H78 M22 74 H78 M40 30 V96 M60 30 V96"/>` +
-    `<path class="nt-rigs-sk" d="M44 22 h12 v8 h-12 z"/>` + fish(30, 66, 0.4, false) +
-    `<path class="nt-rigs-ar" d="M50 104 V120"/><path class="nt-rigs-arh" d="M45 114 L50 120 L55 114"/>`;
+  const S = 26, D = 122; // the surface, and the depth the fish came from
+  /** The line from the top down to a clamp at (x, y), the weight hanging under it; `open` jaws when it has let go. */
+  const clamp = (x: number, y: number, open = false) =>
+    `<path class="${LN}" d="M${x} 0 V${y}"/>` +
+    `<path class="nt-rigs-clip" d="M${x} ${y} l${open ? -7 : -3} 8 M${x} ${y} l${open ? 7 : 3} 8"/>` +
+    `<path class="${LN}" d="M${x} ${y + 8} V${y + 14}"/><path class="nt-rigs-sk" d="M${x - 6} ${y + 14} h12 l-2 12 h-8 z"/>`;
+  /** A fish hanging by its lip from the clamp at (x, y). */
+  const hung = (x: number, y: number) => fish(x - 1, y + 7 - 10 * 0.5, 0.5, false);
+  const down = (x: number, y0: number, y1: number) => `<path class="nt-rigs-ar" d="M${x} ${y0} V${y1}"/><path class="nt-rigs-arh" d="M${x - 5} ${y1 - 7} L${x} ${y1} L${x + 5} ${y1 - 7}"/>`;
+  const up = (x: number, y0: number, y1: number) => `<path class="nt-rigs-ar" d="M${x} ${y0} V${y1}"/><path class="nt-rigs-arh" d="M${x - 5} ${y1 + 7} L${x} ${y1} L${x + 5} ${y1 + 7}"/>`;
+  const step = (x: number, t: string) => lbl(x, 172, t, 'middle', 'nt-lbl');
   return (
-    col(4, clamp) + col(110, inv) + col(216, crate) +
-    lbl(54, 142, w(lang, 'LIP CLAMP', 'PINZA'), 'middle') + lbl(160, 142, w(lang, 'INVERTED HOOK', 'ANZUELO INVERTIDO'), 'middle') + lbl(266, 142, w(lang, 'FISH ELEVATOR', 'ELEVADOR'), 'middle') +
-    badge(1, 16, 14) + badge(2, 122, 14) + badge(3, 228, 14)
+    `<rect class="nt-sea" x="0" y="${S}" width="320" height="${150 - S}"/><path class="nt-rigs-surf" d="M0 ${S} H320"/>` +
+    `<path class="nt-rigs-dep" d="M84 ${D + 20} H320"/>` +
+    lbl(310, D + 34, w(lang, 'DEPTH WHERE IT WAS CAUGHT', 'PROFUNDIDAD DONDE SE PESCÓ'), 'end', 'nt-lbl nt-lbl-s nt-rigs-onsea') +
+    // 1: clip the weight to the lip at the surface
+    clamp(14, 38) + hung(14, 38) +
+    // 2: lower it on the line
+    clamp(94, 112) + hung(94, 112) + down(150, 40, 104) +
+    // 3: a sharp tug opens the clamp and the fish swims off
+    clamp(176, 120, true) + `<path class="nt-rigs-tug" d="M176 34 l-5 5 l10 4 l-10 4 l5 5"/>` +
+    `<g class="nt-rigs-away">${fish(196, 96, 0.5, false)}</g><path class="nt-rigs-kick" d="M250 100 l6 -4 M252 106 h7 M250 112 l6 4"/>` +
+    // 4: reel the empty weight back up
+    clamp(272, 60) + up(296, 104, 48) +
+    step(40, w(lang, 'CLIP', 'SUJETE')) + step(120, w(lang, 'LOWER', 'BAJE')) + step(206, w(lang, 'TUG', 'JALE')) + step(284, w(lang, 'REEL UP', 'SUBA')) +
+    badge(1, 40, 12) + badge(2, 120, 12) + badge(3, 206, 12) + badge(4, 284, 12)
   );
 }
 
@@ -535,5 +575,5 @@ export const RIGS_FIGS = {
   rlturtle: { vb: '0 0 280 120', art: rlTurtle },
   rlray: { vb: '0 0 280 120', art: rlRay },
   rlbaro: { vb: '0 0 320 290', art: baro },
-  rldesc: { vb: '0 0 320 150', art: descenders },
+  rldesc: { vb: '0 0 320 180', art: descenders },
 } satisfies Record<string, Fig>;
