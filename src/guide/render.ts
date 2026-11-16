@@ -22,6 +22,10 @@ import { bandText, depthLines, pips, sizeMain, sizeMax, timesText, weightText } 
 export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 export const icon = (body: string, cls = '') => `<svg viewBox="0 0 24 24" aria-hidden="true"${cls ? ` class="${cls}"` : ''}>${body}</svg>`;
 
+/** A link from a ciguatera warning to the CIGUATERA page (PLAN 7.101). */
+const ciguateraLink = (risks: readonly string[]): string =>
+  risks.includes('ciguatera') ? `<p><a class="cig-link" href="#ciguatera">${esc(t('gd.ciguateraLink'))}</a></p>` : '';
+
 export const ICONS = {
   all: '<rect x="4" y="4" width="6.5" height="6.5"/><rect x="13.5" y="4" width="6.5" height="6.5"/><rect x="4" y="13.5" width="6.5" height="6.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5"/>',
   edible: '<path d="M7 3v8M4.5 3v5a2.5 2.5 0 0 0 5 0V3M7 11v10"/><path d="M17 21V3c-2.5 1.5-3.5 4-3.5 8h3.5"/>',
@@ -66,9 +70,11 @@ export function badges(e: Entry, lang: Lang, max = 3): string {
   if (poisonToEat(e)) out.push(`<span class="gd-b dz l3">${esc(tx(EDIBLE_WORDS.toxic, lang))}</span>`);
   if (isFood(e)) {
     const risk = riskToEat(e) ? e.risks!.find((r) => r !== 'spines') : undefined;
-    out.push(`<span class="gd-b eat" title="${esc(tx(EDIBLE_WORDS[e.edible!], lang))}">${icon(ICONS.edible)}${e.quality ? `<span class="gd-pips" aria-label="${e.quality}/5">${pips(e.quality)}</span>` : esc(tx(EDIBLE_WORDS[e.edible!], lang))}</span>`);
+    // The word always shows (Joseph: "edible with care" must be visible in the list), the quality pips after it.
+    out.push(`<span class="gd-b eat ed-${e.edible}">${icon(ICONS.edible)}${esc(tx(EDIBLE_WORDS[e.edible!], lang))}${e.quality ? `<span class="gd-pips" aria-label="${e.quality}/5">${pips(e.quality)}</span>` : ''}</span>`);
     if (risk) out.push(`<span class="gd-b risk">${esc(tx(RISK_WORDS[risk], lang))}</span>`);
   } else if (e.edible === 'protected') out.push(`<span class="gd-b prot">${esc(t('gd.flag.protected'))}</span>`);
+  else if (e.illegal) out.push(`<span class="gd-b prot">${esc(t('gd.flag.illegal'))}</span>`);
   if (e.iucn === 'CR' || e.iucn === 'EN' || e.iucn === 'VU') out.push(`<span class="gd-b iucn i-${e.iucn}" title="${esc(tx(IUCN_WORDS[e.iucn], lang))}">${e.iucn}</span>`);
   if (e.origin === 'invasive' || e.origin === 'introduced') out.push(`<span class="gd-b introd">${esc(t('gd.flag.introduced'))}</span>`);
   if (e.rec && e.rec !== 'here') out.unshift(`<span class="gd-b rec">${esc(t(e.rec === 'near' ? 'gd.rec.near' : 'gd.rec.none'))}</span>`);
@@ -239,18 +245,33 @@ export function introHtml(mode: GdMode): string {
   if (mode === 'edible')
     return `<div class="gd-intro"><aside class="gd-eat"><h3>${icon(ICONS.edible)}${esc(t('gd.eat.title'))}</h3><ul>${(['cigua', 'scombroid', 'shellfish', 'rules'] as const)
       .map((k) => `<li>${esc(t(`gd.eat.${k}`))}</li>`)
-      .join('')}</ul></aside></div>`;
+      .join('')}</ul><p><a class="cig-link" href="#ciguatera">${esc(t('gd.ciguateraLink'))}</a></p></aside></div>`;
   return '';
 }
 
 // ------------------------------------------------------------------ a species
 
+/** Whether a food block says anything beyond its rules, i.e. how to catch, prepare or eat it. */
+const hasEatInfo = (e: NonNullable<Species['eat']>) =>
+  !!(e.taste || e.methods?.length || e.bait || e.lures || e.tackle || e.howTo || e.spear || e.clean || e.cook);
+
+/** Taking it is banned (or the species is protected). */
+export const isIllegal = (s: Pick<Species, 'edible' | 'eat'>) => !!s.eat?.illegal || s.edible === 'protected';
+
+/** The banner over the catch and clean tabs of a species that is banned, or not normally eaten: emergency use only. */
+export function emergencyHtml(s: Pick<Species, 'edible' | 'eat'>): string {
+  if (isIllegal(s)) return `<section class="gd-blk gd-illegal" role="note"><h4 class="fc-mono">${esc(t('gd.illegal.title'))}</h4><p>${esc(t('gd.illegal.text'))}</p></section>`;
+  if (s.edible && s.edible !== 'yes' && s.edible !== 'caution') return `<section class="gd-blk gd-warn" role="note"><h4 class="fc-mono">${esc(t('gd.notFood.title'))}</h4><p>${esc(t('gd.notFood.text'))}</p></section>`;
+  return '';
+}
+
 export function tabsFor(s: Species): GdTab[] {
   const out: GdTab[] = ['about'];
   if (s.idTips || s.variants?.length || s.lookalikes?.length || s.look?.marks) out.push('id');
   if (s.diet || s.predators || s.behaviour || s.reproduction || s.lifespan) out.push('life');
-  if (s.eat && isFood(s)) out.push('catch');
-  if (s.eat?.clean && isFood(s)) out.push('clean');
+  // Shown for every species with food notes, not only the edible list: a banned or risky one carries a banner (emergencyHtml).
+  if (s.eat && (isFood(s) || hasEatInfo(s.eat))) out.push('catch');
+  if (s.eat?.clean) out.push('clean');
   if (s.danger || s.eat?.risks?.length || s.edible === 'toxic' || s.edible === 'caution' || s.edible === 'protected' || s.edibleNote) out.push('safety');
   if (s.sources?.length || s.check || s.photos?.length || s.evidence?.length) out.push('sources');
   return out;
@@ -365,6 +386,7 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
       if (!e) return `<p>${esc(t('gd.noCatch'))}</p>`;
       const q = e.quality ? `<p class="gd-q"><span class="gd-pips" aria-label="${e.quality}/5">${pips(e.quality)}</span></p>` : '';
       return (
+        emergencyHtml(s) +
         block(t('gd.h.taste'), q + pText(e.taste, lang)) +
         block(t('gd.h.rules'), txt(e.rules, lang) ? paras(txt(e.rules, lang)) + (e.rulesCheck ? `<p>${checkMark()} ${esc(t('gd.checkTitle'))}</p>` : '') : '', 'gd-rules') +
         block(t('gd.h.methods'), chips((e.methods ?? []).map((m) => tx(METHOD_WORDS[m], lang)))) +
@@ -376,11 +398,11 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
           .filter(([, v]) => txt(v, lang))
           .map(([k, v]) => `<dt>${esc(t(k))}</dt><dd>${esc(txt(v, lang))}</dd>`)
           .join('')}</dl>` +
-        (e.risks?.length ? block(t('gd.h.eatRisk'), chips(e.risks.map((r) => tx(RISK_WORDS[r], lang))) + pText(e.riskNote, lang), 'gd-warn') : '')
+        (e.risks?.length ? block(t('gd.h.eatRisk'), chips(e.risks.map((r) => tx(RISK_WORDS[r], lang))) + pText(e.riskNote, lang) + ciguateraLink(e.risks), 'gd-warn') : '')
       );
     }
     case 'clean':
-      return (e?.clean ? cleanHtml(e.clean, lang, e.cleanNotes) : '') + block(t('gd.h.cook'), pText(e?.cook, lang));
+      return emergencyHtml(s) + (e?.clean ? cleanHtml(e.clean, lang, e.cleanNotes) : '') + block(t('gd.h.cook'), pText(e?.cook, lang));
     case 'safety': {
       const d = s.danger;
       return (
@@ -388,7 +410,7 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
           ? `<section class="gd-blk gd-dz lv${d.level}"><h4 class="fc-mono">${esc(t('gd.h.danger'))} · ${esc(tx(LEVEL_WORDS[d.level], lang))}</h4>${chips(d.kinds.map((k) => tx(KIND_WORDS[k], lang)))}${pText(d.what, lang)}</section>` +
             block(t('gd.h.firstAid'), pText(d.firstAid, lang), 'gd-aid')
           : '') +
-        (e?.risks?.length ? block(t('gd.h.eatRisk'), chips(e.risks.map((r) => tx(RISK_WORDS[r], lang))) + pText(e.riskNote, lang), 'gd-warn') : '') +
+        (e?.risks?.length ? block(t('gd.h.eatRisk'), chips(e.risks.map((r) => tx(RISK_WORDS[r], lang))) + pText(e.riskNote, lang) + ciguateraLink(e.risks), 'gd-warn') : '') +
         block(t('gd.h.edible'), (s.edible ? `<p><b>${esc(tx(EDIBLE_WORDS[s.edible], lang))}</b></p>` : '') + pText(s.edibleNote, lang)) +
         (d || s.edible === 'toxic' || e?.risks?.length ? sosHtml() : '')
       );
