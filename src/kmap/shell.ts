@@ -359,18 +359,25 @@ export function mountKineticMap(d: KmDeps) {
     else delete root.dataset.coral;
     requestAnimationFrame(placeBar);
   };
+  /** Phone: a tab tap with a sheet open drops a sheet that belongs to the old activity (the reef card included); the spot and layer sheets redraw for the new one. */
+  const dropStale = () => {
+    if (!WIDE.matches && S.sheet && (S.sheet === 'coral' || !['spot', 'layers'].includes(S.sheet))) closeSheet();
+  };
   function setAct(a: FcActivity) {
+    dropStale();
     S.act = a;
     put(storage, ACT_KEY, a);
     if (S.coral) setCoral(false, true);
     else modeChanged();
   }
   function setCoral(onC: boolean, quiet = false) {
+    dropStale();
     S.coral = onC;
     put(storage, CORAL_KEY, onC ? '1' : '0');
     quietCoral(onC);
     modeChanged();
-    if (onC && !quiet && WIDE.matches === false) openSheet('coral');
+    // Phone: the reef card comes up as a low peek with no scrim, so the reefs on the map stay in view and tappable.
+    if (onC && !quiet && WIDE.matches === false) openSheet('coral', undefined, true);
   }
 
   /* ---------- layers ---------- */
@@ -1404,9 +1411,10 @@ export function mountKineticMap(d: KmDeps) {
   });
 
   /* ---------- sheets ---------- */
-  function openSheet(kind: string, part?: string) {
+  function openSheet(kind: string, part?: string, peek = false) {
     S.sheet = kind;
     sheet.classList.remove('k-wide');
+    sheet.classList.toggle('k-peek', peek && !WIDE.matches);
     if (kind === 'layers') {
       shTitle.textContent = L2('Layers', 'Capas');
       renderComposer();
@@ -1449,7 +1457,9 @@ export function mountKineticMap(d: KmDeps) {
       shBody.querySelector('[data-check]')?.addEventListener('click', () => openTool('check'));
     }
     sheet.classList.add('k-open');
-    scrim.classList.toggle('k-on', !WIDE.matches);
+    scrim.classList.toggle('k-on', !WIDE.matches && !peek);
+    // Phone: the header (activity tabs, settings, back) stays above the scrim, so it still works with a sheet open.
+    root.dataset.sheet = kind;
     shBody.scrollTop = 0;
     if (part === 'spots') requestAnimationFrame(() => shBody.querySelector('#k-fspots')?.scrollIntoView({ block: 'start' }));
     else if (part === 'times') requestAnimationFrame(() => shBody.querySelector('#k-ftimes')?.scrollIntoView({ block: 'start' }));
@@ -1457,8 +1467,9 @@ export function mountKineticMap(d: KmDeps) {
   }
   function closeSheet() {
     S.sheet = null;
-    sheet.classList.remove('k-open');
+    sheet.classList.remove('k-open', 'k-peek');
     scrim.classList.remove('k-on');
+    delete root.dataset.sheet;
   }
   $('k-shclose').addEventListener('click', closeSheet);
   scrim.addEventListener('click', closeSheet);
