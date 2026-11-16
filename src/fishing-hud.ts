@@ -77,6 +77,7 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
         <span class="seg sm green" id="fish-sp">--</span>
         <button type="button" class="tab" id="fish-next" aria-label="${t('fish.next')}">${UI.next}</button></div>
       <div class="ro" id="fish-warn" hidden><span class="lbl red">${t('fish.ciguatera')}</span> <a class="cig-link" href="#ciguatera">${t('fish.ciguateraMore')}</a></div>
+      <div class="ro" id="fish-size" hidden><span class="lbl">${t('fish.ciguateraSize')}</span> <a class="cig-link" href="#ciguatera">${t('fish.ciguateraMore')}</a></div>
       <div class="ro" id="fish-care" hidden><span class="lbl">${t('fish.ciguateraCare')}</span> <a class="cig-link" href="#ciguatera">${t('fish.ciguateraMore')}</a></div>
       <div class="ro" id="fish-low" hidden><span class="lbl" id="fish-low-t">${t('fish.low')}</span></div>
       <div class="ro" id="fish-hand" hidden><span class="lbl">${t('fish.byhand')}</span></div>
@@ -109,6 +110,7 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     $('fish-sp').textContent = t(`fish.${sp.id}` as Key);
     $('fish-warn').hidden = sp.ciguatera !== true;
     $('fish-care').hidden = sp.ciguatera !== 'caution';
+    $('fish-size').hidden = sp.ciguatera !== 'size';
     $('fish-low').hidden = sp.confidence !== 'low';
     $('fish-low-t').textContent = t(sp.noLocalRecord ? (`fish.low.${sp.id}` as Key) : 'fish.low');
     $('fish-hand').hidden = !sp.byHand;

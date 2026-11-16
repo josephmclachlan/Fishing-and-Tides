@@ -27,7 +27,8 @@ import { hourlyVerdicts, nextWindow } from '../boat/window';
 import { daysAt, readAt, skyMemo, spotsForActivity, type FcActivity, type FcDeps, type FcRead, type Level } from '../forecast/model';
 import { shoreBand } from '../physics/shorebreak';
 import { extrema, predictSeries, tideState } from '../physics/tide';
-import { localDayStart, moonPhase, sunTimes } from '../physics/astro';
+import { tideFixNow } from '../corrections';
+import { localDayStart, moonPhase, sunAltitude, sunTimes } from '../physics/astro';
 import { LIMON_HARMONICS } from '../data/tides-limon';
 import { REGION, SPOTS } from '../region';
 import { LAYERS, type LayerId, type LayerStore } from '../layers/registry';
@@ -42,6 +43,8 @@ import type { Settings } from '../settings';
 import { dataAge, ageState } from '../adapters/data-age';
 import { resolveTarget, type Target } from '../target';
 import { nextSeasons, spawnWindows } from '../coral/spawning';
+import { ALERT_KEYS, alertForDhw } from '../adapters/coral-parse';
+import { alertLevelOf } from '../coral-page/view';
 import { t, type Key } from '../i18n';
 import { saveScheme, currentScheme, storedScheme } from '../theme';
 import { BANDS } from '../time';
@@ -275,10 +278,18 @@ export function mountKineticMap(d: KmDeps) {
   };
   const reefList = () => d.reefs();
   const reef = () => reefList().find((r) => r.id === S.reef) ?? reefList()[0] ?? null;
-  const reefLevel = (r: ReefNow | null): Level | null => (r?.dhw === null || r?.dhw === undefined ? null : r.dhw >= 8 ? 0 : r.dhw >= 4 ? 1 : r.dhw >= 2 ? 2 : r.dhw > 0 ? 3 : 4);
+  /**
+   * A reef's heat as NOAA Coral Reef Watch's own alert (the 7-day maximum the feed carries), in the coral page's colours
+   * (coral-page/view.ts alertLevelOf), so a reef reads the same on the map and the coral page (review 2026-11-16: the map
+   * said WATCH from its own DHW cut-offs where the coral page said ALERT 1). Only with no alert in the feed does the DHW
+   * stand in, through CRW's own DHW thresholds.
+   */
+  const reefAlert = (r: ReefNow | null): number | null =>
+    r?.alert !== null && r?.alert !== undefined && Number.isFinite(r.alert) ? r.alert : r?.dhw === null || r?.dhw === undefined || !Number.isFinite(r.dhw) ? null : r.dhw > 0 ? alertForDhw(r.dhw) : 0;
+  const reefLevel = (r: ReefNow | null): Level | null => alertLevelOf(reefAlert(r));
   const heatWord = (r: ReefNow | null) => {
-    const l = reefLevel(r);
-    return l === null ? L2('No data', 'Sin datos') : [L2('Alert 2 · severe', 'Alerta 2 · severa'), L2('Alert 1 · bleaching', 'Alerta 1 · blanqueo'), L2('Watch', 'Vigilancia'), L2('Warming', 'Calentando'), L2('No stress', 'Sin estrés')][l];
+    const a = reefAlert(r);
+    return a === null ? L2('No data', 'Sin datos') : titleCase(t(`coral.alert.${ALERT_KEYS[Math.min(a, ALERT_KEYS.length - 1)]}` as Key));
   };
   /** The spot whose water conditions stand for a reef visit: the nearest snorkel spot. */
   const reefSpot = (r: ReefNow | null) => {
@@ -442,7 +453,7 @@ export function mountKineticMap(d: KmDeps) {
     id === 'rating'
       ? keys([['lv0', levelWord(0)], ['lv1', levelWord(1)], ['lv2', levelWord(2)], ['lv3', levelWord(3)], ['lv4', levelWord(4)]])
       : id === 'heat'
-        ? keys([['lv4', L2('No stress', 'Sin estrés')], ['lv2', L2('Watch', 'Vigilancia')], ['lv1', L2('Alert 1', 'Alerta 1')], ['lv0', L2('Alert 2', 'Alerta 2')]])
+        ? keys([['lv3', L2('No stress', 'Sin estrés')], ['lv2', L2('Watch', 'Vigilancia')], ['lv1', L2('Warning', 'Aviso')], ['lv0', L2('Alert 1 or higher', 'Alerta 1 o más')]])
         : id === 'private'
           ? `<div class="k-keys"><span><i class="k-glyph">${glyphSvg('lock', GLYPH_PAINT.ink, 14)}</i>${esc(L2('5 km cell with your sites', 'Celda de 5 km con sus sitios'))}</span></div><p class="k-lgnote">${L2('Your logged sites never show exactly on this map.', 'Sus sitios nunca se muestran exactos en este mapa.')}</p>`
           : '';
@@ -492,7 +503,7 @@ export function mountKineticMap(d: KmDeps) {
     return items.length ? `<ul class="k-lkeys">${items.map((it) => `<li>${keySw(it)}<span>${esc(it.l)}</span></li>`).join('')}</ul>` : '';
   };
   const explainLayer = (id: KmLayer) => {
-    if (isOwnLayer(id)) return `<p class="k-lgnote">${esc(id === 'rating' ? L2('Each beach in the rating colour of the chosen activity, for the hour on the slider: the same score as the forecast page. Each beach carries a small chip with its headline number, and the chosen beach also shows its name; tap one for the spot card. Beaches too close together for their chips show as dots until you zoom in.', 'Cada playa en el color de su calificación para la actividad y la hora elegidas, igual que la página de pronóstico. Cada playa lleva una pequeña ficha con su número, y la playa elegida también su nombre; toque una para ver el spot. Las playas demasiado juntas se ven como puntos hasta que acerque el mapa.') : id === 'heat' ? L2('NOAA Coral Reef Watch degree heating weeks at each tracked reef: heat built up over 12 weeks. 4 or more is bleaching likely, 8 or more severe.', 'Semanas-grado de calor de NOAA Coral Reef Watch en cada arrecife: el calor acumulado en 12 semanas. 4 o más, blanqueo probable; 8 o más, severo.') : L2('Restoration sites in your private field log, drawn only as the 5 km cell they fall in, so nobody can read an exact site off the screen.', 'Sitios de restauración de su bitácora privada, dibujados solo como la celda de 5 km, para que nadie lea un sitio exacto en la pantalla.'))}</p>`;
+    if (isOwnLayer(id)) return `<p class="k-lgnote">${esc(id === 'rating' ? L2('Each beach in the rating colour of the chosen activity, for the hour on the slider: the same score as the forecast page. Each beach carries a small chip with its headline number, and the chosen beach also shows its name; tap one for the spot card. Beaches too close together for their chips show as dots until you zoom in.', 'Cada playa en el color de su calificación para la actividad y la hora elegidas, igual que la página de pronóstico. Cada playa lleva una pequeña ficha con su número, y la playa elegida también su nombre; toque una para ver el spot. Las playas demasiado juntas se ven como puntos hasta que acerque el mapa.') : id === 'heat' ? L2('Each tracked reef in the colour of its NOAA Coral Reef Watch alert, the same as on the coral page. The number is the degree heating weeks: heat built up over 12 weeks. Alert 1 means bleaching is likely.', 'Cada arrecife en el color de su alerta de NOAA Coral Reef Watch, igual que en la página de coral. El número son las semanas-grado de calor: el calor acumulado en 12 semanas. Alerta 1 significa blanqueo probable.') : L2('Restoration sites in your private field log, drawn only as the 5 km cell they fall in, so nobody can read an exact site off the screen.', 'Sitios de restauración de su bitácora privada, dibujados solo como la celda de 5 km, para que nadie lea un sitio exacto en la pantalla.'))}</p>`;
     // What the layer is, plus its notes with no mark of their own; the marks themselves are the key under the row.
     // A painted field's colour meanings (its fills are bands on the key, not chips) join the notes.
     const notes = LEGEND[id].map((it, i) => (it.sw === 'none' || SHORT_KEY.has(id) || ((FIELD_OF[id] || id === 'fishing') && it.sw === 'fill') ? t(legendItemKey(id, i + 1) as Key) : '')).filter(Boolean);
@@ -619,7 +630,9 @@ export function mountKineticMap(d: KmDeps) {
     const curve = predictSeries(LIMON_HARMONICS, d0, d0 + 24 * H, H).h;
     const next = extrema(LIMON_HARMONICS, t, t + 30 * H);
     const hi = next.find((e) => e.type === 'high'), lo = next.find((e) => e.type === 'low');
-    return { m: s.level, rising: s.rising, curve, at: (t - d0) / H, hi, lo };
+    // Metres above mean sea level, with the live gauge's correction, as the forecast page reads it. `s.level` is only
+    // where t sits between low and high (0..1) and must never be shown or added to a depth as metres.
+    return { m: s.h + tideFixNow(t), rising: s.rising, curve, at: (t - d0) / H, hi, lo };
   };
   /** Local clock time to the minute. */
   const hm = (t: number) => {
@@ -822,7 +835,7 @@ export function mountKineticMap(d: KmDeps) {
     // The words line under the number (mockup G: "Waist to chest high, clean"): the forecast hero's own words.
     const words = sentence(heroWords(r, { plan: planFor(S.act, s), ms: t0 }));
     return `<article class="k-scard k-lv${lv}" aria-label="${esc(titleCase(s.name))}">
-      <div class="k-sm k-mono"><span>${esc(modeName(S.act))} · Spot</span><span>${time.offsetH() === 0 ? L2('Now', 'Ahora') : `${dd.wd} ${dd.n}`} · ${hhmm(t0)}</span></div>
+      <div class="k-sm k-mono"><span>${esc(modeName(S.act))} · ${L2('Spot', 'Sitio')}</span><span>${time.offsetH() === 0 ? L2('Now', 'Ahora') : `${dd.wd} ${dd.n}`} · ${hhmm(t0)}</span></div>
       <h3>${esc(titleCase(s.name))}</h3>
       <div class="k-big">${esc(hl.value)}<span class="k-u">${esc(hl.unit)}</span></div>
       ${words ? `<p class="k-w">${esc(words)}</p>` : ''}
@@ -885,9 +898,12 @@ export function mountKineticMap(d: KmDeps) {
     const open = !!w && w.endMs >= t0 + 47 * H;
     const end = w ? `${de!.n !== dd!.n ? `${de!.wd} ${de!.n} ` : ''}${hhmm(w.endMs)}` : '';
     const span = !w ? '' : open ? (w.now ? L2('all 48 h ahead', 'las próximas 48 h') : `${L2('from', 'desde')} ${hhmm(w.startMs)}`) : `${hhmm(w.now ? t0 : w.startMs)}–${end}`;
+    // GO hours are sea and weather only: say when the window runs through the dark (review 2026-11-16), so nobody plans a night trip by mistake.
+    let dark = false;
+    if (w) for (let t = Math.max(t0, w.startMs); t < w.endMs && !dark; t += H) dark = sunAltitude(t + H / 2, s.lngLat[1], s.lngLat[0]) < -0.833;
     bwHTML = !known
       ? ''
-      : `<p class="k-bwin k-mono"><span>${L2('Boat window', 'Ventana de bote')}</span>${w ? `<b>${w.now ? L2('Now', 'Ahora') : `${dd!.wd} ${dd!.n}`} · ${span}</b><span>${vw}</span>` : `<b>${L2('None in 48 h', 'Ninguna en 48 h')}</b>`}</p>`;
+      : `<p class="k-bwin k-mono"><span>${L2('Boat window', 'Ventana de bote')}</span>${w ? `<b>${w.now ? L2('Now', 'Ahora') : `${dd!.wd} ${dd!.n}`} · ${span}</b><span>${vw}${dark ? ` · ${L2('includes night hours', 'incluye horas de noche')}` : ''}</span>` : `<b>${L2('None in 48 h', 'Ninguna en 48 h')}</b>`}</p>`;
     return bwHTML;
   };
   const coralCardHTML = () => {

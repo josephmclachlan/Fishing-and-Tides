@@ -58,8 +58,10 @@ export interface Species {
    * Ciguatera beside the picker: `true` is the red warning (large fish of these species often carry it); 'caution' is a
    * gentle amber note, for fish where it is uncommon but has been found (lionfish: Robertson et al. 2014, Toxicon 91:
    * 102-110, found toxin in some Caribbean lionfish; Costa Rica has no published cases).
+   * 'size' is for fish people here eat every day whose big ones carry it in the Caribbean record (jacks, cubera and dog
+   * snapper; the ciguatera page's Species and size tab): keep fish under about 2 kg and never eat the head or guts.
    */
-  ciguatera?: boolean | 'caution';
+  ciguatera?: boolean | 'caution' | 'size';
   /**
    * Taken by hand, not hook or spear (PLAN 7.125: lobster, octopus, cigua): freediving or wading. A spearfishing permit
    * covers fish only, so the panel says so, and like lionfish none is circled in any protected area.
@@ -70,8 +72,8 @@ export interface Species {
 export const SPECIES: readonly Species[] = [
   // Snook: river mouths first, and the surf line beside them (PLAN 7.122 moved 0.15 of the mouth weight there).
   { id: 'snook', mode: 'eat', depthM: [0.3, 0.5, 4, 10], w: { mouth: 0.65, reef: 0.1, drop: 0.1, surf: 0.15 }, mouthReachKm: 0.9, season: [0.85, 0.85, 0.8, 0.8, 0.85, 0.9, 0.95, 1, 1, 1, 1, 0.95], water: { visM: [0.2, 0.5, 2.5, 6], sstC: [18, 24, 30, 33] } },
-  { id: 'jack', mode: 'eat', depthM: [1, 2, 18, 40], w: { mouth: 0.5, reef: 0.25, drop: 0.25 }, mouthReachKm: 1.5, season: [0.9, 0.95, 1, 1, 0.95, 0.9, 0.85, 0.85, 0.9, 0.95, 0.95, 0.9], water: { visM: [0.3, 1, 6, 15], sstC: [20, 24, 30, 33] } },
-  { id: 'snapper', mode: 'eat', depthM: [4, 8, 30, 50], w: { mouth: 0.1, reef: 0.55, drop: 0.35 }, mouthReachKm: 1, season: [1, 1, 0.95, 0.9, 0.85, 0.8, 0.8, 0.85, 0.9, 0.95, 1, 1], water: { visM: [1, 3, 15, 30], sstC: [20, 24, 29, 32] } },
+  { id: 'jack', mode: 'eat', depthM: [1, 2, 18, 40], w: { mouth: 0.5, reef: 0.25, drop: 0.25 }, mouthReachKm: 1.5, season: [0.9, 0.95, 1, 1, 0.95, 0.9, 0.85, 0.85, 0.9, 0.95, 0.95, 0.9], water: { visM: [0.3, 1, 6, 15], sstC: [20, 24, 30, 33] }, ciguatera: 'size' },
+  { id: 'snapper', mode: 'eat', depthM: [4, 8, 30, 50], w: { mouth: 0.1, reef: 0.55, drop: 0.35 }, mouthReachKm: 1, season: [1, 1, 0.95, 0.9, 0.85, 0.8, 0.8, 0.85, 0.9, 0.95, 1, 1], water: { visM: [1, 3, 15, 30], sstC: [20, 24, 29, 32] }, ciguatera: 'size' },
   // Spanish mackerel (macarela): schools along reef edges and drop-offs in clear water. No local season data: flat.
   { id: 'mackerel', mode: 'eat', confidence: 'low', depthM: [1, 3, 25, 45], w: { mouth: 0.15, reef: 0.35, drop: 0.5 }, mouthReachKm: 1, season: Array(12).fill(0.95), water: { visM: [1.5, 3, 15, 30], sstC: [22, 25, 30, 33] } },
   // Small reef groupers (cabrilla, coney, hinds, black grouper): reef and rock, hand line or spear. Season not known locally: flat.

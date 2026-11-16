@@ -8,6 +8,7 @@
  * active language).
  */
 import { guideLinkFor } from '../fishing/guide-link';
+import { SPECIES } from '../fishing/species';
 import { t, type Key } from '../i18n';
 import { localDayStart, moonPhase } from '../physics/astro';
 import { tideState } from '../physics/tide';
@@ -370,7 +371,7 @@ export function tilesFor(r: FcRead, ctx: ViewCtx): TileView[] {
     const age = moonAgeDays(moonPhase(ms).elongation);
     return [
       weather(),
-      { kind: 'catch', k: t('fc.catch'), v: names[0] ?? dash, sub: [names.slice(1).join(' · ')], tip: t('tip.fish'), lv: null, viz: { count: names.length }, links: f.species.map(guideLinkFor) },
+      { kind: 'catch', k: t('fc.catch'), v: names[0] ?? dash, sub: [names.slice(1).join(' · '), ...(f.species.some((id) => SPECIES.find((s) => s.id === id)?.ciguatera === 'size') ? [t('fc.catch.cigua')] : [])], tip: t('tip.fish'), lv: null, viz: { count: names.length }, links: f.species.map(guideLinkFor) },
       { kind: 'moon', k: t('fc.moon'), v: `${n0(f.moonIllum * 100)}%`, sub: [`${sentence(t(`astro.moon.${f.moonPhase}` as Key))} · ${t('fc.moonDay', { d: n0(age) })}`], tip: tipOf('moon', f.moonIllum), lv: null, viz: { v: f.moonIllum, waxing: f.moonPhase <= 4 } },
       tideTile(true), windTile(hourWind.kt, hourWind.from, (x) => x.windKt), water(), uvTile(h?.uv ?? null), windowTile(),
     ];

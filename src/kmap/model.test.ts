@@ -34,6 +34,13 @@ describe('kinetic map layers', () => {
     s.setItem('ft.km.layers', '{bad');
     expect(loadOrders(s)).toEqual({});
   });
+  it('opens the standard layers where a saved list is empty or holds only unknown ids', () => {
+    const s = mem();
+    s.setItem('ft.km.layers', JSON.stringify({ snorkel: [], surf: ['bogus', 'old-id'] }));
+    expect(loadOrders(s)).toEqual({});
+    expect(orderOf(loadOrders(s), 'snorkel')).toEqual([...PRESETS.snorkel]);
+    expect(orderOf(loadOrders(s), 'surf')).toEqual([...PRESETS.surf]);
+  });
   it('turns a layer on at the top, off from anywhere, and moves it within the list', () => {
     expect(toggleLayer(['a', 'b'] as never, 'c' as never)).toEqual(['c', 'a', 'b']);
     expect(toggleLayer(['a', 'b'] as never, 'a' as never)).toEqual(['b']);

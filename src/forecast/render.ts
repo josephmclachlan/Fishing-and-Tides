@@ -164,7 +164,7 @@ export function tilesHtml(list: readonly TileView[]): string {
         <div class="fc-t-top"><span class="fc-mono">${esc(x.k)}</span><span class="fc-mono fc-ix">${String(i + 1).padStart(2, '0')}</span></div>
         <canvas class="fc-t-viz" aria-hidden="true"></canvas>
         <div class="fc-t-val">${x.links?.[0] ? `<a class="fc-t-go" href="${esc(x.links[0])}">${esc(x.v)}</a>` : esc(x.v)}${x.small ? `<small>${esc(x.small)}</small>` : ''}</div>
-        <p class="fc-t-sub">${x.links ? x.sub[0] ? x.sub[0].split(' · ').map((n, j) => (x.links![j + 1] ? `<a class="fc-t-go" href="${esc(x.links![j + 1])}">${esc(n)}</a>` : esc(n))).join(' · ') : '' : x.sub.filter(Boolean).map(esc).join('<br>')}</p>
+        <p class="fc-t-sub">${x.links ? [x.sub[0] ? x.sub[0].split(' · ').map((n, j) => (x.links![j + 1] ? `<a class="fc-t-go" href="${esc(x.links![j + 1])}">${esc(n)}</a>` : esc(n))).join(' · ') : '', ...x.sub.slice(1).filter(Boolean).map(esc)].filter(Boolean).join('<br>') : x.sub.filter(Boolean).map(esc).join('<br>')}</p>
         ${x.tip ? `<div class="fc-t-tip"><p>${esc(x.tip)}</p></div>` : ''}
       </article>`;
     })
