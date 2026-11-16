@@ -8,7 +8,7 @@ import {
   HIST_SPECIES, ICE_LIMIT, METHODS, METHODS_H, METHODS_P, MISTAKES, MISTAKES_H, MISTAKES_P, ROUTINE, ROUTINE_H, ROWS, SCIENCE_H, SCIENCE_P,
   SECTION_LABELS, EST_MARK, SOURCES, SOURCES_H, SOURCES_P, STATS, STEPS, tr, type Fact, type Lang, type MethodId, type Txt,
 } from './content';
-import { gradeOf, kAt, posOf, segments, type Grade, type Method } from './model';
+import { gradeOf, hoursTo, K_BANDS, kAt, posOf, segments, type Grade, type Method } from './model';
 import { DP_SECTIONS } from './route';
 import { methodArt } from './art';
 
@@ -88,8 +88,18 @@ export function chartHtml(lang: Lang, startHours: number): string {
       ${rows}
     </div>
     <p class="dp-help">${esc(tr(GRADE_HELP, lang))}</p>
+    <p class="dp-help dp-ike">${esc(ikejimeLine(lang))}</p>
     <p class="dp-fine">${esc(tr(CHART_NOTE, lang))}</p>
   </section>`;
+}
+
+/** What the 72 h chart cannot show: when an ikejime fish on ice leaves each grade, in whole days from the model. */
+export function ikejimeLine(lang: Lang): string {
+  const d = (k: number) => Math.round(hoursTo('ikejime', k) / 24);
+  const [a, b, c] = [d(K_BANDS.raw), d(K_BANDS.good), d(K_BANDS.ok)];
+  return lang === 'es'
+    ? `Ikejime en hielo (0 °C, 32 °F), estimado: ceviche fresco hasta el día ${a}, cocinar antes del día ${b}, dañado hacia el día ${c}.`
+    : `Ikejime on ice (0 °C, 32 °F), estimated: ceviche-fresh to day ${a}, cook by day ${b}, spoiled by day ${c}.`;
 }
 
 /** The grade a method is in at `h` hours, for the readout and the pills. */
