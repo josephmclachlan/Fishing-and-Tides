@@ -5,15 +5,15 @@ const L = (en: string, es: string): L => ({ en, es });
 
 /**
  * WATER SAFETY: rip currents, waves at the water's edge, what to do when someone is in trouble. Stings and bites live in the
- * First aid tab (aid.ts) and are linked rather than repeated. This coast has no lifeguards and no flag system that the app
- * knows of (Joseph to confirm for any beach that does), so nothing here tells a swimmer to look for one.
+ * First aid tab (aid.ts) and are linked rather than repeated. Joseph (2026-11-16): Playa Cocles has lifeguards, and Playa Cocles and
+ * Playa Negra have flags. Other beaches are not known to, so the text never tells a swimmer to count on one.
  */
 export const water: Section = {
   id: 'water',
   title: L('Water safety', 'Seguridad en el agua'),
   lede: L(
-    'Most of this coast has no lifeguard and no flags, so you are your own safety team. Read the sea before you get in, know how to get out of a rip current, and know who to call.',
-    'En casi toda esta costa no hay salvavidas ni banderas, así que usted mismo cuida su seguridad. Lea el mar antes de entrar, sepa cómo salir de una corriente de resaca y sepa a quién llamar.',
+    'Playa Cocles has lifeguards, and Playa Cocles and Playa Negra have flags. Follow them there. Everywhere else on this coast, do not count on either: read the sea before you get in, know how to get out of a rip current, and know who to call.',
+    'Playa Cocles tiene salvavidas, y Playa Cocles y Playa Negra tienen banderas. Hágales caso ahí. En el resto de esta costa no cuente con ninguno: lea el mar antes de entrar, sepa cómo salir de una corriente de resaca y sepa a quién llamar.',
   ),
   blocks: [
     {

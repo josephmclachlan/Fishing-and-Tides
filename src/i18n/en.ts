@@ -1613,7 +1613,7 @@ export const en = {
   'tip.surge.SURGY': 'Back-and-forth at depth. Keep clear of the reef.',
   'tip.surge.DANGEROUS': 'Dangerous surge: dive deeper or skip it.',
   'tip.rip.LOW': 'Low risk. Still swim near others.',
-  'tip.rip.MOD': 'Swim near other people and stay away from the darker, calmer channels where waves are not breaking. There is no lifeguard on this coast.',
+  'tip.rip.MOD': 'Swim near other people and stay away from the darker, calmer channels where waves are not breaking. At Playa Cocles, ask the lifeguard.',
   'tip.rip.HIGH': 'Stay out of the water. If one catches you, swim sideways along the beach, not toward it. The water safety page says what to do next.',
   'tip.boat.smooth': 'A comfortable ride.',
   'tip.boat.lively': 'Lively. Stow loose gear.',

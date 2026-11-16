@@ -1613,7 +1613,7 @@ export const es: Dict = {
   'tip.surge.SURGY': 'Vaivén en el fondo. Aléjese del arrecife.',
   'tip.surge.DANGEROUS': 'Vaivén peligroso: bucee más hondo o déjelo.',
   'tip.rip.LOW': 'Riesgo bajo. Igual nade cerca de otros.',
-  'tip.rip.MOD': 'Nade cerca de otras personas y lejos de los canales oscuros y calmos donde no rompen las olas. En esta costa no hay salvavidas.',
+  'tip.rip.MOD': 'Nade cerca de otras personas y lejos de los canales oscuros y calmos donde no rompen las olas. En Playa Cocles, pregunte al salvavidas.',
   'tip.rip.HIGH': 'No se meta al agua. Si una corriente le arrastra, nade de lado, paralelo a la playa, no hacia ella. La página de seguridad en el agua dice qué hacer después.',
   'tip.boat.smooth': 'Navegación cómoda.',
   'tip.boat.lively': 'Movido. Asegure lo suelto.',
