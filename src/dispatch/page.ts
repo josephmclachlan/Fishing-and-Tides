@@ -132,9 +132,12 @@ export function mountDispatchPage(deps: DispatchPageDeps) {
   let pushed = false;
   let cameFrom: From = 'map';
   const scrollTo = (s: DpSection | null, smooth: boolean) => {
-    const target = s ? el.querySelector<HTMLElement>(`[data-s="${s}"]`) : null;
+    // `.dp-sec` only: the section buttons carry the same data-s and sit at the top of the page.
+    const target = s ? el.querySelector<HTMLElement>(`.dp-sec[data-s="${s}"]`) : null;
     if (!target) return void el.scrollTo({ top: 0 });
-    el.scrollTo({ top: Math.max(0, target.offsetTop - 8), behavior: smooth && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'auto' });
+    const nav = el.querySelector<HTMLElement>('.dp-nav');
+    const top = target.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop - (nav?.offsetHeight ?? 0);
+    el.scrollTo({ top: Math.max(0, top), behavior: smooth && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'auto' });
   };
   el.querySelectorAll<HTMLElement>('.dp-navb').forEach((b) =>
     b.addEventListener('click', () => {
