@@ -15,6 +15,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import { sizeOf } from '../layout-size';
 import { bandOf } from './bands';
 import { trackAt } from './sargassum';
+import { drawSprig, sprig, sprigExtent } from './sargassum-glyph';
 
 /** Minutes of measured rain motion each copy slides through, and the seconds that takes on screen. */
 export const RAIN_AHEAD_MIN = 40;
@@ -22,9 +23,17 @@ const RAIN_LOOP_S = 5;
 /** Hours of forecast drift each sargassum copy rides, and the seconds that takes on screen. */
 export const SARG_AHEAD_H = 18;
 const SARG_LOOP_S = 7;
-/** A drawn mat's size, m, and its fronds. */
+/** A drawn mat's size, m, and the sprig length it is drawn at, px: never so small the bladders vanish, never a blob. */
 const MAT_M = 900;
-const FRONDS = 9;
+const SPRIG_MIN_PX = 20;
+const SPRIG_MAX_PX = 40;
+/** Under this sprig length a mat is one sprig; at it and over, a tangle of three. */
+const TANGLE_PX = 26;
+/**
+ * The sprigs of a mat: offset along and across its drift (share of the sprig length), turn off the drift (rad), scale.
+ * Wind rows of weed lie along the drift, so the tangle is long and thin.
+ */
+const TANGLE: readonly [number, number, number, number][] = [[0, 0, 0, 1], [-0.42, 0.2, -0.5, 0.72], [0.36, -0.22, 0.42, 0.66]];
 /** Drawn from this zoom. */
 const MIN_ZOOM = 7;
 /** Rain rate band edges, mm/h: under the first is dry; then light, moderate, heavy, very heavy, violent (`--r-rain0..4`). */
@@ -125,6 +134,24 @@ export function mountDriftMotion(map: MapLibreMap): DriftMotion | null {
   let tracks: readonly Track[] = [];
   let sargMs = 0;
   let sargCol = 'rgb(140,106,18)';
+  let sargHalo = 'rgb(236,234,223)';
+  /** Pre-drawn sprigs by length (px) and pixel ratio, so each frame only stamps images. Cleared when the colours change. */
+  const sprites = new Map<string, { img: HTMLCanvasElement; ex: number; ey: number }>();
+  const sprite = (lenPx: number, dpr: number) => {
+    const key = `${lenPx}|${dpr}`;
+    let sp = sprites.get(key);
+    if (!sp) {
+      const g = sprig(lenPx), e = sprigExtent(g);
+      const img = document.createElement('canvas');
+      img.width = Math.ceil(2 * e.x * dpr);
+      img.height = Math.ceil(2 * e.y * dpr);
+      const c = img.getContext('2d')!;
+      c.setTransform(dpr, 0, 0, dpr, e.x * dpr, e.y * dpr);
+      drawSprig(c, g, sargCol, sargHalo);
+      sprites.set(key, (sp = { img, ex: e.x, ey: e.y }));
+    }
+    return sp;
+  };
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)');
   const covered = () => document.body.classList.contains('fc-open');
 
@@ -165,8 +192,10 @@ export function mountDriftMotion(map: MapLibreMap): DriftMotion | null {
     rain = { img, f: rainSrc, up, win, motion: rainMotion && rainMotion.speedKmh >= 3 ? rainMotion : null };
   };
   const readColours = () => {
-    const c = cssRgb('--m-sarg', [140, 106, 18]);
+    const c = cssRgb('--m-sarg', [140, 106, 18]), h = cssRgb('--m-halo', [236, 234, 223]);
     sargCol = `rgb(${c[0]},${c[1]},${c[2]})`;
+    sargHalo = `rgb(${h[0]},${h[1]},${h[2]})`;
+    sprites.clear();
     paintRain();
   };
   readColours();
@@ -201,45 +230,44 @@ export function mountDriftMotion(map: MapLibreMap): DriftMotion | null {
     ctx.globalAlpha = 1;
   };
 
-  const drawSargassum = (now: number) => {
+  const drawSargassum = (now: number, dpr: number) => {
     if (!tracks.length) return;
     const z = map.getZoom();
-    // A mat is a clump of weed about MAT_M across (never under 9 px, so it reads zoomed out), each frond a short curl.
+    // A mat is a sargassum sprig about MAT_M across, or a tangle of three once there is room (sargassum-glyph.ts).
     const mPerPx = (40075016.686 * Math.cos((map.getCenter().lat * Math.PI) / 180)) / (512 * 2 ** z);
-    const spread = Math.max(9, Math.min(30, MAT_M / mPerPx));
-    const len = Math.max(3, Math.min(7, spread / 3));
-    ctx.strokeStyle = sargCol;
-    ctx.lineCap = 'round';
-    ctx.lineWidth = z >= 11 ? 2.2 : 1.6;
+    const len = Math.round(Math.max(SPRIG_MIN_PX, Math.min(SPRIG_MAX_PX, MAT_M / mPerPx)));
+    const parts = len >= TANGLE_PX ? TANGLE : TANGLE.slice(0, 1);
     const still = reduced?.matches;
     const copies: [number, number][] = still ? [[0, 1]] : [0, 0.5].map((off) => {
       const q = (now / 1000 / SARG_LOOP_S + off) % 1;
       return [q * SARG_AHEAD_H * 3.6e6, loopWeight(q)];
     });
-    const W = canvas.width, H = canvas.height;
+    const W = canvas.width / dpr, H = canvas.height / dpr, pad = len * 1.5;
     tracks.forEach((tr, i) => {
+      // Each mat turns a little its own way, so a field of them is not a stamp.
+      const h = Math.sin(i * 12.9898) * 43758.5453, own = (h - Math.floor(h) - 0.5) * 0.7;
       for (const [ahead, alpha] of copies) {
         if (alpha <= 0.02) continue;
         const p = trackAt(tr.path, sargMs + ahead);
         const q = p && trackAt(tr.path, sargMs + ahead + 3.6e6);
         if (!p || !q) continue;
         const s = map.project(p);
-        if (s.x < -20 || s.y < -20 || s.x > W + 20 || s.y > H + 20) continue;
+        if (s.x < -pad || s.y < -pad || s.x > W + pad || s.y > H + pad) continue;
         const e = map.project(q);
         // Weed lies along its drift, with a slow sway.
-        const base = Math.atan2(e.y - s.y, e.x - s.x) || 0;
-        ctx.globalAlpha = 0.9 * alpha;
-        for (let k = 0; k < FRONDS; k++) {
-          const h1 = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453, h2 = Math.sin(i * 39.346 + k * 11.135) * 24634.6345;
-          // Spread along the drift more than across it, as wind rows of weed lie.
-          const a1 = (h1 - Math.floor(h1) - 0.5) * spread, a2 = (h2 - Math.floor(h2) - 0.5) * spread * 0.5;
-          const jx = Math.cos(base) * a1 - Math.sin(base) * a2, jy = Math.sin(base) * a1 + Math.cos(base) * a2;
-          const an = base + (h1 - Math.floor(h1) - 0.5) * 0.9 + (still ? 0 : Math.sin(now / 2500 + i + k) * 0.2);
-          const cx = s.x + jx, cy = s.y + jy, dx = Math.cos(an) * len, dy = Math.sin(an) * len;
-          ctx.beginPath();
-          ctx.moveTo(cx - dx, cy - dy);
-          ctx.quadraticCurveTo(cx - dy * 0.35, cy + dx * 0.35, cx + dx, cy + dy);
-          ctx.stroke();
+        const base = (Math.atan2(e.y - s.y, e.x - s.x) || 0) + own;
+        ctx.globalAlpha = alpha;
+        // The small sprigs first, the main one over them.
+        for (let k = parts.length - 1; k >= 0; k--) {
+          const [along, across, turn, scale] = parts[k];
+          const sp = sprite(Math.round(len * scale), dpr);
+          const sway = still ? 0 : Math.sin(now / 2500 + i * 1.7 + k * 2.1) * 0.07;
+          const ox = along * len, oy = across * len;
+          ctx.save();
+          ctx.translate(s.x + Math.cos(base) * ox - Math.sin(base) * oy, s.y + Math.sin(base) * ox + Math.cos(base) * oy);
+          ctx.rotate(base + turn + sway);
+          ctx.drawImage(sp.img, -sp.ex, -sp.ey, 2 * sp.ex, 2 * sp.ey);
+          ctx.restore();
         }
       }
     });
@@ -253,7 +281,7 @@ export function mountDriftMotion(map: MapLibreMap): DriftMotion | null {
     if (map.getZoom() < MIN_ZOOM) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (show.rain) drawRain(now);
-    if (show.sargassum) drawSargassum(now);
+    if (show.sargassum) drawSargassum(now, dpr);
   };
 
   let raf = 0;
