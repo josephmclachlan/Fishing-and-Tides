@@ -7,7 +7,7 @@
 import { OCCURRENCE_TAXA } from './occurrence-taxa';
 import type { SpeciesId } from './species';
 
-const KINDS: readonly SpeciesId[] = ['snook', 'jack', 'snapper', 'mackerel', 'grouper', 'grunt', 'pompano', 'corvina', 'mullet', 'barracuda', 'lionfish', 'permit', 'bonefish', 'tarpon', 'lobster', 'octopus', 'cigua'];
+const KINDS: readonly SpeciesId[] = ['snook', 'jack', 'snapper', 'mackerel', 'grouper', 'grunt', 'pompano', 'corvina', 'mullet', 'mojarra', 'goatfish', 'squid', 'flounder', 'squirrelfish', 'spadefish', 'barracuda', 'lionfish', 'permit', 'bonefish', 'tarpon', 'lobster', 'octopus', 'cigua'];
 
 /** The model kind a species (by scientific name) belongs to, or null when the fish map has no zone for it. */
 export function fishKindFor(sci: string): SpeciesId | null {
@@ -24,8 +24,14 @@ export const GUIDE_SEARCH: Record<SpeciesId, string> = {
   grouper: 'Serranidae',
   grunt: 'Haemulidae',
   pompano: 'Trachinotus carolinus',
-  corvina: 'Cynoscion',
+  corvina: 'Sciaenidae',
   mullet: 'Mugil',
+  mojarra: 'Gerreidae',
+  goatfish: 'Mullidae',
+  squid: 'Sepioteuthis',
+  flounder: 'Bothus lunatus',
+  squirrelfish: 'Holocentrus',
+  spadefish: 'Chaetodipterus',
   permit: 'Trachinotus falcatus',
   bonefish: 'Albula',
   tarpon: 'Megalops',
@@ -36,6 +42,6 @@ export const GUIDE_SEARCH: Record<SpeciesId, string> = {
   lionfish: 'Pterois',
 };
 
-const NOT_FISH: ReadonlySet<SpeciesId> = new Set(['lobster', 'octopus', 'cigua']);
+const NOT_FISH: ReadonlySet<SpeciesId> = new Set(['lobster', 'octopus', 'cigua', 'squid']);
 /** The guide link for a kind: the edible list of fish (or, for the by-hand catch, every edible species), searched. */
 export const guideLinkFor = (k: SpeciesId): string => `#guide/${NOT_FISH.has(k) ? 'edible' : 'edible-fish'}?q=${encodeURIComponent(GUIDE_SEARCH[k])}`;

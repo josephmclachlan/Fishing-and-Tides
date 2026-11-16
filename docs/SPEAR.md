@@ -29,7 +29,7 @@ From INCOPESCA AJDIP/098-2017 (read in full) and AJDIP/194-2024 (scuba exception
 The map and score read it per zone: a national park (IUCN II) or closed water is BANNED (SPEAR score 0, red on the map); Gandoca-Manzanillo and Limoncito have no marine rule we could find and are CHECK (no circled zone, dashed amber; ask SINAC, +506 2755-0302 for Cahuita's office); everywhere else is OK for a permit holder.
 
 ## Targets (`src/fishing/spear.ts`)
-Grouper (small reef groupers), snapper, jack and lionfish: edible reef fish a spearfisher takes here, lionfish being a cull the authorities encourage. Barracuda is left out (ciguatera), mackerel (open-water schooler) and snook (a river-mouth line fish). A cell's spear score is its best target's habitat score times a depth window (0 below 1.5 m, 1 from 3 to 15 m, 0 at 22 m).
+Grouper (small reef groupers), snapper, jack and lionfish: edible reef fish a spearfisher takes here, lionfish being a cull the authorities encourage. Peacock flounder, squirrelfish and spadefish were added in PLAN 7.147: the species guide marks them as speared and eaten here, with 16 to 44 OBIS and GBIF records each. Barracuda is left out (ciguatera), mackerel (open-water schooler) and snook (a river-mouth line fish). A cell's spear score is its best target's habitat score times a depth window (0 below 1.5 m, 1 from 3 to 15 m, 0 at 22 m).
 
 ## Safety
 Shallow-water blackout is the main danger of breath-hold diving: it usually comes with little warning near the surface, and the standard safeguard is a buddy watching (one up, one down). Ciguatera is not destroyed by cooking and varies fish to fish; large reef fish are the risk.
