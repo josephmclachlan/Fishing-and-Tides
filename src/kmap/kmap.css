@@ -159,6 +159,11 @@
 .km .k-sec-head{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;border-bottom:2px solid var(--ink);padding-bottom:7px;margin:0 0 10px}
 .km .k-sec-head h2,.km .k-sec-head h3{margin:0;font-family:var(--disp);font-weight:850;font-variation-settings:"wdth" 74;font-size:28px;line-height:.88;letter-spacing:-.02em;white-space:nowrap}
 .km .k-sec-head .k-mono{color:var(--ink2);text-align:right;margin:0}
+.km .k-pane{display:grid;grid-template-columns:1fr 1fr;gap:0;width:100%;border:2px solid var(--ink)}
+.km .k-pane button{appearance:none;cursor:pointer;border:0;background:var(--c-card);color:var(--ink);min-height:44px;padding:6px 8px;font-family:var(--disp);font-weight:850;font-variation-settings:"wdth" 74;font-size:19px;line-height:1;text-align:center}
+.km .k-pane button+button{border-left:2px solid var(--ink)}
+.km .k-pane button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.km .k-fishpane{padding-top:2px}
 .km .k-rail-l .k-sec-head .k-mono{margin-left:auto}
 .km .k-preset{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px}
 .km .k-preset .k-pl{display:flex;align-items:center;gap:8px;min-width:0}

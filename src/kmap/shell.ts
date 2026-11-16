@@ -166,6 +166,8 @@ const CORAL_KEY = 'ft.km.coral';
 const REEF_KEY = 'ft.km.reef';
 /** The desktop layers rail folded to a slim bar (Joseph 2026-11-11: it should not take the whole left side). */
 const LCOL_KEY = 'ft.km.lcol';
+/** Desktop FISH: the right panel's tab, the fish today (default) or the spot forecast (Joseph 2026-11-16). */
+const PANE_KEY = 'ft.km.fishpane';
 const get = (s: Pick<Storage, 'getItem'> | undefined, k: string) => {
   try {
     return s?.getItem(k) ?? null;
@@ -1069,8 +1071,25 @@ export function mountKineticMap(d: KmDeps) {
         else if (k === 'identify') d.openGuide?.('identify');
       }),
     );
+  /**
+   * Desktop FISH (Joseph 2026-11-16): the right panel opens on the picked fish today (its bite through the day, best
+   * times and best spots), with tabs at the top to switch to the spot forecast and back; the choice is remembered.
+   */
+  let pane: 'fish' | 'spot' = get(storage, PANE_KEY) === 'spot' ? 'spot' : 'fish';
+  const paneFi = () => (WIDE.matches && S.act === 'fish' && !S.coral ? (d.fishMode?.info?.() ?? null) : null);
+  const railHeadHTML = () => {
+    const fi = paneFi();
+    if (!fi) return `<h2>${S.coral ? L2('Reef', 'Arrecife') : L2('Spot', 'Sitio')}</h2><p class="k-mono">${L2('Tap a pin to change', 'Toque un punto')}</p>`;
+    const tab = (id: 'fish' | 'spot', l: string) => `<button type="button" role="tab" data-pane="${id}" aria-selected="${pane === id}">${esc(l)}</button>`;
+    return `<div class="k-pane" role="tablist" aria-label="${L2('Fish or spot forecast', 'Pez o pronóstico del sitio')}">${tab('fish', L2(`${titleCase(fi.name)} today`, `${titleCase(fi.name)} hoy`))}${tab('spot', L2('Spot forecast', 'Pronóstico del sitio'))}</div>`;
+  };
+  const railBoxHTML = () => {
+    const fi = paneFi();
+    if (fi && pane === 'fish') return `<div class="k-fishpane">${fishSheetHTML(fi)}</div>`;
+    return S.coral ? coralCardHTML() : spotCardHTML();
+  };
   const inspectorHTML = () =>
-    `<div class="k-sec-head"><h2>${S.coral ? L2('Reef', 'Arrecife') : L2('Spot', 'Sitio')}</h2><p class="k-mono">${L2('Tap a pin to change', 'Toque un punto')}</p></div><div id="k-cardbox">${S.coral ? coralCardHTML() : spotCardHTML()}</div><section id="k-heresec" class="k-heresec"><div class="k-sec-head"><h2>${L2('Under the crosshair', 'Bajo la mira')}</h2></div>${hereHTML()}</section>`;
+    `<div class="k-sec-head">${railHeadHTML()}</div><div id="k-cardbox">${railBoxHTML()}</div><section id="k-heresec" class="k-heresec"><div class="k-sec-head"><h2>${L2('Under the crosshair', 'Bajo la mira')}</h2></div>${hereHTML()}</section>`;
   /**
    * The fish bar, on the map itself whenever FISH is on (Joseph 2026-11-16, option A of the mockups; the switches were
    * only in the spot card and the Expand data panel): EAT or SPORT and SHORE or BOAT, the fish with arrows, its first
@@ -1297,7 +1316,7 @@ export function mountKineticMap(d: KmDeps) {
       if (si) shBody.innerHTML = spearSheetHTML(si);
     }
   };
-  d.fishMode?.onInfo?.(() => (renderFishSw(), refreshFishSheet()));
+  d.fishMode?.onInfo?.(() => (renderFishSw(), refreshFishSheet(), paneFi() && renderSpot()));
   const renderSpot = () => {
     const dk = $('k-dkspot');
     if (S.coral) {
@@ -1318,10 +1337,11 @@ export function mountKineticMap(d: KmDeps) {
         railR.innerHTML = inspectorHTML();
         bindCard(railR);
       } else {
-        const b = railR.querySelector<HTMLElement>('#k-cardbox')!;
-        b.innerHTML = S.coral ? coralCardHTML() : spotCardHTML();
+        const b = railR.querySelector<HTMLElement>('#k-cardbox')!, top = b.scrollTop;
+        b.innerHTML = railBoxHTML();
         bindCard(b);
-        railR.querySelector('.k-sec-head h2')!.textContent = S.coral ? L2('Reef', 'Arrecife') : L2('Spot', 'Sitio');
+        b.scrollTop = top;
+        railR.querySelector('.k-sec-head')!.innerHTML = railHeadHTML();
       }
     }
     if (S.sheet === 'spot' || S.sheet === 'coral') {
@@ -1331,6 +1351,17 @@ export function mountKineticMap(d: KmDeps) {
     }
   };
   $('k-dkspot').addEventListener('click', () => openSheet(S.coral ? 'coral' : 'spot'));
+  railR.addEventListener('click', (e) => {
+    const el = e.target as HTMLElement;
+    const tb = el.closest<HTMLElement>('[data-pane]');
+    if (tb) {
+      pane = tb.dataset.pane === 'spot' ? 'spot' : 'fish';
+      put(storage, PANE_KEY, pane);
+      return renderSpot();
+    }
+    const f = el.closest<HTMLElement>('.k-fishpane [data-fly]');
+    if (f) d.fishMode?.flySpot?.(Number(f.dataset.fly));
+  });
   // The fishing panel's own MODE row changes it too: keep the card's switch in step (PLAN 7.120).
   d.fishMode?.subscribe?.(() => (renderSpot(), renderFishSw()));
 
