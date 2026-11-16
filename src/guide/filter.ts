@@ -57,15 +57,22 @@ export const nameOf = (e: Named, lang: Lang) => (lang === 'es' ? e.es[0] ?? e.en
 /** True when the entry has no common name, so the Latin name is its title. */
 export const latinOnly = (e: Named) => !e.en.length && !e.es.length;
 
-/** Food: eaten here or edible with care. */
-export const isFood = (e: Pick<Entry, 'edible'>) => e.edible === 'yes' || e.edible === 'caution';
+/** Food: eaten here or edible with care, and legal to take. */
+export const isFood = (e: Pick<Entry, 'edible'> & { illegal?: boolean }) => (e.edible === 'yes' || e.edible === 'caution') && !e.illegal;
 /** The ways a living animal or plant hurts people who meet or touch it. */
 export const TOUCH_KINDS: readonly DangerKind[] = ['venom', 'sting', 'bite', 'spines', 'shock', 'skin-toxin', 'irritant', 'aggressive'];
 /** The risks that come with eating it (spines are a handling risk, not an eating one). */
 export const EAT_RISKS: readonly Risk[] = ['ciguatera', 'tetrodotoxin', 'scombroid', 'shellfish-poisoning', 'mercury', 'parasites', 'other'];
 export const hurtsToTouch = (e: Pick<Entry, 'danger'>) => !!e.danger?.kinds.some((k) => TOUCH_KINDS.includes(k));
-/** Poisonous to eat at all (pufferfish, toxic plants). */
-export const poisonToEat = (e: Pick<Entry, 'edible' | 'danger'>) => e.edible === 'toxic' || !!e.danger?.kinds.includes('toxic-to-eat');
+/**
+ * Poisonous to eat: its own toxin (pufferfish, toxic plants, clupeotoxism). A fish that is food but can carry
+ * ciguatera is not "poisonous": it shows the ciguatera risk instead (Joseph 2026-11-16). For food species the tag
+ * stays only for tetrodotoxin or a poisoning that can kill (level 3).
+ */
+export const poisonToEat = (e: Pick<Entry, 'edible' | 'danger' | 'risks'>) =>
+  e.edible === 'toxic' ||
+  (!!e.danger?.kinds.includes('toxic-to-eat') &&
+    (!(e.edible === 'yes' || e.edible === 'caution') || e.danger.level === 3 || !!e.risks?.includes('tetrodotoxin')));
 /** Eaten, but with a known risk (ciguatera in big reef fish, scombroid in badly kept tuna...). */
 export const riskToEat = (e: Pick<Entry, 'edible' | 'risks'>) => isFood(e) && !!e.risks?.some((r) => EAT_RISKS.includes(r));
 export const riskyToEat = (e: Pick<Entry, 'edible' | 'danger' | 'risks'>) => poisonToEat(e) || riskToEat(e);

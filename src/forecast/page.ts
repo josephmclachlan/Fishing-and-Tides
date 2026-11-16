@@ -33,6 +33,7 @@ import {
   FC_ACTIVITIES, dayUvPeaks, daysAt, hourWeather, isFcActivity, landing, MAP_HASH, parseRoute, readAt, routeHash, spotsForActivity, chooseSpot, timeline,
   type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour,
 } from './model';
+import type { Shot, ShotStore } from './shot-store';
 import './fonts';
 import './forecast.css';
 
@@ -77,6 +78,8 @@ export interface ForecastDeps extends FcDeps {
    * (m per picture pixel, for the radar's kilometre rings); null if it cannot be taken.
    */
   mapPreview?: (spot: Spot) => Promise<{ url: string; x: number; y: number; mPerPx?: number } | null>;
+  /** Where the pictures are kept between visits (shot-store.ts); kept only for this visit when left out. */
+  shotStore?: ShotStore;
   /** Open the CORAL page at the reef nearest this spot (PLAN 7.66); no button when left out. */
   openCoral?: (at: [number, number]) => void;
   /** The species guide (PLAN 7.91). */
@@ -520,7 +523,9 @@ export function mountForecastPage(deps: ForecastDeps) {
    * encodes a JPEG, which made every spot tap stall; now each spot's picture is taken once (again after 10 minutes)
    * and only once the card is on screen.
    */
-  const shots = new Map<string, { p: { url: string; x: number; y: number; mPerPx?: number }; at: number }>();
+  const shots = new Map<string, Shot>();
+  /** A picture per spot and light or dark: the base map is drawn in the page's scheme. */
+  const shotKey = (name: string) => `${scheme()}|${name}`;
   const SHOT_FRESH_MS = 10 * 60_000;
   let shot: { w: number; h: number; x: number; y: number; mPerPx: number | null } | null = null;
   let liveVis = false;
@@ -552,7 +557,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     if (reduced || !liveVis) drawLive(3.2);
     ensureShot();
   };
-  const showShot = (name: string, p: { url: string; x: number; y: number; mPerPx?: number }) => {
+  const showShot = (name: string, p: Shot['p']) => {
     if (previewFor === name && shot) return;
     previewFor = name;
     const img = new Image();
@@ -567,18 +572,33 @@ export function mountForecastPage(deps: ForecastDeps) {
   };
   let taking = '';
   const ensureShot = () => {
-    const sp = spot();
-    const have = shots.get(sp.name);
-    if (have) showShot(sp.name, have.p);
+    const sp = spot(), key = shotKey(sp.name);
+    const have = shots.get(key);
+    if (have) showShot(key, have.p);
+    else if (previewFor && previewFor !== key) {
+      // No picture of this spot yet: the radar alone, not over another spot's water.
+      (previewFor = ''), (shot = null);
+      $('fc-radar-img').style.backgroundImage = '';
+      $('fc-radar').classList.remove('has-img');
+    }
     if (!deps.mapPreview || (have && Date.now() - have.at < SHOT_FRESH_MS) || !liveVis || taking) return;
-    taking = sp.name;
+    taking = key;
     void deps.mapPreview(sp).then((p) => {
       taking = '';
-      if (p) shots.set(sp.name, { p, at: Date.now() });
-      if (spot().name !== sp.name) return ensureShot();
-      if (p) (shot = null), showShot(sp.name, p);
+      if (p) {
+        const s = { p, at: Date.now() };
+        shots.set(key, s);
+        deps.shotStore?.save(key, s);
+      }
+      if (shotKey(spot().name) !== key) return ensureShot();
+      if (p) (shot = null), showShot(key, p);
     });
   };
+  // The pictures kept from earlier visits; one taken this visit is newer and wins.
+  void deps.shotStore?.load().then((kept) => {
+    for (const [k, v] of kept) if (!shots.has(k)) shots.set(k, v);
+    if (!el.hidden) ensureShot();
+  });
   $('fc-radar').addEventListener('click', () => {
     if (deps.openMap) deps.openMap(spot(), act);
     else close();
