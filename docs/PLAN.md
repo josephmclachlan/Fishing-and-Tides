@@ -254,7 +254,7 @@ Plain full sentences a fisherman cannot misread; sources as numbered superscript
 ## Phase 12: Graphics review fixes (Joseph 2026-11-16: every graphic must be correct, well drawn and plain English; findings in project files `graphics-review/`)
 Visual first, plain full sentences, numbered superscript sources. Grouped PRs, wrong facts first.
 - [x] 12.1 Knot drawings redrawn (Palomar, improved clinch, dropper loop, surgeon's knot, `src/notes/art/knots.ts`): the hook fixed in place and the line through its eye the same way in every step, rope drawn with a clear over and under at every crossing, captions rewritten; plus the wrong facts: leader joined with a surgeon's knot, shark bite order (call, press, tourniquet), jellyfish rinse scoped, rip escape steps, dive oxygen, lionfish ciguatera, turtle lifting, tide and moon drawing, hook size rule, running sinker resting on the bottom
-- [ ] 12.2 Water and surf drawings: rip labels, shore break as waves, surf peak with real surfers and wave direction, wave sizes against a person, dive depth people and limit zones
+- [x] 12.2 Water and surf drawings: rip labels, shore break as waves, surf peak with real surfers and wave direction, wave sizes against a person, dive depth people and limit zones
 - [ ] 12.3 Rigs and release drawings: descender how-to strip, cast net steps, hand line frame, lionfish fans, ray and turtle shapes, leader-heavier note
 - [ ] 12.4 First aid page: incident index and big headings, recognisable animal tiles, soak and pressure-wrap drawings
 - [ ] 12.5 Glossary and cooking drawings: fish parts, widths, float line, tackle hooks, temperature probe, pans; label size and colour fixes
