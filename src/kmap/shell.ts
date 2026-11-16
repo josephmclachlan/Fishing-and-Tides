@@ -30,7 +30,8 @@ import { localDayStart, moonPhase, sunTimes } from '../physics/astro';
 import { LIMON_HARMONICS } from '../data/tides-limon';
 import { REGION, SPOTS } from '../region';
 import { LAYERS, type LayerId, type LayerStore } from '../layers/registry';
-import { LEGEND, glyphSwatch, legendItemKey, legendWhatKey, type LegendItem } from '../layers/legend';
+import { GLYPH_PAINT, LEGEND, glyphSwatch, legendItemKey, legendWhatKey, type LegendItem } from '../layers/legend';
+import { glyphSvg } from '../icons/glyphs';
 import { sprigSvg } from '../layers/sargassum-glyph';
 import { SST_BANDS } from '../layers/sst';
 import { CLARITY_BANDS } from '../physics/clarity';
@@ -431,7 +432,7 @@ export function mountKineticMap(d: KmDeps) {
       : id === 'heat'
         ? keys([['lv4', L2('No stress', 'Sin estrés')], ['lv2', L2('Watch', 'Vigilancia')], ['lv1', L2('Alert 1', 'Alerta 1')], ['lv0', L2('Alert 2', 'Alerta 2')]])
         : id === 'private'
-          ? `${keys([['t-coral', L2('5 km cell with your sites', 'Celda de 5 km con sus sitios'), 'k-hatch']])}<p class="k-lgnote">${L2('Your logged sites never show exactly on this map.', 'Sus sitios nunca se muestran exactos en este mapa.')}</p>`
+          ? `<div class="k-keys"><span><i class="k-glyph">${glyphSvg('lock', GLYPH_PAINT.ink, 14)}</i>${esc(L2('5 km cell with your sites', 'Celda de 5 km con sus sitios'))}</span></div><p class="k-lgnote">${L2('Your logged sites never show exactly on this map.', 'Sus sitios nunca se muestran exactos en este mapa.')}</p>`
           : '';
   /**
    * The key under each layer: the old map's legend items (layers/legend.ts), each with a swatch in the colour the layer
@@ -1068,6 +1069,16 @@ export function mountKineticMap(d: KmDeps) {
   document.addEventListener('keydown', (e) => e.key === 'Escape' && S.sheet && closeSheet());
   $('k-laybtn').addEventListener('click', () => (S.sheet === 'layers' ? closeSheet() : openSheet('layers')));
   $('k-find').addEventListener('click', () => (S.sheet === 'find' ? closeSheet() : openSheet('find')));
+  // The map's attribution (i) sits just above the button column, not between FIND and LAYERS where it overlapped them.
+  const btns = document.querySelector<HTMLElement>('.km .k-mapbtns');
+  if (btns && 'ResizeObserver' in window) {
+    const lift = () => {
+      const m = map.getContainer().getBoundingClientRect(), b = btns.getBoundingClientRect();
+      if (b.height) document.documentElement.style.setProperty('--k-attrib-b', `${Math.max(0, Math.round(m.bottom - b.top + 8))}px`);
+    };
+    new ResizeObserver(lift).observe(btns);
+    window.addEventListener('resize', lift);
+  }
   $('k-set').addEventListener('click', () => (S.sheet === 'settings' ? closeSheet() : openSheet('settings')));
   $('k-age').addEventListener('click', () => (S.sheet === 'age' ? closeSheet() : openSheet('age')));
   $('k-back').addEventListener('click', () => d.forecast.open({ spot: spot().name, activity: S.act }));

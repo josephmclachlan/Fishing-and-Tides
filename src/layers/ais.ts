@@ -1,13 +1,16 @@
 /**
- * AIS ships (PLAN 7.97): last known positions from the data build, as dots with a short label (name and speed).
- * Colour by size class: green passenger and cargo, amber the rest, dim when the fix is over 3 h old.
+ * AIS ships (PLAN 7.97, symbol 7.104): last known positions from the data build, each a ship pointing along its course
+ * over ground, with a short label (name and speed). Ships are neutral, so ink (colour is kept for rating and danger):
+ * cargo, tanker and passenger ships draw larger than the rest; faint when the fix is over 3 h old; a ship with no
+ * course (anchored, or not reported) sits upright.
  * Style layer ids start with `ai-` (catalog 'ais').
  */
 import type { Map, GeoJSONSource } from 'maplibre-gl';
 import type { FeatureCollection } from 'geojson';
 import { firstSymbolId } from '../map';
 import { shipClass, type Vessel } from '../adapters/ais-parse';
-import { paintColour as cssColour } from './paint';
+import { themeVar } from './paint';
+import { addGlyphImages, imageId } from '../icons/map-glyphs';
 
 const FONT = ['Noto Sans Regular'];
 
@@ -19,7 +22,7 @@ const toGeoJson = (vessels: readonly Vessel[], now: number): FeatureCollection =
     const kt = Number.isFinite(v.sogKt) && v.sogKt >= 0.5 ? ` ${v.sogKt.toFixed(1)} KT` : '';
     return {
       type: 'Feature',
-      properties: { label: `${v.name || v.mmsi}${kt}`, big: cls === 'cargo' || cls === 'tanker' || cls === 'passenger', old: age > 3 * 3.6e6 },
+      properties: { label: `${v.name || v.mmsi}${kt}`, cog: Number.isFinite(v.cogDeg) && v.sogKt >= 0.5 ? Math.round(v.cogDeg) : -1, big: cls === 'cargo' || cls === 'tanker' || cls === 'passenger', old: age > 3 * 3.6e6 },
       geometry: { type: 'Point', coordinates: v.lngLat },
     };
   }),
@@ -29,21 +32,22 @@ export function mountAis(map: Map) {
   let pending: readonly Vessel[] = [];
   const add = () => {
     if (map.getSource('ai')) return;
-    const green = cssColour('--green', '#39ff7a');
-    const amber = cssColour('--amber', '#ffb000');
+    addGlyphImages(map);
     map.addSource('ai', { type: 'geojson', data: toGeoJson(pending, Date.now()) });
     map.addLayer({
-      id: 'ai-dot', type: 'circle', source: 'ai',
-      paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 3, 12, 6],
-        'circle-color': ['case', ['get', 'big'], green, amber],
-        'circle-opacity': ['case', ['get', 'old'], 0.4, 0.95], 'circle-stroke-color': '#000', 'circle-stroke-width': 1,
+      id: 'ai-ship', type: 'symbol', source: 'ai',
+      layout: {
+        'icon-image': imageId('ship', 'ink'),
+        'icon-rotate': ['case', ['>=', ['get', 'cog'], 0], ['get', 'cog'], 0], 'icon-rotation-alignment': 'map',
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 6, ['case', ['get', 'big'], 0.6, 0.45], 12, ['case', ['get', 'big'], 1.1, 0.8]],
+        'icon-allow-overlap': true, 'icon-ignore-placement': true,
       },
+      paint: { 'icon-opacity': ['case', ['get', 'old'], 0.4, 1] },
     }, firstSymbolId(map));
     map.addLayer({
       id: 'ai-label', type: 'symbol', source: 'ai', minzoom: 9,
-      layout: { 'text-field': ['get', 'label'], 'text-font': FONT, 'text-size': 10, 'text-anchor': 'left', 'text-offset': [0.9, 0], 'text-letter-spacing': 0.06 },
-      paint: { 'text-color': ['case', ['get', 'big'], green, amber], 'text-halo-color': '#000', 'text-halo-width': 1.5 },
+      layout: { 'text-field': ['get', 'label'], 'text-font': FONT, 'text-size': 10, 'text-anchor': 'left', 'text-offset': [1.1, 0], 'text-letter-spacing': 0.06, 'text-max-width': 16 },
+      paint: { 'text-color': themeVar('--ink', '#0A1626'), 'text-halo-color': themeVar('--m-halo', '#ECEADF'), 'text-halo-width': 1.6, 'text-opacity': ['case', ['get', 'old'], 0.6, 1] },
     });
   };
   if (map.getLayer('grat-macro') || map.isStyleLoaded()) add();

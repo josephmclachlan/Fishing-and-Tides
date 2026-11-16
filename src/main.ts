@@ -47,6 +47,7 @@ import { fetchNavWarn } from './adapters/navwarn';
 import { fetchWpi } from './adapters/wpi';
 import { fetchAis } from './adapters/ais';
 import { mountAis } from './layers/ais';
+import { mountNavWarnings } from './layers/navwarn';
 import { mountSeaStateHud, type VerdictSafety } from './sea-state-hud';
 import { mountAstroHud } from './astro-hud';
 import { mountHarbours } from './layers/harbours';
@@ -556,7 +557,8 @@ const loadAis = () => fetchAis().then((d) => aisLayer.setVessels(d.vessels)).cat
 loadAis();
 setInterval(loadAis, 10 * 60000);
 fetchWpi().then((d) => harboursHud?.setPorts(d.ports)).catch((err) => console.warn('port index unavailable', err));
-fetchNavWarn().then((d) => boatPanel.setNotices(d.warnings)).catch((err) => console.warn('nav warnings unavailable', err));
+const navWarnLayer = mountNavWarnings(map);
+fetchNavWarn().then((d) => (boatPanel.setNotices(d.warnings), navWarnLayer.setWarnings(d.warnings))).catch((err) => console.warn('nav warnings unavailable', err));
 mountAstroHud(hud, map, time);
 mountHarbours(map);
 let landGrid: Grid | null = null;
