@@ -147,19 +147,18 @@ export interface OutingDay { dayStart: number; best: OutingWindow | null }
 
 const H = 3.6e6;
 
-/** Earliest and latest local hours a snorkel or dive window may cover, and the longest window offered. Night outings are scored, but a "best time" is always daylight. */
+/** Fallback hours when a caller gives no sunrise and sunset, and the longest window offered. Callers pass the day's real daylight as `span`. */
 export const WINDOW_FROM_H = 7, WINDOW_TO_H = 17, WINDOW_MAX_H = 4;
 
 /**
- * Best window of one local day: hourly from sunrise to sunset (`span`, local hours [fromH, toH); 07:00 to 17:00 when not given),
- * never earlier than 07:00 or later than 17:00 (the sun is low and the water dark outside that), then the run of hours within 10%
+ * Best window of one local day: hourly over the day's daylight (`span`, local hours [fromH, toH), from that day's sunrise and
+ * sunset; 07:00 to 17:00 only when the caller gives none), then the run of hours within 10%
  * of the day's best. A run longer than WINDOW_MAX_H hours is cut to the WINDOW_MAX_H hours with the highest mean score, so a flat
  * day reads "09:00 to 13:00" and not "the whole day".
  */
 export function bestWindow(at: (ms: number, localHour: number) => OutingScore, dayStart: number, span: { fromH: number; toH: number } = { fromH: WINDOW_FROM_H, toH: WINDOW_TO_H }): OutingWindow | null {
   const hours: { t: number; s: OutingScore }[] = [];
-  const from = Math.max(span.fromH, WINDOW_FROM_H), to = Math.min(span.toH, WINDOW_TO_H);
-  for (let h = from; h < to; h++) hours.push({ t: dayStart + h * H, s: at(dayStart + h * H, h) });
+  for (let h = span.fromH; h < span.toH; h++) hours.push({ t: dayStart + h * H, s: at(dayStart + h * H, h) });
   if (!hours.length) return null;
   const top = hours.reduce((a, b) => (b.s.score > a.s.score ? b : a));
   if (top.s.score <= 0) return null;
@@ -180,10 +179,10 @@ export function bestWindow(at: (ms: number, localHour: number) => OutingScore, d
 }
 
 /** The best time of each of `days` local days from the one starting at `firstDayStart`, and the index of the best day. */
-export function outlook(at: (ms: number, localHour: number) => OutingScore, firstDayStart: number, days = 7): { days: OutingDay[]; bestDay: number } {
+export function outlook(at: (ms: number, localHour: number) => OutingScore, firstDayStart: number, days = 7, spanOf?: (dayStart: number) => { fromH: number; toH: number }): { days: OutingDay[]; bestDay: number } {
   const out = Array.from({ length: days }, (_, k) => {
     const dayStart = firstDayStart + k * 24 * H;
-    return { dayStart, best: bestWindow(at, dayStart) };
+    return { dayStart, best: bestWindow(at, dayStart, spanOf?.(dayStart)) };
   });
   let bestDay = -1, peak = 0;
   out.forEach((d, k) => d.best && d.best.peak > peak && ((peak = d.best.peak), (bestDay = k)));
