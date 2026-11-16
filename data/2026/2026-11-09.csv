@@ -1305,3 +1305,5 @@ t,site,source,model,var,value,issued
 2026-11-09T09:00Z,MANZANILLO,sst,,sst,29.477,
 2026-11-09T09:00Z,PUNTA MONA,sst,,sst,29.42,
 2026-11-09T09:00Z,GANDOCA,sst,,sst,29.4,
+2026-11-09T00:00Z,COAST CREEKS,imerg,,rainMm,2.7725,
+2026-11-09T00:00Z,COAST CREEKS,imerg,,halfHours,48,
