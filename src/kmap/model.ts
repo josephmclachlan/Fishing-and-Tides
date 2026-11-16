@@ -138,6 +138,16 @@ export function moveLayer(list: readonly KmLayer[], id: KmLayer, by: number): Km
 /** The old map's LAYERS preset for each activity (snorkel and dive share DIVE): CONDITIONS groups follow it. */
 export const OLD_PRESET = { fish: 'fishing', surf: 'surf', swim: 'swim', snorkel: 'dive', dive: 'dive', spear: 'spear', sail: 'sail' } as const;
 
+/**
+ * The map's activity for an activity picked in Expand data (the old CONDITIONS panel), so the panel and the map agree
+ * (review 2026-11-16, 4.5). DIVE covers snorkel, dive and spear, so the map stays on whichever of those it is on; BOAT
+ * is sailing; ALL leaves the map as it is (null).
+ */
+export function mapActForCond(c: 'all' | 'fish' | 'dive' | 'boat' | 'surf', cur: FcActivity | null): FcActivity | null {
+  const want: FcActivity | null = c === 'fish' ? 'fish' : c === 'surf' ? 'surf' : c === 'boat' ? 'sail' : c === 'dive' ? (cur === 'snorkel' || cur === 'spear' ? cur : 'dive') : null;
+  return want === cur ? null : want;
+}
+
 /* ---------- 30-day scrubber geometry ---------- */
 
 /** The three bands as shares of the track: a week of hours gets most of it (mockup G). */

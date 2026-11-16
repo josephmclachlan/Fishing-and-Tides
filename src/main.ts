@@ -173,7 +173,7 @@ import { fetchSargassum, type SargassumData } from './adapters/sargassum';
 import { currentTheme } from './theme';
 import { mountKineticMap, type Here, type KineticMap, type ReefNow } from './kmap/shell';
 import { haloOverlays, styleBaseMap } from './kmap/basemap';
-import { OLD_PRESET, type Mask } from './kmap/model';
+import { OLD_PRESET, mapActForCond, type Mask } from './kmap/model';
 import { L2, setKmLang } from './kmap/dom';
 import { zoneAt, type ZonePoly } from './zone-lookup';
 import { spearStatus } from './rules';
@@ -1226,6 +1226,13 @@ layers.subscribe(() => {
   lastPreset = p;
   const a = activityForPreset(p);
   if (a) condGroups.setActivity(a);
+});
+// A pick in Expand data's own activity row moves the map too, so the panel and the map never disagree (review 4.5).
+// Only a tap counts: the map moving the panel (onMode below) must not bounce back.
+hud.querySelector('#cond-panel')?.addEventListener('click', (e) => {
+  if (!km || !(e.target as Element).closest('[data-cact]')) return;
+  const a = mapActForCond(condGroups.activity(), km.act());
+  if (a) km.openAct(a);
 });
 const explain = mountExplain(hud);
 
