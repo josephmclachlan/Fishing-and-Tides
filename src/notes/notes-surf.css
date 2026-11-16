@@ -1,1 +1,11 @@
-/* Surf tab: styles only those tabs use. Shared blocks are in notes.css. */
+/* Surf tab: styles only it uses. Shared blocks are in notes.css. */
+.nt-art .nt-crest { stroke: var(--fc-ink); stroke-width: 3.2; }
+.nt-art .nt-foam { fill: color-mix(in srgb, var(--fc-foam) 70%, transparent); stroke: none; }
+.nt-art .nt-rider .nt-board { stroke: var(--fc-ink); stroke-width: 1.2; }
+.nt-art .nt-rider .nt-body { stroke: var(--fc-ink); stroke-width: 2.4; }
+.nt-art .nt-rider circle { fill: var(--fc-ink); stroke: none; }
+.nt-art .nt-ok .nt-board { fill: var(--fc-lv3); }
+.nt-art .nt-bad .nt-board { fill: var(--fc-sev-danger); }
+.nt-art .nt-x2 { stroke: var(--fc-sev-danger); stroke-width: 3.4; }
+.nt-art .nt-paddle { stroke: var(--fc-ink); stroke-dasharray: 2 6; }
+.nt-art .nt-band.l1 { --c: var(--fc-lv1); }

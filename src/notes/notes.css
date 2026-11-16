@@ -183,3 +183,4 @@
 .nt-hkey { list-style: none; margin: 6px 0 14px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--fc-ink2); }
 .nt-hkey li { display: flex; gap: 6px; align-items: center; }
 .nt-hkey .nt-hv { width: 18px; height: 14px; }
+.nt-art .nt-band.l1, .nt-art .nt-blbl.l1 { --c: var(--fc-lv1); --o: var(--fc-on1); }
