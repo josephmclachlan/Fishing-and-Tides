@@ -4,6 +4,7 @@
  * reuses `.fc` and its tokens), opened from every ciguatera warning in the fishing panel and the species guide.
  * Its own link `#ciguatera[/<tab>]` (route.ts); other pages hide on it and it hides on theirs.
  */
+import { rememberOrigin, storedOrigin } from '../origin';
 import { t } from '../i18n';
 import { landing, MAP_HASH } from '../forecast/model';
 import { CHROME, NOTE, SUB, TITLE } from './content';
@@ -119,13 +120,24 @@ export function mountCiguateraPage(deps: CiguateraPageDeps) {
     document.body.classList.remove('fc-open');
     if (mapMeta !== null) meta?.setAttribute('content', mapMeta);
   };
-  const fromHash = (e?: HashChangeEvent) => {
+  /**
+   * Arriving from another page. The origin stored on this history entry wins (a reload, or a step back onto this page);
+   * else it is the page just left, stored only when a real hashchange named it.
+   */
+  const arrive = (oldHash: string | null, real: boolean) => {
+    const kept = storedOrigin();
+    const o = kept ?? oldHash;
+    if (o === null) return;
+    cameFrom = fromHash_(o);
+    pushed = true; // the origin is the entry before this one, so back is one step
+    if (!kept && real && oldHash !== null) rememberOrigin(oldHash);
+    $('cig-back-l').textContent = CHROME.back[cameFrom === 'map' ? 'forecast' : cameFrom][lang];
+  };
+  const fromHash = (e?: HashChangeEvent, real = false) => {
     const r = parseCiguateraRoute(location.hash);
     if (!r) return hide();
-    if (el.hidden && e?.oldURL) {
-      cameFrom = fromHash_(new URL(e.oldURL).hash);
-      pushed = true; // opened by a link: the browser added the entry, so back is one step
-    }
+    const oldHash = e?.oldURL ? new URL(e.oldURL).hash : null;
+    if (oldHash !== null ? !parseCiguateraRoute(oldHash) : el.hidden) arrive(oldHash, real);
     const changed = r.tab !== tab;
     tab = r.tab;
     if (el.hidden) show();
@@ -137,7 +149,7 @@ export function mountCiguateraPage(deps: CiguateraPageDeps) {
   const onNav = (e?: HashChangeEvent) => {
     const old = e?.oldURL ?? here;
     here = location.href;
-    fromHash(old !== here ? ({ oldURL: old } as HashChangeEvent) : undefined);
+    fromHash(old !== here ? ({ oldURL: old } as HashChangeEvent) : undefined, !!e?.oldURL);
   };
   window.addEventListener('hashchange', onNav);
   window.addEventListener('popstate', () => onNav());
@@ -188,6 +200,7 @@ export function mountCiguateraPage(deps: CiguateraPageDeps) {
     const h = ciguateraHash(tab);
     if (!parseCiguateraRoute(location.hash)) {
       history.pushState({ cg: 1 }, '', h);
+      rememberOrigin(new URL(from).hash);
       pushed = true;
     } else history.replaceState(history.state, '', h);
     show();
