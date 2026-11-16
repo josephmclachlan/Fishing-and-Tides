@@ -14,7 +14,7 @@
  */
 import { BASE } from '../species/base.gen';
 import type { BaseRow, CiguaRow } from '../species/build';
-import { OCCURRENCE_TAXA } from './occurrence-taxa';
+import { OCCURRENCE_TAXA } from '../species/kinds';
 
 export type CiguaTier = 'never' | 'high' | 'listed' | 'rare';
 /** Red for never and high, amber for the rest. */

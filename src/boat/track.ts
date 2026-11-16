@@ -20,7 +20,7 @@ export interface Pin {
   lng: number;
   lat: number;
   kind: PinKind;
-  /** Species id for a catch (src/boat/species.ts), if one was chosen. */
+  /** Species id for a catch (src/species/kinds.ts LOG_SPECIES), if one was chosen. */
   species?: string;
   /** Water depth from the GEBCO grid at the pin, m (a guide, not a sounding). */
   depthM?: number;

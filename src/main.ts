@@ -91,7 +91,7 @@ import { fetchZones, mountZones, zoneName } from './layers/zones';
 import { mountZonesHud } from './zones-hud';
 import { fetchMouths, fetchOccurrences, mountFishing, type FishingLayer, type Reach } from './layers/fishing';
 import { loadMode, loadReach, loadSpecies, mountFishingHud, type FishInfo, type SpearInfo } from './fishing-hud';
-import { BOAT_SPECIES } from './boat/species';
+import { LOG_SPECIES } from './species/kinds';
 import { SPECIES, speciesById, speciesIn, type FishMode, type SpeciesId } from './fishing/species';
 import { layers, type ActivityId } from './layers/registry';
 import { mountMotionKey } from './layers/motion-key';
@@ -640,7 +640,7 @@ const fishMode = {
   flyTo: (lng: number, lat: number) => fishHudMode?.flyTo(lng, lat),
   logCatch: (at: { lng: number; lat: number }, as?: string): { id: string; species: string } => {
     const id = as ?? fishHudMode?.info().id ?? loadSpecies();
-    const species = (BOAT_SPECIES as readonly string[]).includes(id) ? id : 'other';
+    const species = (LOG_SPECIES as readonly string[]).includes(id) ? id : 'other';
     const now = Date.now();
     const scored = scoreCatch?.(at.lng, at.lat, now, species) ?? null;
     const pin = boatStore.addPin({ lng: at.lng, lat: at.lat, t: now }, 'catch', { species, depthM: depthAt?.(at.lng, at.lat), ...(scored ?? {}) });
@@ -831,16 +831,22 @@ if (coralPanelEl) {
 const guidePage = mountGuidePage({
   storage: safeStorage(),
   lang: () => settings.lang(),
-  // SHOW ON MAP: the fish map, on this kind of fish (remembered for a map that has not loaded yet).
+  // SHOW ON MAP: the fish map, on this kind of fish (remembered for a map that has not loaded yet). A shore kind is
+  // picked on the fish bar in a mode it belongs to; a boat kind turns on BOAT water in its mode, where it is circled.
   showOnMap: (kind) => {
-    const id = SPECIES.find((s) => s.id === kind)?.id;
-    if (!id) return;
-    try {
-      localStorage.setItem('ft.fishing.species', id);
-    } catch {
-      /* private mode */
-    }
-    fishSetSpecies?.(id);
+    const shore = SPECIES.find((s) => s.id === kind), boat = OFFSHORE.find((s) => s.id === kind);
+    if (!shore && !boat) return;
+    const modes: readonly FishMode[] = (shore ?? boat)!.modes;
+    if (!modes.includes(fishMode.get())) fishMode.set(modes[0]);
+    if (shore) {
+      try {
+        localStorage.setItem('ft.fishing.species', shore.id);
+      } catch {
+        /* private mode */
+      }
+      fishSetSpecies?.(shore.id);
+      if (fishMode.reach() === 'boat') fishMode.setReach('all');
+    } else fishMode.setReach('boat');
     if (km) km.openAct('fish');
     else {
       coralMode.set(false);
