@@ -44,7 +44,7 @@ export function statsHtml(lang: Lang): string {
   return `<ul class="dp-stats">${STATS.map((s) => `<li><b class="dp-big">${esc(s.n)}</b><span class="fc-mono">${esc(tr(s.unit, lang))}</span><p>${factHtml({ t: s.what, src: s.src }, lang)}</p></li>`).join('')}</ul>`;
 }
 
-const TICKS = [1, 3, 6, 12, 24, 48, 72];
+const TICKS = [1, 6, 12, 24, 48, 72];
 
 export function chartHtml(lang: Lang, startHours: number): string {
   const legend = GRADE_ORDER.map((g) => `<li class="${GRADE_LEVEL[g]}"><i></i><div><b>${esc(tr(GRADES[g], lang))}</b><span>${esc(tr(GRADE_KEY[g], lang))}</span></div></li>`).join('') + `<li class="dp-lg-ice-li"><i class="dp-lg-ice"></i><div><b>${esc(tr(ICE_LIMIT, lang))}</b><span>${esc(tr(ICE_LIMIT_KEY, lang))}</span></div></li>`;
@@ -66,14 +66,14 @@ export function chartHtml(lang: Lang, startHours: number): string {
     ${sectionHead('chart', tr(SECTION_LABELS.chart, lang), tr(CHART_TITLE, lang), tr(CHART_P, lang))}
     <ul class="dp-legend">${legend}</ul>
     <p class="dp-read" id="dp-read" aria-live="polite"></p>
-    <div class="dp-chart" id="dp-chartbox" style="--x:${posOf(startHours)}">
-      ${rows}
-      <div class="dp-axis" aria-hidden="true">${ticks}</div>
-    </div>
     <div class="dp-scrub">
       <label for="dp-t" class="fc-mono">${esc(t('dp.time'))}: <b id="dp-t-v">${hoursLabel(startHours)}</b></label>
       <input id="dp-t" type="range" min="0" max="1000" step="1" value="${Math.round(posOf(startHours) * 1000)}">
       <div class="dp-chips" role="group" aria-label="${esc(t('dp.preset'))}">${presets}</div>
+    </div>
+    <div class="dp-chart" id="dp-chartbox" style="--x:${posOf(startHours)}">
+      <div class="dp-axis" aria-hidden="true">${ticks}</div>
+      ${rows}
     </div>
     <p class="dp-help">${esc(tr(GRADE_HELP, lang))}</p>
     <p class="dp-fine"><sup class="dp-est">${t('dp.est')}</sup> ${esc(tr(CHART_NOTE, lang))}</p>
