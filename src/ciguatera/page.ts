@@ -141,6 +141,18 @@ export function mountCiguateraPage(deps: CiguateraPageDeps) {
   };
   window.addEventListener('hashchange', onNav);
   window.addEventListener('popstate', () => onNav());
+  // A tap on one of this page's own links (a tab, a cross-link to another tab) replaces the history entry instead of
+  // adding one, so the back button and the phone's back gesture go straight to where the page was opened from, not
+  // back through every tab seen (Joseph 2026-11-16).
+  el.addEventListener('click', (e) => {
+    const me = e as MouseEvent;
+    if (me.defaultPrevented || me.button !== 0 || me.metaKey || me.ctrlKey || me.shiftKey || me.altKey) return;
+    const a = (e.target as Element).closest<HTMLAnchorElement>('a[href^="#ciguatera"]');
+    if (!a) return;
+    e.preventDefault();
+    history.replaceState(history.state, '', a.getAttribute('href'));
+    onNav();
+  });
   // Tabs are links; step by arrows when one has focus.
   $('cig-tabs').addEventListener('keydown', (e) => {
     const ev = e as KeyboardEvent;
