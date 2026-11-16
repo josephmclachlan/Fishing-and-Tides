@@ -191,13 +191,14 @@ export function mountNotesPage(deps: NotesPageDeps) {
     }
   });
   $('nt-back').addEventListener('click', () => close());
-  // A superscript number scrolls to its source; it must not become the page's own link (any other hash hides the page).
+  // A superscript number scrolls to its source, and a first aid index chip to its incident; neither may become the page's
+  // own link (any other hash hides the page).
   $('nt-body').addEventListener('click', (e) => {
-    const a = (e.target as Element).closest<HTMLAnchorElement>('a[href^="#cig-src-"]');
+    const a = (e.target as Element).closest<HTMLAnchorElement>('a[href^="#cig-src-"], a[href^="#nt-inc-"]');
     if (!a) return;
     e.preventDefault();
     const src = el.querySelector<HTMLElement>(a.getAttribute('href')!);
-    src?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    src?.scrollIntoView({ block: a.hash.startsWith('#nt-inc-') ? 'start' : 'center', behavior: 'smooth' });
     src?.classList.add('cig-hit');
     window.setTimeout(() => src?.classList.remove('cig-hit'), 1600);
   });

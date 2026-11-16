@@ -6,3 +6,66 @@
 .nt-art rect.nt-aid-wrap { fill: var(--fc-sand); }
 .nt-art circle.nt-aid-sting { fill: var(--fc-lv0); stroke: var(--fc-ink); stroke-width: 2; }
 .nt-art-wrap .nt-tick { stroke-width: 2; }
+
+/* incidents: a big heading with the animal, an index of them at the top, and animal pictures to match (graphics review 12.4) */
+.nt-inc { display: flex; gap: 12px; align-items: center; margin: 36px 0 10px; padding-top: 12px; border-top: 4px solid var(--fc-ink); font: 800 clamp(26px, 6.6vw, 34px)/1.02 var(--fc-disp); font-variation-settings: 'wdth' 74; text-transform: uppercase; scroll-margin-top: 72px; }
+.nt-inc .nt-an { flex: none; width: 72px; height: 54px; }
+.nt-inc ~ .nt-h, .nt-inc ~ .nt-flow:not(.nt-alert) > .nt-h { font: 700 14px/1.2 var(--fc-mono); letter-spacing: 0.06em; color: var(--fc-ink2); margin: 16px 0 8px; }
+.nt-idx { margin: 16px 0 20px; }
+.nt-idx h3 { margin: 0 0 8px; font: 700 14px/1.2 var(--fc-mono); letter-spacing: 0.06em; text-transform: uppercase; }
+.nt-idx ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+@media (min-width: 760px) { .nt-idx ul { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.nt-idx a { display: flex; gap: 8px; align-items: center; min-height: 56px; padding: 6px 10px 6px 6px; border: 2px solid var(--fc-ink); background: var(--fc-card); color: inherit; text-decoration: none; font: 700 13px/1.2 var(--fc-mono); text-transform: uppercase; }
+.nt-idx a:hover, .nt-idx a:focus-visible { background: var(--fc-ink); color: var(--fc-bg); }
+.nt-idx .nt-an { flex: none; width: 56px; height: 42px; }
+.nt-anim { list-style: none; margin: 10px 0 18px; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+@media (min-width: 760px) { .nt-anim { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.nt-anim li { display: grid; gap: 6px; padding: 10px; background: var(--fc-card); border: 1px solid var(--fc-line); min-width: 0; }
+.nt-anim .nt-an { width: 100%; height: auto; max-height: 90px; background: var(--fc-block); }
+.nt-anim h4 { margin: 0; font: 700 13.5px/1.2 var(--fc-mono); text-transform: uppercase; }
+.nt-anim p { margin: 0; font-size: 14px; line-height: 1.4; color: var(--fc-ink2); }
+
+svg.nt-an path, svg.nt-an ellipse, svg.nt-an circle { fill: none; stroke: var(--fc-ink); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+svg.nt-an .nt-an-jel { fill: color-mix(in srgb, var(--fc-jelly) 35%, var(--fc-card)); }
+svg.nt-an .nt-an-ten { stroke: var(--fc-ink2); stroke-width: 1.1; }
+svg.nt-an .nt-an-arm { stroke: var(--fc-jelly); stroke-width: 2.2; }
+svg.nt-an .nt-an-float { fill: color-mix(in srgb, var(--fc-sea-a) 60%, var(--fc-jelly)); }
+svg.nt-an .nt-an-crest { stroke: var(--fc-jelly); stroke-width: 2.2; }
+svg.nt-an .nt-an-fire { fill: color-mix(in srgb, var(--fc-lv2) 75%, var(--fc-ac1)); stroke-width: 1.2; }
+svg.nt-an .nt-an-suit { fill: color-mix(in srgb, var(--fc-sea-a) 45%, var(--fc-card)); }
+svg.nt-an .nt-an-dots circle { fill: var(--fc-ac0); stroke: none; }
+svg.nt-an .nt-an-spn { stroke-width: 1.4; }
+svg.nt-an .nt-an-ball { fill: var(--fc-ink); }
+svg.nt-an .nt-an-bed { stroke: var(--fc-sand); stroke-width: 3; }
+svg.nt-an .nt-an-fan { fill: color-mix(in srgb, var(--fc-ink2) 20%, transparent); stroke: var(--fc-ink2); stroke-width: 1; }
+svg.nt-an .nt-an-fan2, svg.nt-an .nt-an-whisk, svg.nt-an .nt-an-ridge { stroke: var(--fc-ink2); stroke-width: 1; }
+svg.nt-an .nt-an-body, svg.nt-an .nt-an-tail { fill: var(--fc-card); }
+svg.nt-an .nt-an-strp { stroke: var(--fc-coral); stroke-width: 2; }
+svg.nt-an .nt-an-ven { stroke: var(--fc-sev-danger); stroke-width: 1.8; }
+svg.nt-an .nt-an-eye, svg.nt-an .nt-an-blot, svg.nt-an .nt-an-tent { fill: var(--fc-ink); stroke: none; }
+svg.nt-an .nt-an-blot { fill: color-mix(in srgb, var(--fc-ink) 45%, transparent); }
+svg.nt-an .nt-an-rock { fill: color-mix(in srgb, var(--fc-murk) 55%, var(--fc-block)); stroke: none; }
+svg.nt-an .nt-an-mott { fill: color-mix(in srgb, var(--fc-coral) 45%, var(--fc-card)); }
+svg.nt-an .nt-an-ray { fill: color-mix(in srgb, var(--fc-murk) 70%, var(--fc-card)); }
+svg.nt-an .nt-an-tl { stroke-width: 2.2; }
+svg.nt-an .nt-an-cone { fill: color-mix(in srgb, var(--fc-ac1) 25%, var(--fc-card)); }
+svg.nt-an .nt-an-tent { fill: color-mix(in srgb, var(--fc-ac1) 70%, var(--fc-ink)); }
+svg.nt-an .nt-an-eel { fill: color-mix(in srgb, var(--fc-ac3) 45%, var(--fc-card)); }
+svg.nt-an .nt-an-teeth { stroke-width: 1; }
+svg.nt-an .nt-an-baracuda { fill: color-mix(in srgb, var(--fc-sea-a) 22%, var(--fc-card)); }
+svg.nt-an .nt-an-shark { fill: color-mix(in srgb, var(--fc-ink2) 40%, var(--fc-card)); }
+svg.nt-an .nt-an-crab, svg.nt-an .nt-an-claw { fill: color-mix(in srgb, var(--fc-ac0) 55%, var(--fc-card)); }
+svg.nt-an .nt-an-leg { stroke-width: 1.8; }
+svg.nt-an .nt-an-coral { stroke: var(--fc-coral); stroke-width: 3.6; }
+svg.nt-an .nt-an-oys { fill: color-mix(in srgb, var(--fc-sand) 60%, var(--fc-card)); }
+svg.nt-an .nt-an-sponge { fill: color-mix(in srgb, var(--fc-ac1) 50%, var(--fc-card)); }
+svg.nt-an .nt-an-hole { fill: var(--fc-ink2); stroke: none; }
+svg.nt-an .nt-an-plate { fill: var(--fc-card); }
+svg.nt-an .nt-an-steam { stroke: var(--fc-ink2); stroke-width: 1.2; }
+.nt-art .nt-aid-steam { stroke: var(--fc-ink2); stroke-width: 2; stroke-dasharray: 4 5; }
+.nt-art .nt-aid-tick { stroke: var(--fc-ac3); stroke-width: 4; }
+.nt-art text.nt-aid-hotl { fill: var(--fc-sev-danger); }
+.nt-art rect.nt-aid-splint { fill: color-mix(in srgb, var(--fc-ac1) 35%, var(--fc-card)); }
+.nt-art rect.nt-aid-wrap { fill: color-mix(in srgb, var(--fc-card) 78%, transparent); }
+.nt-art .nt-aid-wrapl { stroke: var(--fc-ink2); stroke-width: 1.2; }
+.nt-art .nt-aid-tie { stroke: var(--fc-ink); stroke-width: 3; }
