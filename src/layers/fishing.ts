@@ -82,7 +82,7 @@ export async function fetchMouths(base: string = import.meta.env.BASE_URL): Prom
 /** Cells within this distance of the beach count as shore water (cast, wade or a short paddle), m. */
 export const SHORE_M = 400;
 export type Reach = 'all' | 'shore' | 'boat';
-export type SpotWhy = 'mouth' | 'reef' | 'drop';
+export type SpotWhy = 'mouth' | 'reef' | 'drop' | 'surf' | 'sand';
 export interface Spot { lng: number; lat: number; score: number; depthM: number; coastM: number; why: SpotWhy[]; mouthKm: number }
 
 export interface FishingLayer {
@@ -187,6 +187,8 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
         if (c.f.mouthKm < 0.8) why.push('mouth');
         if (c.f.reef >= 0.3) why.push('reef');
         if (c.f.slopeMPerKm >= 20) why.push('drop');
+        if ((c.f.surf ?? 0) >= 0.5) why.push('surf');
+        if ((c.f.sand ?? 0) >= 0.2) why.push('sand');
         cells.push({ lng: c.lng, lat: c.lat, s, why, depthM: c.f.depthM });
       }
     const ids = inMode.map((x) => x.id);
@@ -398,6 +400,8 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
       if (c.f.mouthKm < sp.mouthReachKm * 0.6) why.push('mouth');
       if (c.f.reef >= 0.3) why.push('reef');
       if (c.f.slopeMPerKm >= 20) why.push('drop');
+      if ((sp.w.surf ?? 0) > 0 && (c.f.surf ?? 0) >= 0.5) why.push('surf');
+      if (((sp.w.sand ?? 0) > 0 || (sp.w.grass ?? 0) > 0) && (c.f.sand ?? 0) >= 0.2) why.push('sand');
       out.push({ lng: c.lng, lat: c.lat, score, depthM: c.f.depthM, coastM: c.coastM, why, mouthKm: c.f.mouthKm });
     }
     return out;

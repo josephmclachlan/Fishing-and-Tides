@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chlFit, riverTerm, softFit, waterTerm } from './water';
+import { chlFit, riverTerm, softFit, surfFit, waterTerm } from './water';
 import { speciesById } from './species';
 import { bite } from './bite';
 import { LIMON_HARMONICS } from '../data/tides-limon';
@@ -72,5 +72,18 @@ describe('river flow term (PLAN 7.15)', () => {
     const t = waterTerm(snook2, { river: { km: 0.1, ratio: 3 } });
     expect(t.factor).toBeGreaterThan(1);
     expect(t.reasons).toContain('riverup');
+  });
+});
+
+describe('surf term (PLAN 7.122)', () => {
+  it('lifts surf feeders in moderate surf and drops them in flat or heavy water', () => {
+    const pompano = speciesById('pompano');
+    expect(surfFit(pompano, 0.8)).toEqual({ factor: 1.05, why: 'surfgood' });
+    expect(surfFit(pompano, 3).factor).toBeCloseTo(0.8);
+    expect(surfFit(pompano, 3).why).toBe('surfpoor');
+    expect(surfFit(pompano, 0).why).toBe('surfpoor');
+    expect(surfFit(pompano, null)).toEqual({ factor: 1, why: null });
+    expect(surfFit(speciesById('snapper'), 3)).toEqual({ factor: 1, why: null });
+    expect(waterTerm(pompano, { hsM: 0.8 }).reasons).toContain('surfgood');
   });
 });

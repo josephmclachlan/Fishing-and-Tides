@@ -1,11 +1,14 @@
 /**
  * Habitat score for shore and kayak fishing (PLAN 4.5, weights fitted in 4.4). Pure: no DOM.
  *
- *   score = depthFit × (w.base + w.mouth × mouthFit + w.reef × reefFit + w.drop × dropFit) × season
+ *   score = depthFit × (w.base + w.mouth × mouthFit + w.reef × reefFit + w.drop × dropFit
+ *                      + w.sand × sandFit + w.grass × grassFit + w.surf × surfFit) × season
  *
  * Every term is 0..1 and the weights sum to 1. `depthFit` is a trapezoid over the species' depth
  * range, `mouthFit` a Gaussian of the distance to the nearest river mouth, `reefFit` the share of
- * nearby bottom that is reef or rock, `dropFit` how steep the bottom is (fish hold on edges), and
+ * nearby bottom that is reef or rock, `dropFit` how steep the bottom is (fish hold on edges), `sandFit` and
+ * `grassFit` the share of sand and seagrass bottom, `surfFit` how much the cell is the beach's surf strip (PLAN 7.122,
+ * fishing/cells.ts; species that don't use them have weight 0 there, and the fit keeps a 0 weight at 0), and
  * `base` is open bottom with none of them. The weights are the hand-written rules of 4.5
  * (`priorWeights`) updated by the OBIS/GBIF records (`fitWeights` in fit.ts). A rough guide to
  * where to try first, not a catch forecast.
@@ -21,13 +24,26 @@ export interface CellFeatures {
   reef: number;
   /** Steepest bottom slope around the cell, m of depth per km. */
   slopeMPerKm: number;
+  /** 0..1 share of the surrounding bottom that is sand (Allen Atlas, Cahuita to Manzanillo only). Missing = 0. */
+  sand?: number;
+  /** 0..1 share of the surrounding bottom that is seagrass. Missing = 0. */
+  grass?: number;
+  /** 0..1: how much the cell is the open beach's surf strip (cells.ts surfStrip). Missing = 0. */
+  surf?: number;
 }
 
 /** Slope at which a drop-off is as good as it gets, m per km. */
 export const FULL_DROP_M_PER_KM = 40;
 
+/**
+ * Bottom shares at which sand and seagrass count in full (PLAN 7.122). The Allen Atlas seagrass beds here are small
+ * patches (at most about 5 % of the bottom within ~440 m of any cell), so a tenth is already a lot; sand covers up to
+ * about half.
+ */
+export const FULL_SAND = 0.4, FULL_GRASS = 0.1;
+
 /** The habitat components a cell's score is mixed from. */
-export const COMPONENTS = ['base', 'mouth', 'reef', 'drop'] as const;
+export const COMPONENTS = ['base', 'mouth', 'reef', 'drop', 'sand', 'grass', 'surf'] as const;
 export type Component = (typeof COMPONENTS)[number];
 /** One weight per component, summing to 1. */
 export type Weights = Record<Component, number>;
@@ -57,13 +73,16 @@ export function components(sp: Species, f: CellFeatures): Weights {
     mouth: Math.exp(-((f.mouthKm / sp.mouthReachKm) ** 2)),
     reef: clamp01(f.reef),
     drop: clamp01(f.slopeMPerKm / FULL_DROP_M_PER_KM),
+    sand: clamp01((f.sand ?? 0) / FULL_SAND),
+    grass: clamp01((f.grass ?? 0) / FULL_GRASS),
+    surf: clamp01(f.surf ?? 0),
   };
 }
 
 /** The hand-written 4.5 weights with a small share moved to open bottom. */
 export function priorWeights(sp: Species): Weights {
   const k = 1 - BASE_PRIOR;
-  return { base: BASE_PRIOR, mouth: k * sp.w.mouth, reef: k * sp.w.reef, drop: k * sp.w.drop };
+  return { base: BASE_PRIOR, mouth: k * sp.w.mouth, reef: k * sp.w.reef, drop: k * sp.w.drop, sand: k * (sp.w.sand ?? 0), grass: k * (sp.w.grass ?? 0), surf: k * (sp.w.surf ?? 0) };
 }
 
 /** Structure mix at a cell: Σ w·g, 0..1. */
