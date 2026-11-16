@@ -4,8 +4,8 @@
  *
  * Launch: main.ts hands each start-up feed to `track(step, promise)`. A step is done when every promise given to it has
  * settled, loaded or failed. Each done step lets the next dot turn into its icon, left to right, with the step's name
- * under the row, so the row is real progress. The icons come one a second at most (Joseph 2026-11-16: "a full second
- * each icon, so that it doesn't feel rushed"), which also gives the forecast data time to land. When every icon is in,
+ * under the row, so the row is real progress. The icons come at most one every PACE_MS: Joseph found the first version
+ * rushed and jittery and a second each far too slow, and chose about 0.4 s (2026-11-16), so a launch takes 4 to 5 s. When every icon is in,
  * the page is drawn once more with everything (`ready`), and only then does the screen fade, so the first page opens
  * already filled. A slow feed never holds it: after CAP_MS, or STRAGGLER_MS once most are in, the remaining icons come
  * at the same pace and the line says which part is still loading. Offline the adapters answer from the stored copy.
@@ -15,10 +15,10 @@
  */
 import { BOOT_ID, bootHtml, DOTS, litDots } from './boot-view';
 
-/** Time each icon gets before the next may come (Joseph 2026-11-16: about a second each). */
-export const PACE_MS = 1000;
+/** Time each icon gets before the next may come (Joseph 2026-11-16: about 0.4 s, between too fast and 1 s). */
+export const PACE_MS = 400;
 /** How long the full row and READY show before the screen fades. */
-export const HOLD_MS = 700;
+export const HOLD_MS = 500;
 
 /** Longest a loader stays up before opening anyway. */
 export const CAP_MS = 8000;
@@ -96,7 +96,7 @@ function view(el: HTMLElement, now: () => number = () => performance.now()) {
     if (line.textContent === text) return;
     if (reduced()) return void (line.textContent = text);
     line.classList.add('sc-swap');
-    setTimeout(() => ((line.textContent = text), line.classList.remove('sc-swap')), 180);
+    setTimeout(() => ((line.textContent = text), line.classList.remove('sc-swap')), 120);
   };
   const draw = () => {
     dots.forEach((d, i) => {
@@ -323,7 +323,7 @@ export function watchMap(hooks: MapHooks, report: (f: number, style: boolean) =>
 
 /**
  * Show the map loader over the map until it is drawn (or CAP_MS), every time the map opens. Icons come at the launch
- * screen's pace, one a second, each as the map gets that far along.
+ * screen's pace, one every PACE_MS at most, each as the map gets that far along.
  */
 export function runMapLoader(hooks: MapHooks, text: MapLoadText, parent: HTMLElement = document.body): Promise<void> {
   const wrap = document.createElement('div');
