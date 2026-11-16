@@ -199,7 +199,6 @@ export function mountKineticMap(d: KmDeps) {
     <button type="button" class="k-readbar" id="k-readbar" aria-label="${L2('Readings under the crosshair', 'Lecturas bajo la mira')}"></button>
     <div class="k-legmini" id="k-legmini" aria-hidden="true"></div>
     <div class="k-views" role="group" aria-label="${L2('Prepared views', 'Vistas')}"><button type="button" data-view="coast">${L2('Coast', 'Costa')}</button><button type="button" data-view="spot" id="k-vspot"></button></div>
-    <button type="button" class="k-tilebtn" id="k-tilebtn" aria-pressed="true" aria-label="${L2('Rating boxes', 'Cajas de calificación')}">${L2('Boxes', 'Cajas')}</button>
     <div class="k-mapbtns">
       <div class="k-zoom"><button type="button" id="k-zin" aria-label="${L2('Zoom in', 'Acercar')}">${svg('<path d="M8 2v12M2 8h12"/>', '0 0 16 16')}</button><button type="button" id="k-zout" aria-label="${L2('Zoom out', 'Alejar')}">${svg('<path d="M2 8h12"/>', '0 0 16 16')}</button></div>
       <button type="button" class="k-fab" id="k-find">${svg('<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>')}<span>${L2('Find', 'Buscar')}</span></button>
@@ -459,6 +458,8 @@ export function mountKineticMap(d: KmDeps) {
     const num = (x: number) => (settings.lang() === 'es' ? String(x).replace('.', ',') : String(x));
     return `<div class="k-rampw"><div class="k-ramp" aria-hidden="true">${cols.map((c) => `<i style="--k:${c}"></i>`).join('')}</div><em class="k-mono">${esc(unit)}</em><div class="k-rampl k-mono">${at.map((x) => `<span style="left:${((FIELD_STEPS[kind].indexOf(x) + 1) * 100) / n}%">${esc(num(x))}</span>`).join('')}</div></div>`;
   };
+  /** Layers whose key uses short labels (`legend.<id>.key.<n>`, 2 to 4 words); their full item text moves to the "?" explainer. */
+  const SHORT_KEY = new Set<KmLayer>(['spear']);
   const legend = (id: KmLayer) => {
     if (isOwnLayer(id)) return ownLegend(id);
     // A painted field: its band key, then any line marks of its own (the sea temperature's amber isotherms).
@@ -474,14 +475,14 @@ export function mountKineticMap(d: KmDeps) {
       const ls = LEGEND[id as LayerId].map((it, i) => ({ ...it, l: t(legendItemKey(id, i + 1) as Key) })).filter((it) => it.sw === 'line');
       return fieldKey(fk) + (ls.length ? `<ul class="k-lkeys">${ls.map((it) => `<li>${keySw(it)}<span>${esc(it.l)}</span></li>`).join('')}</ul>` : '');
     }
-    const items = LEGEND[id].map((it, i) => ({ ...it, l: t(legendItemKey(id, i + 1) as Key) })).filter((it) => it.sw !== 'none');
+    const items = LEGEND[id].map((it, i) => ({ ...it, l: t((SHORT_KEY.has(id) ? `legend.${id}.key.${i + 1}` : legendItemKey(id, i + 1)) as Key) })).filter((it) => it.sw !== 'none');
     return items.length ? `<ul class="k-lkeys">${items.map((it) => `<li>${keySw(it)}<span>${esc(it.l)}</span></li>`).join('')}</ul>` : '';
   };
   const explainLayer = (id: KmLayer) => {
-    if (isOwnLayer(id)) return `<p class="k-lgnote">${esc(id === 'rating' ? L2('Each beach in the rating colour of the chosen activity, for the hour on the slider: the same score as the forecast page. Tiles show the headline value; tap one for the spot card.', 'Cada playa en el color de su calificación para la actividad y la hora elegidas, igual que la página de pronóstico. Toque una para ver el spot.') : id === 'heat' ? L2('NOAA Coral Reef Watch degree heating weeks at each tracked reef: heat built up over 12 weeks. 4 or more is bleaching likely, 8 or more severe.', 'Semanas-grado de calor de NOAA Coral Reef Watch en cada arrecife: el calor acumulado en 12 semanas. 4 o más, blanqueo probable; 8 o más, severo.') : L2('Restoration sites in your private field log, drawn only as the 5 km cell they fall in, so nobody can read an exact site off the screen.', 'Sitios de restauración de su bitácora privada, dibujados solo como la celda de 5 km, para que nadie lea un sitio exacto en la pantalla.'))}</p>`;
+    if (isOwnLayer(id)) return `<p class="k-lgnote">${esc(id === 'rating' ? L2('Each beach in the rating colour of the chosen activity, for the hour on the slider: the same score as the forecast page. Each beach carries a small chip with its headline number, and the chosen beach also shows its name; tap one for the spot card. Beaches too close together for their chips show as dots until you zoom in.', 'Cada playa en el color de su calificación para la actividad y la hora elegidas, igual que la página de pronóstico. Cada playa lleva una pequeña ficha con su número, y la playa elegida también su nombre; toque una para ver el spot. Las playas demasiado juntas se ven como puntos hasta que acerque el mapa.') : id === 'heat' ? L2('NOAA Coral Reef Watch degree heating weeks at each tracked reef: heat built up over 12 weeks. 4 or more is bleaching likely, 8 or more severe.', 'Semanas-grado de calor de NOAA Coral Reef Watch en cada arrecife: el calor acumulado en 12 semanas. 4 o más, blanqueo probable; 8 o más, severo.') : L2('Restoration sites in your private field log, drawn only as the 5 km cell they fall in, so nobody can read an exact site off the screen.', 'Sitios de restauración de su bitácora privada, dibujados solo como la celda de 5 km, para que nadie lea un sitio exacto en la pantalla.'))}</p>`;
     // What the layer is, plus its notes with no mark of their own; the marks themselves are the key under the row.
     // A painted field's colour meanings (its fills are bands on the key, not chips) join the notes.
-    const notes = LEGEND[id].map((it, i) => (it.sw === 'none' || ((FIELD_OF[id] || id === 'fishing') && it.sw === 'fill') ? t(legendItemKey(id, i + 1) as Key) : '')).filter(Boolean);
+    const notes = LEGEND[id].map((it, i) => (it.sw === 'none' || SHORT_KEY.has(id) || ((FIELD_OF[id] || id === 'fishing') && it.sw === 'fill') ? t(legendItemKey(id, i + 1) as Key) : '')).filter(Boolean);
     return `<div class="k-lgfull"><p>${esc(t(legendWhatKey(id) as Key))}</p>${notes.map((n) => `<p>${esc(n)}</p>`).join('')}</div>`;
   };
   const openInfo = new Set<KmLayer>();
@@ -588,11 +589,11 @@ export function mountKineticMap(d: KmDeps) {
   };
   const renderLegMini = () => {
     const el = $('k-legmini');
-    const on = order(), top = on.find((id) => legend(id));
+    const on = order();
+    // SPEAR shows its own key alone (Joseph 2026-11-16: the beach ratings matter less there; the coast strip stays on the map).
+    const top = S.act === 'spear' && on.includes('spear') ? 'spear' : on.find((id) => legend(id));
     el.hidden = (WIDE.matches && !lcol) || !top;
-    // SPEAR: its own key (green water, red ban, dashed amber CHECK) sits under the beach ratings, not only in the Layers sheet.
-    const own = S.act === 'spear' && top !== 'spear' && on.includes('spear') ? 'spear' : null;
-    if (top) el.innerHTML = [top, own].filter((id): id is KmLayer => !!id).map((id) => `<span class="k-mono">${esc(layerName(id))}</span>${legend(id)}`).join('');
+    if (top) el.innerHTML = `<span class="k-mono">${esc(layerName(top))}</span>${legend(top)}`;
   };
 
   /* ---------- readings ---------- */
@@ -1276,18 +1277,7 @@ export function mountKineticMap(d: KmDeps) {
   $('k-scheme').addEventListener('click', () => setScheme(currentScheme() === 'dark' ? 'light' : 'dark'));
 
   /* ---------- views ---------- */
-  // The rating boxes can be hidden (the dots stay): remembered on this device.
-  const tileBtn = $('k-tilebtn');
-  const setTiles = (on: boolean) => {
-    coast.setTiles(on);
-    tileBtn.setAttribute('aria-pressed', String(on));
-  };
-  try { setTiles(localStorage.getItem('km.tiles') !== '0'); } catch { setTiles(true); }
-  tileBtn.addEventListener('click', () => {
-    const on = tileBtn.getAttribute('aria-pressed') !== 'true';
-    setTiles(on);
-    try { localStorage.setItem('km.tiles', on ? '1' : '0'); } catch { /* private window: the toggle still works for this visit */ }
-  });
+  try { localStorage.removeItem('km.tiles'); } catch { /* the old BOXES toggle's setting (PLAN 7.96), gone with the boxes */ }
   app.querySelectorAll<HTMLElement>('.k-views button').forEach((b) =>
     b.addEventListener('click', () => {
       if (b.dataset.view === 'coast') map.fitBounds([[-82.9, 9.57], [-82.58, 9.81]], { duration: 1100 });

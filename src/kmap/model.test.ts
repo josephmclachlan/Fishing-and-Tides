@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CELL_DEG, KM_LAYERS, MODES, PRESETS, coastNear, isCustom, loadOrders, moveLayer, offered, offsetOfX, orderOf, placePins, landward, PIN_SQUARE, labelRect, privateCells, saveOrders, slots,
+  CELL_DEG, KM_LAYERS, MODES, PRESETS, coastNear, isCustom, loadOrders, moveLayer, offered, offsetOfX, orderOf, placeChips, DOT_R, privateCells, saveOrders, slots,
   toggleLayer, xOfOffset, type Mask,
 } from './model';
 import { LAYERS } from '../layers/registry';
@@ -81,73 +81,37 @@ describe('coast ribbon', () => {
   });
 });
 
-describe('rating tiles', () => {
-  it('stay on the landward side of their pin, and drop to the square rather than sit out at sea', () => {
-    const b = { w: 600, h: 600 };
-    const pin = { id: 'a', x: 300, y: 300, w: 80, h: 30, rank: 1, land: [0, -1] as const }; // land to the north
-    const p = placePins([pin], b).get('a')!;
-    expect(p.y + 15).toBeLessThan(300);
-    // Land blocked all round: no seaward fallback.
-    expect(placePins([pin], b, 4, [{ x: 0, y: 0, w: 600, h: 296 }]).has('a')).toBe(false);
-  });
-  it('finds the mainland direction from a land mask', () => {
-    const cols = 40, rows = 40, z = new Uint8Array(cols * rows);
-    for (let r = 0; r < 20; r++) z.fill(1, r * cols, (r + 1) * cols); // northern half is land
-    const mask = { z, cols, rows, lon0: 0, lat0: 0.04, dlon: 0.001, dlat: 0.001 };
-    const d = landward(mask, [0.02, 0.0195], 900)!;
-    expect(d[1]).toBeGreaterThan(0.9);
-    expect(landward({ ...mask, z: new Uint8Array(cols * rows) }, [0.02, 0.02], 900)).toBeNull();
-  });
-  it('never overlap, and the better spot keeps its tile', () => {
-    const pins = Array.from({ length: 12 }, (_, i) => ({ id: `p${i}`, x: 200 + (i % 3) * 8, y: 200 + i * 6, w: 110, h: 44, rank: i }));
-    const at = placePins(pins, { w: 600, h: 600 });
-    const boxes = [...at.values()].map((p) => ({ ...p, w: 110, h: 44 }));
-    for (let i = 0; i < boxes.length; i++)
-      for (let j = i + 1; j < boxes.length; j++) {
-        const a = boxes[i], b = boxes[j];
-        expect(a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h).toBe(false);
-      }
-    expect(at.has('p11')).toBe(true);
-    for (const p of at.values()) expect(p.x).toBeGreaterThanOrEqual(4);
-  });
+describe('spot number chips', () => {
+  const chip = (id: string, x: number, y: number, rank: number, w = 30, h = 18) => ({ id, x, y, w, h, rank });
+  const over = (a: { x: number; y: number; w: number; h: number }, b: typeof a) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  const box = (c: ReturnType<typeof chip>) => ({ x: c.x - c.w / 2, y: c.y - c.h / 2, w: c.w, h: c.h });
+  const B = { w: 600, h: 600 };
 
-  it('steps tiles around the fish zone names where it can, and covers one only when nothing else fits (PLAN 7.85)', () => {
-    const pin = { id: 'a', x: 200, y: 200, w: 110, h: 44, rank: 90 };
-    const first = placePins([pin], { w: 600, h: 600 }).get('a')!;
-    const name = { x: first.x, y: first.y, w: 110, h: 44 };
-    const moved = placePins([pin], { w: 600, h: 600 }, 4, [], [name]).get('a')!;
-    expect(moved.x !== first.x || moved.y !== first.y).toBe(true);
-    // Names all round: the tile still shows, over one of them.
-    expect(placePins([pin], { w: 600, h: 600 }, 4, [], [{ x: 0, y: 0, w: 600, h: 600 }]).has('a')).toBe(true);
+  it('shows every chip when the spots are far apart', () => {
+    const cs = [chip('a', 100, 100, 1), chip('b', 300, 100, 2), chip('c', 500, 300, 3)];
+    expect(placeChips(cs, B)).toEqual({ chips: new Set(['a', 'b', 'c']), covered: new Set() });
   });
-  it('estimates a map label\'s box from its lines, anchor and em offset', () => {
-    const r = labelRect({ x: 100, y: 100 }, [{ text: 'SNAPPER', size: 10 }, { text: 'REEF', size: 8 }], 'left', [0.5, 0]);
-    expect(r.x).toBeCloseTo(105);
-    expect(r.w).toBeCloseTo(7 * 10 * 0.72);
-    expect(r.h).toBeCloseTo(21.6);
-    expect(r.y).toBeCloseTo(100 - 10.8);
-    const br = labelRect({ x: 0, y: 0 }, [{ text: 'AB', size: 10 }], 'bottom-right');
-    expect(br.x).toBeCloseTo(-14.4);
-    expect(br.y).toBeCloseTo(-12);
+  it('never lets two chips touch, and the best spot in a cluster keeps its chip', () => {
+    const cs = Array.from({ length: 12 }, (_, i) => chip(`p${i}`, 200 + (i % 3) * 8, 200 + i * 6, i));
+    const { chips } = placeChips(cs, B);
+    const shown = cs.filter((c) => chips.has(c.id));
+    for (let i = 0; i < shown.length; i++) for (let j = i + 1; j < shown.length; j++) expect(over(box(shown[i]), box(shown[j]))).toBe(false);
+    expect(chips.has('p11')).toBe(true);
   });
-  it('keeps tiles off every pin square and off the map panels', () => {
-    const pins = [
-      { id: 'a', x: 200, y: 200, w: 110, h: 44, rank: 90 },
-      { id: 'b', x: 240, y: 150, w: 110, h: 44, rank: 50 },
-      { id: 'c', x: 520, y: 520, w: 110, h: 44, rank: 70 },
-    ];
+  it('never covers a better spot; a worse spot under a chip waits for a closer zoom', () => {
+    // b's dot sits under the edge of a's chip, so a (worse) stays a dot beside b's chip.
+    const cs = [chip('a', 100, 100, 1, 40), chip('b', 100 + 20 + DOT_R - 2, 100, 5)];
+    expect(placeChips(cs, B)).toEqual({ chips: new Set(['b']), covered: new Set() });
+    // The chosen spot goes first, even over a better neighbour.
+    expect(placeChips(cs, B, [], 'a')).toEqual({ chips: new Set(['a']), covered: new Set(['b']) });
+    // A better spot that is only a dot (its chip is under a panel) keeps its dot clear.
+    const panel = { x: 110, y: 80, w: 100, h: 40 };
+    expect(placeChips(cs, B, [panel])).toEqual({ chips: new Set(), covered: new Set() });
+  });
+  it('keeps chips off the map panels and inside the screen', () => {
     const panel = { x: 380, y: 380, w: 220, h: 220 };
-    const at = placePins(pins, { w: 600, h: 600 }, 4, [panel]);
-    const sq = (p: { x: number; y: number }) => ({ x: p.x - PIN_SQUARE, y: p.y - PIN_SQUARE, w: 2 * PIN_SQUARE, h: 2 * PIN_SQUARE });
-    const over = (a: { x: number; y: number; w: number; h: number }, b: typeof a) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-    for (const t of at.values()) {
-      const box = { x: t.x, y: t.y, w: 110, h: 44 };
-      for (const p of pins) expect(over(box, sq(p))).toBe(false);
-      expect(over(box, panel)).toBe(false);
-    }
-    // The pin under the panel has nowhere to go: it stays a square.
-    expect(at.has('c')).toBe(false);
-    expect(at.has('a')).toBe(true);
+    const cs = [chip('a', 200, 200, 1), chip('b', 450, 450, 9), chip('c', 5, 300, 9)];
+    expect(placeChips(cs, B, [panel]).chips).toEqual(new Set(['a']));
   });
 });
 
