@@ -91,6 +91,7 @@ import { fetchZones, mountZones, zoneName } from './layers/zones';
 import { mountZonesHud } from './zones-hud';
 import { fetchMouths, fetchOccurrences, mountFishing, type FishingLayer } from './layers/fishing';
 import { loadSpecies, mountFishingHud } from './fishing-hud';
+import { SPECIES, type SpeciesId } from './fishing/species';
 import { layers, type ActivityId } from './layers/registry';
 import { mountMotionKey } from './layers/motion-key';
 import { bindMapLayers } from './layers/visibility';
@@ -164,6 +165,7 @@ import { cacheShotStore } from './forecast/shot-store';
 import { mountCoralPage } from './coral-page/page';
 import { mountGuidePage } from './guide/page';
 import { mountCiguateraPage } from './ciguatera/page';
+import { mountNotesPage } from './notes/page';
 import { mountDispatchPage } from './dispatch/page';
 import type { FcActivity } from './forecast/model';
 import { fetchSargassum, type SargassumData } from './adapters/sargassum';
@@ -594,6 +596,7 @@ setInterval(loadGauge, 10 * 60_000);
 const boatStore = createBoatStore(safeStorage());
 // Catches logged in the BOAT drawer store their BITE once the fishing panel is up (PLAN 7.16).
 let scoreCatch: CatchScorer | null = null;
+let fishSetSpecies: ((id: SpeciesId) => void) | null = null;
 // Offshore read for the BOAT drawer (PLAN 7.17): depth and ledge from the seafloor grids, satellite
 // temperature, chlorophyll and fronts, and floating sargassum, scored per boat species.
 let offshoreDepth: ((lng: number, lat: number) => number | null) | null = null;
@@ -776,6 +779,23 @@ if (coralPanelEl) {
 const guidePage = mountGuidePage({
   storage: safeStorage(),
   lang: () => settings.lang(),
+  // SHOW ON MAP: the fish map, on this kind of fish (remembered for a map that has not loaded yet).
+  showOnMap: (kind) => {
+    const id = SPECIES.find((s) => s.id === kind)?.id;
+    if (!id) return;
+    try {
+      localStorage.setItem('ft.fishing.species', id);
+    } catch {
+      /* private mode */
+    }
+    fishSetSpecies?.(id);
+    if (km) km.openAct('fish');
+    else {
+      coralMode.set(false);
+      layers.setActivity(MAP_PRESET.fish);
+    }
+    location.hash = '#map';
+  },
   setLang: (l) => {
     settings.setLang(l);
     const c = map.getCenter();
@@ -785,6 +805,17 @@ const guidePage = mountGuidePage({
 });
 // CIGUATERA page (PLAN 7.101): risk, local evidence, symptoms, treatment; every ciguatera warning links to #ciguatera.
 mountCiguateraPage({
+  storage: safeStorage(),
+  lang: () => settings.lang(),
+  setLang: (l) => {
+    settings.setLang(l);
+    const c = map.getCenter();
+    saveView(safeSession(), { center: [c.lng, c.lat], zoom: map.getZoom() });
+    location.reload();
+  },
+});
+// FIELD NOTES page: rules at a glance, first aid, rigs, releasing, cooking, seasons and a glossary (#notes).
+mountNotesPage({
   storage: safeStorage(),
   lang: () => settings.lang(),
   setLang: (l) => {
@@ -1537,6 +1568,7 @@ fetchSeafloor()
         layer.setCatches(pins());
         const fishHud = mountFishingHud(hud, map, layer, time, species, fishEnv, pins);
         scoreCatch = fishHud?.scoreCatch ?? null;
+        fishSetSpecies = fishHud?.setSpecies ?? null;
         boatStore.subscribe(() => (layer.setCatches(pins()), fishHud?.refresh()));
       })
       .catch((err) => console.warn('fishing layer unavailable', err));

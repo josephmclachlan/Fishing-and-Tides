@@ -7,6 +7,7 @@
 import { t, type Key } from '../i18n';
 import { UI } from '../icons/ui';
 import { artFor, artSvg, GROUP_ART } from './art';
+import { fishKindFor } from '../fishing/guide-link';
 import { citeTab } from './cite';
 import { cleanHtml, dispatchLinkHtml } from './clean';
 import {
@@ -104,6 +105,12 @@ export function badges(e: Entry, lang: Lang, max = 3): string {
 }
 
 /** Other names worth showing under the title: more names in the reader's language, then local names. */
+/** SHOW ON MAP for a species the fish map has a zone for (snook, jacks, snappers, mackerel, small groupers, barracuda, lionfish). */
+const showMapButton = (s: Pick<Species, 'sci'>): string => {
+  const kind = fishKindFor(s.sci);
+  return kind ? `<p><button type="button" class="fc-ctl gd-showmap" data-showmap="${kind}">${esc(t('gd.showMap'))}</button></p>` : '';
+};
+
 export function altNames(e: Pick<Entry, 'en' | 'es' | 'local' | 'sci'>, lang: Lang, n = 3): string[] {
   const first = nameOf(e, lang);
   const more = lang === 'es' ? e.es : e.en;
@@ -175,7 +182,8 @@ export function rowsFor(secs: readonly Section[], banners: boolean): Row[] {
 }
 
 /** How many species rows a run of rows holds (the chunk size counts these). */
-export const itemCount = (rows: readonly Row[]) => rows.reduce((n, r) => n + (r.k === 'card' || r.k === 'rec' ? 1 : 0), 0);
+/** Species shown: one that sits under several headings (the danger list groups by how it hurts) counts once. */
+export const itemCount = (rows: readonly Row[]) => new Set(rows.flatMap((r) => (r.k === 'card' || r.k === 'rec' ? [r.e.id] : []))).size;
 
 /** Markup for a run of rows: cards gathered in a grid, records in a list, each run opened and closed here. */
 export function rowsHtml(rows: readonly Row[], o: ListOpts): string {
@@ -472,7 +480,9 @@ export function detailHtml(s: Species, o: DetailOpts): string {
   const tabs = tabsFor(s);
   const tab = tabs.includes(o.tab) ? o.tab : 'about';
   const other = lang === 'es' ? names.en : names.es;
-  const sameLang = altNames(names, lang, 6).filter((n) => !names.local.includes(n));
+  // One "also called" line: the other names in this language and the local ones, without repeating the title or, in Spanish, English names.
+  const first = nameOf(names, lang);
+  const alsoCalled = [...new Set([...(lang === 'es' ? names.es : names.en), ...names.local])].filter((n) => n && n !== first && !(lang === 'es' && names.en.includes(n))).slice(0, 8);
   const sub = tx(SUB_WORDS[s.sub], lang);
   const fam = [txt(s.familyName, lang), s.taxon?.family, s.taxon?.order].filter(Boolean);
   const pos = o.pos;
@@ -488,15 +498,16 @@ export function detailHtml(s: Species, o: DetailOpts): string {
       <p class="gd-d-kind fc-mono">${esc(tx(GROUP_WORDS[s.group].short, lang))}${sub ? ` · ${esc(sub)}` : ''}</p>
       <h2 id="gd-d-title"${latin ? ' class="sci"' : ''}>${esc(nameOf(names, lang))}</h2>
       ${latin ? '' : `<p class="gd-d-sci"><i>${esc(s.sci)}</i>${s.author ? ` <span>${esc(s.author)}</span>` : ''}</p>`}
-      ${sameLang.length ? `<p class="gd-d-names">${esc(sameLang.join(' · '))}</p>` : ''}
+      ${alsoCalled.length ? `<p class="gd-d-names"><span class="fc-mono">${esc(t('gd.d.local'))}</span> ${esc(alsoCalled.join(' · '))}</p>` : ''}
       ${other.length ? `<p class="gd-d-names"><span class="fc-mono">${esc(t('gd.d.otherNames'))}</span> ${esc(other.join(' · '))}</p>` : ''}
-      ${names.local.length ? `<p class="gd-d-names"><span class="fc-mono">${esc(t('gd.d.local'))}</span> ${esc(names.local.join(' · '))}</p>` : ''}
       ${fam.length ? `<p class="gd-d-fam">${esc(fam.join(' · '))}</p>` : ''}
       ${statusBadges(s, lang)}
+      ${showMapButton(s)}
     </header>
     ${factTiles(s, lang)}
     <nav class="gd-d-tabs" role="tablist" aria-label="${esc(t('gd.d.tabs'))}">${tabs
       .map((k) => `<a role="tab" class="gd-d-tab" href="${esc(o.tabHref(k))}" data-tab="${k}" aria-selected="${k === tab}"${k === tab ? '' : ' tabindex="-1"'}>${esc(t(`gd.tab.${k}` as Key))}</a>`)
       .join('')}</nav>
-    <div class="gd-d-body" role="tabpanel" data-tab="${tab}">${citeTab(tabBody(s, tab, o), s.sources, t('gd.h.tabSources'))}</div>`;
+    <div class="gd-d-body" role="tabpanel" data-tab="${tab}">${citeTab(tabBody(s, tab, o), s.sources, t('gd.h.tabSources'))}</div>
+    <div class="gd-d-lang fc-mono"><span>${esc(t('gd.d.lang'))}</span><div class="fc-lang" role="group" aria-label="${esc(t('fc.langGroup'))}"><button type="button" data-setlang="en" aria-pressed="${lang === 'en'}">EN</button><button type="button" data-setlang="es" aria-pressed="${lang === 'es'}">ES</button></div></div>`;
 }

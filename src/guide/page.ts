@@ -58,6 +58,8 @@ export interface GuidePageDeps {
   storage: Store;
   lang: () => Lang;
   setLang: (l: Lang) => void;
+  /** Show a kind of eating fish on the fish map (the species page's SHOW ON MAP button). */
+  showOnMap?: (kind: string) => void;
   /** Site base URL (Vite's BASE_URL). */
   base?: string;
 }
@@ -87,6 +89,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
         </div>
         <h1 id="gd-title">${t('gd.title')}</h1>
         <p class="fc-subline fc-mono"><b id="gd-sub">${t('gd.loading')}</b></p>
+        <p class="gd-nlinks fc-mono"><a href="#notes/aid">${esc(t('nt.aid'))}</a> · <a href="#notes/rules">${esc(t('nt.rules'))}</a> · <a href="#notes/words">${esc(t('nt.words'))}</a></p>
       </header>
       <nav class="gd-modes fc-in" id="gd-modes" role="tablist" aria-label="${esc(t('gd.modes'))}"></nav>
       <div class="gd-groups-w fc-in"><div class="gd-groups" id="gd-groups" role="toolbar" aria-label="${esc(t('gd.groups'))}"></div></div>
@@ -285,7 +288,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       (ix) => {
         idx = ix;
         for (const e of ix.entries) hays.set(e.id, haystack(e)), bySci.set(e.sci.toLowerCase(), e.id);
-        $('gd-sub').textContent = t('gd.sub', { n: ix.entries.filter((e) => e.tier === 'full').length });
+        $('gd-sub').textContent = t('gd.sub', { n: ix.entries.filter((e) => e.tier === 'full' && (f.expanded || isHere(e))).length });
         render();
         if (openId) drawDetail();
       },
@@ -351,6 +354,11 @@ export function mountGuidePage(deps: GuidePageDeps) {
       idStep = 'kind';
       render();
       toId();
+    } else if ((b = hit('[data-showmap]'))) {
+      deps.showOnMap?.(b.dataset.showmap!);
+    } else if ((b = hit('[data-setlang]'))) {
+      const l = b.dataset.setlang as Lang;
+      if (l !== deps.lang()) deps.setLang(l);
     } else if ((b = hit('[data-fav]')) && openId) {
       if (favs.has(openId)) favs.delete(openId);
       else favs.add(openId);
@@ -399,7 +407,12 @@ export function mountGuidePage(deps: GuidePageDeps) {
   el.addEventListener('change', (ev) => {
     const s = ev.target as HTMLInputElement | HTMLSelectElement;
     if (s.dataset.f === 'records') (f.records = (s as HTMLInputElement).checked), render();
-    else if (s.dataset.f === 'expanded') (f.expanded = (s as HTMLInputElement).checked), put(storage, EXP_KEY, f.expanded ? '1' : ''), render();
+    else if (s.dataset.f === 'expanded') {
+      f.expanded = (s as HTMLInputElement).checked;
+      put(storage, EXP_KEY, f.expanded ? '1' : '');
+      if (idx) $('gd-sub').textContent = t('gd.sub', { n: idx.entries.filter((e) => e.tier === 'full' && (f.expanded || isHere(e))).length });
+      render();
+    }
     else if (s.dataset.pick === 'sort') (f.sort = s.value as SortKey), put(storage, SORT_KEY, f.sort), render();
     else if (s.dataset.pick === 'by') {
       if (mode === 'danger') dangerBy = s.value as GroupBy;
@@ -520,8 +533,14 @@ export function mountGuidePage(deps: GuidePageDeps) {
     const changed = r.mode !== mode || r.group !== group;
     if (changed && r.mode !== mode) (mode = r.mode), drawPicks();
     group = r.group;
+    // A link can carry a search ("Likely catch" opens the guide on the snappers, say).
+    const qChanged = r.q !== null && r.q !== f.q;
+    if (qChanged) {
+      f.q = r.q!;
+      q.value = f.q;
+    }
     if (el.hidden) show();
-    else if (changed) render();
+    else if (changed || qChanged) render();
     if (r.id) {
       if (r.id !== openId || sheet.hidden) openDetail(r.id, r.tab ?? 'about');
       else if ((r.tab ?? 'about') !== tab) (tab = r.tab ?? 'about'), drawDetail(false);
