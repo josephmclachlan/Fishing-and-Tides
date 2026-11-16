@@ -404,7 +404,13 @@
 .km body.km-on #hud{visibility:hidden;z-index:30}
 .km body.km-on #hud>.panel.open,
 .km body.km-on[data-sheet="cond"] #hud>#cond-panel,
-.km body.km-on #hud .help-card{visibility:visible}
+.km body.km-on #hud .help-card,
+.km body.km-on #hud>.watch-pop:not([hidden]){visibility:visible}
+/* WATCH's 5-day forecast card: over the drawer and its head, below the top bar, with its own close button back. */
+.km body.km-on #hud>.watch-pop{position:fixed!important;z-index:40!important;left:50%!important;top:calc(var(--k-tool-top,64px) + 8px)!important;bottom:auto!important;transform:translateX(-50%)!important;width:min(760px,calc(100vw - 16px))!important;max-height:calc(100dvh - var(--k-tool-top,64px) - 16px)!important;overflow-y:auto;overscroll-behavior:contain;background:var(--bg)!important;border:2px solid var(--ink)!important;border-radius:2px;box-shadow:0 14px 40px rgba(6,12,22,.22)!important;padding:14px 16px 16px!important}
+/* A desktop keeps the WATCH drawer open in the right column: the card sits beside it, clear of its head. */
+@media (min-width:1100px){.km body.km-tool #hud>.watch-pop{left:auto!important;right:408px!important;transform:none!important;width:min(760px,calc(100vw - 424px))!important}}
+.km #hud>.panel.watch-pop>.ph .sheet-x{display:grid;place-items:center;margin-left:auto;appearance:none;cursor:pointer;width:36px;height:36px;border:2px solid var(--ink);background:none;color:var(--ink);border-radius:2px;font-size:13px;line-height:1;padding:0;flex:0 0 auto}
 .km body.km-on #hud .reticle,.km body.km-on #hud .alert{display:none!important}
 
 /* ---------- rating tiles on the spots (coast.ts) ---------- */
