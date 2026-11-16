@@ -15,11 +15,18 @@
 .dp-stats li { padding: 14px 0; border-bottom: 1px solid var(--fc-line); display: grid; grid-template-columns: auto 1fr; column-gap: 14px; align-items: baseline; }
 .dp-stats li > span { align-self: center; }
 .dp-stats li > p { grid-column: 1 / -1; margin: 6px 0 0; max-width: 60ch; }
-.dp-stats .dp-big { color: var(--fc-ac0); }
+.dp-stats .dp-big { color: var(--c); }
+/* D-1: red for the bad number, amber for the deadline, green for the good news, said in words too. */
+.dp-stats .dp-bad { --c: var(--fc-ac0); }
+.dp-stats .dp-due { --c: var(--fc-ac2); }
+.dp-stats .dp-good { --c: var(--fc-ac3); }
+.dp-stats em { font-style: normal; display: inline-block; margin-right: 6px; padding: 1px 6px; border: 1.5px solid var(--c); color: var(--fc-ink); }
 
 /* --- section buttons */
 .dp-nav { position: sticky; top: 0; z-index: 5; display: flex; gap: 4px 18px; overflow-x: auto; scrollbar-width: none; margin: 12px 0 0; padding: 10px 0 8px; background: var(--fc-bg); border-bottom: 1px solid var(--fc-line); }
 .dp-nav::-webkit-scrollbar { display: none; }
+/* D-13: the strip fades out at the right edge, so more sections read as "scroll for more". */
+.dp-nav, .cig-tabs { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); padding-right: 28px; }
 .dp .dp-navb { flex: 0 0 auto; appearance: none; border: 0; background: none; padding: 8px 0; min-height: 40px; font-family: var(--fc-mono); font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fc-ink2); border-bottom: 3px solid transparent; }
 .dp .dp-navb:hover { color: var(--fc-ink); border-bottom-color: var(--fc-ink); }
 
@@ -67,6 +74,8 @@
 .dp-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .dp .dp-chip { height: 38px; min-width: 56px; padding: 0 12px; background: none; border: 2px solid var(--fc-ink); font-family: var(--fc-mono); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; border-radius: 0; }
 .dp .dp-chip.on { background: var(--fc-ink); color: var(--fc-bg); }
+.dp-sub { margin: -6px 0 12px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fc-ac0); }
+.dp-axnote { margin: 8px 0 0; font-size: 13px; color: var(--fc-ink2); max-width: 62ch; }
 .dp-help { margin: 14px 0 0; font-size: 13.5px; color: var(--fc-ink2); max-width: 70ch; }
 .dp-fine { margin: 8px 0 0; padding: 10px 12px; font-size: 13px; color: var(--fc-ink2); border-left: 4px solid var(--fc-ac1); max-width: 70ch; }
 
@@ -75,13 +84,24 @@
 .dp-art { width: 100%; height: auto; background: var(--fc-block); padding: 6px; color: var(--fc-ink); }
 .dp-art path, .dp-art rect { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .dp-art .dp-eye { fill: currentColor; }
-.dp-art .dp-cut { stroke: var(--fc-ac0); stroke-width: 3.5; stroke-dasharray: 5 4; }
+.dp-art .dp-cut { stroke: var(--fc-ac0); stroke-width: 4; }
+.dp-art .dp-skin { fill: var(--fc-card); }
+.dp-art .dp-fin { fill: color-mix(in srgb, var(--fc-ink2) 22%, var(--fc-card)); stroke: currentColor; stroke-width: 1.5; }
+.dp-art .dp-line { stroke: currentColor; }
+.dp-art .dp-zone { fill: color-mix(in srgb, var(--fc-ac2) 55%, transparent); stroke: var(--fc-ink); stroke-width: 1.5; stroke-dasharray: 2 2; }
+.dp-art .dp-brain { fill: color-mix(in srgb, var(--fc-ac2) 55%, var(--fc-card)); stroke: var(--fc-ink); stroke-width: 1.5; stroke-dasharray: 3 2; }
+.dp-art .dp-inset { fill: var(--fc-bg); stroke: var(--fc-ink2); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.dp-art .dp-spike { stroke: var(--fc-ink); stroke-width: 3.5; }
+.dp-art .dp-sea { fill: color-mix(in srgb, var(--fc-sea-a) 24%, var(--fc-card)); stroke: none; }
+.dp-art .dp-cloth { fill: color-mix(in srgb, var(--fc-ink2) 35%, var(--fc-card)); stroke: currentColor; stroke-width: 1.5; }
+.dp-art .dp-belly { fill: color-mix(in srgb, var(--fc-sea-a) 30%, var(--fc-card)); stroke: currentColor; stroke-width: 1.5; stroke-dasharray: 3 2; }
+.dp-art .dp-lbl { fill: currentColor; font-family: var(--fc-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; }
 .dp-art .dp-wire { stroke: var(--fc-ac1); stroke-width: 2.5; stroke-dasharray: 1 5; }
 .dp-art .dp-arrow, .dp-art .dp-hit { stroke: var(--fc-ac0); stroke-width: 3; }
 .dp-art .dp-club { stroke-width: 7; stroke: var(--fc-ink); }
 .dp-art .dp-clubhead { stroke-width: 11; stroke: var(--fc-ink); }
 .dp-art .dp-water { stroke: var(--fc-sea-a); stroke-width: 3; }
-.dp-art .dp-blood { stroke: var(--fc-ac0); stroke-width: 2.5; stroke-dasharray: 3 3; }
+.dp-art .dp-blood { fill: color-mix(in srgb, var(--fc-ac0) 45%, transparent); stroke: none; }
 .dp-art .dp-cube { fill: var(--fc-card); stroke: var(--fc-sea-b); stroke-width: 2; }
 .dp-art .dp-clock { fill: currentColor; font-family: var(--fc-mono); font-size: 11px; font-weight: 700; }
 .dp-bd circle { fill: var(--fc-ink); stroke: none; }
@@ -110,13 +130,41 @@
 .dp-step { padding: 16px 0; border-bottom: 1px solid var(--fc-line); }
 .dp-step h3 { margin: 0 0 8px; font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 74; font-size: clamp(22px, 3.6vw, 30px); line-height: 1; text-transform: uppercase; }
 .dp-step p { margin: 0 0 8px; max-width: 68ch; }
+.dp-step .dp-sci { display: block; max-width: 320px; margin: 4px 0 10px; }
+.dp-more summary { cursor: pointer; padding: 6px 0; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fc-ink2); }
+.dp-more p { font-size: 14.5px; color: var(--fc-ink2); }
+/* science pictures */
+.dp-art .dp-gauge { stroke: var(--fc-ink); fill: var(--fc-card); }
+.dp-art .dp-fuel { fill: var(--fc-ink); stroke: none; }
+.dp-art .dp-good { stroke: var(--fc-ac3); stroke-width: 5; }
+.dp-art .dp-bad { stroke: var(--fc-ac0); stroke-width: 5; }
+.dp-art .dp-good-f { fill: var(--fc-ac3); stroke: none; }
+.dp-art .dp-bad-f { fill: var(--fc-ac0); stroke: none; }
+.dp-art .dp-meat { fill: color-mix(in srgb, var(--fc-coral) 30%, var(--fc-card)); stroke: currentColor; stroke-width: 1.5; }
+.dp-art .dp-dark { fill: color-mix(in srgb, var(--fc-ac0) 35%, var(--fc-card)); }
+.dp-art .dp-spot { fill: color-mix(in srgb, var(--fc-ac0) 80%, var(--fc-ink)); stroke: none; }
+.dp-art .dp-taste { fill: var(--fc-ac2); stroke: var(--fc-ink); stroke-width: 1.5; }
+.dp-art .dp-taste.t1 { fill: color-mix(in srgb, var(--fc-ac2) 40%, var(--fc-card)); }
+.dp-art .dp-taste.t2 { fill: color-mix(in srgb, var(--fc-ink2) 40%, var(--fc-card)); }
+.dp-art .dp-bug { fill: var(--fc-ac3); stroke: var(--fc-ink); stroke-width: 0.8; }
 
 /* --- histamine */
 .dp-species { margin: 0 0 14px; font-weight: 600; max-width: 62ch; }
-.dp-clock { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 10px; }
-.dp-ck p { margin: 4px 0 0; font-size: 14px; }
-.dp-ckbar { display: block; height: 32px; background: var(--c); color: var(--o); border: 2px solid var(--fc-ink); }
-.dp-ckbar b { display: flex; align-items: center; height: 100%; padding: 0 10px; font-family: var(--fc-mono); font-size: 14px; }
+/* D-10: the clock as one ruler. */
+.dp-ruler { max-width: 520px; margin: 0 0 8px; }
+.dp-art .dp-ck-zone { fill: color-mix(in srgb, var(--fc-ink) 18%, transparent); stroke: none; }
+.dp-art .dp-flag-pole { stroke: var(--fc-ac0); stroke-width: 3; }
+.dp-art .dp-flag { fill: var(--fc-ac0); stroke: var(--fc-ink); stroke-width: 1.5; }
+.dp-art .dp-flag-t { fill: var(--fc-sev-on); }
+.dp-art .dp-grey-pole { stroke: var(--fc-ink2); stroke-width: 2; stroke-dasharray: 3 3; }
+.dp-art .dp-grey-t { fill: var(--fc-ink2); }
+.dp-ckl { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 8px; }
+.dp-ckl li { display: grid; grid-template-columns: 48px 1fr; gap: 10px; align-items: start; }
+.dp-ckl b { padding: 3px 0; text-align: center; font-size: 14px; border: 2px solid var(--fc-ink2); color: var(--fc-ink2); }
+.dp-ckl p { margin: 2px 0 0; font-size: 14px; }
+.dp-ckl .dp-ck-grey p { color: var(--fc-ink2); }
+.dp-ckl .dp-ck-stop b { background: var(--fc-ac0); color: var(--fc-sev-on); border-color: var(--fc-ink); }
+.dp-ckl .dp-ck-stop p { font-weight: 700; }
 
 /* --- routine */
 .dp-routine { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-top: 2px solid var(--fc-ink); counter-reset: none; }
@@ -149,11 +197,14 @@
 /* --- histamine: groups and the ciguatera comparison */
 .dp-hg { margin: 0 0 22px; }
 .dp-hg h3 { margin: 0 0 8px; font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 74; font-size: clamp(22px, 3.6vw, 28px); line-height: 1; text-transform: uppercase; }
-.dp-vs-w { overflow-x: auto; margin: 0 0 10px; }
-.dp-vs { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 14px; }
-.dp-vs th, .dp-vs td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--fc-line); }
-.dp-vs thead th { font-family: var(--fc-mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid var(--fc-ink); }
-.dp-vs tbody th { font-family: var(--fc-mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fc-ink2); width: 16%; }
+.dp-vs { list-style: none; margin: 0 0 12px; padding: 0; border-top: 2px solid var(--fc-ink); }
+.dp-vs li { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; padding: 10px 0; border-bottom: 1px solid var(--fc-line); font-size: 14px; }
+.dp-vs h4 { grid-column: 1 / -1; margin: 0; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fc-ink2); }
+.dp-vs li > div { display: grid; gap: 2px; padding-left: 8px; border-left: 4px solid var(--c); }
+.dp-vs-s { --c: var(--fc-ac1); }
+.dp-vs-c { --c: var(--fc-sea-b); }
+.dp-vs b { font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; }
+@media (max-width: 520px) { .dp-vs li { grid-template-columns: 1fr; } }
 .dp a.dp-link { display: inline-block; padding: 10px 14px; border: 2px solid var(--fc-ink); text-decoration: none; font-family: var(--fc-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .dp a.dp-link:hover { background: var(--fc-ink); color: var(--fc-bg); }
 .dp .fc-ctl.fc-back span { display: inline; }

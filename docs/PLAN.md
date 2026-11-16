@@ -265,7 +265,7 @@ Visual first, plain full sentences, numbered superscript sources. Grouped PRs, w
 - [x] 12.4 First aid page: incident index and big headings, recognisable animal tiles, soak and pressure-wrap drawings
 - [x] 12.5 Glossary and cooking drawings: fish parts, widths, float line, tackle hooks, temperature probe, pans; label size and colour fixes
 - [x] 12.6 Ciguatera page: red "feeling sick?" bar on every tab and "If you think you have it" second, drawings (food chain, toxic parts of a fish, symptom timeline, never-eat tiles), species risk chips, log chart with ticks and a Costa Rica row, symptom range bars, neutral evidence pips, plain treatment wording (other-findings C-1 to C-8)
-- [ ] 12.7 Dispatch page: stat colours, freshness chart time axis, "ceviche-fresh" caveat, bleed, slurry and ikejime drawings, histamine clock as a ruler, text cuts (other-findings D-1 to D-16)
+- [x] 12.7 Dispatch page: stat colours, freshness chart time axis, "ceviche-fresh" caveat, bleed, slurry and ikejime drawings, histamine clock as a ruler, text cuts (other-findings D-1 to D-16)
 - [ ] 12.8 Guide cleaning drawings, forecast hour chart, map legends, tide and spot chart text, coral jargon (other-findings G, F, M, T, K)
 
 ## Phase 9: Final review (last, after every task above)

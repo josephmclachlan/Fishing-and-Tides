@@ -41,11 +41,12 @@ export const LEDE = W(
   'Cómo muere un pescado decide a qué sabe y cuánto aguanta. Bien hecho, un pargo sigue fresco para ceviche más de un día después. Mal hecho, está dañado en unas cinco horas. (Estos tiempos son una estimación nuestra.)',
 );
 
-export interface Stat { n: string; unit: Txt; what: Txt; src?: number[] }
+export const STAT_TONE: Record<Stat['tone'], Txt> = { bad: W('Bad', 'Malo'), due: W('Deadline', 'Plazo'), good: W('Good', 'Bueno') };
+export interface Stat { n: string; unit: Txt; what: Txt; src?: number[]; /** bad, a deadline or good news: red, amber or green. */ tone: 'bad' | 'due' | 'good' }
 export const STATS: Stat[] = [
-  { n: '25–30×', unit: W('faster spoiling', 'más rápido se daña'), what: W('Fish spoil about 25 to 30 times faster at 28 to 30 °C than on ice (0 °C, 32 °F). Our shade is that hot.', 'El pescado se daña unas 25 a 30 veces más rápido a 28–30 °C que en hielo (0 °C, 32 °F). Nuestra sombra está así de caliente.'), src: [2] },
-  { n: '6 h', unit: W('to get it on ice', 'para ponerlo en hielo'), what: W('Tuna, mahi and mackerel need ice (0 °C, 32 °F) within 6 hours of dying in this heat, or a poison called histamine can build up and make people sick.', 'El atún, el dorado y la macarela necesitan hielo (0 °C, 32 °F) dentro de 6 horas de morir con este calor, o puede formarse un veneno llamado histamina que enferma.'), src: [1] },
-  { n: '6–12 h', unit: W('later to stiffen', 'más tarde en ponerse rígido'), what: W('After death a fish stiffens (rigor mortis), and a fast, hard stiffening gives mushy fillets. In a Japanese test, yellowtail and red sea bream with the spinal cord destroyed, as in ikejime, took 6 to 12 hours longer to go fully stiff than fish without.', 'Después de morir el pescado se pone rígido (rigor mortis), y una rigidez rápida y fuerte deja filetes aguados. En una prueba japonesa, la cola amarilla y el besugo rojo con la médula destruida, como en el ikejime, tardaron de 6 a 12 horas más en ponerse del todo rígidos que los peces sin eso.'), src: [4] },
+  { n: '25–30×', tone: 'bad', unit: W('faster spoiling', 'más rápido se daña'), what: W('Fish spoil about 25 to 30 times faster at 28 to 30 °C than on ice (0 °C, 32 °F). Our shade is that hot.', 'El pescado se daña unas 25 a 30 veces más rápido a 28–30 °C que en hielo (0 °C, 32 °F). Nuestra sombra está así de caliente.'), src: [2] },
+  { n: '6 h', tone: 'due', unit: W('to get it on ice', 'para ponerlo en hielo'), what: W('Tuna, mahi and mackerel need ice (0 °C, 32 °F) within 6 hours of dying in this heat, or a poison called histamine can build up and make people sick.', 'El atún, el dorado y la macarela necesitan hielo (0 °C, 32 °F) dentro de 6 horas de morir con este calor, o puede formarse un veneno llamado histamina que enferma.'), src: [1] },
+  { n: '6–12 h', tone: 'good', unit: W('later to stiffen', 'más tarde en ponerse rígido'), what: W('After death a fish stiffens (rigor mortis), and a fast, hard stiffening gives mushy fillets. In a Japanese test, yellowtail and red sea bream with the spinal cord destroyed, as in ikejime, took 6 to 12 hours longer to go fully stiff than fish without.', 'Después de morir el pescado se pone rígido (rigor mortis), y una rigidez rápida y fuerte deja filetes aguados. En una prueba japonesa, la cola amarilla y el besugo rojo con la médula destruida, como en el ikejime, tardaron de 6 a 12 horas más en ponerse del todo rígidos que los peces sin eso.'), src: [4] },
 ];
 
 // --- the chart
@@ -62,14 +63,14 @@ export const GRADES = {
 } as const;
 /** What each grade means, in the words of someone buying or cooking it. */
 export const GRADE_KEY = {
-  raw: W('Tastes freshly caught. Firm, clean, sweet. Fine for ceviche or raw.', 'Sabe a recién pescado. Firme, limpio, dulce. Bueno para ceviche o crudo.'),
+  raw: W('Tastes freshly caught: firm, clean, sweet. Fit for ceviche only if it was kept on ice from the start.', 'Sabe a recién pescado: firme, limpio, dulce. Sirve para ceviche solo si estuvo en hielo desde el principio.'),
   good: W('Still fresh. Cooked, it tastes great. Too old to eat raw.', 'Todavía fresco. Cocinado sabe muy bien. Ya está muy viejo para comerlo crudo.'),
   ok: W('The flavour is fading and the flesh is turning mushy. Cook it today.', 'El sabor se apaga y la carne se pone aguada. Cocínalo hoy.'),
   off: W('Strong fishy smell, mushy and sticky. Throw it out.', 'Olor fuerte a pescado, aguado y pegajoso. Bótalo.'),
 } as const;
 export const GRADE_HELP = W(
-  'How the grades are drawn: a freshness score used in fish science (the K-value) rises as the flesh breaks down. Under 20 % is ceviche-fresh, 20 to 40 % fresh, 40 to 60 % cook it now, over 60 % spoiled. These cut-offs are guides, not laws. A fish can make people sick from histamine (tuna, mahi, mackerel) even when it does not smell bad.',
-  'Cómo se dibujan los grados: un puntaje de frescura usado en la ciencia del pescado (el valor K) sube conforme la carne se descompone. Menos de 20 % es fresco para ceviche, 20 a 40 % fresco, 40 a 60 % cocínalo ya, más de 60 % dañado. Estos cortes son guías, no leyes. Un pescado puede enfermar por histamina (atún, dorado, macarela) aunque no huela mal.',
+  'How the grades are drawn: a freshness score used in fish science rises as the flesh breaks down. Under 20 % is ceviche-fresh, 20 to 40 % fresh, 40 to 60 % cook it now, over 60 % spoiled. These cut-offs are guides, not laws. A fish can make people sick from histamine (tuna, mahi, mackerel) even when it does not smell bad.',
+  'Cómo se dibujan los grados: un puntaje de frescura usado en la ciencia del pescado sube conforme la carne se descompone. Menos de 20 % es fresco para ceviche, 20 a 40 % fresco, 40 a 60 % cocínalo ya, más de 60 % dañado. Estos cortes son guías, no leyes. Un pescado puede enfermar por histamina (atún, dorado, macarela) aunque no huela mal.',
 );
 export const ICE_LIMIT = W('Dashed line: 6 h after death', 'Línea punteada: 6 h después de morir');
 export const ICE_LIMIT_KEY = W(
@@ -77,6 +78,10 @@ export const ICE_LIMIT_KEY = W(
   'El atún, el dorado y la macarela deben estar en hielo (0 °C, 32 °F) antes de esta línea (6 horas después de morir, con nuestro calor). Después, puede formarse un veneno llamado histamina. Cocinar no la quita, y el pescado puede no oler mal.',
 );
 export const NOW_AT = W('Checked after', 'Revisado a las');
+/** Under the chart title (graphics review D-3). */
+export const CHART_SUB = W('A taste score, not a safety check', 'Un puntaje de sabor, no una prueba de seguridad');
+/** Under the time axis (D-2): the axis is stretched at the start. */
+export const AXIS_NOTE = W('Time since death. The first hours are stretched so you can see them: the first 6 hours take a third of each bar.', 'Tiempo desde la muerte. Las primeras horas están estiradas para que se vean: las primeras 6 horas ocupan un tercio de cada barra.');
 export const CHART_NOTE = W(
   'ESTIMATE. These curves are modelled from fish-spoilage studies, and real fish vary by species and size, so trust the order of the bars, not the exact hours.',
   'ESTIMACIÓN. Estas curvas se modelan a partir de estudios del deterioro del pescado, y los peces varían según la especie y el tamaño, así que confía en el orden de las barras, no en las horas exactas.',
@@ -88,7 +93,7 @@ export const ROWS: MethodRow[] = [
   { id: 'stun-ice', name: W('Club or spike, bleed, ice', 'Garrote o punzón, desangrar, hielo'), sub: W('The simple way that works', 'La forma simple que funciona'), good: true },
   { id: 'gill-shade', name: W('Bled well, no ice', 'Bien desangrado, sin hielo'), sub: W('A well-bled fish in a hot boat', 'Un pescado bien desangrado en una lancha caliente'), good: false },
   { id: 'gut-nobleed', name: W('Gutted, not bled, no ice', 'Eviscerado, sin desangrar, sin hielo'), sub: W('Blood stays in the meat', 'La sangre se queda en la carne'), good: false },
-  { id: 'hit-leave', name: W('Hit once and left, no ice', 'Un golpe y a la lancha, sin hielo'), sub: W('Stunned, not bled', 'Aturdido, no desangrado'), good: false },
+  { id: 'hit-leave', name: W('Hit on the head, not bled, no ice', 'Golpe en la cabeza, sin desangrar, sin hielo'), sub: W('Stunned, not bled', 'Aturdido, no desangrado'), good: false },
   { id: 'suffocate', name: W('Left to die in the boat', 'Dejado morir en la lancha'), sub: W('Minutes of struggle, then the heat', 'Minutos de lucha, luego el calor'), good: false },
   { id: 'suffocate-ice', name: W('Left to die, iced 2 h later', 'Dejado morir, hielo 2 h después'), sub: W('Ice stops it getting worse, but it started badly', 'El hielo evita que empeore, pero ya empezó mal'), good: false },
 ];
@@ -160,13 +165,14 @@ export const METHODS: Method[] = [
     name: W('Ice slurry', 'Hielo en agua'),
     tag: W('The step that saves tuna, mahi and mackerel', 'El paso que salva atún, dorado y macarela'),
     marks: [
-      W('Half ice, half seawater: near 0 °C (32 °F)', 'Mitad hielo, mitad agua de mar: cerca de 0 °C (32 °F)'),
-      W('Fish covered, bled first, in shade', 'Pescado cubierto, desangrado antes, a la sombra'),
+      W('About half ice, half seawater: slushy, not clear water, near 0 °C (32 °F)', 'Más o menos mitad hielo, mitad agua de mar: espeso, no agua clara, cerca de 0 °C (32 °F)'),
+      W('Fish under the slurry, bled first; cooler covered and in shade', 'Pescado bajo el hielo, desangrado antes; hielera tapada y a la sombra'),
+      W('Big tuna and mahi: guts out, belly packed with ice', 'Atún y dorado grandes: sin tripas, la panza llena de hielo'),
     ],
     steps: [
       W('Fill the cooler with about half ice and half seawater, so it is near 0 °C (32 °F). Water touches every part of the fish; plain ice leaves air gaps.', 'Llena la hielera con mitad hielo y mitad agua de mar, para que quede cerca de 0 °C (32 °F). El agua toca todo el pescado; el hielo solo deja huecos de aire.'),
       W('Put the fish in as soon as it has bled. Keep it covered, in shade.', 'Mete el pescado apenas se desangre. Mantenlo cubierto y a la sombra.'),
-      W('Big fish: pack ice into the belly too, and cut the gut out with a clean knife.', 'Pescado grande: mete también hielo en la panza y saca las tripas con un cuchillo limpio.'),
+      W('Big tuna and mahi heat up inside: take the guts out on board with a clean knife and pack the belly with ice. Smaller fish can be gutted later, on ice.', 'El atún y el dorado grandes se calientan por dentro: sácales las tripas a bordo con un cuchillo limpio y llénales la panza de hielo. Los pescados más chicos se pueden eviscerar después, sobre hielo.'),
       W('Add ice as it melts. A cold, wet fish is fine. A warm fish is not.', 'Echa hielo conforme se derrite. Un pescado frío y mojado está bien. Uno caliente, no.'),
     ],
     note: { t: W('Slurry cools a fish faster than ice alone, because water touches the whole fish. Half ice and half water (1 to 1) is the usual advice. Small fish left for many hours in salty slurry take in salt.', 'El hielo en agua enfría un pescado más rápido que el hielo solo, porque el agua toca todo el pescado. Mitad hielo y mitad agua (1 a 1) es el consejo habitual. El pescado chico que se deja muchas horas en hielo con agua salada absorbe sal.'), src: [13, 12] },
@@ -206,7 +212,7 @@ export const MISTAKES: Mistake[] = [
       { t: W('Gutting does not drain the blood out of the meat. In cod, fish gutted without bleeding kept more blood in the fillet than fish that were bled first.', 'Eviscerar no saca la sangre de la carne. En bacalao, los peces eviscerados sin desangrar guardaron más sangre en el filete que los desangrados primero.'), src: [6] },
       { t: W('Gutting does help a little against the heat, because the guts are full of bacteria. The US FDA allows a fish with its gills and guts removed more time to reach ice (up to 12 hours) than a whole fish. It still has to reach the ice.', 'Eviscerar sí ayuda un poco contra el calor, porque las tripas están llenas de bacterias. La FDA de Estados Unidos permite a un pescado sin agallas ni tripas más tiempo para llegar al hielo (hasta 12 horas) que a uno entero. Aun así tiene que llegar al hielo.'), src: [1] },
     ],
-    fix: W('Bleed first, gut second, ice third.', 'Primero desangrar, luego eviscerar, luego hielo.'),
+    fix: W('Bleed first, then ice. Gut it afterwards, on ice (big tuna and mahi: on board, with ice in the belly).', 'Primero desangrar, luego hielo. Eviscéralo después, sobre hielo (atún y dorado grandes: a bordo, con hielo en la panza).'),
   },
   {
     id: 'no-ice',
@@ -369,8 +375,8 @@ export const ROUTINE_H = W('The five-step routine', 'La rutina de cinco pasos');
 export const ROUTINE: { n: string; head: Txt; body: Txt }[] = [
   { n: '1', head: W('Kill', 'Matar'), body: W('Spike or club it, seconds after it is on board.', 'Con punzón o garrote, a los segundos de subirlo a bordo.') },
   { n: '2', head: W('Bleed', 'Desangrar'), body: W('Cut both gill arches while the heart still beats. Head down in seawater, about 3 minutes.', 'Corta los dos arcos de las agallas mientras el corazón late. Cabeza abajo en agua de mar, unos 3 minutos.') },
-  { n: '3', head: W('Ice', 'Hielo'), body: W('Ice slurry (0 °C, 32 °F), about half ice and half seawater, within the hour. Tuna, mahi and mackerel must be on ice within 6 hours of dying, at the very latest.', 'Hielo en agua (0 °C, 32 °F), más o menos mitad hielo y mitad agua de mar, dentro de la hora. El atún, el dorado y la macarela deben estar en hielo antes de 6 horas de muertos, como máximo.') },
-  { n: '4', head: W('Clean', 'Limpiar'), body: W('Gut with a clean knife, rinse in clean cold water, keep the fish on ice (0 °C, 32 °F) while you work.', 'Eviscera con un cuchillo limpio, enjuaga en agua limpia y fría, mantén el pescado en hielo (0 °C, 32 °F) mientras trabajas.') },
+  { n: '3', head: W('Ice', 'Hielo'), body: W('Ice slurry (0 °C, 32 °F), about half ice and half seawater, within the hour. Tuna, mahi and mackerel must be on ice within 6 hours of dying, at the very latest. Big tuna and mahi: guts out and ice in the belly.', 'Hielo en agua (0 °C, 32 °F), más o menos mitad hielo y mitad agua de mar, dentro de la hora. El atún, el dorado y la macarela deben estar en hielo antes de 6 horas de muertos, como máximo. Atún y dorado grandes: sin tripas y con hielo en la panza.') },
+  { n: '4', head: W('Clean', 'Limpiar'), body: W('Back at the dock, gut with a clean knife, rinse in clean cold water, and keep the fish on ice (0 °C, 32 °F) while you work. Big tuna and mahi were already gutted on board.', 'Ya en el muelle, eviscera con un cuchillo limpio, enjuaga en agua limpia y fría, y mantén el pescado en hielo (0 °C, 32 °F) mientras trabajas. El atún y el dorado grandes ya se evisceraron a bordo.') },
   { n: '5', head: W('Keep cold', 'Mantener frío'), body: W('Keep it cold: on ice (0 °C, 32 °F), in the fridge (about 4 °C, 39 °F) with the fish sitting on ice, or wrapped airtight in the freezer. A fridge alone is not as good as ice.', 'Mantenlo frío: en hielo (0 °C, 32 °F), en la nevera (unos 4 °C, 39 °F) con el pescado sobre hielo, o bien sellado en el congelador. La nevera sola no es tan buena como el hielo.') },
 ];
 
