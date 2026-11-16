@@ -35,15 +35,15 @@ export const SOURCES: Source[] = [
 // --- header
 export const TITLE = W('Kill it. Bleed it. Ice it.', 'Mátalo. Desángralo. Ponle hielo.');
 export const LEDE = W(
-  'How a fish dies decides how it tastes and how long it keeps. Done right, the same snapper is still raw-fish fresh two days later. Done wrong, it is going off before you reach the beach.',
-  'Cómo muere un pescado decide a qué sabe y cuánto aguanta. Bien hecho, el mismo pargo sigue fresco para comer crudo dos días después. Mal hecho, se está dañando antes de llegar a la playa.',
+  'How a fish dies decides how it tastes and how long it keeps. Done right, a snapper is still fresh enough for ceviche more than a day later. Done wrong, it is spoiled within about five hours. (These times are our estimate.)',
+  'Cómo muere un pescado decide a qué sabe y cuánto aguanta. Bien hecho, un pargo sigue fresco para ceviche más de un día después. Mal hecho, está dañado en unas cinco horas. (Estos tiempos son una estimación nuestra.)',
 );
 
 export interface Stat { n: string; unit: Txt; what: Txt; src?: number[] }
 export const STATS: Stat[] = [
   { n: '25–30×', unit: W('faster spoiling', 'más rápido se daña'), what: W('Fish spoil about 25 to 30 times faster at 28 to 30 °C than on ice. Our shade is that hot.', 'El pescado se daña unas 25 a 30 veces más rápido a 28–30 °C que en hielo. Nuestra sombra está así de caliente.'), src: [2] },
   { n: '6 h', unit: W('to get it on ice', 'para ponerlo en hielo'), what: W('Tuna, mahi and mackerel need ice within 6 hours of dying in this heat, or a poison called histamine can build up and make people sick.', 'El atún, el dorado y la macarela necesitan hielo dentro de 6 horas de morir con este calor, o puede formarse un veneno llamado histamina que enferma.'), src: [1] },
-  { n: '+6–12 h', unit: W('before it stiffens', 'antes de ponerse rígido'), what: W('After death a fish stiffens (rigor mortis), and fast stiffening ruins the texture. Destroying the spinal cord, as in ikejime, held it off 6 to 12 hours in yellowtail and red sea bream.', 'Después de morir el pescado se pone rígido (rigor mortis), y si es rápido arruina la textura. Destruir la médula, como en el ikejime, lo retrasó de 6 a 12 horas en la cola amarilla y el besugo rojo.'), src: [4] },
+  { n: '6–12 h', unit: W('later to stiffen', 'más tarde en ponerse rígido'), what: W('After death a fish stiffens (rigor mortis), and a fast, hard stiffening gives mushy fillets. In a Japanese test, yellowtail and red sea bream with the spinal cord destroyed, as in ikejime, took 6 to 12 hours longer to go fully stiff than fish without.', 'Después de morir el pescado se pone rígido (rigor mortis), y una rigidez rápida y fuerte deja filetes aguados. En una prueba japonesa, la cola amarilla y el besugo rojo con la médula destruida, como en el ikejime, tardaron de 6 a 12 horas más en ponerse del todo rígidos que los peces sin eso.'), src: [4] },
 ];
 
 // --- the chart
@@ -61,9 +61,9 @@ export const GRADES = {
 /** What each grade means, in the words of someone buying or cooking it. */
 export const GRADE_KEY = {
   raw: W('Tastes freshly caught. Firm, clean, sweet. Fine for ceviche or raw.', 'Sabe a recién pescado. Firme, limpio, dulce. Bueno para ceviche o crudo.'),
-  good: W('Still fresh. Cook it and it tastes great. Not for raw any more.', 'Todavía fresco. Cocinado sabe muy bien. Ya no es para comer crudo.'),
-  ok: W('Flavour is fading and the flesh is going soft. Cook it today.', 'El sabor se apaga y la carne se pone blanda. Cocínalo hoy.'),
-  off: W('Strong fishy smell, soft and sticky. Throw it out.', 'Olor fuerte a pescado, blando y pegajoso. Bótalo.'),
+  good: W('Still fresh. Cooked, it tastes great. Too old to eat raw.', 'Todavía fresco. Cocinado sabe muy bien. Ya está muy viejo para comerlo crudo.'),
+  ok: W('The flavour is fading and the flesh is turning mushy. Cook it today.', 'El sabor se apaga y la carne se pone aguada. Cocínalo hoy.'),
+  off: W('Strong fishy smell, mushy and sticky. Throw it out.', 'Olor fuerte a pescado, aguado y pegajoso. Bótalo.'),
 } as const;
 export const GRADE_HELP = W(
   'How the grades are drawn: a freshness score used in fish science (the K-value) rises as the flesh breaks down. Under 20 % is ceviche-fresh, 20 to 40 % fresh, 40 to 60 % cook it now, over 60 % spoiled. These cut-offs are guides, not laws. A fish can make people sick from histamine (tuna, mahi, mackerel) even when it does not smell bad.',
@@ -71,8 +71,8 @@ export const GRADE_HELP = W(
 );
 export const ICE_LIMIT = W('Dashed line: 6 h after death', 'Línea punteada: 6 h después de morir');
 export const ICE_LIMIT_KEY = W(
-  'Tuna, mahi and mackerel must be on ice by this line (6 hours after they die, in our heat). Past it, a poison called histamine can build up that cooking does not remove and that does not smell.',
-  'El atún, el dorado y la macarela deben estar en hielo antes de esta línea (6 horas después de morir, con nuestro calor). Después, puede formarse un veneno llamado histamina que cocinar no quita y que no huele.',
+  'Tuna, mahi and mackerel must be on ice by this line (6 hours after they die, in our heat). Past it, a poison called histamine can build up. Cooking does not remove it, and the fish may not smell bad.',
+  'El atún, el dorado y la macarela deben estar en hielo antes de esta línea (6 horas después de morir, con nuestro calor). Después, puede formarse un veneno llamado histamina. Cocinar no la quita, y el pescado puede no oler mal.',
 );
 export const NOW_AT = W('Checked after', 'Revisado a las');
 export const CHART_NOTE = W(
@@ -84,7 +84,7 @@ export interface MethodRow { id: 'ikejime' | 'stun-ice' | 'gill-shade' | 'hit-le
 export const ROWS: MethodRow[] = [
   { id: 'ikejime', name: W('Spike, bleed, wire, ice slurry', 'Punzón, desangrado, alambre, hielo en agua'), sub: W('Ikejime, done within the minute', 'Ikejime, en menos de un minuto'), good: true },
   { id: 'stun-ice', name: W('Club or spike, bleed, ice', 'Garrote o punzón, desangrar, hielo'), sub: W('The simple way that works', 'La forma simple que funciona'), good: true },
-  { id: 'gill-shade', name: W('Bled well, no ice', 'Bien desangrado, sin hielo'), sub: W('Good fish, hot boat', 'Buen pescado, lancha caliente'), good: false },
+  { id: 'gill-shade', name: W('Bled well, no ice', 'Bien desangrado, sin hielo'), sub: W('A well-bled fish in a hot boat', 'Un pescado bien desangrado en una lancha caliente'), good: false },
   { id: 'gut-nobleed', name: W('Gutted, not bled, no ice', 'Eviscerado, sin desangrar, sin hielo'), sub: W('Blood stays in the meat', 'La sangre se queda en la carne'), good: false },
   { id: 'hit-leave', name: W('Hit once and left, no ice', 'Un golpe y a la lancha, sin hielo'), sub: W('Stunned, not bled', 'Aturdido, no desangrado'), good: false },
   { id: 'suffocate', name: W('Left to die in the boat', 'Dejado morir en la lancha'), sub: W('Minutes of struggle, then the heat', 'Minutos de lucha, luego el calor'), good: false },
@@ -94,8 +94,8 @@ export const ROWS: MethodRow[] = [
 // --- methods
 export const METHODS_H = W('Four ways to do it right', 'Cuatro formas de hacerlo bien');
 export const METHODS_P = W(
-  'Pick the one you can do every time. A fast club and a gill cut beats a perfect ikejime you skip when the fish are biting.',
-  'Escoge la que puedas hacer siempre. Un garrotazo rápido y un corte de agalla ganan a un ikejime perfecto que te saltas cuando pican.',
+  'Pick the one you can do every time. A quick club and gill cut that you do on every fish is better than a perfect ikejime that you skip when the fish are biting.',
+  'Escoge la que puedas hacer siempre. Un garrotazo rápido y un corte de agalla que haces en cada pescado valen más que un ikejime perfecto que te saltas cuando pican.',
 );
 export type MethodId = 'ikejime' | 'club' | 'bleed' | 'slurry';
 export interface Method { id: MethodId; name: Txt; tag: Txt; /** What each number on the drawing points at. */ marks: Txt[]; steps: Txt[]; note?: Fact; /** An option for when the main way is not possible. */ alt?: Fact }
@@ -112,7 +112,7 @@ export const METHODS: Method[] = [
     ],
     steps: [
       W('Hold the fish still, wet cloth over the eyes. Get it out of the water and do it at once.', 'Sujeta el pescado quieto, con un trapo mojado en los ojos. Sácalo del agua y hazlo de una vez.'),
-      W('Spike the brain: a sharp point just behind and above the eye, between the eye and the gill cover, angled in. The mouth opens and the body shivers once.', 'Punza el cerebro: una punta afilada justo detrás y arriba del ojo, entre el ojo y la tapa de la agalla, en ángulo hacia adentro. La boca se abre y el cuerpo tiembla una vez.'),
+      W('Spike the brain: a sharp point just behind and above the eye, between the eye and the gill cover, pointing in toward the brain. The mouth opens and the body shivers once.', 'Punza el cerebro: una punta afilada justo detrás y arriba del ojo, entre el ojo y la tapa de la agalla, apuntando hacia adentro, hacia el cerebro. La boca se abre y el cuerpo tiembla una vez.'),
       W('Cut behind the gills on both sides, and the tail at its base, to open the big vessels.', 'Corta detrás de las agallas por los dos lados, y la cola en su base, para abrir los vasos grandes.'),
       W('Optional: run a thin wire down the spinal canal from the tail cut to the brain (called shinkei-jime). It stops the twitching, which would use up more of the fish’s energy.', 'Opcional: pasa un alambre fino por el canal de la columna desde el corte de la cola hasta el cerebro (se llama shinkei-jime). Detiene el temblor, que gastaría más energía del pescado.'),
       W('Bleed in a bucket of seawater, changing it until it runs clear, then straight into ice slurry.', 'Desangra en un balde de agua de mar, cambiándola hasta que salga clara, y luego directo al hielo en agua.'),
@@ -147,7 +147,7 @@ export const METHODS: Method[] = [
     steps: [
       W('After the blow or spike, slice through both gill arches (or the throat) with a sharp knife.', 'Tras el golpe o el punzón, corta los dos arcos de las agallas (o la garganta) con un cuchillo afilado.'),
       W('Put the fish head down in a bucket of fresh seawater, so the heart pumps the blood out into the water.', 'Pon el pescado con la cabeza hacia abajo en un balde de agua de mar limpia, para que el corazón bombee la sangre al agua.'),
-      W('Three minutes takes out most of the blood in the big arteries. Start at once: a fish that dies before it is bled keeps more blood.', 'Tres minutos sacan casi toda la sangre de las arterias grandes. Empieza de una vez: un pescado que muere antes de desangrarse retiene más sangre.'),
+      W('Three minutes drains most of the blood out of the fish. Start at once: a fish that dies before it is bled keeps more blood in its flesh.', 'Tres minutos sacan del pescado casi toda la sangre. Empieza de una vez: un pescado que muere antes de desangrarse deja más sangre en la carne.'),
       W('When the water turns red and warm, swap it for fresh seawater, and keep the bucket in the shade.', 'Cuando el agua se ponga roja y caliente, cámbiala por agua de mar limpia, y mantén el balde a la sombra.'),
     ],
     note: { t: W('Bleeding with no stun first is hard on the fish and thrashes blood into the flesh. Stun first.', 'Desangrar sin aturdir antes maltrata al pescado y le mete sangre en la carne. Aturde primero.'), src: [6, 11] },
@@ -165,9 +165,9 @@ export const METHODS: Method[] = [
       W('Fill the cooler with about half ice and half seawater, so it is near 0 °C. Water touches every part of the fish; plain ice leaves air gaps.', 'Llena la hielera con mitad hielo y mitad agua de mar, para que quede cerca de 0 °C. El agua toca todo el pescado; el hielo solo deja huecos de aire.'),
       W('Put the fish in as soon as it has bled. Keep it covered, in shade.', 'Mete el pescado apenas se desangre. Mantenlo cubierto y a la sombra.'),
       W('Big fish: pack ice into the belly too, and cut the gut out with a clean knife.', 'Pescado grande: mete también hielo en la panza y saca las tripas con un cuchillo limpio.'),
-      W('Add ice as it melts. A fish that is cold but wet is fine; a fish that is warm and dry is not.', 'Echa hielo conforme se derrite. Un pescado frío y mojado está bien; uno caliente y seco, no.'),
+      W('Add ice as it melts. A cold, wet fish is fine. A warm fish is not.', 'Echa hielo conforme se derrite. Un pescado frío y mojado está bien. Uno caliente, no.'),
     ],
-    note: { t: W('Slurry cools fastest because water touches the whole fish. The 1:1 ratio is the usual advice; leave small fish in salty slurry for hours and salt gets into them.', 'El hielo en agua enfría más rápido porque el agua toca todo el pescado. La proporción 1:1 es el consejo habitual; deja pescado chico horas en agua salada y le entra sal.'), src: [13, 12] },
+    note: { t: W('Slurry cools a fish faster than ice alone, because water touches the whole fish. Half ice and half water (1 to 1) is the usual advice. Small fish left for many hours in salty slurry take in salt.', 'El hielo en agua enfría un pescado más rápido que el hielo solo, porque el agua toca todo el pescado. Mitad hielo y mitad agua (1 a 1) es el consejo habitual. El pescado chico que se deja muchas horas en hielo con agua salada absorbe sal.'), src: [13, 12] },
   },
 ];
 // --- mistakes
@@ -182,8 +182,8 @@ export const MISTAKES: Mistake[] = [
     id: 'suffocate',
     name: W('Letting it die in the boat', 'Dejarlo morir en la lancha'),
     what: [
-      { t: W('A fish gasping on the deck fights for minutes. The fight uses up the muscle’s fuel (its energy, called ATP, and its stored sugar, called glycogen) and fills the muscle with lactic acid, which makes the flesh sour and soft.', 'Un pescado que boquea en la cubierta pelea por minutos. La pelea gasta el combustible del músculo (su energía, llamada ATP, y su azúcar de reserva, llamada glucógeno) y llena el músculo de ácido láctico, que deja la carne agria y blanda.'), src: [2] },
-      { t: W('A fish that struggles stiffens (rigor mortis) sooner and harder. The tight muscle tears away from its connective tissue, so the fillet splits open (called gaping) and comes out soft, pale and watery. A stressed cod at 30 °C started stiffening in half an hour.', 'Un pescado que lucha se pone rígido (rigor mortis) antes y con más fuerza. El músculo tenso se desprende de su tejido conectivo, así que el filete se abre (se llama “gaping”) y sale blando, pálido y aguado. Un bacalao estresado a 30 °C empezó a ponerse rígido en media hora.'), src: [2] },
+      { t: W('A fish gasping on the deck fights for minutes. The fight uses up the muscle’s fuel (its energy, called ATP, and its stored sugar, called glycogen) and fills the muscle with lactic acid, which makes the flesh sour and mushy.', 'Un pescado que boquea en la cubierta pelea por minutos. La pelea gasta el combustible del músculo (su energía, llamada ATP, y su azúcar de reserva, llamada glucógeno) y llena el músculo de ácido láctico, que deja la carne agria y aguada.'), src: [2] },
+      { t: W('A fish that struggles stiffens (rigor mortis) sooner and harder. The tight muscle tears away from its connective tissue, so the fillet splits open (called gaping) and comes out mushy, pale and watery. A stressed cod at 30 °C started stiffening in half an hour.', 'Un pescado que lucha se pone rígido (rigor mortis) antes y con más fuerza. El músculo tenso se desprende de su tejido conectivo, así que el filete se abre (se llama “gaping”) y sale aguado y pálido. Un bacalao estresado a 30 °C empezó a ponerse rígido en media hora.'), src: [2] },
       { t: W('It starts out already tired, so our model has this fish spoiled in under 5 hours in the shade.', 'Empieza ya agotado, así que nuestro modelo lo da por dañado en menos de 5 horas a la sombra.'), est: true },
     ],
     fix: W('Kill it in seconds: spike or club, then bleed.', 'Mátalo en segundos: punzón o garrote, y a desangrar.'),
@@ -202,7 +202,7 @@ export const MISTAKES: Mistake[] = [
     name: W('Gutting it without bleeding it', 'Eviscerarlo sin desangrarlo'),
     what: [
       { t: W('Gutting does not drain the blood out of the meat. In cod, fish gutted without bleeding kept more blood in the fillet than fish that were bled first.', 'Eviscerar no saca la sangre de la carne. En bacalao, los peces eviscerados sin desangrar guardaron más sangre en el filete que los desangrados primero.'), src: [6] },
-      { t: W('Gutting does help a little against the heat, because the guts are full of bacteria. The US FDA gives a fish with its gills and guts removed up to 12 hours to reach ice, instead of 6. It still has to reach the ice.', 'Eviscerar sí ayuda un poco contra el calor, porque las tripas están llenas de bacterias. La FDA de Estados Unidos da a un pescado sin agallas ni tripas hasta 12 horas para llegar al hielo, en vez de 6. Aun así tiene que llegar al hielo.'), src: [1] },
+      { t: W('Gutting does help a little against the heat, because the guts are full of bacteria. The US FDA allows a fish with its gills and guts removed more time to reach ice (up to 12 hours) than a whole fish. It still has to reach the ice.', 'Eviscerar sí ayuda un poco contra el calor, porque las tripas están llenas de bacterias. La FDA de Estados Unidos permite a un pescado sin agallas ni tripas más tiempo para llegar al hielo (hasta 12 horas) que a uno entero. Aun así tiene que llegar al hielo.'), src: [1] },
     ],
     fix: W('Bleed first, gut second, ice third.', 'Primero desangrar, luego eviscerar, luego hielo.'),
   },
@@ -214,7 +214,7 @@ export const MISTAKES: Mistake[] = [
       { t: W('So a fish that keeps 10 to 14 days in ice is only good for roughly 8 to 12 hours in a hot boat.', 'Así que un pescado que dura de 10 a 14 días en hielo solo aguanta unas 8 a 12 horas en una lancha caliente.'), est: true },
       { t: W('The bacteria turn an odourless chemical in the flesh (TMAO) into TMA, the common “fishy smell”, and produce sulphurous smells associated with old fish.', 'Las bacterias convierten una sustancia sin olor de la carne (TMAO) en TMA, el común “olor a pescado”, y producen olores a azufre asociados con el pescado viejo.'), src: [2] },
       { t: W('Tuna, mahi and mackerel also build up histamine as they warm. Cooking does not remove it.', 'El atún, el dorado y la macarela también acumulan histamina al calentarse. Cocinar no la quita.'), src: [1] },
-      { t: W('In Costa Rica’s Golfo Dulce (Pacific, 1990), poor use of ice was a named cause of lost fish on small boats that carried block ice instead of crushed ice. The fish lay on or beside the block, ice was chopped only once a day, and big chunks crushed the fish instead of cooling them all around. The fish were rejected for dull eyes, soft flesh and a rancid smell.', 'En el Golfo Dulce de Costa Rica (Pacífico, 1990), el mal uso del hielo fue una causa señalada de pescado perdido en lanchas pequeñas que llevaban hielo en marqueta en vez de hielo molido. El pescado quedaba encima o al lado de la marqueta, el hielo se picaba solo una vez al día, y los trozos grandes aplastaban el pescado en vez de enfriarlo por todos lados. Lo rechazaban por los ojos opacos, la carne blanda y el olor rancio.'), src: [15, 13] },
+      { t: W('In Costa Rica’s Golfo Dulce (Pacific, 1990), poor use of ice was a named cause of lost fish on small boats that carried block ice instead of crushed ice. The fish lay on or beside the block, ice was chopped only once a day, and big chunks crushed the fish instead of cooling them all around. The fish were rejected for dull eyes, mushy flesh and a rancid smell.', 'En el Golfo Dulce de Costa Rica (Pacífico, 1990), el mal uso del hielo fue una causa señalada de pescado perdido en lanchas pequeñas que llevaban hielo en marqueta en vez de hielo molido. El pescado quedaba encima o al lado de la marqueta, el hielo se picaba solo una vez al día, y los trozos grandes aplastaban el pescado en vez de enfriarlo por todos lados. Lo rechazaban por los ojos opacos, la carne aguada y el olor rancio.'), src: [15, 13] },
     ],
     fix: W('Crush the ice, add seawater, cover the fish. Even badly used ice beats none.', 'Muele el hielo, agrégale agua de mar y cubre el pescado. Hasta el hielo mal usado vale más que nada.'),
   },
@@ -239,25 +239,31 @@ export const STEPS: Step[] = [
     id: 'acid',
     name: W('2  Lactic acid turns the flesh sour', '2  El ácido láctico agria la carne'),
     body: [
-      { t: W('With no oxygen, the muscle burns glycogen into lactic acid, and the flesh turns acid (its pH falls). In one study a stressed fish lost 0.5 pH in 3 hours, while a rested one lost 0.1.', 'Sin oxígeno, el músculo quema glucógeno y produce ácido láctico, y la carne se vuelve ácida (baja su pH). En un estudio, un pez estresado perdió 0,5 de pH en 3 horas, y uno descansado perdió 0,1.'), src: [2] },
-      { t: W('Acid flesh holds less water, so it goes soft, pale and sticky. The final acidity depends on the fish. A lower pH means more acid: tuna ends at pH 5.4 to 5.6, mackerel at 5.8 to 6.0 and cod at 6.1 to 6.5.', 'La carne ácida retiene menos agua, así que se pone blanda, pálida y pegajosa. La acidez final depende del pescado. Un pH más bajo es más ácido: el atún termina en pH 5,4 a 5,6, la macarela en 5,8 a 6,0 y el bacalao en 6,1 a 6,5.'), src: [2] },
+      { t: W('With no oxygen, the muscle burns glycogen into lactic acid, and the flesh turns acid (its pH falls). In a study on loach (a small freshwater fish), a stressed fish lost 0.5 pH in 3 hours, while a rested one lost 0.1.', 'Sin oxígeno, el músculo quema glucógeno y produce ácido láctico, y la carne se vuelve ácida (baja su pH). En un estudio con locha (un pez pequeño de agua dulce), un pez estresado perdió 0,5 de pH en 3 horas, y uno descansado perdió 0,1.'), src: [2] },
+      { t: W('Acid flesh holds less water, so it turns mushy, pale and sticky. The final acidity depends on the fish. A lower pH means more acid: tuna ends at pH 5.4 to 5.6, mackerel at 5.8 to 6.0 and cod at 6.1 to 6.5.', 'La carne ácida retiene menos agua, así que se pone aguada, pálida y pegajosa. La acidez final depende del pescado. Un pH más bajo es más ácido: el atún termina en pH 5,4 a 5,6, la macarela en 5,8 a 6,0 y el bacalao en 6,1 a 6,5.'), src: [2] },
     ],
   },
   {
     id: 'rigor',
     name: W('3  Rigor mortis: the stiffening after death', '3  Rigor mortis: la rigidez tras la muerte'),
     body: [
-      { t: W('When the muscle’s ATP runs almost out, the muscle locks stiff. In cod stressed at 30 °C, stiffening starts after half an hour and is over in 1 to 2 hours. In calm cod on ice (0 °C) it starts after 14 to 15 hours and lasts 72 to 96 hours.', 'Cuando al músculo casi se le acaba el ATP, se traba rígido. En bacalao estresado a 30 °C, la rigidez empieza a la media hora y termina en 1 a 2 horas. En bacalao tranquilo en hielo (0 °C) empieza a las 14 o 15 horas y dura de 72 a 96 horas.'), src: [2] },
-      { t: W('Fast stiffening tears the flesh away from its connective tissue (gaping) and leaves soft fillets. A blow to the head delayed stiffening by up to 18 hours. Destroying the spinal cord, as in ikejime, delayed it by 6 to 12 hours in yellowtail and red sea bream. In plaice it came sooner, so species differ.', 'Una rigidez rápida desprende la carne de su tejido conectivo (gaping) y deja filetes blandos. Un golpe en la cabeza retrasó la rigidez hasta 18 horas. Destruir la médula, como en el ikejime, la retrasó de 6 a 12 horas en la cola amarilla y el besugo rojo. En la platija llegó antes, así que las especies varían.'), src: [2, 4] },
-      { t: W('We have no stiffening times for snapper, jack or snook at 28 °C. The model assumes they behave like the fish that were measured.', 'No tenemos tiempos de rigidez para pargo, jurel o róbalo a 28 °C. El modelo supone que se comportan como los peces que se midieron.'), est: true },
+      { t: W('When the muscle’s ATP is almost used up, the muscle locks stiff. How soon that happens depends on how the fish died and how warm it is. In cod that struggled before death, stiffening starts after 30 minutes at 30 °C and is over in 1 to 2 hours. In calm cod on ice (0 °C), it starts after 14 to 15 hours and lasts 3 to 4 days.', 'Cuando al músculo casi se le acaba el ATP, se traba rígido. Qué tan pronto pasa depende de cómo murió el pescado y de qué tan caliente está. En bacalao que luchó antes de morir, la rigidez empieza a los 30 minutos a 30 °C y termina en 1 a 2 horas. En bacalao tranquilo en hielo (0 °C), empieza a las 14 o 15 horas y dura de 3 a 4 días.'), src: [2] },
+      { t: W('A fast, hard stiffening tears the flesh away from its connective tissue. That splits the fillet open (gaping) and leaves it mushy instead of firm.', 'Una rigidez rápida y fuerte desprende la carne de su tejido conectivo. Eso abre el filete (gaping) y lo deja aguado en vez de firme.'), src: [2] },
+      { t: W('Hitting a fish on the head: one review says that fish killed by a blow to the head went stiff up to 18 hours later than fish killed in iced water. It does not say which fish or what temperature.', 'Pegarle al pescado en la cabeza: una revisión dice que los peces matados con un golpe en la cabeza se pusieron rígidos hasta 18 horas más tarde que los peces matados en agua con hielo. No dice de qué pez ni a qué temperatura.'), src: [2] },
+      { t: W('Spiking and destroying the spinal cord, as in ikejime: in a separate Japanese test on yellowtail and red sea bream, fish with the spinal cord destroyed took 6 to 12 hours longer to go fully stiff than fish without. The summary we could read does not say how the comparison fish were killed.', 'Punzar y destruir la médula, como en el ikejime: en una prueba japonesa aparte con cola amarilla y besugo rojo, los peces con la médula destruida tardaron de 6 a 12 horas más en ponerse del todo rígidos que los peces sin eso. El resumen que pudimos leer no dice cómo mataron a los peces de comparación.'), src: [4] },
+      { t: W('These two numbers come from different studies, with different fish and different comparisons. They cannot be added together or compared with each other, and we found no test of a head blow against a spike.', 'Estos dos números vienen de estudios distintos, con peces distintos y comparaciones distintas. No se pueden sumar ni comparar entre sí, y no encontramos ninguna prueba de un golpe en la cabeza contra un punzón.') },
+      { t: W('One exception: in plaice (a flatfish), the fish with the spinal cord destroyed went fully stiff sooner, not later. The authors blamed that fish’s poorly developed nerves.', 'Una excepción: en la platija (un pez plano), los peces con la médula destruida se pusieron del todo rígidos antes, no después. Los autores culparon a los nervios poco desarrollados de ese pez.'), src: [4] },
+      { t: W('We found no test on snapper, jack or snook. We assume they behave like yellowtail and red sea bream.', 'No encontramos ninguna prueba con pargo, jurel ni róbalo. Suponemos que se comportan como la cola amarilla y el besugo rojo.'), est: true },
     ],
   },
   {
     id: 'blood',
     name: W('4  Blood spoils the meat', '4  La sangre daña la carne'),
     body: [
-      { t: W('Blood left in the flesh darkens it, tastes of iron and feeds bacteria. In cod, most of the blood left the big arteries within 3 minutes, and bleeding for 30 minutes took out hardly any more.', 'La sangre que queda en la carne la oscurece, sabe a hierro y alimenta bacterias. En bacalao, casi toda la sangre salió de las arterias grandes en 3 minutos, y desangrar 30 minutos casi no sacó más.'), src: [6] },
-      { t: W('Fish that die before they are bled, and fish gutted without being bled, kept more blood. Blood that a hard struggle pushes into the muscle cannot be bled out.', 'Los peces que mueren antes de desangrarse, y los eviscerados sin desangrar, retuvieron más sangre. La sangre que una pelea dura mete en el músculo ya no se puede sacar.'), src: [6] },
+      { t: W('Blood left in the flesh darkens it, tastes of iron and feeds bacteria.', 'La sangre que queda en la carne la oscurece, sabe a hierro y alimenta bacterias.'), src: [6] },
+      { t: W('When the gills are cut, the heart keeps pumping and the blood drains out of the fish into the water. In a cod study, most of the blood was out after 3 minutes. Bleeding for 30 minutes left almost the same amount of blood in the flesh as bleeding for 3.', 'Cuando se cortan las agallas, el corazón sigue bombeando y la sangre sale del pescado al agua. En un estudio con bacalao, casi toda la sangre ya había salido a los 3 minutos. Desangrar 30 minutos dejó en la carne casi la misma cantidad de sangre que desangrar 3.'), src: [6] },
+      { t: W('Fish that die before they are bled keep more blood in the flesh. So do fish that are gutted without being bled. When a hard struggle forces blood into the muscle, it cannot be bled out.', 'Los peces que mueren antes de desangrarse dejan más sangre en la carne. Los eviscerados sin desangrar también. Cuando una pelea dura mete sangre en el músculo, ya no se puede sacar.'), src: [6] },
+      { t: W('In the loach study, bleeding the fish also cut the lactic acid the muscle made after death.', 'En el estudio con locha, desangrar al pez también redujo el ácido láctico que el músculo produjo después de morir.'), src: [2] },
     ],
   },
   {
@@ -291,11 +297,11 @@ export const HIST_SPECIES = W(
 export interface Clock { h: number; label: Txt; src: number[] }
 export const HIST_CLOCK: Clock[] = [
   { h: 6, label: W('Ice, or 4.4 °C (fridge cold), within 6 hours of death when the air or water is above 28.3 °C: our usual day', 'Hielo, o 4,4 °C (frío de nevera), dentro de 6 horas de morir cuando el aire o el agua pasan de 28,3 °C: nuestro día normal'), src: [1] },
-  { h: 9, label: W('Within 9 hours when it is cooler', 'Dentro de 9 horas cuando está más fresco'), src: [1] },
-  { h: 12, label: W('Within 12 hours if the gills and guts are removed first', 'Dentro de 12 horas si se le quitan antes las agallas y las tripas'), src: [1] },
+  { h: 9, label: W('Within 9 hours when the air and water are 28.3 °C or cooler', 'Dentro de 9 horas cuando el aire y el agua están a 28,3 °C o menos'), src: [1] },
+  { h: 12, label: W('Up to 12 hours if the gills and guts are removed before icing', 'Hasta 12 horas si se le quitan las agallas y las tripas antes de enhielar'), src: [1] },
 ];
 export const HIST_FACTS: Fact[] = [
-  { t: W('In a lab test, mahi-mahi seeded with a histamine-making bacterium reached 600 ppm after 12 hours at 25 °C, and 380 ppm after 24 hours at 15 °C. In ice at 4 °C it stayed under 30 ppm even after 4 days. (ppm means parts per million.)', 'En una prueba de laboratorio, el mahi-mahi al que se le agregó una bacteria productora de histamina llegó a 600 ppm a las 12 horas a 25 °C, y a 380 ppm a las 24 horas a 15 °C. En hielo a 4 °C se quedó en menos de 30 ppm aun después de 4 días. (ppm significa partes por millón.)'), src: [7] },
+  { t: W('In a lab test, mahi-mahi seeded with a histamine-making bacterium reached 600 ppm after 12 hours at 25 °C, and 380 ppm after 24 hours at 15 °C. Kept at 4 °C, it stayed under 30 ppm even after 4 days. (ppm means parts per million.)', 'En una prueba de laboratorio, el mahi-mahi al que se le agregó una bacteria productora de histamina llegó a 600 ppm a las 12 horas a 25 °C, y a 380 ppm a las 24 horas a 15 °C. Mantenido a 4 °C, se quedó en menos de 30 ppm aun después de 4 días. (ppm significa partes por millón.)'), src: [7] },
   { t: W('Mackerel held at 32 °C reached 50 ppm after 12 hours and 100 ppm after 16 (a review of earlier studies).', 'La macarela a 32 °C llegó a 50 ppm a las 12 horas y a 100 ppm a las 16 (una revisión de estudios anteriores).'), src: [8] },
   { t: W('The US FDA’s guidance level is 50 ppm. Fish that made people sick were usually above 200 ppm and often above 500 ppm.', 'El nivel de guía de la FDA de Estados Unidos es 50 ppm. Los pescados que enfermaron a personas casi siempre pasaban de 200 ppm y a menudo de 500 ppm.'), src: [1] },
   { t: W('Symptoms start from minutes to a few hours after eating: flushed face, burning or peppery mouth, headache, hives, sweating, racing heart, stomach cramps and diarrhoea, sometimes wheezing. They last from 12 hours to a few days.', 'Los síntomas empiezan de minutos a pocas horas después de comer: cara enrojecida, boca ardiente o picante, dolor de cabeza, ronchas, sudor, corazón acelerado, cólicos y diarrea, a veces silbidos al respirar. Duran de 12 horas a unos días.'), src: [1] },
@@ -308,9 +314,9 @@ export const ROUTINE_H = W('The five-step routine', 'La rutina de cinco pasos');
 export const ROUTINE: { n: string; head: Txt; body: Txt }[] = [
   { n: '1', head: W('Kill', 'Matar'), body: W('Spike or club it, seconds after it is on board.', 'Con punzón o garrote, a los segundos de subirlo a bordo.') },
   { n: '2', head: W('Bleed', 'Desangrar'), body: W('Cut both gill arches. Head down in seawater, three minutes or more.', 'Corta los dos arcos de las agallas. Cabeza abajo en agua de mar, tres minutos o más.') },
-  { n: '3', head: W('Ice', 'Hielo'), body: W('Slurry, about half ice and half seawater, within the hour. Never past 6 hours for tuna, mahi and mackerel.', 'Hielo en agua, mitad y mitad más o menos, dentro de la hora. Nunca más de 6 horas para atún, dorado y macarela.') },
+  { n: '3', head: W('Ice', 'Hielo'), body: W('Ice slurry, about half ice and half seawater, within the hour. Tuna, mahi and mackerel must be on ice within 6 hours of dying, at the very latest.', 'Hielo en agua, más o menos mitad hielo y mitad agua de mar, dentro de la hora. El atún, el dorado y la macarela deben estar en hielo antes de 6 horas de muertos, como máximo.') },
   { n: '4', head: W('Clean', 'Limpiar'), body: W('Gut with a clean knife, rinse in clean cold water, keep the fish on ice while you work.', 'Eviscera con un cuchillo limpio, enjuaga en agua limpia y fría, mantén el pescado en hielo mientras trabajas.') },
-  { n: '5', head: W('Keep cold', 'Mantener frío'), body: W('Cold and dry: on ice at the shop, in the fridge, or wrapped airtight in the freezer.', 'Frío y seco: en hielo en el local, en la nevera, o bien sellado en el congelador.') },
+  { n: '5', head: W('Keep cold', 'Mantener frío'), body: W('Keep it cold: on ice, in the fridge, or wrapped airtight in the freezer.', 'Mantenlo frío: en hielo, en la nevera, o bien sellado en el congelador.') },
 ];
 
 // --- footer
