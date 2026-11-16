@@ -79,6 +79,8 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
       <button type="button" class="fc-link" id="fc-idlink" data-for="fish dive spear snorkel">${GUIDE_ICON}<span><b>${esc(t('fc.idLink'))}</b><small>${esc(t('fc.idLinkSub'))}</small></span><i aria-hidden="true">→</i></button>
       <a class="fc-link" href="#dispatch" data-for="fish spear">${DISPATCH_ICON}<span><b>${esc(t('dp.link'))}</b><small>${esc(t('dp.linkSub'))}</small></span><i aria-hidden="true">→</i></a>
       <a class="fc-link" href="#notes" data-for="fish spear dive snorkel">${DISPATCH_ICON}<span><b>${esc(t('nt.link'))}</b><small>${esc(t('nt.linkSub'))}</small></span><i aria-hidden="true">→</i></a>
+      <a class="fc-link" href="#notes/surf" data-for="surf">${GUIDE_ICON}<span><b>${esc(t('nt.surfLink'))}</b><small>${esc(t('nt.surfLinkSub'))}</small></span><i aria-hidden="true">→</i></a>
+      <a class="fc-link" href="#notes/water" data-for="dive snorkel">${GUIDE_ICON}<span><b>${esc(t('nt.waterLink'))}</b><small>${esc(t('nt.waterLinkSub'))}</small></span><i aria-hidden="true">→</i></a>
       <a class="fc-link" href="#notes/aid" data-for="fish spear dive snorkel">${GUIDE_ICON}<span><b>${esc(t('nt.aidLink'))}</b><small>${esc(t('nt.aidLinkSub'))}</small></span><i aria-hidden="true">→</i></a>
     </nav>` : ''}
     <section class="fc-sec fc-in" aria-labelledby="fc-cond-h">

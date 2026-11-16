@@ -813,10 +813,11 @@ export function mountKineticMap(d: KmDeps) {
   /** Clear, labelled links for the water activities: identify what you see, and (fish, spear) kill, bleed, ice. */
   const linksHTML = () => {
     const idAct = S.act === 'fish' || S.act === 'dive' || S.act === 'spear' || S.act === 'snorkel';
+    if (S.act === 'surf') return `<div class="k-links"><a class="k-link" href="#notes/surf"><span>${L2('Surf: etiquette, wave size, hazards by break', 'Surf: etiqueta, tamaño de ola, peligros por rompiente')}</span>${ARROW}</a></div>`;
     if (!idAct) return '';
     const id = d.openGuide ? `<button type="button" class="k-link" data-go="identify"><span>${L2('Identify what you see', 'Identifica lo que ves')}</span>${ARROW}</button>` : '';
     const dp = S.act === 'fish' || S.act === 'spear' ? `<a class="k-link" href="#dispatch"><span>${L2('Kill, bleed, ice your catch', 'Mata, desangra y enfría tu pesca')}</span>${ARROW}</a>` : '';
-    const nt = `<a class="k-link" href="#notes"><span>${L2('Field notes: rules, rigs, cooking', 'Notas de campo: reglas, aparejos, cocina')}</span>${ARROW}</a><a class="k-link" href="#notes/aid"><span>${L2('Stung or bitten? First aid', '¿Picadura o mordida? Primeros auxilios')}</span>${ARROW}</a>`;
+    const nt = `<a class="k-link" href="#notes"><span>${L2('Field notes: rules, rigs, cooking', 'Notas de campo: reglas, aparejos, cocina')}</span>${ARROW}</a>${S.act === 'dive' || S.act === 'snorkel' ? `<a class="k-link" href="#notes/water"><span>${L2('Dive and snorkel: basics and park rules', 'Buceo y snorkel: lo básico y reglas de los parques')}</span>${ARROW}</a>` : ''}<a class="k-link" href="#notes/aid"><span>${L2('Stung or bitten? First aid', '¿Picadura o mordida? Primeros auxilios')}</span>${ARROW}</a>`;
     return `<div class="k-links">${id}${dp}${nt}</div>`;
   };
   /**
