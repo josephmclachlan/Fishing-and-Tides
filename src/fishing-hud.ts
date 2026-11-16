@@ -248,5 +248,10 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     const biteDay = light.reduce((a, s) => a + s.bite, 0) / Math.max(1, light.length);
     return { bite: now, biteDay: Math.round(biteDay) };
   };
-  return { scoreCatch, refresh: queue };
+  /** Switch the target species from outside (the guide's SHOW ON MAP). */
+  const setSpecies = (id: SpeciesId) => {
+    const k = SPECIES.findIndex((s) => s.id === id);
+    if (k >= 0 && k !== i) ((i = k), apply());
+  };
+  return { scoreCatch, refresh: queue, setSpecies };
 }

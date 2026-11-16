@@ -157,8 +157,8 @@ export function tilesHtml(list: readonly TileView[]): string {
       return `<article class="fc-tile${x.lv === null ? '' : ` ${lvCls(x.lv)} has-lv`}" data-kind="${x.kind}" data-tile="${i}"${x.tip ? ` tabindex="0"` : ''}>
         <div class="fc-t-top"><span class="fc-mono">${esc(x.k)}</span><span class="fc-mono fc-ix">${String(i + 1).padStart(2, '0')}</span></div>
         <canvas class="fc-t-viz" aria-hidden="true"></canvas>
-        <div class="fc-t-val">${esc(x.v)}${x.small ? `<small>${esc(x.small)}</small>` : ''}</div>
-        <p class="fc-t-sub">${x.sub.filter(Boolean).map(esc).join('<br>')}</p>
+        <div class="fc-t-val">${x.links?.[0] ? `<a class="fc-t-go" href="${esc(x.links[0])}">${esc(x.v)}</a>` : esc(x.v)}${x.small ? `<small>${esc(x.small)}</small>` : ''}</div>
+        <p class="fc-t-sub">${x.links ? x.sub[0] ? x.sub[0].split(' · ').map((n, j) => (x.links![j + 1] ? `<a class="fc-t-go" href="${esc(x.links![j + 1])}">${esc(n)}</a>` : esc(n))).join(' · ') : '' : x.sub.filter(Boolean).map(esc).join('<br>')}</p>
         ${x.tip ? `<div class="fc-t-tip"><p>${esc(x.tip)}</p></div>` : ''}
       </article>`;
     })

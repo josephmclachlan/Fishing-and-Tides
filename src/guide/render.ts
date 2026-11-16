@@ -7,6 +7,7 @@
 import { t, type Key } from '../i18n';
 import { UI } from '../icons/ui';
 import { artFor, artSvg, GROUP_ART } from './art';
+import { fishKindFor } from '../fishing/guide-link';
 import { citeTab } from './cite';
 import { cleanHtml, dispatchLinkHtml } from './clean';
 import {
@@ -104,6 +105,12 @@ export function badges(e: Entry, lang: Lang, max = 3): string {
 }
 
 /** Other names worth showing under the title: more names in the reader's language, then local names. */
+/** SHOW ON MAP for a species the fish map has a zone for (snook, jacks, snappers, mackerel, small groupers, barracuda, lionfish). */
+const showMapButton = (s: Pick<Species, 'sci'>): string => {
+  const kind = fishKindFor(s.sci);
+  return kind ? `<p><button type="button" class="fc-ctl gd-showmap" data-showmap="${kind}">${esc(t('gd.showMap'))}</button></p>` : '';
+};
+
 export function altNames(e: Pick<Entry, 'en' | 'es' | 'local' | 'sci'>, lang: Lang, n = 3): string[] {
   const first = nameOf(e, lang);
   const more = lang === 'es' ? e.es : e.en;
@@ -495,6 +502,7 @@ export function detailHtml(s: Species, o: DetailOpts): string {
       ${other.length ? `<p class="gd-d-names"><span class="fc-mono">${esc(t('gd.d.otherNames'))}</span> ${esc(other.join(' · '))}</p>` : ''}
       ${fam.length ? `<p class="gd-d-fam">${esc(fam.join(' · '))}</p>` : ''}
       ${statusBadges(s, lang)}
+      ${showMapButton(s)}
     </header>
     ${factTiles(s, lang)}
     <nav class="gd-d-tabs" role="tablist" aria-label="${esc(t('gd.d.tabs'))}">${tabs

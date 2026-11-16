@@ -1365,6 +1365,13 @@ export function mountKineticMap(d: KmDeps) {
       quietCoral(false);
       setAct(a);
     },
+    /** The map opened on an activity with no spot picked (the guide's SHOW ON MAP). */
+    openAct(a: FcActivity) {
+      if (S.coral) S.coral = false;
+      put(storage, CORAL_KEY, '0');
+      quietCoral(false);
+      setAct(a);
+    },
     setMask(m: Mask) {
       coast.setMask(m);
     },

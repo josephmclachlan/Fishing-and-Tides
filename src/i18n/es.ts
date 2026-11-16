@@ -2083,6 +2083,7 @@ export const es: Dict = {
   'gd.d.of': '{i} de {n}',
   'gd.d.tabs': 'Secciones de la especie',
   'gd.d.otherNames': 'En inglés',
+  'gd.showMap': 'Ver en el mapa de pesca',
   'gd.d.lang': 'Idioma',
   'gd.d.local': 'También llamado',
   'gd.d.loading': 'Cargando…',

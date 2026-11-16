@@ -58,6 +58,8 @@ export interface GuidePageDeps {
   storage: Store;
   lang: () => Lang;
   setLang: (l: Lang) => void;
+  /** Show a kind of eating fish on the fish map (the species page's SHOW ON MAP button). */
+  showOnMap?: (kind: string) => void;
   /** Site base URL (Vite's BASE_URL). */
   base?: string;
 }
@@ -352,6 +354,8 @@ export function mountGuidePage(deps: GuidePageDeps) {
       idStep = 'kind';
       render();
       toId();
+    } else if ((b = hit('[data-showmap]'))) {
+      deps.showOnMap?.(b.dataset.showmap!);
     } else if ((b = hit('[data-setlang]'))) {
       const l = b.dataset.setlang as Lang;
       if (l !== deps.lang()) deps.setLang(l);
@@ -529,8 +533,14 @@ export function mountGuidePage(deps: GuidePageDeps) {
     const changed = r.mode !== mode || r.group !== group;
     if (changed && r.mode !== mode) (mode = r.mode), drawPicks();
     group = r.group;
+    // A link can carry a search ("Likely catch" opens the guide on the snappers, say).
+    const qChanged = r.q !== null && r.q !== f.q;
+    if (qChanged) {
+      f.q = r.q!;
+      q.value = f.q;
+    }
     if (el.hidden) show();
-    else if (changed) render();
+    else if (changed || qChanged) render();
     if (r.id) {
       if (r.id !== openId || sheet.hidden) openDetail(r.id, r.tab ?? 'about');
       else if ((r.tab ?? 'about') !== tab) (tab = r.tab ?? 'about'), drawDetail(false);

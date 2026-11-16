@@ -2084,6 +2084,7 @@ export const en = {
   'gd.d.of': '{i} of {n}',
   'gd.d.tabs': 'Species sections',
   'gd.d.otherNames': 'In Spanish',
+  'gd.showMap': 'Show on the fish map',
   'gd.d.lang': 'Language',
   'gd.d.local': 'Also called',
   'gd.d.loading': 'Loading…',
