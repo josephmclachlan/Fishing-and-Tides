@@ -160,6 +160,7 @@ import { mountSpotPage } from './spot-page';
 import { mountForecastPage } from './forecast/page';
 import { mountCoralPage } from './coral-page/page';
 import { mountGuidePage } from './guide/page';
+import { mountCiguateraPage } from './ciguatera/page';
 import type { FcActivity } from './forecast/model';
 import { fetchSargassum, type SargassumData } from './adapters/sargassum';
 import { currentTheme } from './theme';
@@ -762,6 +763,17 @@ if (coralPanelEl) {
 }
 // SPECIES GUIDE page (PLAN 7.91): every animal and plant from shore to dive depth, on a page of its own (#guide).
 const guidePage = mountGuidePage({
+  storage: safeStorage(),
+  lang: () => settings.lang(),
+  setLang: (l) => {
+    settings.setLang(l);
+    const c = map.getCenter();
+    saveView(safeSession(), { center: [c.lng, c.lat], zoom: map.getZoom() });
+    location.reload();
+  },
+});
+// CIGUATERA page (PLAN 7.101): risk, local evidence, symptoms, treatment; every ciguatera warning links to #ciguatera.
+mountCiguateraPage({
   storage: safeStorage(),
   lang: () => settings.lang(),
   setLang: (l) => {
