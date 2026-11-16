@@ -648,8 +648,48 @@
 .km .gd-fn h4{font-family:var(--k-mono,inherit);color:var(--ink2)}
 .km .gd-fn ol{color:var(--ink2);font-size:11.5px}
 /* The fish map's EAT/SPORT and ALL/SHORE/BOAT switches, on the map under the readings whenever FISH is on (2026-11-16). */
-.km .k-fishsw{position:absolute;z-index:3;left:10px;top:70px;display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100% - 20px)}
+/* The fish bar (option A, PLAN 7.143): rows of switches and chips; each row only as wide as its chips, so the map shows between. */
+.km .k-fishsw{position:absolute;z-index:3;left:10px;top:70px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:calc(100% - 20px);pointer-events:none}
+.km .k-fishsw .k-fbrow{display:flex;flex-wrap:wrap;gap:6px;pointer-events:auto}
+.km .k-fishsw .k-fpick{display:flex;align-items:center;height:36px;background:var(--c-card);box-shadow:0 1px 3px rgba(0,0,0,.18);border-radius:2px}
+.km .k-fishsw .k-fpick b{min-width:76px;text-align:center;font-family:var(--disp);font-weight:800;font-variation-settings:"wdth" 78;font-size:16px;text-transform:uppercase;padding:0 2px;color:var(--ink)}
+.km .k-fishsw .k-fpick button{appearance:none;cursor:pointer;border:0;background:none;width:36px;height:36px;font-size:20px;font-weight:700;color:var(--ink)}
+.km .k-fishsw .k-fchip{appearance:none;cursor:pointer;border:0;height:36px;display:flex;align-items:center;gap:6px;padding:0 11px;background:var(--c-card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.18);border-radius:2px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+.km .k-fishsw .k-fchip svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.6}
+.km .k-fishsw .k-fchip.k-fbest{background:var(--ink);color:var(--bg)}
+.km .k-fishsw .k-fchip.k-fhand{cursor:default;background:var(--lv2);color:var(--ink);box-shadow:none}
+:root[data-scheme="dark"].km .k-fishsw .k-fchip.k-fhand{color:var(--bg)}
+.km .k-cpick{display:flex;margin-bottom:10px}
+.km .k-cpick .k-fpick{display:flex;align-items:center;height:40px;background:var(--c-card);box-shadow:0 0 0 1px var(--c-grid2);border-radius:2px}
+.km .k-cpick .k-fpick b{min-width:120px;text-align:center;font-family:var(--disp);font-weight:800;font-variation-settings:"wdth" 78;font-size:18px;text-transform:uppercase}
+.km .k-cpick .k-fpick button{appearance:none;cursor:pointer;border:0;background:none;width:40px;height:40px;font-size:20px;font-weight:700;color:var(--ink)}
+.km .k-fsec{margin-bottom:18px}
+.km .k-fstrip{display:flex;align-items:flex-end;gap:1px;height:56px;background:var(--c-card);box-shadow:0 0 0 1px var(--c-grid2);padding:4px 4px 0}
+.km .k-fstrip i{flex:1;background:var(--c-grid2);min-height:2px}
+.km .k-fstrip i.k-win{background:var(--lv4)}
+.km .k-fhrs{position:relative;height:16px;font-family:var(--mono);font-size:10px;color:var(--ink2)}
+.km .k-fhrs span{position:absolute;top:2px;transform:translateX(-50%)}
+.km .k-fhrs span:first-child{transform:none}
+.km .k-fwins,.km .k-fspots{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.km .k-fwins li{display:flex;flex-direction:column;gap:2px;padding:8px 10px;background:var(--c-card);box-shadow:0 0 0 1px var(--c-grid2);border-left:4px solid var(--lv4)}
+.km .k-fwins b{font-family:var(--disp);font-weight:800;font-variation-settings:"wdth" 80;font-size:20px;line-height:1}
+.km .k-ftags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.km .k-ftags span{font-size:12px;line-height:1;padding:4px 6px;background:var(--bg);box-shadow:0 0 0 1px var(--c-grid2);border-radius:2px;color:var(--ink)}
+.km .k-fspot{appearance:none;cursor:pointer;width:100%;display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 10px;background:var(--c-card);border:0;box-shadow:0 0 0 1px var(--c-grid2);border-radius:2px;text-align:left;color:var(--ink)}
+.km .k-fspot.k-on{box-shadow:0 0 0 2px var(--ink)}
+.km .k-fspot .k-fn{width:26px;height:26px;display:grid;place-items:center;background:var(--ink);color:var(--bg);font-family:var(--mono);font-weight:700;font-size:12px}
+.km .k-fspot b{display:block;font-family:var(--disp);font-weight:800;font-variation-settings:"wdth" 80;font-size:17px;line-height:1.05}
+.km .k-fspot small{display:block;font-size:12px;color:var(--ink2);margin-top:2px}
+.km .k-fspot svg{width:16px;height:16px}
+.km .k-fnote{margin:0 0 12px;font-size:14px;line-height:1.4}
+.km .k-fwins li.k-past{opacity:.55;border-left-color:var(--c-grid2)}
+.km .k-fwins b small{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;margin-left:6px;vertical-align:middle}
+.km .k-fmsg{color:var(--ink);margin:12px 0 0;font-size:14px;line-height:1.4;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.km .k-fmsg:empty{display:none}
+.km .k-fmsg .k-go2{height:36px}
 .km .k-fishsw[hidden]{display:none}
-.km .k-fishsw .k-seg{background:var(--c-card);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.km .k-fishsw .k-seg{background:var(--c-card);box-shadow:0 1px 3px rgba(0,0,0,.18);pointer-events:auto}
 .km .k-fishsw .k-seg button{height:34px;padding:0 10px;font-size:11px;color:var(--ink)}
 .km .k-fishsw .k-seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+:root[data-scheme="dark"].km .k-fstrip i.k-win{background:var(--lv3)}
+:root[data-scheme="dark"].km .k-fwins li{border-left-color:var(--lv3)}

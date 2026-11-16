@@ -13,15 +13,21 @@
 import type { SpeciesId } from './species';
 
 export const SPEAR_SPECIES: readonly SpeciesId[] = ['grouper', 'snapper', 'jack', 'lionfish', 'flounder', 'squirrelfish', 'spadefish'];
+/**
+ * Taken by hand on the same breath-hold dive, never with the spear gun (Joseph 2026-11-16: "are we tracking lobster and pulpo?").
+ * Picked one at a time on the SPEAR map; "all spear fish" stays the spear-gun list above. Lobster has its closed season (species.ts).
+ */
+export const SPEAR_HAND: readonly SpeciesId[] = ['lobster', 'octopus'];
+export const SPEAR_TARGETS: readonly SpeciesId[] = [...SPEAR_SPECIES, ...SPEAR_HAND];
 
 const ramp = (x: number, lo: number, hi: number) => Math.min(1, Math.max(0, (x - lo) / (hi - lo)));
 
 /** 0..1: how workable this depth is for a breath-hold hunter. */
 export const spearWindow = (depthM: number): number => (Number.isFinite(depthM) ? ramp(depthM, 1.5, 3) * (1 - ramp(depthM, 15, 22)) : 0);
 
-/** The cell's spear score from its target species' habitat scores (0..1 each) and its depth. */
-export function spearScore(byTarget: Readonly<Partial<Record<SpeciesId, number>>>, depthM: number): number {
+/** The cell's spear score from its target species' habitat scores (0..1 each) and its depth; `ids` narrows it to one picked target. */
+export function spearScore(byTarget: Readonly<Partial<Record<SpeciesId, number>>>, depthM: number, ids: readonly SpeciesId[] = SPEAR_SPECIES): number {
   let best = 0;
-  for (const id of SPEAR_SPECIES) best = Math.max(best, byTarget[id] ?? 0);
+  for (const id of ids) best = Math.max(best, byTarget[id] ?? 0);
   return best * spearWindow(depthM);
 }

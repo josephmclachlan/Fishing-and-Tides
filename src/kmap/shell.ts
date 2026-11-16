@@ -64,6 +64,8 @@ import { styleBaseMap } from './basemap';
 import { emitSchemeChange, roleSnapshot, schemeSwap } from '../layers/paint';
 import { SYNC_EVENT, type SyncStatus } from '../sync-ui';
 import { loadSummary } from '../offline/sync';
+import type { FishInfo, SpearInfo } from '../fishing-hud';
+import type { SpeciesId } from '../fishing/species';
 
 type Spot = (typeof SPOTS)[number];
 const asSpot = (s: FcSpot | undefined): Spot => (s ? (SPOTS.find((x) => x.name === s.name) ?? SPOTS[0]) : SPOTS[0]);
@@ -130,6 +132,17 @@ export interface KmDeps {
     reach?(): 'all' | 'shore' | 'boat';
     setReach?(r: 'all' | 'shore' | 'boat'): void;
     subscribe?(fn: () => void): void;
+    /** The fish bar (PLAN 7.143): step the fish, its best windows and spots, fly to a spot, log a catch. */
+    step?(d: number): void;
+    info?(): FishInfo | null;
+    flySpot?(n: number): void;
+    onInfo?(fn: () => void): void;
+    logCatch?(at: { lng: number; lat: number }, as?: string): { id: string; species: string };
+    /** SPEAR's bar: its picked target and the best open water near the crosshair. */
+    spearInfo?(): SpearInfo | null;
+    setSpearTarget?(id: SpeciesId | null): void;
+    flyTo?(lng: number, lat: number): void;
+    undoCatch?(id: string): void;
   };
   explain: (title: string, id: string) => void;
   go: (t: Target) => void;
@@ -956,28 +969,171 @@ export function mountKineticMap(d: KmDeps) {
   const inspectorHTML = () =>
     `<div class="k-sec-head"><h2>${S.coral ? L2('Reef', 'Arrecife') : L2('Spot', 'Sitio')}</h2><p class="k-mono">${L2('Tap a pin to change', 'Toque un punto')}</p></div><div id="k-cardbox">${S.coral ? coralCardHTML() : spotCardHTML()}</div><section id="k-heresec" class="k-heresec"><div class="k-sec-head"><h2>${L2('Under the crosshair', 'Bajo la mira')}</h2></div>${hereHTML()}</section>`;
   /**
-   * The fish map's two switches, on the map itself whenever FISH is on (Joseph 2026-11-16: on a phone they were only in
-   * the spot card and the Expand data panel): EAT or SPORT, and which water to highlight, from the shore, by boat or all.
+   * The fish bar, on the map itself whenever FISH is on (Joseph 2026-11-16, option A of the mockups; the switches were
+   * only in the spot card and the Expand data panel): EAT or SPORT and SHORE or BOAT, the fish with arrows, its first
+   * best window today, the best spots near the crosshair, and + Catch to log one from the shore or a boat (PLAN 7.143).
    */
   const renderFishSw = () => {
     const el = $('k-fishsw'), fm = d.fishMode;
-    const on = !!fm && S.act === 'fish' && !S.coral;
+    const on = !!fm && (S.act === 'fish' || (S.act === 'spear' && !!fm.spearInfo)) && !S.coral;
     el.hidden = !on;
     if (!on || !fm) return (el.innerHTML = '');
-    const m = fm.get(), r = fm.reach?.() ?? 'all';
+    if (S.act === 'spear') return (el.innerHTML = spearBarHTML());
+    const m = fm.get(), r = fm.reach?.() ?? 'all', fi = fm.info?.() ?? null;
     const b = (attr: string, v: string, cur: string, l: string) => `<button type="button" ${attr}="${v}" aria-pressed="${v === cur}">${esc(l)}</button>`;
-    el.innerHTML = `<div class="k-seg" role="group" aria-label="${L2('Fish to eat or sport fish', 'Peces para comer o pesca deportiva')}">${b('data-fsw', 'eat', m, L2('Eat', 'Comer'))}${b('data-fsw', 'sport', m, L2('Sport', 'Deporte'))}</div>${
+    // The window on now or next at the slider time: one that has already ended today would send people out too late.
+    const at = time.validMs(), best = fi?.wins.find((w) => w.end > at);
+    el.innerHTML = `<div class="k-fbrow"><div class="k-seg" role="group" aria-label="${L2('Fish to eat or sport fish', 'Peces para comer o pesca deportiva')}">${b('data-fsw', 'eat', m, L2('Eat', 'Comer'))}${b('data-fsw', 'sport', m, L2('Sport', 'Deporte'))}</div>${
       fm.setReach ? `<div class="k-seg" role="group" aria-label="${L2('Where you fish from', 'Desde dónde pesca')}">${b('data-freach', 'all', r, L2('All', 'Todo'))}${b('data-freach', 'shore', r, L2('Shore', 'Orilla'))}${b('data-freach', 'boat', r, L2('Boat', 'Bote'))}</div>` : ''
-    }`;
+    }</div>${fi && fm.step ? `<div class="k-fbrow">
+      <span class="k-fpick"><button type="button" data-fstep="-1" aria-label="${L2('Previous fish', 'Pez anterior')}">‹</button><b>${esc(fi.name)}</b><button type="button" data-fstep="1" aria-label="${L2('Next fish', 'Siguiente pez')}">›</button></span>
+      <button type="button" class="k-fchip k-fbest" data-fsheet="times">${best ? `${best.start <= at ? L2('Best now to', 'Mejor ahora hasta') + ' ' + esc(best.range.split('–')[1]) : `${L2('Best', 'Mejor')} ${esc(best.range)}`}` : fi?.wins.length ? L2('Best times are over today', 'Ya pasaron las mejores horas') : L2('No standout time today', 'Ninguna hora destaca hoy')}</button></div>
+      <div class="k-fbrow"><button type="button" class="k-fchip" data-fsheet="spots">${svg('<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>')}${L2('Best spots', 'Mejores sitios')}</button>${fm.logCatch ? `<button type="button" class="k-fchip" data-fsheet="catch">${svg('<path d="M12 5v14M5 12h14"/>')}${L2('Catch', 'Captura')}</button>` : ''}</div>` : ''}`;
   };
+  /**
+   * SPEAR's bar (Joseph 2026-11-16, "shouldn't spear get similar items?"): the target (every spear fish, one of them, or lobster
+   * or octopus by hand), the spot's best spear window, the best open water near the crosshair, and + Catch.
+   */
+  const spearName = (id: SpeciesId | null) => (id ? t(`fish.${id}` as Key) : L2('All spear fish', 'Todos los peces'));
+  const spearBarHTML = () => {
+    const si = d.fishMode?.spearInfo?.() ?? null;
+    if (!si) return '';
+    const bt = bestWindow();
+    const hand = si.target === 'lobster' || si.target === 'octopus';
+    return `<div class="k-fbrow"><span class="k-fpick"><button type="button" data-sstep="-1" aria-label="${L2('Previous target', 'Objetivo anterior')}">‹</button><b>${esc(spearName(si.target))}</b><button type="button" data-sstep="1" aria-label="${L2('Next target', 'Siguiente objetivo')}">›</button></span>${
+      hand ? `<span class="k-fchip k-fhand">${L2('By hand, not the spear gun', 'A mano, no con arpón')}</span>` : ''
+    }</div>
+      <div class="k-fbrow"><button type="button" class="k-fchip k-fbest" data-fsheet="spot">${bt.kind === 'hidden' || bt.kind === 'none' ? L2('No good window this week', 'Sin buena ventana esta semana') : `${L2('Best', 'Mejor')} ${esc(bt.when)}`}</button></div>
+      <div class="k-fbrow"><button type="button" class="k-fchip" data-fsheet="spearspots">${svg('<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>')}${L2('Best spots', 'Mejores sitios')}</button>${d.fishMode?.logCatch ? `<button type="button" class="k-fchip" data-fsheet="catch">${svg('<path d="M12 5v14M5 12h14"/>')}${L2('Catch', 'Captura')}</button>` : ''}</div>`;
+  };
+  const spearSheetHTML = (si: SpearInfo) => `<p class="k-mono k-fcap">${L2('Open water for', 'Agua abierta para')} ${esc(spearName(si.target).toLowerCase())} · 3–15 m · ${L2('parks and closed water left out', 'sin parques ni aguas cerradas')}</p><ul class="k-fspots">${
+    si.spots.length
+      ? si.spots.map((r) => `<li><button type="button" class="k-fspot" data-sfly="${r.lng},${r.lat}"><span class="k-fn">${r.n + 1}</span><span><b>${esc(r.place ? placeCase(r.place) : L2('Unnamed spot', 'Sitio sin nombre'))}</b><small>${esc(sentence(r.line))}</small>${tags(r.why)}</span>${ARROW}</button></li>`).join('')
+      : `<li><span>${L2('No open spear water for this target within 15 km of the crosshair. Move the map and look again.', 'No hay agua abierta para este objetivo a 15 km de la mira. Mueva el mapa y mire otra vez.')}</span></li>`
+  }</ul>`;
   $('k-fishsw').addEventListener('click', (e) => {
-    const t = (e.target as HTMLElement).closest<HTMLElement>('[data-fsw],[data-freach]');
+    const t = (e.target as HTMLElement).closest<HTMLElement>('[data-fsw],[data-freach],[data-fstep],[data-fsheet],[data-sstep]');
     if (!t || !d.fishMode) return;
+    if (t.dataset.sstep) {
+      const si = d.fishMode.spearInfo?.();
+      if (!si) return;
+      const list: (SpeciesId | null)[] = [null, ...si.targets];
+      const k = list.indexOf(si.target);
+      d.fishMode.setSpearTarget?.(list[(k + Number(t.dataset.sstep) + list.length) % list.length]);
+      return renderFishSw();
+    }
+    if (t.dataset.fsheet === 'spot') return openSheet('spot');
+    if (t.dataset.fsheet === 'spearspots') return openSheet('spear');
+    if (t.dataset.fsheet === 'catch') catchAs = null;
+    if (t.dataset.fsheet) return openSheet(t.dataset.fsheet === 'catch' ? 'catch' : 'fish', t.dataset.fsheet);
+    if (t.dataset.fstep) return d.fishMode.step?.(Number(t.dataset.fstep));
     if (t.dataset.fsw) d.fishMode.set(t.dataset.fsw as 'eat' | 'sport');
     else d.fishMode.setReach?.(t.dataset.freach as 'all' | 'shore' | 'boat');
     renderFishSw();
     renderSpot();
   });
+  /** The fishing panel's capitals as plain words: reasons become small tags, each in sentence case. */
+  const tags = (why: string) => (why ? `<span class="k-ftags">${why.split(' · ').map((w) => `<span>${esc(sentence(w))}</span>`).join('')}</span>` : '');
+  const placeCase = (x: string) => titleCase(x).replace(/\bKm\b/g, 'km').replace(/\b(De|Del|La|El)\b/g, (w) => w.toLowerCase());
+  /** The fish sheet: today's BITE strip and every best window, then the best spots near the crosshair (tap to fly). */
+  const fishSheetHTML = (fi: FishInfo) => {
+    const bars = fi.strip.bars;
+    const hr = (h: number) => `<span style="left:${(h / 24) * 100}%">${String(h).padStart(2, '0')}</span>`;
+    const strip = bars.length
+      ? `<div class="k-fstrip" role="img" aria-label="${L2('Bite through the day, best windows in green', 'Picada durante el día, mejores horas en verde')}">${bars.map((x) => `<i class="${x.win ? 'k-win' : ''}" style="height:${x.pct}%"></i>`).join('')}</div><div class="k-fhrs">${[0, 6, 12, 18].map(hr).join('')}</div>`
+      : '';
+    const wins = fi.wins.length
+      ? fi.wins.map((w) => `<li class="${w.end <= time.validMs() ? 'k-past' : ''}"><b>${esc(w.range)}${w.end <= time.validMs() ? ` <small>${L2('Over', 'Pasó')}</small>` : w.start <= time.validMs() ? ` <small>${L2('Now', 'Ahora')}</small>` : ''}</b>${tags(w.why)}</li>`).join('')
+      : `<li><span>${L2('No hour today stands out. Bites are spread through the day.', 'Ninguna hora destaca hoy. La picada se reparte en el día.')}</span></li>`;
+    const spots = fi.spots.length
+      ? fi.spots.map((r) => `<li><button type="button" class="k-fspot${r.on ? ' k-on' : ''}" data-fly="${r.n}"><span class="k-fn">${r.n + 1}</span><span><b>${esc(r.place ? placeCase(r.place) : L2('Unnamed spot', 'Sitio sin nombre'))}</b><small>${esc(sentence(r.line))}</small>${tags(r.why)}</span>${ARROW}</button></li>`).join('')
+      : `<li><span>${L2('No good water for this fish within 15 km of the crosshair. Move the map and look again.', 'No hay buena agua para este pez a 15 km de la mira. Mueva el mapa y mire otra vez.')}</span></li>`;
+    return `<section class="k-fsec" id="k-ftimes"><p class="k-mono k-fcap">${L2('Best times today', 'Mejores horas hoy')}${fi.bite !== null ? ` · ${L2('Bite now', 'Picada ahora')} ${fi.bite}/100` : ''}</p>${strip}<ul class="k-fwins">${wins}</ul></section>
+      <section class="k-fsec" id="k-fspots"><p class="k-mono k-fcap">${L2('Best spots near the crosshair', 'Mejores sitios cerca de la mira')}</p><ul class="k-fspots">${spots}</ul></section>`;
+  };
+  /** + Catch: where and when, of the fish on the map, at the crosshair or the phone's own position (no track needed). */
+  let lastCatch: { id: string; text: string } | null = null;
+  /** What + Catch logs: the fish on the FISH bar, or on SPEAR the picked target (stepped in the sheet when "all spear fish"). */
+  let catchAs: SpeciesId | null = null;
+  const catchName = (fi: FishInfo | null) => (S.act === 'spear' && catchAs ? t(`fish.${catchAs}` as Key) : (fi?.name ?? L2('fish', 'pez'))).toLowerCase();
+  const an = (w: string) => `${/^[aeiou]/i.test(w) ? 'an' : 'a'} ${w}`;
+  const catchHTML = (fi: FishInfo | null) => `${S.act === 'spear' && catchAs ? `<div class="k-fbrow k-cpick"><span class="k-fpick"><button type="button" data-cstep="-1" aria-label="${L2('Previous', 'Anterior')}">‹</button><b>${esc(t(`fish.${catchAs}` as Key))}</b><button type="button" data-cstep="1" aria-label="${L2('Next', 'Siguiente')}">›</button></span></div>` : ''}<p class="k-fnote">${L2(
+    `Saves ${an(catchName(fi))} catch with the time and place. Your catches show on the map and teach the app where it is found.`,
+    `Guarda una captura de ${catchName(fi)} con la hora y el lugar. Sus capturas salen en el mapa y enseñan a la app dónde se encuentra.`,
+  )}</p>
+    <div class="k-tools"><button type="button" class="k-toolb" data-catch="here"><span><b>${L2('At the crosshair', 'En la mira')}</b><small>${L2('Centre the map where you caught it first', 'Centre el mapa donde lo pescó primero')}</small></span>${ARROW}</button><button type="button" class="k-toolb" data-catch="gps"><span><b>${L2('Where I am now', 'Donde estoy ahora')}</b><small>${L2("Uses your phone's location", 'Usa la ubicación del teléfono')}</small></span>${ARROW}</button></div>
+    <p class="k-fmsg" id="k-fmsg" role="status" aria-live="polite">${lastCatch ? `${esc(lastCatch.text)} <button type="button" class="k-go2" data-undo>${L2('Undo', 'Deshacer')}</button>` : ''}</p>`;
+  {
+    const msg = (html: string) => {
+      const m = shBody.querySelector('#k-fmsg');
+      if (m) m.innerHTML = html;
+    };
+    const log = (at: { lng: number; lat: number }, where: string) => {
+      const fi = d.fishMode?.info?.() ?? null, r = d.fishMode?.logCatch?.(at, S.act === 'spear' && catchAs ? catchAs : undefined);
+      if (!r) return;
+      const when = new Date().toLocaleTimeString(settings.lang() === 'es' ? 'es-CR' : 'en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Costa_Rica' });
+      const name = r.species === 'other' ? L2('fish', 'pez') : catchName(fi);
+      lastCatch = { id: r.id, text: L2(`Saved: ${an(name)} at ${when}, ${where}.`, `Guardado: ${name} a las ${when}, ${where}.`) };
+      msg(`${esc(lastCatch.text)} <button type="button" class="k-go2" data-undo>${L2('Undo', 'Deshacer')}</button>`);
+    };
+    // One listener for the fish and catch sheets, whose bodies are rebuilt as the fish, day or crosshair change.
+    shBody.addEventListener('click', (e) => {
+      if (S.sheet !== 'fish' && S.sheet !== 'catch' && S.sheet !== 'spear') return;
+      const sf = (e.target as HTMLElement).closest<HTMLElement>('[data-sfly]');
+      if (sf) {
+        const [lng, lat] = sf.dataset.sfly!.split(',').map(Number);
+        d.fishMode?.flyTo?.(lng, lat);
+        if (!WIDE.matches) closeSheet();
+        return;
+      }
+      const cs = (e.target as HTMLElement).closest<HTMLElement>('[data-cstep]');
+      if (cs && catchAs) {
+        const list = d.fishMode?.spearInfo?.()?.targets ?? [];
+        catchAs = list[(list.indexOf(catchAs) + Number(cs.dataset.cstep) + list.length) % list.length] ?? catchAs;
+        return openSheet('catch');
+      }
+      const f = (e.target as HTMLElement).closest<HTMLElement>('[data-fly]');
+      if (f) {
+        d.fishMode?.flySpot?.(Number(f.dataset.fly));
+        if (!WIDE.matches) closeSheet();
+        return;
+      }
+      const b = (e.target as HTMLElement).closest<HTMLElement>('[data-catch],[data-undo]');
+      if (!b) return;
+      if (b.hasAttribute('data-undo')) {
+        if (lastCatch) d.fishMode?.undoCatch?.(lastCatch.id);
+        lastCatch = null;
+        return msg(L2('Removed.', 'Eliminado.'));
+      }
+      if (b.dataset.catch === 'here') {
+        const c = map.getCenter();
+        return log({ lng: c.lng, lat: c.lat }, L2('at the crosshair', 'en la mira'));
+      }
+      if (!('geolocation' in navigator)) return msg(L2('This phone cannot share its location. Use the crosshair instead.', 'Este teléfono no puede compartir su ubicación. Use la mira.'));
+      msg(L2('Finding where you are…', 'Buscando dónde está…'));
+      navigator.geolocation.getCurrentPosition(
+        (p) => log({ lng: p.coords.longitude, lat: p.coords.latitude }, L2('where you are', 'donde está')),
+        () => msg(L2('Your location is off or not found. Turn it on, or use the crosshair.', 'Su ubicación está apagada o no se encontró. Actívela, o use la mira.')),
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 },
+      );
+    });
+  }
+  /** The fish sheet follows the HUD: a new fish, day or crosshair rebuilds it in place. */
+  const refreshFishSheet = () => {
+    const fi = d.fishMode?.info?.();
+    if (!fi) return;
+    if (S.sheet === 'fish') {
+      const top = shBody.scrollTop;
+      shTitle.textContent = L2(`${titleCase(fi.name)} today`, `${titleCase(fi.name)} hoy`);
+      shBody.innerHTML = fishSheetHTML(fi);
+      shBody.scrollTop = top;
+    } else if (S.sheet === 'catch') shTitle.textContent = L2(`Log ${an(catchName(fi))} catch`, `Anotar captura: ${catchName(fi)}`);
+    else if (S.sheet === 'spear') {
+      const si = d.fishMode?.spearInfo?.();
+      if (si) shBody.innerHTML = spearSheetHTML(si);
+    }
+  };
+  d.fishMode?.onInfo?.(() => (renderFishSw(), refreshFishSheet()));
   const renderSpot = () => {
     const dk = $('k-dkspot');
     if (S.coral) {
@@ -990,6 +1146,7 @@ export function mountKineticMap(d: KmDeps) {
       dk.innerHTML = `<span class="k-n">${esc(titleCase(s.name))}<small>${esc(modeName(S.act))} · ${esc(levelWord(r.level))}</small></span><span class="k-v">${esc(hl.value)}<small> ${esc(hl.unit)}</small></span>${ARROW}`;
     }
     $('k-backsub').textContent = `${titleCase(spot().name)} · ${modeName(S.act)}`;
+    if (S.act === 'spear') renderFishSw();
     $('k-ttlact').textContent = modeName(mode());
     $('k-vspot').textContent = S.coral ? titleCase(reef()?.name ?? 'Reef').split(' · ')[0] : titleCase(spot().name);
     if (WIDE.matches) {
@@ -1130,7 +1287,7 @@ export function mountKineticMap(d: KmDeps) {
   });
 
   /* ---------- sheets ---------- */
-  function openSheet(kind: string) {
+  function openSheet(kind: string, part?: string) {
     S.sheet = kind;
     sheet.classList.remove('k-wide');
     if (kind === 'layers') {
@@ -1154,6 +1311,21 @@ export function mountKineticMap(d: KmDeps) {
       shTitle.textContent = L2('Tools', 'Herramientas');
       shBody.innerHTML = toolsHTML();
       bindTools(shBody);
+    } else if (kind === 'fish') {
+      const fi = d.fishMode?.info?.();
+      if (!fi) return;
+      shTitle.textContent = L2(`${titleCase(fi.name)} today`, `${titleCase(fi.name)} hoy`);
+      shBody.innerHTML = fishSheetHTML(fi);
+    } else if (kind === 'spear') {
+      const si = d.fishMode?.spearInfo?.();
+      if (!si) return;
+      shTitle.textContent = L2('Best spear spots', 'Mejores sitios de pesca submarina');
+      shBody.innerHTML = spearSheetHTML(si);
+    } else if (kind === 'catch') {
+      const fi = d.fishMode?.info?.() ?? null;
+      if (S.act === 'spear') catchAs ??= d.fishMode?.spearInfo?.()?.target ?? 'grouper';
+      shTitle.textContent = L2(`Log ${an(catchName(fi))} catch`, `Anotar captura: ${catchName(fi)}`);
+      shBody.innerHTML = catchHTML(fi);
     } else if (kind === 'age') {
       shTitle.textContent = L2('Data age', 'Edad de los datos');
       shBody.innerHTML = ageHTML();
@@ -1162,6 +1334,7 @@ export function mountKineticMap(d: KmDeps) {
     sheet.classList.add('k-open');
     scrim.classList.toggle('k-on', !WIDE.matches);
     shBody.scrollTop = 0;
+    if (part === 'spots') requestAnimationFrame(() => shBody.querySelector('#k-fspots')?.scrollIntoView({ block: 'start' }));
     $('k-laybtn').setAttribute('aria-expanded', String(kind === 'layers'));
   }
   function closeSheet() {
