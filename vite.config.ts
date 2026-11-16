@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { bootCss, bootHtml } from './src/boot-view';
 
 export default defineConfig({
   // GitHub Pages serves from /<repo>/; set by the deploy workflow.
@@ -7,6 +8,8 @@ export default defineConfig({
   // Packed seafloor grids, so tests can import them (`?inline`) to check physics on real depths.
   assetsInclude: ['**/*.i16', '**/*.u8', '**/*.rle16'],
   plugins: [
+    // The launch screen (PLAN 7.160) goes straight into index.html, so it shows before any script or style loads.
+    { name: 'surcast-boot', transformIndexHtml: (html: string) => html.replace('<!--sc-boot-->', `<style>${bootCss()}</style>${bootHtml()}`) },
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'favicon.svg', 'apple-touch-icon.png'],

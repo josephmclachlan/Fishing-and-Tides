@@ -10,6 +10,20 @@
 let held = false;
 let released = false;
 const queue = new Map<unknown, () => void>();
+/** How far the released jobs have got, for the map loader (src/boot.ts). */
+let progress: [number, number] | null = null;
+const watchers = new Set<(done: number, total: number) => void>();
+const tell = (done: number, total: number) => {
+  progress = [done, total];
+  watchers.forEach((fn) => fn(done, total));
+};
+
+/** Follow the waiting map drawing as it runs: (done, total), at once if it has already started. Returns an unsubscribe. */
+export function onMapWork(fn: (done: number, total: number) => void): () => void {
+  watchers.add(fn);
+  if (progress) fn(...progress);
+  return () => watchers.delete(fn);
+}
 
 /** From now until `releaseMapWork`, `whenMapShown` jobs wait. */
 export function holdMapWork(): void {
@@ -35,6 +49,8 @@ export function releaseMapWork(schedule: (fn: () => void) => void = (fn) => setT
   held = false;
   const jobs = [...queue.values()];
   queue.clear();
+  const total = jobs.length;
+  tell(0, total);
   const next = () => {
     const job = jobs.shift();
     if (!job) return;
@@ -43,6 +59,7 @@ export function releaseMapWork(schedule: (fn: () => void) => void = (fn) => setT
     } catch (err) {
       console.warn('map job failed', err);
     }
+    tell(total - jobs.length, total);
     if (jobs.length) schedule(next);
   };
   schedule(next);
@@ -52,4 +69,6 @@ export function releaseMapWork(schedule: (fn: () => void) => void = (fn) => setT
 export function resetMapWork(): void {
   held = released = false;
   queue.clear();
+  progress = null;
+  watchers.clear();
 }
