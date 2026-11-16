@@ -47,6 +47,8 @@ function bleed(): string {
   return (
     // the bucket, with the water line a wave across it
     '<path class="dp-body" d="M62 22 L70 88 L150 88 L158 22"/>' +
+    '<path class="dp-body" d="M56 22 L164 22"/>' +
+    '<circle class="dp-ear" cx="60" cy="30" r="3"/><circle class="dp-ear" cx="160" cy="30" r="3"/>' +
     '<path class="dp-water" d="M64 38 C74 33 82 43 92 38 C102 33 110 43 120 38 C130 33 138 43 148 38 L156 38"/>' +
     // the fish, head down: its own outline turned so the tail is above the water, the gill cut open
     '<g transform="translate(89 90.7) rotate(-90) scale(0.42)">' + FISH + GILL_CUT + '</g>' +

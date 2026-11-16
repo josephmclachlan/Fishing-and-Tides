@@ -6,7 +6,7 @@ import { t } from '../i18n';
 import {
   CHART_H as CHART_TITLE, CHART_NOTE, CHART_P, GRADE_HELP, GRADE_KEY, GRADES, ICE_LIMIT_KEY, HIST_CLOCK, HIST_FACTS, HIST_H, HIST_P,
   HIST_SPECIES, ICE_LIMIT, METHODS, METHODS_H, METHODS_P, MISTAKES, MISTAKES_H, MISTAKES_P, ROUTINE, ROUTINE_H, ROWS, SCIENCE_H, SCIENCE_P,
-  SECTION_LABELS, SOURCES, SOURCES_H, SOURCES_P, STATS, STEPS, tr, type Fact, type Lang, type MethodId, type Txt,
+  SECTION_LABELS, EST_MARK, SOURCES, SOURCES_H, SOURCES_P, STATS, STEPS, tr, type Fact, type Lang, type MethodId, type Txt,
 } from './content';
 import { gradeOf, kAt, posOf, segments, type Grade, type Method } from './model';
 import { DP_SECTIONS } from './route';
@@ -28,10 +28,11 @@ export function hoursLabel(h: number): string {
 
 /** A fact with its source marks: [n] for each source, EST for the page's own estimate. */
 export function factHtml(f: Fact, lang: Lang): string {
-  const marks = f.src?.length
-    ? f.src.map((n) => `<sup class="dp-src" title="${esc(SOURCES[n - 1]?.n ?? '')}">${n}</sup>`).join('')
-    : `<sup class="dp-est" title="${esc(t('dp.estTitle'))}">${t('dp.est')}</sup>`;
-  return `${esc(tr(f.t, lang))}${marks}`;
+  const src = f.src?.length
+    ? ` <span class="dp-src">${f.src.map((n) => `<span title="${esc(SOURCES[n - 1]?.n ?? '')}">[${n}]</span>`).join(' ')}</span>`
+    : '';
+  const est = f.est ? ` <span class="dp-est" title="${esc(t('dp.estTitle'))}">${esc(tr(EST_MARK, lang))}</span>` : '';
+  return `${esc(tr(f.t, lang))}${src}${est}`;
 }
 
 const sectionHead = (_id: string, kicker: string, title: string, p?: string) =>
@@ -77,7 +78,7 @@ export function chartHtml(lang: Lang, startHours: number): string {
       ${rows}
     </div>
     <p class="dp-help">${esc(tr(GRADE_HELP, lang))}</p>
-    <p class="dp-fine"><sup class="dp-est">${t('dp.est')}</sup> ${esc(tr(CHART_NOTE, lang))}</p>
+    <p class="dp-fine">${esc(tr(CHART_NOTE, lang))}</p>
   </section>`;
 }
 
@@ -106,6 +107,7 @@ export function methodsHtml(lang: Lang): string {
       ${figureHtml(m, lang)}
       <ol class="dp-steps">${m.steps.map((s) => `<li>${esc(tr(s, lang))}</li>`).join('')}</ol>
       ${m.note ? `<p class="dp-note">${factHtml(m.note, lang)}</p>` : ''}
+      ${m.alt ? `<p class="dp-alt">${factHtml(m.alt, lang)}</p>` : ''}
     </article>`,
   ).join('');
   return `<section class="dp-sec" id="dp-methods" data-s="methods">${sectionHead('methods', tr(SECTION_LABELS.methods, lang), tr(METHODS_H, lang), tr(METHODS_P, lang))}<div class="dp-cards">${cards}</div></section>`;
