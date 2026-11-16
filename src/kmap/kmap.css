@@ -203,7 +203,7 @@
 .km .k-lkeys i.k-dimg{opacity:.55}
 .km .k-bwin{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;margin:10px 0 0;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
 .km .k-bwin b{color:var(--ink);font-weight:700}
-/* EAT or SPORT for the fish map (PLAN 7.109) */
+/* EAT or SPORT for the fish map (PLAN 7.111) */
 .km .k-fmode{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:10px 0 0}
 .km .k-fmode>span{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
 .km .k-fmode p{flex-basis:100%;margin:0;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink)}
@@ -411,17 +411,21 @@
 .km .k-pins[hidden]{display:none}
 .km .k-pin{position:absolute;left:0;top:0;width:0;height:0;padding:0;margin:0;border:0;background:none;pointer-events:none;font:inherit;color:inherit}
 .km .k-pin[hidden]{display:none}
-.km .k-pin-dot{position:absolute;left:-7px;top:-7px;width:14px;height:14px;background:var(--c);box-shadow:0 0 0 2px var(--ink),0 0 0 3.5px var(--m-halo);pointer-events:auto;cursor:pointer;transition:background-color .5s,transform .3s cubic-bezier(.2,.8,.2,1)}
-.km .k-pin-leg{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
-.km .k-pin-leg line{stroke:var(--ink);stroke-width:1.5}
-.km .k-pin-tile{position:absolute;left:0;top:0;display:flex;flex-direction:column;gap:1px;padding:3px 6px 4px;background:var(--c);color:var(--o);border-radius:2px;box-shadow:0 0 0 1.5px var(--ink),0 6px 14px rgba(6,12,22,.16);pointer-events:auto;cursor:pointer;white-space:nowrap;text-align:left;transition:background-color .5s,color .5s,transform .35s cubic-bezier(.2,.8,.2,1)}
-.km .k-pin-n{font-family:var(--mono);font-size:8.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
-.km .k-pin-tile b{font-family:var(--disp);font-weight:850;font-variation-settings:"wdth" 74;font-size:16px;line-height:.9;letter-spacing:-.02em}
-.km .k-pin-tile b small{font-family:var(--mono);font-size:8.5px;font-weight:600;letter-spacing:.04em;margin-left:3px}
-.km .k-pin.dot .k-pin-tile,.km .k-pin.dot .k-pin-leg{display:none}
-.km .k-pin.sel .k-pin-tile{box-shadow:0 0 0 2.5px var(--ink),0 0 0 5px var(--m-halo),0 8px 18px rgba(6,12,22,.22)}
-.km .k-pin.sel .k-pin-dot{transform:scale(1.25)}
-.km .k-pin:hover .k-pin-tile{box-shadow:0 0 0 2.5px var(--ink),0 6px 14px rgba(6,12,22,.2)}
+.km .k-pin-dot{position:absolute;left:-5px;top:-5px;width:10px;height:10px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1.5px var(--ink),0 0 0 3px var(--m-halo);pointer-events:auto;cursor:pointer;transition:background-color .5s,transform .3s cubic-bezier(.2,.8,.2,1)}
+/* A finger-sized target round the small dot. */
+.km .k-pin-dot::after{content:"";position:absolute;inset:-9px;border-radius:50%}
+/* The number chip sits on its spot (centred by the translate), in place of the dot. */
+.km .k-pin-chip{position:absolute;left:0;top:0;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px 5px;background:var(--c);color:var(--o);border-radius:3px;box-shadow:0 0 0 1.5px var(--m-halo);pointer-events:auto;cursor:pointer;white-space:nowrap;transition:background-color .5s,color .5s}
+.km .k-pin-n{display:none;font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
+.km .k-pin-chip b{font-family:var(--disp);font-weight:850;font-variation-settings:"wdth" 74;font-size:14px;line-height:.95;letter-spacing:-.02em}
+.km .k-pin-chip b small{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:.04em;margin-left:1px}
+.km .k-pin:not(.dot) .k-pin-dot,.km .k-pin.dot .k-pin-chip{display:none}
+/* The chosen spot: its chip carries the name and an ink ring; as a dot it is a size up. */
+.km .k-pin.sel .k-pin-n{display:block}
+.km .k-pin.sel{z-index:1}
+.km .k-pin.sel .k-pin-chip{box-shadow:0 0 0 2px var(--ink),0 0 0 3.5px var(--m-halo)}
+.km .k-pin.sel .k-pin-dot{transform:scale(1.3)}
+.km .k-pin:hover .k-pin-chip{box-shadow:0 0 0 2px var(--ink),0 0 0 3.5px var(--m-halo)}
 
 /* ---------- readings, layer notes, tools ---------- */
 .km .k-tile{appearance:none;border:0;color:inherit;text-align:left;font:inherit;cursor:pointer;width:100%;transition:box-shadow .2s}
@@ -600,13 +604,6 @@
 .km .k-tab svg{display:none}
 @container (min-width:470px){.km .k-tab{font-size:min(max(19px,clamp(18px,1.48vw,25px)),100cqw/33);gap:5px}.km .k-tab svg{display:block}}
 
-.km .k-pins.k-notiles .k-pin-tile,.km .k-pins.k-notiles .k-pin-leg{display:none}
-.km .k-tilebtn{appearance:none;position:absolute;z-index:3;left:10px;bottom:56px;height:30px;padding:0 10px;border:0;border-radius:2px;background:var(--c-card);box-shadow:0 0 0 1px var(--line);color:var(--ink2);cursor:pointer;font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
-.km .k-tilebtn[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
-.km .k-legmini{bottom:92px}
-.km .k-app.k-lcol .k-legmini{bottom:96px}
-.km .k-views~.k-tilebtn{left:10px}
-@media (min-width:900px){.km .k-tilebtn{left:14px;bottom:60px}}
 
 /* Labelled links under the spot card: identify what you see (fish, dive, spear, snorkel), kill, bleed, ice (fish, spear). */
 .km .k-links{display:grid;gap:8px;margin-top:8px}

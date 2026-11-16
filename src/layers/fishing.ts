@@ -5,7 +5,7 @@
  * A SHORE / BOAT highlight keeps cells within a cast or wade of the beach, or those beyond it. Style layer ids start with `fh-` (catalog 'fishing').
  * The weights are fitted to the OBIS/GBIF records when the layer mounts (PLAN 4.4, fishing/fit.ts), and
  * refitted with your own logged catches whenever they change (PLAN 7.16, `setCatches`).
- * The heat and the circled zones show the fish of the current species' mode only (PLAN 7.109): EAT or SPORT.
+ * The heat and the circled zones show the fish of the current species' mode only (PLAN 7.111): EAT or SPORT.
  * Over the cells, the circled zones of mockup G (PLAN 7.74, 7.75, fishing/zones.ts): each fish's own zones where it
  * earns them, near shore and, from the boat read main.ts hands over, offshore (`fh-zone-*`).
  */

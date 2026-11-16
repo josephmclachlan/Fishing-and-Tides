@@ -599,7 +599,7 @@ let scoreCatch: CatchScorer | null = null;
 let fishSetSpecies: ((id: SpeciesId) => void) | null = null;
 let fishHudMode: { set(m: FishMode): void; get(): FishMode } | null = null;
 /**
- * EAT or SPORT for the fish map (PLAN 7.109): through the fishing panel once it is up, else remembered as that mode's
+ * EAT or SPORT for the fish map (PLAN 7.111): through the fishing panel once it is up, else remembered as that mode's
  * first fish, which the panel picks up when it mounts (the mode is the species' own).
  */
 const fishMode = {

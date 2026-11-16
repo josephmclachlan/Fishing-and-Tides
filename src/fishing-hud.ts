@@ -1,5 +1,5 @@
 /**
- * Fishing rows in the side panel (PLAN 4.5, extended): the MODE (EAT or SPORT, PLAN 7.109), the target species of
+ * Fishing rows in the side panel (PLAN 4.5, extended): the MODE (EAT or SPORT, PLAN 7.111), the target species of
  * that mode (arrows), the REACH
  * highlight (ALL / SHORE / BOAT), the habitat score at the reticle, the BITE score for the slider time
  * (habitat x timing x water: tide, light, solunar, wind, waves, rain, cloud, squalls, lightning, and the
