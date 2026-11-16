@@ -5198,3 +5198,5 @@ t,site,source,model,var,value,issued
 2026-11-11T12:00Z,-82.183;9.984,sargassum,,cover,0.01906,
 2026-11-11T12:00Z,-82.123;9.924,sargassum,,cover,0.0067,
 2026-11-11T12:00Z,SARG_BOX,sargassum,,cellsSeen,301,
+2026-11-11T00:00Z,COAST CREEKS,imerg,,rainMm,0,
+2026-11-11T00:00Z,COAST CREEKS,imerg,,halfHours,48,
