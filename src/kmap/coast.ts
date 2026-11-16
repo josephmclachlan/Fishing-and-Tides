@@ -23,10 +23,14 @@ export interface PinData {
 }
 
 const RIBBON_M = 650;
+/** PROTOTYPE (spot-marker workshop, not for merge): ?pins=a|b|c|d|e picks a marker style. */
+const MODE = (() => { try { return new URLSearchParams(location.search).get('pins') ?? 'now'; } catch { return 'now'; } })();
 
 export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) => void) {
   const layer = document.createElement('div');
   layer.className = 'k-pins';
+  (window as unknown as { __kmap: MlMap }).__kmap = map;
+  if (MODE !== 'now') document.documentElement.classList.add('pm-proto');
   stage.appendChild(layer);
   let pins: PinData[] = [];
   let selected: string | null = null;
@@ -124,7 +128,7 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
       el.className = `k-pin k-lv${p.level ?? 'n'}`;
       el.dataset.id = p.id;
       el.setAttribute('aria-label', `${p.name}: ${p.value} ${p.unit}`);
-      el.innerHTML = `<svg class="k-pin-leg" aria-hidden="true"><line/></svg><i class="k-pin-dot"></i><span class="k-pin-tile"><span class="k-pin-n">${esc(p.name)}</span><b>${esc(p.value)}<small>${esc(p.unit)}</small></b></span>`;
+      el.innerHTML = `<svg class="k-pin-leg" aria-hidden="true"><line/></svg><i class="k-pin-dot"></i><span class="k-pin-tile"><span class="k-pin-n">${esc(p.name)}</span><b>${esc(p.value)}<small${p.unit === '/100' ? ' class="u100"' : ''}>${esc(p.unit)}</small></b></span>`;
       el.addEventListener('click', (e) => (e.stopPropagation(), onPick(p.id)));
       layer.appendChild(el);
       els.set(p.id, el);
@@ -149,6 +153,64 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
       if (lw === undefined && mask) lands.set(p.id, (lw = landward(mask, p.lngLat, 900)));
       return { id: p.id, x: pt.x + mr.left - off.left, y: pt.y + mr.top - off.top, w: sz.w, h: sz.h, rank: p.rank + (p.id === selected ? 1e6 : 0), land: lw ? ([lw[0], -lw[1]] as const) : undefined };
     });
+    const tier = MODE === 'e' ? (z < 12.6 ? 'e0' : z < 13.6 ? 'b' : 'bn') : MODE;
+    if (layer.dataset.m !== tier) {
+      layer.dataset.m = tier;
+      layer.className = `k-pins pm-${tier}`;
+      measure();
+    }
+    const onScreen = (b: { x: number; y: number }) => b.x > -20 && b.y > -20 && b.x < W + 20 && b.y < H + 20;
+    if (tier !== 'now') {
+      // Prototype placement: which spots get a label, and where.
+      let want: Set<string>;
+      const vis = boxes.filter(onScreen).sort((a, b) => b.rank - a.rank);
+      if (tier === 'a' || tier === 'e0') want = new Set(selected ? [selected] : []);
+      else if (tier === 'd') want = new Set([...(selected ? [selected] : []), ...vis.filter((b) => b.id !== selected).slice(0, 2).map((b) => b.id)]);
+      else want = new Set(vis.map((b) => b.id));
+      const chip = tier === 'b' || tier === 'bn' || tier === 'e0' || tier === 'c';
+      const obs = obstacles(off);
+      const placed: Rect[] = [];
+      const over = (a: Rect, b: Rect, g: number) => a.x < b.x + b.w + g && b.x < a.x + a.w + g && a.y < b.y + b.h + g && b.y < a.y + a.h + g;
+      const at2 = chip
+        ? new Map<string, { dx: number; dy: number }>()
+        : placePins(vis.filter((b) => want.has(b.id)), { w: W, h: H }, 4, obs, zoneNames(mr.left - off.left, mr.top - off.top));
+      if (chip)
+        for (const b of vis) {
+          if (!want.has(b.id)) continue;
+          const sz = sizes.get(b.id) ?? { w: 30, h: 18 };
+          const dots = vis.filter((q) => q.id !== b.id).map((q) => ({ x: q.x - 6, y: q.y - 6, w: 12, h: 12 }));
+          const tries: [number, number][] = tier === 'c'
+            ? [[-sz.w / 2, 9], [9, 4], [-sz.w - 9, 4], [9, -sz.h / 2], [-sz.w - 9, -sz.h / 2]]
+            : [[-sz.w / 2, -sz.h / 2]];
+          for (const [dx, dy] of tries) {
+            const box = { x: b.x + dx, y: b.y + dy, w: sz.w, h: sz.h };
+            const bad = placed.some((q) => over(box, q, 2)) || obs.some((q) => over(box, q, 2)) || (tier === 'c' && dots.some((q) => over(box, q, 0)));
+            if (bad && b.id !== selected) continue;
+            placed.push(box);
+            at2.set(b.id, { dx, dy });
+            break;
+          }
+        }
+      for (const b of boxes) {
+        const el = els.get(b.id)!;
+        const on = onScreen(b) && z >= 9;
+        el.hidden = !on;
+        if (!on) continue;
+        el.style.transform = `translate(${b.x}px, ${b.y}px)`;
+        el.classList.toggle('sel', b.id === selected);
+        const p = at2.get(b.id);
+        el.classList.toggle('dot', !p);
+        const tile = el.querySelector<HTMLElement>('.k-pin-tile')!;
+        const leg = el.querySelector<SVGSVGElement>('.k-pin-leg')!;
+        if (p) {
+          tile.style.transform = `translate(${p.dx}px, ${p.dy}px)`;
+          const cx = Math.min(Math.max(0, p.dx), p.dx + (sizes.get(b.id)?.w ?? 0)), cy = Math.min(Math.max(0, p.dy), p.dy + (sizes.get(b.id)?.h ?? 0));
+          const l = leg.querySelector('line')!;
+          l.setAttribute('x1', '0'); l.setAttribute('y1', '0'); l.setAttribute('x2', String(cx)); l.setAttribute('y2', String(cy));
+        }
+      }
+      return;
+    }
     const at = z >= 9.6 ? placePins(boxes.filter((b) => b.x > -20 && b.y > -20 && b.x < W + 20 && b.y < H + 20), { w: W, h: H }, 4, obstacles(off), zoneNames(mr.left - off.left, mr.top - off.top)) : new Map();
     for (const b of boxes) {
       const el = els.get(b.id)!;
@@ -204,7 +266,7 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
         for (const p of pins) {
           const el = els.get(p.id)!;
           el.className = `k-pin k-lv${p.level ?? 'n'}`;
-          el.querySelector('b')!.innerHTML = `${esc(p.value)}<small>${esc(p.unit)}</small>`;
+          el.querySelector('b')!.innerHTML = `${esc(p.value)}<small${p.unit === '/100' ? ' class="u100"' : ''}>${esc(p.unit)}</small>`;
           el.setAttribute('aria-label', `${p.name}: ${p.value} ${p.unit}`);
         }
       measure();

@@ -608,3 +608,25 @@
 .km .k-links{display:grid;gap:8px;margin-top:8px}
 .km .k-link{appearance:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:0 14px;border:2px solid var(--ink);background:none;color:var(--ink);text-decoration:none;font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:2px;text-align:left}
 .km .k-link svg{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:square}
+
+/* PROTOTYPE spot-marker workshop (?pins=a|b|c|d|e), not for merge */
+html.pm-proto.km .k-tilebtn{display:none}
+.km .k-pins:not(.pm-now):not(:not([data-m])) .k-pin-dot{left:-5px;top:-5px;width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 1.5px var(--ink),0 0 0 3px var(--m-halo)}
+.km .k-pins[data-m] .k-pin.sel .k-pin-dot{transform:scale(1.3)}
+/* A: dots, the chosen spot's callout only */
+.km .pm-a .k-pin-tile{padding:3px 6px 3px;box-shadow:0 0 0 1.5px var(--ink),0 4px 10px rgba(0,0,0,.25)}
+.km .pm-a .k-pin-leg line{stroke-width:1}
+/* B / BN / E0: number chips on the spot */
+.km :is(.pm-b,.pm-bn,.pm-e0) .k-pin:not(.dot) .k-pin-dot,.km :is(.pm-b,.pm-bn,.pm-e0,.pm-c) .k-pin-leg{display:none}
+.km :is(.pm-b,.pm-bn,.pm-e0) .k-pin-tile{padding:2px 5px 2px;border-radius:3px;align-items:center;box-shadow:0 0 0 1.5px var(--m-halo)}
+.km :is(.pm-b,.pm-bn,.pm-e0) .k-pin-tile b{font-size:14px}
+.km :is(.pm-b,.pm-e0) .k-pin:not(.sel) .k-pin-n,.km :is(.pm-b,.pm-bn,.pm-e0,.pm-c) .k-pin-tile small.u100{display:none}
+.km :is(.pm-b,.pm-bn,.pm-e0) .k-pin-tile b small{font-size:8px;margin-left:1px}
+.km :is(.pm-b,.pm-bn,.pm-e0) .k-pin-n{font-size:7.5px}
+.km :is(.pm-b,.pm-bn,.pm-e0) .k-pin.sel .k-pin-tile{box-shadow:0 0 0 2px var(--ink),0 0 0 3.5px var(--m-halo)}
+/* C: plain map text beside a dot, no box */
+.km .pm-c .k-pin-tile{background:none;color:var(--ink);box-shadow:none;padding:0;gap:0;text-shadow:0 0 2px var(--m-halo),0 0 3px var(--m-halo),0 0 5px var(--m-halo)}
+.km .pm-c .k-pin-tile b{font-size:15px}
+.km .pm-c .k-pin-n{font-size:8px;opacity:1;color:var(--ink2)}
+.km .pm-c .k-pin.sel .k-pin-tile b{text-decoration:underline;text-decoration-color:var(--c);text-decoration-thickness:3px;text-underline-offset:2px}
+/* D: full tiles for the chosen spot and the two best on screen */
