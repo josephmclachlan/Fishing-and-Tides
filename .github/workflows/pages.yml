@@ -52,6 +52,8 @@ jobs:
           # Free NASA Earthdata account for the IMERG satellite rain (rain-imerg, PLAN 7.51); same rule.
           EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_USERNAME }}
           EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
+          # Free AISStream key for the ships layer (ais, PLAN 7.96); same rule.
+          AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
       # Hand the fresh feeds to the archive job (PLAN 8.1) so it can save today's history.
       - uses: actions/upload-artifact@v4
         with:

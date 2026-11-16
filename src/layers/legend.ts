@@ -34,6 +34,7 @@ export const LEGEND: Readonly<Record<LayerId, readonly LegendItem[]>> = {
   spear: [{ sw: 'fill', tone: 'green' }, { sw: 'fill', tone: 'red' }, { sw: 'line', tone: 'amber' }, { sw: 'zone', tone: 'green' }],
   zones: [{ sw: 'line', tone: 'red' }, { sw: 'line', tone: 'amber' }],
   anchorages: [{ sw: 'ring', tone: 'green' }, { sw: 'ring', tone: 'dim' }],
+  ais: [{ sw: 'dot', tone: 'green' }, { sw: 'dot', tone: 'amber' }],
 };
 
 export const legendWhatKey = (id: LayerId) => `legend.${id}.what`;

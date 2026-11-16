@@ -405,7 +405,7 @@ export function mountKineticMap(d: KmDeps) {
     rating: ['Beach ratings', 'Calificación de playas'], heat: ['Heat stress', 'Estrés térmico'], private: ['Private sites', 'Sitios privados'],
     waves: ['Swell crests', 'Crestas del oleaje'], currents: ['Current', 'Corriente'], weather: ['Rain and storms', 'Lluvia y tormentas'],
     fishing: ['Fishing spots', 'Zonas de pesca'], depth: ['Seafloor depth', 'Profundidad'], zones: ['Zones and rules', 'Zonas y reglas'],
-    seamarks: ['Seamarks and wrecks', 'Balizas y naufragios'], anchorages: ['Harbours', 'Puertos y fondeaderos'],
+    seamarks: ['Seamarks and wrecks', 'Balizas y naufragios'], anchorages: ['Harbours', 'Puertos y fondeaderos'], ais: ['Ships (AIS)', 'Barcos (AIS)'],
   };
   const layerName = (id: KmLayer) => {
     const n = KM_NAMES[id];

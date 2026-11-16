@@ -55,6 +55,7 @@ export const KM_LAYERS: readonly KmLayerDef[] = [
   { id: 'seamarks', group: 'seafloor', src: 'OpenStreetMap seamarks', feeds: [] },
   { id: 'zones', group: 'rules', src: 'SINAC', feeds: [] },
   { id: 'anchorages', group: 'rules', src: 'Harbours · anchorages', feeds: [] },
+  { id: 'ais', group: 'rules', src: 'AISStream · last 24 h', feeds: ['ais'] },
   { id: 'heat', group: 'coral', src: 'NOAA Coral Reef Watch', feeds: ['coral'], coralOnly: true },
   { id: 'private', group: 'coral', src: 'This device only', feeds: [], coralOnly: true },
 ];
@@ -73,7 +74,7 @@ export const PRESETS: Readonly<Record<Mode, readonly KmLayer[]>> = {
   snorkel: ['rating', 'lightning', 'currents', 'waves', 'zones', 'reefs', 'clarity'],
   dive: ['rating', 'lightning', 'seamarks', 'currents', 'zones', 'reefs', 'clarity', 'depth'],
   spear: ['rating', 'lightning', 'spear', 'currents', 'zones', 'reefs', 'clarity', 'depth'],
-  sail: ['rating', 'lightning', 'weather', 'obs', 'wind', 'currents', 'waves', 'anchorages', 'seamarks'],
+  sail: ['rating', 'lightning', 'weather', 'obs', 'wind', 'currents', 'waves', 'anchorages', 'ais', 'seamarks'],
   coral: ['private', 'heat', 'zones', 'reefs', 'sst'],
 };
 

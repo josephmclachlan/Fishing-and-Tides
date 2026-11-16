@@ -18,6 +18,7 @@ import { buildWaves } from './forecast/waves.ts';
 import { buildStorms } from './forecast/storms.ts';
 import { buildNavWarn } from './forecast/navwarn.ts';
 import { buildWpi } from './forecast/wpi.ts';
+import { buildAis } from './forecast/ais.ts';
 import { buildCurrents } from './forecast/currents.ts';
 import { buildMetar } from './forecast/metar.ts';
 import { buildCoral } from './forecast/coral.ts';
@@ -41,6 +42,8 @@ const FEEDS: Record<string, { build: (dir: string) => Promise<string>; refreshH:
   navwarn: { build: buildNavWarn, refreshH: 6 },
   // NGA World Port Index for the ports near the coast: changes a few times a year, so weekly.
   wpi: { build: buildWpi, refreshH: 168 },
+  // AIS ships near the coast (PLAN 7.96): listens for two minutes each run and merges into the last 24 h; needs AISSTREAM_API_KEY.
+  ais: { build: buildAis, refreshH: 1 },
   currents: { build: buildCurrents, refreshH: 12, series: ['currents', 'currents-coast'] },
   // Limón airport METAR, hourly while the airport is open; no CORS, so relayed.
   metar: { build: buildMetar, refreshH: 0.5 },
