@@ -12,6 +12,7 @@ import { SURF_FIGS } from './art/surf';
 import { AID_FIGS } from './art/aid';
 import { RIGS_FIGS } from './art/rigs';
 import { MISC_FIGS } from './art/misc';
+import { CIGUA_FIGS } from './art/cigua';
 import { animalSvg, type AnimalId } from './art/animals';
 
 type Lang = 'en' | 'es';
@@ -19,7 +20,7 @@ type Lang = 'en' | 'es';
 export type Tone = 'go' | 'warn' | 'stop' | 'unk' | 'info';
 
 /** Every drawing, by id. Each tab group keeps its own in art/<group>.ts. */
-export const FIGS = { ...WATER_FIGS, ...SURF_FIGS, ...AID_FIGS, ...RIGS_FIGS, ...MISC_FIGS };
+export const FIGS = { ...WATER_FIGS, ...SURF_FIGS, ...AID_FIGS, ...RIGS_FIGS, ...MISC_FIGS, ...CIGUA_FIGS };
 export type FigId = keyof typeof FIGS;
 
 export type VBlock =
@@ -57,7 +58,7 @@ export type VBlock =
   /** The index of incidents: one big tappable chip each, with its animal. */
   | { k: 'index'; h: L; items: { id: string; an: AnimalId; t: L }[] }
   /** Animal pictures with their names, so a reader can match what hurt them. */
-  | { k: 'animals'; items: { an: AnimalId; h: L; t?: L }[] }
+  | { k: 'animals'; items: { an: AnimalId; h: L; t?: L; tone?: Tone }[] }
   | { k: 'heat'; h?: L; cols: L[]; rows: { h: L; v: number[]; hue?: 'fish' | 'closed' | 'nest' | 'rain' }[]; key: { v: number; hue?: 'fish' | 'closed' | 'nest' | 'rain'; t: L }[]; note?: L };
 
 export type Tx = (l: L) => string;
@@ -150,7 +151,7 @@ export function visHtml(b: VBlock, lang: Lang, tx0: Tx, href: (t: NtTab) => stri
     case 'index':
       return `<nav class="nt-idx"><h3>${tx(b.h)}</h3><ul>${b.items.map((i) => `<li><a href="#nt-inc-${i.id}">${animalSvg(i.an)}<span>${tx(i.t)}</span></a></li>`).join('')}</ul></nav>`;
     case 'animals':
-      return `<ul class="nt-anim">${b.items.map((i) => `<li>${animalSvg(i.an)}<h4>${tx(i.h)}</h4>${i.t ? `<p>${tx(i.t)}</p>` : ''}</li>`).join('')}</ul>`;
+      return `<ul class="nt-anim">${b.items.map((i) => `<li${i.tone ? ` class="nt-${i.tone}"` : ''}>${animalSvg(i.an)}<h4>${tx(i.h)}</h4>${i.t ? `<p>${tx(i.t)}</p>` : ''}</li>`).join('')}</ul>`;
     case 'heat': {
       const cols = b.cols.map((c) => `<span class="nt-hc">${tx(c)}</span>`).join('');
       const rows = b.rows

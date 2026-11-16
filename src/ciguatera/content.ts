@@ -3,6 +3,9 @@
  * (cases.md, species-size.md, medical.md). Plain data, no DOM. Every claim carries what the source says and no more:
  * evidence grades are the sources' own, not ours. "No data" is never written as "safe".
  */
+import type { VBlock } from '../notes/vis';
+import type { AnimalId } from '../notes/art/animals';
+
 export type L = { en: string; es: string };
 const L = (en: string, es: string): L => ({ en, es });
 
@@ -28,19 +31,26 @@ export type Block =
   /** Item, grade chip, plain-language note. */
   | { k: 'graded'; rows: { item: L; grade: Grade; note: L }[] }
   /** Bars on a log scale: cases per 10,000 people per year. */
-  | { k: 'bars'; cite?: string; rows: { label: L; lo: number; hi?: number; note?: L }[] }
+  | { k: 'bars'; cite?: string; rows: { label: L; lo: number; hi?: number; note?: L; none?: L }[] }
+  /** Fish by fish, a big risk chip (never, high, care, low, none reported) and the evidence behind a tap. */
+  | { k: 'risk'; rows: { fish: L; an?: AnimalId; lvl: Risk; word: L; note?: L; ev: L }[] }
+  /** Ranges from 0 to 100 percent, lowest to highest across studies; `stop` marks the dangerous ones. */
+  | { k: 'range'; cite?: string; key: L; rows: { label: L; lo: number; hi: number; stop?: boolean }[] }
   /**
    * The size to keep, fish by fish, for the kinds the map and forecast model (fishing/cigua.ts, from the species
    * guide's research): one bar per species on an 80 cm scale. The same numbers as the fish panel and the guide.
    */
   | { k: 'sizes'; cite?: string; kinds: string[] };
 
+export type Risk = 'never' | 'high' | 'care' | 'low' | 'none';
+
 export interface Section {
-  id: 'risk' | 'here' | 'fish' | 'symptoms' | 'treatment' | 'recovery' | 'ifill';
+  id: 'risk' | 'ifill' | 'here' | 'fish' | 'symptoms' | 'treatment' | 'recovery';
   title: L;
   /** One line under the title. */
   lede: L;
-  blocks: Block[];
+  /** Text blocks, plus the field notes' visual blocks (figures, animal tiles). */
+  blocks: (Block | VBlock)[];
 }
 
 export const TITLE = L('Ciguatera', 'Ciguatera');
@@ -63,13 +73,28 @@ export const SECTIONS: Section[] = [
     lede: L('A toxin from reef algae that builds up in big reef fish. You cannot see, smell, taste or cook it out.', 'Una toxina de algas de arrecife que se acumula en peces grandes de arrecife. No se ve, huele, saborea ni se elimina cocinando.'),
     blocks: [
       { k: 'warn', h: L('Never eat', 'Nunca coma'), t: L('Barracuda (picúa) and moray eels (morenas): never eat them.{cdc} Also never eat the head, liver, guts or roe of any large reef fish.{cdc}', 'Barracuda (picúa) y morenas: no los coma nunca.{cdc} Tampoco coma nunca la cabeza, el hígado, las vísceras ni las huevas de ningún pez grande de arrecife.{cdc}') },
-      { k: 'p', t: L('Ciguatera comes from tiny algae (Gambierdiscus) that live on dead coral, rubble and seaweed on reefs. Small fish eat the algae, big fish eat the small fish, and the toxin (ciguatoxin) concentrates up the chain. It is most concentrated in the head, liver, guts and roe.{cdc}', 'La ciguatera viene de algas diminutas (Gambierdiscus) que viven sobre coral muerto, escombros y algas de los arrecifes. Los peces pequeños comen las algas, los grandes comen a los pequeños y la toxina (ciguatoxina) se concentra en la cadena. Se concentra más en la cabeza, el hígado, las vísceras y las huevas.{cdc}') },
+      { k: 'animals', items: [
+        { an: 'barracuda', h: L('Barracuda, picúa: never eat', 'Barracuda, picúa: nunca la coma'), tone: 'stop' },
+        { an: 'moray', h: L('Moray eel, morena: never eat', 'Morena: nunca la coma'), tone: 'stop' },
+      ] },
+      { k: 'h', t: L('How a fish becomes toxic', 'Cómo un pez se vuelve tóxico') },
+      { k: 'fig', fig: 'cgChain', label: L('From algae to small fish to big fish to you, the toxin builds up at each step.', 'De las algas al pez pequeño, al pez grande y a usted, la toxina se acumula en cada paso.'), tones: ['info', 'info', 'warn', 'stop'], marks: [
+        L('Tiny algae (Gambierdiscus) live on dead coral, rubble and seaweed on the reef. They make the toxin, ciguatoxin.{cdc}', 'Algas diminutas (Gambierdiscus) viven sobre coral muerto, escombros y algas del arrecife. Ellas producen la toxina, la ciguatoxina.{cdc}'),
+        L('Small fish that graze on the reef eat the algae.', 'Los peces pequeños que pastan en el arrecife comen las algas.'),
+        L('Big fish eat many small fish, so the toxin builds up in them.', 'Los peces grandes comen muchos peces pequeños, y la toxina se acumula en ellos.'),
+        L('You eat the big fish. Cooking does not destroy the toxin.{cdc}', 'Usted come el pez grande. Cocinarlo no destruye la toxina.{cdc}'),
+      ] },
+      { k: 'h', t: L('Where the toxin is in a fish', 'Dónde está la toxina en el pez') },
+      { k: 'fig', fig: 'cgParts', label: L('A reef fish: the head, liver, guts and roe in red hold the most toxin; the fillet in grey holds less.', 'Un pez de arrecife: la cabeza, el hígado, las vísceras y las huevas en rojo tienen más toxina; el filete en gris tiene menos.'), tones: ['stop', 'warn'], marks: [
+        L('Red: the head, liver, guts and roe hold the most toxin. Throw them away.{cdc}', 'Rojo: la cabeza, el hígado, las vísceras y las huevas tienen más toxina. Deséchelos.{cdc}'),
+        L('Grey: the fillet holds less, but not none. A toxic fish is still toxic with the guts out.', 'Gris: el filete tiene menos, pero no cero. Un pez tóxico sigue siendo tóxico sin las vísceras.'),
+      ] },
       { k: 'h', t: L('What does not work', 'Lo que no sirve') },
       { k: 'ul', items: [
         L('Cooking, freezing, pickling, salting or smoking do not destroy the toxin.{cdc}', 'Cocinar, congelar, encurtir, salar o ahumar no destruye la toxina.{cdc}'),
         L('The fish looks, smells and tastes normal. No coin, ant or cat test is backed by any source we found.', 'El pescado se ve, huele y sabe normal. Ninguna fuente que encontramos respalda pruebas con monedas, hormigas o gatos.'),
         L('There is no approved home test. Test kits have not been reliable: one kit tried on 50 Caribbean fish missed 50 to 82 percent of the toxic ones and flagged 33 to 44 percent of the others, and kits are no longer sold.{kits}', 'No hay una prueba casera aprobada. Los kits de prueba no han sido fiables: uno probado en 50 peces del Caribe no detectó del 50 al 82 por ciento de los tóxicos y marcó como tóxicos del 33 al 44 por ciento de los demás, y ya no se venden.{kits}'),
-        L('There is no antidote. Treatment is supportive.{cdc}', 'No hay antídoto. El tratamiento es de apoyo.{cdc}'),
+        L('There is no antidote. Doctors treat the symptoms while the body clears the toxin.{cdc}', 'No hay antídoto. Los médicos tratan los síntomas mientras el cuerpo elimina la toxina.{cdc}'),
       ] },
       { k: 'h', t: L('Rules the evidence supports', 'Reglas que respalda la evidencia') },
       { k: 'ul', items: [
@@ -80,6 +105,22 @@ export const SECTIONS: Section[] = [
         L('Open-water fish (tuna, mahi, wahoo) are rarely reported with ciguatera, but they can cause a different poisoning, scombroid, if not chilled fast. Ice them.', 'Los peces de mar abierto (atún, dorado, peto) rara vez se reportan con ciguatera, pero pueden causar otra intoxicación, la escombroide, si no se enfrían rápido. Póngales hielo.'),
       ] },
       { k: 'p', t: L('The app flags species with a ciguatera warning on the fishing panel and in the species guide. Those warnings open this page.', 'La app marca con una advertencia de ciguatera las especies en el panel de pesca y en la guía de especies. Esas advertencias abren esta página.') },
+    ],
+  },
+  {
+    id: 'ifill',
+    title: L('If you think you have it', 'Si cree que la tiene'),
+    lede: L('See a doctor. Go now if the pulse is slow, you faint, or you cannot keep fluids down.', 'Vea a un médico. Vaya ya si el pulso es lento, se desmaya o no retiene líquidos.'),
+    blocks: [
+      { k: 'warn', h: L('Go to hospital now', 'Vaya al hospital ya'), t: L('Slow or irregular pulse, fainting or dizziness on standing, repeated vomiting or diarrhoea, trouble breathing, seizures. In Costa Rica call 911.', 'Pulso lento o irregular, desmayo o mareo al ponerse de pie, vómito o diarrea repetidos, dificultad para respirar, convulsiones. En Costa Rica llame al 911.') },
+      { k: 'ul', items: [
+        L('Tell the doctor the fish, where and when it was caught, and when symptoms began. Many doctors have never seen ciguatera, and low awareness in the health sector is named as one reason it goes unreported here.{ucr}', 'Diga al médico qué pez, dónde y cuándo se pescó, y cuándo empezaron los síntomas. Muchos médicos nunca han visto ciguatera, y se señala el poco conocimiento del sector salud como una razón de que no se reporte aquí.{ucr}'),
+        L('Costa Rica poison centre: 800-INTOXICA (800-4686-9422), given in a CCSS press note.{poison} Check the number is current before you rely on it.', 'Centro de control de intoxicaciones de Costa Rica: 800-INTOXICA (800-4686-9422), según un comunicado de la CCSS.{poison} Verifique que el número esté vigente antes de depender de él.'),
+        L('Good practice, though no source states it: keep any leftover fish frozen and tell everyone who ate it. Tell the local health office what fish and place, so a case is counted.', 'Buena práctica, aunque ninguna fuente la indica: guarde congelado cualquier sobrante y avise a todos los que comieron. Informe a la oficina de salud local qué pez y qué lugar, para que el caso se cuente.'),
+        L('For doctors and health workers: two or more people ill from the same food count as an outbreak, to be reported at once to the local health area of the Ministerio de Salud (forms VE-01 for one patient, VE-02 for a group). Ciguatera is not named as its own notifiable disease, but marine toxins fall under foodborne illness.{eta}', 'Para médicos y personal de salud: dos o más personas enfermas por el mismo alimento cuentan como brote, y se notifica de inmediato al área rectora de salud local del Ministerio de Salud (formularios VE-01 para un paciente, VE-02 para un grupo). La ciguatera no figura como enfermedad de notificación individual propia, pero las toxinas marinas entran en las enfermedades transmitidas por alimentos.{eta}'),
+        L('Do not eat the rest of the fish, and do not feed it to pets.', 'No coma el resto del pescado ni se lo dé a mascotas.'),
+        L('Until you are seen: drink water, rest, and avoid alcohol and caffeine.', 'Hasta que lo vean: tome agua, descanse y evite alcohol y cafeína.'),
+      ] },
     ],
   },
   {
@@ -116,6 +157,7 @@ export const SECTIONS: Section[] = [
         { label: L('Guadeloupe (2013 to 2016)', 'Guadalupe (2013 a 2016)'), lo: 1.5, note: L('same island, newer method{gdl}', 'misma isla, método más reciente{gdl}') },
         { label: L('US Virgin Islands (1982)', 'Islas Vírgenes de EE. UU. (1982)'), lo: 7.6, note: L('a later estimate is much higher{whoi}', 'una estimación posterior es mucho mayor{whoi}') },
         { label: L('Miami-Dade, Florida (1974 to 76)', 'Miami-Dade, Florida (1974 a 76)'), lo: 5 },
+        { label: L('Costa Rica, Caribbean coast', 'Costa Rica, costa caribe'), lo: 0, none: L('No rate published', 'No hay tasa publicada') },
       ] },
       { k: 'p', t: L('Caribbean rates are far lower than the Pacific hotspots, but they run from about 1 to over a hundred per 10,000 and depend a lot on the method: Guadeloupe gave 30 in 1984 and 1.5 in 2013 to 2016. There is no rate for Costa Rica.', 'Las tasas del Caribe son mucho menores que las de los focos del Pacífico, pero van de cerca de 1 a más de cien por 10.000 y dependen mucho del método: Guadalupe dio 30 en 1984 y 1,5 en 2013 a 2016. No hay una tasa para Costa Rica.') },
       { k: 'h', t: L('Why a few kilometres matter', 'Por qué importan unos pocos kilómetros') },
@@ -127,22 +169,22 @@ export const SECTIONS: Section[] = [
     title: L('Species and size', 'Especies y tamaño'),
     lede: L('How the published record ranks Caribbean fish. A tier is not a guarantee.', 'Cómo clasifica el registro publicado a los peces del Caribe. Un nivel no es una garantía.'),
     blocks: [
-      { k: 'table', head: [L('Fish', 'Pez'), L('Risk in the record', 'Riesgo en el registro'), L('Evidence', 'Evidencia')], rows: [
-        [L('Barracuda, picúa (Sphyraena barracuda)', 'Barracuda, picúa (Sphyraena barracuda)'), L('HIGH. Never eat{cdc}', 'ALTO. Nunca comer{cdc}'), L('Every Mexican Caribbean outbreak 1984 to 2013;{mex} 12 of 234 Guadeloupe cases{gdl}', 'Todos los brotes del Caribe mexicano 1984 a 2013;{mex} 12 de 234 casos en Guadalupe{gdl}')],
-        [L('Moray eels, morenas (Gymnothorax)', 'Morenas (Gymnothorax)'), L('HIGH. Never eat{cdc}', 'ALTO. Nunca comer{cdc}'), L('Small series', 'Series pequeñas')],
-        [L('Amberjack, medregal (Seriola)', 'Medregal, coronado (Seriola)'), L('HIGH', 'ALTO'), L('Jacks and amberjack: 47 Guadeloupe cases', 'Jureles y medregal: 47 casos en Guadalupe')],
-        [L('Horse-eye jack, jurel ojón (Caranx latus)', 'Jurel ojón (Caranx latus)'), L('HIGH', 'ALTO'), L('55 percent of 178 Guadeloupe and St Barth fish tested toxic; toxin rose with weight{stb}', '55 por ciento de 178 peces de Guadalupe y San Bartolomé dio tóxico; la toxina subió con el peso{stb}')],
-        [L('Yellow jack, bar jack, crevalle (Caranx bartholomaei, ruber, hippos)', 'Jurel amarillo, jurel, jurel común'), L('MODERATE to HIGH', 'MODERADO a ALTO'), L('Guadeloupe series;{gdl} nothing specific found for crevalle', 'Serie de Guadalupe;{gdl} nada específico para el jurel común')],
-        [L('Groupers, mero (Mycteroperca, Epinephelus), esp. large', 'Meros (Mycteroperca, Epinephelus), sobre todo grandes'), L('HIGH when large', 'ALTO si son grandes'), L('15 Guadeloupe cases', '15 casos en Guadalupe')],
-        [L('Cubera and dog snapper (Lutjanus cyanopterus, jocu)', 'Pargo cubera y pargo perro'), L('HIGH', 'ALTO'), L('Dog snapper cases in Guadeloupe and a Cuba traveller; cubera on agency lists only', 'Casos de pargo perro en Guadalupe y un viajero a Cuba; cubera solo en listas de agencias')],
-        [L('Schoolmaster (Lutjanus apodus)', 'Pargo gallego'), L('MODERATE', 'MODERADO'), L('Guadeloupe cases', 'Casos en Guadalupe')],
-        [L('Mutton snapper, yellowtail (L. analis, Ocyurus)', 'Pargo criollo, rabirrubia'), L('LOW reported', 'BAJO reportado'), L('Yellowtail "suspected, not established" in Guadeloupe; no mutton snapper source found', 'Rabirrubia "sospechado, no establecido" en Guadalupe; no hallamos fuente del pargo criollo')],
-        [L('King mackerel, carite (Scomberomorus cavalla), and cero (Scomberomorus regalis)', 'Carite, sierra (Scomberomorus cavalla), y carite chinigua (Scomberomorus regalis)'), L('MODERATE (listed)', 'MODERADO (en listas)'), L('Agency lists; cero reports in FishBase;{fbcero} no size data for either', 'Listas de agencias; reportes del carite chinigua en FishBase;{fbcero} sin datos de talla para ninguno')],
-        [L('Hogfish, parrotfish', 'Boquinete, loros'), L('MODERATE / LOW to MODERATE', 'MODERADO / BAJO a MODERADO'), L('Agency lists;{cdc} no case series found', 'Listas de agencias;{cdc} no hallamos series de casos')],
-        [L('Lionfish, pez león (Pterois volitans)', 'Pez león (Pterois volitans)'), L('LOW to MODERATE: toxin found, illness rare', 'BAJO a MODERADO: hay toxina, la enfermedad es rara'), L('US Virgin Islands: about 12 percent of 153 fish above the US FDA level, about 40 percent had some toxin, size did not predict it; no illness reported to the FDA by 2013;{lion} one Guadeloupe case{gdl}', 'Islas Vírgenes de EE. UU.: cerca del 12 por ciento de 153 peces superó el nivel de la FDA, cerca del 40 por ciento tenía algo de toxina, el tamaño no lo predijo; ninguna enfermedad reportada a la FDA hasta 2013;{lion} un caso en Guadalupe{gdl}')],
-        [L('Mahi-mahi, dorado', 'Dorado'), L('Not established. Scombroid risk', 'No establecido. Riesgo escombroide'), L('"Suspected, not established" in Guadeloupe', '"Sospechado, no establecido" en Guadalupe')],
-        [L('Wahoo, peto (Acanthocybium solandri)', 'Peto (Acanthocybium solandri)'), L('Rare reports', 'Reportes raros'), L('The Canary Islands test wahoo over 30 kg before sale;{can} no size link known. Chill it fast (scombroid)', 'Las Islas Canarias analizan los petos de más de 30 kg antes de venderlos;{can} no se conoce relación con la talla. Enfríelo rápido (escombroide)')],
-        [L('Tunas, atún; Spanish mackerel, macarela', 'Atunes; macarela'), L('None reported', 'Ninguno reportado'), L('Pelagic fish are rarely reported. Chill them fast (scombroid)', 'Los peces pelágicos rara vez se reportan. Enfríelos rápido (escombroide)')],
+      { k: 'risk', rows: [
+        { fish: L('Barracuda, picúa (Sphyraena barracuda)', 'Barracuda, picúa (Sphyraena barracuda)'), an: 'barracuda', lvl: 'never', word: L('NEVER EAT{cdc}', 'NUNCA COMER{cdc}'), ev: L('Every Mexican Caribbean outbreak 1984 to 2013;{mex} 12 of 234 Guadeloupe cases{gdl}', 'Todos los brotes del Caribe mexicano 1984 a 2013;{mex} 12 de 234 casos en Guadalupe{gdl}') },
+        { fish: L('Moray eels, morenas (Gymnothorax)', 'Morenas (Gymnothorax)'), an: 'moray', lvl: 'never', word: L('NEVER EAT{cdc}', 'NUNCA COMER{cdc}'), ev: L('Small series', 'Series pequeñas') },
+        { fish: L('Amberjack, medregal (Seriola)', 'Medregal, coronado (Seriola)'), lvl: 'high', word: L('HIGH', 'ALTO'), ev: L('Jacks and amberjack: 47 Guadeloupe cases', 'Jureles y medregal: 47 casos en Guadalupe') },
+        { fish: L('Horse-eye jack, jurel ojón (Caranx latus)', 'Jurel ojón (Caranx latus)'), lvl: 'high', word: L('HIGH', 'ALTO'), ev: L('55 percent of 178 Guadeloupe and St Barth fish tested toxic; toxin rose with weight{stb}', '55 por ciento de 178 peces de Guadalupe y San Bartolomé dio tóxico; la toxina subió con el peso{stb}') },
+        { fish: L('Yellow jack, bar jack, crevalle (Caranx bartholomaei, ruber, hippos)', 'Jurel amarillo, jurel, jurel común'), lvl: 'care', word: L('MODERATE TO HIGH', 'MODERADO A ALTO'), ev: L('Guadeloupe series;{gdl} nothing specific found for crevalle', 'Serie de Guadalupe;{gdl} nada específico para el jurel común') },
+        { fish: L('Groupers, mero (Mycteroperca, Epinephelus), esp. large', 'Meros (Mycteroperca, Epinephelus), sobre todo grandes'), lvl: 'high', word: L('HIGH IF LARGE', 'ALTO SI ES GRANDE'), ev: L('15 Guadeloupe cases', '15 casos en Guadalupe') },
+        { fish: L('Cubera and dog snapper (Lutjanus cyanopterus, jocu)', 'Pargo cubera y pargo perro'), lvl: 'high', word: L('HIGH', 'ALTO'), ev: L('Dog snapper cases in Guadeloupe and a Cuba traveller; cubera on agency lists only', 'Casos de pargo perro en Guadalupe y un viajero a Cuba; cubera solo en listas de agencias') },
+        { fish: L('Schoolmaster (Lutjanus apodus)', 'Pargo gallego'), lvl: 'care', word: L('MODERATE', 'MODERADO'), ev: L('Guadeloupe cases', 'Casos en Guadalupe') },
+        { fish: L('Mutton snapper, yellowtail (L. analis, Ocyurus)', 'Pargo criollo, rabirrubia'), lvl: 'low', word: L('LOW REPORTED', 'BAJO REPORTADO'), ev: L('Yellowtail "suspected, not established" in Guadeloupe; no mutton snapper source found', 'Rabirrubia "sospechado, no establecido" en Guadalupe; no hallamos fuente del pargo criollo') },
+        { fish: L('King mackerel, carite (Scomberomorus cavalla), and cero (Scomberomorus regalis)', 'Carite, sierra (Scomberomorus cavalla), y carite chinigua (Scomberomorus regalis)'), lvl: 'care', word: L('MODERATE', 'MODERADO'), note: L('On agency lists', 'En listas de agencias'), ev: L('Agency lists; cero reports in FishBase;{fbcero} no size data for either', 'Listas de agencias; reportes del carite chinigua en FishBase;{fbcero} sin datos de talla para ninguno') },
+        { fish: L('Hogfish, parrotfish', 'Boquinete, loros'), lvl: 'care', word: L('LOW TO MODERATE', 'BAJO A MODERADO'), note: L('Hogfish moderate, parrotfish low to moderate', 'Boquinete moderado, loros bajo a moderado'), ev: L('Agency lists;{cdc} no case series found', 'Listas de agencias;{cdc} no hallamos series de casos') },
+        { fish: L('Lionfish, pez león (Pterois volitans)', 'Pez león (Pterois volitans)'), an: 'lionfish', lvl: 'care', word: L('LOW TO MODERATE', 'BAJO A MODERADO'), note: L('Toxin found, illness rare', 'Hay toxina, la enfermedad es rara'), ev: L('US Virgin Islands: about 12 percent of 153 fish above the US FDA level, about 40 percent had some toxin, size did not predict it; no illness reported to the FDA by 2013;{lion} one Guadeloupe case{gdl}', 'Islas Vírgenes de EE. UU.: cerca del 12 por ciento de 153 peces superó el nivel de la FDA, cerca del 40 por ciento tenía algo de toxina, el tamaño no lo predijo; ninguna enfermedad reportada a la FDA hasta 2013;{lion} un caso en Guadalupe{gdl}') },
+        { fish: L('Mahi-mahi, dorado', 'Dorado'), lvl: 'none', word: L('NOT ESTABLISHED', 'NO ESTABLECIDO'), note: L('Scombroid risk: ice it', 'Riesgo escombroide: póngale hielo'), ev: L('"Suspected, not established" in Guadeloupe', '"Sospechado, no establecido" en Guadalupe') },
+        { fish: L('Wahoo, peto (Acanthocybium solandri)', 'Peto (Acanthocybium solandri)'), lvl: 'low', word: L('RARE REPORTS', 'REPORTES RAROS'), ev: L('The Canary Islands test wahoo over 30 kg before sale;{can} no size link known. Chill it fast (scombroid)', 'Las Islas Canarias analizan los petos de más de 30 kg antes de venderlos;{can} no se conoce relación con la talla. Enfríelo rápido (escombroide)') },
+        { fish: L('Tunas, atún; Spanish mackerel, macarela', 'Atunes; macarela'), lvl: 'none', word: L('NONE REPORTED', 'NINGUNO REPORTADO'), ev: L('Pelagic fish are rarely reported. Chill them fast (scombroid)', 'Los peces pelágicos rara vez se reportan. Enfríelos rápido (escombroide)') },
       ] },
       { k: 'p', t: L('The FDA lists amberjack, barracuda, moray eels, groupers, hogfish, jacks, snappers, king mackerel, parrotfish and queen triggerfish as ciguatera risks. Mahi-mahi and wahoo are not on its ciguatera list.{fda}', 'La FDA lista medregal, barracuda, morenas, meros, boquinete, jureles, pargos, carite, loros y pez ballesta reina como riesgos de ciguatera. El dorado y el peto no están en su lista de ciguatera.{fda}') },
       { k: 'h', t: L('Size: what the record says', 'Tamaño: lo que dice el registro') },
@@ -170,6 +212,13 @@ export const SECTIONS: Section[] = [
     title: L('Symptoms', 'Síntomas'),
     lede: L('Gut first, then nerves. Hot and cold feel reversed. It can last weeks to months.', 'Primero el estómago, luego los nervios. Lo frío y lo caliente se sienten al revés. Puede durar semanas o meses.'),
     blocks: [
+      { k: 'fig', fig: 'cgTime', label: L('When each kind of symptom shows up after eating the fish, from hours to months.', 'Cuándo aparece cada tipo de síntoma tras comer el pescado, de horas a meses.'), tones: ['warn', 'warn', 'warn', 'stop', 'info'], marks: [
+        L('Stomach: nausea, vomiting, diarrhoea and cramps, from 3 to 6 hours after the meal (up to about 30). They fade in 1 to 4 days.{f17}', 'Estómago: náuseas, vómitos, diarrea y cólicos, de 3 a 6 horas tras la comida (hasta unas 30). Ceden en 1 a 4 días.{f17}'),
+        L('Tingling or numbness of the lips, tongue, hands and feet, from a few hours to 2 days in.{cdc}', 'Hormigueo o adormecimiento de labios, lengua, manos y pies, de unas horas a 2 días después.{cdc}'),
+        L('Hot and cold feel reversed, often from day 1 to a few days in.', 'Lo frío y lo caliente se sienten al revés, a menudo del día 1 a unos días después.'),
+        L('Heart: a slow pulse, low blood pressure or fainting in the first days. This is the dangerous part. Go to hospital.{cdc}', 'Corazón: pulso lento, presión baja o desmayo en los primeros días. Es la parte peligrosa. Vaya al hospital.{cdc}'),
+        L('Tiredness, itching and aches can last weeks to months.{f08}', 'El cansancio, la picazón y los dolores pueden durar semanas o meses.{f08}'),
+      ] },
       { k: 'table', head: [L('When', 'Cuándo'), L('What', 'Qué')], rows: [
         [L('3 to 6 hours (up to about 30) after the meal', 'De 3 a 6 horas (hasta unas 30) tras la comida'), L('Nausea, vomiting, diarrhoea, stomach cramps. In the Caribbean these usually come first and fade in 1 to 4 days.{f17}', 'Náuseas, vómitos, diarrea, cólicos. En el Caribe suelen venir primero y ceden en 1 a 4 días.{f17}')],
         [L('Hours to 2 days', 'De horas a 2 días'), L('Tingling or numbness of lips, tongue, hands and feet; itching; muscle and joint pain; headache; tooth or jaw pain; a metallic taste.{cdc}', 'Hormigueo o adormecimiento de labios, lengua, manos y pies; picazón; dolor muscular y articular; dolor de cabeza; dolor de dientes o mandíbula; sabor metálico.{cdc}')],
@@ -178,7 +227,17 @@ export const SECTIONS: Section[] = [
         [L('Weeks to months', 'Semanas a meses'), L('Fatigue, itching, aching, mood and memory changes. Most recover within months. Symptoms "for years" are reported, but after a year doctors are told to look for other causes.{f08}', 'Fatiga, picazón, dolores, cambios de ánimo y memoria. La mayoría se recupera en meses. Se reportan síntomas "por años", pero pasado un año se indica buscar otras causas.{f08}')],
       ] },
       { k: 'h', t: L('How often each symptom is reported', 'Con qué frecuencia se reporta cada síntoma') },
-      { k: 'p', t: L('Ranges across published case series (different studies, so approximate): diarrhoea 44 to 83 percent, vomiting 28 to 69, nausea 17 to 82, tingling of limbs 36 to 100, temperature reversal 16 to 94, muscle pain 12 to 86, itching 5 to 77, slow pulse 3 to 75, low blood pressure 8 to 43.{f17}', 'Rangos en series de casos publicadas (estudios distintos, por tanto aproximados): diarrea 44 a 83 por ciento, vómitos 28 a 69, náuseas 17 a 82, hormigueo de extremidades 36 a 100, inversión de temperatura 16 a 94, dolor muscular 12 a 86, picazón 5 a 77, pulso lento 3 a 75, presión baja 8 a 43.{f17}') },
+      { k: 'range', cite: 'f17', key: L('Out of every 100 patients, how many had it. Each bar runs from the lowest to the highest count in different studies, so the numbers are approximate.', 'De cada 100 pacientes, cuántos lo tuvieron. Cada barra va del conteo más bajo al más alto en distintos estudios, así que los números son aproximados.'), rows: [
+        { label: L('Diarrhoea', 'Diarrea'), lo: 44, hi: 83 },
+        { label: L('Vomiting', 'Vómitos'), lo: 28, hi: 69 },
+        { label: L('Nausea', 'Náuseas'), lo: 17, hi: 82 },
+        { label: L('Tingling of hands and feet', 'Hormigueo de manos y pies'), lo: 36, hi: 100 },
+        { label: L('Hot and cold reversed', 'Frío y calor al revés'), lo: 16, hi: 94 },
+        { label: L('Muscle pain', 'Dolor muscular'), lo: 12, hi: 86 },
+        { label: L('Itching', 'Picazón'), lo: 5, hi: 77 },
+        { label: L('Slow pulse', 'Pulso lento'), lo: 3, hi: 75, stop: true },
+        { label: L('Low blood pressure', 'Presión baja'), lo: 8, hi: 43, stop: true },
+      ] },
       { k: 'h', t: L('Good to know', 'Bueno saber') },
       { k: 'ul', items: [
         L('Caribbean ciguatoxin is a different molecule from the Pacific one and is believed to be less acutely potent. Caribbean cases tend to start with the gut; Pacific cases lean to nerve symptoms.{f08}{c16}', 'La ciguatoxina del Caribe es una molécula distinta de la del Pacífico y se cree menos potente en lo agudo. Los casos del Caribe tienden a empezar con el estómago; los del Pacífico, con síntomas nerviosos.{f08}{c16}'),
@@ -192,19 +251,19 @@ export const SECTIONS: Section[] = [
   {
     id: 'treatment',
     title: L('Treatment and remedies', 'Tratamiento y remedios'),
-    lede: L('No antidote exists. Care is supportive. Here is how strong the evidence is for each thing people try.', 'No existe antídoto. La atención es de apoyo. Aquí, qué tan sólida es la evidencia de cada cosa que la gente prueba.'),
+    lede: L('No antidote exists. Doctors treat the symptoms while the body clears the toxin. Here is how strong the evidence is for each thing people try.', 'No existe antídoto. Los médicos tratan los síntomas mientras el cuerpo elimina la toxina. Aquí, qué tan sólida es la evidencia de cada cosa que la gente prueba.'),
     blocks: [
-      { k: 'aid', h: L('The honest summary', 'El resumen honesto'), t: L('There is no specific antidote.{cdc} Doctors treat the symptoms: fluids, anti-nausea drugs, watching the heart, and medicines for nerve pain and itch.{f17} Time is what clears the toxin.', 'No hay antídoto específico.{cdc} Los médicos tratan los síntomas: líquidos, antieméticos, vigilancia del corazón y medicinas para el dolor nervioso y la picazón.{f17} El tiempo es lo que elimina la toxina.') },
+      { k: 'aid', h: L('The honest summary', 'El resumen honesto'), t: L('There is no specific antidote.{cdc} Doctors treat the symptoms: fluids, drugs for nausea, watching the heart, and medicines for nerve pain and itch.{f17} Time is what clears the toxin.', 'No hay antídoto específico.{cdc} Los médicos tratan los síntomas: líquidos, medicinas contra la náusea, vigilancia del corazón y medicinas para el dolor nervioso y la picazón.{f17} El tiempo es lo que elimina la toxina.') },
       { k: 'h', t: L('In hospital', 'En el hospital') },
       { k: 'graded', rows: [
-        { item: L('IV fluids, anti-nausea drugs', 'Líquidos IV, antieméticos'), grade: 'expert', note: L('Standard supportive care.{cdc}', 'Atención de apoyo estándar.{cdc}') },
-        { item: L('Atropine for a slow, symptomatic pulse', 'Atropina para pulso lento con síntomas'), grade: 'expert', note: L('Used in hospital for dangerous slow heart rate.{f17}', 'Se usa en hospital para ritmo cardiaco lento peligroso.{f17}') },
-        { item: L('Mannitol IV (a drip of a sugar-alcohol)', 'Manitol IV (goteo de un azúcar-alcohol)'), grade: 'weak', note: L('Early uncontrolled series and one unblinded trial were positive. The one double-blind trial (50 patients) found no benefit over saline.{schn} Experts still call it reasonable in early, stable patients.{mh17} It is mentioned for use ideally within 48 hours and only if hydrated.{cdc}', 'Series tempranas sin control y un ensayo no ciego fueron positivos. El único ensayo doble ciego (50 pacientes) no halló beneficio frente a suero salino.{schn} Los expertos aún lo consideran razonable en pacientes tempranos y estables.{mh17} Se menciona su uso idealmente en 48 horas y solo con buena hidratación.{cdc}') },
-        { item: L('Amitriptyline (tingling, itch, headache)', 'Amitriptilina (hormigueo, picazón, dolor de cabeza)'), grade: 'case', note: L('Reported helpful in case reports; no trials.{f17}', 'Reportada útil en casos clínicos; sin ensayos.{f17}') },
-        { item: L('Gabapentin or pregabalin (nerve pain)', 'Gabapentina o pregabalina (dolor nervioso)'), grade: 'case', note: L('Used for nerve pain; case reports only.', 'Se usan para dolor nervioso; solo casos clínicos.') },
-        { item: L('Fluoxetine (long fatigue)', 'Fluoxetina (fatiga prolongada)'), grade: 'case', note: L('Case reports only.', 'Solo casos clínicos.') },
-        { item: L('Antihistamines (itch), nifedipine (headache)', 'Antihistamínicos (picazón), nifedipino (dolor de cabeza)'), grade: 'case', note: L('Case reports only.', 'Solo casos clínicos.') },
-        { item: L('Activated charcoal', 'Carbón activado'), grade: 'expert', note: L('Suggested only for people seen in the first hours who are not vomiting. We found no evidence for taking it days or weeks later.{cdc}{f17}', 'Se sugiere solo para quienes llegan en las primeras horas y no vomitan. No hallamos evidencia para tomarlo días o semanas después.{cdc}{f17}') },
+        { item: L('For vomiting and dehydration: a drip of fluids and anti-nausea drugs', 'Para vómitos y deshidratación: suero por la vena y medicinas contra la náusea'), grade: 'expert', note: L('What hospitals normally do to keep you well while the toxin clears.{cdc}', 'Lo que los hospitales hacen normalmente para mantenerlo bien mientras se elimina la toxina.{cdc}') },
+        { item: L('For a dangerously slow pulse: atropine', 'Para un pulso peligrosamente lento: atropina'), grade: 'expert', note: L('Given in hospital when a slow heartbeat causes dizziness or fainting.{f17}', 'Se da en el hospital cuando un latido lento causa mareo o desmayo.{f17}') },
+        { item: L('To try to calm nerve symptoms early: mannitol, given as a drip', 'Para intentar calmar los síntomas nerviosos al inicio: manitol, por goteo en la vena'), grade: 'weak', note: L('Early reports, where doctors knew who got it, looked good. The one careful trial, where neither patients nor doctors knew who got it (50 patients), found it worked no better than a salt-water drip.{schn} Experts still call it reasonable early on if the patient is stable.{mh17} It is mentioned for the first 48 hours, and only once the patient has had enough fluids.{cdc}', 'Los primeros reportes, donde los médicos sabían quién lo recibía, parecían buenos. El único ensayo cuidadoso, donde ni pacientes ni médicos sabían quién lo recibía (50 pacientes), halló que no funcionó mejor que un suero de agua con sal.{schn} Los expertos aún lo consideran razonable al inicio si el paciente está estable.{mh17} Se menciona para las primeras 48 horas, y solo cuando el paciente ya recibió suficientes líquidos.{cdc}') },
+        { item: L('For tingling, itch and headache: amitriptyline', 'Para hormigueo, picazón y dolor de cabeza: amitriptilina'), grade: 'case', note: L('Doctors have reported it helping single patients; it has not been tested in a trial.{f17}', 'Los médicos han reportado que ayudó a pacientes sueltos; no se ha probado en un ensayo.{f17}') },
+        { item: L('For burning nerve pain: gabapentin or pregabalin', 'Para el dolor nervioso que quema: gabapentina o pregabalina'), grade: 'case', note: L('Reported in single patients only.', 'Reportado solo en pacientes sueltos.') },
+        { item: L('For tiredness that lasts: fluoxetine', 'Para el cansancio que no se va: fluoxetina'), grade: 'case', note: L('Reported in single patients only.', 'Reportado solo en pacientes sueltos.') },
+        { item: L('For itch: antihistamines. For headache: nifedipine', 'Para la picazón: antihistamínicos. Para el dolor de cabeza: nifedipino'), grade: 'case', note: L('Reported in single patients only.', 'Reportado solo en pacientes sueltos.') },
+        { item: L('To soak up toxin still in the stomach: activated charcoal', 'Para atrapar la toxina que aún está en el estómago: carbón activado'), grade: 'expert', note: L('Suggested only for people seen in the first hours who are not vomiting. We found no evidence for taking it days or weeks later.{cdc}{f17}', 'Se sugiere solo para quienes llegan en las primeras horas y no vomitan. No hallamos evidencia para tomarlo días o semanas después.{cdc}{f17}') },
       ] },
       { k: 'h', t: L('Advice you hear on forums, checked', 'Consejos de foros, revisados') },
       { k: 'graded', rows: [
@@ -237,22 +296,6 @@ export const SECTIONS: Section[] = [
         L('Keep drinking water. Dehydration is the usual route to a serious case.', 'Siga tomando agua. La deshidratación es la vía habitual a un caso grave.'),
         L('Nothing here has been proven to speed recovery. Rest and time are what the sources describe.', 'Nada de esto está probado para acelerar la recuperación. Las fuentes describen descanso y tiempo.'),
         L('If symptoms flare, think of what you ate or drank in the last day and tell your doctor.', 'Si los síntomas reaparecen, piense en lo que comió o bebió el último día y dígalo a su médico.'),
-      ] },
-    ],
-  },
-  {
-    id: 'ifill',
-    title: L('If you think you have it', 'Si cree que la tiene'),
-    lede: L('See a doctor. Go now if the pulse is slow, you faint, or you cannot keep fluids down.', 'Vea a un médico. Vaya ya si el pulso es lento, se desmaya o no retiene líquidos.'),
-    blocks: [
-      { k: 'warn', h: L('Go to hospital now', 'Vaya al hospital ya'), t: L('Slow or irregular pulse, fainting or dizziness on standing, repeated vomiting or diarrhoea, trouble breathing, seizures. In Costa Rica call 911.', 'Pulso lento o irregular, desmayo o mareo al ponerse de pie, vómito o diarrea repetidos, dificultad para respirar, convulsiones. En Costa Rica llame al 911.') },
-      { k: 'ul', items: [
-        L('Tell the doctor the fish, where and when it was caught, and when symptoms began. Many doctors have never seen ciguatera, and low awareness in the health sector is named as one reason it goes unreported here.{ucr}', 'Diga al médico qué pez, dónde y cuándo se pescó, y cuándo empezaron los síntomas. Muchos médicos nunca han visto ciguatera, y se señala el poco conocimiento del sector salud como una razón de que no se reporte aquí.{ucr}'),
-        L('Costa Rica poison centre: 800-INTOXICA (800-4686-9422), given in a CCSS press note.{poison} Check the number is current before you rely on it.', 'Centro de control de intoxicaciones de Costa Rica: 800-INTOXICA (800-4686-9422), según un comunicado de la CCSS.{poison} Verifique que el número esté vigente antes de depender de él.'),
-        L('Good practice, though no source states it: keep any leftover fish frozen and tell everyone who ate it. Tell the local health office what fish and place, so a case is counted.', 'Buena práctica, aunque ninguna fuente la indica: guarde congelado cualquier sobrante y avise a todos los que comieron. Informe a la oficina de salud local qué pez y qué lugar, para que el caso se cuente.'),
-        L('For doctors and health workers: two or more people ill from the same food count as an outbreak, to be reported at once to the local health area of the Ministerio de Salud (forms VE-01 for one patient, VE-02 for a group). Ciguatera is not named as its own notifiable disease, but marine toxins fall under foodborne illness.{eta}', 'Para médicos y personal de salud: dos o más personas enfermas por el mismo alimento cuentan como brote, y se notifica de inmediato al área rectora de salud local del Ministerio de Salud (formularios VE-01 para un paciente, VE-02 para un grupo). La ciguatera no figura como enfermedad de notificación individual propia, pero las toxinas marinas entran en las enfermedades transmitidas por alimentos.{eta}'),
-        L('Do not eat the rest of the fish, and do not feed it to pets.', 'No coma el resto del pescado ni se lo dé a mascotas.'),
-        L('Until you are seen: drink water, rest, and avoid alcohol and caffeine.', 'Hasta que lo vean: tome agua, descanse y evite alcohol y cafeína.'),
       ] },
     ],
   },
