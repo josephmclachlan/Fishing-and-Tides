@@ -25,7 +25,7 @@ import type { OccurrenceFile } from '../fishing/occurrence-taxa';
 import { catchRecords, type CatchPin } from '../fishing/catches';
 import { liftedTagged, paintColour as cssColour, paintLift, themeVar, onSchemeChange } from './paint';
 import { ANCHOR_OFFSET, ZONE_LABEL, FAR_ZONES, fishZones, NEAR_ZONES, nearlyZones, speciesZones, zoneLabel, zoneRing, type Zone, type ZoneCell, type ZoneWhy } from '../fishing/zones';
-import type { OffshoreId } from '../fishing/offshore';
+import { OFFSHORE, type OffshoreId } from '../fishing/offshore';
 import { nearestName, uniqueMarks } from '../fishing/near-name';
 import { cellAt } from '../physics/bathy';
 import { PLUME_RIVERS, RAIN_TOWNS, SPOTS } from '../region';
@@ -202,10 +202,10 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     // Water that nearly earned a circle (PLAN 7.85): dotted, no fill, said so on the label.
     const nearly = nearlyZones(cells, ids, kept).flatMap((z) => zoneFeatures(z, spNames(z), [t('fish.zone.nearly'), nearWhere(z)].join(' · '), false, true));
     // Boat water beyond the cast: the offshore species on the day's satellite water (FAR_ZONES), not inside a national park.
-    // They are all eating fish, so SPORT shows none yet.
+    // The mode's boat fish only: mahi, tuna, wahoo, kingfish and silk snapper for EAT, sailfish and marlin for SPORT.
     const far =
-      boat && reach !== 'shore' && sp.mode === 'eat'
-        ? speciesZones(boat.filter((c) => !parkAt(c.lng, c.lat)), ['mahi', 'tuna', 'wahoo', 'kingfish', 'silksnapper'] as OffshoreId[], FAR_ZONES).flatMap((z) => {
+      boat && reach !== 'shore'
+        ? speciesZones(boat.filter((c) => !parkAt(c.lng, c.lat)), OFFSHORE.filter((o) => o.mode === sp.mode).map((o) => o.id), FAR_ZONES).flatMap((z) => {
             const at = nearestName(z.lng, z.lat, marks);
             const off = at ? t('fish.zone.off', { km: Math.round(at.km), name: at.name.toUpperCase() }) : '';
             const where = [t('fish.reach.boat'), z.why ? t(`fish.why.${z.why}` as Key) : '', depthText(z.depthM), off].filter(Boolean).join(' · ');

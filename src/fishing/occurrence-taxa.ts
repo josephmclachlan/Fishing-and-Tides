@@ -21,6 +21,9 @@ export const OCCURRENCE_TAXA: Record<string, string[]> = {
   kingfish: ['Scomberomorus cavalla'],
   tuna: ['Thunnus atlanticus', 'Thunnus albacares'],
   sailfish: ['Istiophorus albicans'],
+  // SPORT (PLAN 7.123).
+  tarpon: ['Megalops atlanticus'],
+  marlin: ['Makaira nigricans'],
 };
 
 /** The published file (public/data/fishing/occurrences.json). */

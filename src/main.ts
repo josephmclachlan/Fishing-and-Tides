@@ -639,7 +639,8 @@ const offshoreRead: OffshoreRead = (lng, lat) => {
     weedKm: weed ? weed.distanceM / 1000 : null,
     mldM: mldAt(mld, lng, lat, ms),
   };
-  const scores = OFFSHORE.map((s) => ({ id: s.id, score: offshoreScore(s, inputs) ?? 0 })).sort((a, b) => b.score - a.score);
+  // The BOAT drawer's OFFSHORE FISH: eating fish only (the SPORT boat fish are on the map's SPORT zones, PLAN 7.123).
+  const scores = OFFSHORE.filter((s) => s.mode === 'eat').map((s) => ({ id: s.id, score: offshoreScore(s, inputs) ?? 0 })).sort((a, b) => b.score - a.score);
   return { front: front && { km: front.km, bearingDeg: front.bearingDeg, kind: front.front.kind }, mldM: inputs.mldM, scores };
 };
 // Boat-water zones (PLAN 7.74b): the offshore read on a 0.02° (~2 km) grid over the region's sea for the day on the

@@ -1,13 +1,13 @@
 /**
  * Where the fishing model and the species guide meet. The model works on the kinds of fish in fishing/species.ts
- * (snook, jack, snapper, mackerel, grouper, grunt, pompano; barracuda, permit, bonefish for sport; lionfish); the guide has a page per species. `fishKindFor` says which kind a guide species
+ * (snook, jack, snapper, mackerel, grouper, grunt, pompano; barracuda, permit, bonefish, tarpon for sport; lionfish); the guide has a page per species. `fishKindFor` says which kind a guide species
  * belongs to (so its page can show it on the fish map), and `guideSearchFor` is the guide search that lists a kind's
  * species (so "Likely catch" can link to them). Latin names, so the search works in both languages.
  */
 import { OCCURRENCE_TAXA } from './occurrence-taxa';
 import type { SpeciesId } from './species';
 
-const KINDS: readonly SpeciesId[] = ['snook', 'jack', 'snapper', 'mackerel', 'grouper', 'grunt', 'pompano', 'barracuda', 'lionfish', 'permit', 'bonefish'];
+const KINDS: readonly SpeciesId[] = ['snook', 'jack', 'snapper', 'mackerel', 'grouper', 'grunt', 'pompano', 'barracuda', 'lionfish', 'permit', 'bonefish', 'tarpon'];
 
 /** The model kind a species (by scientific name) belongs to, or null when the fish map has no zone for it. */
 export function fishKindFor(sci: string): SpeciesId | null {
@@ -26,6 +26,7 @@ export const GUIDE_SEARCH: Record<SpeciesId, string> = {
   pompano: 'Trachinotus carolinus',
   permit: 'Trachinotus falcatus',
   bonefish: 'Albula',
+  tarpon: 'Megalops',
   barracuda: 'Sphyraena',
   lionfish: 'Pterois',
 };
