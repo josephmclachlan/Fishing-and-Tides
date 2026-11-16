@@ -127,7 +127,10 @@
 .km .k-band i{width:7px;height:7px;background:var(--bc);display:block}
 .km .k-band[data-b="forecast"]{--bc:var(--c-win)}
 .km .k-band[data-b="lowconf"]{--bc:var(--c-sun);border-style:dashed}
-.km .k-band[data-b="outlook"]{--bc:var(--lv0);border-style:dotted}
+.km .k-band[data-b="outlook"]{--bc:var(--c-ink2);border-style:dotted}
+/* Data age: neutral while usable, caution only when stale (PLAN 7.106). */
+.km .k-band[data-b="ok"]{--bc:var(--c-bar)}
+.km .k-band[data-b="stale"]{--bc:var(--sev-caution)}
 .km .k-uvp{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.06em;padding:4px 6px 3px;background:var(--uvc);color:#fff;border-radius:2px;white-space:nowrap}
 .km .k-dk-btns{display:flex;gap:6px}
 .km .k-dk-btns button{appearance:none;cursor:pointer;height:36px;min-width:36px;border:2px solid var(--ink);background:none;border-radius:2px;display:grid;place-items:center;padding:0 8px;font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
@@ -169,7 +172,7 @@
 .km .k-lrow .k-ln{display:flex;align-items:center;gap:7px;font-weight:650;font-size:14.5px;line-height:1.1;margin-top:3px}
 .km .k-lrow .k-ln .k-ix{font-family:var(--mono);font-size:10px;color:var(--ink2);font-weight:600}
 .km .k-lrow .k-lsrc{margin:3px 0 0;color:var(--ink2);font-size:9.5px}
-.km .k-lrow .k-lsrc .k-ok{color:var(--c-win)}
+.km .k-lrow .k-lsrc .k-ok{color:var(--c-ink2)}
 .km .k-lrow .k-lsrc .k-warn{color:var(--ac1)}
 .km .k-lrow .k-lg{margin-top:7px}
 .km .k-sw{appearance:none;cursor:pointer;width:46px;height:26px;border:2px solid var(--ink);background:none;border-radius:2px;position:relative;padding:0;margin-top:2px}
@@ -389,7 +392,7 @@
 .km .maplibregl-ctrl-attrib a{color:var(--ink2)}
 .km .maplibregl-ctrl-attrib-button{filter:var(--attrib-filter,none)}
 .km[data-scheme="dark"]{--attrib-filter:invert(1)}
-.km .maplibregl-ctrl-bottom-right{z-index:5;bottom:var(--k-attrib-b,140px);right:4px}
+.km .maplibregl-ctrl-bottom-right{z-index:5;bottom:var(--k-attrib-b,140px);right:var(--k-attrib-r,4px)}
 
 /* The old HUD stays mounted under the shell (its modules still read and write their rows), out of sight. Its
    drawers open restyled from Settings (WATCH, BOAT, CORAL, LIVE OBS, SYSTEM CHECK, all readings). */
