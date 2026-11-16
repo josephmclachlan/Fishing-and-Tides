@@ -4,12 +4,13 @@
  */
 import { t } from '../i18n';
 import {
-  CHART_H as CHART_TITLE, CHART_NOTE, CHART_P, DIAGRAM, GRADE_HELP, GRADE_KEY, GRADES, ICE_LIMIT_KEY, HIST_CLOCK, HIST_FACTS, HIST_H, HIST_P,
+  CHART_H as CHART_TITLE, CHART_NOTE, CHART_P, GRADE_HELP, GRADE_KEY, GRADES, ICE_LIMIT_KEY, HIST_CLOCK, HIST_FACTS, HIST_H, HIST_P,
   HIST_SPECIES, ICE_LIMIT, METHODS, METHODS_H, METHODS_P, MISTAKES, MISTAKES_H, MISTAKES_P, ROUTINE, ROUTINE_H, ROWS, SCIENCE_H, SCIENCE_P,
-  SECTION_LABELS, SOURCES, SOURCES_H, SOURCES_P, STATS, STEPS, tr, type Fact, type Lang,
+  SECTION_LABELS, SOURCES, SOURCES_H, SOURCES_P, STATS, STEPS, tr, type Fact, type Lang, type MethodId, type Txt,
 } from './content';
 import { gradeOf, kAt, posOf, segments, type Grade, type Method } from './model';
 import { DP_SECTIONS } from './route';
+import { methodArt } from './art';
 
 export const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const pct = (x: number) => `${(x * 100).toFixed(2)}%`;
@@ -90,23 +91,11 @@ export function readoutText(h: number, lang: Lang): string {
   return t('dp.checked', { h: hoursLabel(h), best, worst });
 }
 
-/** The fish with its spike, cuts and wire, numbered to match the ikejime steps. */
-export function diagramHtml(lang: Lang): string {
-  const badge = (n: number, x: number, y: number) =>
-    `<g class="dp-bd"><circle cx="${x}" cy="${y}" r="8"/><text x="${x}" y="${y + 3.6}" text-anchor="middle">${n}</text></g>`;
-  const svg = `<svg class="dp-fish" viewBox="0 0 220 96" role="img" aria-label="${esc(tr(DIAGRAM.title, lang))}">
-    <path class="dp-body" d="M16 50 C34 28 84 22 126 30 C156 36 176 44 204 30 L204 70 C176 56 156 62 126 68 C84 76 34 72 16 50 Z"/>
-    <path class="dp-body" d="M16 50 C20 50 28 52 38 54"/>
-    <circle class="dp-eye" cx="40" cy="45" r="4"/>
-    <path class="dp-body" d="M64 33 C56 45 56 58 64 68"/>
-    <path class="dp-cut" d="M64 31 C55 44 55 59 64 70"/>
-    <path class="dp-cut" d="M150 44 L150 60"/>
-    <path class="dp-wire" d="M150 52 L48 40"/>
-    <path class="dp-arrow" d="M18 12 L45 34"/><path class="dp-arrow" d="M45 34 L38 33 M45 34 L44 27"/>
-    ${badge(1, 14, 10)}${badge(2, 76, 83)}${badge(3, 150, 80)}${badge(4, 100, 26)}
-  </svg>`;
-  const legend = DIAGRAM.marks.map((m, i) => `<li><b>${i + 1}</b>${esc(tr(m, lang))}</li>`).join('');
-  return `<figure class="dp-diagram">${svg}<figcaption><h4>${esc(tr(DIAGRAM.title, lang))}</h4><ol class="dp-marks">${legend}</ol></figcaption></figure>`;
+/** One method's drawing with its numbered marks. */
+export function figureHtml(m: { id: MethodId; name: Txt; marks: Txt[] }, lang: Lang): string {
+  const label = tr(m.name, lang);
+  const marks = m.marks.map((x, i) => `<li><b>${i + 1}</b>${esc(tr(x, lang))}</li>`).join('');
+  return `<figure class="dp-diagram"><svg class="dp-art" viewBox="0 0 220 96" role="img" aria-label="${esc(label)}">${methodArt(m.id)}</svg><figcaption><ol class="dp-marks">${marks}</ol></figcaption></figure>`;
 }
 
 export function methodsHtml(lang: Lang): string {
@@ -114,11 +103,12 @@ export function methodsHtml(lang: Lang): string {
     (m, i) => `<article class="dp-card" id="dp-m-${m.id}">
       <p class="fc-mono dp-k">${i + 1} · ${esc(tr(m.tag, lang))}</p>
       <h3>${esc(tr(m.name, lang))}</h3>
+      ${figureHtml(m, lang)}
       <ol class="dp-steps">${m.steps.map((s) => `<li>${esc(tr(s, lang))}</li>`).join('')}</ol>
       ${m.note ? `<p class="dp-note">${factHtml(m.note, lang)}</p>` : ''}
     </article>`,
   ).join('');
-  return `<section class="dp-sec" id="dp-methods" data-s="methods">${sectionHead('methods', tr(SECTION_LABELS.methods, lang), tr(METHODS_H, lang), tr(METHODS_P, lang))}${diagramHtml(lang)}<div class="dp-cards">${cards}</div></section>`;
+  return `<section class="dp-sec" id="dp-methods" data-s="methods">${sectionHead('methods', tr(SECTION_LABELS.methods, lang), tr(METHODS_H, lang), tr(METHODS_P, lang))}<div class="dp-cards">${cards}</div></section>`;
 }
 
 export function mistakesHtml(lang: Lang): string {
