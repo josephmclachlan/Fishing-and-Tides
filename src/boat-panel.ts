@@ -6,6 +6,7 @@
  */
 import type { Map } from 'maplibre-gl';
 import { mldLevel } from './adapters/mld';
+import type { NavWarning } from './adapters/navwarn';
 import { t, type Key } from './i18n';
 import { closeButton, type Sheets } from './sheets';
 import { BOAT_SPECIES } from './boat/species';
@@ -70,6 +71,9 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     <div class="ro"><span class="lbl">${t('boat.depth')}</span><span class="seg sm" id="b-depth">--</span></div>
     <div class="ro"><span class="lbl">${t('boat.front')}</span><span class="seg sm" id="b-front">--</span></div>
     <div class="ro"><span class="lbl">${t('boat.mld')}</span><span class="seg sm" id="b-mld">--</span></div>
+    <div class="ro"><span class="lbl">${t('boat.notices')}</span><span class="seg sm" id="b-nw">--</span></div>
+    <div class="ro"><span class="lbl">${t('boat.charts')}</span><span class="seg sm"><a class="rule-src" href="https://map.openseamap.org/?zoom=11&lat=${REGION.center[1]}&lon=${REGION.center[0]}" target="_blank" rel="noopener noreferrer">${t('boat.charts.osm')}</a> · <a class="rule-src" href="https://www.noonsite.com/destinations/costa-rica/" target="_blank" rel="noopener noreferrer">${t('boat.charts.noonsite')}</a></span></div>
+    <ul class="nw-list" id="b-nw-list" title="${t('boat.notices.src')}"></ul>
     <div class="ro"><span class="lbl">${t('boat.offshore')}</span><span class="seg sm" id="b-off">--</span></div>
     <div class="ro"><span class="lbl">${t('route.title')}</span><span class="seg sm" id="rt-leg">--</span></div>
     <div class="ro"><span class="lbl">${t('route.time')}</span><span class="seg sm" id="rt-eta">--</span></div>
@@ -268,7 +272,17 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
   map.on('moveend', () => sheets.is('boat') && update());
   sheets.subscribe(() => sheets.is('boat') && update());
   void layer;
-  return { gps };
+  /** NAVAREA IV warnings near the coast (PLAN 7.93): a count, and the text of each below it. */
+  const setNotices = (w: readonly NavWarning[]) => {
+    $('b-nw').textContent = w.length ? t('boat.notices.n', { n: w.length }) : t('boat.notices.none');
+    const ul = $('b-nw-list');
+    ul.replaceChildren(...w.slice(0, 6).map((x) => {
+      const li = document.createElement('li');
+      li.textContent = `${x.id} ${x.text}`;
+      return li;
+    }));
+  };
+  return { gps, setNotices };
 }
 
 export type { GpsState };

@@ -42,6 +42,10 @@ import { debrisAt } from './boat/debris';
 import { makeReefLookup, shoalAlert, type ReefAt } from './boat/shoal';
 import { REEFISH } from './fishing/cells';
 import { fetchStorms, type Storm } from './adapters/storms';
+import { fetchNavWarn } from './adapters/navwarn';
+import { fetchWpi } from './adapters/wpi';
+import { fetchAis } from './adapters/ais';
+import { mountAis } from './layers/ais';
 import { mountSeaStateHud, type VerdictSafety } from './sea-state-hud';
 import { mountAstroHud } from './astro-hud';
 import { mountHarbours } from './layers/harbours';
@@ -538,6 +542,12 @@ boatSafety = () => {
   };
 };
 fetchStorms().then((d) => ((stormList = d.storms), stormLayer.setStorms(d.storms), weatherHud?.setStorms(d.storms))).catch((err) => console.warn('storms unavailable', err));
+const aisLayer = mountAis(map);
+const loadAis = () => fetchAis().then((d) => aisLayer.setVessels(d.vessels)).catch((err) => console.warn('ships unavailable', err));
+loadAis();
+setInterval(loadAis, 10 * 60000);
+fetchWpi().then((d) => harboursHud?.setPorts(d.ports)).catch((err) => console.warn('port index unavailable', err));
+fetchNavWarn().then((d) => boatPanel.setNotices(d.warnings)).catch((err) => console.warn('nav warnings unavailable', err));
 mountAstroHud(hud, map, time);
 mountHarbours(map);
 let landGrid: Grid | null = null;
@@ -641,7 +651,7 @@ time.subscribe(() => fishingLayer && refreshBoatZones());
 let routeDeps: () => RouteDeps | null = () => null;
 let reefLookup: ReefAt | null = null;
 const shoalRead: ShoalRead = (lng, lat) => (depthAt ? shoalAlert((x, y) => depthAt?.(x, y), reefLookup, lng, lat, settings.vessel()) : null);
-mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch, () => (offshoreDepth ? offshoreRead : null), () => shoalRead, () => routeDeps());
+const boatPanel = mountBoatPanel(hud, map, boatStore, sheets, () => depthAt, () => scoreCatch, () => (offshoreDepth ? offshoreRead : null), () => shoalRead, () => routeDeps());
 const coralStore = createCoralStore(safeStorage());
 // Reef stresses at a CRW reef: the CORAL drawer's risk rows and the conditions frozen with each logged visit (PLAN 7.36).
 const reefRisks = (id: string): Omit<RiskInputs, 'alert'> => {

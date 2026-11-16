@@ -11,7 +11,7 @@ import type { SatelliteData } from '../adapters/satellite';
 import { REGION, TIER_ZOOM } from '../region';
 import { drawnCorners, extendSeaward, paintSea, seaFrame, seaImage, type CoastTest, type Corners, type RegularGrid, type SeaImage } from './sea-image';
 import { latOfMercY, mercY } from './seafloor-shade';
-import { paintLift, paintColour } from './paint';
+import { paintLift, paintColour, onSchemeChange } from './paint';
 import { bandLines, FIELD_STEPS, fieldWord } from './bands';
 
 function fillUrl(img: SeaImage) {
@@ -77,7 +77,8 @@ const FADE: ExpressionSpecification = ['interpolate', ['linear'], ['zoom'], TIER
 export function mountChl(map: Map, d: SatelliteData, coast?: CoastTest | null) {
   const s = d.chl;
   if (!s) return null;
-  const word = fieldWord('chl', paintLift());
+  let word = fieldWord('chl', paintLift());
+  let curCoast = coast;
   const g = s.meta.grid;
   const z = s.values.chl?.[s.values.chl.length - 1] ?? new Float32Array(g.cols * g.rows).fill(NaN);
   const COAST = TIER_ZOOM.COAST;
@@ -112,8 +113,15 @@ export function mountChl(map: Map, d: SatelliteData, coast?: CoastTest | null) {
   };
   if (map.getLayer('grat-macro') || map.isStyleLoaded()) add();
   else map.once('style.load', add);
+  // A light/dark switch re-bakes the fills in the new ramp from the data already held; the isolines' ink is swapped by schemeSwap.
+  onSchemeChange(() => {
+    word = fieldWord('chl', paintLift());
+    fills = makeFills(curCoast);
+    for (const { k, img } of fills) (map.getSource(`ch-fill-${k}`) as ImageSource | undefined)?.updateImage({ url: fillUrl(img), coordinates: img.coordinates });
+  });
   return {
     setCoast(c: CoastTest) {
+      curCoast = c;
       fills = makeFills(c);
       iso = lines(c);
       (map.getSource('ch-iso') as GeoJSONSource | undefined)?.setData(iso);

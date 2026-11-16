@@ -1,0 +1,26 @@
+name: AIS coverage probe
+
+# One-off, manual: listens to AISStream over the coast and a wider box and prints which latitudes ships show up at
+# (PLAN 7.97). Needs the AISSTREAM_API_KEY secret. Safe to delete once coverage is known.
+on:
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: Minutes to listen in total (split over the two boxes)
+        default: '10'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/ais-probe.ts "${{ inputs.minutes }}"
+        env:
+          AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
