@@ -65,7 +65,8 @@ describe('chart geometry', () => {
     }
     expect(segments('suffocate')[0].grade).toBe('good');
     expect(segments('ikejime')[0].grade).toBe('raw');
-    expect(segments('ikejime').map((x) => x.grade)).toEqual(['raw', 'good']);
+    expect(segments('ikejime').map((x) => x.grade)).toEqual(['raw']);
+    expect(segments('stun-ice').map((x) => x.grade)).toEqual(['raw', 'good']);
   });
 });
 

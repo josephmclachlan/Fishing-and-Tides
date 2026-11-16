@@ -19,7 +19,8 @@ export const riskLevelOf = (l: RiskLevel | 'none' | undefined): Level | null => 
 
 /** A logged status as a page level (unknown has none). */
 export const statusLevelOf = (s: CoralStatus | undefined): Level | null =>
-  s === 'healthy' ? 3 : s === 'bleaching' ? 1 : s === 'disease' ? 1 : s === 'dead' ? 0 : null;
+  // Bleaching often recovers, disease (SCTLD) usually spreads and kills, dead is gone: three states, three colours.
+  s === 'healthy' ? 3 : s === 'bleaching' ? 2 : s === 'disease' ? 1 : s === 'dead' ? 0 : null;
 
 /** CSS class for a level: `l0`..`l4`, or `l-none`. */
 export const lc = (l: Level | null) => (l === null ? 'l-none' : `l${l}`);

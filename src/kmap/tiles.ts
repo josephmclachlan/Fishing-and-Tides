@@ -133,7 +133,8 @@ export function drawTiles(el: HTMLElement, R: readonly Reading[], accent: string
         break;
       }
       case 'current':
-        arrow(r.deg ?? 0, rgba(tok('t-snorkel')));
+        // Arrows are ink (PLAN 7.106): teal is the SNORKEL tab and the "Great" rating, not a current.
+        arrow(r.deg ?? 0, I);
         break;
       case 'swell': {
         const cx = h / 2, cy = h / 2, R0 = h * 0.45;
@@ -153,7 +154,7 @@ export function drawTiles(el: HTMLElement, R: readonly Reading[], accent: string
             const lead = k === all.length - 1, L = R0 * (0.35 + 0.6 * (t.hs / top)), a = t.deg * D2R;
             const vx = Math.sin(a), vy = -Math.cos(a), qx = -vy, qy = vx, wd = L * 0.32;
             c.globalAlpha = lead ? 1 : 0.5;
-            c.fillStyle = lead ? rgba(tok('t-surf')) : rgba(tok('ink2'));
+            c.fillStyle = lead ? I : rgba(tok('ink2')); // ink: the surf colour is the SURF tab's, not the swell's
             c.beginPath();
             c.moveTo(cx, cy);
             c.lineTo(cx + vx * L * 0.45 + qx * wd, cy + vy * L * 0.45 + qy * wd);

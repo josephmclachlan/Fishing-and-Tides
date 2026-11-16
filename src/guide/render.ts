@@ -5,6 +5,7 @@
  * data is escaped here.
  */
 import { t, type Key } from '../i18n';
+import { UI } from '../icons/ui';
 import { artFor, artSvg, GROUP_ART } from './art';
 import { citeTab } from './cite';
 import { cleanHtml, dispatchLinkHtml } from './clean';
@@ -48,6 +49,10 @@ export const ICONS = {
   map: '<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/>',
   star: '<path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/>',
   identify: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5M8.5 11h5M11 8.5v5"/>',
+  /** Protected by law (the symbol set's shield, src/icons/glyphs.ts). */
+  shield: '<path d="M12 2.8l7.5 2.7v6c0 4.8-3.2 8.3-7.5 9.9-4.3-1.6-7.5-5.1-7.5-9.9v-6z"/>',
+  /** Not checked locally yet (the symbol set's question mark). */
+  check: '<path d="M9.3 9.2a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2 1-1.2 1.9v.6"/><path d="M12 17.2v.6"/>',
 } as const;
 
 /** Paragraphs from a text with blank lines between them. */
@@ -76,14 +81,14 @@ export function badges(e: Entry, lang: Lang, max = 3): string {
     const lv = touchLevel(e);
     out.push(`<span class="gd-b dz l${lv}" title="${esc(tx(LEVEL_WORDS[lv], lang))}">${icon(ICONS.danger)}${esc(tx(KIND_WORDS[k], lang))}</span>`);
   }
-  if (poisonToEat(e)) out.push(`<span class="gd-b dz l3">${esc(tx(EDIBLE_WORDS.toxic, lang))}</span>`);
+  if (poisonToEat(e)) out.push(`<span class="gd-b dz l3">${icon(ICONS.edible)}${esc(tx(EDIBLE_WORDS.toxic, lang))}</span>`);
   if (isFood(e)) {
     const risk = riskToEat(e) ? e.risks!.find((r) => r !== 'spines') : undefined;
     // The word always shows (Joseph: "edible with care" must be visible in the list), the quality pips after it.
     out.push(`<span class="gd-b eat ed-${e.edible}">${icon(ICONS.edible)}${esc(tx(EDIBLE_WORDS[e.edible!], lang))}${e.quality ? `<span class="gd-pips" aria-label="${e.quality}/5">${pips(e.quality)}</span>` : ''}</span>`);
-    if (risk) out.push(`<span class="gd-b risk">${esc(tx(RISK_WORDS[risk], lang))}</span>`);
-  } else if (e.edible === 'protected') out.push(`<span class="gd-b prot">${esc(t('gd.flag.protected'))}</span>`);
-  else if (e.illegal) out.push(`<span class="gd-b prot">${esc(t('gd.flag.illegal'))}</span>`);
+    if (risk) out.push(`<span class="gd-b risk">${icon(ICONS.edible)}${esc(tx(RISK_WORDS[risk], lang))}</span>`);
+  } else if (e.edible === 'protected') out.push(`<span class="gd-b prot">${icon(ICONS.shield)}${esc(t('gd.flag.protected'))}</span>`);
+  else if (e.illegal) out.push(`<span class="gd-b prot">${icon(ICONS.shield)}${esc(t('gd.flag.illegal'))}</span>`);
   if (e.iucn === 'CR' || e.iucn === 'EN' || e.iucn === 'VU') out.push(`<span class="gd-b iucn i-${e.iucn}" title="${esc(tx(IUCN_WORDS[e.iucn], lang))}">${e.iucn}</span>`);
   if (e.origin === 'invasive' || e.origin === 'introduced') out.push(`<span class="gd-b introd">${esc(t('gd.flag.introduced'))}</span>`);
   if (e.rec && e.rec !== 'here') out.unshift(`<span class="gd-b rec">${esc(t(e.rec === 'near' ? 'gd.rec.near' : 'gd.rec.none'))}</span>`);
@@ -109,7 +114,7 @@ export function cardHtml(e: Entry, o: ListOpts): string {
   return `<a class="gd-card g-${e.group}" href="${esc(o.href(e.id))}" data-id="${esc(e.id)}">
     <span class="gd-thumb${e.thumb ? ' gd-ph' : ''}">${thumb}</span>
     <span class="gd-ct">
-      <b class="gd-name${latin ? ' sci' : ''}">${o.fav?.(e.id) ? `<span class="gd-star" aria-label="${esc(t('gd.mode.saved'))}">★</span>` : ''}${esc(nameOf(e, lang))}</b>${latin ? '' : `<i class="gd-sci">${esc(e.sci)}</i>`}
+      <b class="gd-name${latin ? ' sci' : ''}">${o.fav?.(e.id) ? `<span class="gd-star" aria-label="${esc(t('gd.mode.saved'))}">${UI.star}</span>` : ''}${esc(nameOf(e, lang))}</b>${latin ? '' : `<i class="gd-sci">${esc(e.sci)}</i>`}
       ${alt.length ? `<span class="gd-alt">${esc(alt.join(' · '))}</span>` : ''}
       ${o.marks && e.look?.marks ? `<span class="gd-marks">${esc(txt(e.look.marks, lang))}</span>` : ''}
       ${facts.length ? `<span class="gd-facts fc-mono">${esc(facts.join(' · '))}</span>` : ''}
@@ -338,20 +343,20 @@ function statusBadges(s: Species, lang: Lang): string {
   if (s.tier === 'list') out.push(`<span class="gd-b rec">${esc(t('gd.recordsOnly'))}</span>`);
   if (s.rec && s.rec !== 'here') out.push(`<span class="gd-b rec" title="${esc(s.recWhy ?? '')}">${esc(t(s.rec === 'near' ? 'gd.rec.near' : 'gd.rec.none'))}</span>`);
   if (s.danger) out.push(`<span class="gd-b dz l${s.danger.level}">${icon(ICONS.danger)}${esc(tx(LEVEL_WORDS[s.danger.level], lang))}</span>`);
-  if (s.edible) out.push(`<span class="gd-b ed-${s.edible}">${s.edible === 'yes' || s.edible === 'caution' ? icon(ICONS.edible) : ''}${esc(tx(EDIBLE_WORDS[s.edible], lang))}</span>`);
+  if (s.edible) out.push(`<span class="gd-b ed-${s.edible}">${s.edible === 'yes' || s.edible === 'caution' || s.edible === 'toxic' ? icon(ICONS.edible) : s.edible === 'protected' ? icon(ICONS.shield) : ''}${esc(tx(EDIBLE_WORDS[s.edible], lang))}</span>`);
   const st = s.status;
   if (st?.iucn && st.iucn !== 'NE') out.push(`<span class="gd-b iucn i-${st.iucn}">${st.iucn} · ${esc(tx(IUCN_WORDS[st.iucn], lang))}</span>`);
-  if (st?.protectedCR) out.push(`<span class="gd-b prot">${esc(t('gd.flag.protected'))} CR</span>`);
-  if (st?.cites) out.push(`<span class="gd-b prot">CITES ${esc(st.cites)}</span>`);
+  if (st?.protectedCR) out.push(`<span class="gd-b prot">${icon(ICONS.shield)}${esc(t('gd.flag.protected'))} CR</span>`);
+  if (st?.cites) out.push(`<span class="gd-b prot">${icon(ICONS.shield)}CITES ${esc(st.cites)}</span>`);
   if (st?.origin === 'invasive' || st?.origin === 'introduced') out.push(`<span class="gd-b introd">${esc(t('gd.flag.introduced'))}</span>`);
-  if (s.check) out.push(`<span class="gd-b chk" title="${esc(t('gd.checkTitle'))}">${esc(t('gd.check'))}</span>`);
+  if (s.check) out.push(`<span class="gd-b chk" title="${esc(t('gd.checkTitle'))}">${icon(ICONS.check)}${esc(t('gd.check'))}</span>`);
   return out.length ? `<div class="gd-badges">${out.join('')}</div>` : '';
 }
 
 const block = (title: string, body: string, cls = '') => (body ? `<section class="gd-blk${cls ? ` ${cls}` : ''}"><h4 class="fc-mono">${esc(title)}</h4>${body}</section>` : '');
 const pText = (v: Txt | undefined, lang: Lang) => (txt(v, lang) ? paras(txt(v, lang)) : '');
 const chips = (words: string[]) => (words.length ? `<div class="gd-tags">${words.map((w) => `<span>${esc(w)}</span>`).join('')}</div>` : '');
-const checkMark = () => ` <span class="gd-b chk" title="${esc(t('gd.checkTitle'))}">${esc(t('gd.check'))}</span>`;
+const checkMark = () => ` <span class="gd-b chk" title="${esc(t('gd.checkTitle'))}">${icon(ICONS.check)}${esc(t('gd.check'))}</span>`;
 
 function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
   const { lang } = o;

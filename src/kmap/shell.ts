@@ -1074,7 +1074,10 @@ export function mountKineticMap(d: KmDeps) {
   if (btns && 'ResizeObserver' in window) {
     const lift = () => {
       const m = map.getContainer().getBoundingClientRect(), b = btns.getBoundingClientRect();
-      if (b.height) document.documentElement.style.setProperty('--k-attrib-b', `${Math.max(0, Math.round(m.bottom - b.top + 8))}px`);
+      if (!b.height) return;
+      // Over the column's right edge (the map runs under the side rail on a desktop, so its own corner is hidden).
+      document.documentElement.style.setProperty('--k-attrib-b', `${Math.max(0, Math.round(m.bottom - b.top + 8))}px`);
+      document.documentElement.style.setProperty('--k-attrib-r', `${Math.max(0, Math.round(m.right - b.right - 10))}px`);
     };
     new ResizeObserver(lift).observe(btns);
     window.addEventListener('resize', lift);
@@ -1220,17 +1223,18 @@ export function mountKineticMap(d: KmDeps) {
     return `<p class="k-mono k-fcap">${L2('Age of each feed, from its own fetch time', 'Edad de cada fuente, desde su propia descarga')}</p><div class="k-feeds">${FEEDS.map(([f, n, src]) => {
       const a = dataAge.get(f);
       const age = a ? now - a.fetchedAt : NaN, st = a ? ageState(age) : 'none';
-      const col = st === 'fresh' ? 'var(--c-win)' : st === 'aging' ? 'var(--c-sun)' : st === 'stale' ? 'var(--lv0)' : 'var(--lvn)';
+      // Neutral while usable; only stale data takes the caution colour (green, amber and red belong to the rating scale).
+      const col = st === 'stale' ? 'var(--sev-caution)' : st === 'none' ? 'var(--lvn)' : 'var(--c-bar)';
       const h = age / H;
       const txt = !a ? '--' : h < 1 ? `${Math.max(1, Math.round(age / 6e4))} min` : h < 48 ? `${Math.round(h)} h` : `${Math.round(h / 24)} d`;
       return `<div class="k-feed" style="--fc:${col}"><i></i><span>${esc(n)}<small>${esc(src)}${a?.fromCache ? ` · ${L2('offline copy', 'copia sin conexión')}` : ''}</small></span><b>${esc(txt)}</b></div>`;
-    }).join('')}<div class="k-feed" style="--fc:var(--c-win)"><i></i><span>${L2('Tides, sun and moon', 'Mareas, sol y luna')}<small>${L2('Computed on this device, exact', 'Calculado en este dispositivo')}</small></span><b>—</b></div></div><button type="button" class="k-go2 k-all" data-check>${L2('System check', 'Revisión del sistema')}${ARROW}</button>`;
+    }).join('')}<div class="k-feed" style="--fc:var(--c-bar)"><i></i><span>${L2('Tides, sun and moon', 'Mareas, sol y luna')}<small>${L2('Computed on this device, exact', 'Calculado en este dispositivo')}</small></span><b>—</b></div></div><button type="button" class="k-go2 k-all" data-check>${L2('System check', 'Revisión del sistema')}${ARROW}</button>`;
   };
   const renderAge = () => {
     const o = dataAge.oldest();
     const el = $('k-age');
     const a = o ? Date.now() - o.fetchedAt : NaN, st = o ? ageState(a) : 'none';
-    el.dataset.b = st === 'fresh' ? 'forecast' : st === 'aging' ? 'lowconf' : st === 'stale' ? 'outlook' : 'none';
+    el.dataset.b = st === 'stale' ? 'stale' : st === 'none' ? 'none' : 'ok';
     const h = a / H;
     el.lastElementChild!.textContent = o ? `${L2('Data', 'Datos')} ${h < 1 ? `${Math.max(1, Math.round(a / 6e4))} min` : h < 48 ? `${Math.round(h)} h` : `${Math.round(h / 24)} d`}` : L2('Data --', 'Datos --');
   };

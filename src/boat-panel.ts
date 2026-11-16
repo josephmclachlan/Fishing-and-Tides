@@ -5,6 +5,7 @@
  * layers/boat.ts.
  */
 import type { Map } from 'maplibre-gl';
+import { UI } from './icons/ui';
 import { mldLevel } from './adapters/mld';
 import type { NavWarning } from './adapters/navwarn';
 import { t, type Key } from './i18n';
@@ -82,9 +83,9 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     <div class="boat-btns">
       <button type="button" class="tab" id="rt-start">${t('route.start')}</button>
       <button type="button" class="tab" id="rt-end">${t('route.end')}</button>
-      <button type="button" class="tab" id="rt-slow" aria-label="${t('route.slower')}">‹</button>
+      <button type="button" class="tab" id="rt-slow" aria-label="${t('route.slower')}">${UI.prev}</button>
       <span class="seg sm green" id="rt-spd">--</span>
-      <button type="button" class="tab" id="rt-fast" aria-label="${t('route.faster')}">›</button>
+      <button type="button" class="tab" id="rt-fast" aria-label="${t('route.faster')}">${UI.next}</button>
       <button type="button" class="tab" id="rt-clear">${t('route.clear')}</button>
     </div>
     <div class="boat-btns">
@@ -92,9 +93,9 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
       <button type="button" class="tab" id="b-mark">${t('boat.mark')}</button>
     </div>
     <div class="boat-btns">
-      <button type="button" class="tab" id="b-prev" aria-label="${t('boat.prev')}">‹</button>
+      <button type="button" class="tab" id="b-prev" aria-label="${t('boat.prev')}">${UI.prev}</button>
       <span class="seg sm green" id="b-sp">--</span>
-      <button type="button" class="tab" id="b-next" aria-label="${t('boat.next')}">›</button>
+      <button type="button" class="tab" id="b-next" aria-label="${t('boat.next')}">${UI.next}</button>
       <button type="button" class="tab" id="b-catch">${t('boat.catch')}</button>
     </div>
     <div class="boat-btns">
@@ -185,7 +186,7 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     $('b-list').innerHTML = s.pins
       .slice(-5)
       .reverse()
-      .map((p) => `<li data-id="${p.id}"><button type="button" class="tab pin-go">${clock(p.t)} ${p.kind === 'catch' ? t(`boat.sp.${p.species ?? 'other'}` as Key) : t('boat.mark')}${p.depthM !== undefined ? ` ${Math.round(p.depthM)}${t('unit.m')}` : ''}</button><button type="button" class="tab pin-x" aria-label="${t('boat.remove')}">✕</button></li>`)
+      .map((p) => `<li data-id="${p.id}"><button type="button" class="tab pin-go">${clock(p.t)} ${p.kind === 'catch' ? t(`boat.sp.${p.species ?? 'other'}` as Key) : t('boat.mark')}${p.depthM !== undefined ? ` ${Math.round(p.depthM)}${t('unit.m')}` : ''}</button><button type="button" class="tab pin-x" aria-label="${t('boat.remove')}">${UI.close}</button></li>`)
       .join('');
   }
 
