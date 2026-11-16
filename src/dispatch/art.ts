@@ -73,7 +73,7 @@ function slurry(): string {
     '<g transform="translate(56 40) scale(0.5)">' + FISH + '</g>' +
     cube(34, 50, -10) + cube(42, 68, 8) + cube(62, 70, -6) + cube(84, 72, 12) + cube(104, 64, -8) +
     cube(124, 52, 10) + cube(140, 68, -4) + cube(158, 54, 8) + cube(172, 70, -12) + cube(148, 36, 4) + cube(70, 32, -8) +
-    '<text class="dp-clock" x="100" y="16">≈ 0 °C</text>' +
+    '<text class="dp-clock" x="100" y="16">≈ 0 °C / 32 °F</text>' +
     badge(1, 180, 60) + badge(2, 110, 46)
   );
 }

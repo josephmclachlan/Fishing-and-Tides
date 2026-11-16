@@ -44,8 +44,8 @@ export const LEDE = W(
 
 export interface Stat { n: string; unit: Txt; what: Txt; src?: number[] }
 export const STATS: Stat[] = [
-  { n: '25–30×', unit: W('faster spoiling', 'más rápido se daña'), what: W('Fish spoil about 25 to 30 times faster at 28 to 30 °C than on ice. Our shade is that hot.', 'El pescado se daña unas 25 a 30 veces más rápido a 28–30 °C que en hielo. Nuestra sombra está así de caliente.'), src: [2] },
-  { n: '6 h', unit: W('to get it on ice', 'para ponerlo en hielo'), what: W('Tuna, mahi and mackerel need ice within 6 hours of dying in this heat, or a poison called histamine can build up and make people sick.', 'El atún, el dorado y la macarela necesitan hielo dentro de 6 horas de morir con este calor, o puede formarse un veneno llamado histamina que enferma.'), src: [1] },
+  { n: '25–30×', unit: W('faster spoiling', 'más rápido se daña'), what: W('Fish spoil about 25 to 30 times faster at 28 to 30 °C than on ice (0 °C, 32 °F). Our shade is that hot.', 'El pescado se daña unas 25 a 30 veces más rápido a 28–30 °C que en hielo (0 °C, 32 °F). Nuestra sombra está así de caliente.'), src: [2] },
+  { n: '6 h', unit: W('to get it on ice', 'para ponerlo en hielo'), what: W('Tuna, mahi and mackerel need ice (0 °C, 32 °F) within 6 hours of dying in this heat, or a poison called histamine can build up and make people sick.', 'El atún, el dorado y la macarela necesitan hielo (0 °C, 32 °F) dentro de 6 horas de morir con este calor, o puede formarse un veneno llamado histamina que enferma.'), src: [1] },
   { n: '6–12 h', unit: W('later to stiffen', 'más tarde en ponerse rígido'), what: W('After death a fish stiffens (rigor mortis), and a fast, hard stiffening gives mushy fillets. In a Japanese test, yellowtail and red sea bream with the spinal cord destroyed, as in ikejime, took 6 to 12 hours longer to go fully stiff than fish without.', 'Después de morir el pescado se pone rígido (rigor mortis), y una rigidez rápida y fuerte deja filetes aguados. En una prueba japonesa, la cola amarilla y el besugo rojo con la médula destruida, como en el ikejime, tardaron de 6 a 12 horas más en ponerse del todo rígidos que los peces sin eso.'), src: [4] },
 ];
 
@@ -74,12 +74,12 @@ export const GRADE_HELP = W(
 );
 export const ICE_LIMIT = W('Dashed line: 6 h after death', 'Línea punteada: 6 h después de morir');
 export const ICE_LIMIT_KEY = W(
-  'Tuna, mahi and mackerel must be on ice by this line (6 hours after they die, in our heat). Past it, a poison called histamine can build up. Cooking does not remove it, and the fish may not smell bad.',
-  'El atún, el dorado y la macarela deben estar en hielo antes de esta línea (6 horas después de morir, con nuestro calor). Después, puede formarse un veneno llamado histamina. Cocinar no la quita, y el pescado puede no oler mal.',
+  'Tuna, mahi and mackerel must be on ice (0 °C, 32 °F) by this line (6 hours after they die, in our heat). Past it, a poison called histamine can build up. Cooking does not remove it, and the fish may not smell bad.',
+  'El atún, el dorado y la macarela deben estar en hielo (0 °C, 32 °F) antes de esta línea (6 horas después de morir, con nuestro calor). Después, puede formarse un veneno llamado histamina. Cocinar no la quita, y el pescado puede no oler mal.',
 );
 export const NOW_AT = W('Checked after', 'Revisado a las');
 export const CHART_NOTE = W(
-  'ESTIMATE. These curves come from this page’s own model, drawn through a few measured points: on ice the freshness score (the K-value) worsens about 0.4 points an hour (Japanese flounder studies), and fish spoil 25 to 30 times faster at 28 to 30 °C than on ice (Dalgaard and Huss, a fish-spoilage study). How fresh each method’s fish is at the start is our judgement. Nothing was measured on Costa Rican fish, and real fish vary by species and size, so trust the order of the bars, not the exact hours.',
+  'ESTIMATE. These curves come from this page’s own model, drawn through a few measured points: on ice (0 °C, 32 °F) the freshness score (the K-value) worsens about 0.4 points an hour, from Japanese flounder studies, and fish spoil 25 to 30 times faster at 28 to 30 °C than on ice, from a fish-spoilage study by Dalgaard and Huss. How fresh each method’s fish is at the start is our judgement. Nothing was measured on Costa Rican fish, and real fish vary by species and size, so trust the order of the bars, not the exact hours.',
   'ESTIMACIÓN. Estas curvas salen del modelo de esta página, trazado por unos pocos puntos medidos: en hielo el puntaje de frescura (el valor K) empeora cerca de 0,4 puntos por hora (estudios japoneses con lenguado), y el pescado se daña de 25 a 30 veces más rápido a 28–30 °C que en hielo (Dalgaard y Huss, un estudio del deterioro del pescado). Qué tan fresco está el pescado de cada método al empezar es una apreciación nuestra. No se midió nada en pescado de Costa Rica, y los peces varían según la especie y el tamaño, así que confía en el orden de las barras, no en las horas exactas.',
 );
 
@@ -161,11 +161,11 @@ export const METHODS: Method[] = [
     name: W('Ice slurry', 'Hielo en agua'),
     tag: W('The step that saves tuna, mahi and mackerel', 'El paso que salva atún, dorado y macarela'),
     marks: [
-      W('Half ice, half seawater: near 0 °C', 'Mitad hielo, mitad agua de mar: cerca de 0 °C'),
+      W('Half ice, half seawater: near 0 °C (32 °F)', 'Mitad hielo, mitad agua de mar: cerca de 0 °C (32 °F)'),
       W('Fish covered, bled first, in shade', 'Pescado cubierto, desangrado antes, a la sombra'),
     ],
     steps: [
-      W('Fill the cooler with about half ice and half seawater, so it is near 0 °C. Water touches every part of the fish; plain ice leaves air gaps.', 'Llena la hielera con mitad hielo y mitad agua de mar, para que quede cerca de 0 °C. El agua toca todo el pescado; el hielo solo deja huecos de aire.'),
+      W('Fill the cooler with about half ice and half seawater, so it is near 0 °C (32 °F). Water touches every part of the fish; plain ice leaves air gaps.', 'Llena la hielera con mitad hielo y mitad agua de mar, para que quede cerca de 0 °C (32 °F). El agua toca todo el pescado; el hielo solo deja huecos de aire.'),
       W('Put the fish in as soon as it has bled. Keep it covered, in shade.', 'Mete el pescado apenas se desangre. Mantenlo cubierto y a la sombra.'),
       W('Big fish: pack ice into the belly too, and cut the gut out with a clean knife.', 'Pescado grande: mete también hielo en la panza y saca las tripas con un cuchillo limpio.'),
       W('Add ice as it melts. A cold, wet fish is fine. A warm fish is not.', 'Echa hielo conforme se derrite. Un pescado frío y mojado está bien. Uno caliente, no.'),
@@ -283,6 +283,7 @@ export const STEPS: Step[] = [
     body: [
       { t: W('The flesh of a live fish is clean. After it dies, bacteria from the gills, skin and gut spread into the meat. They turn an odourless chemical (TMAO) into TMA, the common “fishy smell”, and make sulphurous smells.', 'La carne de un pescado vivo está limpia. Después de morir, las bacterias de las agallas, la piel y las tripas se extienden por la carne. Convierten una sustancia sin olor (TMAO) en TMA, el común “olor a pescado”, y producen olores a azufre.'), src: [2] },
       { t: W('Tropical fish keep 6 to 35 days in ice (mackerel 14 to 18). At 28 to 30 °C they spoil 25 to 30 times faster, about 3 times faster for every 10 °C warmer. A day in the heat can use up weeks of the fish’s life on ice.', 'El pescado tropical dura de 6 a 35 días en hielo (la macarela, de 14 a 18). A 28–30 °C se daña de 25 a 30 veces más rápido, cerca de 3 veces más rápido por cada 10 °C más. Un día al calor puede gastar semanas de la vida del pescado en hielo.'), src: [3] },
+      { t: W('A home fridge is about 4 °C (39 °F), not 0 °C (32 °F). Fish spoil roughly 1.5 to 2 times faster there than on ice, so a fish that keeps 10 days on ice keeps about 5 to 7 days in a fridge. Keep it on a tray of ice inside the fridge, drained, or in a sealed bag buried in ice.', 'Una nevera casera está a unos 4 °C (39 °F), no a 0 °C (32 °F). El pescado se daña de 1,5 a 2 veces más rápido ahí que en hielo, así que un pescado que dura 10 días en hielo dura de 5 a 7 días en la nevera. Ponlo sobre una bandeja de hielo dentro de la nevera, escurrido, o en una bolsa sellada enterrada en hielo.'), src: [3] },
     ],
   },
 ];
@@ -369,9 +370,9 @@ export const ROUTINE_H = W('The five-step routine', 'La rutina de cinco pasos');
 export const ROUTINE: { n: string; head: Txt; body: Txt }[] = [
   { n: '1', head: W('Kill', 'Matar'), body: W('Spike or club it, seconds after it is on board.', 'Con punzón o garrote, a los segundos de subirlo a bordo.') },
   { n: '2', head: W('Bleed', 'Desangrar'), body: W('Cut both gill arches. Head down in seawater, three minutes or more.', 'Corta los dos arcos de las agallas. Cabeza abajo en agua de mar, tres minutos o más.') },
-  { n: '3', head: W('Ice', 'Hielo'), body: W('Ice slurry, about half ice and half seawater, within the hour. Tuna, mahi and mackerel must be on ice within 6 hours of dying, at the very latest.', 'Hielo en agua, más o menos mitad hielo y mitad agua de mar, dentro de la hora. El atún, el dorado y la macarela deben estar en hielo antes de 6 horas de muertos, como máximo.') },
-  { n: '4', head: W('Clean', 'Limpiar'), body: W('Gut with a clean knife, rinse in clean cold water, keep the fish on ice while you work.', 'Eviscera con un cuchillo limpio, enjuaga en agua limpia y fría, mantén el pescado en hielo mientras trabajas.') },
-  { n: '5', head: W('Keep cold', 'Mantener frío'), body: W('Keep it cold: on ice, in the fridge, or wrapped airtight in the freezer.', 'Mantenlo frío: en hielo, en la nevera, o bien sellado en el congelador.') },
+  { n: '3', head: W('Ice', 'Hielo'), body: W('Ice slurry (0 °C, 32 °F), about half ice and half seawater, within the hour. Tuna, mahi and mackerel must be on ice within 6 hours of dying, at the very latest.', 'Hielo en agua (0 °C, 32 °F), más o menos mitad hielo y mitad agua de mar, dentro de la hora. El atún, el dorado y la macarela deben estar en hielo antes de 6 horas de muertos, como máximo.') },
+  { n: '4', head: W('Clean', 'Limpiar'), body: W('Gut with a clean knife, rinse in clean cold water, keep the fish on ice (0 °C, 32 °F) while you work.', 'Eviscera con un cuchillo limpio, enjuaga en agua limpia y fría, mantén el pescado en hielo (0 °C, 32 °F) mientras trabajas.') },
+  { n: '5', head: W('Keep cold', 'Mantener frío'), body: W('Keep it cold: on ice (0 °C, 32 °F), in the fridge (about 4 °C, 39 °F) with the fish sitting on ice, or wrapped airtight in the freezer. A fridge alone is not as good as ice.', 'Mantenlo frío: en hielo (0 °C, 32 °F), en la nevera (unos 4 °C, 39 °F) con el pescado sobre hielo, o bien sellado en el congelador. La nevera sola no es tan buena como el hielo.') },
 ];
 
 // --- footer
