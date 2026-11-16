@@ -67,6 +67,17 @@ export function sunHours(dayMs: number, lat: number, lng: number, padH = 0): { f
   return toH - fromH >= BEST_LEN_H ? { fromH: Math.max(0, fromH), toH: Math.min(24, toH) } : { fromH: 6, toH: 18 };
 }
 
+/**
+ * The whole local hours with the sun properly up, for snorkel and dive windows: from the first whole hour at least 30 minutes after
+ * sunrise (the sun is then about 5 degrees up and the water has light) to the last whole hour ending by sunset. 06:30 to 17:30 where the sun does not rise or set.
+ */
+export function daylightHours(dayMs: number, lat: number, lng: number): { fromH: number; toH: number } {
+  const { sunrise, sunset } = skyOfDay(dayMs, lat, lng).sun;
+  const fromH = sunrise === null ? 7 : Math.ceil((sunrise - dayMs) / HOUR + 0.5);
+  const toH = sunset === null ? 17 : Math.floor((sunset - dayMs) / HOUR);
+  return toH - fromH >= 1 ? { fromH, toH } : { fromH: 7, toH: 17 };
+}
+
 const hoursFor = (m: Metric): readonly number[] => m.hours ?? (m.agg === 'sum' ? Array.from({ length: 24 }, (_, h) => h) : Array.from({ length: 12 }, (_, h) => h + 6));
 
 function fold(m: Metric, xs: number[]): number | null {
