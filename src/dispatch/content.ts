@@ -134,7 +134,7 @@ export const METHODS: Method[] = [
       W('One hard blow on top of the head, over the brain. Not the nose, not the gill cover.', 'Un golpe fuerte en lo alto de la cabeza, sobre el cerebro. No en la nariz ni en la tapa de la agalla.'),
       W('Check it worked: gill cover stops moving, the eye no longer rolls when you turn the fish.', 'Verifica que funcionó: la tapa de la agalla deja de moverse y el ojo ya no gira al voltear el pescado.'),
       W('Hit again if there is any doubt. A weak blow only stuns, and a stunned fish can wake up.', 'Golpea otra vez si hay duda. Un golpe flojo solo aturde, y un pescado aturdido puede despertar.'),
-      W('Right away cut both gill arches, and bleed in seawater for three minutes or more.', 'De una vez corta los dos arcos de las agallas y desangra en agua de mar tres minutos o más.'),
+      W('At once cut both gill arches, while the heart is still beating. Then leave the fish in seawater for about 3 minutes.', 'De una vez corta los dos arcos de las agallas, mientras el corazón todavía late. Luego deja el pescado en agua de mar unos 3 minutos.'),
       W('Into ice slurry.', 'Al hielo en agua.'),
     ],
     note: { t: W('The blow alone is the “hit and leave” mistake. The cut is what takes the blood out.', 'El golpe solo es el error de “pegarle y dejarlo”. El corte es lo que saca la sangre.'), src: [11] },
@@ -145,12 +145,12 @@ export const METHODS: Method[] = [
     tag: W('Never skip it', 'Nunca te lo saltes'),
     marks: [
       W('Cut both gill arches', 'Corta los dos arcos de las agallas'),
-      W('Head down in a bucket of fresh seawater, 3 min or more', 'Cabeza abajo en un balde de agua de mar limpia, 3 min o más'),
+      W('Head down in a bucket of fresh seawater, about 3 min', 'Cabeza abajo en un balde de agua de mar limpia, unos 3 min'),
     ],
     steps: [
-      W('After the blow or spike, slice through both gill arches (or the throat) with a sharp knife.', 'Tras el golpe o el punzón, corta los dos arcos de las agallas (o la garganta) con un cuchillo afilado.'),
+      W('Right after the blow or spike, while the heart is still beating, slice through both gill arches (or the throat) with a sharp knife. The beating heart is what pumps the blood out.', 'Justo después del golpe o el punzón, mientras el corazón todavía late, corta los dos arcos de las agallas (o la garganta) con un cuchillo afilado. El corazón al latir es lo que bombea la sangre hacia afuera.'),
       W('Put the fish head down in a bucket of fresh seawater, so the heart pumps the blood out into the water.', 'Pon el pescado con la cabeza hacia abajo en un balde de agua de mar limpia, para que el corazón bombee la sangre al agua.'),
-      W('Three minutes drains most of the blood out of the fish. Start at once: a fish that dies before it is bled keeps more blood in its flesh.', 'Tres minutos sacan del pescado casi toda la sangre. Empieza de una vez: un pescado que muere antes de desangrarse deja más sangre en la carne.'),
+      W('Leave the fish in the water for about 3 minutes. Most of the blood is out by then, and a longer wait takes out almost no more. Do not wait before cutting: a fish that dies before it is bled keeps more blood in its flesh.', 'Deja el pescado en el agua unos 3 minutos. Para entonces casi toda la sangre ya salió, y esperar más saca casi nada más. No esperes antes de cortar: un pescado que muere antes de desangrarse deja más sangre en la carne.'),
       W('When the water turns red and warm, swap it for fresh seawater, and keep the bucket in the shade.', 'Cuando el agua se ponga roja y caliente, cámbiala por agua de mar limpia, y mantén el balde a la sombra.'),
     ],
     note: { t: W('Bleeding with no stun first is hard on the fish and thrashes blood into the flesh. Stun first.', 'Desangrar sin aturdir antes maltrata al pescado y le mete sangre en la carne. Aturde primero.'), src: [6, 11] },
@@ -369,7 +369,7 @@ export const HIST_VS_LINK = W('Read the ciguatera page', 'Lee la página de la c
 export const ROUTINE_H = W('The five-step routine', 'La rutina de cinco pasos');
 export const ROUTINE: { n: string; head: Txt; body: Txt }[] = [
   { n: '1', head: W('Kill', 'Matar'), body: W('Spike or club it, seconds after it is on board.', 'Con punzón o garrote, a los segundos de subirlo a bordo.') },
-  { n: '2', head: W('Bleed', 'Desangrar'), body: W('Cut both gill arches. Head down in seawater, three minutes or more.', 'Corta los dos arcos de las agallas. Cabeza abajo en agua de mar, tres minutos o más.') },
+  { n: '2', head: W('Bleed', 'Desangrar'), body: W('Cut both gill arches while the heart still beats. Head down in seawater, about 3 minutes.', 'Corta los dos arcos de las agallas mientras el corazón late. Cabeza abajo en agua de mar, unos 3 minutos.') },
   { n: '3', head: W('Ice', 'Hielo'), body: W('Ice slurry (0 °C, 32 °F), about half ice and half seawater, within the hour. Tuna, mahi and mackerel must be on ice within 6 hours of dying, at the very latest.', 'Hielo en agua (0 °C, 32 °F), más o menos mitad hielo y mitad agua de mar, dentro de la hora. El atún, el dorado y la macarela deben estar en hielo antes de 6 horas de muertos, como máximo.') },
   { n: '4', head: W('Clean', 'Limpiar'), body: W('Gut with a clean knife, rinse in clean cold water, keep the fish on ice (0 °C, 32 °F) while you work.', 'Eviscera con un cuchillo limpio, enjuaga en agua limpia y fría, mantén el pescado en hielo (0 °C, 32 °F) mientras trabajas.') },
   { n: '5', head: W('Keep cold', 'Mantener frío'), body: W('Keep it cold: on ice (0 °C, 32 °F), in the fridge (about 4 °C, 39 °F) with the fish sitting on ice, or wrapped airtight in the freezer. A fridge alone is not as good as ice.', 'Mantenlo frío: en hielo (0 °C, 32 °F), en la nevera (unos 4 °C, 39 °F) con el pescado sobre hielo, o bien sellado en el congelador. La nevera sola no es tan buena como el hielo.') },
