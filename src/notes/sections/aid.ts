@@ -43,6 +43,20 @@ export const aid: Section = {
       ],
     },
     {
+      k: 'index',
+      h: L('What hurt you? Tap to jump to it', '¿Qué le hizo daño? Toque para ir'),
+      items: [
+        { id: 'welts', an: 'jelly', t: L('Jellyfish or a rash', 'Medusa o sarpullido') },
+        { id: 'spines', an: 'urchin', t: L('Spines: urchin, lionfish', 'Espinas: erizo, pez león') },
+        { id: 'ray', an: 'stingray', t: L('Stingray', 'Raya') },
+        { id: 'cone', an: 'cone', t: L('Cone shell', 'Caracol cono') },
+        { id: 'bite', an: 'shark', t: L('A bite', 'Una mordedura') },
+        { id: 'cut', an: 'coral', t: L('Coral or oyster cut', 'Corte de coral u ostra') },
+        { id: 'sponge', an: 'sponge', t: L('Sponge itch', 'Comezón de esponja') },
+        { id: 'fish', an: 'plate', t: L('Sick after eating fish', 'Mal después de comer pescado') },
+      ],
+    },
+    {
       k: 'p',
       t: L(
         'The steps in this tab match the first aid text in the species guide.{nhs}',
@@ -68,24 +82,24 @@ export const aid: Section = {
     {
       k: 'fig',
       fig: 'soak',
-      label: L('A limb soaking in a bucket of hot water, with a thermometer showing 40 to 45 degrees Celsius', 'Un miembro remojándose en un balde de agua caliente, con un termómetro que marca de 40 a 45 grados Celsius'),
+      label: L('A foot soaking in a bucket of hot water, a hand testing the water first, and a thermometer showing 40 to 45 degrees Celsius', 'Un pie remojándose en un balde de agua caliente, una mano que prueba el agua primero, y un termómetro que marca de 40 a 45 grados Celsius'),
       tones: ['warn', 'go', 'info'],
       marks: [
-        L('Test the water with your own hand first. An injured limb may be numb.{nhs}{hwi}', 'Pruebe antes el agua con su propia mano. Un miembro herido puede estar dormido.{nhs}{hwi}'),
+        L('Test the water with your own healthy hand first, because an injured limb may be numb. If your hand cannot stay in it, it is too hot.{nhs}{hwi}', 'Pruebe antes el agua con su propia mano sana, porque un miembro herido puede estar dormido. Si su mano no aguanta adentro, está demasiado caliente.{nhs}{hwi}'),
         L('Hot but not scalding, 40 to 45 °C and no hotter. Burns have happened.{hwi}', 'Caliente pero sin quemar, de 40 a 45 °C y no más. Ha habido quemaduras.{hwi}'),
         L('Keep the limb in for the time given in each entry below.', 'Mantenga el miembro adentro el tiempo que indica cada entrada de abajo.'),
       ],
     },
 
     // Welts and rash
-    { k: 'h', t: L('Burning welts or a rash after swimming', 'Ronchas que arden o sarpullido después de nadar') },
+    { k: 'inc', id: 'welts', an: 'jelly', t: L('Burning welts or a rash after swimming', 'Ronchas que arden o sarpullido después de nadar') },
     {
-      k: 'tiles',
+      k: 'animals',
       items: [
-        { ico: 'jelly', h: L('Jellyfish', 'Medusa') },
-        { ico: 'jelly', h: L('Portuguese man o\' war', 'Fragata portuguesa') },
-        { ico: 'coral', h: L('Fire coral', 'Coral de fuego') },
-        { ico: 'rash', h: L('Sea lice', 'Pulgas de mar'), t: L('Thimble jellyfish larvae. An itchy rash under swimsuits.', 'Larvas de medusa dedal. Sarpullido con comezón bajo el traje de baño.') },
+        { an: 'jelly', h: L('Jellyfish', 'Medusa') },
+        { an: 'manowar', h: L('Portuguese man o\' war', 'Fragata portuguesa'), t: L('A blue float with very long tentacles.', 'Un flotador azul con tentáculos muy largos.') },
+        { an: 'firecoral', h: L('Fire coral', 'Coral de fuego'), t: L('Mustard-yellow blades that look like coral.', 'Láminas amarillo mostaza que parecen coral.') },
+        { an: 'sealice', h: L('Sea lice', 'Pulgas de mar'), t: L('Thimble jellyfish larvae. An itchy rash under swimsuits.', 'Larvas de medusa dedal. Sarpullido con comezón bajo el traje de baño.') },
       ],
     },
     {
@@ -126,14 +140,14 @@ export const aid: Section = {
     },
 
     // Spines
-    { k: 'h', t: L('A puncture with spines', 'Una punción con espinas') },
+    { k: 'inc', id: 'spines', an: 'urchin', t: L('A puncture with spines', 'Una punción con espinas') },
     {
-      k: 'tiles',
+      k: 'animals',
       items: [
-        { ico: 'urchin', h: L('Sea urchin', 'Erizo de mar') },
-        { ico: 'fish', h: L('Lionfish', 'Pez león') },
-        { ico: 'fish', h: L('Scorpionfish', 'Pez escorpión') },
-        { ico: 'fish', h: L('Catfish spine', 'Espina de bagre') },
+        { an: 'urchin', h: L('Sea urchin', 'Erizo de mar') },
+        { an: 'lionfish', h: L('Lionfish', 'Pez león') },
+        { an: 'scorpion', h: L('Scorpionfish', 'Pez escorpión'), t: L('Blotchy, sits still on rock.', 'Manchado, quieto sobre la roca.') },
+        { an: 'catfish', h: L('Catfish spine', 'Espina de bagre') },
       ],
     },
     {
@@ -164,7 +178,7 @@ export const aid: Section = {
     },
 
     // Stingray
-    { k: 'h', t: L('A stingray wound', 'Una herida de raya') },
+    { k: 'inc', id: 'ray', an: 'stingray', t: L('A stingray wound', 'Una herida de raya') },
     {
       k: 'flow',
       h: L('Do first', 'Haga primero'),
@@ -191,12 +205,12 @@ export const aid: Section = {
     },
 
     // Cone shell
-    { k: 'h', t: L('A cone shell sting', 'Una picadura de caracol cono') },
+    { k: 'inc', id: 'cone', an: 'cone', t: L('A cone shell sting', 'Una picadura de caracol cono') },
     {
       k: 'tiles',
       items: [
-        { ico: 'cone', tone: 'stop', h: L('An emergency', 'Una emergencia'), t: L('The venom affects the nervous system and can cause paralysis, which may lead to breathing failure and death.{dan}', 'El veneno afecta el sistema nervioso y puede causar parálisis, que puede llevar a falla respiratoria y muerte.{dan}') },
-        { ico: 'nosyringe', tone: 'stop', h: L('No antivenom', 'No hay antiveneno'), t: L('The sting site may hurt only a little.{dan}', 'El sitio de la picadura puede doler poco.{dan}') },
+        { ico: 'cone', tone: 'stop', h: L('An emergency', 'Una emergencia'), t: L('The venom affects the nervous system and can cause paralysis, which may lead to breathing failure and death. The sting itself may hurt only a little, so do not wait.{dan}', 'El veneno afecta el sistema nervioso y puede causar parálisis, que puede llevar a falla respiratoria y muerte. La picadura en sí puede doler poco, así que no espere.{dan}') },
+        { ico: 'nosyringe', tone: 'stop', h: L('No antivenom', 'No hay antiveneno'), t: L('There is no antivenom, so the hospital keeps the person breathing until the venom wears off.{dan}', 'No existe antiveneno, así que el hospital mantiene respirando a la persona hasta que pase el efecto del veneno.{dan}') },
       ],
     },
     {
@@ -207,18 +221,20 @@ export const aid: Section = {
         { ico: 'phone', tone: 'stop', h: L('Call 911 now', 'Llame al 911 ya'), t: L('Do not wait for symptoms.{dan}', 'No espere síntomas.{dan}') },
         { ico: 'eye', h: L('Keep still, watch', 'Quieto y vigilado'), t: L('Keep the person still and watched.', 'Mantenga a la persona quieta y vigilada.') },
         { ico: 'tap', h: L('Wash with fresh water', 'Lave con agua dulce'), t: L('Wash the wound.', 'Lave la herida.') },
-        { ico: 'bandage', h: L('Pressure bandage', 'Vendaje de presión'), t: L('Firm, over the sting and along the limb. Not a tourniquet.{dan}', 'Firme, sobre la picadura y a lo largo del miembro. No un torniquete.{dan}') },
+        { ico: 'bandage', h: L('Bandage and keep still', 'Vende y no mueva'), t: L('A firm bandage over the sting and along the whole limb, then a splint so the limb cannot move. Not a tourniquet.{dan}{pit}', 'Un vendaje firme sobre la picadura y a lo largo de todo el miembro, y luego una tablilla para que no se mueva. No un torniquete.{dan}{pit}') },
         { ico: 'breath', h: L('Breathing stops?', '¿Se detiene la respiración?'), t: L('Give rescue breaths until help arrives.{dan}', 'Dé respiración de rescate hasta que llegue ayuda.{dan}') },
       ],
     },
     {
       k: 'fig',
       fig: 'wrap',
-      label: L('A limb with a firm pressure bandage over the sting and along the limb', 'Un miembro con un vendaje firme de presión sobre la picadura y a lo largo del miembro'),
-      tones: ['stop', 'go'],
+      label: L('An arm with a firm bandage from the fingers up past the sting, and a splint to keep it still', 'Un brazo con un vendaje firme desde los dedos hasta más arriba de la picadura, y una tablilla para que no se mueva'),
+      tones: ['stop', 'go', 'go', 'warn'],
       marks: [
-        L('The sting site.', 'El sitio de la picadura.'),
-        L('A firm pressure bandage over the sting and along the limb, not a tourniquet.{dan}', 'Un vendaje firme de presión sobre la picadura y a lo largo del miembro, no un torniquete.{dan}'),
+        L('The sting site, under the bandage.', 'El sitio de la picadura, bajo el vendaje.'),
+        L('Bandage firmly over the sting, then wrap a second bandage from just above the fingers up the arm as far as it goes. Not a tourniquet.{dan}{pit}', 'Vende firme sobre la picadura, y luego envuelva un segundo vendaje desde justo arriba de los dedos, subiendo por el brazo hasta donde alcance. No un torniquete.{dan}{pit}'),
+        L('Tie a splint, such as a board or a stick, along the limb so it cannot move, and keep the person still.{pit}', 'Amarre una tablilla, como una tabla o un palo, a lo largo del miembro para que no se mueva, y mantenga quieta a la persona.{pit}'),
+        L('Firm, but not so tight that the fingers go numb, tingle or change colour. Squeeze a fingertip: the colour should come back within 2 seconds.{pit}', 'Firme, pero no tanto que los dedos se duerman, hormigueen o cambien de color. Apriete la punta de un dedo: el color debe volver en 2 segundos.{pit}'),
       ],
     },
     {
@@ -233,14 +249,14 @@ export const aid: Section = {
     },
 
     // Bite
-    { k: 'h', t: L('A bite', 'Una mordedura') },
+    { k: 'inc', id: 'bite', an: 'shark', t: L('A bite', 'Una mordedura') },
     {
-      k: 'tiles',
+      k: 'animals',
       items: [
-        { ico: 'bite', h: L('Moray eel', 'Morena') },
-        { ico: 'bite', h: L('Barracuda', 'Barracuda') },
-        { ico: 'shark', h: L('Shark', 'Tiburón'), t: L('See the shark bite steps below.', 'Vea abajo los pasos para mordedura de tiburón.') },
-        { ico: 'crab', h: L('Crab', 'Cangrejo'), t: L('Let go of the animal and clean the skin with soap and water.', 'Suelte al animal y limpie la piel con agua y jabón.') },
+        { an: 'moray', h: L('Moray eel', 'Morena') },
+        { an: 'barracuda', h: L('Barracuda', 'Barracuda') },
+        { an: 'shark', h: L('Shark', 'Tiburón'), t: L('See the shark bite steps below.', 'Vea abajo los pasos para mordedura de tiburón.') },
+        { an: 'crab', h: L('Crab', 'Cangrejo'), t: L('Let go of the animal and clean the skin with soap and water.', 'Suelte al animal y limpie la piel con agua y jabón.') },
       ],
     },
     {
@@ -281,12 +297,12 @@ export const aid: Section = {
     },
 
     // Coral / oyster
-    { k: 'h', t: L('A scrape or cut from coral or oyster', 'Un raspón o corte de coral u ostra') },
+    { k: 'inc', id: 'cut', an: 'coral', t: L('A scrape or cut from coral or oyster', 'Un raspón o corte de coral u ostra') },
     {
-      k: 'tiles',
+      k: 'animals',
       items: [
-        { ico: 'coral', h: L('Coral', 'Coral') },
-        { ico: 'oyster', h: L('Oyster', 'Ostra') },
+        { an: 'coral', h: L('Coral', 'Coral') },
+        { an: 'oyster', h: L('Oyster', 'Ostra') },
       ],
     },
     {
@@ -315,7 +331,7 @@ export const aid: Section = {
     },
 
     // Sponge itch
-    { k: 'h', t: L('Sponge itch', 'Comezón de esponja') },
+    { k: 'inc', id: 'sponge', an: 'sponge', t: L('Sponge itch', 'Comezón de esponja') },
     {
       k: 'flow',
       h: L('Do first', 'Haga primero'),
@@ -323,7 +339,7 @@ export const aid: Section = {
         { ico: 'notouch', tone: 'stop', h: L('Do not rub', 'No frote') },
         { ico: 'tape', h: L('Lift with tape', 'Saque con cinta'), t: L('Press adhesive tape on the skin and lift it off to pull out the tiny spicules (glass-like needles).', 'Pegue y despegue cinta adhesiva sobre la piel para sacar las espículas (agujas diminutas como de vidrio).') },
         { ico: 'bottle', h: L('Vinegar, then fresh water', 'Vinagre y luego agua dulce'), t: L('Rinse with vinegar, then with fresh water.', 'Enjuague con vinagre y luego con agua dulce.') },
-        { ico: 'cream', h: L('Hydrocortisone cream', 'Crema de hidrocortisona'), t: L('It helps if you have it.', 'Ayuda si la tiene.') },
+        { ico: 'cream', h: L('Itch cream', 'Crema para la comezón'), t: L('Hydrocortisone cream helps if you have it.', 'La crema de hidrocortisona ayuda si la tiene.') },
       ],
     },
     {
@@ -342,7 +358,7 @@ export const aid: Section = {
     },
 
     // Fish poisoning
-    { k: 'h', t: L('Nausea or tingling after eating fish', 'Náuseas u hormigueo después de comer pescado') },
+    { k: 'inc', id: 'fish', an: 'plate', t: L('Nausea or tingling after eating fish', 'Náuseas u hormigueo después de comer pescado') },
     {
       k: 'tiles',
       items: [
@@ -397,6 +413,12 @@ export const aid: Section = {
       u: 'https://www.nhs.uk/conditions/jellyfish-and-other-sea-creature-stings/',
       p: 'P',
       what: L('Rinse with seawater not fresh water, no urine, remove spines with tweezers, soak in water as hot as can be tolerated for at least 30 minutes, call emergency for breathing trouble, chest pain or severe swelling.', 'Enjuagar con agua de mar y no agua dulce, no usar orina, sacar espinas con pinzas, remojar en agua tan caliente como se aguante por al menos 30 minutos, llamar a emergencias por dificultad para respirar, dolor de pecho o hinchazón fuerte.'),
+    },
+    pit: {
+      t: 'St John Western Australia, Pressure immobilisation',
+      u: 'https://shop.stjohnwa.com.au/pages/guide/pressure-immobilisation',
+      p: 'P',
+      what: L('For cone shell stings: a firm bandage over the sting, a second from the fingers or toes up the limb, a splint, keep the person still; too tight shows as numbness, tingling or colour change; colour should return to a squeezed fingertip within 2 seconds.', 'Para picaduras de cono: un vendaje firme sobre la picadura, otro desde los dedos subiendo por el miembro, una tablilla, mantener quieta a la persona; demasiado apretado se nota por adormecimiento, hormigueo o cambio de color; el color debe volver a la punta del dedo apretada en 2 segundos.'),
     },
     dan: {
       t: 'Divers Alert Network (DAN), Cone Snails',

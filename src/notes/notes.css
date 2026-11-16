@@ -132,8 +132,8 @@
 /* link card to another tab */
 .cig a.nt-go { display: flex; gap: 12px; align-items: center; margin: 12px 0 18px; padding: 12px 14px; border: 2px solid var(--fc-ink); background: var(--fc-card); text-decoration: none; }
 .cig a.nt-go:hover { background: var(--fc-ink); color: var(--fc-bg); }
-.nt-go > span { flex: 1; display: grid; gap: 2px; font-size: 14px; line-height: 1.35; }
-.nt-go strong { font: 700 13.5px/1.2 var(--fc-mono); text-transform: uppercase; }
+a.nt-go > span { flex: 1; display: grid; gap: 2px; font-size: 14px; line-height: 1.35; }
+a.nt-go strong { font: 700 13.5px/1.2 var(--fc-mono); text-transform: uppercase; }
 .cig .nt-arr { width: 22px; height: 22px; }
 
 /* an odd last card on a two-column phone grid takes the whole row, lying flat */
