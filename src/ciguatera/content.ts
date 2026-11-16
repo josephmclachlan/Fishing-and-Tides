@@ -85,7 +85,7 @@ export const SECTIONS: Section[] = [
         L('You eat the big fish. Cooking does not destroy the toxin.{cdc}', 'Usted come el pez grande. Cocinarlo no destruye la toxina.{cdc}'),
       ] },
       { k: 'h', t: L('Where the toxin is in a fish', 'Dónde está la toxina en el pez') },
-      { k: 'fig', fig: 'cgParts', label: L('A reef fish: the head, liver, guts and roe in red hold the most toxin; the fillet in grey holds less.', 'Un pez de arrecife: la cabeza, el hígado, las vísceras y las huevas en rojo tienen más toxina; el filete en gris tiene menos.'), tones: ['stop', 'warn'], marks: [
+      { k: 'fig', fig: 'cgParts', label: L('A reef fish: the head, liver, guts and roe in red hold the most toxin; the fillet in grey holds less.', 'Un pez de arrecife: la cabeza, el hígado, las vísceras y las huevas en rojo tienen más toxina; el filete en gris tiene menos.'), tones: ['stop', 'grey'], marks: [
         L('Red: the head, liver, guts and roe hold the most toxin. Throw them away.{cdc}', 'Rojo: la cabeza, el hígado, las vísceras y las huevas tienen más toxina. Deséchelos.{cdc}'),
         L('Grey: the fillet holds less, but not none. A toxic fish is still toxic with the guts out.', 'Gris: el filete tiene menos, pero no cero. Un pez tóxico sigue siendo tóxico sin las vísceras.'),
       ] },
@@ -212,7 +212,7 @@ export const SECTIONS: Section[] = [
     title: L('Symptoms', 'Síntomas'),
     lede: L('Gut first, then nerves. Hot and cold feel reversed. It can last weeks to months.', 'Primero el estómago, luego los nervios. Lo frío y lo caliente se sienten al revés. Puede durar semanas o meses.'),
     blocks: [
-      { k: 'fig', fig: 'cgTime', label: L('When each kind of symptom shows up after eating the fish, from hours to months.', 'Cuándo aparece cada tipo de síntoma tras comer el pescado, de horas a meses.'), tones: ['warn', 'warn', 'warn', 'stop', 'info'], marks: [
+      { k: 'fig', fig: 'cgTime', label: L('When each kind of symptom shows up after eating the fish, from hours to months.', 'Cuándo aparece cada tipo de síntoma tras comer el pescado, de horas a meses.'), tones: ['warn', 'warn', 'warn', 'stop', 'grey'], marks: [
         L('Stomach: nausea, vomiting, diarrhoea and cramps, from 3 to 6 hours after the meal (up to about 30). They fade in 1 to 4 days.{f17}', 'Estómago: náuseas, vómitos, diarrea y cólicos, de 3 a 6 horas tras la comida (hasta unas 30). Ceden en 1 a 4 días.{f17}'),
         L('Tingling or numbness of the lips, tongue, hands and feet, from a few hours to 2 days in.{cdc}', 'Hormigueo o adormecimiento de labios, lengua, manos y pies, de unas horas a 2 días después.{cdc}'),
         L('Hot and cold feel reversed, often from day 1 to a few days in.', 'Lo frío y lo caliente se sienten al revés, a menudo del día 1 a unos días después.'),

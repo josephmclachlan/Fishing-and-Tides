@@ -89,6 +89,8 @@
 .nt-marks li { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; line-height: 1.4; }
 .nt-marks b { flex: 0 0 24px; height: 24px; display: inline-grid; place-items: center; background: var(--fc-ink); color: var(--fc-bg); font: 700 12px/1 var(--fc-mono); }
 .nt-marks .nt-go b, .nt-marks .nt-warn b, .nt-marks .nt-stop b { background: var(--c); color: var(--o); border: 1px solid var(--fc-ink); }
+/* a badge for a part drawn grey (the fillet, the long tail of symptoms): the same grey as the drawing */
+.nt-marks .nt-grey b { background: color-mix(in srgb, var(--fc-ink2) 35%, var(--fc-card)); color: var(--fc-ink); border: 1px solid var(--fc-ink); }
 .nt-alt { margin: 10px 0 0; padding: 8px 0 8px 12px; border-left: 4px solid var(--fc-sea-a); font-size: 14px; color: var(--fc-ink2); }
 
 /* big numbers */

@@ -98,7 +98,7 @@
 .nt-anim li.nt-stop { background: color-mix(in srgb, var(--fc-lv0) 22%, var(--fc-card)); border: 2px solid var(--fc-lv0); }
 
 /* The ciguatera drawings (notes/art/cigua.ts). */
-.nt-art .cg-meat { fill: color-mix(in srgb, var(--fc-ink2) 30%, var(--fc-card)); }
+.nt-art .cg-meat { fill: color-mix(in srgb, var(--fc-ink2) 35%, var(--fc-card)); }
 .nt-art .cg-tox { fill: var(--fc-lv0); stroke: var(--fc-ink); }
 .nt-art .cg-gut { stroke: var(--fc-lv0); stroke-width: 7; }
 .nt-art .cg-cav { fill: color-mix(in srgb, var(--fc-lv0) 12%, var(--fc-card)); stroke-dasharray: 4 3; stroke-width: 1.5; }
@@ -123,7 +123,7 @@
 .nt-art .cg-bar { stroke: var(--fc-ink); stroke-width: 1; }
 .nt-art .cg-b-warn { fill: var(--fc-lv2); }
 .nt-art .cg-b-stop { fill: var(--fc-lv0); }
-.nt-art .cg-b-long { fill: color-mix(in srgb, var(--fc-ink2) 45%, var(--fc-card)); }
+.nt-art .cg-b-long { fill: color-mix(in srgb, var(--fc-ink2) 35%, var(--fc-card)); }
 
 .cig-src { padding-left: 22px; }
 .cig-src li { margin: 10px 0; }

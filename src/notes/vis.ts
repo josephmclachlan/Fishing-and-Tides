@@ -28,8 +28,11 @@ export type VBlock =
   | { k: 'flow'; h?: L; alert?: boolean; steps: { ico: PictId; h: L; t?: L; tone?: Tone }[] }
   /** A grid of pictogram tiles. */
   | { k: 'tiles'; h?: L; items: { ico: PictId; h: L; t?: L; tone?: Tone }[] }
-  /** A drawing with its numbered marks; `tones` colours each mark's badge; `alt` is the one line under it. */
-  | { k: 'fig'; fig: FigId; label: L; marks: L[]; tones?: Tone[]; alt?: L }
+  /**
+   * A drawing with its numbered marks; `tones` colours each mark's badge, in the colour of the part it points at
+   * (`grey` for a part drawn grey, so a label that says "Grey" never sits on a yellow badge); `alt` is the one line under it.
+   */
+  | { k: 'fig'; fig: FigId; label: L; marks: L[]; tones?: (Tone | 'grey')[]; alt?: L }
   /** Big numbers or short phrases with one line each, in ink; `tone: 'stop'` prints a closed season or a limit in red. */
   | { k: 'stats'; items: { n: L; t: L; tone?: Tone }[] }
   /** Tap-to-call cards. */
