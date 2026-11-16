@@ -18,6 +18,7 @@
  * Privacy: logged sites come only from the on-device store (src/coral/store.ts) and are drawn only here and
  * in the owner's drawer. Nothing on this page is fetched with or sends a site.
  */
+import { brandLine } from '../brand';
 import { dec, t, type Key } from '../i18n';
 import { CORAL_REEFS } from '../region';
 import { ALERT_KEYS, coralNow, DHW_BLEACHING, DHW_SEVERE, type CoralData } from '../adapters/coral';
@@ -145,7 +146,7 @@ export function mountCoralPage(deps: CoralPageDeps) {
   el.innerHTML = `
     <div class="fc-page">
       <header class="fc-top fc-in">
-        <p class="fc-brand fc-mono">${t('fc.brand')}<span class="fc-hide-s"> · ${t('fc.region')}</span></p>
+        <p class="fc-brand fc-mono">${brandLine(t('fc.region'), 'fc-hide-s')}</p>
         <div class="fc-ctrls">
           <button type="button" class="fc-ctl fc-back" id="cp-back" title="${t('cp.backTitle')}">${MAP_ICON}<span id="cp-back-l">${t('cp.back')}</span></button>
           <div class="fc-lang" role="group" aria-label="${t('fc.langGroup')}"><button type="button" data-lang="en" aria-pressed="${lang === 'en'}">EN</button><button type="button" data-lang="es" aria-pressed="${lang === 'es'}">ES</button></div>

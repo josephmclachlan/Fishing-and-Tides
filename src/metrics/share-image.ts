@@ -77,7 +77,7 @@ export function drawForecast(f: WatchForecast, tx: ShareText): HTMLCanvasElement
   g.fillStyle = amber;
   g.globalAlpha = 0.6;
   g.font = '12px "Share Tech Mono", ui-monospace, monospace';
-  g.fillText('FISHING-AND-TIDES · GANDOCA TO LIMÓN', pad, H - 24);
+  g.fillText('SURCAST · GANDOCA TO LIMÓN', pad, H - 24);
   return c;
 }
 

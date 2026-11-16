@@ -21,6 +21,7 @@
     "data:base": "node scripts/species-base.ts",
     "data:kd490-clim": "node scripts/fetch-kd490-clim.ts",
     "data:archive": "node scripts/archive.ts",
+    "brand:icons": "node scripts/brand-icons.ts",
     "verify": "vitest run --config vitest.verify.config.ts"
   },
   "dependencies": {

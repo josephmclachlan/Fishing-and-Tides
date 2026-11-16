@@ -82,5 +82,5 @@ export function toGPX(points: readonly TrackPoint[], pins: readonly Pin[], name:
     .map((p) => `<wpt lat="${p.lat.toFixed(6)}" lon="${p.lng.toFixed(6)}"><time>${iso(p.t)}</time><name>${xml(p.kind === 'catch' ? `CATCH ${p.species ?? ''}`.trim() : 'MARK')}</name>${p.depthM !== undefined ? `<desc>depth ${Math.round(p.depthM)} m (GEBCO)</desc>` : ''}</wpt>`)
     .join('');
   const trkpt = points.map((p) => `<trkpt lat="${p.lat.toFixed(6)}" lon="${p.lng.toFixed(6)}"><time>${iso(p.t)}</time></trkpt>`).join('');
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Fishing and Tides" xmlns="http://www.topografix.com/GPX/1/1">${wpt}<trk><name>${xml(name)}</name><trkseg>${trkpt}</trkseg></trk></gpx>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="SurCast" xmlns="http://www.topografix.com/GPX/1/1">${wpt}<trk><name>${xml(name)}</name><trkseg>${trkpt}</trkseg></trk></gpx>\n`;
 }

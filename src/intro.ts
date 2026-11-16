@@ -5,6 +5,7 @@
  */
 import { t, type Key } from './i18n';
 import { UI } from './icons/ui';
+import { markSvg, WORDMARK } from './brand';
 
 export const INTRO_KEY = 'ft.intro';
 export const INTRO_STEPS = [1, 2, 3, 4, 5] as const;
@@ -29,6 +30,8 @@ export function markIntroSeen(store: Store): void {
 
 export function introHtml(text: (key: Key) => string): string {
   return `<div class="ph"><span>${text('intro.title')}</span><button type="button" class="sheet-x intro-x" aria-label="${text('ui.close')}">${UI.close}</button></div>
+    <div class="intro-brand">${markSvg(56)}${WORDMARK}</div>
+    <p class="intro-name">${text('intro.name')}</p>
     <p class="intro-lead">${text('intro.lead')}</p>
     <ol class="intro-steps">${INTRO_STEPS.map((n) => `<li>${text(`intro.${n}` as Key)}</li>`).join('')}</ol>
     <p class="intro-colours">${text('intro.colours')}</p>

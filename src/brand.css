@@ -1,0 +1,23 @@
+/* SurCast brand (src/brand.ts). The word mark sits inside the small mono brand line at the top of every page. */
+.sc-brand { display: inline-flex; align-items: center; gap: 5px; vertical-align: -3px; }
+.sc-mark { flex: none; display: block; }
+.sc-wm {
+  font-family: var(--disp); font-variation-settings: 'wdth' 128; font-weight: 620; letter-spacing: -0.02em;
+  text-transform: none; font-size: 1.3em; line-height: 1; color: var(--ink);
+}
+/* "Cast" carries the activity colours, the same runs as the mark. */
+.sc-wm i {
+  font-style: normal; color: var(--t-surf);
+  background: linear-gradient(90deg, var(--t-snorkel), var(--t-surf) 30%, var(--t-dive) 50%, var(--t-swim) 70%, var(--t-fish) 85%, var(--t-sail));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+/* About (the welcome card): the mark and name large, then what the name means. */
+.intro-brand { display: flex; align-items: center; gap: 12px; }
+.intro-brand .sc-wm { font-size: 36px; }
+.intro-name { margin: 0; font-size: 13.5px; line-height: 1.4; opacity: 0.85; }
+/* Phones: the forecast pages' top row has about 60 px beside the buttons, so it shows the mark alone (the name stays
+   for screen readers). The tab title, the launch screen and About carry the full name. */
+@media (max-width: 460px) {
+  .fc-brand .sc-wm { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .fc-brand .sc-mark { width: 24px; height: 24px; }
+}

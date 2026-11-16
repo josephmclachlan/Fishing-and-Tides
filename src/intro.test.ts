@@ -25,7 +25,7 @@ describe('intro', () => {
   });
   it('has English and Spanish text for every line', () => {
     for (const d of [en, es] as Record<string, string>[]) {
-      for (const k of ['intro.tab', 'intro.title', 'intro.lead', 'intro.colours', 'intro.ok', ...INTRO_STEPS.map((n) => `intro.${n}`)]) expect(d[k], k).toBeTruthy();
+      for (const k of ['intro.tab', 'intro.title', 'intro.name', 'intro.lead', 'intro.colours', 'intro.ok', ...INTRO_STEPS.map((n) => `intro.${n}`)]) expect(d[k], k).toBeTruthy();
     }
   });
   it('renders the lead, every step and a way to close', () => {

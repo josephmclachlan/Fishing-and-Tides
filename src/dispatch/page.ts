@@ -4,6 +4,7 @@
  * in the language chosen for the app. Its own link, `#dispatch[/<section>]` (route.ts), so it can be linked from the
  * species guide's cleaning tab and the fishing panel, and the phone's back button works.
  */
+import { brandLine } from '../brand';
 import { rememberOrigin, storedOrigin } from '../origin';
 import { t } from '../i18n';
 import { LEDE, TITLE, tr, type Lang } from './content';
@@ -62,7 +63,7 @@ export function mountDispatchPage(deps: DispatchPageDeps) {
   el.innerHTML = `
     <div class="fc-page" id="dp-page">
       <header class="fc-top fc-in">
-        <p class="fc-brand fc-mono">${t('fc.brand')}<span class="fc-hide-s"> · ${t('fc.region')}</span></p>
+        <p class="fc-brand fc-mono">${brandLine(t('fc.region'), 'fc-hide-s')}</p>
         <div class="fc-ctrls">
           <button type="button" class="fc-ctl fc-back" id="dp-back" title="${esc(t('dp.backTitle'))}">${svg(BACK_ICON)}<span id="dp-back-l">${t('dp.back.forecast')}</span></button>
           <div class="fc-lang" role="group" aria-label="${t('fc.langGroup')}"><button type="button" data-lang="en" aria-pressed="${lang === 'en'}">EN</button><button type="button" data-lang="es" aria-pressed="${lang === 'es'}">ES</button></div>
