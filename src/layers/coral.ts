@@ -7,13 +7,14 @@
  *    filled in the colour of the nearest reef's alert level.
  * Colours: green no stress, amber watch or warning, red alert 1 or 2. Grey-dim when there is no reading.
  */
+import { addGlyphImages, imageId } from '../icons/map-glyphs';
 import type { ExpressionSpecification, GeoJSONSource, Map } from 'maplibre-gl';
 import type { Feature, FeatureCollection, Geometry, Position } from 'geojson';
 import { TIER_ZOOM } from '../region';
 import { t, type Key } from '../i18n';
 import { firstSymbolId } from '../map';
 import { ALERT_KEYS, coralNow, nearestReef, type CoralData } from '../adapters/coral';
-import { paintColour as cssColour } from './paint';
+import { paintColour as cssColour, themeVar as themeColour } from './paint';
 
 const { COAST, SPOT } = TIER_ZOOM;
 /** Tone per alert level, as the legend and the panel show it. */
@@ -72,6 +73,8 @@ export function mountCoral(map: Map, reefs: readonly { id: string; name: string;
   const amber = cssColour('--amber', '#ffb000');
   const green = cssColour('--green', '#39ff7a');
   const red = cssColour('--red', '#ff3b2f');
+  const ink = themeColour('--ink', '#0A1626');
+  const halo = themeColour('--m-halo', '#ECEADF');
   let heat: CoralData | null = null;
   let polys: FeatureCollection[] = [];
   let visible = false;
@@ -81,22 +84,29 @@ export function mountCoral(map: Map, reefs: readonly { id: string; name: string;
 
   const add = () => {
     if (map.getSource('cr-pts')) return;
+    addGlyphImages(map);
     map.addSource('cr-pts', { type: 'geojson', data: reefPoints(heat, reefs), attribution: 'NOAA Coral Reef Watch' });
     map.addSource('cr-polys', { type: 'geojson', data: reefPolygons(heat, polys) });
     const below = firstSymbolId(map);
     map.addLayer({ id: 'cr-fill', type: 'fill', source: 'cr-polys', minzoom: COAST, layout: { visibility: vis() }, paint: { 'fill-color': tone, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], COAST, 0.25, SPOT, 0.35] } }, below);
     map.addLayer({ id: 'cr-line', type: 'line', source: 'cr-polys', minzoom: COAST, layout: { visibility: vis() }, paint: { 'line-color': tone, 'line-width': 1, 'line-opacity': dimOr(0.9, 0.4) } }, below);
     map.addLayer({
-      id: 'cr-ring', type: 'circle', source: 'cr-pts', layout: { visibility: vis() },
-      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 4, COAST, 7, SPOT, 12], 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': tone, 'circle-stroke-width': ['match', ['get', 'tone'], 'red', 3, 2], 'circle-stroke-opacity': dimOr(1, 0.5) },
+      // The coral glyph, coloured by heat stress on the severity scale: ink none, amber watch to alert 1, red alert 2.
+      id: 'cr-ring', type: 'symbol', source: 'cr-pts',
+      layout: {
+        visibility: vis(), 'icon-allow-overlap': true,
+        'icon-image': ['match', ['get', 'tone'], 'red', imageId('coral', 'danger'), 'amber', imageId('coral', 'caution'), imageId('coral', 'ink')],
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 6, 0.6, COAST, 0.8, SPOT, 1],
+      },
+      paint: { 'icon-opacity': dimOr(1, 0.5) },
     });
     map.addLayer({
       id: 'cr-label', type: 'symbol', source: 'cr-pts', minzoom: COAST - 1,
       layout: {
         visibility: vis(), 'text-field': ['step', ['zoom'], ['get', 'name'], COAST, ['get', 'detail']],
-        'text-font': ['Noto Sans Regular'], 'text-size': 11, 'text-anchor': 'left', 'text-offset': [1.2, 0], 'text-justify': 'left', 'text-letter-spacing': 0.08,
+        'text-font': ['Noto Sans Regular'], 'text-size': 11, 'text-anchor': 'left', 'text-offset': [1.4, 0], 'text-justify': 'left', 'text-letter-spacing': 0.08,
       },
-      paint: { 'text-color': tone, 'text-halo-color': '#000', 'text-halo-width': 1.5, 'text-opacity': dimOr(1, 0.6) },
+      paint: { 'text-color': ink, 'text-halo-color': halo, 'text-halo-width': 1.6, 'text-opacity': dimOr(1, 0.6) },
     });
   };
   const refresh = () => {

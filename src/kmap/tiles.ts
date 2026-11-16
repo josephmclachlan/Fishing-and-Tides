@@ -4,6 +4,7 @@
  * picture drawn from the value (a wind arrow over streaks, the swell trains as a rose, the tide's day as a curve...).
  * Every tile opens its plain-words explainer.
  */
+import { glyphSvg, type GlyphId } from '../icons/glyphs';
 import { bandColours, FIELD_STEPS, FIELD_TICKS, fieldIndex, fieldStops, type FieldKind } from '../layers/bands';
 import { D2R, esc, fitCanvas, L2, MONO, rgba, TAU, tok } from './dom';
 
@@ -33,10 +34,12 @@ export interface Reading {
   prof?: { depth: number; uMs: number; band: 'CALM' | 'SURGY' | 'DANGEROUS' }[];
   /** Rating level for a coloured cell (0..4). */
   lv?: number | null;
+  /** A warning in force (lightning inside the alert radius): the chip turns danger red and leads with this symbol. */
+  warn?: GlyphId;
 }
 
 export const barHTML = (R: readonly Reading[]) =>
-  R.map((r) => `<span class="k-rc${r.lv !== undefined && r.lv !== null ? ` k-here k-lv${r.lv}` : ''}" data-k="${r.k}"><span>${esc(r.l)}</span><b>${esc(r.v)}<small>${esc(r.u)}</small></b></span>`).join('');
+  R.map((r) => `<span class="k-rc${r.warn ? ' k-rcw' : r.lv !== undefined && r.lv !== null ? ` k-here k-lv${r.lv}` : ''}" data-k="${r.k}"><span>${r.warn ? glyphSvg(r.warn, { fill: 'currentColor' }, 12) : ''}${esc(r.l)}</span><b>${esc(r.v)}<small>${esc(r.u)}</small></b></span>`).join('');
 
 export const tileHTML = (r: Reading) =>
   `<button type="button" class="k-tile" data-k="${r.k}"${r.help ? ` data-help="${r.help}"` : ''}><span class="k-tt k-mono"><span>${esc(r.l)}</span><span class="k-src">${esc(r.src ?? '')}</span></span><canvas aria-hidden="true"></canvas><span class="k-tv">${esc(r.v)}<small>${esc(r.u)}</small></span><span class="k-ts">${esc(r.s)}</span></button>`;

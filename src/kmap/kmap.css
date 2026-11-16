@@ -84,6 +84,9 @@
 .km .k-readbar .k-rc b small{font-family:var(--mono);font-size:10px;font-weight:600;opacity:.8;margin-left:2px}
 .km .k-readbar .k-rc.k-here{background:var(--c,transparent);color:var(--o,inherit)}
 .km .k-readbar .k-rc.k-here span{opacity:.85}
+.km .k-readbar .k-rc.k-rcw{background:var(--sev-danger);color:var(--sev-on)}
+.km .k-readbar .k-rc.k-rcw span{opacity:1;display:flex;align-items:center;gap:4px}
+.km .k-readbar .k-rc.k-rcw svg{flex:none}
 .km .k-mapbtns{position:absolute;z-index:3;right:10px;bottom:12px;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
 .km .k-fab{appearance:none;border:0;cursor:pointer;background:var(--c-card);color:var(--ink);height:48px;min-width:48px;padding:0 13px;display:flex;align-items:center;gap:8px;border-radius:2px;box-shadow:0 0 0 1px var(--line);font-family:var(--disp);font-weight:800;font-variation-settings:"wdth" 80;font-size:16px;text-transform:uppercase}
 .km .k-fab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:square}
@@ -191,6 +194,10 @@
 .km .k-lkeys i.k-sw-line{height:3px}
 .km .k-lkeys i.k-sw-weed{width:18px;height:auto;background:none;color:var(--k);line-height:0}
 .km .k-lkeys i.k-sw-weed svg{display:block}
+.km .k-lkeys i.k-sw-dash{height:0;background:none;border-top:2px dashed var(--k)}
+.km .k-lkeys i.k-sw-glyph{width:20px;height:20px;background:none;display:grid;place-items:center;margin:-3px 0}
+.km .k-lkeys i.k-sw-glyph svg{width:20px;height:20px;overflow:visible}
+.km .k-lkeys i.k-dimg{opacity:.55}
 .km .k-bwin{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;margin:10px 0 0;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
 .km .k-bwin b{color:var(--ink);font-weight:700}
 .km .k-rampw{display:grid;grid-template-columns:1fr auto;column-gap:8px;align-items:center;min-width:176px}

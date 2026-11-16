@@ -7,13 +7,15 @@ import type { FeatureCollection } from 'geojson';
 import { TIER_ZOOM } from '../region';
 import { firstSymbolId } from '../map';
 import { PLACES } from '../data/harbours';
-import { paintColour as cssColour } from './paint';
+import { addGlyphImages, imageId } from '../icons/map-glyphs';
+import { themeVar as cssColour } from './paint';
 
 const { COAST, SPOT } = TIER_ZOOM;
 
 
 export function mountHarbours(map: Map) {
-  const green = cssColour('--green', '#3cff8c');
+  const ink = cssColour('--ink', '#0A1626');
+  const halo = cssColour('--m-halo', '#ECEADF');
   const data: FeatureCollection = {
     type: 'FeatureCollection',
     features: PLACES.map((p) => ({
@@ -25,14 +27,16 @@ export function mountHarbours(map: Map) {
   const add = () => {
     if (map.getSource('an')) return;
     map.addSource('an', { type: 'geojson', data });
+    addGlyphImages(map);
     map.addLayer({
-      id: 'an-ring', type: 'circle', source: 'an', minzoom: COAST,
-      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], COAST, 4, SPOT + 2, 9], 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': green, 'circle-stroke-width': 2, 'circle-stroke-opacity': ['case', ['get', 'check'], 0.7, 1] },
+      id: 'an-ring', type: 'symbol', source: 'an', minzoom: COAST,
+      layout: { 'icon-image': imageId('anchor', 'ink'), 'icon-size': ['interpolate', ['linear'], ['zoom'], COAST, 0.6, SPOT + 2, 0.85], 'icon-allow-overlap': true },
+      paint: { 'icon-opacity': ['case', ['get', 'check'], 0.6, 1] },
     }, firstSymbolId(map));
     map.addLayer({
       id: 'an-label', type: 'symbol', source: 'an', minzoom: COAST + 1,
-      layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 11, 'text-anchor': 'left', 'text-offset': [1, 0], 'text-letter-spacing': 0.08 },
-      paint: { 'text-color': green, 'text-halo-color': '#000', 'text-halo-width': 1.5 },
+      layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 11, 'text-anchor': 'left', 'text-offset': [1.3, 0], 'text-letter-spacing': 0.08 },
+      paint: { 'text-color': ink, 'text-halo-color': halo, 'text-halo-width': 1.6 },
     });
   };
   if (map.getLayer('grat-macro') || map.isStyleLoaded()) add();
