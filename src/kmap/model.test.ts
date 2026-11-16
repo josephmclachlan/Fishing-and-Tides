@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CELL_DEG, KM_LAYERS, MODES, PRESETS, coastNear, isCustom, loadOrders, moveLayer, offered, offsetOfX, orderOf, placeChips, DOT_R, privateCells, saveOrders, slots,
-  toggleLayer, xOfOffset, type Mask,
+  toggleLayer, xOfOffset, mapActForCond, type Mask,
 } from './model';
 import { LAYERS } from '../layers/registry';
 
@@ -133,5 +133,18 @@ describe('private coral sites', () => {
       expect(c!.lng === s.lng && c!.lat === s.lat).toBe(false);
     }
     expect(privateCells([{ lng: NaN, lat: 1 }])).toEqual([]);
+  });
+});
+
+describe('Expand data activity picker moves the map (review 4.5)', () => {
+  it('maps each picker activity to the map, keeping snorkel or spear under DIVE', () => {
+    expect(mapActForCond('fish', 'surf')).toBe('fish');
+    expect(mapActForCond('boat', 'fish')).toBe('sail');
+    expect(mapActForCond('surf', null)).toBe('surf');
+    expect(mapActForCond('dive', 'swim')).toBe('dive');
+    expect(mapActForCond('dive', 'snorkel')).toBeNull();
+    expect(mapActForCond('dive', 'spear')).toBeNull();
+    expect(mapActForCond('fish', 'fish')).toBeNull();
+    expect(mapActForCond('all', 'surf')).toBeNull();
   });
 });
