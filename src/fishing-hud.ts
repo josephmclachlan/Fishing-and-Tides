@@ -24,6 +24,7 @@ import { catchStats, MIN_CATCHES, type CatchPin } from './fishing/catches';
 import { speciesById } from './fishing/species';
 import { OFFSHORE } from './fishing/offshore';
 import { ciguaBoatHtml, ciguaNoteHtml } from './fishing/cigua-note';
+import { strictestCm, type CiguaTier } from './fishing/cigua';
 import { SPEAR_TARGETS } from './fishing/spear';
 import { LIMON_HARMONICS } from './data/tides-limon';
 import { localDayStart } from './physics/astro';
@@ -32,6 +33,7 @@ import { clock } from './astro-hud';
 const esc = (x: string) => x.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]!);
 const KEY = 'ft.fishing.species';
 const REACH_KEY = 'ft.fishing.reach';
+const MODE_KEY = 'ft.fishing.mode';
 const SPEAR_KEY = 'ft.spear.target';
 const REACHES: readonly Reach[] = ['all', 'shore', 'boat'];
 const SPOT_RADIUS_KM = 15;
@@ -44,6 +46,17 @@ export function loadSpecies(): SpeciesId {
     return SPECIES.find((s) => s.id === v)?.id ?? SPECIES[0].id;
   } catch {
     return SPECIES[0].id;
+  }
+}
+
+/** EAT or SPORT, remembered on the device (PLAN 7.148: a species can be in both); else the stored fish's first mode. */
+export function loadMode(): FishMode {
+  const own = speciesById(loadSpecies()).modes;
+  try {
+    const v = localStorage.getItem(MODE_KEY);
+    return MODES.find((m) => m === v && own.includes(m)) ?? own[0];
+  } catch {
+    return own[0];
   }
 }
 
@@ -73,7 +86,9 @@ export interface FishSpotRow { n: number; place: string; line: string; why: stri
 /** The day's BITE strip: each step's bar height (percent of the day's best) and whether it falls in a best window. */
 export interface FishStrip { day: number; bars: readonly { t: number; pct: number; win: boolean }[] }
 export interface SpearInfo { target: SpeciesId | null; targets: readonly SpeciesId[]; spots: readonly FishSpotRow[] }
-export interface FishInfo { id: SpeciesId; name: string; bite: number | null; wins: readonly FishWin[]; strip: FishStrip; spots: readonly FishSpotRow[] }
+/** The picked fish's ciguatera tier (fishing/cigua.ts) and the smallest size to keep among its species, for the map's fish bar. */
+export interface FishCigua { tier: CiguaTier; cm: number | null }
+export interface FishInfo { id: SpeciesId; name: string; bite: number | null; wins: readonly FishWin[]; strip: FishStrip; spots: readonly FishSpotRow[]; cig: FishCigua | null }
 
 const why = (rs: readonly BiteReason[]) => rs.map((r) => t(`bite.r.${r}` as Key)).join(' · ');
 
@@ -110,6 +125,8 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
   const $ = (id: string) => side.querySelector<HTMLElement>('#' + id)!;
   let i = Math.max(0, SPECIES.findIndex((s) => s.id === initial));
   let reach: Reach = loadReach();
+  /** The mode the user is in, held apart from the species (permit is in both). */
+  let mode: FishMode = SPECIES[i].modes.includes(loadMode()) ? loadMode() : SPECIES[i].modes[0];
   const tabs = [...side.querySelectorAll<HTMLButtonElement>('#fish-reach [data-reach]')];
   const modeTabs = [...side.querySelectorAll<HTMLButtonElement>('#fish-mode [data-mode]')];
 
@@ -122,20 +139,21 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     const sp = SPECIES[i];
     $('fish-sp').textContent = t(`fish.${sp.id}` as Key);
     // Ciguatera (fishing/cigua.ts): the picked fish, and with the boat in reach the mode's boat fish that carry it.
-    if (cigKey !== `${sp.id}|${reach}`) {
-      cigKey = `${sp.id}|${reach}`;
+    if (cigKey !== `${sp.id}|${reach}|${mode}`) {
+      cigKey = `${sp.id}|${reach}|${mode}`;
       const cig = ciguaNoteHtml(sp.id, sp.ciguatera);
       $('fish-cig').innerHTML = cig;
       $('fish-cig').hidden = !cig;
-      const boatCig = reach === 'shore' ? '' : ciguaBoatHtml(OFFSHORE.filter((o) => o.mode === sp.mode && o.ciguatera).map((o) => o.id));
+      const boatCig = reach === 'shore' ? '' : ciguaBoatHtml(OFFSHORE.filter((o) => o.modes.includes(mode) && o.ciguatera).map((o) => o.id));
       $('fish-cig-boat').innerHTML = boatCig;
       $('fish-cig-boat').hidden = !boatCig;
     }
     $('fish-low').hidden = sp.confidence !== 'low';
     $('fish-low-t').textContent = t(sp.noLocalRecord ? (`fish.low.${sp.id}` as Key) : 'fish.low');
     $('fish-hand').hidden = !sp.byHand;
-    $('fish-sport').hidden = sp.mode !== 'sport';
-    $('fish-note').textContent = t(sp.mode === 'sport' ? 'fish.note.sport' : 'fish.note');
+    $('fish-sport').hidden = mode !== 'sport';
+    $('fish-sport').firstElementChild!.textContent = t(sp.modes.includes('eat') ? 'fish.sport.both' : 'fish.sport');
+    $('fish-note').textContent = t(mode === 'sport' ? 'fish.note.sport' : 'fish.note');
     const season = t(`season.${seasonOf(sp, month())}` as Key);
     const c = map.getCenter();
     const score = layer.scoreAt(c.lng, c.lat);
@@ -229,19 +247,23 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
   const queue = () => {
     if (!queued) (queued = true), requestAnimationFrame(update);
   };
-  let shownMode = SPECIES[i].mode, shownReach = reach;
+  let shownMode = mode, shownReach = reach;
   const apply = () => {
+    // A fish picked from outside (SHOW ON MAP) that is not in the current mode takes the panel to its own mode.
+    if (!SPECIES[i].modes.includes(mode)) mode = SPECIES[i].modes[0];
     // EAT or SPORT, or the reach, changed here (the MODE and REACH rows, SHOW ON MAP): tell the map's switches and spot card.
-    if (SPECIES[i].mode !== shownMode || reach !== shownReach) onMode(((shownReach = reach), (shownMode = SPECIES[i].mode)));
+    if (mode !== shownMode || reach !== shownReach) onMode(((shownReach = reach), (shownMode = mode)));
+    layer.setMode(mode);
     layer.setSpecies(SPECIES[i].id);
     layer.setMonth(month());
     layer.setReach(reach);
     tabs.forEach((b) => b.classList.toggle('on', b.dataset.reach === reach));
-    modeTabs.forEach((b) => b.classList.toggle('on', b.dataset.mode === SPECIES[i].mode));
+    modeTabs.forEach((b) => b.classList.toggle('on', b.dataset.mode === mode));
     heavyKey = '';
     try {
       localStorage.setItem(KEY, SPECIES[i].id);
       localStorage.setItem(REACH_KEY, reach);
+      localStorage.setItem(MODE_KEY, mode);
     } catch {
       /* private mode */
     }
@@ -249,17 +271,19 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
   };
   // The arrows step through the current mode's fish only.
   const step = (d: number) => {
-    const list = speciesIn(SPECIES[i].mode), k = list.findIndex((s) => s.id === SPECIES[i].id);
+    const list = speciesIn(mode), k = list.findIndex((s) => s.id === SPECIES[i].id);
     i = SPECIES.indexOf(list[(k + d + list.length) % list.length]);
     apply();
   };
   /** EAT or SPORT: back to the fish last picked in that mode, else its first. */
-  const lastOf: Partial<Record<FishMode, SpeciesId>> = { [SPECIES[i].mode]: SPECIES[i].id };
+  const lastOf: Partial<Record<FishMode, SpeciesId>> = { [mode]: SPECIES[i].id };
   const setMode = (m: FishMode) => {
-    if (m === SPECIES[i].mode) return;
-    lastOf[SPECIES[i].mode] = SPECIES[i].id;
-    const id = lastOf[m] ?? speciesIn(m)[0].id;
+    if (m === mode) return;
+    lastOf[mode] = SPECIES[i].id;
+    // A fish in both modes stays picked; otherwise the one last picked in that mode, else its first.
+    const id = SPECIES[i].modes.includes(m) ? SPECIES[i].id : (lastOf[m] ?? speciesIn(m)[0].id);
     i = SPECIES.findIndex((s) => s.id === id);
+    mode = m;
     apply();
   };
   modeTabs.forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode as FishMode)));
@@ -360,7 +384,10 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     return { target: spearTarget(), targets: SPEAR_TARGETS.filter(spearOpen), spots: rows };
   };
   /** The map's fish bar (PLAN 7.143): the fish, its BITE, the day's best windows and the best spots near the crosshair. */
-  const info = (): FishInfo => ({ id: SPECIES[i].id, name: t(`fish.${SPECIES[i].id}` as Key), bite: lastBite, wins: lastWins, strip: lastStrip, spots: lastRows });
+  const info = (): FishInfo => {
+    const sp = SPECIES[i];
+    return { id: sp.id, name: t(`fish.${sp.id}` as Key), bite: lastBite, wins: lastWins, strip: lastStrip, spots: lastRows, cig: sp.ciguatera ? { tier: sp.ciguatera, cm: strictestCm(sp.id) } : null };
+  };
   const flyTo = (lng: number, lat: number) => map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 12.5), duration: 1200 });
-  return { scoreCatch, refresh: queue, setSpecies, setMode, mode: () => SPECIES[i].mode, setReach, reach: () => reach, step, info, flySpot, spearInfo, setSpearTarget, flyTo };
+  return { scoreCatch, refresh: queue, setSpecies, setMode, mode: () => mode, setReach, reach: () => reach, step, info, flySpot, spearInfo, setSpearTarget, flyTo };
 }

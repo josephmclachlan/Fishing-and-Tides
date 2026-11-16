@@ -206,7 +206,7 @@ export function skyMemo(tz: number) {
 export function likelyFish(lngLat: [number, number], month: number, water: { visM?: number | null; sstC?: number | null }, n = 3): SpeciesId[] {
   const mouthKm = Math.min(...PLUME_RIVERS.map((r) => haversineM(lngLat, r.mouth) / 1000));
   const nearMouth = mouthKm <= 3;
-  return SPECIES.filter((s) => s.mode === 'eat' && !s.byHand && s.ciguatera !== 'never')
+  return SPECIES.filter((s) => s.modes.includes('eat') && !s.byHand && s.ciguatera !== 'never')
     .map((s) => ({ id: s.id, v: seasonFactor(s, month) * waterTerm(s, water).factor * (0.5 + 0.5 * (nearMouth ? s.w.mouth : s.w.reef + s.w.drop)) }))
     .sort((a, b) => b.v - a.v)
     .slice(0, n)

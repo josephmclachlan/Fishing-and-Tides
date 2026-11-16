@@ -64,7 +64,8 @@ import { styleBaseMap } from './basemap';
 import { emitSchemeChange, roleSnapshot, schemeSwap } from '../layers/paint';
 import { SYNC_EVENT, type SyncStatus } from '../sync-ui';
 import { loadSummary } from '../offline/sync';
-import type { FishInfo, SpearInfo } from '../fishing-hud';
+import type { FishCigua, FishInfo, SpearInfo } from '../fishing-hud';
+import { ciguaSpecies, isRed } from '../fishing/cigua';
 import type { SpeciesId } from '../fishing/species';
 
 type Spot = (typeof SPOTS)[number];
@@ -628,13 +629,104 @@ export function mountKineticMap(d: KmDeps) {
       bindComposer(shBody);
     }
   };
+  /**
+   * The map key (Joseph 2026-11-16): on a desktop, one line for every layer drawn, so "what are these yellow dots" is answered
+   * without a tap; on a phone the top layer's key, and a tap on any mark names it (tapKey below).
+   */
+  /** One line of the desktop key: the layer's marks as small swatches, its name, and what it shows (in full on hover). */
+  const OWN_WHAT: Record<string, [string, string]> = {
+    rating: ['Each beach in its rating colour for this activity', 'Cada playa en el color de su calificación'],
+    heat: ['Each reef in its coral heat alert colour', 'Cada arrecife en el color de su alerta de calor'],
+    private: ['Your logged sites, as 5 km cells', 'Sus sitios, como celdas de 5 km'],
+  };
+  /** A layer's marks as small swatches: rating squares, a colour ramp for a painted field, then up to `n` of its marks. */
+  const keySwatches = (id: KmLayer, n = 3) => {
+    const lv = (ns: number[]) => ns.map((x) => `<i class="k-lmlv" style="--k:var(--lv${x})"></i>`).join('');
+    if (isOwnLayer(id)) return id === 'rating' ? lv([0, 1, 2, 3, 4]) : id === 'heat' ? lv([3, 2, 1, 0]) : `<i class="k-sw-glyph">${glyphSvg('lock', GLYPH_PAINT.ink, 14)}</i>`;
+    const fk = FIELD_OF[id];
+    const ramp = (cols: readonly string[]) => `<i class="k-lmramp" style="background:linear-gradient(90deg,${cols.join(',')})"></i>`;
+    const marks = LEGEND[id].filter((it) => it.sw !== 'none' && !((fk || id === 'fishing') && it.sw === 'fill')).slice(0, n).map(keySw).join('');
+    return (fk ? ramp(bandCss(fk)) : id === 'fishing' ? ramp(rampCss(['--lv2', '--lv3', '--ac4'], 6)) : '') + marks;
+  };
+  const keyLine = (id: KmLayer) => {
+    const sw = keySwatches(id);
+    const what = isOwnLayer(id) ? L2(...(OWN_WHAT[id] ?? ['', ''])) : t(legendWhatKey(id) as Key);
+    const short = what.split(/(?<=[a-z0-9)])[.:;](\s|$)/i)[0];
+    return `<li title="${esc(what)}"><span class="k-lkeys k-lmsw">${sw}</span><b>${esc(layerName(id))}</b><span class="k-lmwhat">${esc(short)}</span></li>`;
+  };
+  const KEY_OPEN = 'ft.km.keyopen';
+  let keyOpen = get(storage, KEY_OPEN) === '1';
+  $('k-legmini').addEventListener('click', (e) => {
+    if (!(e.target as HTMLElement).closest('[data-keytog]')) return;
+    keyOpen = !keyOpen;
+    put(storage, KEY_OPEN, keyOpen ? '1' : '0');
+    renderLegMini();
+    $('k-legmini').querySelector<HTMLElement>('[data-keytog]')?.focus();
+  });
   const renderLegMini = () => {
     const el = $('k-legmini');
     const on = order();
+    if (WIDE.matches) {
+      const ids = on.filter((id) => legend(id));
+      el.hidden = !lcol || !ids.length;
+      el.classList.add('k-legall');
+      // Folded by default to a KEY button showing a sample of the marks on the map (Joseph 2026-11-16); a click opens the full list.
+      el.classList.toggle('k-keyshut', !keyOpen);
+      const peek = ids.slice(0, 5).map((id) => `<span class="k-lkeys k-lmsw">${keySwatches(id, 1)}</span>`).join('');
+      el.innerHTML = keyOpen
+        ? `<div class="k-keyhd"><span class="k-mono">${L2('Key · every layer on', 'Clave · cada capa activa')}</span><button type="button" class="k-keyx" data-keytog aria-expanded="true">${L2('Hide', 'Ocultar')} ${svg('<path d="M6 9l6 6 6-6"/>')}</button></div><ul class="k-lmall">${ids.map(keyLine).join('')}</ul>`
+        : `<button type="button" class="k-keybtn" data-keytog aria-expanded="false" aria-label="${L2(`Map key: ${ids.length} layers on`, `Clave del mapa: ${ids.length} capas activas`)}"><span class="k-keyl">${L2('Key', 'Clave')}</span><span class="k-keypeek">${peek}</span><span class="k-mono k-keyn">${ids.length}</span>${svg('<path d="M6 15l6-6 6 6"/>')}</button>`;
+      return;
+    }
+    el.classList.remove('k-legall');
     // SPEAR shows its own key alone (Joseph 2026-11-16: the beach ratings matter less there; the coast strip stays on the map).
     const top = S.act === 'spear' && on.includes('spear') ? 'spear' : on.find((id) => legend(id));
-    el.hidden = (WIDE.matches && !lcol) || !top;
-    if (top) el.innerHTML = `<span class="k-mono">${esc(layerName(top))}</span>${legend(top)}`;
+    el.hidden = !top;
+    if (top) el.innerHTML = `<span class="k-mono">${esc(layerName(top))}</span>${legend(top)}<small class="k-lmtap">${L2('Tap any mark to name it', 'Toque una marca para ver qué es')}</small>`;
+  };
+  /**
+   * Tap a mark (phone): a dot, line, ring or label drawn by a layer that is on, and a card names the layer, says what the mark
+   * means and shows its key. Marks with their own card (lightning, storms, live observations, wave crests, rips, sargassum,
+   * coral sites) and the depth contours (labelled on the map) keep theirs; a tap on open water keeps the WHAT'S HERE card.
+   */
+  const OWN_CARD = new Set(['ob-dot', 'ob-label', 'lt-dot', 'st-ring', 'st-label', 'wv-crest', 'rp-site', 'rp-coast', 'sg-mat', 'sg-beach', 'cs-sites']);
+  const MARK_TYPES = new Set(['circle', 'symbol', 'line']);
+  const tapCard = document.createElement('aside');
+  tapCard.className = 'k-tapcard';
+  tapCard.hidden = true;
+  tapCard.setAttribute('role', 'dialog');
+  stage.appendChild(tapCard);
+  const tapKey = (pt: { x: number; y: number }) => {
+    tapCard.hidden = true;
+    const on = order().filter((id): id is LayerId => !isOwnLayer(id) && id !== 'depth');
+    const styleIds: [string, LayerId][] = [];
+    for (const l of map.getStyle()?.layers ?? []) {
+      if (!MARK_TYPES.has(l.type) || OWN_CARD.has(l.id)) continue;
+      const owner = on.find((id) => LAYERS.find((x) => x.id === id)?.mapPrefixes?.some((p) => l.id.startsWith(p)));
+      if (owner && map.getLayoutProperty(l.id, 'visibility') !== 'none') styleIds.push([l.id, owner]);
+    }
+    if (!styleIds.length) return false;
+    const B = 10;
+    const own = map.queryRenderedFeatures([[pt.x - B, pt.y - B], [pt.x + B, pt.y + B]], { layers: [...OWN_CARD].filter((id) => map.getLayer(id)) });
+    if (own.length) return false;
+    const hits = map.queryRenderedFeatures([[pt.x - B, pt.y - B], [pt.x + B, pt.y + B]], { layers: styleIds.map(([id]) => id) });
+    if (!hits.length) return false;
+    // The top layer in the key's order wins where marks overlap.
+    const ownerOf = (h: (typeof hits)[number]) => styleIds.find(([id]) => id === h.layer.id)![1];
+    const hit = hits.sort((a, b) => on.indexOf(ownerOf(a)) - on.indexOf(ownerOf(b)))[0];
+    const id = ownerOf(hit), p = (hit.properties ?? {}) as Record<string, unknown>;
+    const items = LEGEND[id].filter((it) => it.sw !== 'none');
+    const named = typeof p.sp === 'string' && p.sp ? titleCase(p.sp) : typeof p.label === 'string' && p.label && !/\n/.test(p.label) && p.label.length < 40 ? p.label : '';
+    const title = named || (items.length === 1 ? sentence(t(legendItemKey(id, LEGEND[id].indexOf(items[0]) + 1) as Key)) : layerName(id));
+    // The zone's reason, depth and nearest place: words in sentence case, the place (no digits, last) in title case.
+    const parts = typeof p.where === 'string' && p.where ? p.where.split(' · ') : [];
+    const where = parts.length ? `<p class="k-tcwhere">${esc(parts.map((x, i) => (i === parts.length - 1 && i > 0 && !/\d/.test(x) ? placeCase(x) : sentence(x).replace(/(\d) M\b/g, '$1 m'))).join(' · '))}</p>` : '';
+    tapCard.innerHTML = `<div class="k-tchd"><span class="k-mono">${L2('You tapped', 'Tocó')} · ${esc(layerName(id))}</span><button type="button" class="k-ib" aria-label="${L2('Close', 'Cerrar')}">${CLOSE}</button></div><b class="k-tct">${esc(title)}</b>${where}<p>${esc(t(legendWhatKey(id) as Key))}</p>${legend(id)}`;
+    tapCard.querySelector('button')!.addEventListener('click', () => (tapCard.hidden = true));
+    tapCard.hidden = false;
+    // Its own card replaces WHAT'S HERE for this tap.
+    document.querySelectorAll<HTMLElement>('.help-card').forEach((c) => (c.hidden = true));
+    return true;
   };
 
   /* ---------- readings ---------- */
@@ -988,6 +1080,7 @@ export function mountKineticMap(d: KmDeps) {
     }</div>${fi && fm.step ? `<div class="k-fbrow">
       <span class="k-fpick"><button type="button" data-fstep="-1" aria-label="${L2('Previous fish', 'Pez anterior')}">‹</button><b>${esc(fi.name)}</b><button type="button" data-fstep="1" aria-label="${L2('Next fish', 'Siguiente pez')}">›</button></span>
       <button type="button" class="k-fchip k-fbest" data-fsheet="times">${best ? `${best.start <= at ? L2('Best now to', 'Mejor ahora hasta') + ' ' + esc(best.range.split('–')[1]) : `${L2('Best', 'Mejor')} ${esc(best.range)}`}` : fi?.wins.length ? L2('Best times are over today', 'Ya pasaron las mejores horas') : L2('No standout time today', 'Ninguna hora destaca hoy')}</button></div>
+      ${fi.cig ? `<div class="k-fbrow">${cigChip(fi.cig)}</div>` : ''}
       <div class="k-fbrow"><button type="button" class="k-fchip" data-fsheet="spots">${svg('<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>')}${L2('Best spots', 'Mejores sitios')}</button>${fm.logCatch ? `<button type="button" class="k-fchip" data-fsheet="catch">${svg('<path d="M12 5v14M5 12h14"/>')}${L2('Catch', 'Captura')}</button>` : ''}</div>` : ''}`;
   };
   /**
@@ -1035,6 +1128,30 @@ export function mountKineticMap(d: KmDeps) {
   /** The fishing panel's capitals as plain words: reasons become small tags, each in sentence case. */
   const tags = (why: string) => (why ? `<span class="k-ftags">${why.split(' · ').map((w) => `<span>${esc(sentence(w))}</span>`).join('')}</span>` : '');
   const placeCase = (x: string) => titleCase(x).replace(/\bKm\b/g, 'km').replace(/\b(De|Del|La|El)\b/g, (w) => w.toLowerCase());
+  /**
+   * Ciguatera on the fish bar (PLAN 7.148, fishing/cigua.ts): red for the high tier, amber otherwise, with the smallest size
+   * to keep among the fish's species. Tapping it opens the fish sheet at the size chart, the same numbers as the guide.
+   */
+  const cigChip = (c: FishCigua) =>
+    `<button type="button" class="k-fchip k-fcig${isRed(c.tier) ? ' k-red' : ''}" data-fsheet="cig">${esc(
+      c.tier === 'never' ? L2('Ciguatera · do not eat', 'Ciguatera · no lo coma') : c.tier === 'rare' || !c.cm ? L2('Ciguatera · rare, see why', 'Ciguatera · rara, vea por qué') : `${L2('Ciguatera · keep under', 'Ciguatera · guarde menos de')} ${c.cm} cm`,
+    )}</button>`;
+  /** The fish sheet's ciguatera section: the tier's sentence and one bar per species with its size to keep. */
+  const cigSheetHTML = (fi: FishInfo) => {
+    if (!fi.cig) return '';
+    const rows = fi.cig.tier === 'never' ? [] : ciguaSpecies(fi.id);
+    const es = L2('en', 'es') === 'es';
+    const li = rows
+      .map((r) => {
+        const name = esc(es ? r.es : r.en);
+        const z = r.size;
+        const v = z.basis === 'never' ? L2('Do not eat', 'No lo coma') : z.cm ? `${z.cm} cm${z.basis === 'estimate' ? ` <small>${L2('est.', 'est.')}</small>` : ''}` : L2('No size known', 'Sin tamaño conocido');
+        return `<li><span>${name}</span><i style="width:${z.cm ? Math.min(100, (z.cm / 80) * 100).toFixed(0) : 0}%"></i><b>${v}</b></li>`;
+      })
+      .join('');
+    const text = fi.id === 'lionfish' ? t('fish.cig.lionfish') : t(`fish.cig.${fi.cig.tier}` as Key);
+    return `<section class="k-fsec" id="k-fcig"><p class="k-mono k-fcap">${L2('Ciguatera', 'Ciguatera')}</p><p class="k-fnote">${esc(sentence(text).replace(/([.:] )([a-z])/g, (_, p, c: string) => p + c.toUpperCase()))}</p>${li ? `<p class="k-mono k-fcap">${L2('Keep under', 'Guarde menos de')}</p><ul class="k-fcz${isRed(fi.cig.tier) ? ' k-red' : ''}">${li}</ul>` : ''}<p><a class="k-flink" href="#ciguatera">${L2('Risk, symptoms, treatment', 'Riesgo, síntomas, tratamiento')}</a></p></section>`;
+  };
   /** The fish sheet: today's BITE strip and every best window, then the best spots near the crosshair (tap to fly). */
   const fishSheetHTML = (fi: FishInfo) => {
     const bars = fi.strip.bars;
@@ -1048,7 +1165,7 @@ export function mountKineticMap(d: KmDeps) {
     const spots = fi.spots.length
       ? fi.spots.map((r) => `<li><button type="button" class="k-fspot${r.on ? ' k-on' : ''}" data-fly="${r.n}"><span class="k-fn">${r.n + 1}</span><span><b>${esc(r.place ? placeCase(r.place) : L2('Unnamed spot', 'Sitio sin nombre'))}</b><small>${esc(sentence(r.line))}</small>${tags(r.why)}</span>${ARROW}</button></li>`).join('')
       : `<li><span>${L2('No good water for this fish within 15 km of the crosshair. Move the map and look again.', 'No hay buena agua para este pez a 15 km de la mira. Mueva el mapa y mire otra vez.')}</span></li>`;
-    return `<section class="k-fsec" id="k-ftimes"><p class="k-mono k-fcap">${L2('Best times today', 'Mejores horas hoy')}${fi.bite !== null ? ` · ${L2('Bite now', 'Picada ahora')} ${fi.bite}/100` : ''}</p>${strip}<ul class="k-fwins">${wins}</ul></section>
+    return `${cigSheetHTML(fi)}<section class="k-fsec" id="k-ftimes"><p class="k-mono k-fcap">${L2('Best times today', 'Mejores horas hoy')}${fi.bite !== null ? ` · ${L2('Bite now', 'Picada ahora')} ${fi.bite}/100` : ''}</p>${strip}<ul class="k-fwins">${wins}</ul></section>
       <section class="k-fsec" id="k-fspots"><p class="k-mono k-fcap">${L2('Best spots near the crosshair', 'Mejores sitios cerca de la mira')}</p><ul class="k-fspots">${spots}</ul></section>`;
   };
   /** + Catch: where and when, of the fish on the map, at the crosshair or the phone's own position (no track needed). */
@@ -1335,6 +1452,7 @@ export function mountKineticMap(d: KmDeps) {
     scrim.classList.toggle('k-on', !WIDE.matches);
     shBody.scrollTop = 0;
     if (part === 'spots') requestAnimationFrame(() => shBody.querySelector('#k-fspots')?.scrollIntoView({ block: 'start' }));
+    else if (part === 'times') requestAnimationFrame(() => shBody.querySelector('#k-ftimes')?.scrollIntoView({ block: 'start' }));
     $('k-laybtn').setAttribute('aria-expanded', String(kind === 'layers'));
   }
   function closeSheet() {
@@ -1394,6 +1512,7 @@ export function mountKineticMap(d: KmDeps) {
   map.on('click', (e) => {
     if (!WIDE.matches && S.sheet && S.sheet !== 'here') return closeSheet();
     if (S.sheet && S.sheet !== 'here') return;
+    if (!WIDE.matches) tapKey(e.point);
     map.easeTo({ center: e.lngLat, duration: 350 });
   });
 

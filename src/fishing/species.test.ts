@@ -27,11 +27,15 @@ describe('seasonOf', () => {
 });
 
 describe('modes', () => {
-  it('puts every species in exactly one mode, with EAT first and barracuda in SPORT', () => {
+  it('puts every species in at least one mode, permit in both, EAT first and barracuda in SPORT only', () => {
     expect(MODES[0]).toBe('eat');
     for (const m of MODES) expect(speciesIn(m).length).toBeGreaterThan(0);
-    expect(MODES.flatMap((m) => speciesIn(m)).length).toBe(SPECIES.length);
-    expect(speciesById('barracuda').mode).toBe('sport');
+    for (const s of SPECIES) expect(s.modes.length, s.id).toBeGreaterThan(0);
+    expect(new Set(MODES.flatMap((m) => speciesIn(m))).size).toBe(SPECIES.length);
+    expect(speciesById('permit').modes).toEqual(['eat', 'sport']);
+    expect(speciesIn('eat').map((s) => s.id)).toContain('permit');
+    expect(speciesIn('sport').map((s) => s.id)).toContain('permit');
+    expect(speciesById('barracuda').modes).toEqual(['sport']);
     expect(speciesIn('eat').map((s) => s.id)).not.toContain('barracuda');
   });
 });
@@ -43,6 +47,6 @@ describe('by-hand catch (PLAN 7.125)', () => {
     expect([2, 3, 4, 5].map((m) => seasonOf(lobster, m))).toEqual(['closed', 'closed', 'closed', 'closed']);
     expect(seasonOf(lobster, 1)).not.toBe('closed');
     expect(seasonOf(lobster, 6)).not.toBe('closed');
-    for (const id of ['lobster', 'octopus', 'cigua'] as const) expect(speciesById(id)).toMatchObject({ mode: 'eat', byHand: true });
+    for (const id of ['lobster', 'octopus', 'cigua'] as const) expect(speciesById(id)).toMatchObject({ modes: ['eat'], byHand: true });
   });
 });

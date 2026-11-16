@@ -90,7 +90,7 @@ import { mountSeafloorHud } from './seafloor-hud';
 import { fetchZones, mountZones, zoneName } from './layers/zones';
 import { mountZonesHud } from './zones-hud';
 import { fetchMouths, fetchOccurrences, mountFishing, type FishingLayer, type Reach } from './layers/fishing';
-import { loadReach, loadSpecies, mountFishingHud, type FishInfo, type SpearInfo } from './fishing-hud';
+import { loadMode, loadReach, loadSpecies, mountFishingHud, type FishInfo, type SpearInfo } from './fishing-hud';
 import { BOAT_SPECIES } from './boat/species';
 import { SPECIES, speciesById, speciesIn, type FishMode, type SpeciesId } from './fishing/species';
 import { layers, type ActivityId } from './layers/registry';
@@ -604,15 +604,15 @@ const fishModeListeners = new Set<() => void>();
 const fishInfoListeners = new Set<() => void>();
 /**
  * EAT or SPORT for the fish map (PLAN 7.120): through the fishing panel once it is up, else remembered as that mode's
- * first fish, which the panel picks up when it mounts (the mode is the species' own).
+ * first fish when the stored one is not in it; the panel picks both up when it mounts (PLAN 7.148: permit is in both).
  */
 const fishMode = {
-  get: (): FishMode => fishHudMode?.get() ?? speciesById(loadSpecies()).mode,
+  get: (): FishMode => fishHudMode?.get() ?? loadMode(),
   set: (m: FishMode) => {
     if (fishHudMode) return fishHudMode.set(m);
-    if (speciesById(loadSpecies()).mode === m) return;
     try {
-      localStorage.setItem('ft.fishing.species', speciesIn(m)[0].id);
+      localStorage.setItem('ft.fishing.mode', m);
+      if (!speciesById(loadSpecies()).modes.includes(m)) localStorage.setItem('ft.fishing.species', speciesIn(m)[0].id);
     } catch {
       /* private mode */
     }
@@ -670,7 +670,7 @@ const offshoreRead: OffshoreRead = (lng, lat) => {
     mldM: mldAt(mld, lng, lat, ms),
   };
   // The BOAT drawer's OFFSHORE FISH: eating fish only (the SPORT boat fish are on the map's SPORT zones, PLAN 7.123).
-  const scores = OFFSHORE.filter((s) => s.mode === 'eat').map((s) => ({ id: s.id, score: offshoreScore(s, inputs) ?? 0 })).sort((a, b) => b.score - a.score);
+  const scores = OFFSHORE.filter((s) => s.modes.includes('eat')).map((s) => ({ id: s.id, score: offshoreScore(s, inputs) ?? 0 })).sort((a, b) => b.score - a.score);
   return { front: front && { km: front.km, bearingDeg: front.bearingDeg, kind: front.front.kind }, mldM: inputs.mldM, scores };
 };
 // Boat-water zones (PLAN 7.74b): the offshore read on a 0.02° (~2 km) grid over the region's sea for the day on the
@@ -1570,7 +1570,7 @@ fetchSeafloor()
       .then(([{ data: mouths }, occurrences]) => {
         const species = loadSpecies();
         const month = new Date(time.validMs()).getUTCMonth();
-        const layer = mountFishing(map, { region: data.region, land: data.land, reefs: data.reefs, mouths, bounds: [REGION.bounds[0][0], REGION.bounds[0][1], REGION.bounds[1][0], REGION.bounds[1][1]] }, { species, month }, occurrences);
+        const layer = mountFishing(map, { region: data.region, land: data.land, reefs: data.reefs, mouths, bounds: [REGION.bounds[0][0], REGION.bounds[0][1], REGION.bounds[1][0], REGION.bounds[1][1]] }, { species, month, mode: loadMode() }, occurrences);
         // No circled fishing zone in no-fishing water (the protected areas may load first or later).
         fishingLayer = layer;
         if (zonePolys.length) layer.setRules(zonePolys);
