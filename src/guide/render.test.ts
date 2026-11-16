@@ -26,3 +26,11 @@ describe('catch and clean tabs for emergency food', () => {
     expect(emergencyHtml(sp({ edible: 'caution', eat: { illegal: true } }))).toContain('gd-illegal');
   });
 });
+
+describe('illegal food', () => {
+  it('keeps banned species off the edible list and badges them', async () => {
+    const { isFood } = await import('./filter');
+    expect(isFood({ edible: 'caution', illegal: true })).toBe(false);
+    expect(isFood({ edible: 'caution' })).toBe(true);
+  });
+});

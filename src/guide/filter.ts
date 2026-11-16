@@ -57,8 +57,8 @@ export const nameOf = (e: Named, lang: Lang) => (lang === 'es' ? e.es[0] ?? e.en
 /** True when the entry has no common name, so the Latin name is its title. */
 export const latinOnly = (e: Named) => !e.en.length && !e.es.length;
 
-/** Food: eaten here or edible with care. */
-export const isFood = (e: Pick<Entry, 'edible'>) => e.edible === 'yes' || e.edible === 'caution';
+/** Food: eaten here or edible with care, and legal to take. */
+export const isFood = (e: Pick<Entry, 'edible'> & { illegal?: boolean }) => (e.edible === 'yes' || e.edible === 'caution') && !e.illegal;
 /** The ways a living animal or plant hurts people who meet or touch it. */
 export const TOUCH_KINDS: readonly DangerKind[] = ['venom', 'sting', 'bite', 'spines', 'shock', 'skin-toxin', 'irritant', 'aggressive'];
 /** The risks that come with eating it (spines are a handling risk, not an eating one). */

@@ -1998,6 +1998,7 @@ export const en = {
   'gd.size.xl': 'Over 2 m',
   'gd.flag.threatened': 'Threatened',
   'gd.flag.protected': 'Protected',
+  'gd.flag.illegal': 'Illegal to take',
   'gd.flag.introduced': 'Introduced',
   'gd.records': 'Also show species known only from museum and survey records',
   'gd.clear': 'Clear filters',

@@ -205,6 +205,8 @@ export interface Entry {
   rec?: Rec;
   look?: Look;
   edible?: Edible;
+  /** Taking it is banned here (eat.illegal): kept off the edible list, food notes shown as emergency use only. */
+  illegal?: boolean;
   quality?: number;
   methods?: Method[];
   risks?: Risk[];

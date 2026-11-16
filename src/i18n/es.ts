@@ -1997,6 +1997,7 @@ export const es: Dict = {
   'gd.size.xl': 'Más de 2 m',
   'gd.flag.threatened': 'Amenazado',
   'gd.flag.protected': 'Protegido',
+  'gd.flag.illegal': 'Prohibido capturar',
   'gd.flag.introduced': 'Introducido',
   'gd.records': 'Mostrar también especies conocidas solo por registros de museo y muestreos',
   'gd.clear': 'Quitar filtros',

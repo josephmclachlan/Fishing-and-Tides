@@ -66,9 +66,11 @@ export function badges(e: Entry, lang: Lang, max = 3): string {
   if (poisonToEat(e)) out.push(`<span class="gd-b dz l3">${esc(tx(EDIBLE_WORDS.toxic, lang))}</span>`);
   if (isFood(e)) {
     const risk = riskToEat(e) ? e.risks!.find((r) => r !== 'spines') : undefined;
-    out.push(`<span class="gd-b eat" title="${esc(tx(EDIBLE_WORDS[e.edible!], lang))}">${icon(ICONS.edible)}${e.quality ? `<span class="gd-pips" aria-label="${e.quality}/5">${pips(e.quality)}</span>` : esc(tx(EDIBLE_WORDS[e.edible!], lang))}</span>`);
+    // The word always shows (Joseph: "edible with care" must be visible in the list), the quality pips after it.
+    out.push(`<span class="gd-b eat ed-${e.edible}">${icon(ICONS.edible)}${esc(tx(EDIBLE_WORDS[e.edible!], lang))}${e.quality ? `<span class="gd-pips" aria-label="${e.quality}/5">${pips(e.quality)}</span>` : ''}</span>`);
     if (risk) out.push(`<span class="gd-b risk">${esc(tx(RISK_WORDS[risk], lang))}</span>`);
   } else if (e.edible === 'protected') out.push(`<span class="gd-b prot">${esc(t('gd.flag.protected'))}</span>`);
+  else if (e.illegal) out.push(`<span class="gd-b prot">${esc(t('gd.flag.illegal'))}</span>`);
   if (e.iucn === 'CR' || e.iucn === 'EN' || e.iucn === 'VU') out.push(`<span class="gd-b iucn i-${e.iucn}" title="${esc(tx(IUCN_WORDS[e.iucn], lang))}">${e.iucn}</span>`);
   if (e.origin === 'invasive' || e.origin === 'introduced') out.push(`<span class="gd-b introd">${esc(t('gd.flag.introduced'))}</span>`);
   if (e.rec && e.rec !== 'here') out.unshift(`<span class="gd-b rec">${esc(t(e.rec === 'near' ? 'gd.rec.near' : 'gd.rec.none'))}</span>`);
@@ -255,7 +257,7 @@ export const isIllegal = (s: Pick<Species, 'edible' | 'eat'>) => !!s.eat?.illega
 /** The banner over the catch and clean tabs of a species that is banned, or not normally eaten: emergency use only. */
 export function emergencyHtml(s: Pick<Species, 'edible' | 'eat'>): string {
   if (isIllegal(s)) return `<section class="gd-blk gd-illegal" role="note"><h4 class="fc-mono">${esc(t('gd.illegal.title'))}</h4><p>${esc(t('gd.illegal.text'))}</p></section>`;
-  if (s.edible && !isFood(s)) return `<section class="gd-blk gd-warn" role="note"><h4 class="fc-mono">${esc(t('gd.notFood.title'))}</h4><p>${esc(t('gd.notFood.text'))}</p></section>`;
+  if (s.edible && s.edible !== 'yes' && s.edible !== 'caution') return `<section class="gd-blk gd-warn" role="note"><h4 class="fc-mono">${esc(t('gd.notFood.title'))}</h4><p>${esc(t('gd.notFood.text'))}</p></section>`;
   return '';
 }
 
