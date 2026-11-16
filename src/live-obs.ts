@@ -21,6 +21,7 @@ import { t, type Key } from './i18n';
 import { closeButton, type Sheets } from './sheets';
 import type { TideFix } from './physics/tide-fix';
 import { appliedScale, type WindFix } from './adapters/wind-fix';
+import { themeVar } from './layers/paint';
 
 export type ObsId = 'gauge' | 'metar' | 'sst-pass' | 'chl-pass' | 'scat-pass';
 export type Fresh = 'green' | 'amber' | 'red';
@@ -191,7 +192,7 @@ export function mountLiveObs(root: HTMLElement, map: Map, sheets: Sheets, data: 
   tab.addEventListener('click', () => sheets.toggle('obs'));
 
   const colours = () => {
-    const css = (n: string, f: string) => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || f;
+    const css = themeVar;
     return { green: css('--green', '#39ff7a'), amber: css('--amber', '#ffb000'), red: css('--red', '#ff3b2f') };
   };
   const geo = (rows: ObsRow[]): FeatureCollection => ({

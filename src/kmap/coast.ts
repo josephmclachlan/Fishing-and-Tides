@@ -209,6 +209,17 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
       if (map.getLayer('km-coast')) for (const id of ['km-coast', 'km-coast-case']) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
     },
     setCells,
+    /** A light/dark switch: the ribbon, cell and label colours are read from the tokens when the layers are made. */
+    recolour() {
+      if (!map.getLayer('km-coast')) return;
+      const P = (id: string, k: string, v: unknown) => map.setPaintProperty(id, k as never, v as never);
+      P('km-coast-case', 'line-color', hex(tok('m-coast')));
+      P('km-cells-fill', 'fill-color', hex(tok('t-coral')));
+      P('km-cells-line', 'line-color', hex(tok('t-coral')));
+      P('km-cells-label', 'text-color', hex(tok('ink')));
+      P('km-cells-label', 'text-halo-color', hex(tok('m-halo')));
+      drawRibbons();
+    },
     setCellsVisible(on: boolean) {
       if (!ensure()) return;
       for (const id of ['km-cells-fill', 'km-cells-line', 'km-cells-label']) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
