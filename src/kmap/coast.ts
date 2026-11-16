@@ -5,7 +5,7 @@
  * without overlap each frame the camera moves. Also the CORAL mode's private-site cells (never the sites).
  */
 import type { GeoJSONSource, Map as MlMap } from 'maplibre-gl';
-import { coastNear, labelRect, placePins, privateCells, type Mask, type Rect, CELL_DEG } from './model';
+import { coastNear, labelRect, landward, placePins, privateCells, type Mask, type Rect, CELL_DEG } from './model';
 import { ZONE_LABEL, zoneTextSize } from '../fishing/zones';
 import { esc, hex, L2, tok } from './dom';
 import type { Level } from '../forecast/model';
@@ -32,6 +32,7 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
   let visible = true;
   let mask: Mask | null = null;
   const ribbons = new Map<string, [number, number][]>();
+  const lands = new Map<string, [number, number] | null>();
 
   const ensure = () => {
     if (!map.isStyleLoaded() || map.getSource('km-coast')) return !!map.getSource('km-coast');
@@ -98,7 +99,7 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
       const second = z >= ZONE_LABEL.whereZ ? p.where : p.nearly ? 'NEARLY A ZONE' : '';
       const lines = [{ text: p.sp, size }, ...(second ? [{ text: second, size: size * ZONE_LABEL.whereScale }] : [])];
       const off = typeof p.off === 'string' ? (JSON.parse(p.off) as [number, number]) : (p.off ?? [0, 0]);
-      const r = labelRect({ x: pt.x + dx, y: pt.y + dy }, lines, p.anchor ?? 'center', off);
+      const r = labelRect({ x: pt.x + dx, y: pt.y + dy }, lines, p.anchor ?? 'center', off, ZONE_LABEL.maxEm);
       out.push(r);
     }
     return out;
@@ -133,7 +134,10 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
     const boxes = pins.map((p) => {
       const pt = map.project(p.lngLat);
       const sz = sizes.get(p.id) ?? { w: 120, h: 44 };
-      return { id: p.id, x: pt.x + mr.left - off.left, y: pt.y + mr.top - off.top, w: sz.w, h: sz.h, rank: p.rank + (p.id === selected ? 1e6 : 0) };
+      // Toward the mainland on screen (north is up, so y flips); unknown until the land mask has loaded.
+      let lw = lands.get(p.id);
+      if (lw === undefined && mask) lands.set(p.id, (lw = landward(mask, p.lngLat, 900)));
+      return { id: p.id, x: pt.x + mr.left - off.left, y: pt.y + mr.top - off.top, w: sz.w, h: sz.h, rank: p.rank + (p.id === selected ? 1e6 : 0), land: lw ? ([lw[0], -lw[1]] as const) : undefined };
     });
     const at = z >= 9.6 ? placePins(boxes.filter((b) => b.x > -20 && b.y > -20 && b.x < W + 20 && b.y < H + 20), { w: W, h: H }, 4, obstacles(off), zoneNames(mr.left - off.left, mr.top - off.top)) : new Map();
     for (const b of boxes) {
@@ -200,6 +204,7 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
     setMask(m: Mask) {
       mask = m;
       ribbons.clear();
+      lands.clear();
       drawRibbons();
     },
     setVisible(on: boolean) {
@@ -207,6 +212,10 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
       drawRibbons();
       place();
       if (map.getLayer('km-coast')) for (const id of ['km-coast', 'km-coast-case']) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+    },
+    /** The user's toggle for the rating boxes: off hides every box and leader, the spot dots stay. */
+    setTiles(on: boolean) {
+      layer.classList.toggle('k-notiles', !on);
     },
     setCells,
     /** A light/dark switch: the ribbon, cell and label colours are read from the tokens when the layers are made. */
