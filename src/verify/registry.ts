@@ -25,6 +25,7 @@ import { fetchRainCells, rainCellsChecks } from '../adapters/rain-cells';
 import { fetchHindcast, weatherSkillChecks } from '../adapters/weather-skill';
 import { fetchStorms, stormsChecks } from '../adapters/storms';
 import { fetchNavWarn, navWarnChecks } from '../adapters/navwarn';
+import { fetchWpi, wpiChecks } from '../adapters/wpi';
 import { fetchLightning, lightningChecks } from '../adapters/lightning';
 import { occurrenceChecks } from '../fishing/checks';
 import type { Check } from './types';
@@ -51,6 +52,7 @@ export function allChecks(base: string = import.meta.env.BASE_URL): Check[] {
     ...weatherSkillChecks(() => fetchHindcast(), () => fetchMetar({ base })),
     ...stormsChecks(() => fetchStorms({ base })),
     ...navWarnChecks(() => fetchNavWarn({ base })),
+    ...wpiChecks(() => fetchWpi({ base })),
     ...coralChecks(() => fetchCoral({ base })),
     ...mudChecks(() => fetchMud({ base })),
     ...lightningChecks(() => fetchLightning({ base })),
