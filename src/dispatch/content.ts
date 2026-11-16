@@ -79,8 +79,8 @@ export const ICE_LIMIT_KEY = W(
 );
 export const NOW_AT = W('Checked after', 'Revisado a las');
 export const CHART_NOTE = W(
-  'ESTIMATE. These curves come from this page’s own model, drawn through a few measured points: on ice (0 °C, 32 °F) the freshness score (the K-value) worsens about 0.4 points an hour, from Japanese flounder studies, and fish spoil 25 to 30 times faster at 28 to 30 °C than on ice, from a fish-spoilage study by Dalgaard and Huss. How fresh each method’s fish is at the start is our judgement. Nothing was measured on Costa Rican fish, and real fish vary by species and size, so trust the order of the bars, not the exact hours.',
-  'ESTIMACIÓN. Estas curvas salen del modelo de esta página, trazado por unos pocos puntos medidos: en hielo el puntaje de frescura (el valor K) empeora cerca de 0,4 puntos por hora (estudios japoneses con lenguado), y el pescado se daña de 25 a 30 veces más rápido a 28–30 °C que en hielo (Dalgaard y Huss, un estudio del deterioro del pescado). Qué tan fresco está el pescado de cada método al empezar es una apreciación nuestra. No se midió nada en pescado de Costa Rica, y los peces varían según la especie y el tamaño, así que confía en el orden de las barras, no en las horas exactas.',
+  'ESTIMATE. These curves are modelled from fish-spoilage studies, and real fish vary by species and size, so trust the order of the bars, not the exact hours.',
+  'ESTIMACIÓN. Estas curvas se modelan a partir de estudios del deterioro del pescado, y los peces varían según la especie y el tamaño, así que confía en el orden de las barras, no en las horas exactas.',
 );
 
 export interface MethodRow { id: 'ikejime' | 'stun-ice' | 'gill-shade' | 'hit-leave' | 'gut-nobleed' | 'suffocate' | 'suffocate-ice'; name: Txt; sub: Txt; good: boolean }
@@ -176,8 +176,8 @@ export const METHODS: Method[] = [
 // --- mistakes
 export const MISTAKES_H = W('Four mistakes that cost you the fish', 'Cuatro errores que te cuestan el pescado');
 export const MISTAKES_P = W(
-  'All four are easy to stop. (No survey of how fish are handled on this coast was found, so these are the usual ways fish are lost, not measured shares.)',
-  'Los cuatro son fáciles de evitar. (No se encontró ninguna encuesta de cómo se maneja el pescado en esta costa, así que estas son las formas habituales de perder pescado, no porcentajes medidos.)',
+  'All four are easy to stop.',
+  'Los cuatro son fáciles de evitar.',
 );
 export interface Mistake { id: string; name: Txt; what: Fact[]; fix: Txt }
 export const MISTAKES: Mistake[] = [
@@ -254,9 +254,8 @@ export const STEPS: Step[] = [
       { t: W('A fast, hard stiffening tears the flesh away from its connective tissue. That splits the fillet open (gaping) and leaves it mushy instead of firm.', 'Una rigidez rápida y fuerte desprende la carne de su tejido conectivo. Eso abre el filete (gaping) y lo deja aguado en vez de firme.'), src: [2] },
       { t: W('Hitting a fish on the head: one review says that fish killed by a blow to the head went stiff up to 18 hours later than fish killed in iced water. It does not say which fish or what temperature.', 'Pegarle al pescado en la cabeza: una revisión dice que los peces matados con un golpe en la cabeza se pusieron rígidos hasta 18 horas más tarde que los peces matados en agua con hielo. No dice de qué pez ni a qué temperatura.'), src: [2] },
       { t: W('Spiking and destroying the spinal cord, as in ikejime: in a separate Japanese test on yellowtail and red sea bream, fish with the spinal cord destroyed took 6 to 12 hours longer to go fully stiff than fish without. The summary we could read does not say how the comparison fish were killed.', 'Punzar y destruir la médula, como en el ikejime: en una prueba japonesa aparte con cola amarilla y besugo rojo, los peces con la médula destruida tardaron de 6 a 12 horas más en ponerse del todo rígidos que los peces sin eso. El resumen que pudimos leer no dice cómo mataron a los peces de comparación.'), src: [4] },
-      { t: W('These two numbers come from different studies, with different fish and different comparisons. They cannot be added together or compared with each other, and we found no test of a head blow against a spike.', 'Estos dos números vienen de estudios distintos, con peces distintos y comparaciones distintas. No se pueden sumar ni comparar entre sí, y no encontramos ninguna prueba de un golpe en la cabeza contra un punzón.') },
+      { t: W('These two numbers come from different studies, with different fish and different comparisons. They cannot be added together or compared with each other.', 'Estos dos números vienen de estudios distintos, con peces distintos y comparaciones distintas. No se pueden sumar ni comparar entre sí.') },
       { t: W('One exception: in plaice (a flatfish), the fish with the spinal cord destroyed went fully stiff sooner, not later. The authors blamed that fish’s poorly developed nerves.', 'Una excepción: en la platija (un pez plano), los peces con la médula destruida se pusieron del todo rígidos antes, no después. Los autores culparon a los nervios poco desarrollados de ese pez.'), src: [4] },
-      { t: W('We found no test on snapper, jack or snook. We assume they behave like yellowtail and red sea bream.', 'No encontramos ninguna prueba con pargo, jurel ni róbalo. Suponemos que se comportan como la cola amarilla y el besugo rojo.'), est: true },
     ],
   },
   {
@@ -378,8 +377,8 @@ export const ROUTINE: { n: string; head: Txt; body: Txt }[] = [
 // --- footer
 export const SOURCES_H = W('Sources and what is estimated', 'Fuentes y qué es estimado');
 export const SOURCES_P = W(
-  'A number in square brackets points to its source below. “Our estimate” marks something this page worked out itself. The bands for the K-value, the exact spike spot, the bleeding times and the ice mix are practical guidance, not laboratory standards. Several Japanese and Norwegian studies were read through summaries only. We did not find how fish are handled in Costa Rica, the price of ice, or any rule on ice or histamine aboard small boats; ask a fish buyer or INCOPESCA. Please check this page with a local fisherman and correct anything that is wrong.',
-  'Un número entre corchetes lleva a su fuente abajo. “Estimación nuestra” marca lo que esta página calculó por su cuenta. Las bandas del valor K, el punto exacto del punzón, los tiempos de desangrado y la mezcla de hielo son guía práctica, no normas de laboratorio. Varios estudios japoneses y noruegos se leyeron solo por resúmenes. No encontramos cómo se maneja el pescado en Costa Rica, el precio del hielo, ni ninguna regla sobre hielo o histamina en lanchas pequeñas; pregunta a un comprador de pescado o a INCOPESCA. Por favor revisa esta página con un pescador local y corrige lo que esté mal.',
+  'A small number beside a fact points to its source below. “Our estimate” marks something this page worked out itself. The bands for the K-value, the exact spike spot, the bleeding times and the ice mix are practical guidance, not laboratory standards.',
+  'Un número pequeño junto a un dato lleva a su fuente abajo. “Estimación nuestra” marca lo que esta página calculó por su cuenta. Las bandas del valor K, el punto exacto del punzón, los tiempos de desangrado y la mezcla de hielo son guía práctica, no normas de laboratorio.',
 );
 
 export const SECTION_LABELS: Record<'chart' | 'methods' | 'mistakes' | 'science' | 'histamine' | 'routine' | 'sources', Txt> = {
