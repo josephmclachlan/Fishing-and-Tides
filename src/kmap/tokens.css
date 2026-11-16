@@ -1,7 +1,7 @@
 /* Kinetic Plus map tokens (PLAN 7.70): the approved mockup G's values. Light land is a soft stone, not white (Joseph 2026-11-11). */
 :root[data-theme="modern"]{
   --bg:#EEF3F8; --ink:#0A1626; --ink2:#46576C; --block:#DFE7F0; --line:#CFD9E4;
-  --t-surf:#0A66E0; --t-fish:#E4441C; --t-swim:#D4176B; --t-snorkel:#00877A; --t-dive:#4338D6; --t-sail:#2A8A1E; --t-coral:#B4670E;
+  --t-surf:#0A66E0; --t-fish:#E4441C; --t-swim:#D4176B; --t-snorkel:#00877A; --t-dive:#4338D6; --t-sail:#2A8A1E; --t-paddle:#0A8FB8; --t-coral:#B4670E;
   --c-card:#FFFFFF; --c-head:#A5DBC2; --rd-bg:var(--ink); --rd-fg:var(--bg); --c-night:#F2F6FA; --c-grid:#E2E8EF; --c-grid2:#CFD9E4; --c-acc:#0A76E6; --c-bar:#7F90A4; --c-ink2:#46576C; --c-warm:#F2711C; --c-win:#1F9D55; --c-sun:#E8A200;
   --map-sea:#06140F; --map-ink:#F2F8F5; --map-mut:#A9C3B8; --map-ring:#39FF9A; --map-go:#0A76E6; --map-go-ink:#FFFFFF;
   --sand:#EADDB9; --moon:#FFFFFF; --night:#E7EBE6;
@@ -35,7 +35,7 @@
 }
 :root[data-theme="modern"][data-scheme="dark"]{
   --bg:#070C14; --ink:#EDF3FA; --ink2:#A2B2C5; --block:#0F1723; --line:#2A3749;
-  --t-surf:#4D9DFF; --t-fish:#FF7A52; --t-swim:#FF5FA2; --t-snorkel:#2FD6C2; --t-dive:#9A93FF; --t-sail:#74D65E; --t-coral:#F0A040;
+  --t-surf:#4D9DFF; --t-fish:#FF7A52; --t-swim:#FF5FA2; --t-snorkel:#2FD6C2; --t-dive:#9A93FF; --t-sail:#74D65E; --t-paddle:#4FC3F7; --t-coral:#F0A040;
   --c-card:#0F1723; --c-head:#1B4A3B; --rd-bg:#1F5C49; --rd-fg:#E8F6F0; --c-night:#141E2C; --c-grid:#1D2837; --c-grid2:#2A3749; --c-acc:#3D9BFF; --c-bar:#6C7E93; --c-ink2:#A2B2C5; --c-warm:#FF8A3D; --c-win:#3FCF7D; --c-sun:#FFC53D;
   --map-sea:#06140F; --map-ink:#F2F8F5; --map-mut:#A9C3B8; --map-ring:#39FF9A; --map-go:#3D9BFF; --map-go-ink:#04101E;
   --sand:#6B5D3E; --moon:#F4F1E6; --night:#060B0D;

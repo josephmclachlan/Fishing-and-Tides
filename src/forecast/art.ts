@@ -28,7 +28,7 @@ import { REGION } from '../region';
 import { moonPhase } from '../physics/astro';
 import type { Plan } from '../metrics/plan';
 import { chopFor, type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour } from './model';
-import { cmp, dayHoursOf, headline, levelWord, moonAgeDays, n0, n1, planDayOf, sentence, tideNow } from './view';
+import { cmp, dayHoursOf, headline, pushOf, levelWord, moonAgeDays, n0, n1, planDayOf, sentence, tideNow } from './view';
 import { capsule, clamp, D2R, DISP, hatch, MONO, lerp, moonPath, rgba, sq, TAU, txt, type Ctx2D, type RGB, type Tokens } from './kit';
 import { reefAt } from './tiles';
 import { boomDeg, coastPose, heelDeg, REEF_HEEL_DEG, type SailPose } from '../physics/heel';
@@ -53,6 +53,8 @@ export interface HeroParams {
     heelK: string; heelNow: string; reefK: string; noGoK: string; coastK: string; windK: string; ruleK: string;
   };
   fish?: { illum: number; waxing: boolean; age: number; moon: string; tide: (number | null)[]; nowH: number; best: [number, number] | null; turn: { h: number; label: string } | null; share: number; tideK: string; bestK: string; nowK: string; echo: string; newK?: string; fullK?: string };
+  /** Paddling: the launch beach on the left, the sea to its right, the wind's arrow in that frame (rel: where it blows toward, degrees clockwise from out-to-sea). */
+  paddle?: { craft: 'kayak' | 'sup'; rel: number | null; effKt: number; side: 'offshore' | 'onshore' | 'cross' | 'calm'; rangeKm: number; rangeK: string; pushK: string; windK: string; shoreK: string; seaK: string; capK: string };
   swim?: { rip: 'LOW' | 'MOD' | 'HIGH'; ripK: string; shore: string; flag: string; uv: number | null; uvK: string };
   water?: { visM: number | null; vis: string; depthM: number; waterM: number | null; overReef: string; chop: string; hvis: string; at: string; surge: string; surgeMs: number };
 }
@@ -109,6 +111,16 @@ export function heroParams(r: FcRead, ctx: { deps: FcDeps; ms: number; plan: Pla
       share: r.share ?? 0, tideK: t('fc.cap.tide'), bestK: t('fc.cap.best'), nowK: t('fc.now'), echo: t('fc.cap.echo', { w: levelWord(r) }), newK: t('fc.cap.newMoon'), fullK: t('fc.cap.fullMoon'),
     };
   }
+  if (r.paddle && r.score !== null) {
+    const x = r.paddle, push = pushOf(x);
+    base.paddle = {
+      craft: x.craft, rel: push.rel, effKt: x.effWindKt ?? 0, side: push.side, rangeKm: x.rangeKm,
+      rangeK: x.rangeKm > 0 ? t('fc.cap.range', { km: dec(x.rangeKm, 1) }) : t('fc.paddle.stay'),
+      pushK: push.side === 'calm' ? t('fc.push.calm') : `${push.v} · ${push.sub}`,
+      windK: x.windKt === null ? '' : `${n0(x.windKt)} kt`, shoreK: t('fc.cap.land'), seaK: t('fc.cap.sea'),
+      capK: t(`paddle.craft.${x.craft}` as Key),
+    };
+  }
   if (r.swim && r.score !== null) {
     const s = r.swim;
     base.swim = {
@@ -136,11 +148,12 @@ export function numVar(p: HeroParams, tt: number, reduced: boolean): [number, nu
     case 'sail': { const g = gust(tt); return [72 + 36 * g, 760 + 140 * g]; }
     case 'fish': return [86, 700 + 160 * (0.5 + 0.5 * Math.cos((TAU * tt) / 26))];
     case 'swim': return [84 + 8 * Math.sin((TAU * tt) / 9), 800];
+    case 'paddle': return [84 + 10 * gust(tt), 760 + 100 * gust(tt)];
     default: return [86 + 6 * Math.sin((TAU * tt) / 8), 640 + 220 * (0.5 + 0.5 * Math.sin((TAU * tt) / 8))];
   }
 }
 /** The widest the number gets (to fit it to its box). */
-export const VMAX: Record<FcActivity, [number, number]> = { surf: [96, 800], sail: [108, 900], fish: [86, 860], swim: [92, 800], snorkel: [92, 860], dive: [92, 860], spear: [92, 860] };
+export const VMAX: Record<FcActivity, [number, number]> = { surf: [96, 800], sail: [108, 900], fish: [86, 860], swim: [92, 800], paddle: [94, 860], snorkel: [92, 860], dive: [92, 860], spear: [92, 860] };
 
 /** Gust envelope 0..1: smooth gusts roughly every 7 s (illustrative motion, the numbers are the reading's). */
 export function gust(tt: number) {
@@ -219,11 +232,14 @@ export class HeroEngine {
     this.init();
   }
   private dots() { return this.p.act === 'snorkel' || this.p.act === 'dive' || this.p.act === 'spear'; }
+  /** Paddle: x of the beach edge; the land lies to its left. */
+  private paddleShoreX() { return this.AR.x + this.AR.w * 0.14; }
   private shoreY() { return this.AR.y + this.AR.h * 0.8; }
   private spawn(i: number, anywhere: boolean) {
     const x = Math.random() * this.W;
     const y = this.p.act === 'swim' ? Math.random() * this.shoreY() : Math.random() * this.H;
-    this.PX[i] = this.OX[i] = x;
+    const x2 = this.p.act === 'paddle' ? this.paddleShoreX() + Math.random() * (this.W - this.paddleShoreX()) : x;
+    this.PX[i] = this.OX[i] = x2;
     this.PY[i] = this.OY[i] = y;
     this.LF[i] = anywhere ? Math.random() * 4 : 0;
     this.ML[i] = 2 + Math.random() * 5;
@@ -258,6 +274,11 @@ export class HeroEngine {
     } else if (p.act === 'fish') {
       const U = 34 * Math.cos((TAU * tt) / 26), n = nz(x, y, tt * 0.6);
       out[0] = U + 10 * n; out[1] = 9 * Math.sin(x * 0.006 + tt * 0.2) + 5 * n; out[2] = 0.45 + 0.35 * Math.abs(Math.cos((TAU * tt) / 26));
+    } else if (p.act === 'paddle') {
+      // The wind in the launch's frame (shore left, sea right): speed by the effective wind, a gust now and then.
+      const q = p.paddle, kt = q?.effKt ?? 6, g = gust(tt), rel = ((q?.rel ?? 0) + 0) * D2R, v = (Math.max(2, kt) * 9) * (1 + 0.35 * g);
+      const n = 0.12 * nz(x * 1.3, y * 1.3, tt * 2);
+      out[0] = Math.cos(rel + n) * v; out[1] = Math.sin(rel + n) * v; out[2] = 0.35 + 0.5 * g;
     } else if (p.act === 'swim') {
       // The rip runs out through the gap in the crests; stronger with the risk.
       const rk = p.swim ? { LOW: 0.45, MOD: 0.75, HIGH: 1 }[p.swim.rip] : 0.5;
@@ -302,7 +323,7 @@ export class HeroEngine {
       this.vel(PX[i], PY[i], tt, V);
       PX[i] += V[0] * dt; PY[i] += V[1] * dt; LF[i] += dt;
       const x = PX[i], y = PY[i];
-      if (x < -20 || x > W + 20 || y < -20 || y > Hh + 20 || LF[i] > ML[i] || (this.p.act === 'swim' && y > Y)) {
+      if (x < -20 || x > W + 20 || y < -20 || y > Hh + 20 || LF[i] > ML[i] || (this.p.act === 'swim' && y > Y) || (this.p.act === 'paddle' && x < this.paddleShoreX())) {
         if (dots) {
           if (x < -20) PX[i] = OX[i] = W + 10; else if (x > W + 20) PX[i] = OX[i] = -10;
           if (y > Hh + 20) PY[i] = OY[i] = -10; else if (y < -20) PY[i] = OY[i] = Hh + 10;
@@ -363,6 +384,7 @@ export class HeroEngine {
     if (p.act === 'surf' && p.surf) drawSurf(c, A, tt, p.surf, S);
     else if (p.act === 'sail' && p.sail) drawSail(c, A, tt, p.sail, S, this.SN);
     else if (p.act === 'fish' && p.fish) drawFish(c, A, tt, p.fish, S);
+    else if (p.act === 'paddle' && p.paddle) drawPaddle(c, A, tt, p.paddle, S, this.paddleShoreX());
     else if (p.act === 'swim' && p.swim) drawSwim(c, A, tt, p.swim, S, this.shoreY());
     else if (p.act === 'snorkel' && p.water) drawSnorkel(c, A, tt, p.water, S);
     else if ((p.act === 'dive' || p.act === 'spear') && p.water) drawDive(c, A, tt, p.water, S, p.act);
@@ -886,6 +908,54 @@ function drawFish(c: Ctx2D, A: Box, tt0: number, a: NonNullable<HeroParams['fish
   c.stroke();
   const bot = top + rows * cs;
   hatch(c, ex0 + 2, ex1 - 2, bot - 16, bot - 1, (xx) => bot - 8 - 5 * Math.sin((xx - ex0) * 0.02) - 3 * Math.sin((xx - ex0) * 0.061), 3, rgba(S.on, 0.85));
+}
+
+/**
+ * PADDLE: the launch beach on the left, the sea to its right, in the wind's frame so "off the land" always points out to
+ * sea. The paddler floats at the launch; a dashed ring is how far to go today (zero when not to go); the wind arrow and the
+ * paddler's drift line show where the wind sends them if they stop paddling.
+ */
+function drawPaddle(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['paddle']>, S: Style, sx: number) {
+  const { y, h, w, x } = A, cy = y + h * 0.55, bx = sx + 44, by = cy;
+  // The land.
+  c.fillStyle = rgba(S.T.sand); c.fillRect(x - 40, y, sx - x + 40, h);
+  c.strokeStyle = S.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(sx, y); c.lineTo(sx, y + h); c.stroke();
+  c.fillStyle = S.ink; txt(c, a.shoreK, x + 4, y + 10, 'left', 10.5, 700);
+  txt(c, a.seaK, x + w, y + 10, 'right', 10.5, 700);
+  // How far to go: a ring around the launch, 5 km across the picture's width at most.
+  const full = Math.min(w - (sx - x) - 60, h * 0.95), rr = a.rangeKm > 0 ? Math.max(24, (a.rangeKm / 5) * full) : 0;
+  if (rr > 0) {
+    c.strokeStyle = S.soft; c.lineWidth = 2; c.setLineDash([6, 6]); c.beginPath(); c.arc(sx, by, rr, -Math.PI / 2, Math.PI / 2); c.stroke(); c.setLineDash([]);
+    c.fillStyle = S.ink; txt(c, a.rangeK, sx + rr * 0.72, by - rr * 0.7 - 6, 'left', 11, 700);
+  } else { c.fillStyle = S.ink; txt(c, a.rangeK, sx + 12, by - h * 0.3, 'left', 12, 800); }
+  // Wind: its arrow and the drift line from the paddler.
+  if (a.rel !== null && a.side !== 'calm') {
+    const d = a.rel * D2R, dx = Math.cos(d), dy = Math.sin(d);
+    // As long as the wind is strong, but the head stays inside the picture.
+    const room = Math.min(dx > 0.01 ? (x + w - 24 - bx) / dx : 1e9, dx < -0.01 ? (bx - sx - 8) / -dx : 1e9, dy > 0.01 ? (y + h - 30 - by) / dy : 1e9, dy < -0.01 ? (by - y - 34) / -dy : 1e9);
+    const len = Math.max(30, Math.min(full * 0.9, 40 + a.effKt * 14, room));
+    const col = a.side === 'offshore' ? rgba(S.T.lv0) : S.ink;
+    c.strokeStyle = col; c.lineWidth = 3; c.lineCap = 'round'; c.beginPath(); c.moveTo(bx, by); c.lineTo(bx + dx * len, by + dy * len); c.stroke(); c.lineCap = 'butt';
+    c.fillStyle = col; c.beginPath(); const ex = bx + dx * len, ey = by + dy * len;
+    c.moveTo(ex + dx * 12, ey + dy * 12); c.lineTo(ex - dy * 8 - dx * 4, ey + dx * 8 - dy * 4); c.lineTo(ex + dy * 8 - dx * 4, ey - dx * 8 - dy * 4); c.closePath(); c.fill();
+    c.fillStyle = S.ink; txt(c, a.pushK, bx - 10, by + h * 0.3, 'left', 11, 700);
+  } else if (a.side === 'calm') { c.fillStyle = S.ink; txt(c, a.pushK, bx + 40, by - 30, 'left', 11, 700); }
+  // The paddler, bobbing: a kayak with its double blade, or a board with its single paddle, from above, bow to the sea.
+  const bob = S.reduced ? 0 : Math.sin(tt * 1.6) * 2.5;
+  c.save(); c.translate(bx, by + bob); c.rotate(S.reduced ? 0 : Math.sin(tt * 1.1) * 0.05);
+  c.fillStyle = S.ink; c.strokeStyle = S.ink;
+  if (a.craft === 'kayak') {
+    c.beginPath(); c.moveTo(-26, 0); c.quadraticCurveTo(0, -8, 26, 0); c.quadraticCurveTo(0, 8, -26, 0); c.fill();
+    c.lineWidth = 2; c.lineCap = 'round'; const sw = S.reduced ? 0.4 : Math.sin(tt * 2.6);
+    c.beginPath(); c.moveTo(-10 - 6 * sw, -24); c.lineTo(10 + 6 * sw, 24); c.stroke();
+    c.fillStyle = S.faint; c.fillRect(-8, -6, 8, 12); c.lineCap = 'butt';
+  } else {
+    c.beginPath(); c.moveTo(-30, 0); c.quadraticCurveTo(-6, -7, 30, 0); c.quadraticCurveTo(-6, 7, -30, 0); c.fill();
+    c.lineWidth = 2; c.lineCap = 'round'; const sw = S.reduced ? 0.4 : Math.sin(tt * 2.2);
+    c.beginPath(); c.moveTo(-6 + 4 * sw, -4); c.lineTo(8 + 10 * sw, -26); c.stroke(); c.lineCap = 'butt';
+  }
+  c.restore();
+  c.fillStyle = S.soft; txt(c, a.capK, bx, by + 30, 'center', 10.5, 700);
 }
 
 function drawSwim(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['swim']>, S: Style, Y: number) {

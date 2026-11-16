@@ -14,7 +14,7 @@ import type { FcActivity } from '../forecast/model';
 import type { SourceId } from '../sources';
 
 export type Mode = FcActivity | 'coral';
-export const MODES: readonly Mode[] = ['surf', 'fish', 'swim', 'snorkel', 'dive', 'spear', 'sail', 'coral'];
+export const MODES: readonly Mode[] = ['surf', 'fish', 'swim', 'snorkel', 'dive', 'spear', 'sail', 'paddle', 'coral'];
 export const isMode = (x: unknown): x is Mode => typeof x === 'string' && (MODES as readonly string[]).includes(x);
 
 /** The map's own layers, drawn by src/kmap, beside the old registry's. */
@@ -78,6 +78,7 @@ export const PRESETS: Readonly<Record<Mode, readonly KmLayer[]>> = {
   dive: ['rating', 'lightning', 'seamarks', 'currents', 'zones', 'reefs', 'clarity', 'depth'],
   spear: ['rating', 'lightning', 'spear', 'currents', 'zones', 'reefs', 'clarity', 'depth'],
   sail: ['rating', 'lightning', 'weather', 'obs', 'wind', 'currents', 'waves', 'anchorages', 'ais', 'seamarks'],
+  paddle: ['rating', 'lightning', 'wind', 'waves', 'currents', 'rip', 'weather', 'reefs', 'zones', 'anchorages'],
   coral: ['private', 'heat', 'zones', 'reefs', 'sst'],
 };
 
@@ -136,7 +137,7 @@ export function moveLayer(list: readonly KmLayer[], id: KmLayer, by: number): Km
 }
 
 /** The old map's LAYERS preset for each activity (snorkel and dive share DIVE): CONDITIONS groups follow it. */
-export const OLD_PRESET = { fish: 'fishing', surf: 'surf', swim: 'swim', snorkel: 'dive', dive: 'dive', spear: 'spear', sail: 'sail' } as const;
+export const OLD_PRESET = { fish: 'fishing', surf: 'surf', swim: 'swim', snorkel: 'dive', dive: 'dive', spear: 'spear', sail: 'sail', paddle: 'paddle' } as const;
 
 /**
  * The map's activity for an activity picked in Expand data (the old CONDITIONS panel), so the panel and the map agree

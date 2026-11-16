@@ -143,7 +143,29 @@ function meter(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, v: numbe
   marks.forEach((m, i) => { const xx = ((m - lo) / (hi - lo)) * w; c.fillStyle = P.I; txt(c, fmt(m), xx, y0 + bh + 18, i === 0 ? 'left' : i === marks.length - 1 ? 'right' : 'center', 9.5); });
 }
 
+/** A paddler seen from above, bow to the right, at (x, y). */
+function paddlerTop(c: Ctx2D, x: number, y: number, s: number, col: string) {
+  c.fillStyle = col; c.beginPath(); c.ellipse(x, y, 11 * s, 3.4 * s, 0, 0, TAU); c.fill();
+  c.strokeStyle = col; c.lineWidth = 1.5 * s; c.lineCap = 'round'; c.beginPath(); c.moveTo(x - 3 * s, y - 8 * s); c.lineTo(x + 3 * s, y + 8 * s); c.stroke(); c.lineCap = 'butt';
+}
+
 const TV: Record<TileKind, Draw> = {
+  push(c, w, h, t, z, P) {
+    // The launch beach on the left, the sea to its right: the wind's arrow in that frame, so "off the land" points out to sea.
+    const sx = w * 0.26, rel = z.rel;
+    c.fillStyle = `rgb(${P.sand[0]},${P.sand[1]},${P.sand[2]})`; c.fillRect(0, 0, sx, h);
+    c.strokeStyle = P.I; c.lineWidth = 2; c.beginPath(); c.moveTo(sx, 0); c.lineTo(sx, h); c.stroke();
+    const py = h / 2;
+    if (!fin(rel) || !fin(z.v)) { paddlerTop(c, sx + 18, py, 1, P.I); return; }
+    const kt = Math.max(2, z.v), toward = 90 + rel, d = toward * D2R, dx = Math.sin(d), dy = -Math.cos(d);
+    drawStream(c, w, h, t, toward, 8 + kt * 1.6, P.I, 9);
+    // The paddler drifts the way the wind pushes, from the launch and back again, so the push reads as a path out to sea.
+    const run = Math.min(w - sx - 30, h * 0.9), f = P.reduced ? 0.55 : (t * (0.12 + kt * 0.012)) % 1, off = f * run;
+    const bx = sx + 16, by = py;
+    c.strokeStyle = P.A; c.lineWidth = 2; c.setLineDash([3, 4]); c.beginPath(); c.moveTo(bx, by); c.lineTo(bx + dx * run, by + dy * run); c.stroke(); c.setLineDash([]);
+    c.globalAlpha = 1 - f * 0.5; paddlerTop(c, bx + dx * off, by + dy * off, 1, P.A); c.globalAlpha = 1;
+    paddlerTop(c, bx, by, 1, P.I);
+  },
   weather(c, w, h, t, z, P) {
     const sky = z.sky ?? null;
     const r = Math.min(h * 0.3, w * 0.16), sx = w * 0.22 + r * 0.2, sy = h * 0.42;

@@ -154,6 +154,7 @@ import { feedPartitions } from './sea-state-hud';
 import { withOutflow, type RipLevel } from './physics/rip';
 import { CHANNEL_MOUTH_KM, createSpotPhysics, shoreBase, type SpotPhysics } from './spot-physics';
 import { shoreAt } from './physics/swim';
+import { loadCraft } from './paddle-craft';
 import { creekLevel, CREEK_RAIN_H, floodLevel, mountRip, ripSites, type MouthFlood, type RipSite } from './layers/rip';
 import { SURF_BREAKS } from './data/surf-breaks';
 import { mountSurfZoneHud } from './surf-zone-hud';
@@ -1033,6 +1034,7 @@ seaCurrent = () => {
   return currentVecAt(c.lng, c.lat, time.validMs());
 };
 const metricEnv = (): MetricEnv => ({
+  paddleCraft: () => loadCraft(safeStorage()),
   windMs: windMsAt,
   windDirDeg: (lng, lat, ms) => {
     const v = windVecAt(lng, lat, ms);
@@ -1099,7 +1101,7 @@ mountWatchPanel(
 );
 // FORECAST page (PLAN 7.52): a clean page per spot and activity, its own link (#forecast/<spot>/<activity>).
 /** The map's LAYERS preset for each forecast activity (snorkel and dive share DIVE). */
-const MAP_PRESET: Record<FcActivity, ActivityId> = { fish: 'fishing', surf: 'surf', swim: 'swim', snorkel: 'dive', dive: 'dive', spear: 'spear', sail: 'sail' };
+const MAP_PRESET: Record<FcActivity, ActivityId> = { fish: 'fishing', surf: 'surf', swim: 'swim', snorkel: 'dive', dive: 'dive', spear: 'spear', sail: 'sail', paddle: 'paddle' };
 /**
  * Changes whenever a feed arrives or updates (every adapter reports to DATA AGE; the rest are what is worked out from
  * them): the map shell and the forecast page keep what they worked out until it changes.

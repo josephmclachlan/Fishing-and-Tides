@@ -10,7 +10,7 @@
  */
 .fc {
   --fc-bg: #eef3f8; --fc-ink: #0a1626; --fc-ink2: #46576c; --fc-block: #dfe7f0; --fc-line: #cfd9e4; --fc-card: #ffffff;
-  --fc-t-surf: #0a66e0; --fc-t-fish: #e4441c; --fc-t-swim: #d4176b; --fc-t-snorkel: #00877a; --fc-t-dive: #4338d6; --fc-t-sail: #2a8a1e;
+  --fc-t-surf: #0a66e0; --fc-t-fish: #e4441c; --fc-t-swim: #d4176b; --fc-t-snorkel: #00877a; --fc-t-dive: #4338d6; --fc-t-sail: #2a8a1e; --fc-t-paddle: #0a8fb8;
   --fc-c-card: #ffffff; --fc-c-head: #a5dbc2; --fc-c-night: #f2f6fa; --fc-c-grid: #e2e8ef; --fc-c-grid2: #cfd9e4; --fc-c-acc: #0a76e6;
   --fc-c-bar: #7f90a4; --fc-c-ink2: #46576c; --fc-c-warm: #f2711c; --fc-c-win: #1f9d55; --fc-c-sun: #e8a200;
   --fc-rd-bg: #0a1626; --fc-rd-fg: #eef3f8;
@@ -36,7 +36,7 @@
 }
 .fc[data-scheme='dark'] {
   --fc-bg: #070c14; --fc-ink: #edf3fa; --fc-ink2: #a2b2c5; --fc-block: #0f1723; --fc-line: #2a3749; --fc-card: #0f1723;
-  --fc-t-surf: #4d9dff; --fc-t-fish: #ff7a52; --fc-t-swim: #ff5fa2; --fc-t-snorkel: #2fd6c2; --fc-t-dive: #9a93ff; --fc-t-sail: #74d65e;
+  --fc-t-surf: #4d9dff; --fc-t-fish: #ff7a52; --fc-t-swim: #ff5fa2; --fc-t-snorkel: #2fd6c2; --fc-t-dive: #9a93ff; --fc-t-sail: #74d65e; --fc-t-paddle: #4fc3f7;
   --fc-c-card: #0f1723; --fc-c-head: #1b4a3b; --fc-c-night: #141e2c; --fc-c-grid: #1d2837; --fc-c-grid2: #2a3749; --fc-c-acc: #3d9bff;
   --fc-c-bar: #6c7e93; --fc-c-ink2: #a2b2c5; --fc-c-warm: #ff8a3d; --fc-c-win: #3fcf7d; --fc-c-sun: #ffc53d;
   --fc-rd-bg: #1f5c49; --fc-rd-fg: #e8f6f0;
@@ -61,6 +61,7 @@
 .fc[data-act='snorkel'] { --fc-tbar: var(--fc-t-snorkel); }
 .fc[data-act='dive'] { --fc-tbar: var(--fc-t-dive); }
 .fc[data-act='sail'] { --fc-tbar: var(--fc-t-sail); }
+.fc[data-act='paddle'] { --fc-tbar: var(--fc-t-paddle); }
 /* A block in a level's colours: `--c` its fill, `--o` the ink on it. */
 .fc .l0 { --c: var(--fc-lv0); --o: var(--fc-on0); }
 .fc .l1 { --c: var(--fc-lv1); --o: var(--fc-on1); }
@@ -131,6 +132,7 @@ body.fc-open { overflow: hidden; }
 .fc-tab[data-act='snorkel'] { --tc: var(--fc-t-snorkel); }
 .fc-tab[data-act='dive'] { --tc: var(--fc-t-dive); }
 .fc-tab[data-act='sail'] { --tc: var(--fc-t-sail); }
+.fc-tab[data-act='paddle'] { --tc: var(--fc-t-paddle); }
 .fc .fc-tab:hover { opacity: 0.7; color: var(--tc); }
 .fc .fc-tab[aria-selected='true'] { opacity: 1; color: var(--tc); }
 .fc-tab svg { width: 0.78em; height: 0.78em; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: square; stroke-linejoin: miter; overflow: visible; }
@@ -418,17 +420,17 @@ body.fc-open { overflow: hidden; }
 }
 @media (prefers-reduced-motion: reduce) { .fc-launch.fc-ret-pulse { animation: none; } }
 
-/* Activity tabs: always one row. Type scales with the row's own width (container units) so all seven names fit in
+/* Activity tabs: always one row. Type scales with the row's own width (container units) so all the names fit in
    full in English and Spanish; icons drop out below 460 px to give the letters the room. */
 .fc-tabs { flex-wrap: nowrap; justify-content: space-between; gap: 0 0.4em; container-type: inline-size; }
-.fc .fc-tab { font-size: min(23px, 100cqw / 21); }
+.fc .fc-tab { font-size: min(23px, 100cqw / max(21, var(--nch, 35) * 0.6)); }
 .fc .fc-tab svg { display: none; }
 @container (min-width: 460px) {
-  .fc .fc-tab { font-size: min(23px, 100cqw / 30); gap: 6px; }
+  .fc .fc-tab { font-size: min(23px, 100cqw / max(30, var(--nch, 35) * 0.86)); gap: 6px; }
   .fc .fc-tab svg { display: block; }
 }
 @container (min-width: 700px) {
-  .fc .fc-tab { font-size: min(44px, 100cqw / 30); gap: 9px; }
+  .fc .fc-tab { font-size: min(44px, 100cqw / max(30, var(--nch, 35) * 0.86)); gap: 9px; }
 }
 
 /* Labelled links to the species ID guide (fish, dive, spear, snorkel) and to kill, bleed, ice (fish, spear). */
@@ -441,6 +443,12 @@ body.fc-open { overflow: hidden; }
 .fc[data-act='fish'] .fc-link[data-for~='fish'], .fc[data-act='dive'] .fc-link[data-for~='dive'],
 .fc[data-act='spear'] .fc-link[data-for~='spear'], .fc[data-act='snorkel'] .fc-link[data-for~='snorkel'],
 .fc[data-act='surf'] .fc-link[data-for~='surf'], .fc[data-act='swim'] .fc-link[data-for~='swim'], .fc[data-act='sail'] .fc-link[data-for~='sail'] { display: inline-flex; }
+/* PADDLE: the kayak / paddleboard switch, shown only on that tab. */
+.fc .fc-craft { display: none; gap: 6px; margin: 4px 0 10px; }
+.fc[data-act='paddle'] .fc-craft { display: flex; }
+.fc .fc-craft button { font: inherit; letter-spacing: .08em; text-transform: uppercase; min-height: 40px; padding: 0 14px; border: 2px solid currentColor; background: transparent; color: inherit; cursor: pointer; }
+.fc .fc-craft button[aria-checked='true'] { background: var(--fc-ink); color: var(--fc-bg); border-color: var(--fc-ink); }
+.fc .fc-craft button:focus-visible { outline: 3px solid var(--fc-ink); outline-offset: 2px; }
 .fc .fc-link svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: square; stroke-linejoin: miter; }
 .fc .fc-link:focus-visible { outline: 3px solid var(--fc-ink); outline-offset: 2px; }
 

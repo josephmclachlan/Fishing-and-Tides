@@ -81,6 +81,7 @@ export const DETAIL_FOR: Record<FcActivity, { rows: readonly Spec[]; towns?: boo
   snorkel: { rows: [R.bestday, R.stingers, R.runoff, R.bottom] },
   dive: { rows: [R.bestday, R.runoff, R.bottom, R.stingers] },
   spear: { rows: [R.bestday, R.runoff, R.bottom] },
+  paddle: { rows: [R.rips, R.runoff, R.squall, R.rain24, R.stingers], towns: true },
   sail: { rows: [R.verdict, R.comfort, R.harbour, R.shelter, R.squall, R.cape, R.conf, R.rain24], towns: true },
 };
 

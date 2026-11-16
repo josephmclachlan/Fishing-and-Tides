@@ -340,6 +340,8 @@ export function mountKineticMap(d: KmDeps) {
     b.addEventListener('click', () => (m === 'coral' ? setCoral(!S.coral) : setAct(m)));
     tabs.appendChild(b);
   }
+  // The tabs' type scales with how many letters the row holds in this language, so a longer name never wraps or clips.
+  tabs.style.setProperty('--nch', String(MODES.reduce((n, m) => n + modeName(m).length, 0)));
   tabs.addEventListener('keydown', (e) => {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
     const bs = [...tabs.querySelectorAll<HTMLButtonElement>('.k-tab')], i = bs.indexOf(document.activeElement as HTMLButtonElement);
@@ -920,7 +922,7 @@ export function mountKineticMap(d: KmDeps) {
       sea: [L2('Swell', 'Oleaje'), fin(r.sail?.swellM) ? `${n1(r.sail!.swellM!)}<small>m</small>` : '--'],
       air: [L2('Air', 'Aire'), fin(h.airC) ? `${n0(h.airC)}°` : '--'],
     };
-    const pick = { surf: ['swell', 'wind', 'tide', 'uv'], fish: ['tide', 'moon', 'wind', 'uv'], swim: ['rip', 'water', 'air', 'uv'], snorkel: ['vis', 'current', 'water', 'uv'], dive: ['vis', 'surge', 'water', 'uv'], spear: ['vis', 'surge', 'current', 'uv'], sail: ['wind', 'gust', 'sea', 'uv'] }[S.act];
+    const pick = { surf: ['swell', 'wind', 'tide', 'uv'], fish: ['tide', 'moon', 'wind', 'uv'], swim: ['rip', 'water', 'air', 'uv'], snorkel: ['vis', 'current', 'water', 'uv'], dive: ['vis', 'surge', 'water', 'uv'], spear: ['vis', 'surge', 'current', 'uv'], sail: ['wind', 'gust', 'sea', 'uv'], paddle: ['wind', 'gust', 'sea', 'rip'] }[S.act];
     return `<div class="k-minis">${pick.map((k) => `<div><span>${C[k][0]}</span><b>${C[k][1]}</b></div>`).join('')}</div>`;
   };
   const segs = (share: number | null) => `<span class="k-segs" aria-hidden="true">${Array.from({ length: 10 }, (_, i) => `<i class="${share !== null && i < Math.round(share * 10) ? 'k-f' : ''}"></i>`).join('')}</span>`;
