@@ -9,7 +9,7 @@
  * Two modes (PLAN 7.120, Joseph 2026-11-16): EAT, fish to keep and eat (the default and the old set), and SPORT, fish to
  * catch and release (barracuda moved here: no size of it is safe to eat). A species is in exactly one mode.
  */
-export type SpeciesId = 'snook' | 'jack' | 'snapper' | 'mackerel' | 'grouper' | 'barracuda' | 'lionfish';
+export type SpeciesId = 'snook' | 'jack' | 'snapper' | 'mackerel' | 'grouper' | 'grunt' | 'barracuda' | 'lionfish';
 
 /** EAT: fish to keep and eat. SPORT: fish to catch and release. */
 export type FishMode = 'eat' | 'sport';
@@ -53,6 +53,10 @@ export const SPECIES: readonly Species[] = [
   { id: 'mackerel', mode: 'eat', confidence: 'low', depthM: [1, 3, 25, 45], w: { mouth: 0.15, reef: 0.35, drop: 0.5 }, mouthReachKm: 1, season: Array(12).fill(0.95), water: { visM: [1.5, 3, 15, 30], sstC: [22, 25, 30, 33] } },
   // Small reef groupers (cabrilla, coney, hinds, black grouper): reef and rock, hand line or spear. Season not known locally: flat.
   { id: 'grouper', mode: 'eat', depthM: [2, 5, 40, 60], w: { mouth: 0.05, reef: 0.7, drop: 0.25 }, mouthReachKm: 0.8, season: Array(12).fill(0.95), water: { visM: [2, 4, 20, 40], sstC: [22, 24, 30, 33] }, ciguatera: true },
+  // Grunts (ronco, plus porkfish and black margate, burro): small reef fish eaten here, caught on hand lines from rocks and
+  // reef edges. The most recorded eating fish on this coast (about 140 Haemulon records Limón to Sixaola, OBIS 2026-11-16).
+  // They school over reef and rubble by day and feed over sand and seagrass at night. No local season data: flat.
+  { id: 'grunt', mode: 'eat', depthM: [1, 2, 20, 35], w: { mouth: 0.1, reef: 0.7, drop: 0.2 }, mouthReachKm: 0.8, season: Array(12).fill(0.95), water: { visM: [1, 2, 20, 40], sstC: [22, 24, 30, 33] } },
   // Barracuda: SPORT, catch and release (the guide's ciguatera advice: no size is lower risk; CDC: never eat it).
   { id: 'barracuda', mode: 'sport', confidence: 'low', depthM: [1.5, 3, 18, 40], w: { mouth: 0.1, reef: 0.55, drop: 0.35 }, mouthReachKm: 1, season: [1, 1, 1, 0.95, 0.9, 0.85, 0.85, 0.9, 0.9, 0.95, 1, 1], water: { visM: [1.5, 4, 20, 40], sstC: [20, 24, 30, 33] }, ciguatera: true },
   // Lionfish (pez león): invasive, eaten locally and its catch is encouraged; reef only, by spear, so clear water matters. All year.
