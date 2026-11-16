@@ -24,7 +24,7 @@ register(
 }`),
 );
 const { buildIndex } = await import('../src/guide/index-build.ts');
-const { isGroup, RECS, COLORS, PATTERNS, POSITIONS, SHAPES, FEATURES } = await import('../src/guide/types.ts');
+const { isGroup, RECS, CLEANS, COLORS, PATTERNS, POSITIONS, SHAPES, FEATURES } = await import('../src/guide/types.ts');
 const { guessLook } = await import('../src/guide/identify.ts');
 const { citeText } = await import('../src/guide/cite.ts');
 type Src = import('../src/guide/cite.ts').Src;
@@ -32,6 +32,7 @@ type Species = import('../src/guide/types.ts').Species;
 type Photo = import('../src/guide/types.ts').Photo;
 type Look = import('../src/guide/types.ts').Look;
 type CiguaSize = import('../src/guide/types.ts').CiguaSize;
+type CleanKey = import('../src/guide/types.ts').CleanKey;
 
 /** A researcher's description of its looks (research/look/<id>.json), with any unknown word dropped. */
 function readLook(id: string): Look | undefined {
@@ -120,6 +121,48 @@ function cite(s: Species) {
   if (list.length) s.sources = list;
 }
 
+/**
+ * Fun facts (research/facts/out/<id>.json): each with its own sources, added to the species' list and marked at the end
+ * of the sentence so they are numbered with the rest of the tab. Kept only with text in both languages and a source.
+ */
+function readFacts(id: string, s: Species) {
+  const f = join(SRC, 'research', 'facts', 'out', `${id}.json`);
+  if (!existsSync(f)) return;
+  try {
+    const r = JSON.parse(readFileSync(f, 'utf8')) as { facts?: { kind?: string; en?: string; es?: string; src?: { t?: string; u?: string }[] }[] };
+    const out: Species['facts'] = [];
+    for (const x of r.facts ?? []) {
+      const src = (x.src ?? []).filter((y) => y?.t?.trim() && /^https?:\/\//.test(y.u ?? ''));
+      if (!x.en?.trim() || !x.es?.trim() || !src.length) continue;
+      s.sources ??= [];
+      const ks = src
+        .map((y) => {
+          let k = s.sources!.findIndex((z) => z.u === y.u || z.t === y.t);
+          if (k < 0) k = s.sources!.push({ t: y.t!.trim(), u: y.u }) - 1;
+          return `[^${k + 1}]`;
+        })
+        .join('');
+      const mark = (t: string) => t.trim().replace(/\.?$/, ks + '.');
+      out!.push({ kind: x.kind === 'name' ? 'name' : 'fact', text: { en: mark(x.en), es: mark(x.es) } });
+    }
+    // The name first, then the rest in the researcher's order.
+    if (out!.length) s.facts = [...out!.filter((x) => x.kind === 'name'), ...out!.filter((x) => x.kind !== 'name')];
+  } catch {
+    problems.push(`facts/out/${id}.json does not parse`);
+  }
+}
+
+/** Cleaning drawings that do not fit a species (research/clean-fix.json): a key swaps it, "none" keeps only its own steps. */
+function readCleanFix(): Record<string, string> {
+  const f = join(SRC, 'research', 'clean-fix.json');
+  try {
+    return existsSync(f) ? (JSON.parse(readFileSync(f, 'utf8')) as Record<string, string>) : {};
+  } catch {
+    problems.push('clean-fix.json does not parse');
+    return {};
+  }
+}
+
 const SRC = process.argv[2] ?? process.env.GUIDE_SRC ?? '/mnt/project-files/species-guide';
 const OUT = join(import.meta.dirname, '..', 'public', 'data', 'guide');
 const ID = /^[a-z0-9-]{1,80}$/;
@@ -138,6 +181,7 @@ const problems: string[] = [];
 let dropped = 0;
 let guessed = 0;
 let recheck = 0;
+const cleanFix = readCleanFix();
 for (const f of readdirSync(outDir).filter((n) => n.endsWith('.json')).sort()) {
   const id = f.slice(0, -5);
   let s: Species;
@@ -156,6 +200,12 @@ for (const f of readdirSync(outDir).filter((n) => n.endsWith('.json')).sort()) {
     Object.assign(s, edited);
     recheck++;
   }
+  const fix = cleanFix[id];
+  if (fix && s.eat) {
+    if (fix === 'none') delete s.eat.clean;
+    else if ((CLEANS as readonly string[]).includes(fix)) s.eat.clean = fix as CleanKey;
+    else problems.push(`clean-fix: unknown drawing "${fix}" for ${id}`);
+  }
   const csz = readCiguaSize(id);
   if (csz) s.eat = { ...s.eat, ciguaSize: csz };
   if (!ID.test(id) || s.id !== id) problems.push(`${f}: id "${s.id}" does not match the file name`);
@@ -167,14 +217,23 @@ for (const f of readdirSync(outDir).filter((n) => n.endsWith('.json')).sort()) {
     const lf = join(SRC, 'research', 'local', `${id}.json`);
     if (existsSync(lf)) {
       try {
-        const l = JSON.parse(readFileSync(lf, 'utf8')) as { rec?: string; why?: string; check?: boolean };
-        if (RECS.includes(l.rec as never)) Object.assign(s, { rec: l.rec, recWhy: l.why?.trim() || undefined, recCheck: l.check || undefined });
+        const l = JSON.parse(readFileSync(lf, 'utf8')) as { rec?: string; why?: string; check?: boolean; src?: { t: string; u?: string } };
+        if (RECS.includes(l.rec as never)) {
+          let why = l.why?.trim() || undefined;
+          // A record with its own source (the orca's sightings catalogue): add it to the list and mark the note.
+          if (why && l.src?.t) {
+            s.sources = [...(s.sources ?? []), { t: l.src.t, u: l.src.u }];
+            why = why.replace(/\.?$/, `[^${s.sources.length}].`);
+          }
+          Object.assign(s, { rec: l.rec, recWhy: why, recCheck: l.check || undefined });
+        }
       } catch {
         problems.push(`local/${id}.json does not parse`);
       }
     }
     const look = readLook(id) ?? guessLook(s.idTips?.en ?? '', s.habitats, s.group);
     if (look?.guessed) guessed++;
+    readFacts(id, s);
     const sp: Species = { ...s, photos: ph?.length ? ph : undefined, look };
     cite(sp);
     list.push(sp);
