@@ -26,6 +26,8 @@ export interface GdRoute {
   id: string | null;
   /** Its tab, or null for the first. */
   tab: GdTab | null;
+  /** A search to fill in, from a link such as `#guide/edible-fish?q=Lutjanus`, or null. */
+  q: string | null;
 }
 
 /** Species ids are lower-case slugs of the scientific name; anything else in the hash is ignored. */
@@ -50,12 +52,18 @@ export function parseView(seg: string | undefined): { mode: GdMode; group: Group
 }
 
 export function parseGuideRoute(hash: string): GdRoute | null {
-  const m = /^#guide(?:\/([^/]*))?(?:\/([^/]*))?(?:\/([^/]*))?\/?$/.exec(hash);
+  const m = /^#guide(?:\/([^/?]*))?(?:\/([^/?]*))?(?:\/([^/?]*))?\/?(?:\?q=([^&]*))?$/.exec(hash);
   if (!m) return null;
   const { mode, group } = parseView(m[1]);
   const id = m[2] && ID.test(m[2]) ? m[2] : null;
   const tab = id && isGdTab(m[3]) ? m[3] : null;
-  return { mode, group, id, tab };
+  let q: string | null = null;
+  try {
+    q = m[4] ? decodeURIComponent(m[4]).slice(0, 60) || null : null;
+  } catch {
+    /* a broken escape: no search */
+  }
+  return { mode, group, id, tab, q };
 }
 
 export function guideHash(r: Partial<GdRoute> = {}): string {

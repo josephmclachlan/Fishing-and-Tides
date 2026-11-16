@@ -85,6 +85,7 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
       <details class="fishx" open><summary><span class="lbl">${t('fish.spots')}</span></summary><div id="fish-spots" class="fish-spots"></div></details>
       <div class="ro"><span class="lbl">${t('fish.yours')}</span><span class="seg sm" id="fish-yours">--</span></div>
       <div class="ro"><a class="lbl fish-link" href="#dispatch" title="${t('dp.linkSub')}">${t('dp.link')} ${UI.next}</a></div>
+      <div class="ro"><a class="lbl fish-link" href="#notes" title="${t('nt.linkSub')}">${t('nt.link')} ${UI.next}</a></div>
       <div class="ro"><span class="lbl note">${t('fish.note')}</span></div>
     </div>`,
   );
@@ -247,5 +248,10 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
     const biteDay = light.reduce((a, s) => a + s.bite, 0) / Math.max(1, light.length);
     return { bite: now, biteDay: Math.round(biteDay) };
   };
-  return { scoreCatch, refresh: queue };
+  /** Switch the target species from outside (the guide's SHOW ON MAP). */
+  const setSpecies = (id: SpeciesId) => {
+    const k = SPECIES.findIndex((s) => s.id === id);
+    if (k >= 0 && k !== i) ((i = k), apply());
+  };
+  return { scoreCatch, refresh: queue, setSpecies };
 }

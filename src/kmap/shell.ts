@@ -113,7 +113,7 @@ export interface KmDeps {
   forecast: { open(o?: { spot?: string; activity?: FcActivity }): void; isOpen(): boolean; where(): { spot: string; activity: FcActivity } };
   openCoralPage: (reef: string) => void;
   /** The species guide (PLAN 7.91). */
-  openGuide?: (mode?: 'identify') => void;
+  openGuide?: (mode?: 'identify' | 'edible') => void;
   explain: (title: string, id: string) => void;
   go: (t: Target) => void;
   /** Reload keeping the view (language, theme and scheme are applied at load). */
@@ -816,7 +816,8 @@ export function mountKineticMap(d: KmDeps) {
     if (!idAct) return '';
     const id = d.openGuide ? `<button type="button" class="k-link" data-go="identify"><span>${L2('Identify what you see', 'Identifica lo que ves')}</span>${ARROW}</button>` : '';
     const dp = S.act === 'fish' || S.act === 'spear' ? `<a class="k-link" href="#dispatch"><span>${L2('Kill, bleed, ice your catch', 'Mata, desangra y enfría tu pesca')}</span>${ARROW}</a>` : '';
-    return id || dp ? `<div class="k-links">${id}${dp}</div>` : '';
+    const nt = `<a class="k-link" href="#notes"><span>${L2('Field notes: rules, rigs, cooking', 'Notas de campo: reglas, aparejos, cocina')}</span>${ARROW}</a><a class="k-link" href="#notes/aid"><span>${L2('Stung or bitten? First aid', '¿Picadura o mordida? Primeros auxilios')}</span>${ARROW}</a>`;
+    return `<div class="k-links">${id}${dp}${nt}</div>`;
   };
   /**
    * Fish and sail: the next boat window from this spot (mockup G: "Boat window · Wed 11 · 05:30–10:00 · Small boat OK"),
@@ -873,7 +874,7 @@ export function mountKineticMap(d: KmDeps) {
           if (!WIDE.matches) closeSheet();
         } else if (k === 'fc') d.forecast.open({ spot: spot().name, activity: S.act });
         else if (k === 'coralpage') d.openCoralPage(reef()?.id ?? 'cahuita');
-        else if (k === 'guide') d.openGuide?.();
+        else if (k === 'guide') d.openGuide?.(S.act === 'fish' || S.act === 'spear' ? 'edible' : undefined);
         else if (k === 'identify') d.openGuide?.('identify');
       }),
     );
@@ -1359,6 +1360,13 @@ export function mountKineticMap(d: KmDeps) {
     openFor(spotName: string, a: FcActivity) {
       S.spot = spotName;
       put(storage, SPOT_KEY, spotName);
+      if (S.coral) S.coral = false;
+      put(storage, CORAL_KEY, '0');
+      quietCoral(false);
+      setAct(a);
+    },
+    /** The map opened on an activity with no spot picked (the guide's SHOW ON MAP). */
+    openAct(a: FcActivity) {
       if (S.coral) S.coral = false;
       put(storage, CORAL_KEY, '0');
       quietCoral(false);

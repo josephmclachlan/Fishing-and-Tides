@@ -439,3 +439,6 @@ body.fc-open { overflow: hidden; }
 .fc .fc-link i { font-style: normal; font-size: 20px; font-weight: 700; }
 .fc .fc-link:focus-visible { outline: 3px solid var(--fc-ink); outline-offset: 2px; }
 .fc:not([data-act='fish']):not([data-act='dive']):not([data-act='spear']):not([data-act='snorkel']) .fc-links { display: none; }
+
+/* The LIKELY CATCH names open the guide on that kind of fish. */
+.fc .fc-t-go { color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }
