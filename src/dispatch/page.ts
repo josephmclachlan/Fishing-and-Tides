@@ -4,6 +4,7 @@
  * in the language chosen for the app. Its own link, `#dispatch[/<section>]` (route.ts), so it can be linked from the
  * species guide's cleaning tab and the fishing panel, and the phone's back button works.
  */
+import { rememberOrigin, storedOrigin } from '../origin';
 import { t } from '../i18n';
 import { LEDE, TITLE, tr, type Lang } from './content';
 import { landing } from '../forecast/model';
@@ -165,14 +166,25 @@ export function mountDispatchPage(deps: DispatchPageDeps) {
     document.body.classList.remove('fc-open');
     if (mapMeta !== null) meta?.setAttribute('content', mapMeta);
   };
-  const fromHash = (e?: HashChangeEvent) => {
+  /**
+   * Arriving from another page. The origin stored on this history entry wins (a reload, or a step back onto this page);
+   * else it is the page just left, stored only when a real hashchange named it.
+   */
+  const arrive = (oldHash: string | null, real: boolean) => {
+    const kept = storedOrigin();
+    const o = kept ?? oldHash;
+    if (o === null) return;
+    cameFrom = fromOf(o);
+    pushed = true; // the origin is the entry before this one, so back is one step
+    if (!kept && real && oldHash !== null) rememberOrigin(oldHash);
+    $('dp-back-l').textContent = t(cameFrom === 'guide' ? 'dp.back.guide' : 'dp.back.forecast');
+  };
+  const fromHash = (e?: HashChangeEvent, real = false) => {
     const r = parseDispatchRoute(location.hash);
     if (!r) return hide();
     const wasHidden = el.hidden;
-    if (wasHidden && e?.oldURL) {
-      cameFrom = fromOf(new URL(e.oldURL).hash);
-      pushed = true;
-    }
+    const oldHash = e?.oldURL ? new URL(e.oldURL).hash : null;
+    if (oldHash !== null ? !parseDispatchRoute(oldHash) : el.hidden) arrive(oldHash, real);
     show();
     if (wasHidden || r.section) scrollTo(r.section, !wasHidden);
   };
@@ -182,7 +194,7 @@ export function mountDispatchPage(deps: DispatchPageDeps) {
   const onNav = (e?: HashChangeEvent) => {
     const old = e?.oldURL ?? here;
     here = location.href;
-    fromHash(old !== here ? ({ oldURL: old } as HashChangeEvent) : undefined);
+    fromHash(old !== here ? ({ oldURL: old } as HashChangeEvent) : undefined, !!e?.oldURL);
   };
   window.addEventListener('hashchange', onNav);
   window.addEventListener('popstate', () => onNav());
@@ -192,6 +204,7 @@ export function mountDispatchPage(deps: DispatchPageDeps) {
     const from = location.href;
     if (!parseDispatchRoute(location.hash)) {
       history.pushState({ dp: 1 }, '', dispatchHash(section));
+      rememberOrigin(new URL(from).hash);
       pushed = true;
     } else history.replaceState(history.state, '', dispatchHash(section));
     show();
