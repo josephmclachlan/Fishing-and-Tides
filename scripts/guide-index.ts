@@ -26,6 +26,8 @@ register(
 const { buildIndex } = await import('../src/guide/index-build.ts');
 const { isGroup, RECS, COLORS, PATTERNS, POSITIONS, SHAPES, FEATURES } = await import('../src/guide/types.ts');
 const { guessLook } = await import('../src/guide/identify.ts');
+const { citeText } = await import('../src/guide/cite.ts');
+type Src = import('../src/guide/cite.ts').Src;
 type Species = import('../src/guide/types.ts').Species;
 type Photo = import('../src/guide/types.ts').Photo;
 type Look = import('../src/guide/types.ts').Look;
@@ -89,6 +91,35 @@ function readCiguaSize(id: string): CiguaSize | undefined {
   }
 }
 
+/**
+ * Sources in brackets become superscript markers (src/guide/cite.ts, Joseph 2026-11-16): every en/es text and the
+ * local-record note, with the ciguatera size advice's own sources added to the species' list.
+ */
+const SKIP = new Set(['id', 'sci', 'author', 'names', 'sources', 'evidence', 'photos', 'taxon', 'familyName']);
+function cite(s: Species) {
+  const list: Src[] = (s.sources ?? []).map((x) => ({ ...x }));
+  const cz = s.eat?.ciguaSize;
+  if (cz?.sources?.length) {
+    const ks = cz.sources.map((t) => {
+      let k = list.findIndex((x) => x.t === t);
+      if (k < 0) k = list.push({ t }) - 1;
+      return `[^${k + 1}]`;
+    }).join('');
+    cz.advice = { en: cz.advice.en.replace(/\.?$/, ks + '.'), es: cz.advice.es.replace(/\.?$/, ks + '.') };
+    delete cz.sources;
+  }
+  const walk = (o: unknown): unknown => {
+    if (typeof o === 'string') return citeText(o, list);
+    if (Array.isArray(o)) return o.map(walk);
+    if (o && typeof o === 'object') {
+      for (const [k, v] of Object.entries(o)) if (!SKIP.has(k)) (o as Record<string, unknown>)[k] = walk(v);
+    }
+    return o;
+  };
+  for (const [k, v] of Object.entries(s)) if (!SKIP.has(k)) (s as Record<string, unknown>)[k] = walk(v);
+  if (list.length) s.sources = list;
+}
+
 const SRC = process.argv[2] ?? process.env.GUIDE_SRC ?? '/mnt/project-files/species-guide';
 const OUT = join(import.meta.dirname, '..', 'public', 'data', 'guide');
 const ID = /^[a-z0-9-]{1,80}$/;
@@ -144,7 +175,9 @@ for (const f of readdirSync(outDir).filter((n) => n.endsWith('.json')).sort()) {
     }
     const look = readLook(id) ?? guessLook(s.idTips?.en ?? '', s.habitats, s.group);
     if (look?.guessed) guessed++;
-    list.push({ ...s, photos: ph?.length ? ph : undefined, look });
+    const sp: Species = { ...s, photos: ph?.length ? ph : undefined, look };
+    cite(sp);
+    list.push(sp);
   }
 }
 

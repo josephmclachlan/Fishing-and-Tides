@@ -184,7 +184,8 @@ export interface Species {
   edibleNote?: Txt;
   eat?: Eat;
   danger?: Danger;
-  sources?: { t: string; u?: string }[];
+  /** `x`: added from a bracket in the text (src/guide/cite.ts), shown under its tab but not in the Sources list. */
+  sources?: { t: string; u?: string; x?: boolean }[];
   check?: Txt;
   /** List tier: the one-line note. */
   note?: Txt;
