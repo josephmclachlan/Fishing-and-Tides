@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { SPECIES } from '../fishing/species';
 import { LIMON_HARMONICS } from '../data/tides-limon';
 import type { MetricEnv } from '../metrics/registry';
 import { METRIC_BY_ID } from '../metrics/registry';
@@ -38,15 +39,15 @@ describe('forecast page readings agree with the map (PLAN 7.52)', () => {
     expect(r.score).toBeCloseTo(metric!, 6);
     expect(r.surf!.range[0]).toBeLessThanOrEqual(r.surf!.hb);
     expect(r.surf!.range[1]).toBeGreaterThanOrEqual(r.surf!.hb);
-    expect(r.share).toBeCloseTo(r.score! / 10, 9);
+    expect(r.share).toBeCloseTo(r.score! / 100, 9);
   });
-  it('reads FISH as the BITE metric and lists only eating fish without a ciguatera warning', () => {
+  it('reads FISH as the BITE metric and lists eating fish, never one no size of which is safe (barracuda)', () => {
     const r = readAt({ env: env() }, 'fish', spot('PUNTA UVA'), DAY0 + 6 * H);
     const bite = METRIC_BY_ID.get('bite')!.at({ env: env(), spot: 'PUNTA UVA', lng: spot('PUNTA UVA').lngLat[0], lat: spot('PUNTA UVA').lngLat[1], ms: DAY0 + 6 * H, sky: daySky(DAY0, spot('PUNTA UVA').lngLat[1], spot('PUNTA UVA').lngLat[0]) });
     expect(r.score).toBeCloseTo(bite!, 6);
     expect(r.fish!.species.length).toBe(3);
-    expect(r.fish!.species).not.toContain('grouper');
     expect(r.fish!.species).not.toContain('barracuda');
+    expect(r.fish!.species.every((id) => SPECIES.find((s) => s.id === id)?.ciguatera !== 'never')).toBe(true);
   });
   it('reads SNORKEL and DIVE from the outing score, and nothing without it', () => {
     const deps = { env: env(), outing: outing(80) };
@@ -62,6 +63,20 @@ describe('forecast page readings agree with the map (PLAN 7.52)', () => {
     const r = readAt({ env: env() }, 'sail', spot('PLAYA COCLES'), DAY0 + 10 * H);
     expect(r.score).not.toBeNull();
     expect(r.sail!.windKt).toBeCloseTo(3 * 1.94384, 3);
+  });
+  it('caps SAIL at POOR in a flat calm, and never picks a calm day as the best', () => {
+    // 3 m/s is 5.8 kt: a good sailing breeze, scored on sea comfort alone.
+    const breezy = readAt({ env: env() }, 'sail', spot('PLAYA COCLES'), DAY0 + 10 * H);
+    expect(breezy.score!).toBeGreaterThan(49);
+    // 2 m/s is 3.9 kt: too light to sail.
+    const calm = env({ windMs: () => 2 });
+    const r = readAt({ env: calm }, 'sail', spot('PLAYA COCLES'), DAY0 + 10 * H);
+    expect(r.score!).toBeLessThanOrEqual(49);
+    expect(r.level).toBe(1);
+    const p = daysAt({ env: calm }, 'sail', spot('PLAYA COCLES'), DAY0 + 6 * H, 5);
+    expect(p.bestDay).toBeNull();
+    for (const d of p.days) if (d) expect(d).toMatchObject({ good: false, tone: 'red' });
+    expect(daysAt({ env: env() }, 'sail', spot('PLAYA COCLES'), DAY0 + 6 * H, 5).bestDay).not.toBeNull();
   });
   it('reads nothing (not zero) before the feeds load', () => {
     const empty = env({ sea: () => null, windMs: () => null, weather: () => [] });

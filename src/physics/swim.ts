@@ -82,7 +82,7 @@ export function shoreAt(b: ShoreBase, h: ShoreHour): { breakerM: number; rip: Ri
   return { breakerM, rip };
 }
 
-export type SwimReason = 'dark' | 'storm' | 'rip' | 'surf' | 'dump' | 'wind' | 'rain' | 'heat' | 'cool' | 'cold' | 'uv' | 'overcast' | 'sargassum' | 'lowsun';
+export type SwimReason = 'noweather' | 'dark' | 'storm' | 'rip' | 'surf' | 'dump' | 'wind' | 'rain' | 'heat' | 'cool' | 'cold' | 'uv' | 'overcast' | 'sargassum' | 'lowsun';
 
 export interface SwimInputs {
   rip: RipLevel;
@@ -108,6 +108,9 @@ export interface SwimScore {
   reasons: SwimReason[];
 }
 
+/** The most a swim score can be with no weather forecast: GOOD, not GREAT (forecast/model.ts LEVEL_CUTS.swim). */
+export const NO_WEATHER_CAP = 84;
+
 export function swimScore(i: SwimInputs): SwimScore {
   const f: [SwimReason, number][] = [];
   const caps: [SwimReason, number][] = [];
@@ -128,6 +131,9 @@ export function swimScore(i: SwimInputs): SwimScore {
   if (finite(i.sstC)) f.push(['cold', lerp(i.sstC, 26, 22, 1, 0.75)]);
   if (i.daylight && finite(i.uv)) f.push(['uv', i.uv >= 10.5 ? 0.8 : i.uv >= 7.5 ? 0.9 : 1]);
   if (i.daylight && finite(i.cloudPct) && i.cloudPct >= 85 && !(finite(i.rainMmH) && i.rainMmH >= 0.2)) f.push(['overcast', 0.9]);
+  // No weather forecast (rain, real feel and UV all missing): those can't count as perfect, so the best it can read is
+  // GOOD (84, under the swim GREAT cut of 85), with a note that the weather is missing (Joseph 2026-11-16).
+  if (!finite(i.rainMmH) && !finite(i.feelsC) && !finite(i.uv)) caps.push(['noweather', NO_WEATHER_CAP]);
   if (i.sarg === 'HIGH') f.push(['sargassum', 0.5]);
   else if (i.sarg === 'MODERATE') f.push(['sargassum', 0.8]);
   let score = 100 * f.reduce((p, [, k]) => p * k, 1);

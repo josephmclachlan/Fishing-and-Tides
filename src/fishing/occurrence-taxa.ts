@@ -1,8 +1,8 @@
 /** Species names to look up in OBIS and GBIF (PLAN 4.7), by our species id (shore/kayak and boat). Edible fish only (docs/FISHING.md, eating-fish audit). No imports: the build script loads it directly. */
 export const OCCURRENCE_TAXA: Record<string, string[]> = {
-  snook: ['Centropomus undecimalis', 'Centropomus parallelus', 'Centropomus ensiferus'],
+  snook: ['Centropomus undecimalis', 'Centropomus parallelus', 'Centropomus ensiferus', 'Centropomus pectinatus'],
   // Jurel: crevalle, horse-eye, bar jack and blue runner (the jacks sold as jurel here; true jack mackerel, Trachurus, does not occur on this coast).
-  jack: ['Caranx hippos', 'Caranx latus', 'Caranx ruber', 'Caranx crysos'],
+  jack: ['Caranx hippos', 'Caranx latus', 'Caranx ruber', 'Caranx crysos', 'Caranx bartholomaei'],
   // Yellowtail (rabirrubia) and mahogany snapper added with PLAN 7.121: both eaten here and recorded on this coast.
   snapper: ['Lutjanus cyanopterus', 'Lutjanus jocu', 'Lutjanus griseus', 'Lutjanus analis', 'Lutjanus apodus', 'Lutjanus synagris', 'Lutjanus mahogoni', 'Ocyurus chrysurus'],
   mackerel: ['Scomberomorus brasiliensis', 'Scomberomorus regalis'],
@@ -13,10 +13,19 @@ export const OCCURRENCE_TAXA: Record<string, string[]> = {
   // Surf and sand fish (PLAN 7.122): pompano and palometa (EAT), permit and bonefish (SPORT).
   pompano: ['Trachinotus carolinus', 'Trachinotus goodei'],
   // River-plume fish (PLAN 7.124): corvina (weakfish) and mullet (lisa).
-  corvina: ['Cynoscion virescens', 'Cynoscion jamaicensis'],
+  // Corvina here is the market name for the drums and croakers of soft bottom off the river mouths (PLAN 7.147 added them).
+  corvina: ['Cynoscion virescens', 'Cynoscion jamaicensis', 'Micropogonias furnieri', 'Larimus breviceps', 'Isopisthus parvipinnis', 'Bairdiella ronchus', 'Umbrina broussonnetii', 'Menticirrhus americanus'],
   mullet: ['Mugil curema', 'Mugil liza'],
   permit: ['Trachinotus falcatus'],
   bonefish: ['Albula vulpes', 'Albula nemoptera'],
+  // Well-recorded eating fish from the species guide (PLAN 7.147): mojarras, goatfish and reef squid for EAT, and the
+  // spear targets peacock flounder, squirrelfish and spadefish.
+  mojarra: ['Gerres cinereus', 'Eugerres plumieri', 'Diapterus auratus', 'Diapterus rhombeus', 'Eucinostomus melanopterus', 'Eucinostomus argenteus', 'Eucinostomus gula'],
+  goatfish: ['Mulloidichthys martinicus', 'Pseudupeneus maculatus'],
+  squid: ['Sepioteuthis sepioidea'],
+  flounder: ['Bothus lunatus'],
+  squirrelfish: ['Holocentrus adscensionis', 'Holocentrus rufus'],
+  spadefish: ['Chaetodipterus faber'],
   // By hand (PLAN 7.125).
   lobster: ['Panulirus argus', 'Panulirus guttatus'],
   octopus: ['Octopus insularis', 'Octopus briareus'],
@@ -24,6 +33,8 @@ export const OCCURRENCE_TAXA: Record<string, string[]> = {
   barracuda: ['Sphyraena barracuda'],
   lionfish: ['Pterois volitans', 'Pterois miles'],
   mahi: ['Coryphaena hippurus'],
+  // Silk snapper (pargo seda), the deep hand-line snapper of the boat set (PLAN 7.17).
+  silksnapper: ['Lutjanus vivanus'],
   wahoo: ['Acanthocybium solandri'],
   kingfish: ['Scomberomorus cavalla'],
   tuna: ['Thunnus atlanticus', 'Thunnus albacares'],

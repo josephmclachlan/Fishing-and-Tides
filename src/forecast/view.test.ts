@@ -56,13 +56,13 @@ describe('local time (Costa Rica, UTC-6)', () => {
 });
 
 describe('the headline and the hero', () => {
-  it('surf: the breaker range to 0.1 m and the score to 0.1 of 10', () => {
+  it('surf: the breaker range to 0.1 m and the score out of 100', () => {
     const { r, plan } = setup('surf');
     const [lo, hi] = r.surf!.range;
     expect(headline(r)).toEqual({ value: lo === hi ? r1(lo) : `${r1(lo)}–${r1(hi)}`, unit: 'm' });
     const v = heroView(r, { plan, ms: NOW });
-    expect(v.score).toBe(`${r1(r.score!)}/10`);
-    expect(v.segs).toBeCloseTo(r.score!, 9);
+    expect(v.score).toBe(`${r0(r.score!)}/100`);
+    expect(v.segs).toBeCloseTo(r.score! / 10, 9);
     expect(v.label).toBe(t('fc.metric.surf'));
     expect(v.reasons).toContain(`${r0(r.surf!.tp)} s · NNE`.replace('NNE', v.reasons[1].split(' · ')[1]));
   });

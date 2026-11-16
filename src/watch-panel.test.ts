@@ -38,8 +38,8 @@ describe('circle', () => {
 const plan: Plan = {
   activity: 'surf', startMs: Date.UTC(2026, 10, 4, 6), bestDay: 1, alike: [], none: null,
   days: [
-    { day: 0, dayMs: Date.UTC(2026, 10, 4, 6), spot: 'PLAYA COCLES', startMs: Date.UTC(2026, 10, 4, 15), endMs: Date.UTC(2026, 10, 4, 17), value: 2.4, tone: 'red', good: false, rank: -0.9 },
-    { day: 1, dayMs: Date.UTC(2026, 10, 5, 6), spot: 'SALSA BRAVA', startMs: Date.UTC(2026, 10, 5, 12), endMs: Date.UTC(2026, 10, 5, 14), value: 7.1, tone: 'green', good: true, rank: 1.36 },
+    { day: 0, dayMs: Date.UTC(2026, 10, 4, 6), spot: 'PLAYA COCLES', startMs: Date.UTC(2026, 10, 4, 15), endMs: Date.UTC(2026, 10, 4, 17), value: 24, tone: 'red', good: false, rank: -0.9 },
+    { day: 1, dayMs: Date.UTC(2026, 10, 5, 6), spot: 'SALSA BRAVA', startMs: Date.UTC(2026, 10, 5, 12), endMs: Date.UTC(2026, 10, 5, 14), value: 71, tone: 'green', good: true, rank: 1.36 },
     null,
   ],
 };
@@ -59,11 +59,11 @@ describe('bestText', () => {
 describe('planHtml', () => {
   it("shows the activity's score for each day, marks the best one and says what is scored", () => {
     const h = planHtml(plan);
-    expect(h).toContain('WED<b>2.4</b>');
+    expect(h).toContain('WED<b>24</b>');
     expect(h).toContain('class="green wt-top"');
-    expect(h).toContain('THU<b>7.1</b>');
+    expect(h).toContain('THU<b>71</b>');
     expect(h).toContain('FRI<b>--</b>');
-    expect(h).toContain('SURF SCORE /10');
+    expect(h).toContain('SURF SCORE /100');
     expect(h).not.toContain('ABOUT AS GOOD');
   });
   it('lists the days about as good as the best one', () => {

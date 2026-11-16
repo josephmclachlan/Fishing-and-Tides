@@ -46,6 +46,11 @@
 @media (max-width: 699px) { .cp .cp-tabs { display: flex; flex-wrap: wrap; column-gap: 18px; } .cp .cp-tabs .fc-tab span { overflow: visible; } }
 
 /* --- reef cards: the forecast's spot cards, filled by heat alert */
+/* One column: name (up to two lines), heat, alert word, mud. Laid out as a row they cut the name and the alert. */
+.cp .fc-spot.cp-reef { flex-direction: column; justify-content: space-between; gap: 2px; width: 156px; height: auto; min-height: 112px; padding: 10px 11px; }
+.cp .cp-reef .fc-sn { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+.cp .cp-reef .fc-sr { white-space: normal; overflow: visible; }
+.cp .cp-reef .fc-sv { align-self: flex-start; }
 .cp-reef-mud { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 11px; font-weight: 600; }
 .cp-reef-mud i { width: 10px; height: 10px; background: var(--c); box-shadow: 0 0 0 1.5px currentColor; }
 
@@ -160,7 +165,8 @@
   .cp .fc-card { margin-top: 18px; }
 }
 @media (min-width: 960px) {
-  .cp .cp-reefs { grid-template-columns: repeat(6, minmax(0, 1fr)); max-width: 1312px; margin-left: auto; margin-right: auto; width: 100%; }
+  .cp .cp-reefs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); max-width: 1312px; margin-left: auto; margin-right: auto; width: 100%; }
+  .cp .cp-reefs .fc-spot.cp-reef { width: auto; }
   .cp-hero-in {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); column-gap: 56px; min-height: 620px;
     grid-template-areas: 'meta meta' 'num art' 'rate art' 'gauges art' 'best art'; grid-template-rows: auto auto auto 1fr auto;

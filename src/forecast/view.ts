@@ -8,7 +8,8 @@
  * active language).
  */
 import { guideLinkFor } from '../fishing/guide-link';
-import { SPECIES } from '../fishing/species';
+import { SPECIES, type SpeciesId } from '../fishing/species';
+import { strictestCm } from '../fishing/cigua';
 import { t, type Key } from '../i18n';
 import { localDayStart, moonPhase } from '../physics/astro';
 import { tideState } from '../physics/tide';
@@ -34,6 +35,19 @@ export const n0 = (x: number) => Math.round(x).toString();
 export const signed2 = (x: number) => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(2);
 /** "PLAYA COCLES" → "Playa Cocles"; "LIMÓN" → "Limón". */
 export const titleCase = (s: string) => s.toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (_, a: string, b: string) => a + b.toUpperCase());
+
+/**
+ * The catch tile's ciguatera line (fishing/cigua.ts): for each listed fish that carries it, the smallest size to keep
+ * among its species ("Jack under 38 cm"), the same numbers as the fish panel and the guide. Empty when none does.
+ */
+export function ciguaLine(ids: readonly SpeciesId[]): string[] {
+  const parts = ids.flatMap((id) => {
+    const tier = SPECIES.find((s) => s.id === id)?.ciguatera;
+    const cm = tier === 'high' || tier === 'listed' ? strictestCm(id) : null;
+    return cm ? [t('fc.catch.ciguaOne', { name: titleCase(t(`fish.${id}` as Key)), cm })] : [];
+  });
+  return parts.length ? [t('fc.catch.cigua', { list: parts.join(', ') })] : [];
+}
 /** HUD caps to a sentence: "MOVING TIDE" → "Moving tide". */
 export const sentence = (s: string) => (s ? (s[0].toUpperCase() + s.slice(1).toLowerCase()).replace(/°c\b/g, '°C') : s);
 /** Compass point for degrees FROM, with W in the active language; '' without a direction. */
@@ -163,7 +177,7 @@ export interface HeroView {
   words: string;
   level: Level | null;
   word: string;
-  /** The score on its own scale where the headline is not already it: "6.8/10" (surf), "72/100" (snorkel, dive, sail). */
+  /** The score on its own scale where the headline is not already it: "68/100" (surf, snorkel, dive, sail). */
   score: string | null;
   /** The rating bar: 0..10 segments filled (the score's share of its scale × 10). */
   segs: number;
@@ -171,7 +185,7 @@ export interface HeroView {
 }
 export function heroView(r: FcRead, ctx: Pick<ViewCtx, 'plan' | 'ms'>): HeroView {
   const hl = headline(r);
-  const score = r.score === null ? null : r.activity === 'surf' ? `${n1(r.score)}/10` : r.activity === 'fish' || r.activity === 'swim' ? null : `${n0(r.score)}/100`;
+  const score = r.score === null ? null : r.activity === 'fish' || r.activity === 'swim' ? null : `${n0(r.score)}/100`;
   return {
     label: t(`fc.metric.${r.activity}` as Key), value: hl.value, unit: hl.unit, words: heroWords(r, ctx),
     level: r.level, word: levelWord(r), score, segs: r.share === null ? 0 : Math.max(0, Math.min(10, r.share * 10)), reasons: reasons(r),
@@ -371,7 +385,7 @@ export function tilesFor(r: FcRead, ctx: ViewCtx): TileView[] {
     const age = moonAgeDays(moonPhase(ms).elongation);
     return [
       weather(),
-      { kind: 'catch', k: t('fc.catch'), v: names[0] ?? dash, sub: [names.slice(1).join(' · '), ...(f.species.some((id) => SPECIES.find((s) => s.id === id)?.ciguatera === 'size') ? [t('fc.catch.cigua')] : [])], tip: t('tip.fish'), lv: null, viz: { count: names.length }, links: f.species.map(guideLinkFor) },
+      { kind: 'catch', k: t('fc.catch'), v: names[0] ?? dash, sub: [names.slice(1).join(' · '), ...ciguaLine(f.species)], tip: t('tip.fish'), lv: null, viz: { count: names.length }, links: f.species.map(guideLinkFor) },
       { kind: 'moon', k: t('fc.moon'), v: `${n0(f.moonIllum * 100)}%`, sub: [`${sentence(t(`astro.moon.${f.moonPhase}` as Key))} · ${t('fc.moonDay', { d: n0(age) })}`], tip: tipOf('moon', f.moonIllum), lv: null, viz: { v: f.moonIllum, waxing: f.moonPhase <= 4 } },
       tideTile(true), windTile(hourWind.kt, hourWind.from, (x) => x.windKt), water(), uvTile(h?.uv ?? null), windowTile(),
     ];

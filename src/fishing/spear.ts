@@ -2,7 +2,8 @@
  * Spearfishing areas (Joseph, 2026-11-11): where a breath-hold hunter can work and where the law lets them. Pure: no DOM.
  *
  * Targets are the edible reef fish a spearfisher takes here: small reef groupers, snapper, jack and lionfish (pez león, a
- * cull the authorities encourage). Barracuda is left out (ciguatera), mackerel (open-water schooler) and snook (river-mouth
+ * cull the authorities encourage), and (PLAN 7.147) peacock flounder, squirrelfish and spadefish, which the species guide
+ * marks as speared and eaten. Barracuda is left out (ciguatera), mackerel (open-water schooler) and snook (river-mouth
  * ambusher, a line fish). Each cell's SPEAR score is its best target's habitat score (fishing/habitat.ts) times a depth window:
  *   0 below 1.5 m of water, 1 from 3 to 15 m, back to 0 at 22 m
  * (a breath-hold hunter works 3 to 15 m; shallow-water blackout risk climbs with depth and effort; our guidance, not a standard).
@@ -11,7 +12,7 @@
  */
 import type { SpeciesId } from './species';
 
-export const SPEAR_SPECIES: readonly SpeciesId[] = ['grouper', 'snapper', 'jack', 'lionfish'];
+export const SPEAR_SPECIES: readonly SpeciesId[] = ['grouper', 'snapper', 'jack', 'lionfish', 'flounder', 'squirrelfish', 'spadefish'];
 
 const ramp = (x: number, lo: number, hi: number) => Math.min(1, Math.max(0, (x - lo) / (hi - lo)));
 
