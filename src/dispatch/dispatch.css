@@ -156,3 +156,4 @@
 .dp-vs tbody th { font-family: var(--fc-mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fc-ink2); width: 16%; }
 .dp a.dp-link { display: inline-block; padding: 10px 14px; border: 2px solid var(--fc-ink); text-decoration: none; font-family: var(--fc-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .dp a.dp-link:hover { background: var(--fc-ink); color: var(--fc-bg); }
+.dp .fc-ctl.fc-back span { display: inline; }

@@ -5,7 +5,6 @@
  * species guide's cleaning tab and the fishing panel, and the phone's back button works.
  */
 import { t } from '../i18n';
-import { landing, MAP_HASH } from '../forecast/model';
 import { LEDE, TITLE, tr, type Lang } from './content';
 import { hourAt } from './model';
 import type { Method } from './model';
@@ -32,10 +31,11 @@ const put = (s: Store, k: string, v: string) => {
   }
 };
 const svg = (body: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
-const MAP_ICON = '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>';
+const BACK_ICON = '<path d="M15 5l-7 7 7 7"/>';
 
 type From = 'map' | 'forecast' | 'guide';
-const fromOf = (hash: string): From => (hash.startsWith('#guide') ? 'guide' : landing(hash));
+/** Where the back button returns: the guide if opened from it, otherwise the forecast page (never the map by default). */
+const fromOf = (hash: string): From => (hash.startsWith('#guide') ? 'guide' : 'forecast');
 
 export interface DispatchPageDeps {
   storage: Store;
@@ -62,7 +62,7 @@ export function mountDispatchPage(deps: DispatchPageDeps) {
       <header class="fc-top fc-in">
         <p class="fc-brand fc-mono">${t('fc.brand')}<span class="fc-hide-s"> · ${t('fc.region')}</span></p>
         <div class="fc-ctrls">
-          <button type="button" class="fc-ctl fc-back" id="dp-back" title="${esc(t('dp.backTitle'))}">${svg(MAP_ICON)}<span id="dp-back-l">${t('dp.back.map')}</span></button>
+          <button type="button" class="fc-ctl fc-back" id="dp-back" title="${esc(t('dp.backTitle'))}">${svg(BACK_ICON)}<span id="dp-back-l">${t('dp.back.forecast')}</span></button>
           <div class="fc-lang" role="group" aria-label="${t('fc.langGroup')}"><button type="button" data-lang="en" aria-pressed="${lang === 'en'}">EN</button><button type="button" data-lang="es" aria-pressed="${lang === 'es'}">ES</button></div>
           <button type="button" class="fc-ctl fc-sq fc-themeb" id="dp-scheme" aria-label="${t('fc.scheme')}" title="${t('fc.scheme')}"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 2a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg></button>
         </div>
@@ -131,7 +131,7 @@ export function mountDispatchPage(deps: DispatchPageDeps) {
 
   // --- sections: the buttons scroll, and the link follows
   let pushed = false;
-  let cameFrom: From = 'map';
+  let cameFrom: From = 'forecast';
   const scrollTo = (s: DpSection | null, smooth: boolean) => {
     // `.dp-sec` only: the section buttons carry the same data-s and sit at the top of the page.
     const target = s ? el.querySelector<HTMLElement>(`.dp-sec[data-s="${s}"]`) : null;
@@ -154,7 +154,7 @@ export function mountDispatchPage(deps: DispatchPageDeps) {
     el.hidden = false;
     document.body.classList.add('fc-open');
     mapMeta = meta?.getAttribute('content') ?? null;
-    $('dp-back-l').textContent = t(cameFrom === 'forecast' ? 'dp.back.forecast' : cameFrom === 'guide' ? 'dp.back.guide' : 'dp.back.map');
+    $('dp-back-l').textContent = t(cameFrom === 'guide' ? 'dp.back.guide' : 'dp.back.forecast');
     applyScheme();
     themeMeta();
   };
@@ -203,7 +203,7 @@ export function mountDispatchPage(deps: DispatchPageDeps) {
       pushed = false;
       history.back(); // hashchange hides it
     } else {
-      location.hash = cameFrom === 'forecast' ? '#forecast' : cameFrom === 'guide' ? '#guide' : MAP_HASH;
+      location.hash = cameFrom === 'guide' ? '#guide' : '#forecast';
     }
   };
   $('dp-back').addEventListener('click', () => close());
