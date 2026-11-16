@@ -223,7 +223,7 @@ export function mountKineticMap(d: KmDeps) {
   app.innerHTML = `
   <header class="k-top">
     <button type="button" class="k-back" id="k-back">${BACK}<span class="k-bt"><span class="k-b1">${L2('Forecast', 'Pronóstico')}</span><span class="k-b2" id="k-backsub"></span></span></button>
-    <div class="k-ttl"><p class="k-brand k-mono"><span class="sc-brand">${markSvg(16, { small: true })}${WORDMARK}</span> · Caribe Sur</p><h1>${L2('Map', 'Mapa')} <em id="k-ttlact"></em></h1></div>
+    <div class="k-ttl"><p class="k-brand k-mono"><span class="sc-brand">${markSvg(16, { small: true })}${WORDMARK}</span><span class="k-hide-s"> · Caribe Sur</span></p><h1>${L2('Map', 'Mapa')} <em id="k-ttlact"></em></h1></div>
     <nav class="k-tabs" id="k-tabs" role="tablist" aria-label="${L2('Activity', 'Actividad')}"><span class="k-tab-bar" id="k-tabbar"></span></nav>
     <div class="k-ctrls">
       <button type="button" class="k-band k-age" id="k-age"><i></i><span></span></button>
