@@ -15,9 +15,26 @@
 .intro-brand { display: flex; align-items: center; gap: 12px; }
 .intro-brand .sc-wm { font-size: 36px; }
 .intro-name { margin: 0; font-size: 13.5px; line-height: 1.4; opacity: 0.85; }
-/* Phones: the forecast pages' top row has about 60 px beside the buttons, so it shows the mark alone (the name stays
-   for screen readers). The tab title, the launch screen and About carry the full name. */
+/* Phones (Joseph 2026-11-16: the name must show in full). The forecast pages' top row has only about 60 px beside the
+   buttons, so there the name takes its own line above them. */
 @media (max-width: 460px) {
-  .fc-brand .sc-wm { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  .fc-brand .sc-mark { width: 24px; height: 24px; }
+  .fc-top > .fc-brand { grid-column: 1 / -1; margin: 0 0 8px; overflow: visible; }
+  .fc-top > .fc-ctrls { grid-column: 1 / -1; justify-self: end; }
+  .fc-brand .sc-mark { width: 20px; height: 20px; }
+  .fc-brand .sc-wm { font-size: 17px; }
+}
+/* The map's title block sits between FORECAST and the buttons: 50 to 100 px on a phone. The name sizes itself to
+   that width (a container query), dropping the mark first, so it is never cut or pushed under the buttons. */
+.km .k-top .k-ttl { container-type: inline-size; }
+.km .k-top .k-ttl .k-brand .sc-brand { gap: 4px; }
+@media (max-width: 600px) {
+  .km .k-top .k-ttl .k-brand { overflow: visible; margin-bottom: 3px; }
+  .km .k-top .k-ttl .k-brand .sc-mark { width: 14px; height: 14px; }
+  .km .k-top .k-ttl .k-brand .sc-wm { font-size: min(13px, 100cqw / 5.6); letter-spacing: -0.03em; }
+}
+@media (max-width: 370px) {
+  .km .k-top .k-ttl .k-brand { display: block; }
+}
+@container (max-width: 92px) {
+  .km .k-top .k-ttl .k-brand .sc-mark { display: none; }
 }

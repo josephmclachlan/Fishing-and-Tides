@@ -1874,7 +1874,11 @@ const mapHooks: MapHooks = {
   styleLoaded: () => map.isStyleLoaded() === true,
   onStyle: (fn) => void (map.isStyleLoaded() ? fn() : map.once('style.load', fn)),
   onJobs: (fn) => void onMapWork(fn),
-  onIdle: (fn) => void (map.loaded() && map.areTilesLoaded() ? fn() : map.once('idle', fn)),
+  // Not MapLibre's 'idle': the moving wind and current particles keep the map repainting, so it may never come.
+  onIdle: (fn) => {
+    const poll = () => (map.isStyleLoaded() && map.areTilesLoaded() ? fn() : window.setTimeout(poll, 100));
+    poll();
+  },
 };
 const mapIfShown = () => {
   if (document.body.classList.contains('fc-open')) return;

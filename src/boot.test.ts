@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { bootHtml, DOTS, litDots } from './boot-view';
-import { createProgress, mapFraction } from './boot';
+import { createProgress, mapFraction, STRAGGLER_MS, stragglersDue } from './boot';
 import { ACTIVITY_ORDER } from './icons/activities';
 
 describe('launch progress', () => {
@@ -37,6 +37,16 @@ describe('launch progress', () => {
     p.settle('a');
     p.settle('a');
     expect(p.done()).toBe(1);
+  });
+});
+
+describe('stragglers', () => {
+  it('waits for everything until 85% is in, then gives the rest a second and a half', () => {
+    expect(stragglersDue(17, 17, null)).toBe(true);
+    expect(stragglersDue(10, 17, null)).toBe(false);
+    expect(stragglersDue(15, 17, 200)).toBe(false);
+    expect(stragglersDue(15, 17, STRAGGLER_MS)).toBe(true);
+    expect(stragglersDue(0, 0, null)).toBe(true);
   });
 });
 

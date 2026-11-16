@@ -17,6 +17,19 @@ import { BOOT_ID, bootHtml, DOTS, litDots } from './boot-view';
 export const CAP_MS = 8000;
 /** Shortest the launch screen shows, so the mark gets to draw instead of flashing. */
 export const MIN_MS = 700;
+/**
+ * Stragglers: once this share of the start-up feeds is in, the rest get STRAGGLER_MS more, then the app opens and
+ * they fill in as they land (the page is redrawn for each). One slow outside service (the town rain, say, which can
+ * take its full 15 s timeout when Open-Meteo is busy) then costs a second and a half, not the whole cap.
+ */
+export const STRAGGLER_SHARE = 0.85;
+export const STRAGGLER_MS = 1500;
+
+/** True when the launch should stop waiting for the feeds still out. Pure, for tests. */
+export function stragglersDue(settled: number, tracked: number, sinceShareMs: number | null): boolean {
+  if (tracked === 0 || settled >= tracked) return true;
+  return settled / tracked >= STRAGGLER_SHARE && sinceShareMs !== null && sinceShareMs >= STRAGGLER_MS;
+}
 
 export interface StepState {
   id: string;
@@ -118,12 +131,25 @@ export function createLaunch(steps: readonly string[], text: LaunchText, now = (
   };
   let changed: () => void = () => {};
   const extras: Promise<unknown>[] = [];
+  let tracked = 0;
+  let settled = 0;
+  let shareAt: number | null = null;
+  /** Redraws the page when a straggler lands after the screen has gone. */
+  let late: (() => void) | null = null;
   paint();
   return {
     track(step, p) {
       if (!open) return p;
       prog.add(step);
-      const settle = () => (prog.settle(step), paint(), changed());
+      tracked++;
+      const settle = () => {
+        settled++;
+        if (shareAt === null && settled / tracked >= STRAGGLER_SHARE) shareAt = now();
+        if (!open) return void late?.();
+        prog.settle(step);
+        paint();
+        changed();
+      };
       p.then(settle, settle);
       return p;
     },
@@ -132,7 +158,14 @@ export function createLaunch(steps: readonly string[], text: LaunchText, now = (
       prog.close();
       paint();
       const all = new Promise<void>((resolve) => {
-        changed = () => prog.complete() && resolve();
+        const check = () => {
+          if (prog.complete() || stragglersDue(settled, tracked, shareAt === null ? null : now() - shareAt)) resolve();
+        };
+        changed = () => {
+          check();
+          // Start the straggler clock when the share is first reached.
+          if (shareAt !== null) setTimeout(check, Math.max(0, STRAGGLER_MS - (now() - shareAt)) + 5);
+        };
         changed();
       });
       if (extra) extras.push(extra);
@@ -141,7 +174,7 @@ export function createLaunch(steps: readonly string[], text: LaunchText, now = (
         await all;
         for (let n = 0; n < extras.length; n = extras.length) await Promise.all(extras.slice(n));
       };
-      const capped = await Promise.race([
+      await Promise.race([
         everything().then(() => false),
         sleep(Math.max(0, CAP_MS - (now() - t0))).then(() => true),
       ]);
@@ -154,9 +187,17 @@ export function createLaunch(steps: readonly string[], text: LaunchText, now = (
         console.warn('first draw failed', err);
       }
       await raf2();
-      v.show(DOTS, capped && w ? text.slow(text.step(w)) : text.ready);
+      // Opened on the cap, or with stragglers still out: say which part is still coming.
+      v.show(DOTS, w ? text.slow(text.step(w)) : text.ready);
       await sleep(Math.max(reduced() ? 0 : 450, MIN_MS - (now() - t0)));
       open = false;
+      late = () => {
+        try {
+          draw();
+        } catch (err) {
+          console.warn('late draw failed', err);
+        }
+      };
       await v.gone();
     },
     hold(p) {
@@ -186,7 +227,7 @@ export interface MapHooks {
   onStyle(fn: () => void): void;
   /** Called with (done, total) as the waiting map drawing runs; total 0 when nothing waited. */
   onJobs(fn: (done: number, total: number) => void): void;
-  /** Called once when the map next settles with every tile drawn. */
+  /** Called once when every tile in view is loaded and drawn. */
   onIdle(fn: () => void): void;
 }
 
@@ -220,18 +261,15 @@ export function runMapLoader(hooks: MapHooks, text: MapLoadText, parent: HTMLEle
   wrap.innerHTML = bootHtml('map');
   const el = wrap.firstElementChild as HTMLElement;
   el.querySelector<HTMLElement>('.sc-lw')!.textContent = text.title;
-  // Hidden for the first 150 ms: a map already in the phone's store opens without a flash of loader.
-  el.style.opacity = '0';
+  // Shown every time the map opens (Joseph 2026-11-16: the loader appears whenever data has to load).
   parent.appendChild(el);
   const v = view(el);
-  const peek = setTimeout(() => (el.style.opacity = ''), 150);
   let finished = false;
   const finish = (capped: boolean) => {
     if (finished) return Promise.resolve();
     finished = true;
-    clearTimeout(peek);
     v.show(DOTS, capped ? text.slow : text.ready);
-    return sleep(el.style.opacity === '0' ? 0 : 450).then(() => v.gone());
+    return sleep(reduced() ? 0 : 450).then(() => v.gone());
   };
   return Promise.race([
     watchMap(hooks, (f, style) => !finished && f < 1 && v.show(litDots(f, 1), style ? text.drawing : text.tiles)).then(() => false),
