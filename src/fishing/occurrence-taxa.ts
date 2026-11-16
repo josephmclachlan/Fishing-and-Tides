@@ -12,6 +12,9 @@ export const OCCURRENCE_TAXA: Record<string, string[]> = {
   grunt: ['Haemulon carbonarium', 'Haemulon macrostomum', 'Haemulon flavolineatum', 'Haemulon sciurus', 'Haemulon plumierii', 'Haemulon bonariense', 'Haemulon parra', 'Haemulon aurolineatum', 'Anisotremus virginicus', 'Anisotremus surinamensis'],
   // Surf and sand fish (PLAN 7.122): pompano and palometa (EAT), permit and bonefish (SPORT).
   pompano: ['Trachinotus carolinus', 'Trachinotus goodei'],
+  // River-plume fish (PLAN 7.124): corvina (weakfish) and mullet (lisa).
+  corvina: ['Cynoscion virescens', 'Cynoscion jamaicensis'],
+  mullet: ['Mugil curema', 'Mugil liza'],
   permit: ['Trachinotus falcatus'],
   bonefish: ['Albula vulpes', 'Albula nemoptera'],
   barracuda: ['Sphyraena barracuda'],
