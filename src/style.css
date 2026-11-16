@@ -993,3 +993,6 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 
 .boat .nw-list { margin: 2px 0 6px; padding: 0; list-style: none; font: 11px/1.35 var(--mono, monospace); color: var(--amber); max-height: 9em; overflow-y: auto; }
 .boat .nw-list li { margin: 0 0 4px; overflow-wrap: anywhere; }
+
+/* Link from the fishing panel to the DISPATCH page (kill, bleed, ice). */
+.fish-link { color: var(--amber); text-decoration: underline; text-underline-offset: 3px; }

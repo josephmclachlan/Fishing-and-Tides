@@ -402,3 +402,7 @@
 /* Banned species: catch and clean notes are emergency information only. */
 .gd-illegal { padding: 12px 14px; background: color-mix(in srgb, var(--fc-lv0) 22%, var(--fc-card)); border-left: 8px solid var(--fc-lv0); }
 .gd-illegal h4 { color: var(--fc-ink); }
+/* Link to the DISPATCH page (kill, bleed, ice) above the cleaning diagram. */
+.gd a.gd-dispatch { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px; margin: 12px 0 0; padding: 12px 14px; border: 2px solid var(--fc-ink); text-decoration: none; font-size: 14px; }
+.gd a.gd-dispatch b { font-family: var(--fc-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.gd a.gd-dispatch:hover { background: var(--fc-ink); color: var(--fc-bg); }
