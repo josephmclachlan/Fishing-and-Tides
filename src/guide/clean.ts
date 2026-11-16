@@ -290,6 +290,14 @@ const DISPATCH_LINK = W(
 );
 const DISPATCH_GO = W('Kill, bleed, ice', 'Matar, desangrar, hielo');
 
+const DISPATCH_CATCH = W(
+  'Just caught it? Kill, bleed and ice it at once: it tastes better, keeps longer and is safer to eat.',
+  '¿Recién pescado? Mátalo, desángralo y ponlo en hielo enseguida: sabe mejor, dura más y es más seguro.',
+);
+/** The link to the kill, bleed and ice page, for the catch tab (the clean tab has its own, above the diagram). */
+export const dispatchLinkHtml = (lang: Lang): string =>
+  `<a class="gd-dispatch" href="#dispatch"><span>${esc(tr(DISPATCH_CATCH, lang))}</span><b>${esc(tr(DISPATCH_GO, lang))} →</b></a>`;
+
 export function cleanHtml(k: CleanKey, lang: Lang, notes?: Txt): string {
   const d = CLEAN[k];
   const name = tr(d.name, lang);

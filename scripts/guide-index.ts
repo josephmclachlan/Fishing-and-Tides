@@ -29,6 +29,7 @@ const { guessLook } = await import('../src/guide/identify.ts');
 type Species = import('../src/guide/types.ts').Species;
 type Photo = import('../src/guide/types.ts').Photo;
 type Look = import('../src/guide/types.ts').Look;
+type CiguaSize = import('../src/guide/types.ts').CiguaSize;
 
 /** A researcher's description of its looks (research/look/<id>.json), with any unknown word dropped. */
 function readLook(id: string): Look | undefined {
@@ -63,6 +64,27 @@ function readEdible(id: string): Partial<Species> | undefined {
     return out as Partial<Species>;
   } catch {
     problems.push(`edible/out/${id}.json does not parse`);
+    return undefined;
+  }
+}
+
+/** Ciguatera size advice (research/cigua-size/out/<id>.json): kept only with a known basis and advice in both languages. */
+function readCiguaSize(id: string): CiguaSize | undefined {
+  const f = join(SRC, 'research', 'cigua-size', 'out', `${id}.json`);
+  if (!existsSync(f)) return undefined;
+  try {
+    const r = JSON.parse(readFileSync(f, 'utf8')) as CiguaSize;
+    if (!['published', 'estimate', 'none'].includes(r.basis) || !r.advice?.en?.trim() || !r.advice?.es?.trim()) throw new Error('basis or advice');
+    const num = (v: unknown) => (typeof v === 'number' && v > 0 && v < 1000 ? v : undefined);
+    return {
+      basis: r.basis,
+      maxKg: r.basis === 'none' ? undefined : num(r.maxKg),
+      maxCm: r.basis === 'none' ? undefined : num(r.maxCm),
+      advice: { en: r.advice.en.trim(), es: r.advice.es.trim() },
+      sources: Array.isArray(r.sources) && r.sources.length ? r.sources.map(String) : undefined,
+    };
+  } catch (e) {
+    problems.push(`cigua-size/out/${id}.json: ${(e as Error).message}`);
     return undefined;
   }
 }
@@ -103,6 +125,8 @@ for (const f of readdirSync(outDir).filter((n) => n.endsWith('.json')).sort()) {
     Object.assign(s, edited);
     recheck++;
   }
+  const csz = readCiguaSize(id);
+  if (csz) s.eat = { ...s.eat, ciguaSize: csz };
   if (!ID.test(id) || s.id !== id) problems.push(`${f}: id "${s.id}" does not match the file name`);
   else if (s.tier !== 'full' && s.tier !== 'list') problems.push(`${f}: tier "${s.tier}"`);
   else if (!isGroup(s.group)) problems.push(`${f}: group "${s.group}"`);

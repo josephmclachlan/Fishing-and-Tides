@@ -83,7 +83,7 @@ export interface ForecastDeps extends FcDeps {
   /** Open the CORAL page at the reef nearest this spot (PLAN 7.66); no button when left out. */
   openCoral?: (at: [number, number]) => void;
   /** The species guide (PLAN 7.91). */
-  openGuide?: () => void;
+  openGuide?: (mode?: 'identify') => void;
 }
 
 const lvTok = (l: Level | null, p: 'lv' | 'on' | 'ac') => (l === null ? `${p}n` : `${p}${l}`) as TokenName;
@@ -130,6 +130,7 @@ export function mountForecastPage(deps: ForecastDeps) {
   $('fc-scheme').addEventListener('click', () => (put(storage, SCHEME_KEY, scheme() === 'dark' ? 'light' : 'dark'), applyScheme()));
   el.querySelector('#fc-coral')?.addEventListener('click', () => deps.openCoral?.(spot().lngLat));
   el.querySelector('#fc-guide')?.addEventListener('click', () => deps.openGuide?.());
+  el.querySelector('#fc-idlink')?.addEventListener('click', () => deps.openGuide?.('identify'));
   el.querySelectorAll<HTMLElement>('.fc-lang [data-lang]').forEach((b) =>
     b.addEventListener('click', () => {
       const l = b.dataset.lang as 'en' | 'es';
