@@ -663,6 +663,10 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 .sw-weed { width: 22px; height: auto; color: var(--sw); line-height: 0; }
 .sw-sarg { --sw: var(--amber); }
 .sw-none { visibility: hidden; }
+.sw-glyph { width: 16px; height: 16px; display: grid; place-items: center; }
+.sw-glyph svg { width: 16px; height: 16px; overflow: visible; }
+.sw-dimg { opacity: .55; }
+.sw-dash { height: 0; border-top: 2px dashed var(--sw); }
 /* Moving-layer key (layers/motion-key.ts): top-left of the map, under the top bar. */
 .mkey { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); z-index: 4; display: flex; gap: 12px; padding: 4px 10px; font: inherit; font-size: 10px; letter-spacing: 1px; color: var(--amber); background: var(--bg); border: 1px solid var(--amber-dim); cursor: pointer; }
 .mkey[hidden] { display: none; }

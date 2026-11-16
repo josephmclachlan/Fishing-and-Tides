@@ -11,7 +11,8 @@ import type { FeatureCollection } from 'geojson';
 import { firstSymbolId } from '../map';
 import type { RainCellsData } from '../adapters/rain-cells';
 import { extrapolate, findCells, HORIZON_MIN, motion, type Motion } from '../rain/nowcast';
-import { onSchemeChange, paintColour as cssColour } from './paint';
+import { onSchemeChange, paintColour as cssColour, themeVar } from './paint';
+import { addGlyphImages, imageId } from '../icons/map-glyphs';
 import type { DriftMotion } from './drift-motion';
 
 const ARROW_MIN = 30;
@@ -74,10 +75,13 @@ export function mountRainLayer(map: Map, drift: DriftMotion | null = null) {
       features: cells.map((c) => {
         const lat = c.lngLat[1];
         const to: [number, number] = [c.lngLat[0] + deg((m!.eastKmh * ARROW_MIN) / 60) / Math.cos((lat * Math.PI) / 180), lat + deg((m!.northKmh * ARROW_MIN) / 60)];
-        return { type: 'Feature', properties: { heavy: c.peakMmH >= 15 }, geometry: { type: 'LineString', coordinates: [c.lngLat, to] } };
+        const brg = (Math.atan2(m!.eastKmh, m!.northKmh) * 180) / Math.PI;
+        return { type: 'Feature', properties: { heavy: c.peakMmH >= 15, brg }, geometry: { type: 'LineString', coordinates: [c.lngLat, to] } };
       }),
     };
-    const heads: FeatureCollection = { type: 'FeatureCollection', features: fc.features.map((f) => ({ type: 'Feature', properties: f.properties, geometry: { type: 'Point', coordinates: (f.geometry as GeoJSON.LineString).coordinates[1] } })) };
+    // The drop sits on the cell now; an arrowhead at the end of the dashed track shows where it will be in 30 minutes.
+    const pt = (f: (typeof fc.features)[number], i: number, kind: string) => ({ type: 'Feature' as const, properties: { ...f.properties, kind }, geometry: { type: 'Point' as const, coordinates: (f.geometry as GeoJSON.LineString).coordinates[i] } });
+    const heads: FeatureCollection = { type: 'FeatureCollection', features: [...fc.features.map((f) => pt(f, 1, 'tip')), ...fc.features.map((f) => pt(f, 0, 'cell'))] };
     (map.getSource('rn-move') as GeoJSONSource | undefined)?.setData(fc);
     (map.getSource('rn-head') as GeoJSONSource | undefined)?.setData(heads);
   };
@@ -99,9 +103,16 @@ export function mountRainLayer(map: Map, drift: DriftMotion | null = null) {
     map.addSource('rn-move', { type: 'geojson', data: EMPTY });
     map.addSource('rn-head', { type: 'geojson', data: EMPTY });
     const amber = cssColour('--amber', '#ffb000');
-    const red = cssColour('--red', '#ff3b30');
-    map.addLayer({ id: 'rn-move', type: 'line', source: 'rn-move', paint: { 'line-color': ['case', ['get', 'heavy'], red, amber], 'line-width': 2, 'line-dasharray': [2, 1] } }, before);
-    map.addLayer({ id: 'rn-head', type: 'circle', source: 'rn-head', paint: { 'circle-radius': 3, 'circle-color': ['case', ['get', 'heavy'], red, amber], 'circle-stroke-color': '#000', 'circle-stroke-width': 1 } }, before);
+    map.addLayer({ id: 'rn-move', type: 'line', source: 'rn-move', paint: { 'line-color': ['case', ['get', 'heavy'], themeVar('--sev-caution', amber), themeVar('--ink', '#0A1626')], 'line-width': 2, 'line-dasharray': [2, 1.5] } }, before);
+    addGlyphImages(map);
+    map.addLayer({
+      id: 'rn-head', type: 'symbol', source: 'rn-head',
+      layout: {
+        'icon-image': ['case', ['==', ['get', 'kind'], 'tip'], ['case', ['get', 'heavy'], imageId('head', 'caution'), imageId('head', 'ink')], ['case', ['get', 'heavy'], imageId('drop', 'caution'), imageId('drop', 'ink')]],
+        'icon-rotate': ['case', ['==', ['get', 'kind'], 'tip'], ['get', 'brg'], 0], 'icon-rotation-alignment': 'map',
+        'icon-size': ['case', ['==', ['get', 'kind'], 'tip'], 0.55, 0.75], 'icon-allow-overlap': true, 'icon-ignore-placement': true,
+      },
+    }, before);
     ready = true;
     draw();
   };
