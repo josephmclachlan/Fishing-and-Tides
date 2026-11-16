@@ -11,7 +11,7 @@ import { METRIC_BY_ID, type MetricEnv } from './registry';
 import { clarityLevel } from '../physics/clarity';
 import { fishWindow } from './fish-window';
 
-export type Activity = 'surf' | 'fish' | 'dive' | 'boat' | 'swim';
+export type Activity = 'surf' | 'fish' | 'dive' | 'boat' | 'swim' | 'paddle';
 
 /**
  * What counts toward "best" for each activity. Only metrics with a better end vote. SURF is judged
@@ -25,6 +25,8 @@ export const BEST_METRICS: Readonly<Record<Activity, readonly string[]>> = {
   boat: ['comfort', 'wind', 'gust', 'squall', 'rain'],
   // The beach-day score already holds rip, shore break, wind, rain, heat, UV and water (physics/swim.ts).
   swim: ['swim'],
+  // The paddling score already holds offshore wind, wind, sea, launch surf, rip, current, storms and heat (physics/paddle.ts).
+  paddle: ['paddle'],
 };
 
 /** The metrics that vote for `activity` at `spot`: at a surf break the break score already contains wind and rain. */

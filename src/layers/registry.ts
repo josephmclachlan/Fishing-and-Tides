@@ -46,7 +46,7 @@ export const LAYERS: readonly LayerDef[] = [
   { id: 'ais', group: 'USE', mapPrefixes: ['ai-'] },
 ];
 
-export type ActivityId = 'all' | 'fishing' | 'dive' | 'spear' | 'surf' | 'swim' | 'sail';
+export type ActivityId = 'all' | 'fishing' | 'dive' | 'spear' | 'surf' | 'swim' | 'sail' | 'paddle';
 export interface Activity { id: ActivityId; layers: readonly LayerId[] }
 
 const ALL_IDS = LAYERS.map((l) => l.id);
@@ -62,6 +62,8 @@ export const ACTIVITIES: readonly Activity[] = [
   // A beach day (PLAN 7.68): rip channels and the waves that feed them, the water itself (clarity, temperature, sargassum),
   // rain and storms.
   { id: 'swim', layers: ['lightning', 'weather', 'sargassum', 'clarity', 'sst', 'waves', 'rip', 'reefs'] },
+  // Paddling (kayak, SUP): the wind that blows off the land, the sea and the rips at the launch, storms, the current to paddle against.
+  { id: 'paddle', layers: ['lightning', 'wind', 'waves', 'currents', 'rip', 'weather', 'sargassum', 'reefs', 'zones', 'anchorages'] },
   { id: 'sail', layers: ['wind', 'weather', 'lightning', 'obs', 'waves', 'currents', 'depth', 'seamarks', 'anchorages', 'ais', 'reefs'] },
 ];
 

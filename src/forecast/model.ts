@@ -29,15 +29,15 @@ import { stingerGuess, type OutingMode, type OutingReason, type OutingScore } fr
 import type { SpearStatus } from '../rules';
 import { SNORKEL_SPOTS, type SnorkelAccess } from '../data/snorkel-spots';
 import { surgeBand, type SurgeBand } from '../physics/surge';
-import { METRIC_BY_ID, biteAt, surfHourFor, swimAt, type MetricEnv, type SwimDetail } from '../metrics/registry';
+import { METRIC_BY_ID, biteAt, paddleAt, surfHourFor, swimAt, type MetricEnv, type PaddleDetail, type SwimDetail } from '../metrics/registry';
 import { surfDetailAt } from '../metrics/surf-estimate';
 import { ALIKE, planDays, spotsFor, type Plan, type PlanActivity } from '../metrics/plan';
 import type { Spot } from '../metrics/forecast';
 import type { SurfBand, SurfQuality } from '../surf-quality';
 
-export type FcActivity = 'fish' | 'surf' | 'swim' | 'snorkel' | 'dive' | 'spear' | 'sail';
+export type FcActivity = 'fish' | 'surf' | 'swim' | 'snorkel' | 'dive' | 'spear' | 'sail' | 'paddle';
 /** In Joseph's order, SWIM (a beach day) beside SURF. */
-export const FC_ACTIVITIES: readonly FcActivity[] = ['fish', 'surf', 'swim', 'snorkel', 'dive', 'spear', 'sail'];
+export const FC_ACTIVITIES: readonly FcActivity[] = ['fish', 'surf', 'swim', 'snorkel', 'dive', 'spear', 'sail', 'paddle'];
 export const isFcActivity = (x: unknown): x is FcActivity => typeof x === 'string' && (FC_ACTIVITIES as readonly string[]).includes(x);
 /** plan.ts calls sailing BOAT. */
 export const planActivity = (a: FcActivity): PlanActivity => (a === 'sail' ? 'boat' : a);
@@ -74,6 +74,7 @@ export const LEVEL_CUTS: Readonly<Record<Exclude<FcActivity, 'surf'>, readonly [
   spear: [20, 40, 70, 85],
   sail: [25, 50, 75, 90],
   swim: [20, 40, 70, 85],
+  paddle: [20, 40, 70, 85],
 };
 /** Under this wind, kt, there is too little to sail: SAIL reads POOR at best. */
 export const SAIL_LIGHT_KT = 5;
@@ -180,6 +181,7 @@ export interface FcRead {
   water?: WaterRead;
   sail?: SailRead;
   swim?: SwimDetail;
+  paddle?: PaddleDetail;
 }
 
 const localHour = (ms: number, tz: number) => ((((ms + tz * H) % 864e5) + 864e5) % 864e5) / H;
@@ -275,6 +277,11 @@ export function readAt(deps: FcDeps, a: FcActivity, spot: Spot, ms: number, sky 
     const d = swimAt({ env, spot: spot.name, lng, lat, ms, sky: sky(ms, lat, lng) });
     if (!d) return none;
     return { ...base, score: d.score, share: d.score / 100, level: levelFor('swim', d.score), swim: d };
+  }
+  if (a === 'paddle') {
+    const d = paddleAt({ env, spot: spot.name, lng, lat, ms, sky: sky(ms, lat, lng) });
+    if (!d) return none;
+    return { ...base, score: d.score, share: d.score / 100, level: levelFor('paddle', d.score), paddle: d };
   }
   // SAIL: sea comfort is the headline; wind, gusts and squalls ride along.
   const s = sky(ms, lat, lng);

@@ -35,7 +35,7 @@ const KEY = 'ft.fishing.species';
 const REACH_KEY = 'ft.fishing.reach';
 const MODE_KEY = 'ft.fishing.mode';
 const SPEAR_KEY = 'ft.spear.target';
-const REACHES: readonly Reach[] = ['all', 'shore', 'boat'];
+const REACHES: readonly Reach[] = ['all', 'shore', 'kayak', 'boat'];
 const SPOT_RADIUS_KM = 15;
 /** Habitat candidates re-ranked by today's water for BEST SPOTS. */
 const SPOT_CANDIDATES = 15;
@@ -144,7 +144,7 @@ export function mountFishingHud(root: HTMLElement, map: Map, layer: FishingLayer
       const cig = ciguaNoteHtml(sp.id, sp.ciguatera);
       $('fish-cig').innerHTML = cig;
       $('fish-cig').hidden = !cig;
-      const boatCig = reach === 'shore' ? '' : ciguaBoatHtml(OFFSHORE.filter((o) => o.modes.includes(mode) && o.ciguatera).map((o) => o.id));
+      const boatCig = reach === 'shore' || reach === 'kayak' ? '' : ciguaBoatHtml(OFFSHORE.filter((o) => o.modes.includes(mode) && o.ciguatera).map((o) => o.id));
       $('fish-cig-boat').innerHTML = boatCig;
       $('fish-cig-boat').hidden = !boatCig;
     }

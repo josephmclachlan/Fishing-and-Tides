@@ -39,6 +39,7 @@ import './forecast.css';
 
 const H = 3.6e6, DAY = 864e5;
 const TZ = REGION.tzOffsetH;
+import { loadCraft, saveCraft } from '../paddle-craft';
 const ACT_KEY = 'ft.fcActivity';
 const SPOT_KEY = 'ft.fcSpot';
 const SCHEME_KEY = 'ft.fcScheme';
@@ -198,7 +199,7 @@ export function mountForecastPage(deps: ForecastDeps) {
    */
   const ensureData = () => {
     const sp = spot();
-    const key = `${act}|${sp.name}|${nowHour()}`;
+    const key = `${act}|${sp.name}|${nowHour()}|${act === 'paddle' ? loadCraft(storage) : ''}`;
     if (deps.version) {
       const k = `${key}|${dataVer()}`;
       if (k === planKey) return;
@@ -225,7 +226,7 @@ export function mountForecastPage(deps: ForecastDeps) {
   const weeks = new Map<string, { plan: Plan | null; tl: TimelineHour[] }>();
   const KEEP_WEEKS = 30;
   /** The feeds' version, and a five-minute clock so nothing kept outlives what the old 60 s redraw would show by much. */
-  const dataVer = () => `${deps.version?.() ?? ''}|${Math.floor(Date.now() / 3e5)}`;
+  const dataVer = () => `${deps.version?.() ?? ''}|${Math.floor(Date.now() / 3e5)}|${act === 'paddle' ? loadCraft(storage) : ''}`;
   /** One reading, kept per feed version (the spot cards, their strips and the day bars ask for the same hours). */
   const reads = new Map<string, FcRead>();
   let readsVer = '';
@@ -706,6 +707,21 @@ export function mountForecastPage(deps: ForecastDeps) {
     }, 230);
     renderTabs();
   };
+  // PADDLE: kayak or board. The limits differ (physics/paddle.ts CRAFT), so the score, the week and the charts are read again.
+  const syncCraft = () => {
+    const c = loadCraft(storage);
+    el.querySelectorAll<HTMLElement>('#fc-craft [data-craft]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.craft === c)));
+  };
+  $('fc-craft').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-craft]');
+    if (!b || (b.dataset.craft !== 'kayak' && b.dataset.craft !== 'sup')) return;
+    saveCraft(storage, b.dataset.craft);
+    syncCraft();
+    sel = null;
+    cursorI = null;
+    render(false);
+  });
+  syncCraft();
   const stepAct = (dir: 1 | -1) => setAct(FC_ACTIVITIES[(FC_ACTIVITIES.indexOf(act) + dir + FC_ACTIVITIES.length) % FC_ACTIVITIES.length]);
   $('fc-tabs').addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-act]');

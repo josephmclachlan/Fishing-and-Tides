@@ -19,6 +19,9 @@ import { compassName } from '../spot-charts';
 import type { Spot } from '../metrics/forecast';
 import type { Plan, PlanDay } from '../metrics/plan';
 import { tipBand } from './tiles';
+import { CRAFT } from '../physics/paddle';
+import { D2R } from './kit';
+import type { PaddleDetail } from '../metrics/registry';
 import { skyKind, type RowSpec, type SkyKind } from './charts';
 import {
   beaufort, chopFor, dayWeather, driftFor, surfSize as surfSizeOf, uvLevel, waterAt,
@@ -68,6 +71,7 @@ export function headline(r: FcRead): { value: string; unit: string } {
     }
     case 'fish':
     case 'swim':
+    case 'paddle':
       return { value: n0(r.score), unit: '/100' };
     case 'snorkel':
     case 'dive':
@@ -117,6 +121,7 @@ export function reasons(r: FcRead): string[] {
     return r.water.access ? [sentence(t(`snk.access.${r.water.access}` as Key)), ...why] : why;
   }
   if (r.swim) return r.swim.reasons.length ? r.swim.reasons.slice(0, 3).map((k) => t(`swim.r.${k}` as Key)) : [t('fc.reason.none')];
+  if (r.paddle) return r.paddle.reasons.length ? r.paddle.reasons.slice(0, 3).map((k) => t(`paddle.r.${k}` as Key)) : [t('fc.reason.none')];
   if (r.sail) {
     const s = r.sail, out: string[] = [];
     if (s.squall !== null && s.squall >= 1) out.push(`${t('fc.squall')}: ${t(`fc.squall.${Math.min(2, Math.round(s.squall))}` as Key).toLowerCase()}`);
@@ -156,10 +161,29 @@ export function dayHoursOf(tl: readonly TimelineHour[], ms: number): TimelineHou
   return i0 >= 0 ? tl.slice(i0, i0 + 24) : [];
 }
 
+/**
+ * Where the wind pushes a paddler from the launch (physics/paddle.ts): the direction it blows TOWARD relative to the
+ * seaward normal (0 = straight out to sea), which side of the shore it is, and the offshore part of it.
+ */
+export function pushOf(x: PaddleDetail): { rel: number | null; side: 'offshore' | 'onshore' | 'cross' | 'calm'; v: string; sub: string; lv: Level | null } {
+  if (x.effWindKt === null || x.windFromDeg === null || x.facingDeg === null) return { rel: null, side: 'calm', v: dash, sub: '', lv: null };
+  const rel = ((((x.windFromDeg + 180 - x.facingDeg) % 360) + 540) % 360) - 180;
+  const c = Math.cos(rel * D2R);
+  const L = CRAFT[x.craft];
+  if (x.effWindKt < 3) return { rel, side: 'calm', v: `${n0(x.effWindKt)} kt`, sub: t('fc.push.calm'), lv: 4 };
+  const side = c > 0.5 ? 'offshore' : c < -0.5 ? 'onshore' : 'cross';
+  const off = Math.max(0, c) * x.effWindKt;
+  const lv: Level = side === 'offshore' ? (off >= L.offCap ? 0 : off >= L.offEasy ? 2 : 3) : 4;
+  return { rel, side, v: `${n0(side === 'offshore' ? off : x.effWindKt)} kt`, sub: t(`fc.push.${side}` as Key), lv };
+}
+/** The paddle hero's words: how far from the launch to go, or why not. */
+export const paddleWords = (x: PaddleDetail): string => (x.rangeKm > 0 ? t('fc.paddle.range', { km: dec(x.rangeKm, 1) }) : t('fc.paddle.stay'));
+
 /** The hero's words line under the number. */
 export function heroWords(r: FcRead, ctx: Pick<ViewCtx, 'plan' | 'ms'>): string {
   if (r.score === null && !r.sail) return '';
   const win = ctx.plan?.days[planDayOf(ctx.plan, ctx.ms)];
+  if (r.paddle) return paddleWords(r.paddle);
   if (r.swim) return `${t('fc.ripRisk')} ${t(`fc.ripw.${r.swim.rip}` as Key).toLowerCase()} · ${t('fc.shorebreak').toLowerCase()} ${n1(r.swim.breakerM)} m`;
   if (r.fish) return win ? `${t('fc.bestWindow')} ${t('fc.window', { from: localClock(win.startMs), to: localClock(win.endMs) })}` : '';
   if (r.surf) return t(`fc.size.${r.surf.size}` as Key);
@@ -185,7 +209,7 @@ export interface HeroView {
 }
 export function heroView(r: FcRead, ctx: Pick<ViewCtx, 'plan' | 'ms'>): HeroView {
   const hl = headline(r);
-  const score = r.score === null ? null : r.activity === 'fish' || r.activity === 'swim' ? null : `${n0(r.score)}/100`;
+  const score = r.score === null ? null : r.activity === 'fish' || r.activity === 'swim' || r.activity === 'paddle' ? null : `${n0(r.score)}/100`;
   return {
     label: t(`fc.metric.${r.activity}` as Key), value: hl.value, unit: hl.unit, words: heroWords(r, ctx),
     level: r.level, word: levelWord(r), score, segs: r.share === null ? 0 : Math.max(0, Math.min(10, r.share * 10)), reasons: reasons(r),
@@ -224,8 +248,8 @@ export function bestTimeView(plan: Plan | null, read: (ms: number) => FcRead, he
 // --- Tiles ---------------------------------------------------------------------------------------------------------
 
 export type TileKind =
-  | 'weather' | 'swell' | 'wind' | 'tide' | 'window' | 'water' | 'uv' | 'rain' | 'catch' | 'moon' | 'rip' | 'breaker'
-  | 'feels' | 'chop' | 'current' | 'reef' | 'stingers' | 'surge' | 'gust' | 'boat' | 'squall' | 'sea';
+  | 'push' | 'weather' | 'swell' | 'wind' | 'tide' | 'window' | 'water' | 'uv' | 'rain' | 'catch' | 'moon' | 'rip' | 'breaker'
+  | 'feels' | 'chop' | 'current' | 'reef' | 'stingers' | 'surge' | 'gust' | 'boat' | 'squall' | 'sea' | 'push';
 
 /** The numbers a tile's picture is drawn from (each kind reads its own). */
 export interface TileViz {
@@ -244,6 +268,8 @@ export interface TileViz {
   at?: number;
   turnAt?: number | null;
   turnHigh?: boolean;
+  /** Where the wind blows TOWARD, degrees clockwise from the seaward normal of the launch (0 = straight out to sea), and its speed, kt (the PUSH tile). */
+  rel?: number | null;
   /** How many things to draw (fish species, jellies). */
   count?: number;
 }
@@ -369,6 +395,21 @@ export function tilesFor(r: FcRead, ctx: ViewCtx): TileView[] {
     kind: 'current', k: t('fc.current'), v: kt === null ? dash : `${n1(kt)} kt`, sub: [kt === null ? '' : t(`fc.drift.${driftFor(kt)}` as Key)], tip: tipOf('current', kt), lv: null, viz: { v: kt },
   });
   const hourWind = h ? { kt: h.windKt, from: h.windFromDeg } : { kt: null, from: null };
+
+  if (r.paddle) {
+    const x = r.paddle;
+    const push = pushOf(x);
+    return [
+      weather(),
+      { kind: 'push', k: t('fc.push'), v: push.v, sub: [push.sub], tip: t(`tip.push.${push.side}` as Key), lv: push.lv, viz: { v: x.effWindKt, rel: push.rel } },
+      { ...windTile(x.windKt, x.windFromDeg, (y) => y.read.paddle?.windKt, x.gustKt === null || x.windKt === null || x.gustKt - x.windKt < 3 ? '' : t('fc.reason.gust', { kt: n0(x.gustKt) })), tip: tipOf('wind', x.effWindKt) },
+      { kind: 'sea', k: t('fc.swell'), v: x.hsM === null ? dash : `${n1(x.hsM)} m`, sub: [[x.tpS === null ? '' : `${n0(x.tpS)} s`, x.hsM === null ? '' : t(`fc.swellw.${tipBand('swell', x.hsM)}` as Key)].filter(Boolean).join(' · ')], tip: tipOf('swell', x.hsM), lv: null, viz: { v: x.hsM } },
+      entry(x.breakerM, x.rip),
+      current(x.currentKt),
+      uvTile(x.uv ?? h?.uv ?? null),
+      water(),
+    ];
+  }
 
   if (r.surf) {
     const s = r.surf;

@@ -22,6 +22,7 @@ export const ICONS: Record<FcActivity, string> = {
   snorkel: '<path class="mv" d="M2 9h13v6.5H10L8.5 13 7 15.5H2z"/><path d="M20 2v13a5 5 0 0 1-5 5h-2"/>',
   dive: '<path class="mv" d="M12 2v13M6.5 10l5.5 5.5 5.5-5.5"/><path d="M2 20h20"/>',
   spear: '<path class="mv" d="M3 21L19 5"/><path d="M14 4h6v6"/><path d="M3 13h5M11 21v-5"/>',
+  paddle: '<path d="M2 16l6 6 2.5-3-5.5-5.5z"/><path d="M22 8l-6-6-2.5 3 5.5 5.5z"/><path class="mv" d="M7.5 16.5l9-9"/>',
   sail: '<path class="mv" d="M11 2v15M11 3l8 14h-8z"/><path d="M8 7l-5 10h5"/><path d="M2 21c5 1.5 15 1.5 20 0"/>',
 };
 export const icon = (a: FcActivity) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[a]}</svg>`;
@@ -65,7 +66,7 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
         <button type="button" class="fc-rarrow fc-rr" id="fc-rr" tabindex="-1" aria-hidden="true" hidden>&gt;</button>
       </div>
     </section>
-    <nav class="fc-tabs fc-in" id="fc-tabs" role="tablist" aria-label="${esc(t('fc.actGroup'))}">${o.acts.map(tab).join('')}<span class="fc-tab-bar" id="fc-tab-bar" aria-hidden="true"></span></nav>
+    <nav class="fc-tabs fc-in" id="fc-tabs" style="--nch:${o.acts.reduce((n, a) => n + t(`fc.act.${a}` as Key).length, 0)}" role="tablist" aria-label="${esc(t('fc.actGroup'))}">${o.acts.map(tab).join('')}<span class="fc-tab-bar" id="fc-tab-bar" aria-hidden="true"></span></nav>
     <section class="fc-hero fc-bleed" id="fc-hero" aria-labelledby="fc-k">
       <canvas id="fc-fx" aria-hidden="true"></canvas>
       <canvas id="fc-ov" aria-hidden="true"></canvas>
@@ -75,6 +76,7 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
         <div class="fc-h-num" id="fc-numbox"><span class="fc-hn" id="fc-hn"><span id="fc-num">--</span><span class="fc-u" id="fc-unit"></span></span></div>
         <p class="fc-h-words" id="fc-words"></p>
         <div class="fc-h-rate" id="fc-rate"></div>
+        <div class="fc-craft fc-mono" id="fc-craft" role="radiogroup" aria-label="${esc(t('paddle.craft'))}">${(['kayak', 'sup'] as const).map((c) => `<button type="button" role="radio" aria-checked="false" data-craft="${c}">${esc(t(`paddle.craft.${c}` as Key))}</button>`).join('')}</div>
         <ul class="fc-chips fc-mono" id="fc-why"></ul>
         <button type="button" class="fc-best" id="fc-best" hidden></button>
       </div>

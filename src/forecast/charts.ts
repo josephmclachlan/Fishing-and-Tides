@@ -101,6 +101,18 @@ function activityRows(a: FcActivity): RowSpec[] {
         tide,
       ];
     }
+    case 'paddle': {
+      // Paddling: the score, then what takes a paddler off course (the wind, with the part that blows out to sea), the sea, the launch surf and the current.
+      const push: RowSpec = { id: 'push', kind: 'bars', value: (h) => h.read.paddle?.offshoreKt ?? null, minMax: 12, decimals: 0, label: 'peak' };
+      return [
+        { id: 'paddle', kind: 'bars', value: (h) => h.read.score, level: (h) => h.read.level, minMax: 100, cap: 100, decimals: 0, label: 'peak' },
+        { ...wind, level: (h) => (h.read.paddle ? (h.read.paddle.reasons.includes('offshore') || h.read.paddle.reasons.includes('wind') ? 2 : 3) : null) },
+        push,
+        { id: 'swell', kind: 'bars', value: (h) => h.read.paddle?.hsM ?? null, minMax: 1, decimals: 1, label: 'peak' },
+        { id: 'shorebreak', kind: 'bars', value: (h) => h.read.paddle?.breakerM ?? null, minMax: 1, decimals: 1, label: 'peak' },
+        { id: 'current', kind: 'bars', value: (h) => h.read.paddle?.currentKt ?? null, minMax: 1, decimals: 1, label: 'peak' },
+      ];
+    }
     case 'sail':
       return [
         { ...wind, level: (h) => h.read.level },

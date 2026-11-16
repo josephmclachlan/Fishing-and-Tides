@@ -37,8 +37,8 @@ import { votersFor } from './best-today';
 import { biteTone, fishWindow } from './fish-window';
 import { METRIC_BY_ID, type MetricEnv, type Tone } from './registry';
 
-export type PlanActivity = 'surf' | 'fish' | 'snorkel' | 'dive' | 'spear' | 'boat' | 'swim';
-export const PLAN_ACTIVITIES: readonly PlanActivity[] = ['surf', 'fish', 'snorkel', 'dive', 'spear', 'boat', 'swim'];
+export type PlanActivity = 'surf' | 'fish' | 'snorkel' | 'dive' | 'spear' | 'boat' | 'swim' | 'paddle';
+export const PLAN_ACTIVITIES: readonly PlanActivity[] = ['surf', 'fish', 'snorkel', 'dive', 'spear', 'boat', 'swim', 'paddle'];
 export const isPlanActivity = (x: unknown): x is PlanActivity => typeof x === 'string' && (PLAN_ACTIVITIES as readonly string[]).includes(x);
 
 /** The headline score each activity is shown and ranked by, and its full scale. */
@@ -50,6 +50,7 @@ export const HEADLINE: Readonly<Record<PlanActivity, { id: string; max: number }
   spear: { id: 'outing', max: 100 },
   boat: { id: 'comfort', max: 100 },
   swim: { id: 'swim', max: 100 },
+  paddle: { id: 'paddle', max: 100 },
 };
 
 /** Outing score 0..100 at a spot and hour, SNORKEL at 2 m or DIVE at 6 m (the DIVE & SNORKEL panel's), or null without data. */
@@ -113,7 +114,7 @@ function fishDays(env: MetricEnv, spot: Spot, nowMs: number, days: number): (Pla
 }
 
 /** Surf, fish or boat at one spot: each day's window by the BEST TIME button's search, ranked on the absolute scale above. */
-function metricDays(env: MetricEnv, activity: 'surf' | 'fish' | 'boat' | 'swim', spot: Spot, nowMs: number, days: number): (PlanDay | null)[] {
+function metricDays(env: MetricEnv, activity: 'surf' | 'fish' | 'boat' | 'swim' | 'paddle', spot: Spot, nowMs: number, days: number): (PlanDay | null)[] {
   if (activity === 'fish') return fishDays(env, spot, nowMs, days);
   const ids = votersFor(activity, spot);
   const f = buildForecast(env, ids, [spot], nowMs, days);
