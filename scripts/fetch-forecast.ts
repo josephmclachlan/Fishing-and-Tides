@@ -16,6 +16,7 @@ import { get } from './forecast/common.ts';
 import { buildWind } from './forecast/wind.ts';
 import { buildWaves } from './forecast/waves.ts';
 import { buildStorms } from './forecast/storms.ts';
+import { buildNavWarn } from './forecast/navwarn.ts';
 import { buildCurrents } from './forecast/currents.ts';
 import { buildMetar } from './forecast/metar.ts';
 import { buildCoral } from './forecast/coral.ts';
@@ -35,6 +36,8 @@ const FEEDS: Record<string, { build: (dir: string) => Promise<string>; refreshH:
   waves: { build: buildWaves, refreshH: 12 },
   // NHC advisories come every 6 h in season and it sends no CORS headers, so the build relays them.
   storms: { build: buildStorms, refreshH: 3 },
+  // NAVAREA IV warnings near the coast (NGA MSI, no CORS, so relayed); broadcast a few times a week.
+  navwarn: { build: buildNavWarn, refreshH: 6 },
   currents: { build: buildCurrents, refreshH: 12, series: ['currents', 'currents-coast'] },
   // Limón airport METAR, hourly while the airport is open; no CORS, so relayed.
   metar: { build: buildMetar, refreshH: 0.5 },
