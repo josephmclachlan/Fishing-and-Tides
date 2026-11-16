@@ -13,6 +13,8 @@
   /* map */
   --m-sea-a:#D9E7F3; --m-sea-b:#7EA2C8; --m-land:#E2DFD1; --m-land-b:#D6D3C3; --m-topo:#C4C0AE; --m-coast:#0A1626; --m-halo:#ECEADF; --m-lab:#46576C; --m-sealab:#5D7590;
   --m-reef:#0C6B66; --m-cover:#B4670E; --m-zone:#4338D6; --m-sarg:#8C6A12; --m-bolt:#E8A200;
+  /* symbols (src/icons): severity on hazards, never rating; the dark keyline that holds a coloured glyph on any sea */
+  --sev-caution:#F2A900; --sev-danger:#E23B26; --sev-on:#FFFFFF; --g-key:#0A1626;
   --r-sst0:#2B6CB0; --r-sst1:#5FB3B3; --r-sst2:#A5DBC2; --r-sst3:#F4C542; --r-sst4:#F2711C; --r-sst5:#E0442B;
   --r-vis0:#7A5A2A; --r-vis1:#C4A46A; --r-vis2:#D9D7A6; --r-vis3:#A5DBC2; --r-vis4:#3FA58F; --r-vis5:#0C6B66;
   --r-chl0:#E4EFD8; --r-chl1:#B7D98E; --r-chl2:#6FB34A; --r-chl3:#2A8A1E; --r-chl4:#145214;
@@ -43,6 +45,7 @@
   --ac0:#FF7D63; --ac1:#FFA05A; --ac2:#F2C94C; --ac3:#7CD5AE; --ac4:#41C3B4; --acn:#A2B2C5;
   --m-sea-a:#102236; --m-sea-b:#03070D; --m-land:#121B27; --m-land-b:#1A2533; --m-topo:#212D3D; --m-coast:#C9D6E4; --m-halo:#070C14; --m-lab:#A2B2C5; --m-sealab:#6F86A3;
   --m-reef:#41C3B4; --m-cover:#F0A040; --m-zone:#9A93FF; --m-sarg:#C9A23A; --m-bolt:#FFC53D;
+  --sev-caution:#FFC53D; --sev-danger:#FF5B45; --sev-on:#170603; --g-key:#070C14;
   --r-sst0:#2F6FB7; --r-sst1:#3C9A9A; --r-sst2:#5BA987; --r-sst3:#D6A62A; --r-sst4:#E8742A; --r-sst5:#CF4A31;
   --r-vis0:#5C431F; --r-vis1:#8E7442; --r-vis2:#6F7E5A; --r-vis3:#3F8F74; --r-vis4:#2A9C88; --r-vis5:#41C3B4;
   --r-chl0:#16241A; --r-chl1:#2C5A2A; --r-chl2:#4F8E36; --r-chl3:#74D65E; --r-chl4:#B9F09E;

@@ -30,7 +30,7 @@ import { localDayStart, moonPhase, sunTimes } from '../physics/astro';
 import { LIMON_HARMONICS } from '../data/tides-limon';
 import { REGION, SPOTS } from '../region';
 import { LAYERS, type LayerId, type LayerStore } from '../layers/registry';
-import { LEGEND, legendItemKey, legendWhatKey, type LegendItem } from '../layers/legend';
+import { LEGEND, glyphSwatch, legendItemKey, legendWhatKey, type LegendItem } from '../layers/legend';
 import { sprigSvg } from '../layers/sargassum-glyph';
 import { SST_BANDS } from '../layers/sst';
 import { CLARITY_BANDS } from '../physics/clarity';
@@ -440,7 +440,10 @@ export function mountKineticMap(d: KmDeps) {
    */
   // 'dim' is the old map's faded amber (--amber-dim): the faint wash of the same colour, as the layers paint it.
   /** A key's swatch: a CSS chip, or the drawn mark itself where the layer draws a glyph (the sargassum sprig). */
-  const keySw = (it: LegendItem) => `<i class="k-sw-${it.sw}" style="--k:${SW_TONE[it.tone]}">${it.sw === 'weed' ? sprigSvg(18) : ''}</i>`;
+  const keySw = (it: LegendItem) =>
+    it.sw === 'glyph'
+      ? `<i class="k-sw-glyph${it.dim ? ' k-dimg' : ''}">${glyphSwatch(it, 16)}</i>`
+      : `<i class="k-sw-${it.sw}" style="--k:${SW_TONE[it.tone]}">${it.sw === 'weed' ? sprigSvg(18) : ''}</i>`;
   const SW_TONE = {
     amber: 'var(--paint-amber)', green: 'var(--paint-green)', red: 'var(--paint-red)', dim: 'color-mix(in srgb, var(--paint-amber) 40%, transparent)',
     surf: 'var(--t-surf)', rain0: 'var(--r-rain0)', rain2: 'var(--r-rain2)', rain4: 'var(--r-rain4)', sarg: 'var(--m-sarg)',
@@ -642,7 +645,7 @@ export function mountKineticMap(d: KmDeps) {
     // The old WEATHER rows: air, real feel, humidity and cloud.
     if ((has('weather') || act('swim') || act('sail') || act('fish')) && fin(h.airC))
       out.push({ k: 'air', l: L2('Air', 'Aire'), v: n0(h.airC), u: '°C', s: [fin(h.feelsC) ? `${L2('Feels', 'Sens.')} ${n0(h.feelsC)}°` : '', fin(h.humidityPct) ? `${n0(h.humidityPct)}% ${L2('humid', 'HR')}` : ''].filter(Boolean).join(' · '), val: h.cloudPct ?? 0, help: 'air', src: L2('blend', 'mezcla') });
-    if (has('lightning') && fin(h.lightningKm) && h.lightningKm < 60) out.push({ k: 'lightning', l: L2('Lightning', 'Rayos'), v: n0(h.lightningKm), u: 'km', s: h.lightningKm < 25 ? L2('Get out of the water', 'Salga del agua') : L2('Nearest flash', 'Rayo más cercano'), val: h.lightningKm, help: 'lightningNear', src: 'GLM' });
+    if (has('lightning') && fin(h.lightningKm) && h.lightningKm < 60) out.push({ k: 'lightning', l: L2('Lightning', 'Rayos'), v: n0(h.lightningKm), u: 'km', s: h.lightningKm < 25 ? L2('Get out of the water', 'Salga del agua') : L2('Nearest flash', 'Rayo más cercano'), val: h.lightningKm, help: 'lightningNear', src: 'GLM', ...(h.lightningKm < 25 ? { warn: 'bolt' as const } : {}) });
     if ((has('rip') || act('swim') || act('surf')) && h.rip) {
       const lv = h.rip.level === 'HIGH' ? 0 : h.rip.level === 'MOD' ? 2 : 4;
       out.push({ k: 'rip', l: L2('Rip risk', 'Resaca'), v: h.rip.level === 'HIGH' ? L2('High', 'Alta') : h.rip.level === 'MOD' ? L2('Mod', 'Mod') : L2('Low', 'Baja'), u: '', s: titleCase(h.rip.spot), lv, help: 'rip' });

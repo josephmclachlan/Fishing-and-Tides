@@ -16,6 +16,7 @@ import { byTier, firstSymbolId } from '../map';
 import { bake, type BakeInput } from './seafloor-bake';
 import type { BakedShade, BakeOut } from './seafloor-worker';
 import { liftedTagged, onSchemeChange, paintColour as cssColour, paintLift } from './paint';
+import { addGlyphImages, imageId } from '../icons/map-glyphs';
 
 export { contourLines } from './seafloor-bake';
 
@@ -74,15 +75,21 @@ function bakeSeafloor(inp: BakeInput): Promise<{ macro: BakedShade; region: Bake
   });
 }
 
-const HUD_NAME: Record<string, string> = { reef: 'REEF', wreck: 'WRECK', light: 'LT', harbour: '', hazard: 'HAZARD', buoy: 'BUOY' };
+/** Generic OSM names that only repeat the kind; the mark's symbol already says it, so they get no label. */
+const GENERIC = new Set(['REEF', 'WRECK', 'LT', 'LIGHT', 'HAZARD', 'BUOY']);
 
-/** Map labels for OSM marks, e.g. "PUNTA CAHUITA REEF", "WRECK FRIDERICUS QUARTUS", "LT SIXAOLA\nW 10S 12M 12NM". */
-function markLabel(p: Record<string, string>) {
-  const { kind, name, info } = p;
-  if (kind === 'reef') return `${name} REEF`;
-  if (kind === 'light') return `LT ${name}${info ? `\n${info}` : ''}`;
-  if (name === HUD_NAME[kind] || !HUD_NAME[kind]) return name;
-  return `${HUD_NAME[kind]} ${name}`;
+/**
+ * Map labels for OSM marks: the symbol says what a mark is, so the label is the name alone (no WRECK prefix),
+ * e.g. "FRIDERICUS QUARTUS". Reefs keep REEF, which is how people name them ("PUNTA CAHUITA REEF"), and lights say
+ * LIGHTHOUSE in full, never the chart's "LT" (Joseph 2026-11-16): "SIXAOLA LIGHTHOUSE\nW 10S 12M 12NM".
+ * An unnamed mark shows its symbol alone.
+ */
+export function markLabel(p: Record<string, string | undefined>) {
+  const { kind, info } = p;
+  const name = p.name && !GENERIC.has(p.name) ? p.name : '';
+  if (kind === 'reef') return name ? `${name} REEF` : '';
+  if (kind === 'light') return [name ? `${name} LIGHTHOUSE` : '', info].filter(Boolean).join('\n');
+  return name;
 }
 
 export async function mountSeafloor(map: Map, sf: Seafloor) {
@@ -171,26 +178,26 @@ export async function mountSeafloor(map: Map, sf: Seafloor) {
 
     // Marks: reefs, lights and harbours from the coast tier; wrecks and hazards closer in.
     const kind = ['get', 'kind'] as ExpressionSpecification;
-    const markColour: ExpressionSpecification = ['match', kind, ['wreck', 'hazard'], red, 'harbour', green, amber];
+    // Each kind of mark has its own glyph (src/icons), in ink like the place names: shape says what it is.
+    addGlyphImages(map);
+    const ink = cssColour('--ink', '#0A1626');
+    const halo = cssColour('--m-halo', '#ECEADF');
+    const glyphOf: ExpressionSpecification = ['match', kind,
+      'reef', imageId('coral', 'ink'), 'light', imageId('light', 'ink'), 'harbour', imageId('anchor', 'ink'),
+      'wreck', imageId('wreck', 'ink'), 'hazard', imageId('rock', 'ink'), imageId('buoy', 'ink')];
     const marksLayer = (id: string, kinds: string[], minzoom: number, opt: { allowOverlap?: boolean } = {}) => {
       const filter: FilterSpecification = ['all', ['==', ['geometry-type'], 'Point'], ['in', kind, ['literal', kinds]]];
       map.addLayer({
-        id, type: 'circle', source: 'sf-marks', minzoom, filter,
-        paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, ['match', kind, 'light', 3, 'reef', 4, 3.5], SPOT + 2, ['match', kind, 'light', 4, 'reef', 7, 5.5]],
-          'circle-color': ['match', kind, 'light', amber, 'rgba(0,0,0,0)'],
-          'circle-stroke-color': markColour,
-          'circle-stroke-width': ['match', kind, 'light', 0, 1.5],
-          'circle-blur': ['match', kind, 'light', 0.3, 0],
-        },
+        id, type: 'symbol', source: 'sf-marks', minzoom, filter,
+        layout: { 'icon-image': glyphOf, 'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 0.5, SPOT + 2, 0.8], 'icon-allow-overlap': true },
       });
       map.addLayer({
         id: `${id}-label`, type: 'symbol', source: 'sf-marks', minzoom: minzoom + 0.5, filter,
         layout: {
           'text-field': ['get', 'label'], 'text-font': FONT, 'text-size': ['match', kind, 'reef', 11, 10], ...(opt.allowOverlap ? { 'text-allow-overlap': true } : {}),
-          'text-anchor': 'left', 'text-offset': [0.9, 0], 'text-justify': 'left', 'text-letter-spacing': 0.08,
+          'text-anchor': 'left', 'text-offset': [1.1, 0], 'text-justify': 'left', 'text-letter-spacing': 0.08,
         },
-        paint: { 'text-color': markColour, 'text-halo-color': '#000', 'text-halo-width': 1.5 },
+        paint: { 'text-color': ink, 'text-halo-color': halo, 'text-halo-width': 1.6 },
       });
     };
     marksLayer('sf-marks', ['reef', 'light', 'harbour'], 9);
