@@ -375,7 +375,7 @@ export const SEEN_WORDS: Record<Seen, Txt> = {
 };
 export const EDIBLE_WORDS: Record<Edible, Txt> = {
   yes: W('Edible', 'Comestible'), caution: W('Edible with care', 'Comestible con cuidado'), no: W('Not eaten', 'No se come'),
-  toxic: W('Poisonous to eat', 'Venenoso al comerlo'), protected: W('Protected: do not take', 'Protegido: no se toma'),
+  toxic: W('Poisonous to eat', 'Venenoso al comerlo'), protected: W('Illegal: do not take', 'Ilegal: no se toma'),
 };
 export const METHOD_WORDS: Record<Method, Txt> = {
   handline: W('Hand line', 'Cordel'), rod: W('Rod and reel', 'Caña'), bottom: W('Bottom fishing', 'Pesca de fondo'), troll: W('Trolling', 'Curricán'),
