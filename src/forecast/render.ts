@@ -3,6 +3,7 @@
  * so the page can be rendered and checked without a browser (render.test.ts builds every block from a fixed
  * fixture and compares the numbers in it with the model's). page.ts puts these into the DOM and draws the canvases.
  */
+import { brandLine } from '../brand';
 import { dec, t, type Key } from '../i18n';
 import type { FcActivity, Level } from './model';
 import { NT_ACTS, notesHash } from '../notes/route';
@@ -44,7 +45,7 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
   return `
   <div class="fc-page">
     <header class="fc-top fc-in">
-      <p class="fc-brand fc-mono">${esc(t('fc.brand'))}<span class="fc-hide-s"> · ${esc(t('fc.region'))}</span></p>
+      <p class="fc-brand fc-mono">${brandLine(esc(t('fc.region')), 'fc-hide-s')}</p>
       <div class="fc-ctrls">
         <button type="button" class="fc-ctl fc-back" id="fc-back" title="${esc(t('fc.backTitle'))}">${MAP_ICON}<span>${esc(t('fc.back'))}</span></button>
         ${o.guide ? `<button type="button" class="fc-ctl fc-sq" id="fc-guide" aria-label="${esc(t('fc.guide'))}" title="${esc(t('fc.guide'))}">${GUIDE_ICON}</button>` : ''}

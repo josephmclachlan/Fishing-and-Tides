@@ -4,6 +4,7 @@
  * reuses `.fc` and its tokens), opened from every ciguatera warning in the fishing panel and the species guide.
  * Its own link `#ciguatera[/<tab>]` (route.ts); other pages hide on it and it hides on theirs.
  */
+import { brandLine } from '../brand';
 import { rememberOrigin, storedOrigin } from '../origin';
 import { t } from '../i18n';
 import { landing, MAP_HASH } from '../forecast/model';
@@ -57,7 +58,7 @@ export function mountCiguateraPage(deps: CiguateraPageDeps) {
   el.innerHTML = `
     <div class="fc-page" id="cig-page">
       <header class="fc-top fc-in">
-        <p class="fc-brand fc-mono">${t('fc.brand')}<span class="fc-hide-s"> · ${t('fc.region')}</span></p>
+        <p class="fc-brand fc-mono">${brandLine(t('fc.region'), 'fc-hide-s')}</p>
         <div class="fc-ctrls">
           <button type="button" class="fc-ctl fc-back" id="cig-back" title="${esc(CHROME.backTitle[lang])}"><svg viewBox="0 0 24 24" aria-hidden="true" class="cig-ico"><path d="M15 5l-7 7 7 7"/></svg><span id="cig-back-l">${esc(CHROME.back.forecast[lang])}</span></button>
           <div class="fc-lang" role="group" aria-label="${t('fc.langGroup')}"><button type="button" data-lang="en" aria-pressed="${lang === 'en'}">EN</button><button type="button" data-lang="es" aria-pressed="${lang === 'es'}">ES</button></div>

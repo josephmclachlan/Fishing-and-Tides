@@ -255,7 +255,7 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     const blob = new Blob([toGPX(s.points, s.pins, `${t('boat.trip')} ${day}`)], { type: 'application/gpx+xml' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `fishing-and-tides-${day}.gpx`;
+    a.download = `surcast-${day}.gpx`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
   });

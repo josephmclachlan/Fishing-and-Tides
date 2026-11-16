@@ -9,15 +9,22 @@ export default defineConfig({
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg'],
+      includeAssets: ['icon.svg', 'favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Fishing and Tides',
-        short_name: 'Tides',
-        description: 'Ocean conditions and fishing HUD, Gandoca to Limón',
-        theme_color: '#050805',
-        background_color: '#050805',
+        name: 'SurCast',
+        short_name: 'SurCast',
+        description: 'Ocean forecasts for fishing, diving, surf and more on Costa Rica\'s southern Caribbean coast, Gandoca to Limón',
+        theme_color: '#070C14',
+        background_color: '#000000',
         display: 'standalone',
-        icons: [{ src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }],
+        // SurCast icons (src/brand.ts, written by scripts/brand-icons.ts). Maskable has its own art so the mark stays in the safe circle.
+        icons: [
+          { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icon-maskable.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
+          { src: 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
       },
       workbox: {
         // Seafloor grids and reef/seamark GeoJSON (public/data/seafloor) are precached so depth works offline.

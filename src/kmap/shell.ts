@@ -17,6 +17,7 @@
  * The map itself stays full-screen under this shell; its padding is set to the stage, so `map.getCenter()` is the
  * crosshair and every old reading module keeps reading the right point.
  */
+import { markSvg, WORDMARK } from '../brand';
 import { bandCss, FIELD_STEPS, FIELD_TICKS, onFieldSteps, rampCss, type FieldKind } from '../layers/bands';
 import { HEAT_STEPS } from '../layers/fishing';
 import type { Map as MlMap } from 'maplibre-gl';
@@ -222,7 +223,7 @@ export function mountKineticMap(d: KmDeps) {
   app.innerHTML = `
   <header class="k-top">
     <button type="button" class="k-back" id="k-back">${BACK}<span class="k-bt"><span class="k-b1">${L2('Forecast', 'Pronóstico')}</span><span class="k-b2" id="k-backsub"></span></span></button>
-    <div class="k-ttl"><p class="k-brand k-mono"><span class="k-hide-s">Fishing and Tides · </span>Caribe Sur</p><h1>${L2('Map', 'Mapa')} <em id="k-ttlact"></em></h1></div>
+    <div class="k-ttl"><p class="k-brand k-mono"><span class="sc-brand">${markSvg(16, { small: true })}${WORDMARK}</span> · Caribe Sur</p><h1>${L2('Map', 'Mapa')} <em id="k-ttlact"></em></h1></div>
     <nav class="k-tabs" id="k-tabs" role="tablist" aria-label="${L2('Activity', 'Actividad')}"><span class="k-tab-bar" id="k-tabbar"></span></nav>
     <div class="k-ctrls">
       <button type="button" class="k-band k-age" id="k-age"><i></i><span></span></button>

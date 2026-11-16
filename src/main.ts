@@ -1,6 +1,7 @@
 import './theme';
 import '@fontsource/share-tech-mono';
 import './style.css';
+import './brand.css';
 import { registerSW } from 'virtual:pwa-register';
 import { createMap, mapStarted, startMap, STYLE_URL } from './map';
 import { holdMapWork, releaseMapWork, whenMapShown } from './map-shown';

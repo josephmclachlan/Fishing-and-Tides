@@ -14,6 +14,7 @@
  * Its own link, `#guide[/<view>[/<species>[/<tab>]]]` (route.ts), so a list or a species can be bookmarked and the
  * phone's back button closes the species, then the page.
  */
+import { brandLine } from '../brand';
 import { t } from '../i18n';
 import { landing } from '../forecast/model';
 import { loadIndex, loadSpecies } from './data';
@@ -81,7 +82,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
   el.innerHTML = `
     <div class="fc-page" id="gd-page">
       <header class="fc-top fc-in">
-        <p class="fc-brand fc-mono">${t('fc.brand')}<span class="fc-hide-s"> · ${t('fc.region')}</span></p>
+        <p class="fc-brand fc-mono">${brandLine(t('fc.region'), 'fc-hide-s')}</p>
         <div class="fc-ctrls">
           <button type="button" class="fc-ctl fc-back" id="gd-back" title="${esc(t('gd.backTitle'))}">${svg(ICONS.back)}<span id="gd-back-l">${t('gd.back.forecast')}</span></button>
           <div class="fc-lang" role="group" aria-label="${t('fc.langGroup')}"><button type="button" data-lang="en" aria-pressed="${lang === 'en'}">EN</button><button type="button" data-lang="es" aria-pressed="${lang === 'es'}">ES</button></div>
