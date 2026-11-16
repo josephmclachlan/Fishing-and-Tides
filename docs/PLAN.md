@@ -192,6 +192,18 @@ Built last, once Phases 2 to 6 are in. Each reuses the adapters, the layer regis
 - [x] 7.123 Fish map, part 4 (Joseph 2026-11-16, "Where is the marlin zone?"): tarpon (shore, river mouth and surf) and sailfish and blue marlin (boat, past the shelf edge on fronts) join SPORT, all RULE OF THUMB. The boat zones follow the mode; the BOAT drawer's OFFSHORE FISH stays eating fish.
 - [x] 7.124 Fish map, part 5 (Joseph 2026-11-16, "Is there no way to update prediction models and sources for corvina and mullet?"): corvina (river-plume soft bottom, 4 km mouth reach) and mullet (mouths and surf strip) join EAT, RULE OF THUMB, lifted by high river flow through the existing river term; both in the BOAT catch log so logged catches refit them. Records: corvina 9, mullet 45.
 - [x] 7.125 Fish map, part 6 (Joseph 2026-11-16, "lobster and other similar suggestions"): lobster, octopus and cigua join EAT as a by-hand catch on reef and rock; lobster's closed season (1 March to 30 June) draws nothing and says CLOSED SEASON; none circled in protected areas; octopus and cigua RULE OF THUMB. Records: lobster 79, octopus 16, cigua 40.
+- [x] 7.130 Field notes visual, part 1 (Joseph 2026-11-16: "these are literally just walls of text ... fill every single one of these sections with graphics, images, animations"): visual blocks (`src/notes/vis.ts`: step flows, pictogram tiles, drawings with numbered marks, big numbers, tap-to-call, bars, side-by-side, illustrated cards, do and do not, heat grid), pictograms (`icons.ts`), drawings (`art/`). Water safety rebuilt first (animated rip escape, shore-break heights against an adult, depth chart, park comparison) and Surf.
+  Part 1 of 4; all critical facts kept, citations still numbered in reading order, English and Spanish.
+
+- [ ] 7.131 Field notes visual, part 2: First aid as symptom-to-steps picture flows.
+  Part 2 of 4, builds on 7.130.
+
+- [ ] 7.132 Field notes visual, part 3: Rigs and Releasing fish as rig and knot drawings and illustrated release steps.
+  Part 3 of 4, builds on 7.130.
+
+- [ ] 7.133 Field notes visual, part 4: Rules, Cooking, Seasons (month heat grid) and Words.
+  Part 4 of 4, builds on 7.130.
+
 ## Phase 8: History and logs (see docs/HISTORY.md)
 Save what the app sees so it can show the past, and keep private logs (catches, coral sites) in a database only approved people can read. One PR per step.
 - [x] 8.1 Daily history archive: each hourly build appends the feeds sampled at the spots, the METAR, the Limón gauge against our tide, sargassum detections, storms and each weather model at the airport to one CSV per day on the `history` branch (**S**). `scripts/archive.ts`, `src/history/archive.ts`, docs/HISTORY.md. Public data only

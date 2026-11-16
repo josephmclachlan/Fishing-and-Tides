@@ -8,106 +8,151 @@ export const surf: Section = {
   id: 'surf',
   title: L('Surf', 'Surf'),
   lede: L(
-    'How to share a wave, which wave size suits which surfer, and what each break on this coast can do to you. Read the break you are going to before you paddle out.',
-    'Cómo compartir una ola, qué tamaño de ola le sirve a cada surfista y lo que puede hacerle cada rompiente de esta costa. Lea sobre el lugar al que va antes de remar hacia afuera.',
+    'How to share a wave, which wave size suits you, and what each break here can do to you.',
+    'Cómo compartir una ola, qué tamaño de ola le sirve y lo que puede hacerle cada rompiente de aquí.',
   ),
   blocks: [
     {
-      k: 'warn',
-      h: L('Not confirmed', 'No confirmado'),
-      t: L(
-        'The hazards and skill levels below come from surf guides and from general surfing practice. Nobody who surfs these breaks has checked them for this app yet. Where a line says Not confirmed, treat it as a starting point and ask a local surfer or a surf school in Puerto Viejo before you go out.',
-        'Los peligros y los niveles de abajo vienen de guías de surf y de la práctica general del surf. Nadie que surfee estas olas los ha revisado todavía para esta app. Donde una línea dice No confirmado, tómela como punto de partida y pregunte a un surfista local o a una escuela de surf en Puerto Viejo antes de entrar.',
-      ),
+      k: 'tiles',
+      items: [
+        {
+          ico: 'ask',
+          tone: 'unk',
+          h: L('Not confirmed', 'No confirmado'),
+          t: L(
+            'The hazards and skill levels here come from surf guides and general surfing practice. No local surfer has checked them yet, so ask a local surfer or a surf school in Puerto Viejo before you go out.',
+            'Los peligros y niveles de aquí vienen de guías de surf y de la práctica general. Ningún surfista local los ha revisado todavía, así que pregunte a un surfista local o a una escuela de surf en Puerto Viejo antes de entrar.',
+          ),
+        },
+      ],
     },
     { k: 'h', t: L('Sharing the wave', 'Compartir la ola') },
     {
-      k: 'ul',
+      k: 'fig',
+      fig: 'peak',
+      label: L('Who has the wave at a peak, seen from above', 'Quién tiene la ola en un pico, visto desde arriba'),
+      tones: ['go', 'stop', 'info'],
+      marks: [
+        L('The surfer closest to the peak, where the wave starts to break, has the wave. If it breaks both ways, each surfer takes their own side.{eti}', 'El surfista más cerca del pico, donde la ola empieza a romper, tiene la ola. Si rompe hacia los dos lados, cada surfista toma su lado.{eti}'),
+        L('Never drop in: do not take off on a wave someone else already has. It is the most important rule, and it is how people get hit by boards.{eti}', 'Nunca se meta: no salga en una ola que otro ya tiene. Es la regla más importante y así la gente recibe golpes de tablas.{eti}'),
+        L('Paddle out through the channel, where waves do not break. Cross behind surfers who are riding, never in front of them.{eti}', 'Reme hacia afuera por el canal, donde las olas no rompen. Pase por detrás de quien va surfeando, nunca por delante.{eti}'),
+      ],
+    },
+    {
+      k: 'dodont',
+      do: [
+        L('Keep hold of your board when a wave comes.{eti}', 'Agarre su tabla cuando viene una ola.{eti}'),
+        L('Learn at a quieter beach until you can catch waves and turn on your own.{eti}', 'Aprenda en una playa más tranquila hasta que tome olas y gire por su cuenta.{eti}'),
+        L('Be polite, and say sorry if you drop in by mistake. Locals should not cut in front of polite visitors either.{eti}', 'Sea educado y pida disculpas si se mete por error. Los locales tampoco deben cruzarse delante de visitantes educados.{eti}'),
+      ],
+      dont: [
+        L('Do not let go of your board to dive under a wave. It can hit the person paddling behind you.{eti}', 'No suelte la tabla para pasar bajo una ola. Puede golpear a quien rema detrás.{eti}'),
+        L('Do not paddle into the middle of a crowded line-up as a beginner.{eti}', 'Si está empezando, no reme al centro de un grupo lleno.{eti}'),
+      ],
+    },
+    { k: 'h', t: L('Which wave size suits you', 'Qué tamaño de ola le sirve') },
+    {
+      k: 'fig',
+      fig: 'sizes',
+      label: L('Four wave sizes next to a standing surfer', 'Cuatro tamaños de ola junto a un surfista de pie'),
+      tones: ['go', 'warn', 'stop', 'stop'],
+      marks: [
+        L('Under 0.6 m, knee to waist: beginners, with an instructor. Soft waves with little push; the danger is other people and the sun.', 'Menos de 0.6 m, rodilla a cintura: quien empieza, con instructor. Olas suaves y poca fuerza; el peligro son otras personas y el sol.'),
+        L('0.6 to 1.2 m, waist to chest: surfers who can already catch waves and turn. Some power, and rips start to matter.', '0.6 a 1.2 m, cintura a pecho: quien ya toma olas y gira. Algo de fuerza, y las corrientes de resaca empiezan a importar.'),
+        L('1.2 to 2 m, chest to over your head: experienced, fit surfers who know rips and reef. Waves break hard and hold you under, and getting out takes strength.', '1.2 a 2 m, pecho a sobre la cabeza: surfistas con experiencia, en forma, que conocen resacas y arrecife. Las olas rompen fuerte y le mantienen abajo, y salir exige fuerza.'),
+        L('Over 2 m, well over your head: experts only. Heavy waves and long swims if you lose your board. Unsure? Stay on the beach.', 'Más de 2 m, muy sobre la cabeza: solo expertos. Olas pesadas y nadadas largas si pierde la tabla. ¿Duda? Quédese en la playa.'),
+      ],
+      alt: L(
+        'Wave height here is the face you ride, from the trough to the top. This guide is our own rough reading, not a published standard, so it is Not confirmed.',
+        'Aquí la altura es la cara que usted surfea, del valle a la cresta. Esta guía es nuestra lectura aproximada, no un estándar publicado, así que es No confirmada.',
+      ),
+    },
+    {
+      k: 'tiles',
+      h: L('Count one size bigger when', 'Cuente un tamaño más cuando'),
       items: [
-        L('Right of way: the surfer closest to the peak, the place where the wave starts to break, has the wave. If the wave breaks both ways from the peak, each surfer takes the side they are on.{eti}', 'Prioridad: el surfista más cerca del pico, el lugar donde la ola empieza a romper, tiene la ola. Si la ola rompe hacia los dos lados del pico, cada surfista toma el lado en que está.{eti}'),
-        L('Do not drop in. Dropping in means taking off on a wave that another surfer already has the right to. It is the most important rule of the line-up, and it is how people get hit by boards.{eti}', 'No se meta en la ola de otro. Meterse es salir en una ola que otro surfista ya tiene derecho a tomar. Es la regla más importante del grupo de surfistas y así es como la gente recibe golpes de tablas.{eti}'),
-        L('Paddle out through the channel, the place where waves are not breaking and nobody is surfing. If you have to paddle across the line-up, go behind the surfers who are up and riding, never in front of them.{eti}', 'Reme hacia afuera por el canal, el lugar donde las olas no rompen y nadie está surfeando. Si tiene que cruzar el grupo, pase por detrás de los surfistas que van parados sobre la ola, nunca por delante.{eti}'),
-        L('Keep hold of your board. Letting go of it to dive under a wave can hit the person paddling out behind you.{eti}', 'No suelte la tabla. Soltarla para pasar por debajo de una ola puede golpear a quien rema detrás de usted.{eti}'),
-        L('Beginners should not paddle into the middle of a crowded line-up. Pick a quieter beach until you can catch waves on your own and turn.{eti}', 'Quienes empiezan no deben remar al centro de un grupo lleno. Elija una playa más tranquila hasta que pueda tomar olas solo y girar.{eti}'),
-        L('Visitors are polite and locals do not cut in front of polite visitors either.{eti} Say sorry if you drop in by mistake.', 'Los visitantes son educados y los locales tampoco se cruzan delante de visitantes educados.{eti} Pida disculpas si se mete en una ola por error.'),
+        { ico: 'coral', tone: 'unk', h: L('It breaks over reef', 'Rompe sobre arrecife'), t: L('At a reef break such as Salsa Brava, a fall can put you onto shallow rock. Not confirmed.', 'En un arrecife como Salsa Brava, una caída puede llevarle contra roca poco profunda. No confirmado.') },
+        { ico: 'clock', tone: 'unk', h: L('The period is long', 'El período es largo'), t: L('Long-period swell hits harder than its height suggests. Not confirmed.', 'El oleaje de período largo pega más fuerte de lo que sugiere su altura. No confirmado.') },
       ],
-    },
-    { k: 'h', t: L('Which wave size suits which surfer', 'Qué tamaño de ola le sirve a cada surfista') },
-    {
-      k: 'p',
-      t: L(
-        'This is our own rough reading, built to make the wave height on the forecast easier to use. It is not a published standard and it is Not confirmed. Wave height here means the face of the wave, the part you ride, measured from the trough to the top.',
-        'Esta es nuestra lectura aproximada, hecha para que la altura de ola del pronóstico sea más fácil de usar. No es un estándar publicado y es No confirmada. Aquí la altura de ola es la cara de la ola, la parte que usted surfea, medida desde el valle hasta la cresta.',
-      ),
-    },
-    {
-      k: 'table',
-      head: [L('Wave face', 'Cara de la ola'), L('Who it suits', 'A quién le sirve'), L('What to expect', 'Qué esperar')],
-      rows: [
-        [L('Under 0.6 m (knee to waist)', 'Menos de 0.6 m (rodilla a cintura)'), L('Beginners, with an instructor.', 'Quien empieza, con instructor.'), L('Soft waves and little push. The danger is other people and the sun, not the sea.', 'Olas suaves y poca fuerza. El peligro son las otras personas y el sol, no el mar.')],
-        [L('0.6 to 1.2 m (waist to chest)', '0.6 a 1.2 m (cintura a pecho)'), L('Surfers who can already catch waves and turn.', 'Surfistas que ya toman olas y giran.'), L('Waves with some power. A rip current can start to matter.', 'Olas con algo de fuerza. Una corriente de resaca ya puede importar.')],
-        [L('1.2 to 2 m (chest to over head)', '1.2 a 2 m (pecho a sobre la cabeza)'), L('Experienced surfers who are fit and know rips and reef.', 'Surfistas con experiencia, en forma, que conocen las corrientes y el arrecife.'), L('Waves break hard and hold you under. Getting out through the break takes strength.', 'Las olas rompen fuerte y lo mantienen bajo el agua. Salir por la rompiente exige fuerza.')],
-        [L('Over 2 m (well over head)', 'Más de 2 m (muy sobre la cabeza)'), L('Experts only.', 'Solo expertos.'), L('Heavy waves and long swims if you lose your board. Stay on the beach if you are unsure.', 'Olas pesadas y nadadas largas si pierde la tabla. Si tiene dudas, quédese en la playa.')],
-      ],
-    },
-    {
-      k: 'p',
-      t: L(
-        'Move up one row of danger for a reef break such as Salsa Brava. A wave of the same size is more serious over shallow rock than over sand, because a fall can put you onto the reef. Also move up one row when the wave period is long, because long-period swell arrives with more push than its height suggests. Both of these are our own rules of thumb and are Not confirmed.',
-        'Suba una fila de peligro en un arrecife como Salsa Brava. Una ola del mismo tamaño es más seria sobre roca poco profunda que sobre arena, porque una caída puede llevarlo contra el arrecife. Suba también una fila cuando el período de la ola es largo, porque el oleaje de período largo llega con más fuerza de la que sugiere su altura. Ambas son reglas prácticas nuestras y son No confirmadas.',
-      ),
     },
     { k: 'h', t: L('Hazards break by break', 'Peligros por rompiente') },
     {
-      k: 'p',
-      t: L(
-        'These are the hazards the surf guides list for each break in the app.{guides} The guides disagree with each other at times, and no local has confirmed them, so every row is Not confirmed.',
-        'Estos son los peligros que las guías de surf anotan para cada rompiente de la app.{guides} Las guías no siempre coinciden entre sí y ningún local las ha confirmado, así que todas las filas son No confirmadas.',
-      ),
-    },
-    {
-      k: 'table',
-      head: [L('Break', 'Rompiente'), L('Type', 'Tipo'), L('Hazards listed', 'Peligros anotados'), L('What that means for you', 'Qué significa para usted')],
+      k: 'heat',
+      cols: [L('Reef', 'Arrecife'), L('Urchins', 'Erizos'), L('Rips', 'Resaca'), L('Shore break', 'Orilla'), L('Crowds', 'Gente')],
       rows: [
-        [
-          L('Salsa Brava', 'Salsa Brava'),
-          L('Reef break, right-hander', 'Arrecife, ola a la derecha'),
-          L('Shallow reef, urchins, rips, crowds', 'Arrecife poco profundo, erizos, corrientes de resaca, mucha gente'),
-          L('The most serious break on this coast and not a place to learn. The wave breaks over shallow reef, so a fall can cut you and urchin spines can break off in your skin. Wear reef booties, go with a surfer who knows it, and expect a crowd in good swell. The guides disagree on the best season, and the app only guesses that more water over the reef is safer. Not confirmed.', 'La rompiente más seria de esta costa y no es un lugar para aprender. La ola rompe sobre arrecife poco profundo, así que una caída puede cortarlo y las espinas de erizo pueden quedarse en la piel. Use escarpines de arrecife, vaya con un surfista que la conozca y espere mucha gente cuando hay buen oleaje. Las guías no coinciden en la mejor temporada, y la app solo supone que más agua sobre el arrecife es más seguro. No confirmado.'),
-        ],
-        [
-          L('Playa Cocles', 'Playa Cocles'),
-          L('Beach break, peaks', 'Playa de arena, picos'),
-          L('Shorebreak, rips', 'Rompiente en la orilla, corrientes de resaca'),
-          L('The waves can break right at the water’s edge, so getting in and out is where people are hurt. Time your entry between waves. Rips are listed here too, so look for a gap where the waves do not break. Not confirmed.', 'Las olas pueden romper justo en la orilla, así que entrar y salir es donde la gente se lastima. Entre entre una ola y otra. También se anotan corrientes de resaca, así que busque un hueco donde las olas no rompen. No confirmado.'),
-        ],
-        [
-          L('Playa Negra (Puerto Viejo)', 'Playa Negra (Puerto Viejo)'),
-          L('Beach break, peaks', 'Playa de arena, picos'),
-          L('Rips', 'Corrientes de resaca'),
-          L('Only one guide lists this break, as mellow on small swell. Rips are the main hazard it names. Not confirmed.', 'Solo una guía anota esta rompiente, como tranquila con oleaje pequeño. Las corrientes de resaca son el principal peligro que menciona. No confirmado.'),
-        ],
-        [
-          L('Playa Grande', 'Playa Grande'),
-          L('Beach break, peaks', 'Playa de arena, picos'),
-          L('Rips, shorebreak', 'Corrientes de resaca, rompiente en la orilla'),
-          L('One guide lists rips and undertow, and calls it an alternative when Cocles is too big. Not confirmed.', 'Una guía anota corrientes de resaca y de fondo, y la llama alternativa cuando Cocles está muy grande. No confirmado.'),
-        ],
-        [
-          L('Playa Negra (Cahuita)', 'Playa Negra (Cahuita)'),
-          L('Beach break, peaks', 'Playa de arena, picos'),
-          L('Rips, patches of reef', 'Corrientes de resaca, parches de arrecife'),
-          L('Two guides agree it is a beach break with lefts and rights. One of them lists reef patches, so do not assume the bottom is all sand. Not confirmed.', 'Dos guías coinciden en que es una playa de arena con olas a izquierda y derecha. Una de ellas anota parches de arrecife, así que no suponga que el fondo es todo arena. No confirmado.'),
-        ],
+        { h: L('Salsa Brava', 'Salsa Brava'), hue: 'closed', v: [3, 3, 3, 0, 3] },
+        { h: L('Playa Cocles', 'Playa Cocles'), hue: 'closed', v: [0, 0, 3, 3, 0] },
+        { h: L('Playa Negra (Puerto Viejo)', 'Playa Negra (Puerto Viejo)'), hue: 'closed', v: [0, 0, 3, 0, 0] },
+        { h: L('Playa Grande', 'Playa Grande'), hue: 'closed', v: [0, 0, 3, 3, 0] },
+        { h: L('Playa Negra (Cahuita)', 'Playa Negra (Cahuita)'), hue: 'closed', v: [2, 0, 3, 0, 0] },
+      ],
+      key: [
+        { v: 3, hue: 'closed', t: L('Listed by the surf guides', 'Anotado por las guías de surf') },
+        { v: 2, hue: 'closed', t: L('Patches only', 'Solo parches') },
+      ],
+      note: L('These are the hazards the surf guides list for each break.{guides} The guides sometimes disagree and no local has confirmed them, so every row is Not confirmed.', 'Estos son los peligros que las guías de surf anotan para cada rompiente.{guides} Las guías a veces no coinciden y ningún local los ha confirmado, así que todas las filas son No confirmadas.'),
+    },
+    {
+      k: 'cards',
+      items: [
+        {
+          ico: 'coral',
+          tone: 'stop',
+          tag: L('Reef break, rights', 'Arrecife, olas a la derecha'),
+          h: L('Salsa Brava', 'Salsa Brava'),
+          t: L('The most serious break on this coast, and not a place to learn.', 'La rompiente más seria de esta costa, y no es lugar para aprender.'),
+          list: [
+            L('A fall on the shallow reef can cut you, and urchin spines can break off in your skin. Wear reef booties.', 'Una caída en el arrecife poco profundo puede cortarle, y las espinas de erizo se quedan en la piel. Use escarpines.'),
+            L('Go with a surfer who knows it, and expect a crowd in good swell.', 'Vaya con un surfista que la conozca y espere mucha gente con buen oleaje.'),
+            L('The guides disagree on the best season, and the app only guesses that more water over the reef is safer. Not confirmed.', 'Las guías no coinciden en la mejor temporada, y la app solo supone que más agua sobre el arrecife es más seguro. No confirmado.'),
+          ],
+        },
+        {
+          ico: 'gap',
+          tone: 'warn',
+          tag: L('Beach break, peaks', 'Playa de arena, picos'),
+          h: L('Playa Cocles', 'Playa Cocles'),
+          t: L('Waves can break right at the water’s edge, so getting in and out is where people get hurt.', 'Las olas pueden romper justo en la orilla, así que entrar y salir es donde la gente se lastima.'),
+          list: [L('Time your entry between waves, and look for the rip gap before you go in. Not confirmed.', 'Entre entre una ola y otra, y busque el hueco de la resaca antes de entrar. No confirmado.')],
+        },
+        {
+          ico: 'gap',
+          tone: 'unk',
+          tag: L('Beach break, peaks', 'Playa de arena, picos'),
+          h: L('Playa Negra (Puerto Viejo)', 'Playa Negra (Puerto Viejo)'),
+          t: L('Only one guide lists it, as mellow on a small swell, with rips as the main hazard. Not confirmed.', 'Solo una guía la anota, tranquila con oleaje pequeño, y la resaca como peligro principal. No confirmado.'),
+        },
+        {
+          ico: 'gap',
+          tone: 'unk',
+          tag: L('Beach break, peaks', 'Playa de arena, picos'),
+          h: L('Playa Grande', 'Playa Grande'),
+          t: L('One guide lists rips and undertow and calls it the place to go when Cocles is too big. Not confirmed.', 'Una guía anota resaca y corriente de fondo y la llama la alternativa cuando Cocles está muy grande. No confirmado.'),
+        },
+        {
+          ico: 'gap',
+          tone: 'unk',
+          tag: L('Beach break, lefts and rights', 'Playa de arena, izquierdas y derechas'),
+          h: L('Playa Negra (Cahuita)', 'Playa Negra (Cahuita)'),
+          t: L('Two guides agree it is a beach break, but one lists patches of reef, so do not assume the bottom is all sand. Not confirmed.', 'Dos guías coinciden en que es de arena, pero una anota parches de arrecife, así que no suponga que el fondo es todo arena. No confirmado.'),
+        },
       ],
     },
-    { k: 'h', t: L('If you are hurt', 'Si se lastima') },
     {
-      k: 'ul',
-      items: [
-        L('Urchin spines, reef cuts and stings: see the First aid tab for what to do first.', 'Espinas de erizo, cortes de arrecife y picaduras: vea la pestaña de Primeros auxilios para saber qué hacer primero.'),
-        L('Call 911 for anyone who is knocked out, is not breathing well or is in trouble in the water. The First aid tab lists the hospital in Limón and the other numbers.', 'Llame al 911 si alguien queda inconsciente, no respira bien o está en problemas en el agua. La pestaña de Primeros auxilios trae el hospital de Limón y los otros números.'),
+      k: 'flow',
+      alert: true,
+      h: L('If someone is hurt', 'Si alguien se lastima'),
+      steps: [
+        { ico: 'phone', h: L('Call 911', 'Llame al 911'), t: L('For anyone knocked out, not breathing well or in trouble in the water.', 'Si alguien queda inconsciente, no respira bien o está en problemas en el agua.') },
+        { ico: 'hospital', h: L('Cuts, spines, stings', 'Cortes, espinas, picaduras'), t: L('The First aid tab says what to do first, with the hospital in Limón and other numbers.', 'La pestaña de Primeros auxilios dice qué hacer primero, con el hospital de Limón y otros números.') },
       ],
+    },
+    {
+      k: 'go',
+      tab: 'aid',
+      ico: 'jelly',
+      h: L('First aid', 'Primeros auxilios'),
+      t: L('Urchin spines, reef cuts and stings, step by step.', 'Espinas de erizo, cortes de arrecife y picaduras, paso a paso.'),
     },
   ],
   sources: {
