@@ -26,7 +26,7 @@ The four weights sum to 1. They start from hand-written rules and are fitted to 
 - *Surf strip*: the open beach's breaking band, 1 within 150 m of the coast and 0 by 450 m, times the share of the bottom that is not reef (a reef flat breaks the waves offshore of it). The ~460 m depth grid cannot see a beach's slope, so this is a fixed width, not the day's breaker line.
 - The BITE water term reads the day's offshore wave height for surf feeders (`water.ts surfFit`): ×1.05 inside the species' ideal surf, down to ×0.8 outside its limits, with the reasons SURF STIRS UP FOOD or SURF TOO FLAT OR TOO BIG.
 
-New species, all RULE OF THUMB because records are few (occurrence box: pompano 18, permit 5, bonefish 7):
+New species, all RULE OF THUMB because records are few (occurrence box: pompano 18, permit 5, bonefish 7). None of the 18 pompano and palometa records lies between Gandoca and Cahuita: 2 are at Limón and the rest from Matina to Tortuguero and in Bocas del Toro, which is why the species guide moved both off its local list (species-guide/LOCAL-MOVED.md). Pompano stays on the map because it is a surf-beach fish the habitat model can place, but `noLocalRecord` makes the HUD say plainly that it has not been recorded here. Permit has a 2024 record at Cahuita and bonefish 1960s records off Cahuita.
 
 | Species | Mode | Depth, m | Prior weights | Surf it likes, m |
 |---|---|---|---|---|

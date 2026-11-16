@@ -6,6 +6,8 @@ describe('species catalog', () => {
   it('has text for every species and consistent weights and ranges', () => {
     for (const s of SPECIES) {
       expect(`fish.${s.id}` in en).toBe(true);
+      // A species with no local record says so in its own RULE OF THUMB line.
+      if (s.noLocalRecord) expect(s.confidence === 'low' && `fish.low.${s.id}` in en).toBe(true);
       expect(s.w.mouth + s.w.reef + s.w.drop + (s.w.sand ?? 0) + (s.w.grass ?? 0) + (s.w.surf ?? 0)).toBeCloseTo(1);
       expect(s.season).toHaveLength(12);
       const [a, b, c, d] = s.depthM;

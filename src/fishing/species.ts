@@ -24,6 +24,11 @@ export interface Species {
    * rules more than the records.
    */
   confidence?: 'low';
+  /**
+   * No mapped record between Gandoca and Cahuita (the species guide's local test). The HUD's RULE OF THUMB row then
+   * says so in its own words, from the i18n key `fish.low.<id>`.
+   */
+  noLocalRecord?: true;
   /** Water depth, m: [absolute min, ideal from, ideal to, absolute max]. Score is 0 outside min..max. */
   depthM: readonly [number, number, number, number];
   /**
@@ -69,7 +74,7 @@ export const SPECIES: readonly Species[] = [
   { id: 'grunt', mode: 'eat', depthM: [1, 2, 20, 35], w: { mouth: 0.1, reef: 0.7, drop: 0.2 }, mouthReachKm: 0.8, season: Array(12).fill(0.95), water: { visM: [1, 2, 20, 40], sstC: [22, 24, 30, 33] } },
   // Florida pompano (pámpano) and palometa: the surf strip of sandy beaches, eating mole crabs and coquina clams in the
   // wash. Rare here (1 or 2 records), so RULE OF THUMB. The species guide marks it as excellent eating. No local season.
-  { id: 'pompano', mode: 'eat', confidence: 'low', depthM: [0.2, 0.4, 3, 8], w: { mouth: 0.1, reef: 0, drop: 0, sand: 0.3, surf: 0.6 }, mouthReachKm: 1, season: Array(12).fill(0.95), water: { visM: [0.3, 0.8, 6, 15], sstC: [20, 24, 30, 33] }, surfHsM: [0.1, 0.4, 1.5, 2.5] },
+  { id: 'pompano', mode: 'eat', confidence: 'low', noLocalRecord: true, depthM: [0.2, 0.4, 3, 8], w: { mouth: 0.1, reef: 0, drop: 0, sand: 0.3, surf: 0.6 }, mouthReachKm: 1, season: Array(12).fill(0.95), water: { visM: [0.3, 0.8, 6, 15], sstC: [20, 24, 30, 33] }, surfHsM: [0.1, 0.4, 1.5, 2.5] },
   // Barracuda: SPORT, catch and release (the guide's ciguatera advice: no size is lower risk; CDC: never eat it).
   { id: 'barracuda', mode: 'sport', confidence: 'low', depthM: [1.5, 3, 18, 40], w: { mouth: 0.1, reef: 0.55, drop: 0.35 }, mouthReachKm: 1, season: [1, 1, 1, 0.95, 0.9, 0.85, 0.85, 0.9, 0.9, 0.95, 1, 1], water: { visM: [1.5, 4, 20, 40], sstC: [20, 24, 30, 33] }, ciguatera: true },
   // Permit (pámpano, SPORT): catch and release by custom; sand and seagrass beside reef and the surf line. About 3 records.
