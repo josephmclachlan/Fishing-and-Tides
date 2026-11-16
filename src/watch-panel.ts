@@ -7,6 +7,7 @@
  * `src/metrics/forecast.ts`, read at the spot the plan picked each day; this file is only DOM.
  */
 import type { Map, GeoJSONSource } from 'maplibre-gl';
+import { UI } from './icons/ui';
 import type { FeatureCollection } from 'geojson';
 import { REGION, SPOTS } from './region';
 import { t, type Key } from './i18n';
@@ -264,8 +265,8 @@ export function mountWatchPanel(
 
   const render = () => {
     if (!fc) return;
-    pop.innerHTML = `<div class="ph">${t('watch.forecast')}<span class="wt-tabs"><button type="button" class="tab${view === 'cards' ? ' on' : ''}" data-view="cards">${t('watch.cards')}</button><button type="button" class="tab${view === 'table' ? ' on' : ''}" data-view="table">${t('watch.table')}</button><button type="button" class="tab" id="wt-share">${t('watch.share')}</button></span><button type="button" class="sheet-x wt-x" aria-label="${t('watch.close')}">✕</button></div>
-      <div class="lbl wt-sub">${esc(subtitle())}</div>${best() ? `<div class="wt-best seg sm wrap${best()!.good ? ' green' : ' poor'}">${best()!.good ? '▶ ' : ''}${esc(best()!.text)}</div>` : ''}
+    pop.innerHTML = `<div class="ph">${t('watch.forecast')}<span class="wt-tabs"><button type="button" class="tab${view === 'cards' ? ' on' : ''}" data-view="cards">${t('watch.cards')}</button><button type="button" class="tab${view === 'table' ? ' on' : ''}" data-view="table">${t('watch.table')}</button><button type="button" class="tab" id="wt-share">${t('watch.share')}</button></span><button type="button" class="sheet-x wt-x" aria-label="${t('watch.close')}">${UI.close}</button></div>
+      <div class="lbl wt-sub">${esc(subtitle())}</div>${best() ? `<div class="wt-best seg sm wrap${best()!.good ? ' green' : ' poor'}">${best()!.good ? `${UI.next} ` : ''}${esc(best()!.text)}</div>` : ''}
       ${plan ? planHtml(plan) : ''}
       <div class="wt-body">${view === 'cards' ? cardsHtml(fc) : tableHtml(fc)}</div><div class="lbl" id="wt-msg" role="status"></div>`;
     pop.querySelector('.wt-x')!.addEventListener('click', () => (pop.hidden = true));

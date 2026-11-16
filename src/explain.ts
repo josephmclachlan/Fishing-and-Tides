@@ -5,6 +5,7 @@
  * lives in src/i18n/help-*.ts under `help.<id>`.
  */
 import { PHONE_QUERY } from './sheets';
+import { UI } from './icons/ui';
 import { t, type Key } from './i18n';
 
 export type HelpId = string;
@@ -76,7 +77,7 @@ export function mountExplain(root: HTMLElement) {
   };
 
   const fill = (title: string, id: HelpId) => {
-    card.innerHTML = `<div class="ph"><span>${esc(title)}</span><button type="button" class="sheet-x help-x" aria-label="${t('help.close')}">✕</button></div><p class="help-text">${esc(t(helpKey(id)))}</p>`;
+    card.innerHTML = `<div class="ph"><span>${esc(title)}</span><button type="button" class="sheet-x help-x" aria-label="${t('help.close')}">${UI.close}</button></div><p class="help-text">${esc(t(helpKey(id)))}</p>`;
     card.querySelector('.help-x')!.addEventListener('click', close);
     card.hidden = false;
   };
@@ -95,7 +96,7 @@ export function mountExplain(root: HTMLElement) {
   /** A card of label/value rows for a map point (the "what's here" card). */
   const showRows = (title: string, rows: [string, string][], at: { x: number; y: number }) => {
     const body = rows.length ? rows.map(([k, v]) => `<div class="ro"><span class="lbl">${esc(k)}</span><span class="val">${esc(v)}</span></div>`).join('') : `<p class="help-text">${esc(t('here.none'))}</p>`;
-    card.innerHTML = `<div class="ph"><span>${esc(title)}</span><button type="button" class="sheet-x help-x" aria-label="${t('help.close')}">✕</button></div>${body}<p class="help-text">${esc(t('here.note'))}</p>`;
+    card.innerHTML = `<div class="ph"><span>${esc(title)}</span><button type="button" class="sheet-x help-x" aria-label="${t('help.close')}">${UI.close}</button></div>${body}<p class="help-text">${esc(t('here.note'))}</p>`;
     card.querySelector('.help-x')!.addEventListener('click', close);
     card.hidden = false;
     anchor = null;
@@ -125,7 +126,7 @@ export function mountExplain(root: HTMLElement) {
     if (anchor === row && !card.hidden) return close();
     const id = row.dataset.help!;
     const title = (row.querySelector('.lbl')?.textContent ?? row.dataset.helpTitle ?? '').trim();
-    card.innerHTML = `<div class="ph"><span>${esc(title)}</span><button type="button" class="sheet-x help-x" aria-label="${t('help.close')}">✕</button></div><p class="help-text">${esc(t(helpKey(id)))}</p>`;
+    card.innerHTML = `<div class="ph"><span>${esc(title)}</span><button type="button" class="sheet-x help-x" aria-label="${t('help.close')}">${UI.close}</button></div><p class="help-text">${esc(t(helpKey(id)))}</p>`;
     card.querySelector('.help-x')!.addEventListener('click', close);
     card.hidden = false;
     anchor = row;

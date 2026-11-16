@@ -5,6 +5,7 @@
  * shows that hour. The scoring is in `metrics/best-today.ts`; this file is only DOM.
  */
 import type { Map } from 'maplibre-gl';
+import { UI } from './icons/ui';
 import { REGION, SPOTS } from './region';
 import { t, type Key } from './i18n';
 import type { TimeStore } from './time';
@@ -79,7 +80,7 @@ export function mountBestToday(
     const body = win
       ? `<span class="seg sm green">${hhmm(win.startMs)}–${hhmm(win.endMs)}</span><span class="bt-at">${esc(win.spot)}</span>`
       : `<span class="seg sm">--</span><span class="bt-at">${none}</span>`;
-    const html = `<span class="lbl">${t('bt.label', { name, when })}</span>${body}<span class="bt-go" aria-hidden="true">▸</span>`;
+    const html = `<span class="lbl">${t('bt.label', { name, when })}</span>${body}<span class="bt-go" aria-hidden="true">${UI.next}</span>`;
     for (const r of rows) {
       r.innerHTML = html;
       r.disabled = !win;

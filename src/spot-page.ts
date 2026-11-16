@@ -6,6 +6,7 @@
  * phone it is a drawer like the others.
  */
 import type { Map } from 'maplibre-gl';
+import { UI } from './icons/ui';
 import { nearest } from './geo';
 import { t, type Key } from './i18n';
 import { daySky, localDayStart } from './physics/astro';
@@ -63,9 +64,9 @@ export function mountSpotPage(root: HTMLElement, map: Map, deps: SpotPageDeps) {
   el.innerHTML = `
     <div class="ph">${t('spot.title')} <span class="tag" id="sp-when">--</span></div>
     <div class="sp-pick">
-      <button type="button" class="tab" id="sp-prev" aria-label="${t('spot.prev')}">‹</button>
+      <button type="button" class="tab" id="sp-prev" aria-label="${t('spot.prev')}">${UI.prev}</button>
       <span class="seg green" id="sp-name">--</span>
-      <button type="button" class="tab" id="sp-next" aria-label="${t('spot.next')}">›</button>
+      <button type="button" class="tab" id="sp-next" aria-label="${t('spot.next')}">${UI.next}</button>
     </div>
     <div class="sp-sec lbl">${t('spot.best')}</div>
     <button type="button" class="sc-tap" id="sp-ribbon" title="${t('tide.tap')}"></button>
