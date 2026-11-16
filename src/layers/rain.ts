@@ -11,7 +11,7 @@ import type { FeatureCollection } from 'geojson';
 import { firstSymbolId } from '../map';
 import type { RainCellsData } from '../adapters/rain-cells';
 import { extrapolate, findCells, HORIZON_MIN, motion, type Motion } from '../rain/nowcast';
-import { paintColour as cssColour } from './paint';
+import { onSchemeChange, paintColour as cssColour } from './paint';
 import type { DriftMotion } from './drift-motion';
 
 const ARROW_MIN = 30;
@@ -105,6 +105,7 @@ export function mountRainLayer(map: Map, drift: DriftMotion | null = null) {
     ready = true;
     draw();
   };
+  onSchemeChange(() => draw()); // re-bakes the rain image in the new colours; the arrows' colours are swapped by schemeSwap
   const whenStyle = (fn: () => void) => (map.getLayer('grat-macro') || map.isStyleLoaded() ? fn() : map.once('style.load', fn));
 
   return {

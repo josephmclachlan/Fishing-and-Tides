@@ -6,10 +6,12 @@
  * drawing code: a legend that disagrees with the map is worse than none.
  */
 import type { LayerId } from './registry';
+import { sprigSvg } from './sargassum-glyph';
 
-export type Swatch = 'fill' | 'hatch' | 'dot' | 'ring' | 'line' | 'zone' | 'none';
-/** HUD roles, plus the Kinetic Plus crest blue and three steps of its rain ramp (PLAN 7.86). */
-export type SwatchTone = 'amber' | 'green' | 'red' | 'dim' | 'surf' | 'rain0' | 'rain2' | 'rain4';
+/** `weed` is the drawn sargassum sprig itself (sargassum-glyph.ts), so the key shows the mark the map draws. */
+export type Swatch = 'fill' | 'hatch' | 'dot' | 'ring' | 'line' | 'zone' | 'weed' | 'none';
+/** HUD roles, plus the Kinetic Plus crest blue, three steps of its rain ramp (PLAN 7.86) and the weed's own colour. */
+export type SwatchTone = 'amber' | 'green' | 'red' | 'dim' | 'surf' | 'rain0' | 'rain2' | 'rain4' | 'sarg';
 export interface LegendItem { sw: Swatch; tone: SwatchTone }
 
 /** Items per layer, in the order of their text keys `legend.<layer>.1`, `.2` ... */
@@ -21,7 +23,7 @@ export const LEGEND: Readonly<Record<LayerId, readonly LegendItem[]>> = {
   chl: [{ sw: 'fill', tone: 'green' }, { sw: 'fill', tone: 'dim' }, { sw: 'none', tone: 'amber' }],
   fronts: [{ sw: 'dot', tone: 'amber' }, { sw: 'dot', tone: 'green' }, { sw: 'none', tone: 'amber' }],
   clarity: [{ sw: 'fill', tone: 'green' }, { sw: 'fill', tone: 'amber' }, { sw: 'fill', tone: 'red' }],
-  sargassum: [{ sw: 'fill', tone: 'amber' }, { sw: 'hatch', tone: 'dim' }, { sw: 'line', tone: 'amber' }, { sw: 'ring', tone: 'amber' }],
+  sargassum: [{ sw: 'fill', tone: 'amber' }, { sw: 'hatch', tone: 'dim' }, { sw: 'weed', tone: 'sarg' }, { sw: 'ring', tone: 'amber' }],
   weather: [{ sw: 'ring', tone: 'red' }, { sw: 'fill', tone: 'rain0' }, { sw: 'fill', tone: 'rain2' }, { sw: 'fill', tone: 'rain4' }, { sw: 'line', tone: 'amber' }],
   lightning: [{ sw: 'dot', tone: 'red' }, { sw: 'dot', tone: 'amber' }],
   obs: [{ sw: 'dot', tone: 'green' }, { sw: 'dot', tone: 'amber' }, { sw: 'dot', tone: 'red' }],
@@ -44,6 +46,6 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 
 /** The legend as HTML. `text` looks up an i18n key; swatches are CSS classes (see `.sw` in style.css). */
 export function legendHtml(id: LayerId, text: (key: string) => string): string {
-  const rows = LEGEND[id].map((it, i) => `<li>${it.sw === 'none' ? '<i class="sw sw-none"></i>' : `<i class="sw sw-${it.sw} sw-${it.tone}"></i>`}<span>${esc(text(legendItemKey(id, i + 1)))}</span></li>`).join('');
+  const rows = LEGEND[id].map((it, i) => `<li>${it.sw === 'none' ? '<i class="sw sw-none"></i>' : `<i class="sw sw-${it.sw} sw-${it.tone}">${it.sw === 'weed' ? sprigSvg(22) : ''}</i>`}<span>${esc(text(legendItemKey(id, i + 1)))}</span></li>`).join('');
   return `<p class="lg-what">${esc(text(legendWhatKey(id)))}</p>${rows ? `<ul class="lg-list">${rows}</ul>` : ''}`;
 }

@@ -25,6 +25,7 @@ export async function listenAis(box: readonly [readonly [number, number], readon
         const msg = JSON.parse(text);
         if (msg.error) return reject(new Error(`aisstream: ${msg.error}`));
         heard++;
+        if (heard <= 3) console.log(`  [ais] message ${heard}: ${msg.MessageType ?? Object.keys(msg).join(',')}`);
         if (applyAisMessage(table, msg, Date.now()) && msg.MessageType !== 'ShipStaticData') positions++;
       } catch {
         // A malformed message is skipped.

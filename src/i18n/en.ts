@@ -1210,7 +1210,7 @@ export const en = {
   'legend.sargassum.what': 'Floating sargassum weed seen by satellite, and where it is drifting.',
   'legend.sargassum.1': 'Amber squares: weed seen (brighter is more)',
   'legend.sargassum.2': 'Faint hatching: the satellite could not see here (cloud), so it is unknown, not clear',
-  'legend.sargassum.3': 'Weed clumps on dashed lines: drifting mats riding their forecast tracks, from the slider time over the next 18 hours',
+  'legend.sargassum.3': 'Sargassum sprigs (stem, leaves, round floats) on dashed lines: drifting mats riding their forecast tracks, from the slider time over the next 18 hours',
   'legend.sargassum.4': 'SARGASSUM label on a beach: weed is forecast to land there within 5 days',
   'legend.weather.what': 'Rain seen from the GOES-19 satellite in the last hour, moved ahead up to 2 hours along the way the cells are drifting (and drifting on the map at that measured speed), and active tropical storms from the US hurricane centre (usually far outside this coast).',
   'legend.weather.1': 'Ring with a name and category: a storm',

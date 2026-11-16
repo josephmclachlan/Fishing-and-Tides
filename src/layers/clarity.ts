@@ -24,7 +24,7 @@ import { flowRatio, type RiverFlow } from '../adapters/river-flow';
 import { readout } from '../hud-kit';
 import { t, type Key } from '../i18n';
 import { parseSeen, seenCSV, seenStats, seenStore, type VisApp } from '../vis-seen';
-import { NO_LIFT, lifted, paintColour as cssColour, paintLift, type Lift } from './paint';
+import { NO_LIFT, lifted, onSchemeChange, paintColour as cssColour, paintLift, type Lift } from './paint';
 
 const RAD = Math.PI / 180;
 /** Layer grid: REGION.bounds every 0.004° (~440 m), about 210 × 160 cells. */
@@ -398,16 +398,17 @@ export interface ClarityLayer {
 }
 
 export function mountClarity(map: Map): ClarityLayer {
-  const colours: Record<ClarityLevel, [number, number, number]> = {
+  const readColours = (): Record<ClarityLevel, [number, number, number]> => ({
     GOOD: rgb(cssColour('--green', '#39ff7a')),
     FAIR: rgb(cssColour('--amber', '#ffb000')),
     POOR: rgb(cssColour('--red', '#ff3b2f')),
-  };
+  });
+  let colours = readColours();
   const canvas = document.createElement('canvas');
   // Kinetic Plus paints visibility in its ramp's bands, murky brown to clear teal, with a hairline at each band edge
   // (bands.ts, PLAN 7.79).
-  const banded = fieldWord('vis', paintLift());
-  const ink = cssColour('--ink', '#0b1a2a');
+  let banded = fieldWord('vis', paintLift());
+  let ink = cssColour('--ink', '#0b1a2a');
   const draw = (g: ClarityGrid, land: Grid | null | undefined) => {
     const img = clarityImage(g, land, colours, CLARITY_PIXEL_DEG, paintLift(), banded);
     const coast = land ? coastTest(land) : null;
@@ -443,9 +444,18 @@ export function mountClarity(map: Map): ClarityLayer {
     last = performance.now();
     draw(clarityGrid(ctx), ctx.land);
   };
+  let latest: ClarityContext | null = null;
+  // A light/dark switch re-reads the colours and redraws from the data already held, with no reload.
+  onSchemeChange(() => {
+    colours = readColours();
+    banded = fieldWord('vis', paintLift());
+    ink = cssColour('--ink', '#0b1a2a');
+    if (map.getLayer('cl-iso')) map.setPaintProperty('cl-iso', 'line-color', ink);
+    if (latest) draw(clarityGrid(latest), latest.land);
+  });
   return {
     update(c) {
-      pending = c;
+      pending = latest = c;
       if (scheduled) return;
       scheduled = true;
       const wait = Math.max(0, last + MIN_GAP_MS - performance.now());

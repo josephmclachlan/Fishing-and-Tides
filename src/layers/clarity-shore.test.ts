@@ -76,6 +76,14 @@ describe('beach creeks (PLAN 7.89)', () => {
     const far = [cocles.mouth[0] + 0.03, cocles.mouth[1] - 0.008] as const;
     expect(clarityAt(wet(15, 4), ...far)!.visM).toBeGreaterThanOrEqual(8);
   });
+  it('reach the Punta Uva swimmers’ water from the cove creek Joseph photographed', () => {
+    const c = wet(15, 4);
+    const p = swimPoint(c, punta.lngLat, punta.facing)!;
+    const x = clarityAt(c, ...p)!;
+    expect(x.cause).toBe('river');
+    expect(x.visM).toBeLessThan(3);
+    expect(clarityAt(wet(0, 6), ...p)!.visM).toBeGreaterThanOrEqual(8);
+  });
   it('are read from the coast-creek rain, every one of them', () => {
     const rs = riverRain(wet(15, 4).rain, t0);
     for (const c of CREEK_PLUMES) expect(rs.find((r) => r.name === c.name)!.plumeMm, c.name).toBeGreaterThan(0);

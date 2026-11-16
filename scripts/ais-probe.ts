@@ -17,5 +17,8 @@ const run = async (label: string, box: typeof AIS_BOX, secs: number) => {
   console.log('ships per 0.1° of latitude (south to north):', JSON.stringify(Object.fromEntries(Object.entries(latitudeBands(v)).sort())));
   for (const x of v.sort((a, b) => a.lngLat[1] - b.lngLat[1])) console.log(`  ${x.mmsi} ${x.name || '(no name yet)'} ${shipClass(x.type)} ${x.lngLat[1].toFixed(3)},${x.lngLat[0].toFixed(3)} ${x.sogKt} kt`);
 };
+// Control: Colón / Cristóbal on Panama's Caribbean side is one of the busiest AIS areas in the region, so hearing nothing
+// there too would mean the listener or key is at fault, not the coast.
+await run('CONTROL BOX (Colón, Panama)', [[-80.2, 9.2], [-79.6, 9.5]], 60);
 await run('COAST BOX (Gandoca to Limón)', AIS_BOX, Math.round(minutes * 30));
 await run('WIDE BOX (Bocas del Toro to Nicaragua border region)', WIDE, Math.round(minutes * 30));
