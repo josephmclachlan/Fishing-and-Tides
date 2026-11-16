@@ -1,5 +1,5 @@
 /**
- * The live-map card's pictures, kept between visits (PLAN 7.LAZY). The map is only drawn once it is opened, so the
+ * The live-map card's pictures, kept between visits (PLAN 7.101). The map is only drawn once it is opened, so the
  * forecast page can no longer take a picture of it on start-up; it shows the last picture taken for the spot (and
  * light or dark) instead, and takes a fresh one whenever the map has been opened. Kept in Cache Storage (a few tens of
  * kB each), not localStorage, whose small quota holds the private coral log. Nothing is kept where the browser has no

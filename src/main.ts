@@ -1703,7 +1703,7 @@ if (MODERN) {
   if (landGrid) km.setMask(landMask(landGrid));
 }
 
-// The map is drawn only once it is shown (PLAN 7.LAZY): while the forecast, coral or guide page covers it, its style,
+// The map is drawn only once it is shown (PLAN 7.101): while the forecast, coral or guide page covers it, its style,
 // tiles and drawing wait, and the feeds load once for both. Pages decide on their first tick what is open.
 const mapIfShown = () => document.body.classList.contains('fc-open') || (startMap(map), releaseMapWork());
 new MutationObserver(mapIfShown).observe(document.body, { attributes: true, attributeFilter: ['class'] });
