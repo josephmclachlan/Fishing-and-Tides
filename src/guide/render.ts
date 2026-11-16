@@ -245,12 +245,27 @@ export function introHtml(mode: GdMode): string {
 
 // ------------------------------------------------------------------ a species
 
+/** Whether a food block says anything beyond its rules, i.e. how to catch, prepare or eat it. */
+const hasEatInfo = (e: NonNullable<Species['eat']>) =>
+  !!(e.taste || e.methods?.length || e.bait || e.lures || e.tackle || e.howTo || e.spear || e.clean || e.cook);
+
+/** Taking it is banned (or the species is protected). */
+export const isIllegal = (s: Pick<Species, 'edible' | 'eat'>) => !!s.eat?.illegal || s.edible === 'protected';
+
+/** The banner over the catch and clean tabs of a species that is banned, or not normally eaten: emergency use only. */
+export function emergencyHtml(s: Pick<Species, 'edible' | 'eat'>): string {
+  if (isIllegal(s)) return `<section class="gd-blk gd-illegal" role="note"><h4 class="fc-mono">${esc(t('gd.illegal.title'))}</h4><p>${esc(t('gd.illegal.text'))}</p></section>`;
+  if (s.edible && !isFood(s)) return `<section class="gd-blk gd-warn" role="note"><h4 class="fc-mono">${esc(t('gd.notFood.title'))}</h4><p>${esc(t('gd.notFood.text'))}</p></section>`;
+  return '';
+}
+
 export function tabsFor(s: Species): GdTab[] {
   const out: GdTab[] = ['about'];
   if (s.idTips || s.variants?.length || s.lookalikes?.length || s.look?.marks) out.push('id');
   if (s.diet || s.predators || s.behaviour || s.reproduction || s.lifespan) out.push('life');
-  if (s.eat && isFood(s)) out.push('catch');
-  if (s.eat?.clean && isFood(s)) out.push('clean');
+  // Shown for every species with food notes, not only the edible list: a banned or risky one carries a banner (emergencyHtml).
+  if (s.eat && (isFood(s) || hasEatInfo(s.eat))) out.push('catch');
+  if (s.eat?.clean) out.push('clean');
   if (s.danger || s.eat?.risks?.length || s.edible === 'toxic' || s.edible === 'caution' || s.edible === 'protected' || s.edibleNote) out.push('safety');
   if (s.sources?.length || s.check || s.photos?.length || s.evidence?.length) out.push('sources');
   return out;
@@ -365,6 +380,7 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
       if (!e) return `<p>${esc(t('gd.noCatch'))}</p>`;
       const q = e.quality ? `<p class="gd-q"><span class="gd-pips" aria-label="${e.quality}/5">${pips(e.quality)}</span></p>` : '';
       return (
+        emergencyHtml(s) +
         block(t('gd.h.taste'), q + pText(e.taste, lang)) +
         block(t('gd.h.rules'), txt(e.rules, lang) ? paras(txt(e.rules, lang)) + (e.rulesCheck ? `<p>${checkMark()} ${esc(t('gd.checkTitle'))}</p>` : '') : '', 'gd-rules') +
         block(t('gd.h.methods'), chips((e.methods ?? []).map((m) => tx(METHOD_WORDS[m], lang)))) +
@@ -380,7 +396,7 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
       );
     }
     case 'clean':
-      return (e?.clean ? cleanHtml(e.clean, lang, e.cleanNotes) : '') + block(t('gd.h.cook'), pText(e?.cook, lang));
+      return emergencyHtml(s) + (e?.clean ? cleanHtml(e.clean, lang, e.cleanNotes) : '') + block(t('gd.h.cook'), pText(e?.cook, lang));
     case 'safety': {
       const d = s.danger;
       return (

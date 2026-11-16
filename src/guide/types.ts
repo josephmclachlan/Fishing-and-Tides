@@ -117,6 +117,8 @@ export interface Eat {
   riskNote?: Txt;
   rules?: Txt;
   rulesCheck?: boolean;
+  /** Taking it is banned in Costa Rica: the catch and clean tabs still show, as emergency (survival) information only. */
+  illegal?: boolean;
   methods?: Method[];
   bait?: Txt;
   lures?: Txt;

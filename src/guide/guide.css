@@ -398,3 +398,7 @@
 .gd-id-exp { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--fc-line); }
 .gd-id-exp p { margin: 0 0 6px; font-size: 14px; color: var(--fc-ink2); }
 @media (min-width: 560px) { .gd-exp { flex: 0 0 auto; } }
+
+/* Banned species: catch and clean notes are emergency information only. */
+.gd-illegal { padding: 12px 14px; background: color-mix(in srgb, var(--fc-lv0) 22%, var(--fc-card)); border-left: 8px solid var(--fc-lv0); }
+.gd-illegal h4 { color: var(--fc-ink); }
