@@ -217,6 +217,8 @@
 .km .k-keys i.k-ln{height:3px}
 .km .k-keys i.k-hatch{background:repeating-linear-gradient(135deg,var(--k) 0 1.5px,transparent 1.5px 4px);box-shadow:inset 0 0 0 1.5px var(--k)}
 .km .k-keys i.k-dot{width:8px;height:8px;border-radius:50%}
+.km .k-keys i.k-glyph{width:14px;height:14px;background:none;display:inline-grid;place-items:center;vertical-align:-3px}
+.km .k-keys i.k-glyph svg{overflow:visible}
 .km .k-keys i.k-lock{background:repeating-linear-gradient(45deg,var(--ink2) 0 1.5px,transparent 1.5px 4px);box-shadow:inset 0 0 0 1.5px var(--ink2)}
 .km .k-lgline{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink2)}
 .km .k-lgline canvas{width:84px;height:16px;display:block}
@@ -387,7 +389,7 @@
 .km .maplibregl-ctrl-attrib a{color:var(--ink2)}
 .km .maplibregl-ctrl-attrib-button{filter:var(--attrib-filter,none)}
 .km[data-scheme="dark"]{--attrib-filter:invert(1)}
-.km .maplibregl-ctrl-bottom-right{z-index:5}
+.km .maplibregl-ctrl-bottom-right{z-index:5;bottom:var(--k-attrib-b,140px);right:4px}
 
 /* The old HUD stays mounted under the shell (its modules still read and write their rows), out of sight. Its
    drawers open restyled from Settings (WATCH, BOAT, CORAL, LIVE OBS, SYSTEM CHECK, all readings). */

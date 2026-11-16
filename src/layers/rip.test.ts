@@ -69,14 +69,15 @@ describe('rip overlay geometry', () => {
     const quiet = ripFeatures(calm, stations, sites);
     expect([...kinds(quiet)]).toEqual(['site']);
     expect(quiet.features.every((f) => f.properties!.level === 'LOW')).toBe(true);
-    // Big swell at low tide: the coast lights up HIGH near the spots and the labels name them.
+    // Big swell at low tide: the coast lights up HIGH near the spots and the labels give the rip (the box names the spot).
     const fc = ripFeatures(big, stations, sites);
     expect(kinds(fc)).toEqual(new Set(['coast', 'site', 'label']));
     const coast = fc.features.filter((f) => f.properties!.kind === 'coast');
     expect(coast.length).toBeGreaterThan(20);
     expect(coast.some((f) => f.properties!.level === 'HIGH')).toBe(true);
     const label = fc.features.find((f) => f.properties!.kind === 'label')!;
-    expect(String(label.properties!.label)).toContain(`${spots[0].name} · RIP HIGH`);
+    expect(String(label.properties!.label)).toContain('RIP HIGH');
+    expect(String(label.properties!.label)).not.toContain(spots[0].name);
     expect(ripFeatures([{ name: 'X', pin: [0, 0], sea: small, result: null }], stations).features).toHaveLength(0);
     // On the mock swell (waves feed not in yet) nothing lights up: no false alarm on first open.
     const mock = ripFeatures(big.map((b) => ({ ...b, liveSea: false })), stations, sites);
@@ -161,5 +162,16 @@ describe('rip overlay geometry', () => {
           }
       expect(nearest, s.name).toBeLessThanOrEqual(60);
     }
+  });
+});
+
+describe('seawardAnchor', () => {
+  it('anchors the label on its landward side', async () => {
+    const { seawardAnchor } = await import('./rip');
+    expect(seawardAnchor(0)).toBe('bottom');
+    expect(seawardAnchor(45)).toBe('bottom-left');
+    expect(seawardAnchor(180)).toBe('top');
+    expect(seawardAnchor(-90)).toBe('right');
+    expect(seawardAnchor(350)).toBe('bottom');
   });
 });

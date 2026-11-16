@@ -8,6 +8,7 @@ import type { GeoJSONSource, Map as MlMap } from 'maplibre-gl';
 import { coastNear, labelRect, landward, placePins, privateCells, type Mask, type Rect, CELL_DEG } from './model';
 import { ZONE_LABEL, zoneTextSize } from '../fishing/zones';
 import { esc, hex, L2, tok } from './dom';
+import { addGlyphImages, imageId } from '../icons/map-glyphs';
 import type { Level } from '../forecast/model';
 
 export interface PinData {
@@ -43,7 +44,16 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
     map.addLayer({ id: 'km-coast', type: 'line', source: 'km-coast', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'col'], 'line-width': ['interpolate', ['linear'], ['zoom'], 9, 2.5, 12, 6.5, 15, 13], 'line-opacity': ['interpolate', ['linear'], ['zoom'], 8.5, 0, 9.5, 1] } }, lbl);
     map.addLayer({ id: 'km-cells-fill', type: 'fill', source: 'km-cells', paint: { 'fill-color': hex(tok('t-coral')), 'fill-opacity': 0.14 } }, lbl);
     map.addLayer({ id: 'km-cells-line', type: 'line', source: 'km-cells', paint: { 'line-color': hex(tok('t-coral')), 'line-width': 2, 'line-dasharray': [3, 2] } }, lbl);
-    map.addLayer({ id: 'km-cells-label', type: 'symbol', source: 'km-cells', layout: { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Regular'], 'text-size': 11, 'text-allow-overlap': true }, paint: { 'text-color': hex(tok('ink')), 'text-halo-color': hex(tok('m-halo')), 'text-halo-width': 2 } });
+    // The lock says "private" (PLAN 7.104); the hatch is kept for "unknown" only.
+    addGlyphImages(map);
+    map.addLayer({
+      id: 'km-cells-label', type: 'symbol', source: 'km-cells',
+      layout: {
+        'icon-image': imageId('lock', 'ink'), 'icon-size': 0.75, 'icon-anchor': 'right', 'icon-offset': [-2, 0], 'icon-allow-overlap': true,
+        'text-field': ['get', 'label'], 'text-font': ['Noto Sans Regular'], 'text-size': 11, 'text-anchor': 'left', 'text-offset': [0.2, 0], 'text-allow-overlap': true,
+      },
+      paint: { 'text-color': hex(tok('ink')), 'text-halo-color': hex(tok('m-halo')), 'text-halo-width': 2 },
+    });
     return true;
   };
 

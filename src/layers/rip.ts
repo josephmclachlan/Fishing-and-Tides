@@ -34,7 +34,9 @@ import { REGION, RIP_CREEKS } from '../region';
 import { cellAt, M_PER_DEG_LAT, M_PER_DEG_LNG, type Grid } from '../physics/bathy';
 import type { SpotState } from '../spot-physics';
 import { ripLevel, type RipLevel } from '../physics/rip';
-import { paintColour as cssColour } from './paint';
+import { onSchemeChange, paintColour as cssColour, themeVar } from './paint';
+
+const schemeHooked = new WeakSet<Map>();
 
 const FONT = ['Noto Sans Regular'];
 const RAD = Math.PI / 180;
@@ -295,6 +297,12 @@ function arrowImage(colour: string, halo: string, scale = 2): { width: number; h
  * GeoJSON for the overlay. Pure, so it's tested without a map. `stations` are the coast
  * stations (none until the coastline mask loads: then only the sites and labels show).
  */
+/** The text anchor that makes a label grow toward the sea, for a coast whose seaward normal points `deg` (true). Pure. */
+export function seawardAnchor(deg: number): string {
+  const ANCHORS = ['bottom', 'bottom-left', 'left', 'top-left', 'top', 'top-right', 'right', 'bottom-right'];
+  return ANCHORS[((Math.round(deg / 45) % 8) + 8) % 8];
+}
+
 export function ripFeatures(states: readonly SpotState[], stations: readonly Station[] = [], sites: readonly RipSite[] = [], land?: Grid | null, floodAt?: (site: RipSite) => MouthFlood | null): FeatureCollection {
   const features: Feature[] = [];
   for (const st of stations) {
@@ -311,8 +319,9 @@ export function ripFeatures(states: readonly SpotState[], stations: readonly Sta
     const flooding = !!flood && flood.level !== 'LOW' && RANK[flood.level] >= RANK[surf];
     const level = flooding ? flood.level : surf;
     const kind = flooding ? (flood.by === 'river' ? 'flood' : 'creek') : site.kind;
-    features.push({ type: 'Feature', properties: { kind: 'site', level, site: kind, name: site.name }, geometry: { type: 'Point', coordinates: site.at } });
     const arrow = land ? siteArrow(land, site.at, states, flooding) : null;
+    // A site with an arrow is drawn by the arrow alone; the ring stays only where no arrow could be found (PLAN 7.104).
+    features.push({ type: 'Feature', properties: { kind: 'site', level, site: kind, name: site.name, arrow: !!arrow }, geometry: { type: 'Point', coordinates: site.at } });
     if (arrow) features.push({ type: 'Feature', properties: { kind: 'arrow', level, deg: Math.round(arrow.deg), reach: Math.round(arrow.reachM) }, geometry: { type: 'Point', coordinates: arrow.at } });
   }
   for (const s of states) {
@@ -321,11 +330,13 @@ export function ripFeatures(states: readonly SpotState[], stations: readonly Sta
     if (!r || s.liveSea === false || r.rip.level === 'LOW') continue;
     const normalDeg = (land && maskNormal(land, s.pin)) ?? r.waves.normalDeg;
     const xb = surfZoneWidth(r.waves.breaker.hb, r.waves.slope);
+    // The spot's box already names the place, so the label is the rip alone, set out to sea from its anchor so it
+    // never runs back under the box (PLAN 7.104).
     const label = [
-      `${s.name} · ${t('rip.short')} ${t(`rip.${r.rip.level}` as Key)}`,
+      `${t('rip.short')} ${t(`rip.${r.rip.level}` as Key)}`,
       `${t(`rip.str.${r.rip.strength}` as Key)} ${r.rip.speedMs.toFixed(1)} ${t('unit.ms')} · ${t('rip.reachShort')} ${Math.round(r.rip.lengthM / 10) * 10} ${t('unit.m')}`,
     ].join('\n');
-    features.push({ type: 'Feature', properties: { kind: 'label', level: r.rip.level, label }, geometry: { type: 'Point', coordinates: offset(s.pin, normalDeg, Math.max(xb, r.rip.lengthM) + 250) } });
+    features.push({ type: 'Feature', properties: { kind: 'label', level: r.rip.level, label, anchor: seawardAnchor(normalDeg) }, geometry: { type: 'Point', coordinates: offset(s.pin, normalDeg, Math.max(xb, r.rip.lengthM) + 250) } });
   }
   return { type: 'FeatureCollection', features };
 }
@@ -375,9 +386,10 @@ export function mountRip(map: Map): RipLayer {
         'circle-opacity': ['interpolate', ['linear'], ['zoom'], 9, ['*', 0.75, ['get', 'conf']], 14, ['*', 0.45, ['get', 'conf']]],
       },
     }, below);
-    // Fixed sites: a ring (hollow, so it never hides the reef or the beach under it).
+    // Fixed sites with no arrow (the land mask not loaded, or no way out to sea found): a ring, hollow so it never hides
+    // the reef or the beach under it. Where there is an arrow it says it all, so no ring (PLAN 7.104).
     map.addLayer({
-      id: 'rp-site', type: 'circle', source: 'rp', minzoom: 10.5, filter: ['==', ['get', 'kind'], 'site'],
+      id: 'rp-site', type: 'circle', source: 'rp', minzoom: 10.5, filter: ['all', ['==', ['get', 'kind'], 'site'], ['!', ['get', 'arrow']]],
       paint: {
         'circle-color': 'rgba(0,0,0,0)',
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 10.5, 4, 15, 11],
@@ -387,12 +399,17 @@ export function mountRip(map: Map): RipLayer {
       },
     });
     // Arrows out of the mouths and rip breaks: risk colour, longer where the rip reaches further (PLAN 7.85).
-    const tone = { HIGH: cssColour('--red', '#ff3b2f'), MOD: cssColour('--amber', '#ffb000'), LOW: cssColour('--amber', '#ffb000') };
-    for (const [lv, c] of Object.entries(tone)) {
-      const id = `rp-arrow-${lv}`;
-      const img = map.hasImage(id) ? null : arrowImage(c, 'rgba(0,0,0,0.55)');
-      if (img) map.addImage(id, img, { pixelRatio: 2 });
-    }
+    // In the severity colours with the symbol keyline, like every hazard symbol, and redrawn on a light/dark switch.
+    const arrows = (update: boolean) => {
+      const danger = themeVar('--sev-danger', '#E23B26'), caution = themeVar('--sev-caution', '#F2A900'), key = themeVar('--g-key', '#0A1626');
+      for (const [lv, c] of Object.entries({ HIGH: danger, MOD: caution, LOW: caution })) {
+        const id = `rp-arrow-${lv}`;
+        const img = update || !map.hasImage(id) ? arrowImage(c, key) : null;
+        if (img) map.hasImage(id) ? map.updateImage(id, img) : map.addImage(id, img, { pixelRatio: 2 });
+      }
+    };
+    arrows(false);
+    if (!schemeHooked.has(map)) schemeHooked.add(map), onSchemeChange(() => arrows(true));
     map.addLayer({
       id: 'rp-arrow', type: 'symbol', source: 'rp', minzoom: 11, filter: ['==', ['get', 'kind'], 'arrow'],
       layout: {
@@ -411,18 +428,19 @@ export function mountRip(map: Map): RipLayer {
       id: 'rp-site-label', type: 'symbol', source: 'rp', minzoom: 13, filter: ['all', ['==', ['get', 'kind'], 'site'], ['!=', ['get', 'level'], 'LOW']],
       layout: {
         'text-field': ['match', ['get', 'site'], 'mouth', t('rip.siteMouth'), 'flood', t('rip.siteFlood'), 'creek', t('rip.siteCreek'), t('rip.siteBreak')],
-        'text-font': FONT, 'text-size': 10, 'text-letter-spacing': 0.1, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-optional': true,
+        // Above the site: this coast faces north-east, so above is out to sea, clear of the spot boxes on the shore.
+        'text-font': FONT, 'text-size': 10, 'text-letter-spacing': 0.1, 'text-offset': [0, -1.2], 'text-anchor': 'bottom', 'text-optional': true,
       },
-      paint: { 'text-color': colour, 'text-halo-color': '#000', 'text-halo-width': 1.5, 'text-opacity': ['match', ['get', 'level'], 'LOW', 0.6, 1] },
+      paint: { 'text-color': themeVar('--ink', '#0A1626'), 'text-halo-color': themeVar('--m-halo', '#ECEADF'), 'text-halo-width': 1.6, 'text-opacity': ['match', ['get', 'level'], 'LOW', 0.6, 1] },
     });
     map.addLayer({
       id: 'rp-label', type: 'symbol', source: 'rp', minzoom: 11.5, filter: ['==', ['get', 'kind'], 'label'],
       layout: {
         'text-field': ['get', 'label'], 'text-font': FONT, 'text-size': 11, 'text-letter-spacing': 0.08, 'text-justify': 'auto',
-        // Breaks, reefs and wrecks crowd the same water: let the label slide to whichever side is free.
-        'text-variable-anchor': ['top', 'bottom', 'left', 'right', 'top-left', 'top-right', 'bottom-left', 'bottom-right'], 'text-radial-offset': 0.6,
+        // Anchored on its landward side, so the text grows out to sea, away from the spot's box on the shore.
+        'text-anchor': ['get', 'anchor'], 'text-max-width': 16,
       },
-      paint: { 'text-color': colour, 'text-halo-color': '#000', 'text-halo-width': 1.5 },
+      paint: { 'text-color': themeVar('--ink', '#0A1626'), 'text-halo-color': themeVar('--m-halo', '#ECEADF'), 'text-halo-width': 1.6 },
     });
   };
   if (map.isStyleLoaded()) add();
