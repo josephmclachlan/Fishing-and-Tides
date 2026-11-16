@@ -1828,6 +1828,8 @@ export function mountKineticMap(d: KmDeps) {
     },
     /** The old LAYERS preset id for the CONDITIONS groups. */
     oldPreset: () => (S.coral ? null : OLD_PRESET[S.act]),
+    /** The map's activity, null on the reef map. */
+    act: (): FcActivity | null => (S.coral ? null : S.act),
   };
 }
 
