@@ -2117,6 +2117,7 @@ export const en = {
   'gd.h.firstAid': 'First aid',
   'gd.h.eatRisk': 'Risks when eating it',
   'gd.h.ciguaSize': 'Ciguatera: size to keep',
+  'gd.h.tabSources': 'Sources for this tab',
   'gd.csz.keep': 'Keep under {lim}',
   'gd.csz.published': 'Published limit',
   'gd.csz.estimate': 'Estimate',

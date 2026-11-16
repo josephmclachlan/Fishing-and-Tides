@@ -2116,6 +2116,7 @@ export const es: Dict = {
   'gd.h.firstAid': 'Primeros auxilios',
   'gd.h.eatRisk': 'Riesgos al comerlo',
   'gd.h.ciguaSize': 'Ciguatera: tamaño para quedarte',
+  'gd.h.tabSources': 'Fuentes de esta pestaña',
   'gd.csz.keep': 'Quédate con menos de {lim}',
   'gd.csz.published': 'Límite publicado',
   'gd.csz.estimate': 'Estimación',

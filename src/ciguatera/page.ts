@@ -56,7 +56,7 @@ export function mountCiguateraPage(deps: CiguateraPageDeps) {
       <header class="fc-top fc-in">
         <p class="fc-brand fc-mono">${t('fc.brand')}<span class="fc-hide-s"> · ${t('fc.region')}</span></p>
         <div class="fc-ctrls">
-          <button type="button" class="fc-ctl fc-back" id="cig-back" title="${esc(CHROME.backTitle[lang])}"><svg viewBox="0 0 24 24" aria-hidden="true" class="cig-ico"><path d="M15 5l-7 7 7 7"/></svg><span id="cig-back-l">${esc(CHROME.back.map[lang])}</span></button>
+          <button type="button" class="fc-ctl fc-back" id="cig-back" title="${esc(CHROME.backTitle[lang])}"><svg viewBox="0 0 24 24" aria-hidden="true" class="cig-ico"><path d="M15 5l-7 7 7 7"/></svg><span id="cig-back-l">${esc(CHROME.back.forecast[lang])}</span></button>
           <div class="fc-lang" role="group" aria-label="${t('fc.langGroup')}"><button type="button" data-lang="en" aria-pressed="${lang === 'en'}">EN</button><button type="button" data-lang="es" aria-pressed="${lang === 'es'}">ES</button></div>
           <button type="button" class="fc-ctl fc-sq fc-themeb" id="cig-scheme" aria-label="${t('fc.scheme')}" title="${t('fc.scheme')}"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 2a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg></button>
         </div>
@@ -93,7 +93,8 @@ export function mountCiguateraPage(deps: CiguateraPageDeps) {
 
   let tab: CgTab = 'risk';
   let pushed = false;
-  let cameFrom: From = 'map';
+  // Opened without a page behind it (a shared link, a reload): Back goes to the forecast (Joseph 2026-11-16).
+  let cameFrom: From = 'forecast';
 
   const render = () => {
     $('cig-tabs').innerHTML = tabsHtml(tab, lang, ciguateraHash);
@@ -106,7 +107,7 @@ export function mountCiguateraPage(deps: CiguateraPageDeps) {
     el.hidden = false;
     document.body.classList.add('fc-open');
     mapMeta = meta?.getAttribute('content') ?? null;
-    $('cig-back-l').textContent = CHROME.back[cameFrom][lang];
+    $('cig-back-l').textContent = CHROME.back[cameFrom === 'map' ? 'forecast' : cameFrom][lang];
     applyScheme();
     themeMeta();
     render();
@@ -171,14 +172,14 @@ export function mountCiguateraPage(deps: CiguateraPageDeps) {
     // pushState fires no hashchange, so tell the other pages (the forecast and guide hide on any hash but their own).
     if (location.href !== from) window.dispatchEvent(new HashChangeEvent('hashchange', { oldURL: from, newURL: location.href }));
   };
-  /** Back where it was opened from: a step back if we pushed the entry, else the page it came from. */
+  /** Back where it was opened from (a step back), except from the map, which goes to the forecast (Joseph 2026-11-16). */
   const close = () => {
-    if (pushed) {
+    if (pushed && cameFrom !== 'map') {
       pushed = false;
       history.back(); // hashchange hides it
     } else {
       pushed = false;
-      location.hash = BACK_HASH[cameFrom];
+      location.hash = cameFrom === 'map' ? '#forecast' : BACK_HASH[cameFrom];
     }
   };
 

@@ -6,6 +6,7 @@
  */
 import { t, type Key } from '../i18n';
 import { artFor, artSvg, GROUP_ART } from './art';
+import { citeTab } from './cite';
 import { cleanHtml, dispatchLinkHtml } from './clean';
 import {
   FLAGS, GROUP_BYS, hurtsToTouch, isFood, latinOnly, nameOf, poisonToEat, riskToEat, SIZE_BANDS, SORTS, TOUCH_KINDS, touchLevel,
@@ -28,8 +29,7 @@ export function ciguaSizeHtml(c: NonNullable<Species['eat']>['ciguaSize'], lang:
   if (!c || !txt(c.advice, lang)) return '';
   const lim = [c.maxCm ? `${c.maxCm} cm` : '', c.maxKg ? `${c.maxKg} kg` : ''].filter(Boolean).join(' · ');
   const head = lim ? `<p class="gd-csz"><b>${esc(t('gd.csz.keep', { lim }))}</b> <span class="gd-b">${esc(t(`gd.csz.${c.basis}` as Key))}</span></p>` : `<p class="gd-csz"><span class="gd-b">${esc(t(`gd.csz.${c.basis}` as Key))}</span></p>`;
-  const src = c.sources?.length ? `<p class="gd-csz-src">${esc(c.sources.join(' · '))}</p>` : '';
-  return block(t('gd.h.ciguaSize'), head + paras(txt(c.advice, lang)) + src, 'gd-warn');
+  return block(t('gd.h.ciguaSize'), head + paras(txt(c.advice, lang)), 'gd-warn');
 }
 
 const ciguateraLink = (risks: readonly string[]): string =>
@@ -422,6 +422,7 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
             block(t('gd.h.firstAid'), pText(d.firstAid, lang), 'gd-aid')
           : '') +
         (e?.risks?.length ? block(t('gd.h.eatRisk'), chips(e.risks.map((r) => tx(RISK_WORDS[r], lang))) + pText(e.riskNote, lang) + ciguateraLink(e.risks), 'gd-warn') : '') +
+        ciguaSizeHtml(e?.ciguaSize, lang) +
         block(t('gd.h.edible'), (s.edible ? `<p><b>${esc(tx(EDIBLE_WORDS[s.edible], lang))}</b></p>` : '') + pText(s.edibleNote, lang)) +
         (d || s.edible === 'toxic' || e?.risks?.length ? sosHtml() : '')
       );
@@ -434,7 +435,7 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
         block(
           t('gd.h.sources'),
           s.sources?.length
-            ? `<ol class="gd-src">${s.sources.map((x) => `<li>${x.u ? `<a href="${esc(x.u)}" target="_blank" rel="noopener">${esc(x.t)}</a>` : esc(x.t)}</li>`).join('')}</ol>`
+            ? `<ul class="gd-src">${s.sources.filter((x) => !x.x).map((x) => `<li>${x.u ? `<a href="${esc(x.u)}" target="_blank" rel="noopener">${esc(x.t)}</a>` : esc(x.t)}</li>`).join('')}</ul>`
             : '',
         ) +
         block(
@@ -481,5 +482,5 @@ export function detailHtml(s: Species, o: DetailOpts): string {
     <nav class="gd-d-tabs" role="tablist" aria-label="${esc(t('gd.d.tabs'))}">${tabs
       .map((k) => `<a role="tab" class="gd-d-tab" href="${esc(o.tabHref(k))}" data-tab="${k}" aria-selected="${k === tab}"${k === tab ? '' : ' tabindex="-1"'}>${esc(t(`gd.tab.${k}` as Key))}</a>`)
       .join('')}</nav>
-    <div class="gd-d-body" role="tabpanel" data-tab="${tab}">${tabBody(s, tab, o)}</div>`;
+    <div class="gd-d-body" role="tabpanel" data-tab="${tab}">${citeTab(tabBody(s, tab, o), s.sources, t('gd.h.tabSources'))}</div>`;
 }
