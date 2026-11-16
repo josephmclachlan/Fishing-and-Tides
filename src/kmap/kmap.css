@@ -396,10 +396,10 @@
 .km .k-pin-dot{position:absolute;left:-7px;top:-7px;width:14px;height:14px;background:var(--c);box-shadow:0 0 0 2px var(--ink),0 0 0 3.5px var(--m-halo);pointer-events:auto;cursor:pointer;transition:background-color .5s,transform .3s cubic-bezier(.2,.8,.2,1)}
 .km .k-pin-leg{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
 .km .k-pin-leg line{stroke:var(--ink);stroke-width:1.5}
-.km .k-pin-tile{position:absolute;left:0;top:0;display:flex;flex-direction:column;gap:2px;padding:6px 9px 7px;background:var(--c);color:var(--o);border-radius:2px;box-shadow:0 0 0 1.5px var(--ink),0 6px 14px rgba(6,12,22,.16);pointer-events:auto;cursor:pointer;white-space:nowrap;text-align:left;transition:background-color .5s,color .5s,transform .35s cubic-bezier(.2,.8,.2,1)}
-.km .k-pin-n{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
-.km .k-pin-tile b{font-family:var(--disp);font-weight:850;font-variation-settings:"wdth" 74;font-size:22px;line-height:.9;letter-spacing:-.02em}
-.km .k-pin-tile b small{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.04em;margin-left:3px}
+.km .k-pin-tile{position:absolute;left:0;top:0;display:flex;flex-direction:column;gap:1px;padding:3px 6px 4px;background:var(--c);color:var(--o);border-radius:2px;box-shadow:0 0 0 1.5px var(--ink),0 6px 14px rgba(6,12,22,.16);pointer-events:auto;cursor:pointer;white-space:nowrap;text-align:left;transition:background-color .5s,color .5s,transform .35s cubic-bezier(.2,.8,.2,1)}
+.km .k-pin-n{font-family:var(--mono);font-size:8.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
+.km .k-pin-tile b{font-family:var(--disp);font-weight:850;font-variation-settings:"wdth" 74;font-size:16px;line-height:.9;letter-spacing:-.02em}
+.km .k-pin-tile b small{font-family:var(--mono);font-size:8.5px;font-weight:600;letter-spacing:.04em;margin-left:3px}
 .km .k-pin.dot .k-pin-tile,.km .k-pin.dot .k-pin-leg{display:none}
 .km .k-pin.sel .k-pin-tile{box-shadow:0 0 0 2.5px var(--ink),0 0 0 5px var(--m-halo),0 8px 18px rgba(6,12,22,.22)}
 .km .k-pin.sel .k-pin-dot{transform:scale(1.25)}
@@ -581,3 +581,11 @@
 .km .k-tab{font-size:min(19px,100cqw/26)}
 .km .k-tab svg{display:none}
 @container (min-width:470px){.km .k-tab{font-size:min(max(19px,clamp(18px,1.48vw,25px)),100cqw/33);gap:5px}.km .k-tab svg{display:block}}
+
+.km .k-pins.k-notiles .k-pin-tile,.km .k-pins.k-notiles .k-pin-leg{display:none}
+.km .k-tilebtn{appearance:none;position:absolute;z-index:3;left:10px;bottom:56px;height:30px;padding:0 10px;border:0;border-radius:2px;background:var(--c-card);box-shadow:0 0 0 1px var(--line);color:var(--ink2);cursor:pointer;font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.km .k-tilebtn[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.km .k-legmini{bottom:92px}
+.km .k-app.k-lcol .k-legmini{bottom:96px}
+.km .k-views~.k-tilebtn{left:10px}
+@media (min-width:900px){.km .k-tilebtn{left:14px;bottom:60px}}
