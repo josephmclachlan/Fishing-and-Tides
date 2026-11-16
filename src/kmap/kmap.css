@@ -150,6 +150,8 @@
 .km .k-sh-body{overflow-y:auto;overscroll-behavior:contain;padding:12px var(--g-r) 18px var(--g-l);flex:1 1 auto}
 .km .k-scrim{position:fixed;inset:0;z-index:19;background:rgba(6,12,22,.0);pointer-events:none;transition:background .3s}
 .km .k-scrim.k-on{pointer-events:auto;background:rgba(6,12,22,.12)}
+@media (max-width:1099.98px){.km[data-sheet] .k-top{z-index:21}
+.km .k-sheet.k-peek{max-height:min(40dvh,340px)}}
 .km .k-sheet.k-notes{max-height:min(50dvh,520px)}
 
 @media (min-width:1100px){.km .k-sheet.k-notes{max-height:calc(100dvh - 140px)}
