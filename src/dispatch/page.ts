@@ -6,6 +6,7 @@
  */
 import { t } from '../i18n';
 import { LEDE, TITLE, tr, type Lang } from './content';
+import { landing } from '../forecast/model';
 import { hourAt } from './model';
 import type { Method } from './model';
 import { dispatchHash, parseDispatchRoute, type DpSection } from './route';
@@ -35,7 +36,7 @@ const BACK_ICON = '<path d="M15 5l-7 7 7 7"/>';
 
 type From = 'map' | 'forecast' | 'guide';
 /** Where the back button returns: the guide if opened from it, otherwise the forecast page (never the map by default). */
-const fromOf = (hash: string): From => (hash.startsWith('#guide') ? 'guide' : 'forecast');
+const fromOf = (hash: string): From => (hash.startsWith('#guide') ? 'guide' : landing(hash));
 
 export interface DispatchPageDeps {
   storage: Store;
@@ -131,7 +132,7 @@ export function mountDispatchPage(deps: DispatchPageDeps) {
 
   // --- sections: the buttons scroll, and the link follows
   let pushed = false;
-  let cameFrom: From = 'forecast';
+  let cameFrom: From = 'map';
   const scrollTo = (s: DpSection | null, smooth: boolean) => {
     // `.dp-sec` only: the section buttons carry the same data-s and sit at the top of the page.
     const target = s ? el.querySelector<HTMLElement>(`.dp-sec[data-s="${s}"]`) : null;
@@ -199,7 +200,8 @@ export function mountDispatchPage(deps: DispatchPageDeps) {
   };
   /** Back where it was opened from: a step back if we got here by a link, else the map (or the guide). */
   const close = () => {
-    if (pushed) {
+    // Opened from the map: go to the forecast, not back to the map.
+    if (pushed && cameFrom !== 'map') {
       pushed = false;
       history.back(); // hashchange hides it
     } else {
