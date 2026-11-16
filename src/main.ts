@@ -2,7 +2,8 @@ import './theme';
 import '@fontsource/share-tech-mono';
 import './style.css';
 import { registerSW } from 'virtual:pwa-register';
-import { createMap, STYLE_URL } from './map';
+import { createMap, mapStarted, startMap, STYLE_URL } from './map';
+import { holdMapWork, releaseMapWork, whenMapShown } from './map-shown';
 import { mountSyncUi } from './sync-ui';
 import { tripJobs } from './offline/jobs';
 import { mountPinchGuard } from './pinch-guard';
@@ -158,6 +159,7 @@ import { fetchGauge, type GaugeReading } from './adapters/gauge';
 import { mountTideHud } from './tide-hud';
 import { mountSpotPage } from './spot-page';
 import { mountForecastPage } from './forecast/page';
+import { cacheShotStore } from './forecast/shot-store';
 import { mountCoralPage } from './coral-page/page';
 import { mountGuidePage } from './guide/page';
 import { mountCiguateraPage } from './ciguatera/page';
@@ -181,6 +183,8 @@ const settings = createSettings(safeStorage(), navigator.languages ?? [navigator
 setDict(dictFor(settings.lang()));
 document.documentElement.lang = settings.lang();
 const map = createMap('map', takeView(safeSession()));
+// Map drawings wait until the map is first shown (map-shown.ts; released at the end of this file).
+holdMapWork();
 /** MODERN is the Kinetic Plus map (PLAN 7.70): its own shell over the same map, layers and data. */
 const MODERN = currentTheme() === 'modern';
 /** The Kinetic Plus shell, mounted at the end of this file once every feed it reads is declared. */
@@ -326,9 +330,11 @@ fetchSatellite()
     if (!d.sst && !d.sstCoast) return console.warn('sst: nothing published; using mock');
     satellite = d;
     // Cut at the coastline if its mask is already here; otherwise the seafloor load re-cuts them.
-    sstLayer = mountSst(map, d, sstCoast ?? undefined);
-    // Chlorophyll (PLAN 7.77): the newest ocean-colour map as a sea fill.
-    chlLayer = mountChl(map, d, seaCoast);
+    whenMapShown('sea-colour', () => {
+      sstLayer = mountSst(map, d, sstCoast ?? undefined);
+      // Chlorophyll (PLAN 7.77): the newest ocean-colour map as a sea fill.
+      chlLayer = mountChl(map, d, seaCoast);
+    });
     // Fronts (PLAN 7.17): from the newest SST and chlorophyll maps.
     fronts = satelliteFronts(d);
     frontsLayer.setFronts(seaFronts());
@@ -384,7 +390,8 @@ const rebuildSwell = () => {
     if (crestKey === key) swellMotion.setField(f);
   }, 150);
 };
-const rebuildCrests = () => {
+const rebuildCrests = () => whenMapShown('crests', crestsNow);
+const crestsNow = () => {
   if (swellMotion) return rebuildSwell();
   wavesLayer.setCrests(waves ? crestGrid(REGION.bounds, 0.04, seaStateAt, waterMask) : []);
 };
@@ -612,7 +619,8 @@ const offshoreRead: OffshoreRead = (lng, lat) => {
 // slider, handed to the fishing layer, which circles where each boat species earns it (fishing/zones.ts FAR_ZONES).
 const BOAT_STEP = 0.02;
 let boatKey = '';
-const refreshBoatZones = () => {
+const refreshBoatZones = () => whenMapShown('boat-zones', boatZonesNow);
+const boatZonesNow = () => {
   const layer = fishingLayer, dAt = offshoreDepth;
   if (!layer || !dAt) return;
   const ms = time.validMs(), day = Math.floor((ms + REGION.tzOffsetH * 3.6e6) / 864e5);
@@ -1012,7 +1020,8 @@ const forecastPage = mountForecastPage({
   // Null where the browser refuses (a tainted canvas) or the tiles do not come within 5 s.
   mapPreview: (spot) =>
     new Promise((resolve) => {
-      if (!forecastPage.isOpen()) return resolve(null);
+      // Not before the map has been shown once: the page keeps the pictures it took before (forecast/page.ts).
+      if (!forecastPage.isOpen() || !mapStarted(map)) return resolve(null);
       const prev = { center: map.getCenter(), zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() };
       const t0 = Date.now();
       let done = false;
@@ -1048,6 +1057,7 @@ const forecastPage = mountForecastPage({
     }),
   openCoral: ([lng, lat]) => coralPage.open({ reef: nearestCoralReef(lng, lat).id }),
   openGuide: () => guidePage.open(),
+  shotStore: cacheShotStore(),
 });
 // The way back to the forecast from the map (PLAN 7.67; Joseph: "make returning to forecast page more obviously
 // apparent on maps page"): a large button with the spot and activity it returns to, which pulses when the map opens.
@@ -1152,8 +1162,11 @@ const clarityHud = mountClarityHud(hud, map, clarityCtx);
 let diveHud: NonNullable<ReturnType<typeof mountDiveHud>> | null = null;
 const diveWind: [number, number] = [0, 0];
 const refreshClarity = () => {
-  const c = clarityCtx();
-  if (c) clarityLayer.update(c);
+  if (clarityElevation)
+    whenMapShown('clarity', () => {
+      const c = clarityCtx();
+      if (c) clarityLayer.update(c);
+    });
   clarityHud?.refresh();
   diveHud?.refresh();
 };
@@ -1175,7 +1188,7 @@ let sargForecast: SargForecast | null = null;
 const sargLayer = mountSargassum(map, () => seaCoast, driftMotion);
 const sargHud = mountSargassumHud(hud, map, () => ({ f: sargForecast, ms: time.validMs() }));
 const showSargassum = () => {
-  if (sargForecast) sargLayer.update(sargForecast, time.validMs());
+  if (sargForecast) whenMapShown('sargassum', () => sargForecast && sargLayer.update(sargForecast, time.validMs()));
   sargHud?.refresh();
 };
 const runSargassum = () => {
@@ -1281,7 +1294,7 @@ const ripFlow = () => {
   if (key === ripFlowKey) return;
   ripFlowKey = key;
   const byName = new Map(ripMouths.map((m, i) => [m.name, levels[i]]));
-  ripLayer.setFlood((site) => byName.get(site.name) ?? null);
+  whenMapShown('rip-flood', () => ripLayer.setFlood((site) => byName.get(site.name) ?? null));
 };
 time.subscribe(ripFlow);
 // Fixed rip sites: river mouths, the named creeks and the breaks whose guides list rips. Tap a site or the shaded shore to read what it means.
@@ -1289,7 +1302,7 @@ fetchMouths()
   .then(({ data }) => {
     const sites = ripSites(data, SURF_BREAKS);
     ripMouths = sites.filter((x) => x.kind === 'mouth');
-    ripLayer.setSites(sites);
+    whenMapShown('rip-sites', () => ripLayer.setSites(sites));
     ripFlowKey = '';
     ripFlow();
     spotPhysics?.update();
@@ -1385,7 +1398,7 @@ fetchSeafloor()
     spotPhysics.subscribe(() => queueVerdict());
     spotPhysics.subscribe(() => physicsTick++);
     spotPhysics.subscribe(() => {
-      ripLayer.update(spotPhysics!.all(), data.land);
+      whenMapShown('rip', () => ripLayer.update(spotPhysics!.all(), data.land));
       surfBreaks.update((name) => spotPhysics!.byName(name)?.surf);
       surfHud.refresh();
       spotPage.refresh();
@@ -1527,7 +1540,7 @@ fetchSeafloor()
     flow?.setSource('current', current);
     flowHud?.refresh();
     coralLayer.setReefPolygons([data.marks, data.reefs]);
-    return mountSeafloor(map, data);
+    whenMapShown('seafloor', () => mountSeafloor(map, data));
   })
   .catch((err) => console.warn('seafloor layer unavailable', err));
 
@@ -1701,3 +1714,9 @@ if (MODERN) {
   });
   if (landGrid) km.setMask(landMask(landGrid));
 }
+
+// The map is drawn only once it is shown (PLAN 7.102): while the forecast, coral or guide page covers it, its style,
+// tiles and drawing wait, and the feeds load once for both. Pages decide on their first tick what is open.
+const mapIfShown = () => document.body.classList.contains('fc-open') || (startMap(map), releaseMapWork());
+new MutationObserver(mapIfShown).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+window.setTimeout(mapIfShown, 0);

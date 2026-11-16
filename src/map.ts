@@ -120,11 +120,14 @@ function addOverlays(map: Map) {
   });
 }
 
-/** `view` restores the camera after a language change; otherwise the map opens on the region. */
+/**
+ * `view` restores the camera after a language change; otherwise the map opens on the region. The map starts without
+ * its style: nothing is downloaded or drawn until `startMap` (the first time the map is shown), so the forecast page
+ * opens without paying for a map nobody is looking at. Layers wait for 'style.load' as before.
+ */
 export function createMap(container: string, view?: { center: [number, number]; zoom: number } | null): Map {
   const map = new maplibregl.Map({
     container,
-    style: STYLE_URL,
     center: view?.center ?? REGION.home.center,
     zoom: view?.zoom ?? REGION.initialZoom,
     maxBounds: REGION.viewBounds,
@@ -162,3 +165,13 @@ export function createMap(container: string, view?: { center: [number, number]; 
   });
   return map;
 }
+
+/** Load the base map's style (and so its tiles and every layer waiting on it). Once; later calls do nothing. */
+export function startMap(map: Map): void {
+  if (map.getStyle() || started.has(map)) return;
+  started.add(map);
+  map.setStyle(STYLE_URL);
+}
+const started = new WeakSet<Map>();
+/** True once the map has been shown (its style asked for). */
+export const mapStarted = (map: Map) => started.has(map);
