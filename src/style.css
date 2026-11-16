@@ -988,3 +988,6 @@ body[data-contrast='high'] .maplibregl-ctrl-attrib { background: #000 !important
 :root[data-theme='modern'] .side .seg { font-size: 17px; }
 /* Phone CONDITIONS drawer is two columns; the go / no-go chips need the full width to stay readable (found in the theme clarity tests). */
 @media (max-width: 1100px), (max-height: 700px) { .side .vd { grid-column: 1 / -1; } }
+
+.boat .nw-list { margin: 2px 0 6px; padding: 0; list-style: none; font: 11px/1.35 var(--mono, monospace); color: var(--amber); max-height: 9em; overflow-y: auto; }
+.boat .nw-list li { margin: 0 0 4px; overflow-wrap: anywhere; }
