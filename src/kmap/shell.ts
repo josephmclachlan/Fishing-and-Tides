@@ -54,6 +54,7 @@ import { readDetails, type Detail } from './detail';
 import { mountScrub } from './scrub';
 import { barHTML, drawTiles, tileHTML, type Reading } from './tiles';
 import { styleBaseMap } from './basemap';
+import { emitSchemeChange, roleSnapshot, schemeSwap } from '../layers/paint';
 
 type Spot = (typeof SPOTS)[number];
 const asSpot = (s: FcSpot | undefined): Spot => (s ? (SPOTS.find((x) => x.name === s.name) ?? SPOTS[0]) : SPOTS[0]);
@@ -1222,19 +1223,26 @@ export function mountKineticMap(d: KmDeps) {
   });
   function setScheme(s: 'light' | 'dark') {
     saveScheme(s, storage);
+    applyScheme(s);
+  }
+  /** Recolour in place: the base map, the layers' role colours, and the layers that bake colours; no reload, data stays. */
+  function applyScheme(s: 'light' | 'dark') {
+    const before = roleSnapshot();
     root.dataset.scheme = s;
     resetTokens();
     styleBaseMap(map);
-    // The old map layers read their colours once, when built: reload to repaint them in the new scheme.
-    d.reload();
+    schemeSwap(map as never, before, roleSnapshot());
+    coast.recolour();
+    scrub.draw();
+    renderAll();
+    emitSchemeChange();
   }
   /** The forecast and coral pages switch the shared scheme on their own pages: back on the map, follow it. */
   function schemeCheck() {
     if (d.forecast.isOpen() || /^#(forecast|coral)/.test(location.hash)) return false;
     const want = storedScheme(storage, !!window.matchMedia?.('(prefers-color-scheme: dark)').matches);
     if (want === currentScheme()) return false;
-    root.dataset.scheme = want;
-    d.reload();
+    applyScheme(want);
     return true;
   }
   $('k-scheme').addEventListener('click', () => setScheme(currentScheme() === 'dark' ? 'light' : 'dark'));

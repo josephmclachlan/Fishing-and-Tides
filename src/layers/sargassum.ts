@@ -17,7 +17,7 @@ import { nearest } from '../geo';
 import { paintSea, rgbaWord, type CoastTest } from './sea-image';
 import { readout } from '../hud-kit';
 import { t, type Key } from '../i18n';
-import { paintColour as css } from './paint';
+import { onSchemeChange, paintColour as css } from './paint';
 import type { DriftMotion } from './drift-motion';
 
 const HOUR = 3.6e6, DAY = 864e5;
@@ -220,6 +220,11 @@ export function mountSargassum(map: Map, coast: () => CoastTest | null = () => n
     ensureVectors(vectors(last.f, last.ms));
   };
   map.on('style.load', () => {
+    drawnFor = null;
+    render();
+  });
+  // A light/dark switch redraws the cells in the new amber from the forecast already held.
+  onSchemeChange(() => {
     drawnFor = null;
     render();
   });

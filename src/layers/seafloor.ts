@@ -15,7 +15,7 @@ import type { Seafloor } from '../adapters/seafloor';
 import { byTier, firstSymbolId } from '../map';
 import { bake, type BakeInput } from './seafloor-bake';
 import type { BakedShade, BakeOut } from './seafloor-worker';
-import { lifted, paintColour as cssColour, paintLift } from './paint';
+import { liftedTagged, onSchemeChange, paintColour as cssColour, paintLift } from './paint';
 
 export { contourLines } from './seafloor-bake';
 
@@ -90,7 +90,7 @@ export async function mountSeafloor(map: Map, sf: Seafloor) {
   const green = cssColour('--green', '#39ff7a');
   const red = cssColour('--red', '#ff3b2f');
   // Faint fills made for a black sea, lifted for the theme's sea (paint.ts).
-  const L = paintLift('strong'), o = (a: number) => lifted(a, L);
+  const L = paintLift('strong'), o = (a: number) => liftedTagged(a, L);
 
   // Heavy work first, off the main thread, before touching the style.
   const baked = await bakeSeafloor({ macro: sf.macro, region: sf.region, land: sf.land, rgb: rgbOf(green) });
@@ -206,4 +206,15 @@ export async function mountSeafloor(map: Map, sf: Seafloor) {
   };
   if (map.getLayer('grat-macro') || map.isStyleLoaded()) add();
   else map.once('style.load', add);
+  // A light/dark switch re-bakes the depth shading in the new green (off the main thread); the line and fill colours
+  // and lifted opacities are swapped by schemeSwap.
+  onSchemeChange(() => {
+    void bakeSeafloor({ macro: sf.macro, region: sf.region, land: sf.land, rgb: rgbOf(cssColour('--green', '#39ff7a')) })
+      .then(async (b) => {
+        const [m, r] = await Promise.all([shadeSource(b.macro), shadeSource(b.region)]);
+        for (const [id, src] of [['sf-shade-macro', m], ['sf-shade-region', r]] as const)
+          (map.getSource(id) as { updateImage?: (o: { url: string; coordinates: typeof src.coordinates }) => void } | undefined)?.updateImage?.({ url: src.url, coordinates: src.coordinates });
+      })
+      .catch((err) => console.warn('seafloor re-shade failed', err));
+  });
 }
