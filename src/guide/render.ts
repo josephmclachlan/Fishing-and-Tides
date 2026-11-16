@@ -22,7 +22,7 @@ import { bandText, depthLines, pips, sizeMain, sizeMax, timesText, weightText } 
 export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 export const icon = (body: string, cls = '') => `<svg viewBox="0 0 24 24" aria-hidden="true"${cls ? ` class="${cls}"` : ''}>${body}</svg>`;
 
-/** A link from a ciguatera warning to the CIGUATERA page (PLAN 7.99). */
+/** A link from a ciguatera warning to the CIGUATERA page (PLAN 7.101). */
 const ciguateraLink = (risks: readonly string[]): string =>
   risks.includes('ciguatera') ? `<p><a class="cig-link" href="#ciguatera">${esc(t('gd.ciguateraLink'))}</a></p>` : '';
 

@@ -1,5 +1,5 @@
 /**
- * CIGUATERA page text (PLAN 7.99), English and Spanish, written from the research in project files ciguatera/research/
+ * CIGUATERA page text (PLAN 7.101), English and Spanish, written from the research in project files ciguatera/research/
  * (cases.md, species-size.md, medical.md). Plain data, no DOM. Every claim carries what the source says and no more:
  * evidence grades are the sources' own, not ours. "No data" is never written as "safe".
  */

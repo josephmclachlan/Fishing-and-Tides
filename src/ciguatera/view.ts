@@ -1,4 +1,4 @@
-/** CIGUATERA page HTML (PLAN 7.99): pure string builders over content.ts, so they are tested without a DOM. */
+/** CIGUATERA page HTML (PLAN 7.101): pure string builders over content.ts, so they are tested without a DOM. */
 import { GRADE_WORDS, SECTIONS, SOURCES, type Block, type Grade, type L, type Section } from './content';
 import type { CgTab } from './route';
 

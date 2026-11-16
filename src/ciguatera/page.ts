@@ -1,5 +1,5 @@
 /**
- * CIGUATERA page (PLAN 7.99): what the poisoning is, what is and is not known for Gandoca to Limón, species and size,
+ * CIGUATERA page (PLAN 7.101): what the poisoning is, what is and is not known for Gandoca to Limón, species and size,
  * symptoms, evidence-graded treatment, recovery and what to do. A full-screen page in the FORECAST page's look (it
  * reuses `.fc` and its tokens), opened from every ciguatera warning in the fishing panel and the species guide.
  * Its own link `#ciguatera[/<tab>]` (route.ts); other pages hide on it and it hides on theirs.

@@ -772,7 +772,7 @@ const guidePage = mountGuidePage({
     location.reload();
   },
 });
-// CIGUATERA page (PLAN 7.99): risk, local evidence, symptoms, treatment; every ciguatera warning links to #ciguatera.
+// CIGUATERA page (PLAN 7.101): risk, local evidence, symptoms, treatment; every ciguatera warning links to #ciguatera.
 mountCiguateraPage({
   storage: safeStorage(),
   lang: () => settings.lang(),
