@@ -11,7 +11,7 @@
  */
 import type { CiguaTier } from './cigua';
 
-export type SpeciesId = 'snook' | 'jack' | 'snapper' | 'mackerel' | 'grouper' | 'grunt' | 'pompano' | 'corvina' | 'mullet' | 'barracuda' | 'lionfish' | 'permit' | 'bonefish' | 'tarpon' | 'lobster' | 'octopus' | 'cigua';
+export type SpeciesId = 'snook' | 'jack' | 'snapper' | 'mackerel' | 'grouper' | 'grunt' | 'pompano' | 'corvina' | 'mullet' | 'mojarra' | 'goatfish' | 'squid' | 'flounder' | 'squirrelfish' | 'spadefish' | 'barracuda' | 'lionfish' | 'permit' | 'bonefish' | 'tarpon' | 'lobster' | 'octopus' | 'cigua';
 
 /** EAT: fish to keep and eat. SPORT: fish to catch and release. */
 export type FishMode = 'eat' | 'sport';
@@ -84,14 +84,34 @@ export const SPECIES: readonly Species[] = [
   // Florida pompano (pámpano) and palometa: the surf strip of sandy beaches, eating mole crabs and coquina clams in the
   // wash. No record between Gandoca and Cahuita (the nearest are at Limón and in Bocas del Toro), so RULE OF THUMB. The species guide marks it as excellent eating. No local season.
   { id: 'pompano', mode: 'eat', confidence: 'low', noLocalRecord: true, depthM: [0.2, 0.4, 3, 8], w: { mouth: 0.1, reef: 0, drop: 0, sand: 0.3, surf: 0.6 }, mouthReachKm: 1, season: Array(12).fill(0.95), water: { visM: [0.3, 0.8, 6, 15], sstC: [20, 24, 30, 33] }, surfHsM: [0.1, 0.4, 1.5, 2.5], ciguatera: 'listed' },
-  // Corvina (green and Jamaica weakfish, PLAN 7.124): eaten here and rated excellent by the guide. Soft sand and mud
-  // bottom off river mouths, feeding in the stained plume; caught from boats on bottom rigs. Few records (9 in the
-  // occurrence box, 1 near this coast), so RULE OF THUMB: the river mouth reaches 4 km (the plume) and the BITE water term rewards a river
+  // Corvina (green and Jamaica weakfish, PLAN 7.124, and the croakers and drums sold as corvina, PLAN 7.147): eaten here and rated excellent by the guide. Soft sand and mud
+  // bottom off river mouths, feeding in the stained plume; caught from boats on bottom rigs. Few records (57 in the
+  // occurrence box with the croakers, about 10 near this coast), so RULE OF THUMB: the river mouth reaches 4 km (the plume) and the BITE water term rewards a river
   // running above its median (fishing/water.ts riverTerm, as for snook). No local season.
   { id: 'corvina', mode: 'eat', confidence: 'low', depthM: [3, 6, 30, 50], w: { mouth: 0.55, reef: 0, drop: 0.15, sand: 0.3 }, mouthReachKm: 4, season: Array(12).fill(0.95), water: { visM: [0.2, 0.5, 4, 10], sstC: [22, 24, 30, 33] } },
   // Mullet (lisa and lisa blanca, PLAN 7.124): schools along the beach and in river mouths, taken with a cast net more
   // than a hook. 45 records in the occurrence box, about 17 near this coast. Stained, shallow water by the mouths and the surf strip. No season.
   { id: 'mullet', mode: 'eat', confidence: 'low', depthM: [0.1, 0.3, 3, 6], w: { mouth: 0.5, reef: 0, drop: 0, sand: 0.2, surf: 0.3 }, mouthReachKm: 1.5, season: Array(12).fill(0.95), water: { visM: [0.2, 0.5, 5, 12], sstC: [20, 24, 31, 34] } },
+  // Well-recorded eating fish from the species guide (PLAN 7.147; OBIS and GBIF records Limón to Sixaola, 2026-11-16,
+  // first number in the occurrence box, second near this coast). Habitat from the guide; numbers are rules of thumb.
+  // Mojarras (mojarra blanca, rayada, guacha, caitipa, mojarrita: about 130 and 25 records): sand and seagrass beside
+  // mangroves and river mouths, 0 to 10 m, taken with a cast net or a small hook. Calm, shallow water; no season known.
+  { id: 'mojarra', mode: 'eat', depthM: [0.2, 0.5, 6, 12], w: { mouth: 0.35, reef: 0.05, drop: 0, sand: 0.35, grass: 0.25 }, mouthReachKm: 1.5, season: Array(12).fill(0.95), water: { visM: [0.3, 0.8, 8, 20], sstC: [20, 24, 31, 34] }, ciguatera: 'listed' },
+  // Goatfish (salmonete amarillo and manchado, about 40 and 11 records): root in the sand beside the reef with their chin
+  // barbels, 1 to 30 m; bottom hand line with small bait. Few records near this coast: RULE OF THUMB.
+  { id: 'goatfish', mode: 'eat', confidence: 'low', depthM: [1, 2, 20, 35], w: { mouth: 0, reef: 0.35, drop: 0.1, sand: 0.45, grass: 0.1 }, mouthReachKm: 0.5, season: Array(12).fill(0.95), water: { visM: [1.5, 3, 20, 40], sstC: [22, 24, 30, 33] }, ciguatera: 'listed' },
+  // Caribbean reef squid (calamar de arrecife, about 45 and 5 records): over reef and seagrass, 1 to 8 m, in clear water;
+  // taken with a small jig, mostly at dusk and night. A spearfishing permit covers fish only. RULE OF THUMB.
+  { id: 'squid', mode: 'eat', confidence: 'low', depthM: [0.5, 1, 8, 15], w: { mouth: 0, reef: 0.5, drop: 0.1, grass: 0.4 }, mouthReachKm: 0.5, season: Array(12).fill(0.95), water: { visM: [2, 4, 20, 40], sstC: [22, 24, 30, 33] } },
+  // Spear targets the guide marks as eaten here (PLAN 7.147). Peacock flounder (lenguado, about 15 and 5 records): lies on
+  // sand and rubble beside the reef, 1 to 20 m; a spear or bottom hand line. Clear water to see it. RULE OF THUMB.
+  { id: 'flounder', mode: 'eat', confidence: 'low', depthM: [0.5, 1, 15, 25], w: { mouth: 0, reef: 0.25, drop: 0, sand: 0.55, grass: 0.2 }, mouthReachKm: 0.5, season: Array(12).fill(0.95), water: { visM: [2, 4, 20, 40], sstC: [22, 24, 30, 33] } },
+  // Squirrelfish (candil, about 45 and 14 records): red night fish that hide in reef holes by day, 1 to 30 m; spear or
+  // night hand line. Ciguatera reported: keep under 30 cm. RULE OF THUMB.
+  { id: 'squirrelfish', mode: 'eat', confidence: 'low', depthM: [1, 2, 20, 35], w: { mouth: 0, reef: 0.85, drop: 0.15 }, mouthReachKm: 0.5, season: Array(12).fill(0.95), water: { visM: [2, 4, 25, 40], sstC: [22, 24, 30, 33] }, ciguatera: 'listed' },
+  // Atlantic spadefish (paguala, about 24 and 3 records): schools over reef, wrecks and mangrove edges near river mouths,
+  // 3 to 25 m; hand line or spear. Ciguatera reported: keep under 50 cm. RULE OF THUMB.
+  { id: 'spadefish', mode: 'eat', confidence: 'low', depthM: [2, 3, 20, 30], w: { mouth: 0.2, reef: 0.4, drop: 0.2, sand: 0.2 }, mouthReachKm: 1.5, season: Array(12).fill(0.95), water: { visM: [1, 2, 15, 30], sstC: [22, 24, 30, 33] }, ciguatera: 'listed' },
   // Barracuda: SPORT, catch and release (the guide's ciguatera advice: no size is lower risk; CDC: never eat it).
   { id: 'barracuda', mode: 'sport', confidence: 'low', depthM: [1.5, 3, 18, 40], w: { mouth: 0.1, reef: 0.55, drop: 0.35 }, mouthReachKm: 1, season: [1, 1, 1, 0.95, 0.9, 0.85, 0.85, 0.9, 0.9, 0.95, 1, 1], water: { visM: [1.5, 4, 20, 40], sstC: [20, 24, 30, 33] }, ciguatera: 'never' },
   // Permit (pámpano, SPORT): catch and release by custom; sand and seagrass beside reef and the surf line. About 3 records.

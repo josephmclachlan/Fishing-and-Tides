@@ -38,7 +38,7 @@ describe('ciguatera agrees across the map, forecast and guide', () => {
   it('draws a bar per species, red for the high tier, and the boat chart', () => {
     const html = ciguaNoteHtml('jack', 'high');
     expect(html).toContain('cz-red');
-    expect(html.match(/cz-row/g)!.length).toBe(4);
+    expect(html.match(/cz-row/g)!.length).toBe(5);
     expect(html).toContain('38 cm');
     expect(ciguaNoteHtml('snook', undefined)).toBe('');
     expect(ciguaBoatHtml(['kingfish', 'wahoo'])).toContain('75 cm');

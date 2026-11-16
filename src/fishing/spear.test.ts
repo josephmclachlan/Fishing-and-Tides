@@ -3,7 +3,7 @@ import { SPEAR_SPECIES, spearScore, spearWindow } from './spear';
 
 describe('spear areas', () => {
   it('targets only edible reef fish, no barracuda, mackerel or snook', () => {
-    expect([...SPEAR_SPECIES].sort()).toEqual(['grouper', 'jack', 'lionfish', 'snapper']);
+    expect([...SPEAR_SPECIES].sort()).toEqual(['flounder', 'grouper', 'jack', 'lionfish', 'snapper', 'spadefish', 'squirrelfish']);
   });
   it('has a working depth window of 3 to 15 m', () => {
     expect(spearWindow(1)).toBe(0);
