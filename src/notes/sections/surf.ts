@@ -35,7 +35,7 @@ export const surf: Section = {
       marks: [
         L('The surfer closest to the peak, where the wave starts to break, has the wave. If it breaks both ways, each surfer takes their own side.{eti}', 'El surfista más cerca del pico, donde la ola empieza a romper, tiene la ola. Si rompe hacia los dos lados, cada surfista toma su lado.{eti}'),
         L('Never drop in: do not take off on a wave someone else already has. It is the most important rule, and it is how people get hit by boards.{eti}', 'Nunca se meta: no salga en una ola que otro ya tiene. Es la regla más importante y así la gente recibe golpes de tablas.{eti}'),
-        L('Paddle out through the channel, where waves do not break. Cross behind surfers who are riding, never in front of them.{eti}', 'Reme hacia afuera por el canal, donde las olas no rompen. Pase por detrás de quien va surfeando, nunca por delante.{eti}'),
+        L('Paddle out through the channel, where waves do not break. Cross behind surfers who are riding, never in front of them.{eti} The channel is often a rip current, so only go in it with your board.', 'Reme hacia afuera por el canal, donde las olas no rompen. Pase por detrás de quien va surfeando, nunca por delante.{eti} El canal suele ser una corriente de resaca, así que solo entre en él con su tabla.'),
       ],
     },
     {
@@ -54,11 +54,11 @@ export const surf: Section = {
     {
       k: 'fig',
       fig: 'sizes',
-      label: L('Four wave sizes next to a standing surfer', 'Cuatro tamaños de ola junto a un surfista de pie'),
+      label: L('Four wave sizes next to a standing adult', 'Cuatro tamaños de ola junto a un adulto de pie'),
       tones: ['go', 'warn', 'stop', 'stop'],
       marks: [
-        L('Under 0.6 m, knee to waist: beginners, with an instructor. Soft waves with little push; the danger is other people and the sun.', 'Menos de 0.6 m, rodilla a cintura: quien empieza, con instructor. Olas suaves y poca fuerza; el peligro son otras personas y el sol.'),
-        L('0.6 to 1.2 m, waist to chest: surfers who can already catch waves and turn. Some power, and rips start to matter.', '0.6 a 1.2 m, cintura a pecho: quien ya toma olas y gira. Algo de fuerza, y las corrientes de resaca empiezan a importar.'),
+        L('Under 0.6 m, up to the knee: beginners, with an instructor. Soft waves with little push; the danger is other people and the sun.', 'Menos de 0.6 m, hasta la rodilla: quien empieza, con instructor. Olas suaves y poca fuerza; el peligro son otras personas y el sol.'),
+        L('0.6 to 1.2 m, knee to chest: surfers who can already catch waves and turn. Some power, and rips start to matter.', '0.6 a 1.2 m, rodilla a pecho: quien ya toma olas y gira. Algo de fuerza, y las corrientes de resaca empiezan a importar.'),
         L('1.2 to 2 m, chest to over your head: experienced, fit surfers who know rips and reef. Waves break hard and hold you under, and getting out takes strength.', '1.2 a 2 m, pecho a sobre la cabeza: surfistas con experiencia, en forma, que conocen resacas y arrecife. Las olas rompen fuerte y le mantienen abajo, y salir exige fuerza.'),
         L('Over 2 m, well over your head: experts only. Heavy waves and long swims if you lose your board. Unsure? Stay on the beach.', 'Más de 2 m, muy sobre la cabeza: solo expertos. Olas pesadas y nadadas largas si pierde la tabla. ¿Duda? Quédese en la playa.'),
       ],

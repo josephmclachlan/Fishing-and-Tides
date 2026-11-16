@@ -59,7 +59,7 @@
 .nt-art .nt-t-out { stroke: var(--fc-ac0); }
 .nt-art .nt-t-across { stroke: var(--fc-ink); stroke-dasharray: none; }
 .nt-art .nt-t-back { stroke: var(--fc-ac3); stroke-dasharray: none; }
-.nt-art .nt-swimmer circle, .nt-art .nt-swim0 { fill: var(--fc-ink); stroke: var(--fc-bg); stroke-width: 2.5; }
+.nt-art .nt-swimmer circle { fill: var(--fc-ink); stroke: var(--fc-bg); stroke-width: 2.5; }
 .nt-art .nt-swim0 { display: none; }
 .nt-art .nt-lbl { font: 700 10px/1 var(--fc-mono); letter-spacing: 0.08em; }
 .nt-art .nt-lbl-s { font-size: 9px; font-weight: 600; }
@@ -197,3 +197,22 @@
 .cig .nt-rsteps li::before { display: none; }
 .nt-rsteps .nt-n { display: grid; place-items: center; height: 24px; background: var(--fc-ink); color: var(--fc-bg); font: 700 12px/1 var(--fc-mono); }
 .nt-rsteps em { font-style: normal; font: 700 12px/1.2 var(--fc-mono); padding: 4px 6px; background: var(--fc-lv2); color: var(--fc-on2); white-space: nowrap; }
+
+/* water and surf drawings (graphics review 12.2) */
+.nt-art .nt-lbl-b { font-size: 11.5px; }
+.nt-art .nt-halo { paint-order: stroke; stroke: color-mix(in srgb, var(--fc-sea-a) 26%, var(--fc-block)); stroke-width: 5px; stroke-linejoin: round; }
+.nt-art .nt-foamb { fill: var(--fc-foam); stroke: none; }
+.nt-art .nt-arm { stroke: var(--fc-ink); stroke-width: 3.2; }
+.nt-art .nt-swim0 circle { fill: var(--fc-ink); stroke: var(--fc-bg); stroke-width: 2.5; }
+.nt-art .nt-ripple { fill: none; stroke: var(--fc-foam); stroke-width: 2; }
+.nt-art .nt-wv { fill: color-mix(in srgb, var(--fc-sea-a) 60%, var(--fc-block)); stroke: none; }
+.nt-art .nt-spl { fill: var(--fc-foam); stroke: var(--fc-sea-a); stroke-width: 1; }
+.nt-art .nt-zone { stroke: none; fill: color-mix(in srgb, var(--c) 38%, transparent); }
+.nt-art .nt-swm circle { fill: var(--fc-ink); stroke: none; }
+.nt-art .nt-torso { stroke: var(--fc-ink); stroke-width: 6.5; }
+.nt-art .nt-limb { stroke: var(--fc-ink); stroke-width: 3; }
+.nt-art .nt-hose { stroke-width: 1.6; }
+.nt-art .nt-fin { fill: var(--fc-ink); stroke: none; }
+.nt-art .nt-mask { fill: var(--fc-sea-a); stroke: var(--fc-ink); stroke-width: 1.4; }
+.nt-art .nt-tank { fill: var(--fc-lv1); stroke: var(--fc-ink); stroke-width: 1.4; }
+.nt-art .nt-snork { stroke: var(--fc-ink); stroke-width: 2.4; }
