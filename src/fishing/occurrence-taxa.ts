@@ -3,10 +3,13 @@ export const OCCURRENCE_TAXA: Record<string, string[]> = {
   snook: ['Centropomus undecimalis', 'Centropomus parallelus', 'Centropomus ensiferus'],
   // Jurel: crevalle, horse-eye, bar jack and blue runner (the jacks sold as jurel here; true jack mackerel, Trachurus, does not occur on this coast).
   jack: ['Caranx hippos', 'Caranx latus', 'Caranx ruber', 'Caranx crysos'],
-  snapper: ['Lutjanus cyanopterus', 'Lutjanus jocu', 'Lutjanus griseus', 'Lutjanus analis', 'Lutjanus apodus', 'Lutjanus synagris'],
+  // Yellowtail (rabirrubia) and mahogany snapper added with PLAN 7.121: both eaten here and recorded on this coast.
+  snapper: ['Lutjanus cyanopterus', 'Lutjanus jocu', 'Lutjanus griseus', 'Lutjanus analis', 'Lutjanus apodus', 'Lutjanus synagris', 'Lutjanus mahogoni', 'Ocyurus chrysurus'],
   mackerel: ['Scomberomorus brasiliensis', 'Scomberomorus regalis'],
   // Small reef groupers only: goliath (Epinephelus itajara, reportedly protected) and Nassau (E. striatus, endangered) are left out.
   grouper: ['Cephalopholis cruentata', 'Cephalopholis fulva', 'Epinephelus guttatus', 'Epinephelus adscensionis', 'Epinephelus morio', 'Mycteroperca bonaci', 'Mycteroperca tigris'],
+  // Grunts (PLAN 7.121): the ronco and burro species the species guide marks as eaten on this coast.
+  grunt: ['Haemulon carbonarium', 'Haemulon macrostomum', 'Haemulon flavolineatum', 'Haemulon sciurus', 'Haemulon plumierii', 'Haemulon bonariense', 'Haemulon parra', 'Haemulon aurolineatum', 'Anisotremus virginicus', 'Anisotremus surinamensis'],
   barracuda: ['Sphyraena barracuda'],
   lionfish: ['Pterois volitans', 'Pterois miles'],
   mahi: ['Coryphaena hippurus'],

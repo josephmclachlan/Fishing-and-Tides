@@ -37,11 +37,11 @@ interface Spec {
 const R = {
   surface: { k: 'surface', l: () => L2('Surface', 'Superficie'), id: 'sb-surf', tone: true },
   wind3: { k: 'wind3', l: () => L2('Wind in 3 h', 'Viento en 3 h'), id: 'sb-trend', tone: true },
-  tidefit: { k: 'tidefit', l: () => L2('Tide fit', 'Marea ideal'), id: 'sb-tide', tone: true },
-  power: { k: 'power', l: () => L2('Wave power', 'Potencia'), id: 'sz-pow', u: () => 'kW/m', sub: () => L2('Per metre of wave front', 'Por metro de frente') },
-  drift: { k: 'drift', l: () => L2('Longshore drift', 'Deriva litoral'), id: 'sz-drift', u: () => 'm/s', sub: () => L2('Along the beach', 'A lo largo de la playa') },
+  tidefit: { k: 'tidefit', l: () => L2('Tide for this spot', 'Marea para este sitio'), id: 'sb-tide', tone: true },
+  power: { k: 'power', l: () => L2('Wave strength', 'Fuerza de la ola'), id: 'sz-pow', u: () => 'kW/m', sub: () => L2('Per metre of wave front', 'Por metro de frente') },
+  drift: { k: 'drift', l: () => L2('Current along the beach', 'Corriente a lo largo de la playa'), id: 'sz-drift', u: () => 'm/s', sub: () => L2('Along the beach', 'A lo largo de la playa') },
   rips: {
-    k: 'rips', l: () => L2('Rip pull', 'Fuerza de resaca'), id: 'sz-rips', tone: true,
+    k: 'rips', l: () => L2('Rip strength if one forms', 'Fuerza de la resaca si se forma'), id: 'sz-rips', tone: true,
     // "MODERATE 0.6" and a reach of "40": the speed big, the word and how far it runs out underneath.
     read: (get) => {
       const m = /^(.*?)\s*([\d.]+)$/.exec(get('sz-rips'));
@@ -50,7 +50,7 @@ const R = {
       return { v: m[2], u: 'm/s', s: [m[1], EMPTY.test(reach) ? '' : `${L2('reaches', 'alcanza')} ${reach} m`].filter(Boolean).join(' · ') };
     },
   },
-  stingers: { k: 'sting', l: () => L2('Stingers', 'Aguamalas'), id: 'dv-sting', tone: 'warn' },
+  stingers: { k: 'sting', l: () => L2('Jellyfish and stingers', 'Aguas malas'), id: 'dv-sting', tone: 'warn' },
   runoff: { k: 'runoff', l: () => L2('River runoff', 'Escorrentía'), id: 'dv-runoff', tone: 'warn' },
   bestday: {
     k: 'bestday', l: () => L2('Best day', 'Mejor día'), id: 'dv-day', tone: true,
@@ -67,7 +67,7 @@ const R = {
   comfort: { k: 'comfort', l: () => L2('Sea comfort', 'Comodidad'), id: 'ss-comfort', sub: 'ss-detail', tone: true },
   harbour: { k: 'harbour', l: () => L2('Nearest harbour', 'Puerto cercano'), id: 'an-name', sub: 'an-dist' },
   shelter: { k: 'shelter', l: () => L2('Shelter', 'Abrigo'), id: 'an-shelter', sub: 'an-fetch' },
-  squall: { k: 'squall', l: () => L2('Squalls 6 h', 'Turbonadas 6 h'), id: 'wx-squall', sub: 'wx-note', tone: true },
+  squall: { k: 'squall', l: () => L2('Storm gusts, 6 h', 'Chubascos, 6 h'), id: 'wx-squall', sub: 'wx-note', tone: true },
   cape: { k: 'cape', l: () => 'CAPE', id: 'wx-cape', u: () => 'J/kg', sub: () => L2('Storm fuel', 'Energía de tormenta') },
   conf: { k: 'conf', l: () => L2('Model agreement', 'Acuerdo de modelos'), id: 'wx-conf', tone: true },
   rain24: { k: 'rain24', l: () => L2('Rain 24 h', 'Lluvia 24 h'), id: 'wx-rain24', u: () => 'mm' },

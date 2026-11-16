@@ -7,6 +7,7 @@
  * numbers, water temperature to 0.1 °C, percentages to whole numbers. Directions are compass points (W in the
  * active language).
  */
+import { guideLinkFor } from '../fishing/guide-link';
 import { t, type Key } from '../i18n';
 import { localDayStart, moonPhase } from '../physics/astro';
 import { tideState } from '../physics/tide';
@@ -33,7 +34,7 @@ export const signed2 = (x: number) => (x >= 0 ? '+' : '−') + Math.abs(x).toFix
 /** "PLAYA COCLES" → "Playa Cocles"; "LIMÓN" → "Limón". */
 export const titleCase = (s: string) => s.toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (_, a: string, b: string) => a + b.toUpperCase());
 /** HUD caps to a sentence: "MOVING TIDE" → "Moving tide". */
-export const sentence = (s: string) => (s ? s[0].toUpperCase() + s.slice(1).toLowerCase() : s);
+export const sentence = (s: string) => (s ? (s[0].toUpperCase() + s.slice(1).toLowerCase()).replace(/°c\b/g, '°C') : s);
 /** Compass point for degrees FROM, with W in the active language; '' without a direction. */
 export const cmp = (deg: number | null | undefined) => (fin(deg) ? compassName(deg).replace(/W/g, t('hemi.W')) : '');
 /** Local hour of the day, 0..23. */
@@ -241,6 +242,8 @@ export interface TileView {
   tip: string | null;
   lv: Level | null;
   viz: TileViz;
+  /** Guide links for the names in `v` then `sub`, in that order (the LIKELY CATCH tile). */
+  links?: string[];
 }
 
 const tipOf = (kind: Parameters<typeof tipBand>[0], v: number | null, vars?: Record<string, string>) => {
@@ -328,14 +331,14 @@ export function tilesFor(r: FcRead, ctx: ViewCtx): TileView[] {
     kind: 'wind', k: t('fc.wind'), v: kt === null ? dash : `${n0(kt)} kt`,
     sub: [[cmp(from), extra].filter(Boolean).join(' · '), peakWind(src)].filter(Boolean), tip: tipOf('wind', kt), lv: null, viz: { v: kt, deg: from },
   });
-  const tideTile = (): TileView => {
+  const tideTile = (fishTip = false): TileView => {
     const s = tideNow(env, ms);
     const series = dayHours.map((x) => x.tideM);
     const turn = s.next.t - d0 < DAY ? (s.next.t - d0) / H : null;
     return {
       kind: 'tide', k: t('fc.tide'), v: `${signed2(s.h)} m`,
       sub: [`${t(s.rising ? 'fc.tide.rising' : 'fc.tide.falling')} · ${t(`fc.tide.next.${s.next.type}` as Key, { t: localClock(s.next.t) })}`],
-      tip: t(s.rising ? 'tip.tide.up' : 'tip.tide.down'), lv: null, viz: { series, at, turnAt: turn, turnHigh: s.next.type === 'high' },
+      tip: fishTip ? t(s.rising ? 'tip.tide.up' : 'tip.tide.down') : null, lv: null, viz: { series, at, turnAt: turn, turnHigh: s.next.type === 'high' },
     };
   };
   const windowTile = (): TileView => ({
@@ -367,9 +370,9 @@ export function tilesFor(r: FcRead, ctx: ViewCtx): TileView[] {
     const age = moonAgeDays(moonPhase(ms).elongation);
     return [
       weather(),
-      { kind: 'catch', k: t('fc.catch'), v: names[0] ?? dash, sub: [names.slice(1).join(' · ')], tip: t('tip.fish'), lv: null, viz: { count: names.length } },
+      { kind: 'catch', k: t('fc.catch'), v: names[0] ?? dash, sub: [names.slice(1).join(' · ')], tip: t('tip.fish'), lv: null, viz: { count: names.length }, links: f.species.map(guideLinkFor) },
       { kind: 'moon', k: t('fc.moon'), v: `${n0(f.moonIllum * 100)}%`, sub: [`${sentence(t(`astro.moon.${f.moonPhase}` as Key))} · ${t('fc.moonDay', { d: n0(age) })}`], tip: tipOf('moon', f.moonIllum), lv: null, viz: { v: f.moonIllum, waxing: f.moonPhase <= 4 } },
-      tideTile(), windTile(hourWind.kt, hourWind.from, (x) => x.windKt), water(), uvTile(h?.uv ?? null), windowTile(),
+      tideTile(true), windTile(hourWind.kt, hourWind.from, (x) => x.windKt), water(), uvTile(h?.uv ?? null), windowTile(),
     ];
   }
   if (r.water && r.activity === 'snorkel') {

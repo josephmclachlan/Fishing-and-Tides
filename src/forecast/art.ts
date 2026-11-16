@@ -8,7 +8,7 @@
  *            swell profile on the swell's own period; particles travel with the swell's direction
  *   FISH     the moon's phase and age on a lunar bezel; today's tide curve with the best window, now and the next
  *            turn; an echo-sounder strip whose density follows the bite score
- *   SWIM     a beach from above: crests broken where the rip runs out, the lifeguard flag in the rip's colour,
+ *   SWIM     a beach from above: crests broken where the rip runs out, a dot in the rip's colour,
  *            the shore break, a sun with a UV ring of 11 segments
  *   SNORKEL  a section from the surface to the reef: a snorkeller, sight lines fading to murk at the visibility,
  *            marker posts every 5 m, the water over the reef at this tide
@@ -892,16 +892,11 @@ function drawSwim(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['swim'
   c.beginPath(); c.moveTo(cx, ay - 10); c.lineTo(cx - 7, ay + 2); c.lineTo(cx + 7, ay + 2); c.closePath(); c.fill();
   txt(c, a.ripK, cx + 12, ay + 4, 'left', 11, 700);
   c.fillStyle = S.soft; txt(c, a.shore, x + w, Y - 14, 'right', 10.5, 600);
-  // The lifeguard flag in the rip's colour.
-  const fx0 = x + w * 0.16, fy = Y + (y + h - Y) * 0.78, pole = Math.min(64, h * 0.3);
-  c.strokeStyle = S.ink; c.lineWidth = 2.5; c.beginPath(); c.moveTo(fx0, fy); c.lineTo(fx0, fy - pole); c.stroke();
-  const fw = 36, fh = 22, top = fy - pole, wave = S.reduced ? 0 : tt * 5;
-  c.beginPath(); c.moveTo(fx0, top);
-  for (let i = 0; i <= 12; i++) { const u = i / 12; c.lineTo(fx0 + u * fw, top + Math.sin(u * 4 - wave) * 3 * u); }
-  for (let i = 12; i >= 0; i--) { const u = i / 12; c.lineTo(fx0 + u * fw, top + fh + Math.sin(u * 4 - wave) * 3 * u); }
-  c.closePath();
+  // A dot in the rip's colour with its plain words (only Cocles and Playa Negra fly flags).
+  const fx0 = x + w * 0.16, fy = Y + (y + h - Y) * 0.78;
+  c.beginPath(); c.arc(fx0, fy - 10, 9, 0, TAU);
   c.fillStyle = rgba(S.T[a.rip === 'HIGH' ? 'lv0' : a.rip === 'MOD' ? 'lv2' : 'lv3']); c.fill(); c.lineWidth = 2; c.strokeStyle = S.ink; c.stroke();
-  c.fillStyle = S.ink; txt(c, a.flag, fx0 + fw + 10, top + fh / 2, 'left', 10.5, 700);
+  c.fillStyle = S.ink; txt(c, a.flag, fx0 + 18, fy - 10, 'left', 10.5, 700);
   // The sun with its UV ring, one segment per index point up to 11.
   if (a.uv !== null) {
     const sr = Math.min(w, h) * 0.085, sx = x + w - sr - 22, sy = y + sr + 22;

@@ -7,6 +7,7 @@
 import { PHONE_QUERY } from './sheets';
 import { UI } from './icons/ui';
 import { t, type Key } from './i18n';
+import { citeHelp } from './sources';
 
 export type HelpId = string;
 
@@ -77,7 +78,7 @@ export function mountExplain(root: HTMLElement) {
   };
 
   const fill = (title: string, id: HelpId) => {
-    card.innerHTML = `<div class="ph"><span>${esc(title)}</span><button type="button" class="sheet-x help-x" aria-label="${t('help.close')}">${UI.close}</button></div><p class="help-text">${esc(t(helpKey(id)))}</p>`;
+    card.innerHTML = `<div class="ph"><span>${esc(title)}</span><button type="button" class="sheet-x help-x" aria-label="${t('help.close')}">${UI.close}</button></div>${citeHelp(t(helpKey(id)), esc, t('sources.title'))}`;
     card.querySelector('.help-x')!.addEventListener('click', close);
     card.hidden = false;
   };
@@ -126,7 +127,7 @@ export function mountExplain(root: HTMLElement) {
     if (anchor === row && !card.hidden) return close();
     const id = row.dataset.help!;
     const title = (row.querySelector('.lbl')?.textContent ?? row.dataset.helpTitle ?? '').trim();
-    card.innerHTML = `<div class="ph"><span>${esc(title)}</span><button type="button" class="sheet-x help-x" aria-label="${t('help.close')}">${UI.close}</button></div><p class="help-text">${esc(t(helpKey(id)))}</p>`;
+    card.innerHTML = `<div class="ph"><span>${esc(title)}</span><button type="button" class="sheet-x help-x" aria-label="${t('help.close')}">${UI.close}</button></div>${citeHelp(t(helpKey(id)), esc, t('sources.title'))}`;
     card.querySelector('.help-x')!.addEventListener('click', close);
     card.hidden = false;
     anchor = row;

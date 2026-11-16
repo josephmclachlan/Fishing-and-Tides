@@ -426,3 +426,14 @@
 .gd .gd-fun { padding: 10px 14px; background: var(--fc-card); border: 2px solid var(--fc-ink); }
 .gd .gd-fun ul { margin: 6px 0 0; padding-left: 18px; }
 .gd .gd-fun li { margin: 6px 0; line-height: 1.45; }
+
+/* Links from the guide header to the field notes. */
+.gd-nlinks { margin: 6px 0 0; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+.gd-nlinks a { color: inherit; text-decoration: underline; text-underline-offset: 3px; padding: 6px 0; display: inline-block; }
+
+/* Language switch at the foot of a species, since the sheet covers the page header. */
+.gd-d-lang { display: flex; align-items: center; gap: 12px; margin-top: 28px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fc-ink2); }
+/* A fade on the right edge of the scrolling tab rows tells a phone reader there is more to swipe to. */
+@media (max-width: 700px) {
+  .gd-modes, .gd-d-tabs { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); padding-right: 40px; }
+}

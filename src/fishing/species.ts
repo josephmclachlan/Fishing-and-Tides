@@ -5,11 +5,25 @@
  * Names are i18n keys (`fish.<id>`). The numbers are angling-guide rules of thumb. The structure
  * weights `w` are only the prior: fit.ts updates them from the OBIS/GBIF records (PLAN 4.4).
  * Depth range, mouth reach and season are used as written.
+ *
+ * Two modes (PLAN 7.120, Joseph 2026-11-16): EAT, fish to keep and eat (the default and the old set), and SPORT, fish to
+ * catch and release (barracuda moved here: no size of it is safe to eat). A species is in exactly one mode.
  */
-export type SpeciesId = 'snook' | 'jack' | 'snapper' | 'mackerel' | 'grouper' | 'barracuda' | 'lionfish';
+export type SpeciesId = 'snook' | 'jack' | 'snapper' | 'mackerel' | 'grouper' | 'grunt' | 'barracuda' | 'lionfish';
+
+/** EAT: fish to keep and eat. SPORT: fish to catch and release. */
+export type FishMode = 'eat' | 'sport';
+export const MODES: readonly FishMode[] = ['eat', 'sport'];
 
 export interface Species {
   id: SpeciesId;
+  mode: FishMode;
+  /**
+   * 'low' tags the species RULE OF THUMB in the panel: fewer than about 20 records near this coast to fit the weights
+   * (OBIS and GBIF, Limón to Sixaola, 2026-11-16: mackerel about 6, barracuda about 6), so the map is the hand-written
+   * rules more than the records.
+   */
+  confidence?: 'low';
   /** Water depth, m: [absolute min, ideal from, ideal to, absolute max]. Score is 0 outside min..max. */
   depthM: readonly [number, number, number, number];
   /** Prior weights of the structure terms (sum to 1): river mouth, reef, drop-off. Fitted in fit.ts. */
@@ -32,16 +46,21 @@ export interface Species {
 }
 
 export const SPECIES: readonly Species[] = [
-  { id: 'snook', depthM: [0.3, 0.5, 4, 10], w: { mouth: 0.8, reef: 0.1, drop: 0.1 }, mouthReachKm: 0.9, season: [0.85, 0.85, 0.8, 0.8, 0.85, 0.9, 0.95, 1, 1, 1, 1, 0.95], water: { visM: [0.2, 0.5, 2.5, 6], sstC: [18, 24, 30, 33] } },
-  { id: 'jack', depthM: [1, 2, 18, 40], w: { mouth: 0.5, reef: 0.25, drop: 0.25 }, mouthReachKm: 1.5, season: [0.9, 0.95, 1, 1, 0.95, 0.9, 0.85, 0.85, 0.9, 0.95, 0.95, 0.9], water: { visM: [0.3, 1, 6, 15], sstC: [20, 24, 30, 33] } },
-  { id: 'snapper', depthM: [4, 8, 30, 50], w: { mouth: 0.1, reef: 0.55, drop: 0.35 }, mouthReachKm: 1, season: [1, 1, 0.95, 0.9, 0.85, 0.8, 0.8, 0.85, 0.9, 0.95, 1, 1], water: { visM: [1, 3, 15, 30], sstC: [20, 24, 29, 32] } },
+  { id: 'snook', mode: 'eat', depthM: [0.3, 0.5, 4, 10], w: { mouth: 0.8, reef: 0.1, drop: 0.1 }, mouthReachKm: 0.9, season: [0.85, 0.85, 0.8, 0.8, 0.85, 0.9, 0.95, 1, 1, 1, 1, 0.95], water: { visM: [0.2, 0.5, 2.5, 6], sstC: [18, 24, 30, 33] } },
+  { id: 'jack', mode: 'eat', depthM: [1, 2, 18, 40], w: { mouth: 0.5, reef: 0.25, drop: 0.25 }, mouthReachKm: 1.5, season: [0.9, 0.95, 1, 1, 0.95, 0.9, 0.85, 0.85, 0.9, 0.95, 0.95, 0.9], water: { visM: [0.3, 1, 6, 15], sstC: [20, 24, 30, 33] } },
+  { id: 'snapper', mode: 'eat', depthM: [4, 8, 30, 50], w: { mouth: 0.1, reef: 0.55, drop: 0.35 }, mouthReachKm: 1, season: [1, 1, 0.95, 0.9, 0.85, 0.8, 0.8, 0.85, 0.9, 0.95, 1, 1], water: { visM: [1, 3, 15, 30], sstC: [20, 24, 29, 32] } },
   // Spanish mackerel (macarela): schools along reef edges and drop-offs in clear water. No local season data: flat.
-  { id: 'mackerel', depthM: [1, 3, 25, 45], w: { mouth: 0.15, reef: 0.35, drop: 0.5 }, mouthReachKm: 1, season: Array(12).fill(0.95), water: { visM: [1.5, 3, 15, 30], sstC: [22, 25, 30, 33] } },
+  { id: 'mackerel', mode: 'eat', confidence: 'low', depthM: [1, 3, 25, 45], w: { mouth: 0.15, reef: 0.35, drop: 0.5 }, mouthReachKm: 1, season: Array(12).fill(0.95), water: { visM: [1.5, 3, 15, 30], sstC: [22, 25, 30, 33] } },
   // Small reef groupers (cabrilla, coney, hinds, black grouper): reef and rock, hand line or spear. Season not known locally: flat.
-  { id: 'grouper', depthM: [2, 5, 40, 60], w: { mouth: 0.05, reef: 0.7, drop: 0.25 }, mouthReachKm: 0.8, season: Array(12).fill(0.95), water: { visM: [2, 4, 20, 40], sstC: [22, 24, 30, 33] }, ciguatera: true },
-  { id: 'barracuda', depthM: [1.5, 3, 18, 40], w: { mouth: 0.1, reef: 0.55, drop: 0.35 }, mouthReachKm: 1, season: [1, 1, 1, 0.95, 0.9, 0.85, 0.85, 0.9, 0.9, 0.95, 1, 1], water: { visM: [1.5, 4, 20, 40], sstC: [20, 24, 30, 33] }, ciguatera: true },
+  { id: 'grouper', mode: 'eat', depthM: [2, 5, 40, 60], w: { mouth: 0.05, reef: 0.7, drop: 0.25 }, mouthReachKm: 0.8, season: Array(12).fill(0.95), water: { visM: [2, 4, 20, 40], sstC: [22, 24, 30, 33] }, ciguatera: true },
+  // Grunts (ronco, plus porkfish and black margate, burro): small reef fish eaten here, caught on hand lines from rocks and
+  // reef edges. The most recorded eating fish on this coast (about 140 Haemulon records Limón to Sixaola, OBIS 2026-11-16).
+  // They school over reef and rubble by day and feed over sand and seagrass at night. No local season data: flat.
+  { id: 'grunt', mode: 'eat', depthM: [1, 2, 20, 35], w: { mouth: 0.1, reef: 0.7, drop: 0.2 }, mouthReachKm: 0.8, season: Array(12).fill(0.95), water: { visM: [1, 2, 20, 40], sstC: [22, 24, 30, 33] } },
+  // Barracuda: SPORT, catch and release (the guide's ciguatera advice: no size is lower risk; CDC: never eat it).
+  { id: 'barracuda', mode: 'sport', confidence: 'low', depthM: [1.5, 3, 18, 40], w: { mouth: 0.1, reef: 0.55, drop: 0.35 }, mouthReachKm: 1, season: [1, 1, 1, 0.95, 0.9, 0.85, 0.85, 0.9, 0.9, 0.95, 1, 1], water: { visM: [1.5, 4, 20, 40], sstC: [20, 24, 30, 33] }, ciguatera: true },
   // Lionfish (pez león): invasive, eaten locally and its catch is encouraged; reef only, by spear, so clear water matters. All year.
-  { id: 'lionfish', depthM: [1, 4, 40, 60], w: { mouth: 0, reef: 0.9, drop: 0.1 }, mouthReachKm: 0.5, season: Array(12).fill(1), water: { visM: [2, 6, 25, 40], sstC: [22, 24, 31, 33] }, ciguatera: 'caution' },
+  { id: 'lionfish', mode: 'eat', depthM: [1, 4, 40, 60], w: { mouth: 0, reef: 0.9, drop: 0.1 }, mouthReachKm: 0.5, season: Array(12).fill(1), water: { visM: [2, 6, 25, 40], sstC: [22, 24, 31, 33] }, ciguatera: 'caution' },
 ];
 
 /** PEAK at 0.97 or more, GOOD from 0.88, else OFF: a coarse word for the season factor. */
@@ -49,5 +68,8 @@ export function seasonOf(sp: Species, month: number): 'peak' | 'good' | 'off' {
   const f = sp.season[((month % 12) + 12) % 12];
   return f >= 0.97 ? 'peak' : f >= 0.88 ? 'good' : 'off';
 }
+
+/** The species of one mode, in list order. */
+export const speciesIn = (mode: FishMode): readonly Species[] => SPECIES.filter((s) => s.mode === mode);
 
 export const speciesById = (id: SpeciesId): Species => SPECIES.find((s) => s.id === id) ?? SPECIES[0];

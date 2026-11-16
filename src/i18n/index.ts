@@ -30,6 +30,9 @@ export function setDict(next: Dict) {
   dict = next;
 }
 
+/** The language in use now. */
+export const activeLang = (): Lang => (dict === es ? 'es' : 'en');
+
 /** Text for `key`, with `{name}` placeholders filled from `vars`. Falls back to English. */
 export function t(key: Key, vars?: Record<string, string | number>): string {
   const s = dict[key] ?? en[key];

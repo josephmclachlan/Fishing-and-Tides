@@ -91,6 +91,7 @@ import { fetchZones, mountZones, zoneName } from './layers/zones';
 import { mountZonesHud } from './zones-hud';
 import { fetchMouths, fetchOccurrences, mountFishing, type FishingLayer } from './layers/fishing';
 import { loadSpecies, mountFishingHud } from './fishing-hud';
+import { SPECIES, speciesById, speciesIn, type FishMode, type SpeciesId } from './fishing/species';
 import { layers, type ActivityId } from './layers/registry';
 import { mountMotionKey } from './layers/motion-key';
 import { bindMapLayers } from './layers/visibility';
@@ -164,6 +165,7 @@ import { cacheShotStore } from './forecast/shot-store';
 import { mountCoralPage } from './coral-page/page';
 import { mountGuidePage } from './guide/page';
 import { mountCiguateraPage } from './ciguatera/page';
+import { mountNotesPage } from './notes/page';
 import { mountDispatchPage } from './dispatch/page';
 import type { FcActivity } from './forecast/model';
 import { fetchSargassum, type SargassumData } from './adapters/sargassum';
@@ -442,7 +444,8 @@ bindMapLayers(map, layers);
 // Say why a switched-on layer shows nothing (clarity review CL15 to CL17).
 mountLayerNotes(hud, map, layers, () => (satellite ? baseConditions().waterTempC : null));
 mountSettingsUi(hud, settings);
-mountIntro(hud, safeStorage());
+// On the body, not the hidden classic HUD, so it also shows over the forecast page and the new map (it was never seen there).
+mountIntro(document.body, safeStorage());
 // Which moving lines are which, while two or more are on (clarity review CL5).
 mountMotionKey(hud, layers, () => sheets.open('layers'), map);
 mountSounds(document, settings.sound);
@@ -594,6 +597,27 @@ setInterval(loadGauge, 10 * 60_000);
 const boatStore = createBoatStore(safeStorage());
 // Catches logged in the BOAT drawer store their BITE once the fishing panel is up (PLAN 7.16).
 let scoreCatch: CatchScorer | null = null;
+let fishSetSpecies: ((id: SpeciesId) => void) | null = null;
+let fishHudMode: { set(m: FishMode): void; get(): FishMode } | null = null;
+const fishModeListeners = new Set<() => void>();
+/**
+ * EAT or SPORT for the fish map (PLAN 7.120): through the fishing panel once it is up, else remembered as that mode's
+ * first fish, which the panel picks up when it mounts (the mode is the species' own).
+ */
+const fishMode = {
+  get: (): FishMode => fishHudMode?.get() ?? speciesById(loadSpecies()).mode,
+  set: (m: FishMode) => {
+    if (fishHudMode) return fishHudMode.set(m);
+    if (speciesById(loadSpecies()).mode === m) return;
+    try {
+      localStorage.setItem('ft.fishing.species', speciesIn(m)[0].id);
+    } catch {
+      /* private mode */
+    }
+  },
+  /** Called when the fishing panel changes the mode itself, so the map's spot card follows. */
+  subscribe: (fn: () => void) => void fishModeListeners.add(fn),
+};
 // Offshore read for the BOAT drawer (PLAN 7.17): depth and ledge from the seafloor grids, satellite
 // temperature, chlorophyll and fronts, and floating sargassum, scored per boat species.
 let offshoreDepth: ((lng: number, lat: number) => number | null) | null = null;
@@ -776,6 +800,23 @@ if (coralPanelEl) {
 const guidePage = mountGuidePage({
   storage: safeStorage(),
   lang: () => settings.lang(),
+  // SHOW ON MAP: the fish map, on this kind of fish (remembered for a map that has not loaded yet).
+  showOnMap: (kind) => {
+    const id = SPECIES.find((s) => s.id === kind)?.id;
+    if (!id) return;
+    try {
+      localStorage.setItem('ft.fishing.species', id);
+    } catch {
+      /* private mode */
+    }
+    fishSetSpecies?.(id);
+    if (km) km.openAct('fish');
+    else {
+      coralMode.set(false);
+      layers.setActivity(MAP_PRESET.fish);
+    }
+    location.hash = '#map';
+  },
   setLang: (l) => {
     settings.setLang(l);
     const c = map.getCenter();
@@ -785,6 +826,17 @@ const guidePage = mountGuidePage({
 });
 // CIGUATERA page (PLAN 7.101): risk, local evidence, symptoms, treatment; every ciguatera warning links to #ciguatera.
 mountCiguateraPage({
+  storage: safeStorage(),
+  lang: () => settings.lang(),
+  setLang: (l) => {
+    settings.setLang(l);
+    const c = map.getCenter();
+    saveView(safeSession(), { center: [c.lng, c.lat], zoom: map.getZoom() });
+    location.reload();
+  },
+});
+// FIELD NOTES page: rules at a glance, first aid, rigs, releasing, cooking, seasons and a glossary (#notes).
+mountNotesPage({
   storage: safeStorage(),
   lang: () => settings.lang(),
   setLang: (l) => {
@@ -1535,8 +1587,10 @@ fetchSeafloor()
         // Your logged catches join the habitat fit and the YOUR CATCHES check (PLAN 7.16).
         const pins = () => boatStore.state().pins;
         layer.setCatches(pins());
-        const fishHud = mountFishingHud(hud, map, layer, time, species, fishEnv, pins);
+        const fishHud = mountFishingHud(hud, map, layer, time, species, fishEnv, pins, () => fishModeListeners.forEach((fn) => fn()));
         scoreCatch = fishHud?.scoreCatch ?? null;
+        fishSetSpecies = fishHud?.setSpecies ?? null;
+        fishHudMode = fishHud ? { set: fishHud.setMode, get: fishHud.mode } : null;
         boatStore.subscribe(() => (layer.setCatches(pins()), fishHud?.refresh()));
       })
       .catch((err) => console.warn('fishing layer unavailable', err));
@@ -1707,6 +1761,7 @@ if (MODERN) {
     forecast: forecastPage,
     openCoralPage: (reef) => coralPage.open({ reef }),
     openGuide: (mode) => guidePage.open(mode ? { mode } : {}),
+    fishMode,
     explain: (title, id) => explain.show(title, id),
     go: (tg) => enhancer.go(tg),
     reload,

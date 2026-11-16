@@ -45,24 +45,26 @@ export function mountIntro(root: HTMLElement, store: Store) {
   card.innerHTML = introHtml(t);
   root.appendChild(card);
 
+  // The old top bar's ABOUT button (classic layout only; the new map opens this from Settings via the 'ft:about' event).
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'tab intro-open';
   btn.textContent = t('intro.tab');
   btn.title = t('intro.title');
-  root.querySelector('.top-tabs')?.appendChild(btn);
+  document.querySelector('.top-tabs')?.appendChild(btn);
 
   const close = () => {
     if (card.hidden) return;
     card.hidden = true;
     markIntroSeen(store);
-    btn.focus();
+    if (btn.isConnected) btn.focus();
   };
   const open = () => {
     card.hidden = false;
     card.querySelector<HTMLElement>('.intro-ok')!.focus();
   };
   btn.addEventListener('click', () => (card.hidden ? open() : close()));
+  document.addEventListener('ft:about', open);
   card.querySelector('.intro-ok')!.addEventListener('click', close);
   card.querySelector('.intro-x')!.addEventListener('click', close);
   document.addEventListener('keydown', (e) => e.key === 'Escape' && close());

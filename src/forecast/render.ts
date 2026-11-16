@@ -75,9 +75,15 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
         <button type="button" class="fc-best" id="fc-best" hidden></button>
       </div>
     </section>
+    <p class="fc-down-msg fc-in" id="fc-down" role="status" hidden>${esc(t('fc.unavailable'))}</p>
     ${o.guide ? `<nav class="fc-links fc-in" aria-label="${esc(t('fc.links'))}">
       <button type="button" class="fc-link" id="fc-idlink" data-for="fish dive spear snorkel">${GUIDE_ICON}<span><b>${esc(t('fc.idLink'))}</b><small>${esc(t('fc.idLinkSub'))}</small></span><i aria-hidden="true">→</i></button>
       <a class="fc-link" href="#dispatch" data-for="fish spear">${DISPATCH_ICON}<span><b>${esc(t('dp.link'))}</b><small>${esc(t('dp.linkSub'))}</small></span><i aria-hidden="true">→</i></a>
+      <a class="fc-link" href="#notes/water" data-for="surf swim snorkel dive spear fish sail">${GUIDE_ICON}<span><b>${esc(t('nt.waterLink'))}</b><small>${esc(t('nt.waterLinkSub'))}</small></span><i aria-hidden="true">→</i></a>
+      <a class="fc-link" href="#notes" data-for="fish spear dive snorkel">${DISPATCH_ICON}<span><b>${esc(t('nt.link'))}</b><small>${esc(t('nt.linkSub'))}</small></span><i aria-hidden="true">→</i></a>
+      <a class="fc-link" href="#notes/surf" data-for="surf">${GUIDE_ICON}<span><b>${esc(t('nt.surfLink'))}</b><small>${esc(t('nt.surfLinkSub'))}</small></span><i aria-hidden="true">→</i></a>
+      <a class="fc-link" href="#notes/water" data-for="surf swim snorkel dive spear fish sail">${GUIDE_ICON}<span><b>${esc(t('nt.waterLink'))}</b><small>${esc(t('nt.waterLinkSub'))}</small></span><i aria-hidden="true">→</i></a>
+      <a class="fc-link" href="#notes/aid" data-for="surf swim fish spear dive snorkel">${GUIDE_ICON}<span><b>${esc(t('nt.aidLink'))}</b><small>${esc(t('nt.aidLinkSub'))}</small></span><i aria-hidden="true">→</i></a>
     </nav>` : ''}
     <section class="fc-sec fc-in" aria-labelledby="fc-cond-h">
       <div class="fc-sec-head"><h2 id="fc-cond-h">${esc(t('fc.conditions'))}</h2><p class="fc-mono" id="fc-cond-when"></p></div>
@@ -155,8 +161,8 @@ export function tilesHtml(list: readonly TileView[]): string {
       return `<article class="fc-tile${x.lv === null ? '' : ` ${lvCls(x.lv)} has-lv`}" data-kind="${x.kind}" data-tile="${i}"${x.tip ? ` tabindex="0"` : ''}>
         <div class="fc-t-top"><span class="fc-mono">${esc(x.k)}</span><span class="fc-mono fc-ix">${String(i + 1).padStart(2, '0')}</span></div>
         <canvas class="fc-t-viz" aria-hidden="true"></canvas>
-        <div class="fc-t-val">${esc(x.v)}${x.small ? `<small>${esc(x.small)}</small>` : ''}</div>
-        <p class="fc-t-sub">${x.sub.filter(Boolean).map(esc).join('<br>')}</p>
+        <div class="fc-t-val">${x.links?.[0] ? `<a class="fc-t-go" href="${esc(x.links[0])}">${esc(x.v)}</a>` : esc(x.v)}${x.small ? `<small>${esc(x.small)}</small>` : ''}</div>
+        <p class="fc-t-sub">${x.links ? x.sub[0] ? x.sub[0].split(' · ').map((n, j) => (x.links![j + 1] ? `<a class="fc-t-go" href="${esc(x.links![j + 1])}">${esc(n)}</a>` : esc(n))).join(' · ') : '' : x.sub.filter(Boolean).map(esc).join('<br>')}</p>
         ${x.tip ? `<div class="fc-t-tip"><p>${esc(x.tip)}</p></div>` : ''}
       </article>`;
     })
@@ -198,8 +204,7 @@ export function chartLabelsHtml(L: ChartLayout): string {
       const id = o.spec.id;
       const unit = id === 'uv' ? '' : t(`fc.unit.${id}` as Key);
       const sc = id === 'tide' ? `±${o.hi.toFixed(2)}` : `${scaleText(o.lo)}–${scaleText(o.hi)}`;
-      const none = o.vals.every((v) => v === null || !Number.isFinite(v));
-      return `<div class="fc-rl" ${at}><span>${esc(t(`fc.row.${id}` as Key))}</span><em>${unit ? `${esc(unit)} · ` : ''}${esc(sc)}${none ? ` ${esc(t('fc.noRow'))}` : ''}</em></div>`;
+      return `<div class="fc-rl" ${at}><span>${esc(t(`fc.row.${id}` as Key))}</span><em>${unit ? `${esc(unit)} · ` : ''}${esc(sc)}</em></div>`;
     })
     .join('');
 }

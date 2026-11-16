@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { daySky } from '../physics/astro';
-import { sunHours } from './forecast';
+import { daylightHours, sunHours } from './forecast';
 import { bestWindow } from '../physics/outing';
 
 const DAY0 = Date.UTC(2026, 10, 4, 6); // local midnight at UTC-6
@@ -16,7 +16,7 @@ describe('best windows follow the sun (Joseph, 2026-11-11)', () => {
     expect(r.toH).toBeLessThanOrEqual(18);
     expect(sunHours(DAY0, LAT, LNG, 1)).toEqual({ fromH: r.fromH - 1, toH: r.toH + 1 });
   });
-  it('the outing search reads only the hours between sunrise and sunset', () => {
+  it('the outing search reads only hours it is given, the day daylight', () => {
     const seen: number[] = [];
     bestWindow((_ms, h) => (seen.push(h), { score: 50, reasons: [] }), DAY0, { fromH: 6, toH: 17 });
     expect(seen[0]).toBe(6);
@@ -26,6 +26,15 @@ describe('best windows follow the sun (Joseph, 2026-11-11)', () => {
 
 import { bestWindow as ribbonBest } from '../spot-charts';
 import { todayOver } from './best-today';
+
+describe('snorkel and dive windows start after sunrise and end by sunset', () => {
+  it('daylightHours sits inside sunrise and sunset', () => {
+    const sun = daySky(DAY0, LAT, LNG).sun;
+    const r = daylightHours(DAY0, LAT, LNG);
+    expect(r.fromH * 3.6e6 + DAY0).toBeGreaterThanOrEqual(sun.sunrise! + 0.5 * 3.6e6 - 1);
+    expect(r.toH * 3.6e6 + DAY0).toBeLessThanOrEqual(sun.sunset!);
+  });
+});
 
 describe('the map follows the sun too', () => {
   it('the spot ribbon searches only the span it is given', () => {

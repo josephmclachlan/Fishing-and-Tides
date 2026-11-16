@@ -8,6 +8,7 @@
 import { bite, type BiteTerms } from '../fishing/bite';
 import { daySky, type DaySky } from '../physics/astro';
 import { clarityLevel } from '../physics/clarity';
+import { SHORE_DUMP_M, SHORE_EASY_M } from '../physics/shorebreak';
 import { predict, type Harmonics } from '../physics/tide';
 import type { WeatherNow } from '../adapters/weather';
 import { biteWeather, blendedGustKt, blendedTempC, feelsLikeC, humidityPct, pressureChange, rainChancePct } from '../weather';
@@ -226,7 +227,7 @@ export const METRICS: readonly Metric[] = [
   { id: 'swim', group: 'water', unit: '/100', decimals: 0, better: 'high', agg: 'max', at: (a) => swimAt(a)?.score ?? null, tone: swimTone },
   // Rip risk at the waterline, the score of physics/rip.ts (LOW under 0.25, HIGH from 0.55), from the spot model scaled to the hour.
   { id: 'rip', group: 'water', unit: '', decimals: 2, better: 'low', agg: 'max', at: (a) => a.env.shore?.(a.spot, a.ms)?.rip.score ?? null, tone: band(RIP_THRESHOLDS.MOD, RIP_THRESHOLDS.HIGH) },
-  { id: 'shorebreak', group: 'waves', unit: 'm', decimals: 1, better: 'low', agg: 'max', at: (a) => a.env.shore?.(a.spot, a.ms)?.breakerM ?? null, tone: band(0.5, 1.0) },
+  { id: 'shorebreak', group: 'waves', unit: 'm', decimals: 1, better: 'low', agg: 'max', at: (a) => a.env.shore?.(a.spot, a.ms)?.breakerM ?? null, tone: band(SHORE_EASY_M, SHORE_DUMP_M) },
 ];
 
 export const METRIC_BY_ID: ReadonlyMap<string, Metric> = new Map(METRICS.map((m) => [m.id, m]));

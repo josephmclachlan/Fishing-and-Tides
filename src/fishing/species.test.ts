@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { en } from '../i18n/en';
-import { SPECIES, speciesById } from './species';
+import { MODES, SPECIES, speciesById, speciesIn } from './species';
 
 describe('species catalog', () => {
   it('has text for every species and consistent weights and ranges', () => {
@@ -21,5 +21,15 @@ describe('seasonOf', () => {
     expect(seasonOf(speciesById('snook'), 8)).toBe('peak');
     expect(seasonOf({ ...SPECIES[0], season: Array(12).fill(0.9) }, 0)).toBe('good');
     expect(seasonOf({ ...SPECIES[0], season: Array(12).fill(0.7) }, 0)).toBe('off');
+  });
+});
+
+describe('modes', () => {
+  it('puts every species in exactly one mode, with EAT first and barracuda in SPORT', () => {
+    expect(MODES[0]).toBe('eat');
+    for (const m of MODES) expect(speciesIn(m).length).toBeGreaterThan(0);
+    expect(MODES.flatMap((m) => speciesIn(m)).length).toBe(SPECIES.length);
+    expect(speciesById('barracuda').mode).toBe('sport');
+    expect(speciesIn('eat').map((s) => s.id)).not.toContain('barracuda');
   });
 });
