@@ -198,7 +198,7 @@ Built last, once Phases 2 to 6 are in. Each reuses the adapters, the layer regis
 - [x] 7.131 Field notes visual, part 2: First aid as symptom-to-steps picture flows.
   Part 2 of 4, builds on 7.130.
 
-- [ ] 7.132 Field notes visual, part 3: Rigs and Releasing fish as rig and knot drawings and illustrated release steps.
+- [x] 7.132 Field notes visual, part 3: Rigs and Releasing fish as rig and knot drawings and illustrated release steps.
   Part 3 of 4, builds on 7.130.
 
 - [x] 7.133 Field notes visual, part 4: Rules, Cooking, Seasons (month heat grid) and Words.
