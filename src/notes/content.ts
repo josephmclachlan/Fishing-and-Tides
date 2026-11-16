@@ -6,6 +6,8 @@
 import type { Block, L, Source } from '../ciguatera/content';
 import type { NtTab } from './route';
 import { rules } from './sections/rules';
+import { surf } from './sections/surf';
+import { water } from './sections/water';
 import { aid } from './sections/aid';
 import { rigs } from './sections/rigs';
 import { release } from './sections/release';
@@ -26,7 +28,7 @@ export interface Section {
 }
 
 export const TITLE = L('Field notes', 'Notas de campo');
-export const SUB = L('RULES · FIRST AID · RIGS · RELEASE · COOKING · SEASONS · WORDS', 'REGLAS · PRIMEROS AUXILIOS · APAREJOS · LIBERAR · COCINAR · TEMPORADAS · PALABRAS');
+export const SUB = L('RULES · SURF · DIVE AND SNORKEL · FIRST AID · RIGS · RELEASE · COOKING · SEASONS · WORDS', 'REGLAS · SURF · BUCEO Y SNORKEL · PRIMEROS AUXILIOS · APAREJOS · LIBERAR · COCINAR · TEMPORADAS · PALABRAS');
 export const NOTE = L(
   'Information from published sources, not legal or medical advice. Rules change, so check with INCOPESCA and SINAC. Superscript numbers point to the sources listed at the end of each section.',
   'Información de fuentes publicadas, no asesoría legal ni médica. Las reglas cambian: confirme con INCOPESCA y SINAC. Los números en superíndice remiten a las fuentes al final de cada sección.',
@@ -38,4 +40,4 @@ export const CHROME = {
   linkLabel: L('Field notes: rules, first aid, rigs, cooking, seasons', 'Notas de campo: reglas, primeros auxilios, aparejos, cocina, temporadas'),
 };
 
-export const SECTIONS: Section[] = [rules, aid, rigs, release, cook, seasons, words];
+export const SECTIONS: Section[] = [rules, surf, water, aid, rigs, release, cook, seasons, words];
