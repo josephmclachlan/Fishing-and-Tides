@@ -1080,7 +1080,13 @@ export function mountKineticMap(d: KmDeps) {
     if (cond) new MutationObserver(() => void (!q && ((q = true), requestAnimationFrame(sweep)))).observe(cond, { subtree: true, childList: true, characterData: true });
     d.sheets.subscribe(() => cond && d.sheets.current() === 'cond' && foldEmpty(cond));
   }
-  map.on('click', () => !WIDE.matches && S.sheet && S.sheet !== 'here' && closeSheet());
+  // A tap closes another open drawer on the phone; otherwise it moves the crosshair to the tapped point, so WHAT'S HERE
+  // and the readings read where you tapped, not where the map happened to be centred (Joseph 2026-11-16).
+  map.on('click', (e) => {
+    if (!WIDE.matches && S.sheet && S.sheet !== 'here') return closeSheet();
+    if (S.sheet && S.sheet !== 'here') return;
+    map.easeTo({ center: e.lngLat, duration: 350 });
+  });
 
   /** An old drawer (WATCH, BOAT, CORAL SITES, LIVE OBS, SYSTEM CHECK, CONDITIONS...), restyled, over the map. */
   function openTool(id: SheetId | 'sync') {
