@@ -66,13 +66,12 @@ function block(b: Block, lang: Lang, c: Cites): string {
 export function sourcesHtml(lang: Lang, c: Cites): string {
   if (!c.order.length) return '';
   const head = lang === 'es' ? 'FUENTES' : 'SOURCES';
-  const key = lang === 'es' ? 'P: leída completa. S: solo resumen, verifique antes de citar.' : 'P: read in full. S: read only as a summary, check before quoting.';
   return `<h3 class="cig-h fc-mono">${head}</h3><ol class="cig-src">${c.order
     .map((k, i) => {
       const s = SOURCES[k];
-      return `<li id="cig-src-${i + 1}" value="${i + 1}">${s.u ? `<a href="${esc(s.u)}" target="_blank" rel="noopener">${esc(s.t)}</a>` : esc(s.t)} <span class="cig-p fc-mono" title="${esc(s.p === 'P' ? (lang === 'es' ? 'Leída completa' : 'Read in full') : lang === 'es' ? 'Solo resumen' : 'Summary only')}">${s.p}</span><br><span class="cig-w">${esc(s.what[lang])}</span></li>`;
+      return `<li id="cig-src-${i + 1}" value="${i + 1}">${s.u ? `<a href="${esc(s.u)}" target="_blank" rel="noopener">${esc(s.t)}</a>` : esc(s.t)}<br><span class="cig-w">${esc(s.what[lang])}</span></li>`;
     })
-    .join('')}</ol><p class="cig-axis fc-mono">${esc(key)}</p>`;
+    .join('')}</ol>`;
 }
 
 export const sectionOf = (tab: CgTab): Section => SECTIONS.find((s) => s.id === tab) ?? SECTIONS[0];
