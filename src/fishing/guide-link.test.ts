@@ -5,6 +5,9 @@ import { OFFSHORE } from './offshore';
 import { parseGuideRoute } from '../guide/route';
 import { BASE } from '../species/base.gen';
 import { KINDS } from '../species/kinds';
+import guideIndex from '../../public/data/guide/index.json';
+import { DEFAULT_FILTER, matches } from '../guide/filter';
+import type { Entry } from '../guide/types';
 
 describe('fish kind and guide link', () => {
   it('maps guide species to a model kind, shore or boat', () => {
@@ -26,5 +29,12 @@ describe('fish kind and guide link', () => {
     }
     expect(guideLinkFor('permit')).toBe('#guide/edible-fish/trachinotus-falcatus');
     expect(guideLinkFor('squid')).toBe('#guide/edible/sepioteuthis-sepioidea');
+  });
+  it('finds the kind\'s own guide species (review 2026-11-16: grouper hit the sea basses, pompano missed palometa)', () => {
+    const entries = (guideIndex as unknown as { entries: Entry[] }).entries;
+    const found = (k: keyof typeof GUIDE_SEARCH) => entries.filter((e) => matches(e, { ...DEFAULT_FILTER, q: GUIDE_SEARCH[k] })).map((e) => e.sci);
+    expect(found('grouper')).toEqual(expect.arrayContaining(['Epinephelus guttatus', 'Mycteroperca bonaci', 'Cephalopholis fulva']));
+    expect(found('pompano')).toEqual(expect.arrayContaining(['Trachinotus carolinus', 'Trachinotus goodei']));
+    expect(found('lionfish')).toContain('Pterois volitans');
   });
 });

@@ -25,11 +25,11 @@ export const KINDS = {
   snapper: { taxa: ['Lutjanus cyanopterus', 'Lutjanus jocu', 'Lutjanus griseus', 'Lutjanus analis', 'Lutjanus apodus', 'Lutjanus synagris', 'Lutjanus mahogoni', 'Ocyurus chrysurus'], search: 'Lutjanus' },
   mackerel: { taxa: ['Scomberomorus brasiliensis', 'Scomberomorus regalis'], search: 'Scomberomorus' },
   // Small reef groupers only: goliath (Epinephelus itajara, reportedly protected) and Nassau (E. striatus, endangered) are left out.
-  grouper: { taxa: ['Cephalopholis cruentata', 'Cephalopholis fulva', 'Epinephelus guttatus', 'Epinephelus adscensionis', 'Epinephelus morio', 'Mycteroperca bonaci', 'Mycteroperca tigris'], search: 'Serranidae' },
+  grouper: { taxa: ['Cephalopholis cruentata', 'Cephalopholis fulva', 'Epinephelus guttatus', 'Epinephelus adscensionis', 'Epinephelus morio', 'Mycteroperca bonaci', 'Mycteroperca tigris'], search: 'Epinephelidae' },
   // Grunts (PLAN 7.121): the ronco and burro species the species guide marks as eaten on this coast.
   grunt: { taxa: ['Haemulon carbonarium', 'Haemulon macrostomum', 'Haemulon flavolineatum', 'Haemulon sciurus', 'Haemulon plumierii', 'Haemulon bonariense', 'Haemulon parra', 'Haemulon aurolineatum', 'Anisotremus virginicus', 'Anisotremus surinamensis'], search: 'Haemulidae' },
   // Surf and sand fish (PLAN 7.122): pompano and palometa.
-  pompano: { taxa: ['Trachinotus carolinus', 'Trachinotus goodei'], search: 'Trachinotus carolinus' },
+  pompano: { taxa: ['Trachinotus carolinus', 'Trachinotus goodei'], search: 'Trachinotus' },
   // River-plume fish (PLAN 7.124): corvina (weakfish) and mullet (lisa).
   // Corvina here is the market name for the drums and croakers of soft bottom off the river mouths (PLAN 7.147 added them).
   corvina: { taxa: ['Cynoscion virescens', 'Cynoscion jamaicensis', 'Micropogonias furnieri', 'Larimus breviceps', 'Isopisthus parvipinnis', 'Bairdiella ronchus', 'Umbrina broussonnetii', 'Menticirrhus americanus'], search: 'Sciaenidae' },

@@ -12,6 +12,7 @@ import { SURF_FIGS } from './art/surf';
 import { AID_FIGS } from './art/aid';
 import { RIGS_FIGS } from './art/rigs';
 import { MISC_FIGS } from './art/misc';
+import { animalSvg, type AnimalId } from './art/animals';
 
 type Lang = 'en' | 'es';
 /** How a tile or cell reads: good, take care, do not, not confirmed, or plain information. */
@@ -51,6 +52,12 @@ export type VBlock =
    * A heat grid: one row per thing, one cell per column (months), each cell a level 0 to 3 (none, low, good, best).
    * `hue` picks the colour ramp: fish (green), closed (red), nest (blue), rain (blue-grey). `key` names each level used.
    */
+  /** A first aid incident: a big heading with its animal, that the index at the top of the tab jumps to (`nt-inc-<id>`). */
+  | { k: 'inc'; id: string; an: AnimalId; t: L }
+  /** The index of incidents: one big tappable chip each, with its animal. */
+  | { k: 'index'; h: L; items: { id: string; an: AnimalId; t: L }[] }
+  /** Animal pictures with their names, so a reader can match what hurt them. */
+  | { k: 'animals'; items: { an: AnimalId; h: L; t?: L }[] }
   | { k: 'heat'; h?: L; cols: L[]; rows: { h: L; v: number[]; hue?: 'fish' | 'closed' | 'nest' | 'rain' }[]; key: { v: number; hue?: 'fish' | 'closed' | 'nest' | 'rain'; t: L }[]; note?: L };
 
 export type Tx = (l: L) => string;
@@ -138,6 +145,12 @@ export function visHtml(b: VBlock, lang: Lang, tx0: Tx, href: (t: NtTab) => stri
       const col = (cls: string, word: L, items: L[]) => `<div class="nt-dd-${cls}"><h4>${chip(cls === 'do' ? 'go' : 'stop', lang)}<span>${word[lang]}</span></h4><ul>${items.map((x) => `<li>${tx(x)}</li>`).join('')}</ul></div>`;
       return `${head(b.h, tx)}<div class="nt-dd">${col('do', { en: 'Do', es: 'Haga' }, b.do)}${col('dont', { en: 'Do not', es: 'No haga' }, b.dont)}</div>`;
     }
+    case 'inc':
+      return `<h3 class="nt-inc" id="nt-inc-${b.id}">${animalSvg(b.an)}<span>${tx(b.t)}</span></h3>`;
+    case 'index':
+      return `<nav class="nt-idx"><h3>${tx(b.h)}</h3><ul>${b.items.map((i) => `<li><a href="#nt-inc-${i.id}">${animalSvg(i.an)}<span>${tx(i.t)}</span></a></li>`).join('')}</ul></nav>`;
+    case 'animals':
+      return `<ul class="nt-anim">${b.items.map((i) => `<li>${animalSvg(i.an)}<h4>${tx(i.h)}</h4>${i.t ? `<p>${tx(i.t)}</p>` : ''}</li>`).join('')}</ul>`;
     case 'heat': {
       const cols = b.cols.map((c) => `<span class="nt-hc">${tx(c)}</span>`).join('');
       const rows = b.rows
