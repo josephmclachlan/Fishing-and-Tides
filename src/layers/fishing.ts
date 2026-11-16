@@ -22,7 +22,7 @@ import { SPECIES, speciesById, type SpeciesId } from '../fishing/species';
 import { occurrenceBoost, recordsFor, withEvidence } from '../fishing/occurrences';
 import type { OccurrenceFile } from '../fishing/occurrence-taxa';
 import { catchRecords, type CatchPin } from '../fishing/catches';
-import { lifted, paintColour as cssColour, paintLift } from './paint';
+import { liftedTagged, paintColour as cssColour, paintLift, themeVar, onSchemeChange } from './paint';
 import { ANCHOR_OFFSET, ZONE_LABEL, FAR_ZONES, fishZones, NEAR_ZONES, nearlyZones, speciesZones, zoneLabel, zoneRing, type Zone, type ZoneCell, type ZoneWhy } from '../fishing/zones';
 import type { OffshoreId } from '../fishing/offshore';
 import { nearestName, uniqueMarks } from '../fishing/near-name';
@@ -50,7 +50,7 @@ const hexRgb = (hex: string): [number, number, number] => {
   const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
   return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [244, 197, 66];
 };
-const css = (n: string, d: string) => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || d;
+const css = themeVar;
 const DIR = 'data/fishing/mouths.geojson';
 const OCC = 'data/fishing/occurrences.json';
 
@@ -112,7 +112,8 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   let month = initial.month;
   const amber = cssColour('--amber', '#ffb000');
   // The theme's lift (paint.ts): these washes are 3 to 32 %, made for a black sea, and vanish on the light one.
-  const L = paintLift('strong'), o = (a: number) => lifted(a, L);
+  let L = paintLift('strong');
+  const o = (a: number) => liftedTagged(a, L);
   let reach: Reach = 'all';
   const inReach = (coastM: number) => reach === 'all' || (reach === 'shore' ? coastM <= SHORE_M : coastM > SHORE_M);
 
@@ -274,8 +275,9 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   const heatBase = new Float32Array(heatGrid.cols * heatGrid.rows);
   for (let r = 0; r < heatGrid.rows; r++)
     for (let c = 0; c < heatGrid.cols; c++) heatBase[r * heatGrid.cols + c] = cellAt(input.land, heatGrid.lon0 + c * STEP, heatGrid.lat0 - r * STEP) === 1 ? NaN : 0;
-  const heatStops = (['--lv2', '--lv3', '--ac4'] as const).map((n, i) => hexRgb(css(n, ['#F4C542', '#A5DBC2', '#0C6B66'][i])));
-  const heatWords = [0, ...bandColours(heatStops, HEAT_STEPS.length).map((c, k) => rgbaWord(c[0], c[1], c[2], Math.round(255 * o(0.14 + (0.36 * k) / (HEAT_STEPS.length - 1)))))];
+  const readHeatStops = () => (['--lv2', '--lv3', '--ac4'] as const).map((n, i) => hexRgb(css(n, ['#F4C542', '#A5DBC2', '#0C6B66'][i])));
+  const makeHeatWords = (heatStops: ReturnType<typeof readHeatStops>) => [0, ...bandColours(heatStops, HEAT_STEPS.length).map((c, k) => rgbaWord(c[0], c[1], c[2], Math.round(255 * o(0.14 + (0.36 * k) / (HEAT_STEPS.length - 1)))))];
+  let heatWords = makeHeatWords(readHeatStops());
   const heatWord = (v: number) => (v === v ? heatWords[bandOf(HEAT_STEPS, v)] : 0);
   const heatImage = () => {
     heatZ.set(heatBase);
@@ -305,6 +307,13 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     const img = heatImage();
     (map.getSource('fh-heat') as ImageSource).updateImage({ url: heatUrl(img), coordinates: img.coordinates });
   };
+  // A light/dark switch re-bakes the heat in the new ramp and lift; the zones' colours and opacities are swapped by schemeSwap.
+  onSchemeChange(() => {
+    L = paintLift('strong');
+    heatWords = makeHeatWords(readHeatStops());
+    heatKey = '';
+    paint();
+  });
   const add = () => {
     if (map.getSource('fh-heat')) return;
     const img = heatImage();

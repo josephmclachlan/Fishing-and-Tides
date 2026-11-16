@@ -20,6 +20,7 @@ import { FlowSim, type FlowSource, type FlowView } from './flow-sim';
 import { CALM_KT, KT_PER_MS, mercX, mercY, worldPx } from '../physics/flow';
 import { REGION } from '../region';
 import { sizeOf } from '../layout-size';
+import { onSchemeChange } from './paint';
 
 export type FlowKind = 'wind' | 'current';
 
@@ -191,12 +192,18 @@ export function mountFlow(map: MapLibreMap, sources: Record<FlowKind, FlowSource
     pos: u('u_pos'), head: u('u_head'), center: u('u_center'), world: u('u_world'), half: u('u_half'), off: u('u_off'),
     width: u('u_width'), colour: u('u_colour'), red: u('u_red'),
   };
-  const colours: Record<FlowKind, [number, number, number]> = {
-    // The map's paint colours where the theme sets them (layers/paint.ts), else the HUD's: wind amber, current green, as the legend says.
+  // The map's paint colours where the theme sets them (layers/paint.ts), else the HUD's: wind amber, current green, as the legend says.
+  const readColours = (): Record<FlowKind, [number, number, number]> => ({
     wind: cssRgb('--paint-amber', cssRgb('--amber', [1, 0.69, 0])),
     current: cssRgb('--paint-green', cssRgb('--green', [0.22, 1, 0.48])),
-  };
-  const red = cssRgb('--paint-red', cssRgb('--red', [1, 0.23, 0.18]));
+  });
+  let colours = readColours();
+  let red = cssRgb('--paint-red', cssRgb('--red', [1, 0.23, 0.18]));
+  // A light/dark switch re-reads them; the next frame draws with them (the trails keep their data and place).
+  onSchemeChange(() => {
+    colours = readColours();
+    red = cssRgb('--paint-red', cssRgb('--red', [1, 0.23, 0.18]));
+  });
 
   const vao = gl.createVertexArray();
   gl.bindVertexArray(vao);
