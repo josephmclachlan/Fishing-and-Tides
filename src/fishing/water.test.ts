@@ -87,3 +87,13 @@ describe('surf term (PLAN 7.122)', () => {
     expect(waterTerm(pompano, { hsM: 0.8 }).reasons).toContain('surfgood');
   });
 });
+
+describe('river-plume fish (PLAN 7.124)', () => {
+  it('lifts corvina and mullet when the river runs high near them', () => {
+    for (const id of ['corvina', 'mullet'] as const) {
+      const up = riverTerm(speciesById(id), { km: 1, ratio: 2 });
+      expect(up.why).toBe('riverup');
+      expect(up.factor).toBeGreaterThan(1);
+    }
+  });
+});
