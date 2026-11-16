@@ -1,4 +1,5 @@
 /** FIELD NOTES page HTML: pure string builders over content.ts and sections/*.ts, so they are tested without a DOM. */
+import { sizesHtml } from '../ciguatera/sizes';
 import { GRADE_WORDS, type Block, type Grade, type L, type Source } from '../ciguatera/content';
 import { ALL_NOTES, SECTIONS, type NBlock, type Section } from './content';
 import { visHtml } from './vis';
@@ -66,6 +67,8 @@ function block(b0: NBlock, lang: Lang, c: Cites, S: Record<string, Source>, href
           return `<li><span class="cig-bl">${tx(r.label, lang, c, S)}${r.note ? ` <em>${tx(r.note, lang, c, S)}</em>` : ''}</span><span class="cig-bt"><i style="width:${barPct(r.hi ?? r.lo).toFixed(1)}%"></i></span><b class="fc-mono">${esc(val)}</b></li>`;
         })
         .join('')}</ul><p class="cig-axis fc-mono">${esc(lang === 'es' ? 'ESCALA LOGARÍTMICA, 1 A 10.000' : 'LOG SCALE, 1 TO 10,000')}${b.cite ? cited(`{${b.cite}}`, c, S) : ''}</p>`;
+    case 'sizes':
+      return sizesHtml(b.kinds, lang) + (b.cite ? cited(`{${b.cite}}`, c, S) : '');
   }
 }
 

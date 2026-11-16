@@ -24,6 +24,8 @@ export const OCCURRENCE_TAXA: Record<string, string[]> = {
   barracuda: ['Sphyraena barracuda'],
   lionfish: ['Pterois volitans', 'Pterois miles'],
   mahi: ['Coryphaena hippurus'],
+  // Silk snapper (pargo seda), the deep hand-line snapper of the boat set (PLAN 7.17).
+  silksnapper: ['Lutjanus vivanus'],
   wahoo: ['Acanthocybium solandri'],
   kingfish: ['Scomberomorus cavalla'],
   tuna: ['Thunnus atlanticus', 'Thunnus albacares'],

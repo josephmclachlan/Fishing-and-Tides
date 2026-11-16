@@ -318,6 +318,17 @@ body[data-band='outlook'] #t-valid, body[data-band='outlook'] #t-off { color: va
 .fish-spots .spot.on { outline: 1px solid var(--green); outline-offset: 2px; }
 .fish-spots .spot:hover, .fish-spots .spot:focus-visible { background: var(--amber-dim); }
 @media (max-width: 700px) { .fish-spots .spot { min-height: 40px; align-items: center; } }
+/* Ciguatera warning with the size to keep per species (fishing/cigua-note.ts): one bar per fish, length on an 80 cm scale. */
+.fish-cig { display: block; }
+.cz .cz-chart { display: grid; gap: 2px; margin-top: 4px; }
+.cz .cz-head { opacity: 0.8; }
+.cz .cz-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+.cz .cz-name { font-size: 0.85em; letter-spacing: 0.5px; overflow-wrap: anywhere; }
+.cz .cz-bar { height: 6px; border: 1px solid var(--amber-dim); }
+.cz .cz-bar i { display: block; height: 100%; background: var(--amber); }
+.cz.cz-red .cz-bar { border-color: var(--red); }
+.cz.cz-red .cz-bar i { background: var(--red); }
+.cz .cz-v { justify-self: end; white-space: nowrap; }
 
 /* Fishing rules card (PLAN 6.8) */
 .rules-card { position: absolute; z-index: 30; top: 70px; left: 50%; transform: translateX(-50%); width: min(560px, calc(100% - 16px)); max-height: calc(100% - 140px); overflow-y: auto; pointer-events: auto; background: rgb(var(--panel-rgb) / 0.94); }
