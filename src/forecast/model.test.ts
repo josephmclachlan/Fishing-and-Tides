@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { SPECIES } from '../fishing/species';
 import { LIMON_HARMONICS } from '../data/tides-limon';
 import type { MetricEnv } from '../metrics/registry';
 import { METRIC_BY_ID } from '../metrics/registry';
@@ -40,13 +41,13 @@ describe('forecast page readings agree with the map (PLAN 7.52)', () => {
     expect(r.surf!.range[1]).toBeGreaterThanOrEqual(r.surf!.hb);
     expect(r.share).toBeCloseTo(r.score! / 10, 9);
   });
-  it('reads FISH as the BITE metric and lists only eating fish without a ciguatera warning', () => {
+  it('reads FISH as the BITE metric and lists eating fish, never one no size of which is safe (barracuda)', () => {
     const r = readAt({ env: env() }, 'fish', spot('PUNTA UVA'), DAY0 + 6 * H);
     const bite = METRIC_BY_ID.get('bite')!.at({ env: env(), spot: 'PUNTA UVA', lng: spot('PUNTA UVA').lngLat[0], lat: spot('PUNTA UVA').lngLat[1], ms: DAY0 + 6 * H, sky: daySky(DAY0, spot('PUNTA UVA').lngLat[1], spot('PUNTA UVA').lngLat[0]) });
     expect(r.score).toBeCloseTo(bite!, 6);
     expect(r.fish!.species.length).toBe(3);
-    expect(r.fish!.species).not.toContain('grouper');
     expect(r.fish!.species).not.toContain('barracuda');
+    expect(r.fish!.species.every((id) => SPECIES.find((s) => s.id === id)?.ciguatera !== 'never')).toBe(true);
   });
   it('reads SNORKEL and DIVE from the outing score, and nothing without it', () => {
     const deps = { env: env(), outing: outing(80) };

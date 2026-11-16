@@ -8,7 +8,8 @@
  * active language).
  */
 import { guideLinkFor } from '../fishing/guide-link';
-import { SPECIES } from '../fishing/species';
+import { SPECIES, type SpeciesId } from '../fishing/species';
+import { strictestCm } from '../fishing/cigua';
 import { t, type Key } from '../i18n';
 import { localDayStart, moonPhase } from '../physics/astro';
 import { tideState } from '../physics/tide';
@@ -34,6 +35,19 @@ export const n0 = (x: number) => Math.round(x).toString();
 export const signed2 = (x: number) => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(2);
 /** "PLAYA COCLES" → "Playa Cocles"; "LIMÓN" → "Limón". */
 export const titleCase = (s: string) => s.toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (_, a: string, b: string) => a + b.toUpperCase());
+
+/**
+ * The catch tile's ciguatera line (fishing/cigua.ts): for each listed fish that carries it, the smallest size to keep
+ * among its species ("Jack under 38 cm"), the same numbers as the fish panel and the guide. Empty when none does.
+ */
+export function ciguaLine(ids: readonly SpeciesId[]): string[] {
+  const parts = ids.flatMap((id) => {
+    const tier = SPECIES.find((s) => s.id === id)?.ciguatera;
+    const cm = tier === 'high' || tier === 'listed' ? strictestCm(id) : null;
+    return cm ? [t('fc.catch.ciguaOne', { name: titleCase(t(`fish.${id}` as Key)), cm })] : [];
+  });
+  return parts.length ? [t('fc.catch.cigua', { list: parts.join(', ') })] : [];
+}
 /** HUD caps to a sentence: "MOVING TIDE" → "Moving tide". */
 export const sentence = (s: string) => (s ? (s[0].toUpperCase() + s.slice(1).toLowerCase()).replace(/°c\b/g, '°C') : s);
 /** Compass point for degrees FROM, with W in the active language; '' without a direction. */
@@ -371,7 +385,7 @@ export function tilesFor(r: FcRead, ctx: ViewCtx): TileView[] {
     const age = moonAgeDays(moonPhase(ms).elongation);
     return [
       weather(),
-      { kind: 'catch', k: t('fc.catch'), v: names[0] ?? dash, sub: [names.slice(1).join(' · '), ...(f.species.some((id) => SPECIES.find((s) => s.id === id)?.ciguatera === 'size') ? [t('fc.catch.cigua')] : [])], tip: t('tip.fish'), lv: null, viz: { count: names.length }, links: f.species.map(guideLinkFor) },
+      { kind: 'catch', k: t('fc.catch'), v: names[0] ?? dash, sub: [names.slice(1).join(' · '), ...ciguaLine(f.species)], tip: t('tip.fish'), lv: null, viz: { count: names.length }, links: f.species.map(guideLinkFor) },
       { kind: 'moon', k: t('fc.moon'), v: `${n0(f.moonIllum * 100)}%`, sub: [`${sentence(t(`astro.moon.${f.moonPhase}` as Key))} · ${t('fc.moonDay', { d: n0(age) })}`], tip: tipOf('moon', f.moonIllum), lv: null, viz: { v: f.moonIllum, waxing: f.moonPhase <= 4 } },
       tideTile(true), windTile(hourWind.kt, hourWind.from, (x) => x.windKt), water(), uvTile(h?.uv ?? null), windowTile(),
     ];

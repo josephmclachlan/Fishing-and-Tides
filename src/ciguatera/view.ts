@@ -1,4 +1,5 @@
 /** CIGUATERA page HTML (PLAN 7.101): pure string builders over content.ts, so they are tested without a DOM. */
+import { sizesHtml } from './sizes';
 import { GRADE_WORDS, SECTIONS, SOURCES, type Block, type Grade, type L, type Section } from './content';
 import type { CgTab } from './route';
 
@@ -59,6 +60,8 @@ function block(b: Block, lang: Lang, c: Cites): string {
           return `<li><span class="cig-bl">${tx(r.label, lang, c)}${r.note ? ` <em>${tx(r.note, lang, c)}</em>` : ''}</span><span class="cig-bt"><i style="width:${barPct(r.hi ?? r.lo).toFixed(1)}%"></i></span><b class="fc-mono">${esc(val)}</b></li>`;
         })
         .join('')}</ul><p class="cig-axis fc-mono">${esc(lang === 'es' ? 'ESCALA LOGARÍTMICA, 1 A 10.000' : 'LOG SCALE, 1 TO 10,000')}${b.cite ? cited(`{${b.cite}}`, c) : ''}</p>`;
+    case 'sizes':
+      return sizesHtml(b.kinds, lang) + (b.cite ? cited(`{${b.cite}}`, c) : '');
   }
 }
 
