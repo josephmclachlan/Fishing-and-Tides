@@ -327,13 +327,21 @@ function credit(p: Photo): string {
   return `<a href="${esc(p.page)}" target="_blank" rel="noopener">${esc(t('gd.d.photoBy', { by: p.by, lic: p.lic }))}</a>`;
 }
 
+/**
+ * Photo hosts that send CORS headers. Asking for them with crossorigin makes the response readable, so the service worker
+ * caches only a real 200 and never keeps a failed load (an opaque error) that would leave the photo broken for months.
+ */
+const CORS_HOST = /^https:\/\/(inaturalist-open-data\.s3\.amazonaws\.com|(upload|thumb)\.wikimedia\.org)\//;
+/** The large photo's width: Wikimedia names it in the URL ("960px-"), iNaturalist "large" is 1024 on its long side. */
+const bigWidth = (u: string) => Number(/\/(\d+)px-/.exec(u)?.[1]) || 1024;
+
 function gallery(s: Species, lang: Lang): string {
   const ph = s.photos ?? [];
   if (!ph.length)
     return `<div class="gd-gal none g-${s.group}">${artSvg(artFor(s.group, s.sub), 'gd-gal-art')}<p class="fc-mono">${esc(t('gd.d.noPhoto'))}</p></div>`;
   return `<div class="gd-gal${ph.length > 1 ? ' many' : ''}" role="group" aria-label="${esc(t('gd.d.photos'))}">${ph
     .map(
-      (p) => `<figure><img src="${esc(p.src)}"${p.big ? ` srcset="${esc(p.src)} 500w, ${esc(p.big)} 1024w" sizes="(min-width: 960px) 720px, 100vw"` : ''} alt="${esc(`${nameOf({ en: s.names?.en ?? [], es: s.names?.es ?? [], sci: s.sci }, lang)}${p.v ? ` · ${tx(VARIANT_WORDS[p.v], lang)}` : ''}`)}" loading="lazy" decoding="async"${p.w && p.h ? ` width="${p.w}" height="${p.h}"` : ''}>
+      (p) => `<figure><img src="${esc(p.src)}"${CORS_HOST.test(p.src) ? ' crossorigin="anonymous"' : ''}${p.big ? ` srcset="${esc(p.src)} 500w, ${esc(p.big)} ${bigWidth(p.big)}w" sizes="(min-width: 960px) 720px, 100vw"` : ''} alt="${esc(`${nameOf({ en: s.names?.en ?? [], es: s.names?.es ?? [], sci: s.sci }, lang)}${p.v ? ` · ${tx(VARIANT_WORDS[p.v], lang)}` : ''}`)}" loading="lazy" decoding="async"${p.w && p.h ? ` width="${p.w}" height="${p.h}"` : ''}>
         <figcaption>${p.v ? `<b class="fc-mono">${esc(tx(VARIANT_WORDS[p.v], lang))}</b>` : ''}${credit(p)}</figcaption></figure>`,
     )
     .join('')}</div>`;

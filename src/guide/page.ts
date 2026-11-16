@@ -108,6 +108,17 @@ export function mountGuidePage(deps: GuidePageDeps) {
     </div>
     <div class="gd-sheet" id="gd-sheet" role="dialog" aria-modal="true" aria-labelledby="gd-d-title" hidden><div class="gd-sheet-in" id="gd-detail"></div></div>`;
   document.body.appendChild(el);
+  // The old photo cache kept failed loads as if they were photos (2026-11-16): drop it; the worker now fills guide-photos-v2.
+  void globalThis.caches?.delete('guide-photos').catch(() => undefined);
+  // A large photo that fails (a size the host will not make, a dropped connection) falls back to the normal one.
+  el.addEventListener(
+    'error',
+    (e) => {
+      const img = e.target;
+      if (img instanceof HTMLImageElement && img.hasAttribute('srcset')) img.removeAttribute('srcset');
+    },
+    true,
+  );
   const $ = <T extends HTMLElement = HTMLElement>(id: string) => el.querySelector<T>('#' + id)!;
   const page = $('gd-page'), list = $('gd-list'), sheet = $('gd-sheet'), detail = $('gd-detail'), moreBtn = $('gd-more');
   const q = $<HTMLInputElement>('gd-q');
