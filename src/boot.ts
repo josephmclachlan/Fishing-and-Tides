@@ -3,20 +3,25 @@
  * already in the page when this runs (vite.config.ts puts it into index.html).
  *
  * Launch: main.ts hands each start-up feed to `track(step, promise)`. A step is done when every promise given to it has
- * settled, loaded or failed. Each done step lights the next dot, left to right, so the row is real progress. When every
- * step is in, the page is drawn once more with everything (`ready`), and only then does the screen fade, so the first
- * page opens already filled. A slow feed never holds it: after CAP_MS it opens anyway and says which part is still
- * loading. Offline the adapters answer from the stored copy, so it opens as fast as the phone can read it.
+ * settled, loaded or failed. Each done step lets the next dot turn into its icon, left to right, with the step's name
+ * under the row, so the row is real progress. The icons come one a second at most (Joseph 2026-11-16: "a full second
+ * each icon, so that it doesn't feel rushed"), which also gives the forecast data time to land. When every icon is in,
+ * the page is drawn once more with everything (`ready`), and only then does the screen fade, so the first page opens
+ * already filled. A slow feed never holds it: after CAP_MS, or STRAGGLER_MS once most are in, the remaining icons come
+ * at the same pace and the line says which part is still loading. Offline the adapters answer from the stored copy.
  *
  * Map: the first time the map is shown, the same loader, smaller, until the map style, the drawing that waited for
  * the map (src/map-shown.ts) and the first full frame of tiles are all done.
  */
 import { BOOT_ID, bootHtml, DOTS, litDots } from './boot-view';
 
+/** Time each icon gets before the next may come (Joseph 2026-11-16: about a second each). */
+export const PACE_MS = 1000;
+/** How long the full row and READY show before the screen fades. */
+export const HOLD_MS = 700;
+
 /** Longest a loader stays up before opening anyway. */
 export const CAP_MS = 8000;
-/** Shortest the launch screen shows, so the mark gets to draw instead of flashing. */
-export const MIN_MS = 700;
 /**
  * Stragglers: once this share of the start-up feeds is in, the rest get STRAGGLER_MS more, then the app opens and
  * they fill in as they land (the page is redrawn for each). One slow outside service (the town rain, say, which can
@@ -61,6 +66,7 @@ export function createProgress(ids: readonly string[]) {
     complete: () => steps.every((s) => s.done),
     /** The first step still loading, for the line under the dots. */
     waiting: () => steps.find((s) => !s.done)?.id ?? null,
+    isDone: (id: string) => by.get(id)?.done ?? false,
   };
 }
 
@@ -68,26 +74,70 @@ const raf2 = () => new Promise<void>((r) => requestAnimationFrame(() => requestA
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function view(el: HTMLElement) {
+/**
+ * The dots and the line under them, paced: `allow(n, label)` lets up to n icons in, each with its label, no sooner than
+ * PACE_MS after the one before. `full()` resolves when all eight are in.
+ */
+function view(el: HTMLElement, now: () => number = () => performance.now()) {
   const dots = [...el.querySelectorAll<HTMLElement>('.sc-d')];
   const line = el.querySelector<HTMLElement>('.sc-lt')!;
   let lit = 0;
+  let allowed = 0;
+  let lastAt = -Infinity;
+  let labelOf: (i: number) => string = () => '';
+  let waitText = '';
+  let timer = 0;
+  let fullDone: () => void = () => {};
+  const full = new Promise<void>((r) => (fullDone = r));
   // The word mark waits for its font, so it never shows in a stand-in face first.
   const fontLoad = document.fonts?.load?.('620 40px "Anybody Variable"') ?? Promise.resolve();
   Promise.race([fontLoad, sleep(1500)]).finally(() => el.classList.add('sc-f'));
+  const say = (text: string) => {
+    if (line.textContent === text) return;
+    if (reduced()) return void (line.textContent = text);
+    line.classList.add('sc-swap');
+    setTimeout(() => ((line.textContent = text), line.classList.remove('sc-swap')), 180);
+  };
+  const draw = () => {
+    dots.forEach((d, i) => {
+      d.classList.toggle('sc-on', i < lit);
+      d.classList.toggle('sc-next', i === lit);
+    });
+    el.setAttribute('aria-valuenow', String(lit));
+  };
+  const step = () => {
+    clearTimeout(timer);
+    if (lit >= DOTS) return;
+    if (lit < allowed) {
+      const wait = lastAt + PACE_MS - now();
+      if (wait > 0) return void (timer = window.setTimeout(step, wait));
+      lit++;
+      lastAt = now();
+      draw();
+      say(labelOf(lit - 1));
+      if (lit >= DOTS) return fullDone();
+      timer = window.setTimeout(step, PACE_MS);
+    } else if (waitText && now() - lastAt >= PACE_MS) {
+      // Waiting on data past an icon's second: say what is still coming.
+      say(waitText);
+    } else if (waitText) {
+      timer = window.setTimeout(step, lastAt + PACE_MS - now());
+    }
+  };
+  draw();
   return {
-    show(n: number, text: string) {
-      lit = Math.max(lit, Math.min(DOTS, n));
-      dots.forEach((d, i) => {
-        d.classList.toggle('sc-on', i < lit);
-        d.classList.toggle('sc-now', i === lit);
-      });
-      el.setAttribute('aria-valuenow', String(lit));
-      line.textContent = text;
+    allow(n: number, label: (i: number) => string, waiting = '') {
+      allowed = Math.max(allowed, Math.min(DOTS, n));
+      labelOf = label;
+      waitText = waiting;
+      step();
     },
+    full: () => full,
+    say,
     gone(): Promise<void> {
+      clearTimeout(timer);
       el.classList.add('sc-gone');
-      return sleep(reduced() ? 0 : 520).then(() => el.remove());
+      return sleep(reduced() ? 0 : 620).then(() => el.remove());
     },
   };
 }
@@ -101,6 +151,8 @@ export interface LaunchText {
   ready: string;
   /** "OPENING, STILL LOADING {step}" when the cap is reached. */
   slow: (step: string) => string;
+  /** "✓ {step}" under an icon whose step has finished. */
+  done: (step: string) => string;
 }
 
 export interface Launch {
@@ -122,12 +174,23 @@ export function createLaunch(steps: readonly string[], text: LaunchText, now = (
   const prog = createProgress(steps);
   const t0 = now();
   let open = !!el;
-  const v = el ? view(el) : null;
+  const v = el ? view(el, now) : null;
   if (el) el.querySelector<HTMLElement>('.sc-ls')!.textContent = text.region;
+  /** Steps in the order they finished: icon i is labelled with the i-th to finish. */
+  const finished: string[] = [];
+  let released = false;
+  const label = (i: number) => {
+    const id = finished[i];
+    if (id) return text.done(text.step(id));
+    const w = prog.waiting();
+    return w ? text.slow(text.step(w)) : text.ready;
+  };
   const paint = () => {
     if (!v || !open) return;
+    for (const id of steps) if (!finished.includes(id) && prog.isDone(id)) finished.push(id);
     const w = prog.waiting();
-    v.show(litDots(prog.done(), prog.total()), w ? text.loading(text.step(w)) : text.ready);
+    const n = released ? DOTS : litDots(prog.done(), prog.total());
+    v.allow(n, label, w ? text.loading(text.step(w)) : '');
   };
   let changed: () => void = () => {};
   const extras: Promise<unknown>[] = [];
@@ -174,11 +237,11 @@ export function createLaunch(steps: readonly string[], text: LaunchText, now = (
         await all;
         for (let n = 0; n < extras.length; n = extras.length) await Promise.all(extras.slice(n));
       };
-      await Promise.race([
-        everything().then(() => false),
-        sleep(Math.max(0, CAP_MS - (now() - t0))).then(() => true),
-      ]);
-      const w = prog.waiting();
+      await Promise.race([everything(), sleep(Math.max(0, CAP_MS - (now() - t0)))]);
+      // Released: the icons still to come follow at the same pace, labelled with what is still out.
+      released = true;
+      paint();
+      await v.full();
       // Let the handlers that turn feeds into numbers finish, draw the page with everything, and show it a frame.
       await raf2();
       try {
@@ -187,9 +250,10 @@ export function createLaunch(steps: readonly string[], text: LaunchText, now = (
         console.warn('first draw failed', err);
       }
       await raf2();
-      // Opened on the cap, or with stragglers still out: say which part is still coming.
-      v.show(DOTS, w ? text.slow(text.step(w)) : text.ready);
-      await sleep(Math.max(reduced() ? 0 : 450, MIN_MS - (now() - t0)));
+      await sleep(PACE_MS * 0.6);
+      const w = prog.waiting();
+      v.say(w ? text.slow(text.step(w)) : text.ready);
+      await sleep(reduced() ? 0 : HOLD_MS);
       open = false;
       late = () => {
         try {
@@ -209,8 +273,10 @@ export function createLaunch(steps: readonly string[], text: LaunchText, now = (
 
 export interface MapLoadText {
   title: string;
-  tiles: string;
-  drawing: string;
+  /** Under each icon in turn, the parts of the map it draws: tiles, depth, reefs, wind arrows, currents, waves, spots, layers. */
+  parts: readonly string[];
+  /** "LOADING {part}" while the map is still busy past an icon's second. */
+  loading: (part: string) => string;
   ready: string;
   slow: string;
 }
@@ -255,7 +321,10 @@ export function watchMap(hooks: MapHooks, report: (f: number, style: boolean) =>
   });
 }
 
-/** Show the map loader over the map until it is drawn (or CAP_MS). Shows only if it takes longer than a blink. */
+/**
+ * Show the map loader over the map until it is drawn (or CAP_MS), every time the map opens. Icons come at the launch
+ * screen's pace, one a second, each as the map gets that far along.
+ */
 export function runMapLoader(hooks: MapHooks, text: MapLoadText, parent: HTMLElement = document.body): Promise<void> {
   const wrap = document.createElement('div');
   wrap.innerHTML = bootHtml('map');
@@ -264,15 +333,19 @@ export function runMapLoader(hooks: MapHooks, text: MapLoadText, parent: HTMLEle
   // Shown every time the map opens (Joseph 2026-11-16: the loader appears whenever data has to load).
   parent.appendChild(el);
   const v = view(el);
-  let finished = false;
-  const finish = (capped: boolean) => {
-    if (finished) return Promise.resolve();
-    finished = true;
-    v.show(DOTS, capped ? text.slow : text.ready);
-    return sleep(reduced() ? 0 : 450).then(() => v.gone());
+  const part = (i: number) => text.parts[i] ?? '';
+  let n = 0;
+  const allow = (f: number) => {
+    n = Math.max(n, litDots(f, 1));
+    v.allow(n, (i) => `✓ ${part(i)}`, n < DOTS ? text.loading(part(n)) : '');
   };
-  return Promise.race([
-    watchMap(hooks, (f, style) => !finished && f < 1 && v.show(litDots(f, 1), style ? text.drawing : text.tiles)).then(() => false),
-    sleep(CAP_MS).then(() => true),
-  ]).then(finish);
+  allow(0);
+  return Promise.race([watchMap(hooks, (f) => allow(f)).then(() => false), sleep(CAP_MS).then(() => true)]).then(async (capped) => {
+    allow(1);
+    await v.full();
+    await sleep(PACE_MS * 0.6);
+    v.say(capped ? text.slow : text.ready);
+    await sleep(reduced() ? 0 : HOLD_MS);
+    await v.gone();
+  });
 }
