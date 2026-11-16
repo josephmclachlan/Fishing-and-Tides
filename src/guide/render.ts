@@ -7,6 +7,7 @@
 import { t, type Key } from '../i18n';
 import { UI } from '../icons/ui';
 import { artFor, artSvg, GROUP_ART } from './art';
+import { citeTab } from './cite';
 import { cleanHtml, dispatchLinkHtml } from './clean';
 import {
   FLAGS, GROUP_BYS, hurtsToTouch, isFood, latinOnly, nameOf, poisonToEat, riskToEat, SIZE_BANDS, SORTS, TOUCH_KINDS, touchLevel,
@@ -29,8 +30,7 @@ export function ciguaSizeHtml(c: NonNullable<Species['eat']>['ciguaSize'], lang:
   if (!c || !txt(c.advice, lang)) return '';
   const lim = [c.maxCm ? `${c.maxCm} cm` : '', c.maxKg ? `${c.maxKg} kg` : ''].filter(Boolean).join(' · ');
   const head = lim ? `<p class="gd-csz"><b>${esc(t('gd.csz.keep', { lim }))}</b> <span class="gd-b">${esc(t(`gd.csz.${c.basis}` as Key))}</span></p>` : `<p class="gd-csz"><span class="gd-b">${esc(t(`gd.csz.${c.basis}` as Key))}</span></p>`;
-  const src = c.sources?.length ? `<p class="gd-csz-src">${esc(c.sources.join(' · '))}</p>` : '';
-  return block(t('gd.h.ciguaSize'), head + paras(txt(c.advice, lang)) + src, 'gd-warn');
+  return block(t('gd.h.ciguaSize'), head + paras(txt(c.advice, lang)), 'gd-warn');
 }
 
 const ciguateraLink = (risks: readonly string[]): string =>
@@ -73,6 +73,9 @@ export interface ListOpts {
   href: (id: string) => string;
 }
 
+/** Taking it is banned on this coast: protected by law, marked illegal, or not to be eaten because it is protected. */
+const bannedHere = (e: { edible?: string; illegal?: boolean; protectedCR?: boolean }) => !!(e.protectedCR || e.illegal || e.edible === 'protected');
+
 /** Up to three badges, the most important first: hurts, poisonous, food, threatened, introduced. */
 export function badges(e: Entry, lang: Lang, max = 3): string {
   const out: string[] = [];
@@ -87,9 +90,14 @@ export function badges(e: Entry, lang: Lang, max = 3): string {
     // The word always shows (Joseph: "edible with care" must be visible in the list), the quality pips after it.
     out.push(`<span class="gd-b eat ed-${e.edible}">${icon(ICONS.edible)}${esc(tx(EDIBLE_WORDS[e.edible!], lang))}${e.quality ? `<span class="gd-pips" aria-label="${e.quality}/5">${pips(e.quality)}</span>` : ''}</span>`);
     if (risk) out.push(`<span class="gd-b risk">${icon(ICONS.edible)}${esc(tx(RISK_WORDS[risk], lang))}</span>`);
-  } else if (e.edible === 'protected') out.push(`<span class="gd-b prot">${icon(ICONS.shield)}${esc(t('gd.flag.protected'))}</span>`);
-  else if (e.illegal) out.push(`<span class="gd-b prot">${icon(ICONS.shield)}${esc(t('gd.flag.illegal'))}</span>`);
-  if (e.iucn === 'CR' || e.iucn === 'EN' || e.iucn === 'VU') out.push(`<span class="gd-b iucn i-${e.iucn}" title="${esc(tx(IUCN_WORDS[e.iucn], lang))}">${e.iucn}</span>`);
+  }
+  // Critically endangered and banned here: one plain "Illegal" badge in place of "Protected" and "CR" (Joseph 2026-11-16).
+  const crBan = e.iucn === 'CR' && bannedHere(e);
+  if (crBan) out.push(`<span class="gd-b iucn i-CR" title="${esc(t('gd.flag.illegalCR'))}">${icon(ICONS.shield)}${esc(t('gd.flag.illegalShort'))}</span>`);
+  else if (!isFood(e) && e.edible === 'protected') out.push(`<span class="gd-b prot">${icon(ICONS.shield)}${esc(t('gd.flag.protected'))}</span>`);
+  else if (!isFood(e) && e.illegal) out.push(`<span class="gd-b prot">${icon(ICONS.shield)}${esc(t('gd.flag.illegal'))}</span>`);
+  if (!crBan && (e.iucn === 'CR' || e.iucn === 'EN' || e.iucn === 'VU'))
+    out.push(`<span class="gd-b iucn i-${e.iucn}" title="${esc(tx(IUCN_WORDS[e.iucn], lang))}">${e.iucn === 'CR' ? esc(tx(IUCN_WORDS.CR, lang)) : e.iucn}</span>`);
   if (e.origin === 'invasive' || e.origin === 'introduced') out.push(`<span class="gd-b introd">${esc(t('gd.flag.introduced'))}</span>`);
   if (e.rec && e.rec !== 'here') out.unshift(`<span class="gd-b rec">${esc(t(e.rec === 'near' ? 'gd.rec.near' : 'gd.rec.none'))}</span>`);
   return out.length ? `<span class="gd-badges">${out.slice(0, max).join('')}</span>` : '';
@@ -343,10 +351,13 @@ function statusBadges(s: Species, lang: Lang): string {
   if (s.tier === 'list') out.push(`<span class="gd-b rec">${esc(t('gd.recordsOnly'))}</span>`);
   if (s.rec && s.rec !== 'here') out.push(`<span class="gd-b rec" title="${esc(s.recWhy ?? '')}">${esc(t(s.rec === 'near' ? 'gd.rec.near' : 'gd.rec.none'))}</span>`);
   if (s.danger) out.push(`<span class="gd-b dz l${s.danger.level}">${icon(ICONS.danger)}${esc(tx(LEVEL_WORDS[s.danger.level], lang))}</span>`);
-  if (s.edible) out.push(`<span class="gd-b ed-${s.edible}">${s.edible === 'yes' || s.edible === 'caution' || s.edible === 'toxic' ? icon(ICONS.edible) : s.edible === 'protected' ? icon(ICONS.shield) : ''}${esc(tx(EDIBLE_WORDS[s.edible], lang))}</span>`);
   const st = s.status;
-  if (st?.iucn && st.iucn !== 'NE') out.push(`<span class="gd-b iucn i-${st.iucn}">${st.iucn} · ${esc(tx(IUCN_WORDS[st.iucn], lang))}</span>`);
-  if (st?.protectedCR) out.push(`<span class="gd-b prot">${icon(ICONS.shield)}${esc(t('gd.flag.protected'))} CR</span>`);
+  const crBan = st?.iucn === 'CR' && bannedHere({ edible: s.edible, illegal: s.eat?.illegal, protectedCR: st.protectedCR });
+  // "Illegal - critically endangered" already says "do not take".
+  if (s.edible && !(crBan && s.edible === 'protected')) out.push(`<span class="gd-b ed-${s.edible}">${s.edible === 'yes' || s.edible === 'caution' || s.edible === 'toxic' ? icon(ICONS.edible) : s.edible === 'protected' ? icon(ICONS.shield) : ''}${esc(tx(EDIBLE_WORDS[s.edible], lang))}</span>`);
+  if (crBan) out.push(`<span class="gd-b iucn i-CR">${icon(ICONS.shield)}${esc(t('gd.flag.illegalCR'))}</span>`);
+  else if (st?.iucn && st.iucn !== 'NE') out.push(`<span class="gd-b iucn i-${st.iucn}">${st.iucn} · ${esc(tx(IUCN_WORDS[st.iucn], lang))}</span>`);
+  if (st?.protectedCR && !crBan) out.push(`<span class="gd-b prot">${icon(ICONS.shield)}${esc(t('gd.flag.protectedHere'))}</span>`);
   if (st?.cites) out.push(`<span class="gd-b prot">${icon(ICONS.shield)}CITES ${esc(st.cites)}</span>`);
   if (st?.origin === 'invasive' || st?.origin === 'introduced') out.push(`<span class="gd-b introd">${esc(t('gd.flag.introduced'))}</span>`);
   if (s.check) out.push(`<span class="gd-b chk" title="${esc(t('gd.checkTitle'))}">${icon(ICONS.check)}${esc(t('gd.check'))}</span>`);
@@ -427,6 +438,7 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
             block(t('gd.h.firstAid'), pText(d.firstAid, lang), 'gd-aid')
           : '') +
         (e?.risks?.length ? block(t('gd.h.eatRisk'), chips(e.risks.map((r) => tx(RISK_WORDS[r], lang))) + pText(e.riskNote, lang) + ciguateraLink(e.risks), 'gd-warn') : '') +
+        ciguaSizeHtml(e?.ciguaSize, lang) +
         block(t('gd.h.edible'), (s.edible ? `<p><b>${esc(tx(EDIBLE_WORDS[s.edible], lang))}</b></p>` : '') + pText(s.edibleNote, lang)) +
         (d || s.edible === 'toxic' || e?.risks?.length ? sosHtml() : '')
       );
@@ -439,7 +451,7 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
         block(
           t('gd.h.sources'),
           s.sources?.length
-            ? `<ol class="gd-src">${s.sources.map((x) => `<li>${x.u ? `<a href="${esc(x.u)}" target="_blank" rel="noopener">${esc(x.t)}</a>` : esc(x.t)}</li>`).join('')}</ol>`
+            ? `<ul class="gd-src">${s.sources.filter((x) => !x.x).map((x) => `<li>${x.u ? `<a href="${esc(x.u)}" target="_blank" rel="noopener">${esc(x.t)}</a>` : esc(x.t)}</li>`).join('')}</ul>`
             : '',
         ) +
         block(
@@ -486,5 +498,5 @@ export function detailHtml(s: Species, o: DetailOpts): string {
     <nav class="gd-d-tabs" role="tablist" aria-label="${esc(t('gd.d.tabs'))}">${tabs
       .map((k) => `<a role="tab" class="gd-d-tab" href="${esc(o.tabHref(k))}" data-tab="${k}" aria-selected="${k === tab}"${k === tab ? '' : ' tabindex="-1"'}>${esc(t(`gd.tab.${k}` as Key))}</a>`)
       .join('')}</nav>
-    <div class="gd-d-body" role="tabpanel" data-tab="${tab}">${tabBody(s, tab, o)}</div>`;
+    <div class="gd-d-body" role="tabpanel" data-tab="${tab}">${citeTab(tabBody(s, tab, o), s.sources, t('gd.h.tabSources'))}</div>`;
 }

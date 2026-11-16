@@ -4,6 +4,7 @@
  * Pure: `npm run data:guide` (scripts/guide-index.ts) reads the files and writes public/data/guide/index.json,
  * and index.test.ts checks the committed index still matches the species files.
  */
+import { stripCites } from './cite';
 import { GROUPS, SUB_ORDER, type Entry, type GuideIndex, type Species } from './types';
 
 const nonEmpty = <T>(a: T[] | undefined): T[] | undefined => (a && a.length ? a : undefined);
@@ -37,7 +38,7 @@ export function toEntry(s: Species, thumb?: string): Entry {
     encounter: nonEmpty(s.encounter),
     seenAt: nonEmpty(s.seenAt),
     feedsAt: nonEmpty(s.feedsAt),
-    look: s.look,
+    look: s.look?.marks ? { ...s.look, marks: { en: stripCites(s.look.marks.en), es: stripCites(s.look.marks.es) } } : s.look,
     illegal: s.eat?.illegal || undefined,
     rec: s.rec,
     edible: s.edible,
@@ -51,7 +52,7 @@ export function toEntry(s: Species, thumb?: string): Entry {
     protectedCR: s.status?.protectedCR || undefined,
     cites: s.status?.cites,
     thumb,
-    note: s.tier === 'list' ? s.note : undefined,
+    note: s.tier === 'list' && s.note ? { en: stripCites(s.note.en), es: stripCites(s.note.es) } : undefined,
   };
   // Leave out what is not there, so the file stays small.
   for (const k of Object.keys(e) as (keyof Entry)[]) if (e[k] === undefined) delete e[k];

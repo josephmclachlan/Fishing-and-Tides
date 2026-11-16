@@ -15,7 +15,7 @@
  * phone's back button closes the species, then the page.
  */
 import { t } from '../i18n';
-import { landing, MAP_HASH } from '../forecast/model';
+import { landing } from '../forecast/model';
 import { loadIndex, loadSpecies } from './data';
 import { noAnswers, stepsFor, type IdAnswers, type IdStep } from './identify';
 import { idHtml } from './identify-view';
@@ -81,7 +81,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       <header class="fc-top fc-in">
         <p class="fc-brand fc-mono">${t('fc.brand')}<span class="fc-hide-s"> · ${t('fc.region')}</span></p>
         <div class="fc-ctrls">
-          <button type="button" class="fc-ctl fc-back" id="gd-back" title="${esc(t('gd.backTitle'))}">${svg(ICONS.map)}<span id="gd-back-l">${t('gd.back.map')}</span></button>
+          <button type="button" class="fc-ctl fc-back" id="gd-back" title="${esc(t('gd.backTitle'))}">${svg(ICONS.back)}<span id="gd-back-l">${t('gd.back.forecast')}</span></button>
           <div class="fc-lang" role="group" aria-label="${t('fc.langGroup')}"><button type="button" data-lang="en" aria-pressed="${lang === 'en'}">EN</button><button type="button" data-lang="es" aria-pressed="${lang === 'es'}">ES</button></div>
           <button type="button" class="fc-ctl fc-sq fc-themeb" id="gd-scheme" aria-label="${t('fc.scheme')}" title="${t('fc.scheme')}"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 2a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg></button>
         </div>
@@ -157,7 +157,8 @@ export function mountGuidePage(deps: GuidePageDeps) {
   let tab: GdTab = 'about';
   let current: Species | null = null;
   let pushed = false;
-  let cameFrom: From = 'map';
+  // Opened without a page behind it (a shared link, a reload): Back goes to the forecast (Joseph 2026-11-16).
+  let cameFrom: From = 'forecast';
   /** Species the reader saved, kept on this phone. */
   const favs = new Set<string>(((): string[] => {
     try {
@@ -499,7 +500,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
     el.hidden = false;
     document.body.classList.add('fc-open');
     mapMeta = meta?.getAttribute('content') ?? null;
-    $('gd-back-l').textContent = t(cameFrom === 'forecast' ? 'gd.back.forecast' : cameFrom === 'coral' ? 'gd.back.coral' : 'gd.back.map');
+    $('gd-back-l').textContent = t(cameFrom === 'coral' ? 'gd.back.coral' : 'gd.back.forecast');
     applyScheme();
     themeMeta();
     load();
@@ -545,14 +546,14 @@ export function mountGuidePage(deps: GuidePageDeps) {
     // pushState fires no hashchange, so tell the other pages (the forecast hides on any hash but its own).
     if (location.href !== from) window.dispatchEvent(new HashChangeEvent('hashchange', { oldURL: from, newURL: location.href }));
   };
-  /** Back where it was opened from: a step back if we pushed the entry, else the map (or the forecast, or coral). */
+  /** Back where it was opened from (a step back), except from the map, which goes to the forecast (Joseph 2026-11-16). */
   const close = () => {
-    if (pushed && history.state?.gd && !history.state?.gdD) {
+    if (pushed && cameFrom !== 'map' && history.state?.gd && !history.state?.gdD) {
       pushed = false;
       history.back(); // hashchange hides it
     } else {
       pushed = false;
-      location.hash = cameFrom === 'forecast' ? '#forecast' : cameFrom === 'coral' ? '#coral' : MAP_HASH;
+      location.hash = cameFrom === 'coral' ? '#coral' : '#forecast';
     }
   };
   window.addEventListener('resize', () => !el.hidden && modeBar());

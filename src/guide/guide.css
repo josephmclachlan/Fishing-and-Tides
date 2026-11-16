@@ -413,4 +413,9 @@
 /* Ciguatera size advice in the catch tab */
 .gd-csz { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .gd-csz b { font-size: 15px; }
-.gd-csz-src { font-size: 11px; color: var(--fc-ink2); }
+
+/* Superscript citations, numbered per tab, and the tab's own source list (src/guide/cite.ts) */
+.gd .gd-cite { font-size: 0.68em; line-height: 0; margin-left: 1px; font-weight: 600; }
+.gd-fn ol { margin: 0; padding-left: 20px; font-size: 12px; color: var(--fc-ink2); }
+.gd-fn li + li { margin-top: 3px; }
+.gd-fn a { color: inherit; }
