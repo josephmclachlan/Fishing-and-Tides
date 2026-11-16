@@ -62,6 +62,8 @@ import { citer, type SourceId } from '../sources';
 import { isNtAct, notesHash, type NtAct } from '../notes/route';
 import { styleBaseMap } from './basemap';
 import { emitSchemeChange, roleSnapshot, schemeSwap } from '../layers/paint';
+import { SYNC_EVENT, type SyncStatus } from '../sync-ui';
+import { loadSummary } from '../offline/sync';
 
 type Spot = (typeof SPOTS)[number];
 const asSpot = (s: FcSpot | undefined): Spot => (s ? (SPOTS.find((x) => x.name === s.name) ?? SPOTS[0]) : SPOTS[0]);
@@ -204,7 +206,7 @@ export function mountKineticMap(d: KmDeps) {
       <button type="button" class="k-band k-age" id="k-age"><i></i><span></span></button>
       <div class="k-lang" role="group" aria-label="${L2('Language', 'Idioma')}"><button type="button" data-lang="en">EN</button><button type="button" data-lang="es">ES</button></div>
       <button type="button" class="k-ib k-themeb" id="k-scheme" aria-label="${L2('Light or dark', 'Claro u oscuro')}">${svg('<circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 2a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/>', '0 0 20 20')}</button>
-      <button type="button" class="k-ib" id="k-set" aria-label="${L2('Settings and tools', 'Ajustes y herramientas')}">${svg('<path d="M3 5h14M3 10h14M3 15h14"/><rect x="5" y="3" width="3" height="4" fill="currentColor" stroke="none"/><rect x="12" y="8" width="3" height="4" fill="currentColor" stroke="none"/><rect x="7" y="13" width="3" height="4" fill="currentColor" stroke="none"/>', '0 0 20 20')}</button>
+      <button type="button" class="k-ib" id="k-set" aria-label="${L2('Settings', 'Ajustes')}">${svg('<path d="M3 5h14M3 10h14M3 15h14"/><rect x="5" y="3" width="3" height="4" fill="currentColor" stroke="none"/><rect x="12" y="8" width="3" height="4" fill="currentColor" stroke="none"/><rect x="7" y="13" width="3" height="4" fill="currentColor" stroke="none"/>', '0 0 20 20')}</button>
     </div>
   </header>
   <aside class="k-rail k-rail-l" id="k-raill" aria-label="${L2('Layers', 'Capas')}"></aside>
@@ -217,6 +219,7 @@ export function mountKineticMap(d: KmDeps) {
     <div class="k-views" role="group" aria-label="${L2('Prepared views', 'Vistas')}"><button type="button" data-view="coast">${L2('Coast', 'Costa')}</button><button type="button" data-view="spot" id="k-vspot"></button></div>
     <div class="k-mapbtns">
       <div class="k-zoom"><button type="button" id="k-zin" aria-label="${L2('Zoom in', 'Acercar')}">${svg('<path d="M8 2v12M2 8h12"/>', '0 0 16 16')}</button><button type="button" id="k-zout" aria-label="${L2('Zoom out', 'Alejar')}">${svg('<path d="M2 8h12"/>', '0 0 16 16')}</button></div>
+      <button type="button" class="k-fab" id="k-tools" aria-haspopup="dialog">${svg('<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>')}<span>${L2('Tools', 'Herramientas')}</span></button>
       <button type="button" class="k-fab" id="k-find">${svg('<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>')}<span>${L2('Find', 'Buscar')}</span></button>
       <button type="button" class="k-fab k-pri k-lay" id="k-laybtn">${svg('<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>')}<span>${L2('Layers', 'Capas')}</span><span class="k-cnt" id="k-laycnt"></span></button>
     </div>
@@ -1147,6 +1150,10 @@ export function mountKineticMap(d: KmDeps) {
       shTitle.textContent = L2('Settings', 'Ajustes');
       shBody.innerHTML = settingsHTML();
       bindSettings(shBody);
+    } else if (kind === 'tools') {
+      shTitle.textContent = L2('Tools', 'Herramientas');
+      shBody.innerHTML = toolsHTML();
+      bindTools(shBody);
     } else if (kind === 'age') {
       shTitle.textContent = L2('Data age', 'Edad de los datos');
       shBody.innerHTML = ageHTML();
@@ -1181,6 +1188,7 @@ export function mountKineticMap(d: KmDeps) {
     window.addEventListener('resize', lift);
   }
   $('k-set').addEventListener('click', () => (S.sheet === 'settings' ? closeSheet() : openSheet('settings')));
+  $('k-tools').addEventListener('click', () => (S.sheet === 'tools' ? closeSheet() : openSheet('tools')));
   $('k-age').addEventListener('click', () => (S.sheet === 'age' ? closeSheet() : openSheet('age')));
   $('k-back').addEventListener('click', () => d.forecast.open({ spot: spot().name, activity: S.act }));
   // Every reading the old map had, in its full CONDITIONS panel: first thing under "Under the crosshair" (Joseph 2026-11-11).
@@ -1289,9 +1297,49 @@ export function mountKineticMap(d: KmDeps) {
     <div class="k-setrow"><div><b>Enhance</b><small>${L2('Pull back, pan and zoom in when you pick a place', 'Alejar, mover y acercar al elegir un lugar')}</small></div>${seg('enh', [['off', 'Off'], ['on', 'On']], settings.enhance() ? 'on' : 'off')}</div>
     <div class="k-setrow"><div><b>${L2('Sounds', 'Sonidos')}</b></div>${seg('snd', [['off', 'Off'], ['on', 'On']], settings.sound() ? 'on' : 'off')}</div>
     <div class="k-setrow"><div><b>${L2('Vessel', 'Embarcación')}</b><small>${L2('For the boat verdict and route', 'Para el veredicto y la ruta del bote')}</small></div>${seg('ves', [['small', L2('Small boat', 'Bote')], ['dinghy', L2('Dinghy', 'Panga')], ['yacht', L2('Yacht', 'Velero')]], settings.vessel())}</div>
-    <div class="k-tools"><button type="button" class="k-toolb" data-about><span><b>${L2('About', 'Acerca')}</b><small>${L2('How to read this app', 'Cómo leer esta app')}</small></span>${ARROW}</button></div>
-    <div class="k-addh"><b>${L2('Tools', 'Herramientas')}</b><span class="k-mono">${L2('Everything from the classic map', 'Todo el mapa clásico')}</span></div>
-    <div class="k-tools">${d.tools.map((x) => `<button type="button" class="k-toolb" data-tool="${x.id}"><span><b>${esc(x.label)}</b><small>${esc(x.sub)}</small></span>${ARROW}</button>`).join('')}</div>`;
+    <div class="k-tools"><button type="button" class="k-toolb" data-about><span><b>${L2('About', 'Acerca')}</b><small>${L2('How to read this app', 'Cómo leer esta app')}</small></span>${ARROW}</button><button type="button" class="k-toolb" data-agesheet><span><b>${L2('Data age', 'Edad de los datos')}</b><small>${L2('How old each feed is, and where it comes from', 'La edad de cada fuente y de dónde viene')}</small></span>${ARROW}</button></div>
+`;
+  /** Tools, its own button on the map (Joseph 2026-11-16): the working tools, apart from how the app looks. */
+  const toolsHTML = () => `<p class="k-mono k-fcap">${L2('Everything from the classic map', 'Todo el mapa clásico')}</p>
+    <div class="k-tools">${d.tools.map((x) => x.id === 'sync'
+      ? `<button type="button" class="k-toolb k-sync" data-tool="sync" aria-busy="${syncSt?.state === 'running'}"><span><b>${esc(x.label)}</b><small class="k-syncst" role="status" aria-live="polite">${esc(syncLine(x.sub))}</small><small class="k-synclast">${esc(syncLast())}</small></span>${ARROW}</button>`
+      : `<button type="button" class="k-toolb" data-tool="${x.id}"><span><b>${esc(x.label)}</b><small>${esc(x.sub)}</small></span>${ARROW}</button>`).join('')}</div>`;
+  /**
+   * Save for a trip runs in the old panel's button (sync-ui.ts); its row here says, in words, what it is doing: the
+   * step and how far it has got (tap again to cancel), then whether it worked, and when the last save was.
+   */
+  let syncSt: SyncStatus | null = null;
+  const SYNC_PHASE: Record<string, [string, string]> = { start: ['Starting', 'Empezando'], map: ['the map', 'el mapa'], data: ['the forecasts', 'los pronósticos'], check: ['Checking', 'Revisando'] };
+  const syncLine = (idle: string) => {
+    const s = syncSt;
+    if (s?.state === 'running') {
+      const ph = SYNC_PHASE[s.phase] ?? [s.phase, s.phase];
+      return s.phase === 'start' || s.phase === 'check'
+        ? L2(`${ph[0]}… Tap again to cancel.`, `${ph[1]}… Toque otra vez para cancelar.`)
+        : L2(`Saving ${ph[0]}: ${s.pct}% (${s.mb} MB). Tap again to cancel.`, `Guardando ${ph[1]}: ${s.pct}% (${s.mb} MB). Toque otra vez para cancelar.`);
+    }
+    if (s?.state === 'done') return L2('Saved. The map, forecasts and feeds will work with no signal.', 'Guardado. El mapa, los pronósticos y los datos funcionarán sin señal.');
+    if (s?.state === 'partial') return L2(`Saved, but ${s.n} part${s.n === 1 ? '' : 's'} could not be downloaded. Try again with a better signal.`, `Guardado, pero ${s.n} parte${s.n === 1 ? '' : 's'} no se ${s.n === 1 ? 'pudo' : 'pudieron'} descargar. Intente otra vez con mejor señal.`);
+    if (s?.state === 'failed') return L2('The save failed. Check your signal and try again.', 'No se pudo guardar. Revise la señal e intente otra vez.');
+    if (s?.state === 'cancelled') return L2('Cancelled. Nothing new was saved.', 'Cancelado. No se guardó nada nuevo.');
+    if (!navigator.onLine) return L2('You need a signal to save for a trip.', 'Necesita señal para guardar para un viaje.');
+    return idle;
+  };
+  const syncLast = () => {
+    const s = loadSummary(storage);
+    if (!s) return L2('Never saved on this device yet.', 'Todavía no se ha guardado en este dispositivo.');
+    const when = new Date(s.at).toLocaleString(settings.lang() === 'es' ? 'es-CR' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Costa_Rica' });
+    return L2(`Last saved ${when}, ${(s.bytes / 1e6).toFixed(s.bytes < 1e7 ? 1 : 0)} MB.`, `Guardado por última vez ${when}, ${(s.bytes / 1e6).toFixed(s.bytes < 1e7 ? 1 : 0)} MB.`);
+  };
+  document.addEventListener(SYNC_EVENT, (e) => {
+    syncSt = (e as CustomEvent<SyncStatus>).detail;
+    const sub = d.tools.find((x) => x.id === 'sync')?.sub ?? '';
+    document.querySelectorAll<HTMLElement>('.k-sync').forEach((b) => {
+      b.setAttribute('aria-busy', String(syncSt?.state === 'running'));
+      b.querySelector('.k-syncst')!.textContent = syncLine(sub);
+      b.querySelector('.k-synclast')!.textContent = syncLast();
+    });
+  });
   const bindSettings = (el: HTMLElement) => {
     el.querySelectorAll<HTMLElement>('.k-seg').forEach((g) =>
       g.querySelectorAll<HTMLElement>('button').forEach((b) =>
@@ -1308,7 +1356,13 @@ export function mountKineticMap(d: KmDeps) {
       ),
     );
     el.querySelector('[data-about]')?.addEventListener('click', () => (closeSheet(), document.dispatchEvent(new Event('ft:about'))));
-    el.querySelectorAll<HTMLElement>('[data-tool]').forEach((b) => b.addEventListener('click', () => openTool(b.dataset.tool as SheetId | 'sync')));
+    el.querySelector('[data-agesheet]')?.addEventListener('click', () => openSheet('age'));
+  };
+  const bindTools = (el: HTMLElement) => {
+    // Save for a trip stays in the sheet, so its row can show the progress; a second tap cancels.
+    el.querySelectorAll<HTMLElement>('[data-tool]').forEach((b) =>
+      b.addEventListener('click', () => (b.dataset.tool === 'sync' ? void document.getElementById('sync')?.click() : openTool(b.dataset.tool as SheetId))),
+    );
   };
 
   const FEEDS: [string, string, string, SourceId[]][] = [
