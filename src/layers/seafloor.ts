@@ -198,6 +198,11 @@ export async function mountSeafloor(map: Map, sf: Seafloor) {
     // Wrecks stay at the spot-level zoom and normal size; on a phone their name labels were being hidden
     // by collisions with contour and reef labels, so they alone may overlap (they are few).
     marksLayer('sf-marks-wreck', ['wreck'], 11, { allowOverlap: true });
+    // OpenSeaMap seamark tiles (PLAN 7.95): the same OpenStreetMap seamarks drawn as standard chart symbols
+    // (IALA buoys and beacons, lights with their flares, wrecks, rocks). Only a few exist on this coast and
+    // none show below z12; the tiles are not saved by SYNC FOR TRIP.
+    map.addSource('sf-marks-chart', { type: 'raster', tiles: ['https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'], tileSize: 256, minzoom: 9, maxzoom: 18, attribution: '© OpenSeaMap contributors' });
+    map.addLayer({ id: 'sf-marks-chart', type: 'raster', source: 'sf-marks-chart', minzoom: 11, paint: { 'raster-opacity': 0.95 } });
   };
   if (map.getLayer('grat-macro') || map.isStyleLoaded()) add();
   else map.once('style.load', add);
