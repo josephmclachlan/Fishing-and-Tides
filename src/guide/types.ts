@@ -366,7 +366,9 @@ export const ENCOUNTER_WORDS: Record<Encounter, Txt> = {
 };
 export const TIME_WORDS: Record<When, Txt> = { day: W('Day', 'Día'), twilight: W('Dawn and dusk', 'Amanecer y atardecer'), night: W('Night', 'Noche') };
 export const SEEN_WORDS: Record<Seen, Txt> = {
-  common: W('Common', 'Común'), frequent: W('Frequent', 'Frecuente'), occasional: W('Occasional', 'Ocasional'), rare: W('Rare', 'Raro'), records: W('Records only', 'Solo registros'),
+  // Joseph 2026-11-16: one plain scale, no near-synonyms.
+  common: W('Abundant', 'Abundante'), frequent: W('Common', 'Común'), occasional: W('Uncommon', 'Poco común'), rare: W('Rare', 'Raro'),
+  records: W('No recent sightings', 'Sin avistamientos recientes'),
 };
 export const EDIBLE_WORDS: Record<Edible, Txt> = {
   yes: W('Edible', 'Comestible'), caution: W('Edible with care', 'Comestible con cuidado'), no: W('Not eaten', 'No se come'),
