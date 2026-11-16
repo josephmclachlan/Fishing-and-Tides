@@ -135,3 +135,11 @@
 .nt-art .nt-kn-hk { stroke: var(--fc-ink2); stroke-width: 3; fill: none; }
 .fc[data-scheme='dark'] .nt-art .nt-kn-ln { stroke: color-mix(in srgb, var(--fc-ink) 22%, var(--fc-block)); }
 .fc[data-scheme='dark'] .nt-art .nt-kn-tip.nt-kn-ln { fill: color-mix(in srgb, var(--fc-ink) 22%, var(--fc-block)); }
+/* graphics review 12.3 */
+.nt-art .nt-rigs-netf { fill: color-mix(in srgb, var(--fc-ink) 10%, transparent); stroke: var(--fc-ink); stroke-width: 1.6; }
+.nt-art .nt-rigs-mini { fill: var(--fc-ink2); stroke: none; }
+.nt-art .nt-rigs-fan { fill: color-mix(in srgb, var(--fc-ink2) 18%, transparent); stroke: var(--fc-ink2); stroke-width: 1.4; }
+.nt-art .nt-rigs-memb { fill: color-mix(in srgb, var(--fc-sev-danger) 22%, transparent); stroke: none; }
+.nt-art .nt-rigs-ray { fill: color-mix(in srgb, var(--fc-murk) 70%, var(--fc-card)); stroke: var(--fc-ink); stroke-width: 2; }
+.nt-art .nt-rigs-dep { stroke: var(--fc-ink); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.nt-art .nt-rigs-tug { stroke: var(--fc-ac1); stroke-width: 2.2; }
