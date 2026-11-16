@@ -1,12 +1,12 @@
 /**
  * The coast is the answer (mockup G, note 3): a ribbon along each beach in the rating colour of that spot for the
- * chosen activity and hour, and a rating tile pinned to each spot with its headline value on the same colour.
- * Ribbons are MapLibre lines (traced from the land mask, model.ts coastNear); tiles are HTML over the map, placed
- * without overlap each frame the camera moves. Also the CORAL mode's private-site cells (never the sites).
+ * chosen activity and hour, and a small number chip on each spot with its headline value on the same colour (the name
+ * only on the chosen spot's chip; Joseph 2026-11-16 chose these over the old named boxes with leader lines). A chip
+ * that would touch a better one or sit under a panel shows as a dot (model.ts placeChips). Ribbons are MapLibre lines (traced from
+ * the land mask, model.ts coastNear); chips are HTML over the map, placed each frame the camera moves. Also the CORAL mode's private-site cells (never the sites).
  */
 import type { GeoJSONSource, Map as MlMap } from 'maplibre-gl';
-import { coastNear, labelRect, landward, placePins, privateCells, type Mask, type Rect, CELL_DEG } from './model';
-import { ZONE_LABEL, zoneTextSize } from '../fishing/zones';
+import { coastNear, placeChips, privateCells, type Mask, type Rect, CELL_DEG } from './model';
 import { esc, hex, L2, tok } from './dom';
 import { addGlyphImages, imageId } from '../icons/map-glyphs';
 import type { Level } from '../forecast/model';
@@ -18,26 +18,23 @@ export interface PinData {
   level: Level | null;
   value: string;
   unit: string;
-  /** Rank for placement: the better spot keeps its tile when two would overlap. */
+  /** Rank for placement: the better spot keeps its chip when two would touch. */
   rank: number;
 }
 
 const RIBBON_M = 650;
-/** PROTOTYPE (spot-marker workshop, not for merge): ?pins=a|b|c|d|e picks a marker style. */
-const MODE = (() => { try { return new URLSearchParams(location.search).get('pins') ?? 'now'; } catch { return 'now'; } })();
+/** Below this zoom the spots are dots only: the beaches sit too close together for their numbers. */
+const CHIP_Z = 9.6;
 
 export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) => void) {
   const layer = document.createElement('div');
   layer.className = 'k-pins';
-  (window as unknown as { __kmap: MlMap }).__kmap = map;
-  if (MODE !== 'now') document.documentElement.classList.add('pm-proto');
   stage.appendChild(layer);
   let pins: PinData[] = [];
   let selected: string | null = null;
   let visible = true;
   let mask: Mask | null = null;
   const ribbons = new Map<string, [number, number][]>();
-  const lands = new Map<string, [number, number] | null>();
 
   const ensure = () => {
     if (!map.isStyleLoaded() || map.getSource('km-coast')) return !!map.getSource('km-coast');
@@ -76,17 +73,18 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
     (map.getSource('km-coast') as GeoJSONSource).setData({ type: 'FeatureCollection', features });
   };
 
-  // Tiles: rebuilt when the pins change, placed on every camera move.
+  // Chips: rebuilt when the pins change, placed on every camera move.
   const els = new Map<string, HTMLElement>();
-  // Tile sizes, measured while the tiles show: a tile dropped to its square is display:none and measures 0.
+  // Chip sizes, measured while the chips show: a chip dropped to its dot is display:none and measures 0.
   const sizes = new Map<string, { w: number; h: number }>();
   const measure = () => {
     // Shown for the measure; place() hides again what it must, before the frame paints.
     for (const [id, el] of els) {
       el.hidden = false;
       el.classList.remove('dot');
-      const tile = el.querySelector<HTMLElement>('.k-pin-tile')!;
-      if (tile.offsetWidth) sizes.set(id, { w: tile.offsetWidth, h: tile.offsetHeight });
+      el.classList.toggle('sel', id === selected); // the chosen spot's chip carries its name: measure it that way
+      const chip = el.querySelector<HTMLElement>('.k-pin-chip')!;
+      if (chip.offsetWidth) sizes.set(id, { w: chip.offsetWidth, h: chip.offsetHeight });
     }
   };
   /** The map's own panels and buttons over the stage (readings, key, views, find/layers, zoom), in stage px. */
@@ -100,24 +98,8 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
     }
     return out;
   };
-  /** The fish zone names on screen (PLAN 7.85), estimated as boxes in stage px: the tiles step around them where they can. */
-  const zoneNames = (dx: number, dy: number): Rect[] => {
-    const z = map.getZoom();
-    if (z < ZONE_LABEL.nameZ || !map.getLayer('fh-zone-label') || map.getLayoutProperty('fh-zone-label', 'visibility') === 'none') return [];
-    const size = zoneTextSize(z);
-    const out: Rect[] = [];
-    for (const f of map.queryRenderedFeatures({ layers: ['fh-zone-label'] })) {
-      const p = f.properties as { sp?: string; where?: string; nearly?: number; anchor?: string; off?: string | [number, number] };
-      if (f.geometry.type !== 'Point' || !p.sp) continue;
-      const pt = map.project(f.geometry.coordinates as [number, number]);
-      const second = z >= ZONE_LABEL.whereZ ? p.where : p.nearly ? 'NEARLY A ZONE' : '';
-      const lines = [{ text: p.sp, size }, ...(second ? [{ text: second, size: size * ZONE_LABEL.whereScale }] : [])];
-      const off = typeof p.off === 'string' ? (JSON.parse(p.off) as [number, number]) : (p.off ?? [0, 0]);
-      const r = labelRect({ x: pt.x + dx, y: pt.y + dy }, lines, p.anchor ?? 'center', off, ZONE_LABEL.maxEm);
-      out.push(r);
-    }
-    return out;
-  };
+  /** The number alone on the chip: "/100" is dropped (every score is out of 100), metres and knots stay. */
+  const chipHTML = (p: PinData) => `<b>${esc(p.value)}${p.unit && p.unit !== '/100' ? `<small>${esc(p.unit)}</small>` : ''}</b>`;
   const build = () => {
     layer.innerHTML = '';
     els.clear();
@@ -128,7 +110,7 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
       el.className = `k-pin k-lv${p.level ?? 'n'}`;
       el.dataset.id = p.id;
       el.setAttribute('aria-label', `${p.name}: ${p.value} ${p.unit}`);
-      el.innerHTML = `<svg class="k-pin-leg" aria-hidden="true"><line/></svg><i class="k-pin-dot"></i><span class="k-pin-tile"><span class="k-pin-n">${esc(p.name)}</span><b>${esc(p.value)}<small${p.unit === '/100' ? ' class="u100"' : ''}>${esc(p.unit)}</small></b></span>`;
+      el.innerHTML = `<i class="k-pin-dot"></i><span class="k-pin-chip"><span class="k-pin-n">${esc(p.name)}</span>${chipHTML(p)}</span>`;
       el.addEventListener('click', (e) => (e.stopPropagation(), onPick(p.id)));
       layer.appendChild(el);
       els.set(p.id, el);
@@ -147,100 +129,26 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
     const z = map.getZoom();
     const boxes = pins.map((p) => {
       const pt = map.project(p.lngLat);
-      const sz = sizes.get(p.id) ?? { w: 120, h: 44 };
-      // Toward the mainland on screen (north is up, so y flips); unknown until the land mask has loaded.
-      let lw = lands.get(p.id);
-      if (lw === undefined && mask) lands.set(p.id, (lw = landward(mask, p.lngLat, 900)));
-      return { id: p.id, x: pt.x + mr.left - off.left, y: pt.y + mr.top - off.top, w: sz.w, h: sz.h, rank: p.rank + (p.id === selected ? 1e6 : 0), land: lw ? ([lw[0], -lw[1]] as const) : undefined };
+      const sz = sizes.get(p.id) ?? { w: 28, h: 18 };
+      return { id: p.id, x: pt.x + mr.left - off.left, y: pt.y + mr.top - off.top, w: sz.w, h: sz.h, rank: p.rank };
     });
-    const tier = MODE === 'e' ? (z < 12.6 ? 'e0' : z < 13.6 ? 'b' : 'bn') : MODE;
-    if (layer.dataset.m !== tier) {
-      layer.dataset.m = tier;
-      layer.className = `k-pins pm-${tier}`;
-      measure();
-    }
-    const onScreen = (b: { x: number; y: number }) => b.x > -20 && b.y > -20 && b.x < W + 20 && b.y < H + 20;
-    if (tier !== 'now') {
-      // Prototype placement: which spots get a label, and where.
-      let want: Set<string>;
-      const vis = boxes.filter(onScreen).sort((a, b) => b.rank - a.rank);
-      if (tier === 'a' || tier === 'e0') want = new Set(selected ? [selected] : []);
-      else if (tier === 'd') want = new Set([...(selected ? [selected] : []), ...vis.filter((b) => b.id !== selected).slice(0, 2).map((b) => b.id)]);
-      else want = new Set(vis.map((b) => b.id));
-      const chip = tier === 'b' || tier === 'bn' || tier === 'e0' || tier === 'c';
-      const obs = obstacles(off);
-      const placed: Rect[] = [];
-      const over = (a: Rect, b: Rect, g: number) => a.x < b.x + b.w + g && b.x < a.x + a.w + g && a.y < b.y + b.h + g && b.y < a.y + a.h + g;
-      const at2 = chip
-        ? new Map<string, { dx: number; dy: number }>()
-        : placePins(vis.filter((b) => want.has(b.id)), { w: W, h: H }, 4, obs, zoneNames(mr.left - off.left, mr.top - off.top));
-      if (chip)
-        for (const b of vis) {
-          if (!want.has(b.id)) continue;
-          const sz = sizes.get(b.id) ?? { w: 30, h: 18 };
-          const dots = vis.filter((q) => q.id !== b.id).map((q) => ({ x: q.x - 6, y: q.y - 6, w: 12, h: 12 }));
-          const tries: [number, number][] = tier === 'c'
-            ? [[-sz.w / 2, 9], [9, 4], [-sz.w - 9, 4], [9, -sz.h / 2], [-sz.w - 9, -sz.h / 2]]
-            : [[-sz.w / 2, -sz.h / 2]];
-          for (const [dx, dy] of tries) {
-            const box = { x: b.x + dx, y: b.y + dy, w: sz.w, h: sz.h };
-            const bad = placed.some((q) => over(box, q, 2)) || obs.some((q) => over(box, q, 2)) || (tier === 'c' && dots.some((q) => over(box, q, 0)));
-            if (bad && b.id !== selected) continue;
-            placed.push(box);
-            at2.set(b.id, { dx, dy });
-            break;
-          }
-        }
-      for (const b of boxes) {
-        const el = els.get(b.id)!;
-        const on = onScreen(b) && z >= 9;
-        el.hidden = !on;
-        if (!on) continue;
-        el.style.transform = `translate(${b.x}px, ${b.y}px)`;
-        el.classList.toggle('sel', b.id === selected);
-        const p = at2.get(b.id);
-        el.classList.toggle('dot', !p);
-        const tile = el.querySelector<HTMLElement>('.k-pin-tile')!;
-        const leg = el.querySelector<SVGSVGElement>('.k-pin-leg')!;
-        if (p) {
-          tile.style.transform = `translate(${p.dx}px, ${p.dy}px)`;
-          const cx = Math.min(Math.max(0, p.dx), p.dx + (sizes.get(b.id)?.w ?? 0)), cy = Math.min(Math.max(0, p.dy), p.dy + (sizes.get(b.id)?.h ?? 0));
-          const l = leg.querySelector('line')!;
-          l.setAttribute('x1', '0'); l.setAttribute('y1', '0'); l.setAttribute('x2', String(cx)); l.setAttribute('y2', String(cy));
-        }
-      }
-      return;
-    }
-    const at = z >= 9.6 ? placePins(boxes.filter((b) => b.x > -20 && b.y > -20 && b.x < W + 20 && b.y < H + 20), { w: W, h: H }, 4, obstacles(off), zoneNames(mr.left - off.left, mr.top - off.top)) : new Map();
+    const inView = (b: { x: number; y: number }) => b.x > -20 && b.y > -20 && b.x < W + 20 && b.y < H + 20;
+    const { chips, covered } = z >= CHIP_Z ? placeChips(boxes.filter(inView), { w: W, h: H }, obstacles(off), selected) : { chips: new Set<string>(), covered: new Set<string>() };
     for (const b of boxes) {
       const el = els.get(b.id)!;
-      const on = b.x > -20 && b.y > -20 && b.x < W + 20 && b.y < H + 20 && z >= 9;
+      const on = inView(b) && z >= 9 && !covered.has(b.id);
       el.hidden = !on;
       if (!on) continue;
       el.style.transform = `translate(${b.x}px, ${b.y}px)`;
       el.classList.toggle('sel', b.id === selected);
-      const p = at.get(b.id);
-      el.classList.toggle('dot', !p);
-      const tile = el.querySelector<HTMLElement>('.k-pin-tile')!;
-      const leg = el.querySelector<SVGSVGElement>('.k-pin-leg')!;
-      if (p) {
-        tile.style.transform = `translate(${p.dx}px, ${p.dy}px)`;
-        // Leader from the spot to the nearest point of the tile's edge.
-        const cx = Math.min(Math.max(0, p.dx), p.dx + b.w), cy = Math.min(Math.max(0, p.dy), p.dy + b.h);
-        const l = leg.querySelector('line')!;
-        l.setAttribute('x1', '0');
-        l.setAttribute('y1', '0');
-        l.setAttribute('x2', String(cx));
-        l.setAttribute('y2', String(cy));
-      }
+      el.classList.toggle('dot', !chips.has(b.id));
     }
   };
   const queue = () => {
     if (!queued) (queued = true), requestAnimationFrame(place);
   };
   map.on('move', queue);
-  map.on('idle', queue); // the zone names settle after the move: step the tiles around where they ended up
-  void document.fonts?.ready.then(() => (measure(), place())); // the tiles' widths change when their fonts arrive
+  void document.fonts?.ready.then(() => (measure(), place())); // the chips' widths change when their fonts arrive
   map.on('resize', queue);
   map.on('styledata', () => ensure() && (drawRibbons(), setCells(cells)));
 
@@ -266,7 +174,7 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
         for (const p of pins) {
           const el = els.get(p.id)!;
           el.className = `k-pin k-lv${p.level ?? 'n'}`;
-          el.querySelector('b')!.innerHTML = `${esc(p.value)}<small${p.unit === '/100' ? ' class="u100"' : ''}>${esc(p.unit)}</small>`;
+          el.querySelector('b')!.outerHTML = chipHTML(p);
           el.setAttribute('aria-label', `${p.name}: ${p.value} ${p.unit}`);
         }
       measure();
@@ -276,7 +184,6 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
     setMask(m: Mask) {
       mask = m;
       ribbons.clear();
-      lands.clear();
       drawRibbons();
     },
     setVisible(on: boolean) {
@@ -284,10 +191,6 @@ export function mountCoast(map: MlMap, stage: HTMLElement, onPick: (id: string) 
       drawRibbons();
       place();
       if (map.getLayer('km-coast')) for (const id of ['km-coast', 'km-coast-case']) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
-    },
-    /** The user's toggle for the rating boxes: off hides every box and leader, the spot dots stay. */
-    setTiles(on: boolean) {
-      layer.classList.toggle('k-notiles', !on);
     },
     setCells,
     /** A light/dark switch: the ribbon, cell and label colours are read from the tokens when the layers are made. */
