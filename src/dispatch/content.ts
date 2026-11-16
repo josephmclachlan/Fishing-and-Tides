@@ -39,28 +39,39 @@ export const LEDE = W(
 
 export interface Stat { n: string; unit: Txt; what: Txt; src?: number[] }
 export const STATS: Stat[] = [
-  { n: '25–30×', unit: W('faster', 'más rápido'), what: W('Fish spoil about 25 to 30 times faster at 28 to 30 °C than on ice. Our shade is that hot.', 'El pescado se daña unas 25 a 30 veces más rápido a 28–30 °C que en hielo. Nuestra sombra está así de caliente.'), src: [2] },
-  { n: '6 h', unit: W('to ice it', 'para enhielar'), what: W('Tuna, mahi, mackerel: ice within 6 hours of death in tropical heat, or histamine can build to levels that make people sick.', 'Atún, dorado, macarela: hielo dentro de 6 horas de muerto con este calor, o la histamina puede llegar a niveles que enferman.'), src: [1] },
-  { n: '+6–12 h', unit: W('before rigor', 'antes del rigor'), what: W('Destroying the spinal cord held back rigor mortis by 6 to 12 hours in yellowtail and red sea bream.', 'Destruir la médula retrasó el rigor mortis de 6 a 12 horas en la cola amarilla y el besugo rojo.'), src: [4] },
+  { n: '25–30×', unit: W('faster spoiling', 'más rápido se daña'), what: W('Fish spoil about 25 to 30 times faster at 28 to 30 °C than on ice. Our shade is that hot.', 'El pescado se daña unas 25 a 30 veces más rápido a 28–30 °C que en hielo. Nuestra sombra está así de caliente.'), src: [2] },
+  { n: '6 h', unit: W('to get it on ice', 'para ponerlo en hielo'), what: W('Tuna, mahi and mackerel need ice within 6 hours of dying in this heat, or a poison called histamine can build up and make people sick.', 'El atún, el dorado y la macarela necesitan hielo dentro de 6 horas de morir con este calor, o puede formarse un veneno llamado histamina que enferma.'), src: [1] },
+  { n: '+6–12 h', unit: W('before it stiffens', 'antes de ponerse rígido'), what: W('After death a fish stiffens (rigor mortis), and fast stiffening ruins the texture. Destroying the spinal cord, as in ikejime, held it off 6 to 12 hours in yellowtail and red sea bream.', 'Después de morir el pescado se pone rígido (rigor mortis), y si es rápido arruina la textura. Destruir la médula, como en el ikejime, lo retrasó de 6 a 12 horas en la cola amarilla y el besugo rojo.'), src: [4] },
 ];
 
 // --- the chart
 export const CHART_H = W('Same fish. Same hour. Very different fish.', 'Mismo pescado. Misma hora. Pescado muy distinto.');
 export const CHART_P = W(
-  'Drag the line, or tap a time, to see what each way of handling a fish has done to it. Bars are how long it stays in each grade.',
-  'Arrastra la línea, o toca una hora, para ver qué le ha hecho a un pescado cada forma de manejarlo. Las barras muestran cuánto tiempo se mantiene en cada grado.',
+  'Seven ways of handling the same fish, each as a bar of time since it died, left to right. The colour shows how good it is at that hour. Drag the black line, or tap a time.',
+  'Siete formas de manejar el mismo pescado, cada una como una barra del tiempo desde que murió, de izquierda a derecha. El color muestra qué tan bueno está a esa hora. Arrastra la línea negra, o toca una hora.',
 );
 export const GRADES = {
-  raw: W('Raw-fresh', 'Fresco para crudo'),
-  good: W('Good', 'Bueno'),
+  raw: W('Ceviche-fresh', 'Fresco para ceviche'),
+  good: W('Fresh', 'Fresco'),
   ok: W('Cook it now', 'Cocínalo ya'),
-  off: W('Going off', 'Dañándose'),
+  off: W('Spoiled', 'Dañado'),
+} as const;
+/** What each grade means, in the words of someone buying or cooking it. */
+export const GRADE_KEY = {
+  raw: W('Like just caught. Firm, clean, sweet. Fine for ceviche or raw.', 'Como recién pescado. Firme, limpio, dulce. Bueno para ceviche o crudo.'),
+  good: W('Still fresh. Cook it and it tastes great. Not for raw any more.', 'Todavía fresco. Cocinado sabe muy bien. Ya no es para comer crudo.'),
+  ok: W('Flavour is fading and the flesh is going soft. Cook it today.', 'El sabor se apaga y la carne se pone blanda. Cocínalo hoy.'),
+  off: W('Strong fishy smell, soft and sticky. Throw it out.', 'Olor fuerte a pescado, blando y pegajoso. Bótalo.'),
 } as const;
 export const GRADE_HELP = W(
-  'K-value bands: under 20 % raw (ceviche, sashimi), 20 to 40 % good, 40 to 60 % cook it now, over 60 % going off.',
-  'Bandas del valor K: menos de 20 % crudo (ceviche, sashimi), 20 a 40 % bueno, 40 a 60 % cocínalo ya, más de 60 % dañándose.',
+  'How the grades are drawn: a freshness score used in fish science (the K-value) rises as the flesh breaks down. Under 20 % is ceviche-fresh, 20 to 40 % fresh, 40 to 60 % cook it now, over 60 % spoiled. These cut-offs are guides, not laws. A fish can make people sick from histamine (tuna, mahi, mackerel) even when it does not smell bad.',
+  'Cómo se dibujan los grados: un puntaje de frescura usado en la ciencia del pescado (el valor K) sube conforme la carne se descompone. Menos de 20 % es fresco para ceviche, 20 a 40 % fresco, 40 a 60 % cocínalo ya, más de 60 % dañado. Estos cortes son guías, no leyes. Un pescado puede enfermar por histamina (atún, dorado, macarela) aunque no huela mal.',
 );
-export const ICE_LIMIT = W('6 h histamine ice limit', 'límite de 6 h de hielo (histamina)');
+export const ICE_LIMIT = W('Dashed line: 6 h after death', 'Línea punteada: 6 h después de morir');
+export const ICE_LIMIT_KEY = W(
+  'Tuna, mahi and mackerel must be on ice by this line (6 hours after they die, in our heat). Past it, a poison called histamine can build up that cooking does not remove and that does not smell.',
+  'El atún, el dorado y la macarela deben estar en hielo antes de esta línea (6 horas después de morir, con nuestro calor). Después, puede formarse un veneno llamado histamina que cocinar no quita y que no huele.',
+);
 export const NOW_AT = W('Checked after', 'Revisado a las');
 export const CHART_NOTE = W(
   'ESTIMATE. These curves are the page’s own model, drawn through a few measured points: K climbs about 0.4 % an hour on ice (Japanese flounder work), and fish spoil 25 to 30 times faster at 28 to 30 °C (Dalgaard and Huss). The starting K of each method is a judgement. Nothing was measured on Costa Rican fish. Real fish vary by species and size; the order of the bars is what to trust, not the exact hours.',
@@ -75,7 +86,7 @@ export const ROWS: MethodRow[] = [
   { id: 'gut-nobleed', name: W('Gutted, not bled, no ice', 'Eviscerado, sin desangrar, sin hielo'), sub: W('Blood stays in the meat', 'La sangre se queda en la carne'), good: false },
   { id: 'hit-leave', name: W('Hit once and left, no ice', 'Un golpe y a la lancha, sin hielo'), sub: W('Stunned, not bled', 'Aturdido, no desangrado'), good: false },
   { id: 'suffocate', name: W('Left to die in the boat', 'Dejado morir en la lancha'), sub: W('Minutes of struggle, then the heat', 'Minutos de lucha, luego el calor'), good: false },
-  { id: 'suffocate-ice', name: W('Left to die, iced 2 h later', 'Dejado morir, hielo 2 h después'), sub: W('Ice saves the day, not the start', 'El hielo salva el día, no el comienzo'), good: false },
+  { id: 'suffocate-ice', name: W('Left to die, iced 2 h later', 'Dejado morir, hielo 2 h después'), sub: W('Ice stops it getting worse, but it started badly', 'El hielo evita que empeore, pero ya empezó mal'), good: false },
 ];
 
 // --- methods

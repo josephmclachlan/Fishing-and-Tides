@@ -4,7 +4,7 @@
  */
 import { t } from '../i18n';
 import {
-  CHART_H as CHART_TITLE, CHART_NOTE, CHART_P, DIAGRAM, GRADE_HELP, GRADES, HIST_CLOCK, HIST_FACTS, HIST_H, HIST_P,
+  CHART_H as CHART_TITLE, CHART_NOTE, CHART_P, DIAGRAM, GRADE_HELP, GRADE_KEY, GRADES, ICE_LIMIT_KEY, HIST_CLOCK, HIST_FACTS, HIST_H, HIST_P,
   HIST_SPECIES, ICE_LIMIT, METHODS, METHODS_H, METHODS_P, MISTAKES, MISTAKES_H, MISTAKES_P, ROUTINE, ROUTINE_H, ROWS, SCIENCE_H, SCIENCE_P,
   SECTION_LABELS, SOURCES, SOURCES_H, SOURCES_P, STATS, STEPS, tr, type Fact, type Lang,
 } from './content';
@@ -47,7 +47,7 @@ export function statsHtml(lang: Lang): string {
 const TICKS = [1, 3, 6, 12, 24, 48, 72];
 
 export function chartHtml(lang: Lang, startHours: number): string {
-  const legend = GRADE_ORDER.map((g) => `<li class="${GRADE_LEVEL[g]}"><i></i>${esc(tr(GRADES[g], lang))}</li>`).join('') + `<li><i class="dp-lg-ice"></i>${esc(tr(ICE_LIMIT, lang))}</li>`;
+  const legend = GRADE_ORDER.map((g) => `<li class="${GRADE_LEVEL[g]}"><i></i><div><b>${esc(tr(GRADES[g], lang))}</b><span>${esc(tr(GRADE_KEY[g], lang))}</span></div></li>`).join('') + `<li class="dp-lg-ice-li"><i class="dp-lg-ice"></i><div><b>${esc(tr(ICE_LIMIT, lang))}</b><span>${esc(tr(ICE_LIMIT_KEY, lang))}</span></div></li>`;
   const rows = ROWS.map((r) => {
     const segs = segments(r.id as Method)
       .map((s) => {
@@ -64,11 +64,11 @@ export function chartHtml(lang: Lang, startHours: number): string {
   const presets = [1, 6, 12, 24, 72].map((h) => `<button type="button" class="dp-chip" data-h="${h}">${hoursLabel(h)}</button>`).join('');
   return `<section class="dp-sec dp-chart-sec" id="dp-chart" data-s="chart">
     ${sectionHead('chart', tr(SECTION_LABELS.chart, lang), tr(CHART_TITLE, lang), tr(CHART_P, lang))}
-    <ul class="dp-legend" aria-label="${esc(tr(GRADE_HELP, lang))}">${legend}</ul>
+    <ul class="dp-legend">${legend}</ul>
     <p class="dp-read" id="dp-read" aria-live="polite"></p>
     <div class="dp-chart" id="dp-chartbox" style="--x:${posOf(startHours)}">
       ${rows}
-      <div class="dp-axis" aria-hidden="true">${ticks}<span class="dp-axis-ice" style="left:${pct(posOf(6))}">${esc(tr(ICE_LIMIT, lang))}</span></div>
+      <div class="dp-axis" aria-hidden="true">${ticks}</div>
     </div>
     <div class="dp-scrub">
       <label for="dp-t" class="fc-mono">${esc(t('dp.time'))}: <b id="dp-t-v">${hoursLabel(startHours)}</b></label>
