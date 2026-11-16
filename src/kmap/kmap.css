@@ -716,3 +716,14 @@
 .km .k-legmini .k-lmsw i{flex:0 0 auto}
 .km .k-legmini .k-lmlv{display:block;width:7px;height:12px;background:var(--k)}
 .km .k-legmini .k-lmramp{display:block;width:30px;height:10px}
+/* Desktop key folded to a button (Joseph 2026-11-16): KEY, a peek of the marks on the map, the number of layers. */
+.km .k-legmini.k-legall.k-keyshut{padding:0;background:none;box-shadow:none;overflow:visible}
+.km .k-keybtn{appearance:none;cursor:pointer;display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;background:var(--c-card);color:var(--ink);border:0;box-shadow:0 0 0 1px var(--line),0 1px 3px rgba(0,0,0,.15);border-radius:2px}
+.km .k-keybtn:hover{box-shadow:0 0 0 2px var(--ink)}
+.km .k-keybtn .k-keyl{font-family:var(--disp);font-weight:800;font-variation-settings:"wdth" 80;font-size:17px;text-transform:uppercase;line-height:1}
+.km .k-keybtn .k-keypeek{display:flex;align-items:center;gap:8px}
+.km .k-keybtn .k-keypeek .k-lmsw{min-width:0}
+.km .k-keybtn .k-keyn{font-size:10px;font-weight:700;padding:2px 5px;background:var(--ink);color:var(--bg);border-radius:2px}
+.km .k-keybtn svg,.km .k-keyx svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.6}
+.km .k-keyhd{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.km .k-keyx{appearance:none;cursor:pointer;display:flex;align-items:center;gap:4px;height:28px;padding:0 8px;border:1px solid var(--line);background:none;color:var(--ink);font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:2px}

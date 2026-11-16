@@ -638,22 +638,30 @@ export function mountKineticMap(d: KmDeps) {
     heat: ['Each reef in its coral heat alert colour', 'Cada arrecife en el color de su alerta de calor'],
     private: ['Your logged sites, as 5 km cells', 'Sus sitios, como celdas de 5 km'],
   };
+  /** A layer's marks as small swatches: rating squares, a colour ramp for a painted field, then up to `n` of its marks. */
+  const keySwatches = (id: KmLayer, n = 3) => {
+    const lv = (ns: number[]) => ns.map((x) => `<i class="k-lmlv" style="--k:var(--lv${x})"></i>`).join('');
+    if (isOwnLayer(id)) return id === 'rating' ? lv([0, 1, 2, 3, 4]) : id === 'heat' ? lv([3, 2, 1, 0]) : `<i class="k-sw-glyph">${glyphSvg('lock', GLYPH_PAINT.ink, 14)}</i>`;
+    const fk = FIELD_OF[id];
+    const ramp = (cols: readonly string[]) => `<i class="k-lmramp" style="background:linear-gradient(90deg,${cols.join(',')})"></i>`;
+    const marks = LEGEND[id].filter((it) => it.sw !== 'none' && !((fk || id === 'fishing') && it.sw === 'fill')).slice(0, n).map(keySw).join('');
+    return (fk ? ramp(bandCss(fk)) : id === 'fishing' ? ramp(rampCss(['--lv2', '--lv3', '--ac4'], 6)) : '') + marks;
+  };
   const keyLine = (id: KmLayer) => {
-    const lv = (ns: number[]) => ns.map((n) => `<i class="k-lmlv" style="--k:var(--lv${n})"></i>`).join('');
-    let sw = '', what = '';
-    if (isOwnLayer(id)) {
-      sw = id === 'rating' ? lv([0, 1, 2, 3, 4]) : id === 'heat' ? lv([3, 2, 1, 0]) : `<i class="k-sw-glyph">${glyphSvg('lock', GLYPH_PAINT.ink, 14)}</i>`;
-      what = L2(...(OWN_WHAT[id] ?? ['', '']));
-    } else {
-      const fk = FIELD_OF[id];
-      const ramp = (cols: readonly string[]) => `<i class="k-lmramp" style="background:linear-gradient(90deg,${cols.join(',')})"></i>`;
-      const marks = LEGEND[id].filter((it) => it.sw !== 'none' && !((fk || id === 'fishing') && it.sw === 'fill')).slice(0, 3).map(keySw).join('');
-      sw = (fk ? ramp(bandCss(fk)) : id === 'fishing' ? ramp(rampCss(['--lv2', '--lv3', '--ac4'], 6)) : '') + marks;
-      what = t(legendWhatKey(id) as Key);
-    }
+    const sw = keySwatches(id);
+    const what = isOwnLayer(id) ? L2(...(OWN_WHAT[id] ?? ['', ''])) : t(legendWhatKey(id) as Key);
     const short = what.split(/(?<=[a-z0-9)])[.:;](\s|$)/i)[0];
     return `<li title="${esc(what)}"><span class="k-lkeys k-lmsw">${sw}</span><b>${esc(layerName(id))}</b><span class="k-lmwhat">${esc(short)}</span></li>`;
   };
+  const KEY_OPEN = 'ft.km.keyopen';
+  let keyOpen = get(storage, KEY_OPEN) === '1';
+  $('k-legmini').addEventListener('click', (e) => {
+    if (!(e.target as HTMLElement).closest('[data-keytog]')) return;
+    keyOpen = !keyOpen;
+    put(storage, KEY_OPEN, keyOpen ? '1' : '0');
+    renderLegMini();
+    $('k-legmini').querySelector<HTMLElement>('[data-keytog]')?.focus();
+  });
   const renderLegMini = () => {
     const el = $('k-legmini');
     const on = order();
@@ -661,7 +669,12 @@ export function mountKineticMap(d: KmDeps) {
       const ids = on.filter((id) => legend(id));
       el.hidden = !lcol || !ids.length;
       el.classList.add('k-legall');
-      el.innerHTML = `<span class="k-mono">${L2('Key · every layer on', 'Clave · cada capa activa')}</span><ul class="k-lmall">${ids.map(keyLine).join('')}</ul>`;
+      // Folded by default to a KEY button showing a sample of the marks on the map (Joseph 2026-11-16); a click opens the full list.
+      el.classList.toggle('k-keyshut', !keyOpen);
+      const peek = ids.slice(0, 5).map((id) => `<span class="k-lkeys k-lmsw">${keySwatches(id, 1)}</span>`).join('');
+      el.innerHTML = keyOpen
+        ? `<div class="k-keyhd"><span class="k-mono">${L2('Key · every layer on', 'Clave · cada capa activa')}</span><button type="button" class="k-keyx" data-keytog aria-expanded="true">${L2('Hide', 'Ocultar')} ${svg('<path d="M6 9l6 6 6-6"/>')}</button></div><ul class="k-lmall">${ids.map(keyLine).join('')}</ul>`
+        : `<button type="button" class="k-keybtn" data-keytog aria-expanded="false" aria-label="${L2(`Map key: ${ids.length} layers on`, `Clave del mapa: ${ids.length} capas activas`)}"><span class="k-keyl">${L2('Key', 'Clave')}</span><span class="k-keypeek">${peek}</span><span class="k-mono k-keyn">${ids.length}</span>${svg('<path d="M6 15l6-6 6 6"/>')}</button>`;
       return;
     }
     el.classList.remove('k-legall');
