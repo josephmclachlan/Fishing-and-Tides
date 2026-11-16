@@ -167,7 +167,7 @@ export function zoneRing(z: Zone, n = 48, isWater?: (lng: number, lat: number) =
  * The zones' zooms and name sizes (PLAN 7.85, Joseph: "requires too much zoom"): ovals from `z`, fish names from
  * `nameZ`, the where line from `whereZ`; the name's px size by zoom as [zoom, px] stops (the where line is 0.82 of it).
  */
-export const ZONE_LABEL = { z: 8.5, nameZ: 9, whereZ: 11, sizes: [[9, 9.5], [11, 10.5], [13, 12]] as const, whereScale: 0.82 } as const;
+export const ZONE_LABEL = { z: 8.5, nameZ: 9, whereZ: 11, sizes: [[9, 9.5], [11, 10.5], [13, 12]] as const, whereScale: 0.82, maxEm: 12 } as const;
 /** The zone name's px size at a zoom, as the style interpolates it. Pure. */
 export function zoneTextSize(zoom: number): number {
   const s = ZONE_LABEL.sizes;

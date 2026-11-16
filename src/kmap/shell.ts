@@ -196,6 +196,7 @@ export function mountKineticMap(d: KmDeps) {
     <button type="button" class="k-readbar" id="k-readbar" aria-label="${L2('Readings under the crosshair', 'Lecturas bajo la mira')}"></button>
     <div class="k-legmini" id="k-legmini" aria-hidden="true"></div>
     <div class="k-views" role="group" aria-label="${L2('Prepared views', 'Vistas')}"><button type="button" data-view="coast">${L2('Coast', 'Costa')}</button><button type="button" data-view="spot" id="k-vspot"></button></div>
+    <button type="button" class="k-tilebtn" id="k-tilebtn" aria-pressed="true" aria-label="${L2('Rating boxes', 'Cajas de calificación')}">${L2('Boxes', 'Cajas')}</button>
     <div class="k-mapbtns">
       <div class="k-zoom"><button type="button" id="k-zin" aria-label="${L2('Zoom in', 'Acercar')}">${svg('<path d="M8 2v12M2 8h12"/>', '0 0 16 16')}</button><button type="button" id="k-zout" aria-label="${L2('Zoom out', 'Alejar')}">${svg('<path d="M2 8h12"/>', '0 0 16 16')}</button></div>
       <button type="button" class="k-fab" id="k-find">${svg('<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>')}<span>${L2('Find', 'Buscar')}</span></button>
@@ -579,9 +580,11 @@ export function mountKineticMap(d: KmDeps) {
   };
   const renderLegMini = () => {
     const el = $('k-legmini');
-    const top = order().find((id) => legend(id));
+    const on = order(), top = on.find((id) => legend(id));
     el.hidden = (WIDE.matches && !lcol) || !top;
-    if (top) el.innerHTML = `<span class="k-mono">${esc(layerName(top))}</span>${legend(top)}`;
+    // SPEAR: its own key (green water, red ban, dashed amber CHECK) sits under the beach ratings, not only in the Layers sheet.
+    const own = S.act === 'spear' && top !== 'spear' && on.includes('spear') ? 'spear' : null;
+    if (top) el.innerHTML = [top, own].filter((id): id is KmLayer => !!id).map((id) => `<span class="k-mono">${esc(layerName(id))}</span>${legend(id)}`).join('');
   };
 
   /* ---------- readings ---------- */
@@ -1077,7 +1080,13 @@ export function mountKineticMap(d: KmDeps) {
     if (cond) new MutationObserver(() => void (!q && ((q = true), requestAnimationFrame(sweep)))).observe(cond, { subtree: true, childList: true, characterData: true });
     d.sheets.subscribe(() => cond && d.sheets.current() === 'cond' && foldEmpty(cond));
   }
-  map.on('click', () => !WIDE.matches && S.sheet && S.sheet !== 'here' && closeSheet());
+  // A tap closes another open drawer on the phone; otherwise it moves the crosshair to the tapped point, so WHAT'S HERE
+  // and the readings read where you tapped, not where the map happened to be centred (Joseph 2026-11-16).
+  map.on('click', (e) => {
+    if (!WIDE.matches && S.sheet && S.sheet !== 'here') return closeSheet();
+    if (S.sheet && S.sheet !== 'here') return;
+    map.easeTo({ center: e.lngLat, duration: 350 });
+  });
 
   /** An old drawer (WATCH, BOAT, CORAL SITES, LIVE OBS, SYSTEM CHECK, CONDITIONS...), restyled, over the map. */
   function openTool(id: SheetId | 'sync') {
@@ -1228,6 +1237,18 @@ export function mountKineticMap(d: KmDeps) {
   $('k-scheme').addEventListener('click', () => setScheme(currentScheme() === 'dark' ? 'light' : 'dark'));
 
   /* ---------- views ---------- */
+  // The rating boxes can be hidden (the dots stay): remembered on this device.
+  const tileBtn = $('k-tilebtn');
+  const setTiles = (on: boolean) => {
+    coast.setTiles(on);
+    tileBtn.setAttribute('aria-pressed', String(on));
+  };
+  try { setTiles(localStorage.getItem('km.tiles') !== '0'); } catch { setTiles(true); }
+  tileBtn.addEventListener('click', () => {
+    const on = tileBtn.getAttribute('aria-pressed') !== 'true';
+    setTiles(on);
+    try { localStorage.setItem('km.tiles', on ? '1' : '0'); } catch { /* private window: the toggle still works for this visit */ }
+  });
   app.querySelectorAll<HTMLElement>('.k-views button').forEach((b) =>
     b.addEventListener('click', () => {
       if (b.dataset.view === 'coast') map.fitBounds([[-82.9, 9.57], [-82.58, 9.81]], { duration: 1100 });

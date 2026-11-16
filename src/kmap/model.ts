@@ -252,13 +252,54 @@ export function coastNear(mask: Mask, at: readonly [number, number], radiusM: nu
 
 /* ---------- pins ---------- */
 
-export interface PinBox { id: string; x: number; y: number; w: number; h: number; rank: number }
+export interface PinBox {
+  id: string; x: number; y: number; w: number; h: number; rank: number;
+  /** Unit vector from the pin toward the mainland, in screen px (x right, y down). The tile stays on that side, never out to sea. */
+  land?: readonly [number, number];
+}
 export interface Rect { x: number; y: number; w: number; h: number }
 /** Half the size of a pin's square plus its halo, in px: a tile keeps off every square, not only its own. */
 export const PIN_SQUARE = 11;
 /**
+ * Tile offsets (its top-left from the pin) on the landward side only: bearings within 100° of the direction to the
+ * mainland, nearest the land direction first, at three distances. Seaward spots are never offered, so a tile drops to its
+ * square before it covers the water. Pure.
+ */
+function landTries(p: PinBox): [number, number][] {
+  const [lx, ly] = p.land!;
+  const base = Math.atan2(ly, lx);
+  const out: { dx: number; dy: number; k: number }[] = [];
+  for (const d of [20, 44, 72])
+    for (const a of [0, 25, -25, 50, -50, 75, -75, 100, -100]) {
+      const th = base + (a * Math.PI) / 180;
+      // The tile's centre sits d px out, plus half its size along that bearing, so it clears the pin's square.
+      const cx = Math.cos(th) * (d + p.w / 2 * Math.abs(Math.cos(th))), cy = Math.sin(th) * (d + p.h / 2 * Math.abs(Math.sin(th)));
+      out.push({ dx: cx - p.w / 2, dy: cy - p.h / 2, k: d / 20 + Math.abs(a) / 40 });
+    }
+  return out.sort((a, b) => a.k - b.k).map((o) => [o.dx, o.dy]);
+}
+
+/**
+ * Which way the mainland lies from a point, as a unit vector [east, north], from a land mask: the mean direction of the
+ * land cells among 16 bearings at `radiusM`. Null when it is all land or all sea around. Pure.
+ */
+export function landward(mask: Mask, at: readonly [number, number], radiusM: number): [number, number] | null {
+  const cosL = Math.cos((at[1] * Math.PI) / 180);
+  let sx = 0, sy = 0, n = 0;
+  for (let i = 0; i < 16; i++) {
+    const a = (2 * Math.PI * i) / 16, cx = Math.cos(a), cy = Math.sin(a);
+    const lng = at[0] + (cx * radiusM) / (DEG_M * cosL), lat = at[1] + (cy * radiusM) / DEG_M;
+    const col = Math.floor((lng - mask.lon0) / mask.dlon), row = Math.floor((mask.lat0 - lat) / mask.dlat);
+    if (col < 0 || row < 0 || col >= mask.cols || row >= mask.rows) continue;
+    if (mask.z[row * mask.cols + col] === 1) (sx += cx), (sy += cy), n++;
+  }
+  const m = Math.hypot(sx, sy);
+  return n === 0 || n === 16 || m < 1e-6 ? null : [sx / m, sy / m];
+}
+
+/**
  * Place rating tiles without overlap: best rank first, each tries a few spots around its anchor (above-right first,
- * the sea side on this coast) and is dropped to its square when none fits. A tile never covers another tile, any
+ * landward when the pin has a land direction) and is dropped to its square when none fits. A tile never covers another tile, any
  * pin's square, or one of the `obstacles` (the map's own panels and buttons). It keeps off the `soft` boxes too (the
  * fish zone names, PLAN 7.85) where it can, and covers one only when no other spot fits. Returns the placed boxes'
  * top-left corners. Pure.
@@ -271,7 +312,7 @@ export function placePins(pins: readonly PinBox[], bounds: { w: number; h: numbe
   const over = (a: Rect, b: Rect, g: number) => a.x < b.x + b.w + g && b.x < a.x + a.w + g && a.y < b.y + b.h + g && b.y < a.y + a.h + g;
   const hit = (a: Rect) => placed.some((b) => over(a, b, gap)) || squares.some((b) => over(a, b, 0)) || obstacles.some((b) => over(a, b, gap));
   for (const p of [...pins].sort((a, b) => b.rank - a.rank)) {
-    const tries: [number, number][] = [
+    const tries: [number, number][] = p.land ? landTries(p) : [
       [14, -p.h - 26], [-p.w / 2, -p.h - 34], [-p.w - 14, -p.h - 26], [14, -p.h - 64], [-p.w - 14, -p.h - 64],
       [22, -p.h / 2], [-p.w - 22, -p.h / 2], [18, 14], [-p.w - 18, 14], [-p.w / 2, 26],
     ];
@@ -302,9 +343,12 @@ const CAP_EM = 0.72;
  * A map label's box in px, estimated from its lines (characters × size), its anchor and its offset in em (as the
  * style's text-offset): for keeping the rating tiles off the fish zone names. Pure.
  */
-export function labelRect(pt: { x: number; y: number }, lines: readonly { text: string; size: number }[], anchor: string, off: readonly [number, number] = [0, 0]): Rect {
-  const w = Math.max(0, ...lines.map((l) => l.text.length * l.size * CAP_EM));
-  const h = lines.reduce((a, l) => a + l.size * 1.2, 0);
+export function labelRect(pt: { x: number; y: number }, lines: readonly { text: string; size: number }[], anchor: string, off: readonly [number, number] = [0, 0], maxEm = Infinity): Rect {
+  const cap = maxEm * (lines[0]?.size ?? 0);
+  // A line wider than the style's text-max-width wraps: narrower box, more lines.
+  const wrap = lines.map((l) => ({ w: Math.min(l.text.length * l.size * CAP_EM, cap || Infinity), n: Math.max(1, Math.ceil((l.text.length * l.size * CAP_EM) / (cap || Infinity))), size: l.size }));
+  const w = Math.max(0, ...wrap.map((l) => l.w));
+  const h = wrap.reduce((a, l) => a + l.n * l.size * 1.2, 0);
   const base = lines[0]?.size ?? 0;
   const [fx, fy] = ANCHOR_AT[anchor] ?? ANCHOR_AT.center;
   return { x: pt.x + off[0] * base - fx * w, y: pt.y + off[1] * base - fy * h, w, h };
