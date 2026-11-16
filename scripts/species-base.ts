@@ -1,10 +1,10 @@
 /**
  * Writes the shared species base (src/species/base.gen.ts) from the species guide's published data:
  * `npm run data:base`. Reads public/data/guide/index.json and sp/<id>.json for every species the map models
- * (src/fishing/occurrence-taxa.ts). Safe to run any time: it only reads the guide and writes one file.
+ * (src/species/kinds.ts). Safe to run any time: it only reads the guide and writes one file.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { OCCURRENCE_TAXA } from '../src/fishing/occurrence-taxa.ts';
+import { OCCURRENCE_TAXA } from '../src/species/kinds.ts';
 import { baseModule, buildBase } from '../src/species/build.ts';
 
 const dir = 'public/data/guide';

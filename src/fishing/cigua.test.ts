@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BASE } from '../species/base.gen';
 import { ciguaSpecies, strictestCm } from './cigua';
 import { ciguaBoatHtml, ciguaNoteHtml } from './cigua-note';
-import { OCCURRENCE_TAXA } from './occurrence-taxa';
+import { OCCURRENCE_TAXA } from '../species/kinds';
 import { OFFSHORE } from './offshore';
 import { SPECIES } from './species';
 

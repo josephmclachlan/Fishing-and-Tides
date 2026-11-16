@@ -22,7 +22,7 @@ export function mountBoatLayer(map: Map, store: BoatStore, position: () => [numb
     const track: Feature[] = s.points.length > 1 ? [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: s.points.map((p) => [p.lng, p.lat]) } }] : [];
     const pins: Feature[] = s.pins.map((p) => ({
       type: 'Feature',
-      properties: { kind: p.kind, label: p.kind === 'catch' ? t(`boat.sp.${p.species ?? 'other'}` as Key) : '' },
+      properties: { kind: p.kind, label: p.kind === 'catch' ? t(`fish.${p.species ?? 'other'}` as Key) : '' },
       geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
     }));
     const at = position();

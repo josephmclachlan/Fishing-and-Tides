@@ -12,7 +12,7 @@ import { mldLevel } from './adapters/mld';
 import type { NavWarning } from './adapters/navwarn';
 import { t, type Key } from './i18n';
 import { closeButton, type Sheets } from './sheets';
-import { BOAT_SPECIES } from './boat/species';
+import { LOG_SPECIES } from './species/kinds';
 import { createGps, type GpsState } from './boat/gps';
 import type { BoatStore } from './boat/store';
 import { M_PER_NM, recentSpeedKt, toGPX, trackStats } from './boat/track';
@@ -174,7 +174,7 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     $('b-pins').textContent = String(s.pins.length);
     $('b-rec').textContent = s.recording ? t('boat.stop') : t('boat.rec');
     $('b-rec').classList.toggle('on', s.recording);
-    $('b-sp').textContent = t(`boat.sp.${BOAT_SPECIES[sp]}` as Key);
+    $('b-sp').textContent = t(`fish.${LOG_SPECIES[sp]}` as Key);
     // Offshore read at the boat, or at the map centre with no fix (PLAN 7.17).
     const at = gps.state() === 'ok' ? gps.last() : null;
     const c = at ?? map.getCenter();
@@ -184,10 +184,10 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     const o = offshore()?.(c.lng, c.lat);
     $('b-front').textContent = !o ? '--' : o.front ? `${o.front.km.toFixed(1)} ${t('unit.km')} ${COMPASS[Math.round(o.front.bearingDeg / 45) % 8]} · ${t(`boat.front.${o.front.kind}` as Key)}` : t('boat.front.none');
     $('b-mld').textContent = !o || o.mldM === null ? '--' : `${Math.round(o.mldM)} ${t('unit.m')} · ${t(`boat.mld.${mldLevel(o.mldM)}` as Key)}`;
-    $('b-off').innerHTML = !o || !o.scores.length ? '--' : o.scores.slice(0, 2).map((s) => `<span class="${s.score >= 0.6 ? 'green' : ''}">${t(`boat.sp.${s.id}` as Key)} ${Math.round(s.score * 100)}</span>`).join(' · ');
+    $('b-off').innerHTML = !o || !o.scores.length ? '--' : o.scores.slice(0, 2).map((s) => `<span class="${s.score >= 0.6 ? 'green' : ''}">${t(`fish.${s.id}` as Key)} ${Math.round(s.score * 100)}</span>`).join(' · ');
     // Ciguatera for the boat fish shown (fishing/cigua.ts): the size to keep, the same as the fish panel and the guide.
     const cig = (o?.scores.slice(0, 2) ?? []).flatMap((x) => {
-      const tier = OFFSHORE.find((f) => f.id === x.id)?.ciguatera, name = t(`boat.sp.${x.id}` as Key), cm = strictestCm(x.id);
+      const tier = OFFSHORE.find((f) => f.id === x.id)?.ciguatera, name = t(`fish.${x.id}` as Key), cm = strictestCm(x.id);
       return !tier ? [] : tier !== 'rare' && cm ? [t('boat.cig', { name, cm })] : [t('boat.cig.rare', { name })];
     });
     $('b-off-cig').hidden = !cig.length;
@@ -196,7 +196,7 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     $('b-list').innerHTML = s.pins
       .slice(-5)
       .reverse()
-      .map((p) => `<li data-id="${p.id}"><button type="button" class="tab pin-go">${clock(p.t)} ${p.kind === 'catch' ? t(`boat.sp.${p.species ?? 'other'}` as Key) : t('boat.mark')}${p.depthM !== undefined ? ` ${Math.round(p.depthM)}${t('unit.m')}` : ''}</button><button type="button" class="tab pin-x" aria-label="${t('boat.remove')}">${UI.close}</button></li>`)
+      .map((p) => `<li data-id="${p.id}"><button type="button" class="tab pin-go">${clock(p.t)} ${p.kind === 'catch' ? t(`fish.${p.species ?? 'other'}` as Key) : t('boat.mark')}${p.depthM !== undefined ? ` ${Math.round(p.depthM)}${t('unit.m')}` : ''}</button><button type="button" class="tab pin-x" aria-label="${t('boat.remove')}">${UI.close}</button></li>`)
       .join('');
   }
 
@@ -216,7 +216,7 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
     }
     const now = Date.now();
     const depth = depthAt()?.(f.lng, f.lat);
-    const species = kind === 'catch' ? BOAT_SPECIES[sp] : undefined;
+    const species = kind === 'catch' ? LOG_SPECIES[sp] : undefined;
     const scored = species ? scoreCatch()?.(f.lng, f.lat, now, species) : null;
     store.addPin({ lng: f.lng, lat: f.lat, t: now }, kind, { species, depthM: depth, ...(scored ?? {}) });
   };
@@ -246,8 +246,8 @@ export function mountBoatPanel(root: HTMLElement, map: Map, store: BoatStore, sh
   });
   $('b-mark').addEventListener('click', () => pin('mark'));
   $('b-catch').addEventListener('click', () => pin('catch'));
-  $('b-prev').addEventListener('click', () => ((sp = (sp + BOAT_SPECIES.length - 1) % BOAT_SPECIES.length), update()));
-  $('b-next').addEventListener('click', () => ((sp = (sp + 1) % BOAT_SPECIES.length), update()));
+  $('b-prev').addEventListener('click', () => ((sp = (sp + LOG_SPECIES.length - 1) % LOG_SPECIES.length), update()));
+  $('b-next').addEventListener('click', () => ((sp = (sp + 1) % LOG_SPECIES.length), update()));
   $('b-export').addEventListener('click', () => {
     const s = store.state();
     if (!s.points.length && !s.pins.length) return say(t('boat.exportEmpty'));

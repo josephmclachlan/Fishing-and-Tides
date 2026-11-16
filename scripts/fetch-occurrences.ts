@@ -16,7 +16,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { REGION } from '../src/region.ts';
-import { OCCURRENCE_TAXA, type OccurrenceFile } from '../src/fishing/occurrence-taxa.ts';
+import { OCCURRENCE_TAXA, type OccurrenceFile } from '../src/species/kinds.ts';
 
 const PAD = 0.5;
 const [[w0, s0], [e0, n0]] = REGION.bounds;
