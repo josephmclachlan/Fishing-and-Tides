@@ -51,19 +51,19 @@ export function mountNotesPage(deps: NotesPageDeps) {
   el.setAttribute('aria-modal', 'true');
   el.setAttribute('aria-labelledby', 'nt-h1');
   el.innerHTML = `
-    <div class="fc-page" id="cig-page">
+    <div class="fc-page" id="nt-page">
       <header class="fc-top fc-in">
         <p class="fc-brand fc-mono">${t('fc.brand')}<span class="fc-hide-s"> · ${t('fc.region')}</span></p>
         <div class="fc-ctrls">
-          <button type="button" class="fc-ctl fc-back" id="cig-back" title="${esc(CHROME.backTitle[lang])}"><svg viewBox="0 0 24 24" aria-hidden="true" class="cig-ico"><path d="M15 5l-7 7 7 7"/></svg><span id="cig-back-l">${esc(CHROME.back.map[lang])}</span></button>
+          <button type="button" class="fc-ctl fc-back" id="nt-back" title="${esc(CHROME.backTitle[lang])}"><svg viewBox="0 0 24 24" aria-hidden="true" class="cig-ico"><path d="M15 5l-7 7 7 7"/></svg><span id="nt-back-l">${esc(CHROME.back.map[lang])}</span></button>
           <div class="fc-lang" role="group" aria-label="${t('fc.langGroup')}"><button type="button" data-lang="en" aria-pressed="${lang === 'en'}">EN</button><button type="button" data-lang="es" aria-pressed="${lang === 'es'}">ES</button></div>
-          <button type="button" class="fc-ctl fc-sq fc-themeb" id="cig-scheme" aria-label="${t('fc.scheme')}" title="${t('fc.scheme')}"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 2a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg></button>
+          <button type="button" class="fc-ctl fc-sq fc-themeb" id="nt-scheme" aria-label="${t('fc.scheme')}" title="${t('fc.scheme')}"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 2a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg></button>
         </div>
         <h1 id="nt-h1">${esc(TITLE[lang])}</h1>
         <p class="fc-subline fc-mono"><b>${esc(SUB[lang])}</b></p>
       </header>
-      <nav class="cig-tabs fc-in" id="cig-tabs" role="tablist" aria-label="${esc(CHROME.tabs[lang])}"></nav>
-      <main class="cig-body fc-in" id="cig-body" role="tabpanel"></main>
+      <nav class="cig-tabs fc-in" id="nt-tabs" role="tablist" aria-label="${esc(CHROME.tabs[lang])}"></nav>
+      <main class="cig-body fc-in" id="nt-body" role="tabpanel"></main>
       <footer class="fc-foot fc-in"><p class="fc-note">${esc(NOTE[lang])}</p></footer>
     </div>`;
   document.body.appendChild(el);
@@ -78,11 +78,11 @@ export function mountNotesPage(deps: NotesPageDeps) {
   const applyScheme = () => {
     const s = scheme();
     el.dataset.scheme = s;
-    $('cig-scheme').title = t(s === 'dark' ? 'fc.scheme.light' : 'fc.scheme.dark');
+    $('nt-scheme').title = t(s === 'dark' ? 'fc.scheme.light' : 'fc.scheme.dark');
     if (!el.hidden) themeMeta();
   };
   media?.addEventListener?.('change', applyScheme);
-  $('cig-scheme').addEventListener('click', () => (put(storage, SCHEME_KEY, scheme() === 'dark' ? 'light' : 'dark'), applyScheme()));
+  $('nt-scheme').addEventListener('click', () => (put(storage, SCHEME_KEY, scheme() === 'dark' ? 'light' : 'dark'), applyScheme()));
   el.querySelectorAll<HTMLElement>('.fc-lang [data-lang]').forEach((b) =>
     b.addEventListener('click', () => {
       const l = b.dataset.lang as Lang;
@@ -95,9 +95,9 @@ export function mountNotesPage(deps: NotesPageDeps) {
   let cameFrom: From = 'map';
 
   const render = () => {
-    $('cig-tabs').innerHTML = tabsHtml(tab, lang, notesHash);
-    $('cig-body').innerHTML = sectionHtml(tab, lang);
-    $('cig-body').setAttribute('aria-label', tab);
+    $('nt-tabs').innerHTML = tabsHtml(tab, lang, notesHash);
+    $('nt-body').innerHTML = sectionHtml(tab, lang);
+    $('nt-body').setAttribute('aria-label', tab);
   };
 
   const show = () => {
@@ -105,7 +105,7 @@ export function mountNotesPage(deps: NotesPageDeps) {
     el.hidden = false;
     document.body.classList.add('fc-open');
     mapMeta = meta?.getAttribute('content') ?? null;
-    $('cig-back-l').textContent = CHROME.back[cameFrom][lang];
+    $('nt-back-l').textContent = CHROME.back[cameFrom][lang];
     applyScheme();
     themeMeta();
     render();
@@ -127,7 +127,7 @@ export function mountNotesPage(deps: NotesPageDeps) {
     const changed = r.tab !== tab;
     tab = r.tab;
     if (el.hidden) show();
-    else if (changed) (render(), (el.scrollTop = 0), $('cig-page').scrollTo?.(0, 0));
+    else if (changed) (render(), (el.scrollTop = 0), $('nt-page').scrollTo?.(0, 0));
   };
   // A tap on a #link fires popstate before hashchange, and popstate carries no old URL: track it here, so the
   // back button returns to the exact page and species it was opened from (not the map).
@@ -140,13 +140,13 @@ export function mountNotesPage(deps: NotesPageDeps) {
   window.addEventListener('hashchange', onNav);
   window.addEventListener('popstate', () => onNav());
   // Tabs are links; step by arrows when one has focus.
-  $('cig-tabs').addEventListener('keydown', (e) => {
+  $('nt-tabs').addEventListener('keydown', (e) => {
     const ev = e as KeyboardEvent;
     if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
-    const links = [...$('cig-tabs').querySelectorAll<HTMLAnchorElement>('a')];
+    const links = [...$('nt-tabs').querySelectorAll<HTMLAnchorElement>('a')];
     const i = links.findIndex((a) => a.dataset.tab === tab) + (ev.key === 'ArrowLeft' ? -1 : 1);
     links[i]?.click();
-    $('cig-tabs').querySelector<HTMLElement>('[aria-selected="true"]')?.focus();
+    $('nt-tabs').querySelector<HTMLElement>('[aria-selected="true"]')?.focus();
   });
   document.addEventListener('keydown', (e) => {
     if (!el.hidden && e.key === 'Escape') {
@@ -154,9 +154,9 @@ export function mountNotesPage(deps: NotesPageDeps) {
       close();
     }
   });
-  $('cig-back').addEventListener('click', () => close());
+  $('nt-back').addEventListener('click', () => close());
   // A superscript number scrolls to its source; it must not become the page's own link (any other hash hides the page).
-  $('cig-body').addEventListener('click', (e) => {
+  $('nt-body').addEventListener('click', (e) => {
     const a = (e.target as Element).closest<HTMLAnchorElement>('a[href^="#cig-src-"]');
     if (!a) return;
     e.preventDefault();

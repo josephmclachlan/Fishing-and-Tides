@@ -816,7 +816,8 @@ export function mountKineticMap(d: KmDeps) {
     if (!idAct) return '';
     const id = d.openGuide ? `<button type="button" class="k-link" data-go="identify"><span>${L2('Identify what you see', 'Identifica lo que ves')}</span>${ARROW}</button>` : '';
     const dp = S.act === 'fish' || S.act === 'spear' ? `<a class="k-link" href="#dispatch"><span>${L2('Kill, bleed, ice your catch', 'Mata, desangra y enfría tu pesca')}</span>${ARROW}</a>` : '';
-    return id || dp ? `<div class="k-links">${id}${dp}</div>` : '';
+    const nt = `<a class="k-link" href="#notes"><span>${L2('Field notes: rules, rigs, cooking', 'Notas de campo: reglas, aparejos, cocina')}</span>${ARROW}</a><a class="k-link" href="#notes/aid"><span>${L2('Stung or bitten? First aid', '¿Picadura o mordida? Primeros auxilios')}</span>${ARROW}</a>`;
+    return `<div class="k-links">${id}${dp}${nt}</div>`;
   };
   /**
    * Fish and sail: the next boat window from this spot (mockup G: "Boat window · Wed 11 · 05:30–10:00 · Small boat OK"),

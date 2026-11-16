@@ -87,6 +87,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
         </div>
         <h1 id="gd-title">${t('gd.title')}</h1>
         <p class="fc-subline fc-mono"><b id="gd-sub">${t('gd.loading')}</b></p>
+        <p class="gd-nlinks fc-mono"><a href="#notes/aid">${esc(t('nt.aid'))}</a> · <a href="#notes/rules">${esc(t('nt.rules'))}</a> · <a href="#notes/words">${esc(t('nt.words'))}</a></p>
       </header>
       <nav class="gd-modes fc-in" id="gd-modes" role="tablist" aria-label="${esc(t('gd.modes'))}"></nav>
       <div class="gd-groups-w fc-in"><div class="gd-groups" id="gd-groups" role="toolbar" aria-label="${esc(t('gd.groups'))}"></div></div>
