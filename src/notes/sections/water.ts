@@ -60,10 +60,9 @@ export const water: Section = {
       k: 'flow',
       h: L('If one catches you', 'Si una le atrapa'),
       steps: [
-        { ico: 'float', h: L('Stay calm', 'Mantenga la calma'), t: L('Float or tread water. Do not fight it.{noaa}', 'Flote o mantenga la cabeza fuera. No luche contra ella.{noaa}') },
-        { ico: 'wave', h: L('Call and wave', 'Grite y haga señas'), t: L('Wave your arms so people see you.{noaa}', 'Agite los brazos para que le vean.{noaa}') },
-        { ico: 'side', h: L('Swim sideways', 'Nade de lado'), t: L('If you swim well, go parallel to the beach, then angle in.{noaa}', 'Si nada bien, vaya paralelo a la playa y luego entre en diagonal.{noaa}') },
-        { ico: 'float', tone: 'go', h: L('Tired? Float', '¿Cansado? Flote'), t: L('Lie on your back and let it carry you. It weakens past the waves, and you can swim back from there.{bu}', 'Flote boca arriba y deje que le lleve. Pierde fuerza pasadas las olas, y desde ahí puede volver nadando.{bu}') },
+        { ico: 'float', h: L('Do not fight it', 'No luche contra ella'), t: L('Stay calm. It pulls you out, not under.{noaa}', 'Mantenga la calma. Le lleva hacia afuera, no hacia abajo.{noaa}') },
+        { ico: 'side', h: L('Swim sideways', 'Nade de lado'), t: L('Swim along the beach, not toward it. Once out of the pull, angle back in to shore.{noaa}', 'Nade a lo largo de la playa, no hacia ella. Cuando salga del jalón, vuelva en diagonal a la orilla.{noaa}') },
+        { ico: 'wave', tone: 'go', h: L('Cannot? Float and wave', '¿No puede? Flote y haga señas'), t: L('Lie on your back, wave and shout. The pull weakens past the waves, and you can swim back from there.{noaa}{bu}', 'Flote boca arriba, haga señas y grite. El jalón pierde fuerza pasadas las olas, y desde ahí puede volver nadando.{noaa}{bu}') },
       ],
     },
     {
