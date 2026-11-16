@@ -4,7 +4,8 @@ import './style.css';
 import './brand.css';
 import { registerSW } from 'virtual:pwa-register';
 import { createMap, mapStarted, startMap, STYLE_URL } from './map';
-import { holdMapWork, releaseMapWork, whenMapShown } from './map-shown';
+import { holdMapWork, onMapWork, releaseMapWork, whenMapShown } from './map-shown';
+import { createLaunch, runMapLoader, watchMap, type MapHooks } from './boot';
 import { mountSyncUi } from './sync-ui';
 import { tripJobs } from './offline/jobs';
 import { mountPinchGuard } from './pinch-guard';
@@ -192,6 +193,17 @@ document.documentElement.lang = settings.lang();
 const map = createMap('map', takeView(safeSession()));
 // Map drawings wait until the map is first shown (map-shown.ts; released at the end of this file).
 holdMapWork();
+// LAUNCH SCREEN (PLAN 7.160): already on screen from index.html. Each start-up feed below is handed to `launch.track`
+// under the step it feeds; one dot turns into an activity icon per finished step, and the screen fades only once the
+// first page is drawn with everything (`launch.ready`, at the end of this file).
+const BOOT_STEPS = ['tides', 'wind', 'waves', 'weather', 'rain', 'lightning', 'sea', 'beaches'] as const;
+const launch = createLaunch(BOOT_STEPS, {
+  region: t('boot.region'),
+  loading: (step) => t('boot.loading', { step }),
+  step: (id) => t(`boot.step.${id}` as Key),
+  ready: t('boot.ready'),
+  slow: (step) => t('boot.slow', { step }),
+});
 /** MODERN is the Kinetic Plus map (PLAN 7.70): its own shell over the same map, layers and data. */
 const MODERN = currentTheme() === 'modern';
 /** The Kinetic Plus shell, mounted at the end of this file once every feed it reads is declared. */
@@ -332,7 +344,7 @@ let seaCoast: CoastTest | null = null;
 const seaFronts = () => (waterMask ? fronts.filter((c) => waterMask!(c.lng, c.lat)) : fronts);
 const frontsLayer = mountFronts(map);
 let fronts: FrontCell[] = [];
-fetchSatellite()
+launch.track('sea', fetchSatellite())
   .then((d) => {
     if (!d.sst && !d.sstCoast) return console.warn('sst: nothing published; using mock');
     satellite = d;
@@ -402,7 +414,7 @@ const crestsNow = () => {
   if (swellMotion) return rebuildSwell();
   wavesLayer.setCrests(waves ? crestGrid(REGION.bounds, 0.04, seaStateAt, waterMask) : []);
 };
-fetchWaves()
+launch.track('waves', fetchWaves())
   .then((d) => {
     if (!d.forecast && !d.climatology) return console.warn('waves: no forecast or climatology published; using mock');
     waves = d;
@@ -425,7 +437,7 @@ mountTimeSlider(hud, time);
 let gauge: GaugeReading[] = [];
 const tideHud = mountTideHud(hud, time, () => gauge);
 const loadGauge = () =>
-  fetchGauge({ hours: 30 })
+  launch.track('tides', fetchGauge({ hours: 30 }))
     // The gauge also corrects the predicted tide (PLAN 7.10): its last 24 h minus the prediction, fading over the days ahead.
     .then((d) => ((gauge = d.readings), corrections.setTide(tideFix(d.readings, Date.now())), tideHud?.refresh(), spotPage.refresh(), liveObs?.refresh()))
     .catch((err) => console.warn('tide gauge unavailable', err));
@@ -461,7 +473,7 @@ coralMode.subscribe((on) => coralLayer.setVisible(on));
 let coralHeat: CoralData | null = null;
 let coralHistory: CoralHistory | null = null;
 let coralHeatUi: { refresh(): void } | null = null;
-fetchCoral()
+launch.track('sea', fetchCoral())
   .then((d) => ((coralHeat = d), coralLayer.setHeat(d), coralHeatUi?.refresh()))
   .catch((err) => console.warn('coral heat stress unavailable', err));
 // MUD WEEKS (PLAN 7.39): daily Kd490 at each reef and the record's baselines and yearly peaks.
@@ -500,7 +512,7 @@ map.on('moveend', () => weatherHud?.refresh());
 // RAIN BY TOWN (PLAN 7.24): the four towns from the sharpest models, next 3 h from the slider.
 const townRainHud = mountTownRainHud(hud, { validMs: () => time.validMs() });
 time.subscribe(() => townRainHud?.refresh());
-fetchTownRain().then((d) => townRainHud?.set(d)).catch((err) => console.warn('town rain unavailable', err));
+launch.track('rain', fetchTownRain()).then((d) => townRainHud?.set(d)).catch((err) => console.warn('town rain unavailable', err));
 // RAIN CELLS (PLAN 7.24): satellite rain-cell nowcast per town and RAIN NOW on the map, refreshed every 5 minutes.
 rainNowHud = mountRainNowHud(hud);
 // Rain and sargassum drift on their own canvas (PLAN 7.86); null where there is no 2-D canvas, and the still layers stand.
@@ -513,7 +525,7 @@ if (driftMotion) {
 const rainLayer = mountRainLayer(map, driftMotion);
 time.subscribe(() => rainLayer.setTime(time.validMs()));
 const loadRainCells = () =>
-  fetchRainCells()
+  launch.track('rain', fetchRainCells())
     .then((d) => (d ? (rainNowHud?.set(d), rainLayer.set(d), rainLayer.setTime(time.validMs())) : rainNowHud?.setFailed()))
     .catch((err) => (console.warn('rain cells unavailable', err), rainNowHud?.setFailed()));
 loadRainCells();
@@ -525,7 +537,7 @@ const lightningLayer = mountLightning(map);
 let flashes: readonly Flash[] = [];
 let flashesAt = 0;
 const loadLightning = () =>
-  fetchLightning()
+  launch.track('lightning', fetchLightning())
     .then((d) => {
       if (!d) return lightningHud?.setFailed();
       flashes = d.flashes;
@@ -540,8 +552,8 @@ setInterval(loadLightning, 5 * 60000);
 let weatherData: WeatherData | null = null;
 /** The river and creek mouths among the rip sites (set when the mouths file loads), for their flood levels (PLAN 7.63). */
 let ripMouths: readonly RipSite[] = [];
-fetchSpotWind().then((d) => ((spotWind = d), weatherHud?.refresh(), diveHud?.refresh())).catch((err) => console.warn('spot wind unavailable', err));
-const weatherLoad = fetchWeather();
+launch.track('wind', fetchSpotWind()).then((d) => ((spotWind = d), weatherHud?.refresh(), diveHud?.refresh())).catch((err) => console.warn('spot wind unavailable', err));
+const weatherLoad = launch.track('weather', fetchWeather());
 weatherLoad.then((d) => ((weatherData = d), weatherHud?.setWeather(d), diveHud?.refresh(), ripFlow(), spotPhysics?.update())).catch((err) => console.warn('weather unavailable', err));
 let stormList: readonly Storm[] = [];
 boatSafety = () => {
@@ -1215,7 +1227,7 @@ mountSystemCheck(hud, sheets, { checks: () => allChecks(), net, storage: safeSto
 let metarObs: MetarObs[] = [];
 let passes: PassData | null = null;
 const liveObs = mountLiveObs(hud, map, sheets, () => ({ gauge, metar: metarObs, passes, fixes: { tide: corrections.tide(), wind: corrections.wind() } }));
-const metarLoad = fetchMetar();
+const metarLoad = launch.track('weather', fetchMetar());
 metarLoad.then((d) => ((metarObs = d.obs), liveObs.refresh())).catch((err) => console.warn('metar unavailable', err));
 // Ensemble blend (PLAN 7.4): score the weather models against the airport, then re-show the weather blended by that skill.
 Promise.all([weatherLoad, metarLoad, fetchHindcast()])
@@ -1304,12 +1316,12 @@ const refreshClarity = () => {
 };
 time.subscribe(refreshClarity);
 // River flow at the mouths (PLAN 7.15): GloFAS discharge against its median, for fishing near the mouths.
-fetchRiverFlow()
+launch.track('rain', fetchRiverFlow())
   .then((d) => ((riverFlow = d), refreshClarity(), ripFlow()))
   .catch((err) => console.warn('river flow unavailable', err));
 // BOAT daylight, pressure, next GO window and flood debris (PLAN 7.23 items 4, 5).
 mountBoatWindowHud(hud, map, { env: metricEnv, vessel: settings.vessel, validMs: () => time.validMs(), riverFlow: () => riverFlow });
-fetchCatchmentRain()
+launch.track('rain', fetchCatchmentRain())
   .then((d) => ((catchmentRain = d), refreshClarity()))
   .catch((err) => console.warn('catchment rain unavailable', err));
 
@@ -1330,7 +1342,7 @@ const runSargassum = () => {
   diveHud?.refresh();
 };
 time.subscribe(showSargassum);
-fetchSargassum()
+launch.track('sea', fetchSargassum())
   .then((d) => ((sargassum = d), runSargassum(), refreshBoatZones()))
   .catch((err) => console.warn('sargassum unavailable', err));
 
@@ -1368,7 +1380,7 @@ const applyWind = () => {
 const loadWind = () => {
   if (windLoading) return;
   windLoading = true;
-  fetchCurrents()
+  launch.track('sea', fetchCurrents())
   .then((d) => {
     if (!d.forecast) return console.warn('currents: no forecast published; using mock');
     currents = d;
@@ -1380,7 +1392,7 @@ const loadWind = () => {
   })
   .catch((err) => console.warn('currents unavailable', err));
 
-fetchWind()
+launch.track('wind', fetchWind())
     .then((d) => {
       if (!d.forecast && !d.climatology) return console.warn('wind: no forecast or climatology published; using mock');
       rawWind = d;
@@ -1514,7 +1526,10 @@ time.subscribe(queueSpotPhysics);
 setInterval(queueSpotPhysics, 60_000);
 
 // Depth, reefs and seamarks: static assets, precached for offline use.
-fetchSeafloor()
+// The launch screen's last step is the first worked-out read of every beach (the physics worker's first answer).
+let beachesRead: () => void = () => {};
+launch.track('beaches', new Promise<void>((resolve) => (beachesRead = resolve)));
+launch.track('beaches', fetchSeafloor())
   .then(({ data }) => {
     mountSeafloorHud(hud, map, data);
     landGrid = data.land;
@@ -1529,6 +1544,7 @@ fetchSeafloor()
     spotPhysics = createSpotPhysics(createPhysicsClient({ region: data.region, macro: data.macro, land: data.land, reefFlats: flatPolygons(data.reefs) }), baseConditions, () => time.validMs(), windExtras, spotSea);
     spotPhysics.subscribe(() => queueVerdict());
     spotPhysics.subscribe(() => physicsTick++);
+    spotPhysics.subscribe(() => beachesRead());
     spotPhysics.subscribe(() => {
       whenMapShown('rip', () => ripLayer.update(spotPhysics!.all(), data.land));
       surfBreaks.update((name) => spotPhysics!.byName(name)?.surf);
@@ -1676,7 +1692,7 @@ fetchSeafloor()
     coralLayer.setReefPolygons([data.marks, data.reefs]);
     whenMapShown('seafloor', () => mountSeafloor(map, data));
   })
-  .catch((err) => console.warn('seafloor layer unavailable', err));
+  .catch((err) => (beachesRead(), console.warn('seafloor layer unavailable', err)));
 
 // GO / NO-GO per activity (PLAN 7.8): the inputs at the cross-hair for the slider's hour, judged in verdict.ts.
 // Where a panel already judges something (the dive score, the BITE number, the boat verdict) it is read, not redone.
@@ -1852,6 +1868,28 @@ if (MODERN) {
 
 // The map is drawn only once it is shown (PLAN 7.102): while the forecast, coral or guide page covers it, its style,
 // tiles and drawing wait, and the feeds load once for both. Pages decide on their first tick what is open.
-const mapIfShown = () => document.body.classList.contains('fc-open') || (startMap(map), releaseMapWork());
+// The map loader (PLAN 7.160) covers the map the first time it opens, until its tiles and waiting drawing are done.
+// When the app opens straight onto the map, the launch screen waits for the same instead.
+const mapHooks: MapHooks = {
+  styleLoaded: () => map.isStyleLoaded() === true,
+  onStyle: (fn) => void (map.isStyleLoaded() ? fn() : map.once('style.load', fn)),
+  onJobs: (fn) => void onMapWork(fn),
+  onIdle: (fn) => void (map.loaded() && map.areTilesLoaded() ? fn() : map.once('idle', fn)),
+};
+const mapIfShown = () => {
+  if (document.body.classList.contains('fc-open')) return;
+  if (!mapStarted(map)) {
+    if (launch.showing()) launch.hold(watchMap(mapHooks));
+    else void runMapLoader(mapHooks, { title: t('boot.map'), tiles: t('boot.mapTiles'), drawing: t('boot.mapDrawing'), ready: t('boot.ready'), slow: t('boot.mapSlow') });
+  }
+  startMap(map);
+  releaseMapWork();
+};
 new MutationObserver(mapIfShown).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 window.setTimeout(mapIfShown, 0);
+// Every start-up feed has been handed to the launch screen: when they are in, draw the open page once with everything,
+// then fade the launch screen (PLAN 7.160).
+void launch.ready(() => {
+  if (forecastPage.isOpen()) forecastPage.refresh();
+  mapIfShown();
+});

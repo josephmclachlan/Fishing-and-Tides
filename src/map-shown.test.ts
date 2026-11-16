@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { holdMapWork, mapWorkHeld, releaseMapWork, resetMapWork, whenMapShown } from './map-shown';
+import { holdMapWork, mapWorkHeld, onMapWork, releaseMapWork, resetMapWork, whenMapShown } from './map-shown';
 
 describe('map work held until the map is shown', () => {
   afterEach(resetMapWork);
@@ -36,5 +36,19 @@ describe('map work held until the map is shown', () => {
     releaseMapWork((fn) => tasks.push(fn));
     while (tasks.length) tasks.shift()!();
     expect(ran).toEqual(['good']);
+  });
+  it('reports progress to the map loader, at once for a late watcher', () => {
+    holdMapWork();
+    whenMapShown('a', () => {});
+    whenMapShown('b', () => {});
+    const seen: string[] = [];
+    onMapWork((d, t) => seen.push(`${d}/${t}`));
+    const tasks: (() => void)[] = [];
+    releaseMapWork((fn) => tasks.push(fn));
+    while (tasks.length) tasks.shift()!();
+    expect(seen).toEqual(['0/2', '1/2', '2/2']);
+    const late: string[] = [];
+    onMapWork((d, t) => late.push(`${d}/${t}`));
+    expect(late).toEqual(['2/2']);
   });
 });
