@@ -1671,7 +1671,7 @@ export const en = {
   'fc.note': 'Advisory only, not for navigation or safety decisions. The scores are the same ones the map uses.',
   'fc.art.surf': 'Wave {m} m high next to a surfer',
   'fc.art.fish': 'Moon, tide and fish for the bite',
-  'fc.art.water': 'Visibility {m} m along the reef',
+  'fc.art.water': 'Visibility {m} m at this spot, along the reef',
   'fc.art.sail': 'Boat heeling in {kt} kt of wind',
   'fc.bestWindow': 'Best window',
   'fc.g.knee': 'Knee',

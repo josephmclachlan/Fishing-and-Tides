@@ -8,6 +8,7 @@
 import { condSlot } from './cond-groups';
 import type { Map } from 'maplibre-gl';
 import { clock } from './astro-hud';
+import { daylightHours } from './metrics/forecast';
 import { nearest } from './geo';
 import { compassName } from './spot-charts';
 import { panelHeader } from './hud-kit';
@@ -210,7 +211,7 @@ export function mountDiveHud(root: HTMLElement, map: Map, spots: SpotPhysics, ti
       if (!(d in visFor)) visFor[d] = env.visAt(c.lng, c.lat, d + NOON);
       return visFor[d];
     };
-    const o = outlook((ms, h) => scoreAt(ms, h, vis(ms)) ?? { score: 0, reasons: [] }, day0, DAYS);
+    const o = outlook((ms, h) => scoreAt(ms, h, vis(ms)) ?? { score: 0, reasons: [] }, day0, DAYS, (d) => daylightHours(d, c.lat, c.lng));
     const today = o.days[0]?.best;
     $('time').textContent = today ? `${clock(today.start)}–${clock(today.end)}` : '--';
     const best = o.bestDay >= 0 ? o.days[o.bestDay] : null;

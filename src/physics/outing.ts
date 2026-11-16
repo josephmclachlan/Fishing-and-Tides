@@ -147,24 +147,42 @@ export interface OutingDay { dayStart: number; best: OutingWindow | null }
 
 const H = 3.6e6;
 
-/** Best window of one local day: hourly from sunrise to sunset (`span`, local hours [fromH, toH); 07:00 to 17:00 when not given), the run of hours within 10% of the day's best. */
-export function bestWindow(at: (ms: number, localHour: number) => OutingScore, dayStart: number, span: { fromH: number; toH: number } = { fromH: 7, toH: 17 }): OutingWindow | null {
+/** Fallback hours when a caller gives no sunrise and sunset, and the longest window offered. Callers pass the day's real daylight as `span`. */
+export const WINDOW_FROM_H = 7, WINDOW_TO_H = 17, WINDOW_MAX_H = 4;
+
+/**
+ * Best window of one local day: hourly over the day's daylight (`span`, local hours [fromH, toH), from that day's sunrise and
+ * sunset; 07:00 to 17:00 only when the caller gives none), then the run of hours within 10%
+ * of the day's best. A run longer than WINDOW_MAX_H hours is cut to the WINDOW_MAX_H hours with the highest mean score, so a flat
+ * day reads "09:00 to 13:00" and not "the whole day".
+ */
+export function bestWindow(at: (ms: number, localHour: number) => OutingScore, dayStart: number, span: { fromH: number; toH: number } = { fromH: WINDOW_FROM_H, toH: WINDOW_TO_H }): OutingWindow | null {
   const hours: { t: number; s: OutingScore }[] = [];
   for (let h = span.fromH; h < span.toH; h++) hours.push({ t: dayStart + h * H, s: at(dayStart + h * H, h) });
+  if (!hours.length) return null;
   const top = hours.reduce((a, b) => (b.s.score > a.s.score ? b : a));
   if (top.s.score <= 0) return null;
   const cut = top.s.score * 0.9;
   let a = hours.indexOf(top), b = a;
   while (a > 0 && hours[a - 1].s.score >= cut) a--;
   while (b < hours.length - 1 && hours[b + 1].s.score >= cut) b++;
+  if (b - a + 1 > WINDOW_MAX_H) {
+    let bestA = a, bestSum = -1;
+    for (let k = a; k + WINDOW_MAX_H - 1 <= b; k++) {
+      const sum = hours.slice(k, k + WINDOW_MAX_H).reduce((x, y) => x + y.s.score, 0);
+      if (sum > bestSum) (bestSum = sum), (bestA = k);
+    }
+    a = bestA;
+    b = a + WINDOW_MAX_H - 1;
+  }
   return { start: hours[a].t, end: hours[b].t + H, peak: top.s.score, reasons: top.s.reasons };
 }
 
 /** The best time of each of `days` local days from the one starting at `firstDayStart`, and the index of the best day. */
-export function outlook(at: (ms: number, localHour: number) => OutingScore, firstDayStart: number, days = 7): { days: OutingDay[]; bestDay: number } {
+export function outlook(at: (ms: number, localHour: number) => OutingScore, firstDayStart: number, days = 7, spanOf?: (dayStart: number) => { fromH: number; toH: number }): { days: OutingDay[]; bestDay: number } {
   const out = Array.from({ length: days }, (_, k) => {
     const dayStart = firstDayStart + k * 24 * H;
-    return { dayStart, best: bestWindow(at, dayStart) };
+    return { dayStart, best: bestWindow(at, dayStart, spanOf?.(dayStart)) };
   });
   let bestDay = -1, peak = 0;
   out.forEach((d, k) => d.best && d.best.peak > peak && ((peak = d.best.peak), (bestDay = k)));

@@ -679,7 +679,7 @@ export function mountKineticMap(d: KmDeps) {
   };
   let lastR: Reading[] = [];
   const hereHTML = () =>
-    `<button type="button" class="k-expand" data-expand>${svg('<path d="M3 3h5M3 3v5M17 17h-5M17 17v-5M3 3l5.5 5.5M17 17l-5.5-5.5"/>', '0 0 20 20')}<span>${L2('Expand data', 'Ampliar datos')}</span>${ARROW}</button><p class="k-here-ll k-mono"><span>${esc(llTxt())}</span><span>${L2('Layers on · tap to explain', 'Capas activas · toque para explicar')}</span></p><div class="k-tiles"></div><section class="k-dtls" hidden><h3 class="k-mono">${L2('In detail', 'En detalle')}<span>${L2('From Expand data', 'De Ampliar datos')}</span></h3><div class="k-dtlg"></div></section>`;
+    `<button type="button" class="k-expand" data-expand>${svg('<path d="M3 3h5M3 3v5M17 17h-5M17 17v-5M3 3l5.5 5.5M17 17l-5.5-5.5"/>', '0 0 20 20')}<span>${L2('Expand data', 'Ampliar datos')}</span>${ARROW}</button><p class="k-here-ll k-mono"><span>${esc(llTxt())}</span><span>${L2('Layers on · tap to explain', 'Capas activas · toque para explicar')}</span></p><p class="k-here-note k-mono">${L2(`These readings are for the crosshair, not for ${spot().name}. Open a spot to read that place.`, `Estas lecturas son de la mira, no de ${spot().name}. Abra un punto para leer ese lugar.`)}</p><div class="k-tiles"></div><section class="k-dtls" hidden><h3 class="k-mono">${L2('In detail', 'En detalle')}<span>${L2('From Expand data', 'De Ampliar datos')}</span></h3><div class="k-dtlg"></div></section>`;
   /** The old map's finer rows for the activity (detail.ts), as compact cards under the tiles; each opens Expand data. */
   const condRoot = () => document.getElementById('cond-panel');
   const detailHTML = (x: Detail) =>

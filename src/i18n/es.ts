@@ -1671,7 +1671,7 @@ export const es: Dict = {
   'fc.note': 'Solo orientativo, no para navegación ni decisiones de seguridad. Los puntajes son los mismos del mapa.',
   'fc.art.surf': 'Ola de {m} m junto a un surfista',
   'fc.art.fish': 'Luna, marea y peces para la picada',
-  'fc.art.water': 'Visibilidad de {m} m a lo largo del arrecife',
+  'fc.art.water': 'Visibilidad de {m} m en este punto, a lo largo del arrecife',
   'fc.art.sail': 'Barco escorado con {kt} kt de viento',
   'fc.bestWindow': 'Mejor ventana',
   'fc.g.knee': 'Rodilla',
