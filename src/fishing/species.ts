@@ -9,7 +9,7 @@
  * Two modes (PLAN 7.120, Joseph 2026-11-16): EAT, fish to keep and eat (the default and the old set), and SPORT, fish to
  * catch and release (barracuda moved here: no size of it is safe to eat). A species is in exactly one mode.
  */
-export type SpeciesId = 'snook' | 'jack' | 'snapper' | 'mackerel' | 'grouper' | 'grunt' | 'pompano' | 'corvina' | 'mullet' | 'barracuda' | 'lionfish' | 'permit' | 'bonefish' | 'tarpon';
+export type SpeciesId = 'snook' | 'jack' | 'snapper' | 'mackerel' | 'grouper' | 'grunt' | 'pompano' | 'corvina' | 'mullet' | 'barracuda' | 'lionfish' | 'permit' | 'bonefish' | 'tarpon' | 'lobster' | 'octopus' | 'cigua';
 
 /** EAT: fish to keep and eat. SPORT: fish to catch and release. */
 export type FishMode = 'eat' | 'sport';
@@ -38,7 +38,10 @@ export interface Species {
   w: { mouth: number; reef: number; drop: number; sand?: number; grass?: number; surf?: number };
   /** How far, km, a river mouth's pull reaches (score falls off as a Gaussian of this width). */
   mouthReachKm: number;
-  /** Season factor per month (Jan..Dec), 0.7 (off) to 1 (peak). Kept narrow so a wrong guess costs little. */
+  /**
+   * Season factor per month (Jan..Dec), 0.7 (off) to 1 (peak). Kept narrow so a wrong guess costs little. 0 is a closed
+   * season (lobster, 1 March to 30 June): nothing is drawn for it and the panel says CLOSED SEASON.
+   */
   season: readonly number[];
   /**
    * Water the species feeds best in (PLAN 7.11, fishing/water.ts), each [floor from, ideal from, ideal to, floor from]:
@@ -57,6 +60,11 @@ export interface Species {
    * 102-110, found toxin in some Caribbean lionfish; Costa Rica has no published cases).
    */
   ciguatera?: boolean | 'caution';
+  /**
+   * Taken by hand, not hook or spear (PLAN 7.125: lobster, octopus, cigua): freediving or wading. A spearfishing permit
+   * covers fish only, so the panel says so, and like lionfish none is circled in any protected area.
+   */
+  byHand?: boolean;
 }
 
 export const SPECIES: readonly Species[] = [
@@ -94,14 +102,23 @@ export const SPECIES: readonly Species[] = [
   // Bonefish (macabí, SPORT): shallow sand and seagrass, often near mangrove creek mouths. This coast has no wide flats
   // (the tide moves a few tens of centimetres), which is why it is rare here (about 6 records). Calm water: no surf term.
   { id: 'bonefish', mode: 'sport', confidence: 'low', depthM: [0.1, 0.3, 2, 6], w: { mouth: 0.2, reef: 0, drop: 0, sand: 0.45, grass: 0.35 }, mouthReachKm: 1, season: Array(12).fill(0.95), water: { visM: [0.5, 1.5, 15, 30], sstC: [22, 25, 31, 34] } },
+  // By hand (PLAN 7.125, Joseph 2026-11-16: "lobster and other similar suggestions"): eaten here and living on reef and
+  // rock the map measures. Caribbean spiny lobster (langosta, and the spotted lobster): reef and rock 1 to 30 m, about 30
+  // records near this coast; closed 1 March to 30 June (OSPESCA OSP-02-09, applied by INCOPESCA), 140 mm tail minimum,
+  // never females with eggs, no scuba. Octopus (pulpo): reef, rock and rubble 0.5 to 25 m, about 13 records, no rule found.
+  // Cigua (West Indian top shell, Cittarium pica): wave-washed rock at the waterline, gathered at low tide; no Costa Rican
+  // rule found (a 2002 study recommended 40 mm shell width). Few records for octopus and cigua: RULE OF THUMB.
+  { id: 'lobster', mode: 'eat', byHand: true, depthM: [1, 3, 20, 30], w: { mouth: 0, reef: 0.8, drop: 0.2 }, mouthReachKm: 0.5, season: [1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], water: { visM: [1.5, 3, 20, 40], sstC: [22, 24, 30, 33] } },
+  { id: 'octopus', mode: 'eat', byHand: true, confidence: 'low', depthM: [0.5, 1, 15, 25], w: { mouth: 0, reef: 0.8, drop: 0.1, grass: 0.1 }, mouthReachKm: 0.5, season: Array(12).fill(0.95), water: { visM: [1.5, 3, 20, 40], sstC: [22, 24, 30, 33] } },
+  { id: 'cigua', mode: 'eat', byHand: true, confidence: 'low', depthM: [0.05, 0.2, 2, 5], w: { mouth: 0, reef: 0.9, drop: 0.1 }, mouthReachKm: 0.5, season: Array(12).fill(0.95), water: { visM: [0.3, 1, 20, 40], sstC: [20, 24, 31, 34] } },
   // Lionfish (pez león): invasive, eaten locally and its catch is encouraged; reef only, by spear, so clear water matters. All year.
   { id: 'lionfish', mode: 'eat', depthM: [1, 4, 40, 60], w: { mouth: 0, reef: 0.9, drop: 0.1 }, mouthReachKm: 0.5, season: Array(12).fill(1), water: { visM: [2, 6, 25, 40], sstC: [22, 24, 31, 33] }, ciguatera: 'caution' },
 ];
 
 /** PEAK at 0.97 or more, GOOD from 0.88, else OFF: a coarse word for the season factor. */
-export function seasonOf(sp: Species, month: number): 'peak' | 'good' | 'off' {
+export function seasonOf(sp: Species, month: number): 'peak' | 'good' | 'off' | 'closed' {
   const f = sp.season[((month % 12) + 12) % 12];
-  return f >= 0.97 ? 'peak' : f >= 0.88 ? 'good' : 'off';
+  return f === 0 ? 'closed' : f >= 0.97 ? 'peak' : f >= 0.88 ? 'good' : 'off';
 }
 
 /** The species of one mode, in list order. */

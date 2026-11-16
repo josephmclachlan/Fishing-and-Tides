@@ -13,7 +13,7 @@ describe('fish kind and guide link', () => {
   it('has a guide search for every model kind, and the links parse as guide routes', () => {
     for (const s of SPECIES) {
       expect(GUIDE_SEARCH[s.id]).toBeTruthy();
-      expect(parseGuideRoute(guideLinkFor(s.id))).toMatchObject({ mode: 'edible', group: 'fish', q: GUIDE_SEARCH[s.id] });
+      expect(parseGuideRoute(guideLinkFor(s.id))).toMatchObject({ mode: 'edible', group: s.byHand ? null : 'fish', q: GUIDE_SEARCH[s.id] });
     }
   });
 });
