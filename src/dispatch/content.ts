@@ -58,7 +58,7 @@ export const GRADES = {
 } as const;
 /** What each grade means, in the words of someone buying or cooking it. */
 export const GRADE_KEY = {
-  raw: W('Like just caught. Firm, clean, sweet. Fine for ceviche or raw.', 'Como recién pescado. Firme, limpio, dulce. Bueno para ceviche o crudo.'),
+  raw: W('Tastes freshly caught. Firm, clean, sweet. Fine for ceviche or raw.', 'Sabe a recién pescado. Firme, limpio, dulce. Bueno para ceviche o crudo.'),
   good: W('Still fresh. Cook it and it tastes great. Not for raw any more.', 'Todavía fresco. Cocinado sabe muy bien. Ya no es para comer crudo.'),
   ok: W('Flavour is fading and the flesh is going soft. Cook it today.', 'El sabor se apaga y la carne se pone blanda. Cocínalo hoy.'),
   off: W('Strong fishy smell, soft and sticky. Throw it out.', 'Olor fuerte a pescado, blando y pegajoso. Bótalo.'),
