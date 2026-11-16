@@ -242,7 +242,11 @@ export const RAIN_AREAS: readonly { name: string; rainAt: [number, number]; rain
 /**
  * Beach creeks that carry mud onto the swimming water after rain on the coastal hills (PLAN 7.89; Joseph 2026-11-13:
  * the creeks into Punta Uva, Cocles behind Bar Playa 506, and the three large ones at Playa Negra). Mouths from
- * data/fishing/mouths.geojson (OSM). CHECK, all of it: which creeks Joseph meant is not confirmed, and the catchment
+ * data/fishing/mouths.geojson (OSM). Joseph's satellite shots of the creek exits (2026-11-15) confirm Río Hone,
+ * Quebrada Honta and the one by the Puerto Viejo wreck (Joe Gyal) at Playa Negra, the Cocles creek (Río Cocles),
+ * Quebrada Ernesto on Playa Punta Uva, and one more that OSM lacks: at the north-east end of the Punta Uva cove beach,
+ * where the sand meets the point's forest. Its mouth is read off his shot (about 26 m east and 32 m north of Google's
+ * "Punta Uva Limon" pin, which sits on this spot's pin): CHECK. Hone Mark and Milla are unconfirmed: CHECK. The catchment
  * areas are not surveyed. They come from each creek's mapped length in OSM (OpenFreeMap z14, 2026-11) through
  * Hack's law inverted, A = (L / 1.4)^(1/0.6) (miles, square miles; Hack 1957), good to a factor of about 2; they
  * only scale how far the plume reaches (√area). Río Cocles includes Río Negro, which meets it at the mouth;
@@ -254,6 +258,8 @@ export const CREEK_PLUMES: { name: string; mouth: [number, number]; catchmentKm2
   { name: 'QUEBRADA JOE GYAL', mouth: [-82.75604, 9.6555], catchmentKm2: 0.5 },
   { name: 'RÍO COCLES', mouth: [-82.73255, 9.64817], catchmentKm2: 4 },
   { name: 'QUEBRADA ERNESTO', mouth: [-82.69428, 9.6382], catchmentKm2: 0.8 },
+  // The cove at the Punta Uva pin: drains only the point's hill behind the beach, ~600 m long, so about 0.3 km².
+  { name: 'PUNTA UVA COVE CREEK', mouth: [-82.68686, 9.64349], catchmentKm2: 0.3 },
   { name: 'QUEBRADA HONE MARK', mouth: [-82.66349, 9.632], catchmentKm2: 2 },
   { name: 'QUEBRADA MILLA', mouth: [-82.61163, 9.60621], catchmentKm2: 24 },
 ];
