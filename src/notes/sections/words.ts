@@ -1,2 +1,110 @@
 import type { Section } from '../content';
-export const words: Section = { id: 'words', title: { en: 'words', es: 'words' }, lede: { en: 'Coming soon.', es: 'Próximamente.' }, blocks: [], sources: {} };
+import type { L } from '../../ciguatera/content';
+
+const L = (en: string, es: string): L => ({ en, es });
+
+/** Plain two-language definitions of words a new local user meets in the app and the guide. */
+export const words: Section = {
+  id: 'words',
+  title: L('Glossary', 'Glosario'),
+  lede: L(
+    'Plain meanings, in English and Spanish, for the words you meet in the app and the guide.',
+    'Significados sencillos, en español e inglés, de las palabras que encuentra en la app y la guía.',
+  ),
+  blocks: [
+    { k: 'h', t: L('Sea and weather', 'Mar y clima') },
+    {
+      k: 'table',
+      head: [L('Word', 'Palabra'), L('Meaning', 'Significado')],
+      rows: [
+        [L('Swell', 'Oleaje de fondo'), L('Long, regular waves that travelled in from far away storms. They keep coming even when the wind here is calm.', 'Olas largas y regulares que vienen de tormentas lejanas. Siguen llegando aunque aquí el viento esté calmado.')],
+        [L('Surf zone', 'Zona de rompiente'), L('The strip of water near shore where waves break. It is dangerous for swimming and for launching small boats when the waves are big.', 'La franja de agua cerca de la orilla donde rompen las olas. Es peligrosa para nadar y para sacar botes pequeños cuando las olas son grandes.')],
+        [L('Rip current', 'Corriente de resaca'), L('A narrow, strong flow of water that runs from the beach out to sea through the waves. Do not fight it. Swim sideways, parallel to the beach, until it lets go, then swim in.', 'Un flujo angosto y fuerte de agua que va de la playa hacia el mar atravesando las olas. No luche contra ella. Nade de lado, paralelo a la playa, hasta que se suelte, y luego nade hacia la orilla.')],
+        [L('Current', 'Corriente'), L('Water moving in one direction. It can carry a swimmer, a drifting boat or a baited line away from where you started.', 'Agua que se mueve en una dirección. Puede arrastrar a un nadador, a un bote a la deriva o a una línea con carnada lejos de donde empezó.')],
+        [L('Surge', 'Vaivén del oleaje'), L('The back and forth push of water over rocks and reef when waves pass. It can throw a snorkeler or spearfisher into coral.', 'El empuje de ida y vuelta del agua sobre rocas y arrecife cuando pasan las olas. Puede lanzar a un buzo o pescador submarino contra el coral.')],
+        [L('Tide', 'Marea'), L('The slow rise and fall of the sea level, caused by the pull of the moon and sun. Here it is small, so wind and swell matter more than the tide for most days.', 'La subida y bajada lenta del nivel del mar, causada por la atracción de la luna y el sol. Aquí es pequeña, así que el viento y el oleaje importan más que la marea casi todos los días.')],
+        [L('Tide types', 'Tipos de marea'), L('Some places have two high and two low tides a day, some have one, and some have a mix. The Caribbean coast has a mixed, small tide.', 'Algunos lugares tienen dos pleamares y dos bajamares al día, otros una, y otros una mezcla. La costa Caribe tiene una marea mixta y pequeña.')],
+        [L('Spring tide', 'Marea viva'), L('The biggest tides of the month, near new moon and full moon. The sea rises higher and falls lower, and the currents run stronger.', 'Las mareas más grandes del mes, cerca de luna nueva y luna llena. El mar sube más y baja más, y las corrientes corren más fuertes.')],
+        [L('Neap tide', 'Marea muerta'), L('The smallest tides of the month, near the half moons. The water moves less and the currents are weaker.', 'Las mareas más pequeñas del mes, cerca de los cuartos de luna. El agua se mueve menos y las corrientes son más débiles.')],
+        [L('Visibility', 'Visibilidad'), L('How far you can see underwater, in metres. After heavy rain, river water makes it low and brown.', 'Qué tan lejos se ve bajo el agua, en metros. Después de lluvia fuerte, el agua de los ríos la baja y la vuelve café.')],
+        [L('Chlorophyll', 'Clorofila'), L('The green pigment of tiny drifting plants (plankton). More chlorophyll means greener, richer water, which can hold more baitfish but sees less.', 'El pigmento verde de las plantas diminutas a la deriva (plancton). Más clorofila significa agua más verde y rica, que puede tener más carnada pero se ve menos.')],
+        [L('Sargassum', 'Sargazo'), L('Brown floating seaweed that washes onto beaches in large piles. It rots and smells, and it can irritate the eyes and lungs.', 'Alga parda flotante que llega a las playas en grandes montones. Se pudre y huele, y puede irritar los ojos y los pulmones.')],
+        [L('Thermocline', 'Termoclina'), L('The depth where warm surface water suddenly turns cold below. Fish often gather along it.', 'La profundidad donde el agua tibia de la superficie pasa de golpe a agua fría abajo. Los peces suelen juntarse a lo largo de ella.')],
+      ],
+    },
+    { k: 'h', t: L('Fish and bodies', 'Peces y cuerpos') },
+    {
+      k: 'table',
+      head: [L('Word', 'Palabra'), L('Meaning', 'Significado')],
+      rows: [
+        [L('Ciguatera', 'Ciguatera'), L('A fish poisoning from a toxin that builds up in big reef fish. You cannot see, smell or taste it, and cooking does not remove it.{cdc}', 'Una intoxicación por una toxina que se acumula en peces grandes de arrecife. No se ve, huele ni saborea, y cocinar no la elimina.{cdc}')],
+        [L('Scombroid', 'Escombroide'), L('A food poisoning from fish that warmed up after being caught, such as tuna, mahi and wahoo. It causes flushing, headache and a rash soon after eating. Ice the fish at once.', 'Una intoxicación por pescado que se calentó después de pescado, como atún, dorado y peto. Causa enrojecimiento, dolor de cabeza y sarpullido poco después de comer. Ponga hielo al pescado de inmediato.')],
+        [L('Histamine', 'Histamina'), L('The chemical that builds up in spoiled fish and causes scombroid. Heat and cooking do not break it down.', 'La sustancia química que se acumula en el pescado echado a perder y causa la escombroide. El calor y la cocción no la destruyen.')],
+        [L('Family, genus, order', 'Familia, género, orden'), L('Groups used to sort living things. A family holds related genera, and a genus holds closely related species. The order is a larger group above the family.', 'Grupos para clasificar a los seres vivos. Una familia reúne géneros emparentados, y un género reúne especies muy cercanas. El orden es un grupo más grande sobre la familia.')],
+        [L('LC, NT, VU, EN, CR', 'LC, NT, VU, EN, CR'), L('Red List statuses of the IUCN, an international science group, from safest to most threatened: Least Concern, Near Threatened, Vulnerable, Endangered, Critically Endangered.{iucn}', 'Estados de la Lista Roja de la UICN, un grupo científico internacional, del más seguro al más amenazado: Preocupación menor, Casi amenazada, Vulnerable, En peligro y En peligro crítico.{iucn}')],
+        [L('Total length', 'Longitud total'), L('Length from the nose to the tip of the longest tail lobe, with the tail pressed together.', 'Largo desde el hocico hasta la punta del lóbulo más largo de la cola, con la cola cerrada.')],
+        [L('Fork length', 'Longitud furcal'), L('Length from the nose to the fork (the notch) in the tail. It is used for tuna, jacks and other fish with a forked tail.', 'Largo desde el hocico hasta la horquilla (la muesca) de la cola. Se usa en atunes, jureles y otros peces de cola bifurcada.')],
+        [L('Disc width', 'Ancho de disco'), L('Width of a ray or skate across its flat body, wing tip to wing tip.', 'Ancho de una raya a través de su cuerpo plano, de punta a punta de las aletas.')],
+        [L('Carapace width', 'Ancho de caparazón'), L('Width of a crab\'s shell at its widest point, not counting the spines.', 'Ancho del caparazón de un cangrejo en su parte más ancha, sin contar las espinas.')],
+        [L('Scutes', 'Escudetes'), L('Hard, bony plates along the side of a fish or on a turtle\'s shell. Jacks have them in front of the tail.', 'Placas duras y óseas a lo largo del costado de un pez o en el caparazón de una tortuga. Los jureles las tienen antes de la cola.')],
+        [L('Barbels', 'Barbillas'), L('The whisker-like feelers near the mouth of catfish and some other fish. Catfish barbels and spines can sting.', 'Los bigotes sensoriales cerca de la boca de los bagres y de otros peces. Las barbillas y espinas de los bagres pueden picar.')],
+        [L('Dorsal fin', 'Aleta dorsal'), L('The fin on the back. In many fish it has sharp spines, so hold the fish carefully.', 'La aleta del lomo. En muchos peces tiene espinas filosas, así que sostenga el pez con cuidado.')],
+        [L('Caudal fin', 'Aleta caudal'), L('The tail fin. Its shape (forked, rounded, straight) helps tell species apart.', 'La aleta de la cola. Su forma (bifurcada, redondeada, recta) ayuda a distinguir las especies.')],
+        [L('Forms', 'Formas'), L('In the guide, the different looks of one species, such as colour phases or young and adult fish.', 'En la guía, los distintos aspectos de una misma especie, como fases de color o peces jóvenes y adultos.')],
+        [L('Pargo', 'Pargo'), L('Snapper. In the app, the name for fish of the snapper family. Large reef snappers such as cubera and dog snapper carry ciguatera risk.', 'Pargo. En la app, el nombre de los peces de la familia de los pargos. Los pargos grandes de arrecife, como el cubera y el perro, tienen riesgo de ciguatera.')],
+        [L('Jurel', 'Jurel'), L('Jack. A fast, silvery fish of open water and reefs. Large jacks carry ciguatera risk.', 'Jurel. Un pez plateado y rápido de aguas abiertas y arrecifes. Los jureles grandes tienen riesgo de ciguatera.')],
+        [L('Róbalo', 'Róbalo'), L('Snook. A fish of river mouths and lagoons. Check the local rules for snook before keeping one.', 'Róbalo. Un pez de desembocaduras de ríos y lagunas. Revise las reglas locales del róbalo antes de quedarse con uno.')],
+        [L('Picúa', 'Picúa'), L('Barracuda. Never eat it: it carries a high ciguatera risk.{cdc}', 'Barracuda. Nunca la coma: tiene alto riesgo de ciguatera.{cdc}')],
+        [L('Ikejime', 'Ikejime'), L('A Japanese way to kill a fish fast by spiking the brain and bleeding it. The meat stays firmer and keeps longer.', 'Una forma japonesa de matar un pez rápido clavándole el cerebro y desangrándolo. La carne queda más firme y dura más.')],
+        [L('K-value', 'Valor K'), L('A lab score of how fresh a fish is. A low number means very fresh, and it rises as the fish ages.', 'Una medida de laboratorio de qué tan fresco está un pescado. Un número bajo significa muy fresco, y sube a medida que el pescado envejece.')],
+        [L('Ceviche-fresh', 'Fresco para ceviche'), L('Fish kept cold and cleaned quickly from the moment it was caught, so it is fit to eat raw in ceviche.', 'Pescado mantenido frío y limpiado rápido desde que se pescó, así que sirve para comerse crudo en ceviche.')],
+      ],
+    },
+    { k: 'h', t: L('Rules and places', 'Reglas y lugares') },
+    {
+      k: 'table',
+      head: [L('Word', 'Palabra'), L('Meaning', 'Significado')],
+      rows: [
+        [L('Veda', 'Veda'), L('A closed season, when catching or taking a species is banned so it can breed. Dates change, so confirm with INCOPESCA.', 'Una temporada cerrada, cuando se prohíbe capturar o extraer una especie para que se reproduzca. Las fechas cambian, así que confirme con INCOPESCA.')],
+        [L('Carné', 'Carné'), L('The licence card that INCOPESCA issues to a fisher. Spearfishing needs the permit and the card, and you must be 18 or older.', 'El carné de licencia que el INCOPESCA entrega a un pescador. La pesca submarina necesita el permiso y el carné, y debe ser mayor de 18 años.')],
+        [L('INCOPESCA', 'INCOPESCA'), L('Instituto Costarricense de Pesca y Acuicultura, the national fisheries authority. It sets fishing rules and gives licences.', 'Instituto Costarricense de Pesca y Acuicultura, la autoridad nacional de pesca. Fija las reglas de pesca y da las licencias.')],
+        [L('SINAC', 'SINAC'), L('Sistema Nacional de Áreas de Conservación, which runs the national parks and refuges, such as Cahuita and Gandoca-Manzanillo.', 'Sistema Nacional de Áreas de Conservación, que administra los parques nacionales y refugios, como Cahuita y Gandoca-Manzanillo.')],
+        [L('CCSS', 'CCSS'), L('Caja Costarricense de Seguro Social, the public health service. Its clinics treat stings and bites.', 'Caja Costarricense de Seguro Social, el servicio público de salud. Sus clínicas atienden picaduras y mordeduras.')],
+        [L('Marine protected area', 'Área marina protegida'), L('A part of the sea with special rules to protect nature. Fishing can be limited or banned there, so ask SINAC.', 'Una parte del mar con reglas especiales para proteger la naturaleza. La pesca puede estar limitada o prohibida, así que pregunte a SINAC.')],
+        [L('Bite score', 'Puntaje de pique'), L('The app\'s 0 to 100 estimate of how likely fish are to feed, built from tide, wind, swell and water conditions. It is a guide, not a promise.', 'La estimación de la app, de 0 a 100, de qué tan probable es que los peces coman, calculada con marea, viento, oleaje y condiciones del agua. Es una guía, no una promesa.')],
+      ],
+    },
+    { k: 'h', t: L('Fishing words', 'Palabras de pesca') },
+    {
+      k: 'table',
+      head: [L('Word', 'Palabra'), L('Meaning', 'Significado')],
+      rows: [
+        [L('Handline', 'Cuerda de mano'), L('Fishing with a line held in the hand, with no rod or reel. It is simple and common on small boats.', 'Pescar con una línea sostenida en la mano, sin caña ni carrete. Es sencillo y común en botes pequeños.')],
+        [L('Bottom fishing', 'Pesca de fondo'), L('Fishing with a baited hook and a weight on or near the bottom for snappers, groupers and other bottom fish.', 'Pescar con un anzuelo con carnada y un peso sobre o cerca del fondo, para pargos, meros y otros peces de fondo.')],
+        [L('Trolling', 'Corricando'), L('Towing lures or baits behind a moving boat to catch fish such as tuna, mahi and wahoo.', 'Arrastrar señuelos o carnadas detrás de un bote en movimiento para pescar atún, dorado y peto.')],
+        [L('Jigging', 'Pesca con jig'), L('Dropping a metal lure and lifting it up and down so it looks like a hurt baitfish.', 'Dejar caer un señuelo de metal y subirlo y bajarlo para que parezca un pez de carnada herido.')],
+        [L('Leader', 'Líder'), L('The strong, short line between your main line and the hook. It resists teeth and rough skin.', 'La línea fuerte y corta entre su línea principal y el anzuelo. Resiste dientes y pieles ásperas.')],
+        [L('Tippet', 'Tippet'), L('The last, thinner piece of line at the end of a leader, joined to the lure or fly. It is the part the fish sees.', 'El último trozo, más delgado, de línea al final del líder, unido al señuelo o la mosca. Es la parte que el pez ve.')],
+        [L('Circle hook', 'Anzuelo circular'), L('A hook bent round in a circle. It usually catches the corner of the mouth, not the throat, so the fish is hurt less.', 'Un anzuelo curvado en círculo. Suele engancharse en la comisura de la boca y no en la garganta, así que el pez sufre menos.')],
+        [L('Barbless hook', 'Anzuelo sin lengüeta'), L('A hook without the small backward point, or with it pressed flat. It comes out easily.', 'Un anzuelo sin la pequeña punta hacia atrás, o con ella aplastada. Sale fácil.')],
+        [L('Breath-hold', 'Apnea'), L('Diving on one breath of air, with no tank. Never dive alone and never hyperventilate before a dive.', 'Bucear con una sola respiración de aire, sin tanque. Nunca bucee solo y nunca hiperventile antes de bucear.')],
+        [L('Floatline', 'Línea de flotador'), L('A line from a spearfisher to a float on the surface. It marks where the diver is and holds the speared fish.', 'Una línea del pescador submarino a un flotador en la superficie. Marca dónde está el buzo y sostiene el pez arponeado.')],
+        [L('Descender device', 'Descendedor'), L('A weight on a line that sends a deep-caught fish back down quickly, to the depth where it was caught.', 'Un peso en una línea que devuelve rápido hacia abajo a un pez pescado en aguas profundas, a la profundidad donde se pescó.')],
+      ],
+    },
+  ],
+  sources: {
+    cdc: {
+      t: 'CDC Yellow Book: Food Poisoning from Marine Toxins',
+      u: 'https://www.cdc.gov/yellow-book/hcp/environmental-hazards-risks/food-poisoning-from-marine-toxins.html',
+      p: 'P',
+      what: L('Ciguatera cause, no way to see or cook out the toxin, never eat barracuda.', 'Causa de la ciguatera, la toxina no se ve ni se elimina cocinando, nunca comer barracuda.'),
+    },
+    iucn: {
+      t: 'IUCN Red List Categories and Criteria',
+      u: 'https://www.iucnredlist.org/resources/categories-and-criteria',
+      p: 'S',
+      what: L('The five statuses used in the guide, from Least Concern to Critically Endangered (summary only).', 'Los cinco estados usados en la guía, de Preocupación menor a En peligro crítico (solo resumen).'),
+    },
+  },
+};
