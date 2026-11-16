@@ -1579,6 +1579,8 @@ fetchSeafloor()
               sstC: satellite ? (sstAt(satellite, lng, lat, ms)?.value ?? null) : null,
               chl: satellite ? (chlAt(satellite, lng, lat, ms)?.value ?? null) : null,
               river: riverAt(lng, lat, ms),
+              // Offshore wave height for the surf feeders (PLAN 7.122, fishing/water.ts surfFit).
+              hsM: (waves && wavesAt(waves, bandAt(ms), ms, lng, lat)?.hs) ?? null,
               sarg: sargForecast && beach && beach.distanceM <= BEACH_RADIUS_M ? (beachDay(sargForecast, beach.point.name, ms)?.level ?? null) : null,
             };
           },

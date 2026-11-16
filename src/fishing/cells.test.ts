@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Grid } from '../physics/bathy';
-import { buildCells, cellIndexAt, coastDistanceM, mouthKm, STEP } from './cells';
+import { buildCells, cellIndexAt, coastDistanceM, mouthKm, STEP, surfStrip, SURF_END_M, SURF_FULL_M } from './cells';
 
 /** 0.1° x 0.1° test world: land for lng < 0.02, sea deepening eastward, one reef square. */
 const mk = (fn: (lng: number, lat: number) => number, d: number, n: number): Grid => ({
@@ -38,5 +38,14 @@ describe('fishing cells', () => {
   });
   it('reads slope from the depth grid', () => {
     expect(built.cells[0].f.slopeMPerKm).toBeGreaterThan(5);
+  });
+});
+
+describe('surf strip (PLAN 7.122)', () => {
+  it('is full by the beach, gone past the outer breakers and under a reef', () => {
+    expect(surfStrip(SURF_FULL_M, 0)).toBe(1);
+    expect(surfStrip(SURF_END_M, 0)).toBe(0);
+    expect(surfStrip((SURF_FULL_M + SURF_END_M) / 2, 0)).toBeCloseTo(0.5);
+    expect(surfStrip(100, 1)).toBe(0);
   });
 });

@@ -4,7 +4,14 @@
  * A lattice over Gandoca–Limón, `STEP` degrees apart (~220 m). A cell is kept when it is open water
  * within `REACH_M` of the coast (a paddle or a long cast from the beach) and shallower than the
  * deepest species range. Each kept cell gets the features habitat.ts scores: depth, distance to the
- * nearest river mouth, how much of the nearby bottom is reef or rock, and the bottom slope.
+ * nearest river mouth, how much of the nearby bottom is reef or rock, and the bottom slope; and (PLAN 7.122) how much
+ * of it is sand or seagrass, and how much the cell is the beach's surf strip.
+ *
+ * Sand and seagrass come from the Allen Coral Atlas bottom map, which covers Cahuita to Manzanillo down to about 10 to
+ * 15 m only, so elsewhere they read 0. The surf strip is the open beach's breaking band: 1 within SURF_FULL_M of the
+ * coast, falling to 0 at SURF_END_M, times the share of the bottom that is not reef (a reef flat takes the waves
+ * offshore of it). The ~460 m depth grid can't see a beach's slope, so the strip is a fixed width, not the day's
+ * breaker line (the BITE score reads the day's waves, fishing/water.ts surfFit).
  */
 import type { Feature, FeatureCollection, MultiPolygon, Polygon } from 'geojson';
 import { pointInPolygon } from '../geo';
@@ -43,22 +50,52 @@ export const latticeFor = ([w, s, e, n]: FishingInput['bounds']): Lattice => ({ 
 const lngOf = (l: Lattice, c: number) => l.lon0 + (c + 0.5) * STEP;
 const latOf = (l: Lattice, r: number) => l.lat0 - (r + 0.5) * STEP;
 
-/** 1 where the cell centre is inside a reef-ish polygon. */
-function reefMask(l: Lattice, reefs: FeatureCollection): Uint8Array {
-  const mask = new Uint8Array(l.cols * l.rows);
+/** Allen Atlas bottom classes for the sand and seagrass terms (PLAN 7.122). */
+export const SANDY = new Set(['SAND']);
+export const GRASSY = new Set(['SEAGRASS']);
+/** The surf strip: full within this distance of the coast, m ... */
+export const SURF_FULL_M = 150;
+/** ... and gone by this one (a 220 m cell centred 300 m out still holds the outer breakers on a big day). */
+export const SURF_END_M = 450;
+
+/** 0..1: how much a cell at this distance from the coast, over this share of reef, is the beach's surf strip. */
+export const surfStrip = (coastM: number, reef: number) =>
+  Math.max(0, Math.min(1, (SURF_END_M - coastM) / (SURF_END_M - SURF_FULL_M))) * Math.max(0, 1 - reef);
+
+/**
+ * 1 where a point is inside a polygon of one of these classes, on the lattice split `sub` times each way (sub 1: the
+ * cell centres). Seagrass and sand patches here are mostly smaller than a cell, so they are sampled 4 × 4 per cell.
+ */
+function reefMask(l: Lattice, reefs: FeatureCollection, classes: ReadonlySet<string> = REEFISH, sub = 1): Uint8Array {
+  const step = STEP / sub, cols = l.cols * sub, rows = l.rows * sub;
+  const lngAt = (c: number) => l.lon0 + (c + 0.5) * step, latAt = (r: number) => l.lat0 - (r + 0.5) * step;
+  const mask = new Uint8Array(cols * rows);
   for (const f of reefs.features as Feature<Polygon | MultiPolygon>[]) {
-    if (!REEFISH.has(String(f.properties?.cls))) continue;
+    if (!classes.has(String(f.properties?.cls))) continue;
     const polys = (f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates) as [number, number][][][];
     for (const rings of polys) {
       let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
       for (const [x, y] of rings[0]) (w = Math.min(w, x)), (e = Math.max(e, x)), (s = Math.min(s, y)), (n = Math.max(n, y));
-      const c0 = Math.max(0, Math.floor((w - l.lon0) / STEP)), c1 = Math.min(l.cols - 1, Math.ceil((e - l.lon0) / STEP));
-      const r0 = Math.max(0, Math.floor((l.lat0 - n) / STEP)), r1 = Math.min(l.rows - 1, Math.ceil((l.lat0 - s) / STEP));
+      const c0 = Math.max(0, Math.floor((w - l.lon0) / step)), c1 = Math.min(cols - 1, Math.ceil((e - l.lon0) / step));
+      const r0 = Math.max(0, Math.floor((l.lat0 - n) / step)), r1 = Math.min(rows - 1, Math.ceil((l.lat0 - s) / step));
       for (let r = r0; r <= r1; r++)
-        for (let c = c0; c <= c1; c++) if (!mask[r * l.cols + c] && pointInPolygon([lngOf(l, c), latOf(l, r)], rings)) mask[r * l.cols + c] = 1;
+        for (let c = c0; c <= c1; c++) if (!mask[r * cols + c] && pointInPolygon([lngAt(c), latAt(r)], rings)) mask[r * cols + c] = 1;
     }
   }
   return mask;
+}
+
+/** Share of a `sub`-split mask's points set within `rad` cells of cell (c, r). */
+function fineShare(mask: Uint8Array, l: Lattice, sub: number, c: number, r: number, rad: number): number {
+  const cols = l.cols * sub, rows = l.rows * sub;
+  let on = 0, n = 0;
+  for (let rr = (r - rad) * sub; rr < (r + rad + 1) * sub; rr++)
+    for (let cc = (c - rad) * sub; cc < (c + rad + 1) * sub; cc++) {
+      if (cc < 0 || rr < 0 || cc >= cols || rr >= rows) continue;
+      n++;
+      on += mask[rr * cols + cc];
+    }
+  return n ? on / n : 0;
 }
 
 /** Share of mask cells set within `rad` cells of (c, r). */
@@ -103,6 +140,8 @@ export function mouthKm(mouths: readonly Mouth[], lng: number, lat: number): num
 export function buildCells(input: FishingInput): { lattice: Lattice; cells: Cell[]; index: Int32Array } {
   const l = latticeFor(input.bounds);
   const mask = reefMask(l, input.reefs);
+  const SUB = 4;
+  const sandMask = reefMask(l, input.reefs, SANDY, SUB), grassMask = reefMask(l, input.reefs, GRASSY, SUB);
   const index = new Int32Array(l.cols * l.rows).fill(-1);
   const cells: Cell[] = [];
   const depthAt = (lng: number, lat: number) => -sample(input.region, lng, lat);
@@ -121,7 +160,8 @@ export function buildCells(input: FishingInput): { lattice: Lattice; cells: Cell
         if (Number.isFinite(d2)) slope = Math.max(slope, (Math.abs(d2 - depthM) / ((dLng * M_PER_DEG_LAT) / 1000)));
       }
       index[r * l.cols + c] = cells.length;
-      cells.push({ lng, lat, f: { depthM, mouthKm: mouthKm(input.mouths, lng, lat), reef: share(mask, l, c, r, 2), slopeMPerKm: slope }, coastM });
+      const reef = share(mask, l, c, r, 2);
+      cells.push({ lng, lat, f: { depthM, mouthKm: mouthKm(input.mouths, lng, lat), reef, slopeMPerKm: slope, sand: fineShare(sandMask, l, SUB, c, r, 2), grass: fineShare(grassMask, l, SUB, c, r, 2), surf: surfStrip(coastM, reef) }, coastM });
     }
   return { lattice: l, cells, index };
 }
