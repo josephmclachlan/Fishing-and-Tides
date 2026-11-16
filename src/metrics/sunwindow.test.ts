@@ -10,11 +10,13 @@ describe('best windows follow the sun (Joseph, 2026-11-11)', () => {
   it('sunHours is sunrise to sunset in whole hours, wider by the pad', () => {
     const sun = daySky(DAY0, LAT, LNG).sun;
     const r = sunHours(DAY0, LAT, LNG);
-    expect(r.fromH).toBe(Math.round((sun.sunrise! - DAY0) / 3.6e6));
-    expect(r.toH).toBe(Math.round((sun.sunset! - DAY0) / 3.6e6));
-    expect(r.fromH).toBeGreaterThanOrEqual(5);
-    expect(r.toH).toBeLessThanOrEqual(18);
-    expect(sunHours(DAY0, LAT, LNG, 1)).toEqual({ fromH: r.fromH - 1, toH: r.toH + 1 });
+    expect(r.fromH).toBe(Math.ceil((sun.sunrise! - DAY0) / 3.6e6));
+    expect(r.toH).toBe(Math.floor((sun.sunset! - DAY0) / 3.6e6));
+    // Never before sunrise or after sunset (a 05:00 surf window with a 05:25 sunrise, review 2026-11-16).
+    expect(DAY0 + r.fromH * 3.6e6).toBeGreaterThanOrEqual(sun.sunrise!);
+    expect(DAY0 + r.toH * 3.6e6).toBeLessThanOrEqual(sun.sunset!);
+    const p = sunHours(DAY0, LAT, LNG, 1);
+    expect(p).toEqual({ fromH: Math.round((sun.sunrise! - DAY0) / 3.6e6 - 1), toH: Math.round((sun.sunset! - DAY0) / 3.6e6 + 1) });
   });
   it('the outing search reads only hours it is given, the day daylight', () => {
     const seen: number[] = [];

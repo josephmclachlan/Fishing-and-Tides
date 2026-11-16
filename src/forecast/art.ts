@@ -29,7 +29,7 @@ import { moonPhase } from '../physics/astro';
 import type { Plan } from '../metrics/plan';
 import { chopFor, type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour } from './model';
 import { cmp, dayHoursOf, headline, levelWord, moonAgeDays, n0, n1, planDayOf, sentence, tideNow } from './view';
-import { capsule, clamp, D2R, DISP, hatch, lerp, moonPath, rgba, sq, TAU, txt, type Ctx2D, type RGB, type Tokens } from './kit';
+import { capsule, clamp, D2R, DISP, hatch, MONO, lerp, moonPath, rgba, sq, TAU, txt, type Ctx2D, type RGB, type Tokens } from './kit';
 import { reefAt } from './tiles';
 import { boomDeg, coastPose, heelDeg, REEF_HEEL_DEG, type SailPose } from '../physics/heel';
 import type { PointOfSail } from '../boat/route';
@@ -825,7 +825,13 @@ function drawFish(c: Ctx2D, A: Box, tt0: number, a: NonNullable<HeroParams['fish
     c.stroke();
     [0, 6, 12, 18, 24].forEach((hr) => { c.fillStyle = S.soft; txt(c, String(hr).padStart(2, '0'), hx(hr), ty1 + 10, hr === 0 ? 'left' : hr === 24 ? 'right' : 'center', 9); });
     c.fillStyle = S.ink; txt(c, a.tideK, tx0, y + 8, 'left', 10.5, 700);
-    if (a.turn) txt(c, a.turn.label, tx1, y + 8, 'right', 10.5, 700);
+    if (a.turn) {
+      // Side by side when they fit; in a narrow box (Spanish words are longer) the turn goes under the title, clear of the BEST mark (review 2026-11-16).
+      c.font = `700 ${(10.5 * 1.12).toFixed(1)}px ${MONO}`;
+      const fits = tx0 + c.measureText(a.tideK.toUpperCase()).width + 10 < tx1 - c.measureText(a.turn.label.toUpperCase()).width;
+      if (fits) txt(c, a.turn.label, tx1, y + 8, 'right', 10.5, 700);
+      else txt(c, a.turn.label, tx0, y + 21, 'left', 10.5, 700);
+    }
     if (!S.reduced) {
       const sw = (tt * 1.4) % n;
       c.strokeStyle = rgba(S.on, 0.6); c.lineWidth = 1; c.beginPath(); c.moveTo(hx(sw), ty0); c.lineTo(hx(sw), ty1); c.stroke();
@@ -1031,7 +1037,14 @@ function drawSnorkel(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['wa
     const vx = mx + vis * mpx;
     c.fillStyle = S.ink; c.fillRect(vx - 1.5, ry - 10, 3, 20);
     const right = vx + 120 > x + w;
-    txt(c, a.vis, right ? vx - 8 : vx + 8, ry + 18, right ? 'right' : 'left', 11, 800);
+    // The caption under the ruler starts at the mask: a short reading would print over it, so it drops a line (review 2026-11-16).
+    c.font = `600 ${(9.5 * 1.12).toFixed(1)}px ${MONO}`;
+    const capEnd = mx + c.measureText(a.hvis.toUpperCase()).width + 10;
+    c.font = `800 ${(11 * 1.12).toFixed(1)}px ${MONO}`;
+    const lx2 = right ? vx - 8 : vx + 8, vw = c.measureText(a.vis.toUpperCase()).width;
+    const clash = (right ? lx2 - vw : lx2) < capEnd;
+    c.fillStyle = S.ink;
+    txt(c, a.vis, lx2, ry + (clash ? 32 : 18), right ? 'right' : 'left', 11, 800);
   }
   c.fillStyle = S.soft; txt(c, a.hvis, mx, ry + 18, 'left', 9.5, 600);
   if (a.chop) { c.fillStyle = S.soft; txt(c, a.chop, x + w, sy - 12, 'right', 10, 600); }

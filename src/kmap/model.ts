@@ -88,7 +88,7 @@ export type Orders = Partial<Record<Mode, KmLayer[]>>;
 const KEY = 'ft.km.layers';
 type Store = Pick<Storage, 'getItem' | 'setItem'> | undefined;
 
-/** Saved layer lists, junk dropped (unknown ids, duplicates, layers not offered in that mode). */
+/** Saved layer lists, junk dropped (unknown ids, duplicates, layers not offered in that mode, lists left empty). */
 export function loadOrders(storage: Store): Orders {
   try {
     const raw = JSON.parse(storage?.getItem(KEY) ?? '{}');
@@ -98,7 +98,10 @@ export function loadOrders(storage: Store): Orders {
         const v = (raw as Record<string, unknown>)[m];
         if (!Array.isArray(v)) continue;
         const ok = offered(m);
-        out[m] = [...new Set(v.filter((x): x is KmLayer => isKmLayer(x) && ok.includes(x)))];
+        // An empty list (every layer switched off, or only ids an older build used) opens the mode's standard layers
+        // instead of a blank map that only Reset fixes (review 2026-11-16: Snorkel opened with every layer off).
+        const list = [...new Set(v.filter((x): x is KmLayer => isKmLayer(x) && ok.includes(x)))];
+        if (list.length) out[m] = list;
       }
     return out;
   } catch {

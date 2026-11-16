@@ -56,14 +56,17 @@ export interface WatchForecast {
 export const BEST_FROM_H = 5, BEST_TO_H = 19, BEST_LEN_H = 2;
 
 /**
- * The whole local hours between sunrise and sunset of the day starting `dayMs` at a place, as [fromH, toH) (each rounded to
- * the nearest hour), which is where every best-window search looks (Joseph, 2026-11-11: "based around sunrise and sunset
+ * The whole local hours between sunrise and sunset of the day starting `dayMs` at a place, as [fromH, toH) (inside
+ * daylight: sunrise rounded up, sunset down; with a pad, each rounded to the nearest hour), which is where every best-window search looks (Joseph, 2026-11-11: "based around sunrise and sunset
  * every day"). 06:00 to 18:00 where the sun does not rise or set. `padH` widens both ends (the bite peaks at dawn and dusk).
  */
 export function sunHours(dayMs: number, lat: number, lng: number, padH = 0): { fromH: number; toH: number } {
   const { sunrise, sunset } = skyOfDay(dayMs, lat, lng).sun;
-  const fromH = sunrise === null ? 6 : Math.round((sunrise - dayMs) / HOUR - padH);
-  const toH = sunset === null ? 18 : Math.round((sunset - dayMs) / HOUR + padH);
+  // With no pad the hours sit inside daylight (the first whole hour after sunrise, the last ending by sunset), so a surf,
+  // swim or sail window never starts before sunrise or ends after sunset. A pad (fishing's dawn and dusk) rounds.
+  const edge = (x: number, f: (v: number) => number) => (padH ? Math.round(x) : f(x));
+  const fromH = sunrise === null ? 6 : edge((sunrise - dayMs) / HOUR - padH, Math.ceil);
+  const toH = sunset === null ? 18 : edge((sunset - dayMs) / HOUR + padH, Math.floor);
   return toH - fromH >= BEST_LEN_H ? { fromH: Math.max(0, fromH), toH: Math.min(24, toH) } : { fromH: 6, toH: 18 };
 }
 
