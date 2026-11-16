@@ -203,6 +203,7 @@ const launch = createLaunch(BOOT_STEPS, {
   step: (id) => t(`boot.step.${id}` as Key),
   ready: t('boot.ready'),
   slow: (step) => t('boot.slow', { step }),
+  done: (step) => t('boot.done', { step }),
 });
 /** MODERN is the Kinetic Plus map (PLAN 7.70): its own shell over the same map, layers and data. */
 const MODERN = currentTheme() === 'modern';
@@ -1880,11 +1881,12 @@ const mapHooks: MapHooks = {
     poll();
   },
 };
+const MAP_PARTS = ['tiles', 'depth', 'reefs', 'wind', 'currents', 'waves', 'spots', 'layers'] as const;
 const mapIfShown = () => {
   if (document.body.classList.contains('fc-open')) return;
   if (!mapStarted(map)) {
     if (launch.showing()) launch.hold(watchMap(mapHooks));
-    else void runMapLoader(mapHooks, { title: t('boot.map'), tiles: t('boot.mapTiles'), drawing: t('boot.mapDrawing'), ready: t('boot.ready'), slow: t('boot.mapSlow') });
+    else void runMapLoader(mapHooks, { title: t('boot.map'), parts: MAP_PARTS.map((p) => t(`boot.part.${p}` as Key)), loading: (part) => t('boot.loading', { step: part }), ready: t('boot.ready'), slow: t('boot.mapSlow') });
   }
   startMap(map);
   releaseMapWork();
