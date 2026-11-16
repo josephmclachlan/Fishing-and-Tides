@@ -198,12 +198,12 @@ export function skyMemo(tz: number) {
 /**
  * Eating fish likely at a spot in a month: season × how well the water suits it (fishing/water.ts) × the spot's
  * structure (a river mouth within 3 km favours mouth feeders, otherwise reef and drop-off feeders). A rule of
- * thumb for the hero line, not the habitat map. Species with a ciguatera warning are left out of it.
+ * thumb for the hero line, not the habitat map. EAT fish only (PLAN 7.109), and those with a ciguatera warning are left out.
  */
 export function likelyFish(lngLat: [number, number], month: number, water: { visM?: number | null; sstC?: number | null }, n = 3): SpeciesId[] {
   const mouthKm = Math.min(...PLUME_RIVERS.map((r) => haversineM(lngLat, r.mouth) / 1000));
   const nearMouth = mouthKm <= 3;
-  return SPECIES.filter((s) => s.ciguatera !== true)
+  return SPECIES.filter((s) => s.mode === 'eat' && s.ciguatera !== true)
     .map((s) => ({ id: s.id, v: seasonFactor(s, month) * waterTerm(s, water).factor * (0.5 + 0.5 * (nearMouth ? s.w.mouth : s.w.reef + s.w.drop)) }))
     .sort((a, b) => b.v - a.v)
     .slice(0, n)

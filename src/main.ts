@@ -91,7 +91,7 @@ import { fetchZones, mountZones, zoneName } from './layers/zones';
 import { mountZonesHud } from './zones-hud';
 import { fetchMouths, fetchOccurrences, mountFishing, type FishingLayer } from './layers/fishing';
 import { loadSpecies, mountFishingHud } from './fishing-hud';
-import { SPECIES, type SpeciesId } from './fishing/species';
+import { SPECIES, speciesById, speciesIn, type FishMode, type SpeciesId } from './fishing/species';
 import { layers, type ActivityId } from './layers/registry';
 import { mountMotionKey } from './layers/motion-key';
 import { bindMapLayers } from './layers/visibility';
@@ -597,6 +597,23 @@ const boatStore = createBoatStore(safeStorage());
 // Catches logged in the BOAT drawer store their BITE once the fishing panel is up (PLAN 7.16).
 let scoreCatch: CatchScorer | null = null;
 let fishSetSpecies: ((id: SpeciesId) => void) | null = null;
+let fishHudMode: { set(m: FishMode): void; get(): FishMode } | null = null;
+/**
+ * EAT or SPORT for the fish map (PLAN 7.109): through the fishing panel once it is up, else remembered as that mode's
+ * first fish, which the panel picks up when it mounts (the mode is the species' own).
+ */
+const fishMode = {
+  get: (): FishMode => fishHudMode?.get() ?? speciesById(loadSpecies()).mode,
+  set: (m: FishMode) => {
+    if (fishHudMode) return fishHudMode.set(m);
+    if (speciesById(loadSpecies()).mode === m) return;
+    try {
+      localStorage.setItem('ft.fishing.species', speciesIn(m)[0].id);
+    } catch {
+      /* private mode */
+    }
+  },
+};
 // Offshore read for the BOAT drawer (PLAN 7.17): depth and ledge from the seafloor grids, satellite
 // temperature, chlorophyll and fronts, and floating sargassum, scored per boat species.
 let offshoreDepth: ((lng: number, lat: number) => number | null) | null = null;
@@ -1569,6 +1586,7 @@ fetchSeafloor()
         const fishHud = mountFishingHud(hud, map, layer, time, species, fishEnv, pins);
         scoreCatch = fishHud?.scoreCatch ?? null;
         fishSetSpecies = fishHud?.setSpecies ?? null;
+        fishHudMode = fishHud ? { set: fishHud.setMode, get: fishHud.mode } : null;
         boatStore.subscribe(() => (layer.setCatches(pins()), fishHud?.refresh()));
       })
       .catch((err) => console.warn('fishing layer unavailable', err));
@@ -1739,6 +1757,7 @@ if (MODERN) {
     forecast: forecastPage,
     openCoralPage: (reef) => coralPage.open({ reef }),
     openGuide: (mode) => guidePage.open(mode ? { mode } : {}),
+    fishMode,
     explain: (title, id) => explain.show(title, id),
     go: (tg) => enhancer.go(tg),
     reload,

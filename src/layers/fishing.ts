@@ -5,6 +5,7 @@
  * A SHORE / BOAT highlight keeps cells within a cast or wade of the beach, or those beyond it. Style layer ids start with `fh-` (catalog 'fishing').
  * The weights are fitted to the OBIS/GBIF records when the layer mounts (PLAN 4.4, fishing/fit.ts), and
  * refitted with your own logged catches whenever they change (PLAN 7.16, `setCatches`).
+ * The heat and the circled zones show the fish of the current species' mode only (PLAN 7.109): EAT or SPORT.
  * Over the cells, the circled zones of mockup G (PLAN 7.74, 7.75, fishing/zones.ts): each fish's own zones where it
  * earns them, near shore and, from the boat read main.ts hands over, offshore (`fh-zone-*`).
  */
@@ -18,7 +19,7 @@ import { coastTest, rgbaWord, seaImage, type SeaImage } from './sea-image';
 import { bandColours, bandOf, smoothField } from './bands';
 import { baseScore, habitatScore, seasonFactor } from '../fishing/habitat';
 import { fitWeights, recordCells, type HabitatFit } from '../fishing/fit';
-import { SPECIES, speciesById, type SpeciesId } from '../fishing/species';
+import { SPECIES, speciesById, speciesIn, type SpeciesId } from '../fishing/species';
 import { occurrenceBoost, recordsFor, withEvidence } from '../fishing/occurrences';
 import type { OccurrenceFile } from '../fishing/occurrence-taxa';
 import { catchRecords, type CatchPin } from '../fishing/catches';
@@ -170,24 +171,25 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     ];
   };
   const buildZones = () => {
-    const key = `${month}|${reach}|${catchKey}|${rules.length}|${boatKey}`;
+    const key = `${month}|${reach}|${catchKey}|${rules.length}|${boatKey}|${sp.mode}`;
     if (key === zoneKey) return false;
     zoneKey = key;
+    const inMode = speciesIn(sp.mode);
     // Shore and kayak water: every eating fish, each in the zones it earns (fishing/zones.ts NEAR_ZONES).
     const cells: ZoneCell<SpeciesId>[] = [];
     for (const [i, c] of built.cells.entries()) {
         if (!inReach(c.coastM) || rule[i] === 2) continue;
         const s = {} as Record<SpeciesId, number>;
-        for (const x of SPECIES) s[x.id] = Math.min(1, habitatScore(x, c.f, month, fits[x.id].weights) * (1 + boostAt(x.id, c.lng, c.lat)));
+        for (const x of inMode) s[x.id] = Math.min(1, habitatScore(x, c.f, month, fits[x.id].weights) * (1 + boostAt(x.id, c.lng, c.lat)));
         // Lionfish are taken by spear: none in any protected area.
-        if (rule[i]) s.lionfish = 0;
+        if (rule[i] && 'lionfish' in s) s.lionfish = 0;
         const why: ZoneWhy[] = [];
         if (c.f.mouthKm < 0.8) why.push('mouth');
         if (c.f.reef >= 0.3) why.push('reef');
         if (c.f.slopeMPerKm >= 20) why.push('drop');
         cells.push({ lng: c.lng, lat: c.lat, s, why, depthM: c.f.depthM });
       }
-    const ids = SPECIES.map((x) => x.id);
+    const ids = inMode.map((x) => x.id);
     const kept = speciesZones(cells, ids, NEAR_ZONES);
     const nearWhere = (z: Zone<SpeciesId>) => {
       const at = nearestName(z.lng, z.lat, marks);
@@ -198,8 +200,9 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     // Water that nearly earned a circle (PLAN 7.85): dotted, no fill, said so on the label.
     const nearly = nearlyZones(cells, ids, kept).flatMap((z) => zoneFeatures(z, spNames(z), [t('fish.zone.nearly'), nearWhere(z)].join(' · '), false, true));
     // Boat water beyond the cast: the offshore species on the day's satellite water (FAR_ZONES), not inside a national park.
+    // They are all eating fish, so SPORT shows none yet.
     const far =
-      boat && reach !== 'shore'
+      boat && reach !== 'shore' && sp.mode === 'eat'
         ? speciesZones(boat.filter((c) => !parkAt(c.lng, c.lat)), ['mahi', 'tuna', 'wahoo', 'kingfish', 'silksnapper'] as OffshoreId[], FAR_ZONES).flatMap((z) => {
             const at = nearestName(z.lng, z.lat, marks);
             const off = at ? t('fish.zone.off', { km: Math.round(at.km), name: at.name.toUpperCase() }) : '';
@@ -265,7 +268,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     (map.getSource('sp-zones') as GeoJSONSource | undefined)?.setData(spearZonesGj);
   };
 
-  // The fishing water as one smooth image (PLAN 7.80): the best of every eating fish's score with its season, per
+  // The fishing water as one smooth image (PLAN 7.80): the best score of every fish in the current mode (EAT or SPORT) with its season, per
   // ~220 m cell, blended between cells and cut at the coastline, in flat bands along the beach rating's own ramp
   // (fair yellow to great teal), so it reads like the other sea fields and the zones and pins share its colours.
   // The 220 m squares this replaces looked pixelated next to the sea fields from the coast zoom in.
@@ -283,11 +286,12 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   const heatWord = (v: number) => (v === v ? heatWords[bandOf(HEAT_STEPS, v)] : 0);
   const heatImage = () => {
     heatZ.set(heatBase);
-    const season = SPECIES.map((x) => seasonFactor(x, month));
+    const inMode = speciesIn(sp.mode);
+    const season = inMode.map((x) => seasonFactor(x, month));
     for (const [i, c] of built.cells.entries()) {
       const p = geojson.features[i].properties as Record<string, number>;
       let best = 0;
-      if (inReach(c.coastM)) SPECIES.forEach((x, k) => (best = Math.max(best, p[x.id] * season[k])));
+      if (inReach(c.coastM)) inMode.forEach((x, k) => (best = Math.max(best, p[x.id] * season[k])));
       const col = Math.floor((c.lng - built.lattice.lon0) / STEP), row = Math.floor((built.lattice.lat0 - c.lat) / STEP);
       heatZ[row * heatGrid.cols + col] = best;
     }
@@ -303,7 +307,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   };
   let heatKey = '';
   const paint = () => {
-    const key = `${month}|${reach}|${catchKey}`;
+    const key = `${month}|${reach}|${catchKey}|${sp.mode}`;
     if (key === heatKey || !map.getSource('fh-heat')) return;
     heatKey = key;
     const img = heatImage();
@@ -319,7 +323,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   const add = () => {
     if (map.getSource('fh-heat')) return;
     const img = heatImage();
-    heatKey = `${month}|${reach}|${catchKey}`;
+    heatKey = `${month}|${reach}|${catchKey}|${sp.mode}`;
     map.addSource('fh-heat', { type: 'image', url: heatUrl(img), coordinates: img.coordinates });
     // Fades in past the coast tier and steps back to a tint by the spot tier, where the zones and the reefs carry the detail.
     // Zoomed in it stays strong enough to read which water is better (PLAN 7.85).
@@ -406,7 +410,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     const s = speciesById(id);
     return Math.min(1, habitatScore(s, c.f, month, fits[id].weights) * (1 + boostAt(id, c.lng, c.lat)));
   };
-  // Each cell's best eating fish for a month, for the spot water (the FISH pins); rebuilt when the month or catches change.
+  // Each cell's best eating fish (EAT mode only) for a month, for the spot water (the FISH pins); rebuilt when the month or catches change.
   let bestKey = '';
   let bestCell = new Float32Array(0);
   const bestFor = (m: number) => {
@@ -415,7 +419,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
       bestKey = key;
       bestCell = Float32Array.from(built.cells, (c) => {
         let b = 0;
-        for (const s of SPECIES) b = Math.max(b, Math.min(1, habitatScore(s, c.f, m, fits[s.id].weights) * (1 + boostAt(s.id, c.lng, c.lat))));
+        for (const s of speciesIn('eat')) b = Math.max(b, Math.min(1, habitatScore(s, c.f, m, fits[s.id].weights) * (1 + boostAt(s.id, c.lng, c.lat))));
         return b;
       });
     }
@@ -462,8 +466,10 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     },
     bestSpots: spotsFor,
     setSpecies(id) {
+      const was = sp.mode;
       sp = speciesById(id);
       paint();
+      if (sp.mode !== was) refreshZones();
     },
     setMonth(m) {
       month = m;
