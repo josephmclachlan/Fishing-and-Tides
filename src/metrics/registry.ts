@@ -208,15 +208,16 @@ export const METRICS: readonly Metric[] = [
   { id: 'clarity', group: 'water', unit: 'm', decimals: 0, better: 'high', agg: 'mean', hours: [12], at: (a) => a.env.clarityM(a.lng, a.lat, a.ms), tone: (v) => ({ GOOD: 'green', FAIR: 'amber', POOR: 'red' } as const)[clarityLevel(v)] },
   { id: 'sst', group: 'water', unit: '°C', decimals: 1, better: 'high', agg: 'mean', hours: [12], at: (a) => a.env.sstC?.(a.lng, a.lat, a.ms) ?? null, tone: (v) => (v >= 26 ? 'green' : v >= 22 ? 'amber' : 'red') },
   { id: 'sargassum', group: 'water', unit: 'km²', decimals: 2, better: 'low', agg: 'max', hours: [12], at: (a) => a.env.sargassumKm2(a.spot, a.ms), tone: (v) => (v < SARG_LOW_KM2 ? 'green' : v < SARG_HIGH_KM2 ? 'amber' : 'red') },
-  // Break score 0..10 (PLAN 7.27): swell trains, period, direction vs the break, wind and gusts, tide, storms, rain and sargassum.
+  // Break score 0..10 (PLAN 7.27), shown out of 100 like every other score (Joseph 2026-11-16): swell trains, period, direction vs the break, wind and gusts, tide, storms, rain and sargassum.
   // Only for spots with a surf break (their own, or one within 25 km); null elsewhere, so those spots fall back to wind and rain.
   {
-    id: 'surfq', group: 'waves', unit: '/10', decimals: 1, better: 'high', agg: 'max',
+    id: 'surfq', group: 'waves', unit: '/100', decimals: 0, better: 'high', agg: 'max',
     at: (a) => {
-      const h = surfHourFor(a);
-      return h ? surfScoreAt(h) : null;
+      const v = surfHourFor(a);
+      const q = v ? surfScoreAt(v) : null;
+      return q === null ? null : q * 10;
     },
-    tone: (v) => (v >= 5.5 ? 'green' : v >= 3 ? 'amber' : 'red'),
+    tone: (v) => (v >= 55 ? 'green' : v >= 30 ? 'amber' : 'red'),
   },
   {
     id: 'bite', group: 'fishing', unit: '/100', decimals: 0, better: 'high', agg: 'max',

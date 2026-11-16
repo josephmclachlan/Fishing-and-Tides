@@ -26,6 +26,13 @@ describe('swim score', () => {
     expect(swimScore(calm)).toEqual({ score: 100, reasons: [] });
     expect(swimTone(100)).toBe('green');
   });
+  it('reads no better than GOOD, with a note, when the weather forecast is missing', () => {
+    const blind = { ...calm, rainMmH: null, feelsC: null, uv: null };
+    expect(swimScore(blind)).toEqual({ score: 84, reasons: ['noweather'] });
+    expect(swimScore({ ...blind, rip: 'HIGH' })).toEqual({ score: 15, reasons: ['rip', 'noweather'] });
+    // One weather reading is enough to score it as usual.
+    expect(swimScore({ ...blind, rainMmH: 0 }).score).toBe(100);
+  });
   it('caps for safety: storms, a high rip risk, big shore break', () => {
     // After dark it is scored on the conditions (night swimming), without the sun's factors; ×0.85 for the dark.
     expect(swimScore({ ...calm, daylight: false })).toEqual({ score: 85, reasons: ['dark'] });
@@ -50,8 +57,9 @@ describe('swim score', () => {
     expect(swimScore({ ...calm, sunHours: 0.25 }).score).toBe(75);
     expect(swimScore({ ...calm, sunHours: 3 }).score).toBe(100);
   });
-  it('leaves out what it does not know', () => {
-    expect(swimScore({ rip: 'LOW', breakerM: 0.2, daylight: true }).score).toBe(100);
+  it('leaves out what it does not know, but no weather at all is not a perfect day', () => {
+    expect(swimScore({ rip: 'LOW', breakerM: 0.2, daylight: true, rainMmH: 0 }).score).toBe(100);
+    expect(swimScore({ rip: 'LOW', breakerM: 0.2, daylight: true }).score).toBe(84);
   });
 });
 

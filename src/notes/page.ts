@@ -3,6 +3,7 @@
  * reuses `.fc` and its tokens), opened from the species guide and the fishing panel.
  * Its own link `#notes[/<tab>]` (route.ts); other pages hide on it and it hides on theirs.
  */
+import { rememberOrigin, storedOrigin } from '../origin';
 import { t } from '../i18n';
 import { landing, MAP_HASH } from '../forecast/model';
 import { ACT_NAME, CHROME, NOTE, TITLE, subFor } from './content';
@@ -98,7 +99,9 @@ export function mountNotesPage(deps: NotesPageDeps) {
   let tab: NtTab = 'rules';
   let act: NtAct | undefined;
   let pushed = false;
-  let cameFrom: From = 'map';
+  let cameFrom: From = 'forecast';
+  /** Opened from the map, Back goes to the forecast, the app's main page (the same rule as Ciguatera and Dispatch). */
+  const backTo = (): From => (cameFrom === 'map' ? 'forecast' : cameFrom);
 
   const render = () => {
     $('nt-tabs').innerHTML = tabsHtml(tab, lang, (t) => notesHash(t, act), act);
@@ -113,7 +116,7 @@ export function mountNotesPage(deps: NotesPageDeps) {
     el.hidden = false;
     document.body.classList.add('fc-open');
     mapMeta = meta?.getAttribute('content') ?? null;
-    $('nt-back-l').textContent = CHROME.back[cameFrom][lang];
+    $('nt-back-l').textContent = CHROME.back[backTo()][lang];
     applyScheme();
     themeMeta();
     render();
@@ -125,26 +128,38 @@ export function mountNotesPage(deps: NotesPageDeps) {
     document.body.classList.remove('fc-open');
     if (mapMeta !== null) meta?.setAttribute('content', mapMeta);
   };
-  const fromHash = (e?: HashChangeEvent) => {
+  /**
+   * Arriving from another page. The origin stored on this history entry wins (a reload, or a step back onto this page);
+   * else it is the page just left, stored only when a real hashchange named it.
+   */
+  const arrive = (oldHash: string | null, real: boolean) => {
+    const kept = storedOrigin();
+    const o = kept ?? oldHash;
+    if (o === null) return;
+    cameFrom = fromHash_(o);
+    pushed = true; // the origin is the entry before this one, so back is one step
+    if (!kept && real && oldHash !== null) rememberOrigin(oldHash);
+    $('nt-back-l').textContent = CHROME.back[backTo()][lang];
+  };
+  const fromHash = (e?: HashChangeEvent, real = false) => {
     const r = parseNotesRoute(location.hash);
     if (!r) return hide();
-    if (el.hidden && e?.oldURL) {
-      cameFrom = fromHash_(new URL(e.oldURL).hash);
-      pushed = true; // opened by a link: the browser added the entry, so back is one step
-    }
+    const oldHash = e?.oldURL ? new URL(e.oldURL).hash : null;
+    if (oldHash !== null ? !parseNotesRoute(oldHash) : el.hidden) arrive(oldHash, real);
     const changed = r.tab !== tab || r.act !== act;
     tab = r.tab;
     act = r.act;
     if (el.hidden) show();
     else if (changed) (render(), (el.scrollTop = 0), $('nt-page').scrollTo?.(0, 0));
   };
-  // A tap on a #link fires popstate before hashchange, and popstate carries no old URL: track it here, so the
-  // back button returns to the exact page and species it was opened from (not the map).
+  // A tap on a #link fires popstate before hashchange, and popstate carries no old URL: track it here. `here` can be
+  // stale (the forecast moves between spots with replaceState, which fires nothing), so the hashchange that follows,
+  // which names the real page left, corrects it and is the one stored.
   let here = location.href;
   const onNav = (e?: HashChangeEvent) => {
     const old = e?.oldURL ?? here;
     here = location.href;
-    fromHash(old !== here ? ({ oldURL: old } as HashChangeEvent) : undefined);
+    fromHash(old !== here ? ({ oldURL: old } as HashChangeEvent) : undefined, !!e?.oldURL);
   };
   window.addEventListener('hashchange', onNav);
   window.addEventListener('popstate', () => onNav());
@@ -196,20 +211,21 @@ export function mountNotesPage(deps: NotesPageDeps) {
     tab = parseNotesRoute(h)!.tab;
     if (!parseNotesRoute(location.hash)) {
       history.pushState({ nt: 1 }, '', h);
+      rememberOrigin(new URL(from).hash);
       pushed = true;
     } else history.replaceState(history.state, '', h);
     show();
     // pushState fires no hashchange, so tell the other pages (the forecast and guide hide on any hash but their own).
     if (location.href !== from) window.dispatchEvent(new HashChangeEvent('hashchange', { oldURL: from, newURL: location.href }));
   };
-  /** Back where it was opened from: a step back if we pushed the entry, else the page it came from. */
+  /** Back where it was opened from: a step back if that page is the entry before, else that page (the forecast for the map). */
   const close = () => {
-    if (pushed) {
+    if (pushed && cameFrom !== 'map') {
       pushed = false;
       history.back(); // hashchange hides it
     } else {
       pushed = false;
-      location.hash = BACK_HASH[cameFrom];
+      location.hash = BACK_HASH[backTo()];
     }
   };
 

@@ -31,7 +31,7 @@ import { SNORKEL_SPOTS, type SnorkelAccess } from '../data/snorkel-spots';
 import { surgeBand, type SurgeBand } from '../physics/surge';
 import { METRIC_BY_ID, biteAt, surfHourFor, swimAt, type MetricEnv, type SwimDetail } from '../metrics/registry';
 import { surfDetailAt } from '../metrics/surf-estimate';
-import { planDays, spotsFor, type Plan, type PlanActivity } from '../metrics/plan';
+import { ALIKE, planDays, spotsFor, type Plan, type PlanActivity } from '../metrics/plan';
 import type { Spot } from '../metrics/forecast';
 import type { SurfBand, SurfQuality } from '../surf-quality';
 
@@ -75,6 +75,8 @@ export const LEVEL_CUTS: Readonly<Record<Exclude<FcActivity, 'surf'>, readonly [
   sail: [25, 50, 75, 90],
   swim: [20, 40, 70, 85],
 };
+/** Under this wind, kt, there is too little to sail: SAIL reads POOR at best. */
+export const SAIL_LIGHT_KT = 5;
 const SURF_LEVEL: Record<SurfBand, Level> = { FLAT: 0, POOR: 1, FAIR: 2, GOOD: 3, EPIC: 4 };
 
 export function levelFor(a: FcActivity, score: number, surfBand?: SurfBand): Level {
@@ -168,7 +170,7 @@ export interface SailRead {
 export interface FcRead {
   activity: FcActivity;
   ms: number;
-  /** The headline score on its own scale (surf /10, the rest /100), or null without data. */
+  /** The headline score out of 100 (surf's 0..10 break score times 10, Joseph 2026-11-16), or null without data. */
   score: number | null;
   /** score as 0..1 of its scale. */
   share: number | null;
@@ -223,7 +225,7 @@ export function readAt(deps: FcDeps, a: FcActivity, spot: Spot, ms: number, sky 
     if (!h || !d) return none;
     const windMs = h.windMs;
     return {
-      ...base, score: d.q.score, share: d.q.score / 10, level: levelFor('surf', d.q.score, d.q.band),
+      ...base, score: d.q.score * 10, share: d.q.score / 10, level: levelFor('surf', d.q.score, d.q.band),
       surf: {
         hb: d.Hb, range: surfRange(d.Hb), size: surfSize(d.Hb), band: d.q.band, windKind: d.q.windKind,
         hs: d.hs, tp: d.tp, dir: d.dir, facing: h.brk.facing,
@@ -281,7 +283,9 @@ export function readAt(deps: FcDeps, a: FcActivity, spot: Spot, ms: number, sky 
   const comfort = val('comfort');
   const sail: SailRead = { windKt: val('wind'), gustKt: val('gust'), fromDeg: val('wdir'), squall: val('squall'), swellM: val('swell') };
   if (!fin(comfort)) return { ...none, sail };
-  return { ...base, score: comfort, share: comfort / 100, level: levelFor('sail', comfort), sail };
+  // A flat calm is a comfortable sea but no sailing: under 5 kt the rating stops at POOR, "Too light to sail" (Joseph 2026-11-16).
+  const score = fin(sail.windKt) && sail.windKt < SAIL_LIGHT_KT ? Math.min(comfort, LEVEL_CUTS.sail[1] - 1) : comfort;
+  return { ...base, score, share: score / 100, level: levelFor('sail', score), sail };
 }
 
 /** The 24 local hours of the day starting `dayStartMs`. */
@@ -313,7 +317,33 @@ export function chooseSpot(name: string, a: FcActivity, all: readonly Spot[]): {
 /** Each day's best window at this one spot, as WATCH's BEST DAY FOR finds it. */
 export function daysAt(deps: FcDeps, a: FcActivity, spot: Spot, nowMs: number, days = 7): Plan {
   const outingAt = deps.outing ? (s: Spot, m: OutingMode, ms: number, h: number) => deps.outing!(s, m, ms, h)?.score ?? null : undefined;
-  return planDays(deps.env, planActivity(a), [spot], nowMs, days, outingAt);
+  const plan = planDays(deps.env, planActivity(a), [spot], nowMs, days, outingAt);
+  return a === 'sail' ? sailLight(deps.env, spot, plan) : plan;
+}
+
+/**
+ * SAIL ranks its days on sea comfort, as a boat does, but a window with under 5 kt of wind (its hourly mean) is too
+ * light to sail: it reads POOR at most, is not a good day and ranks below every day with wind (Joseph 2026-11-16).
+ */
+function sailLight(env: MetricEnv, spot: Spot, plan: Plan): Plan {
+  const wind = METRIC_BY_ID.get('wind')!;
+  const [lng, lat] = spot.lngLat;
+  const sky = skyMemo(env.tzOffsetH);
+  const days = plan.days.map((d) => {
+    if (!d) return d;
+    const kts: number[] = [];
+    for (let ms = d.startMs; ms < d.endMs; ms += H) {
+      const v = wind.at({ env, spot: spot.name, lng, lat, ms, sky: sky(ms, lat, lng) });
+      if (fin(v)) kts.push(v);
+    }
+    if (!kts.length || kts.reduce((x, y) => x + y, 0) / kts.length >= SAIL_LIGHT_KT) return d;
+    return { ...d, value: d.value === null ? null : Math.min(d.value, LEVEL_CUTS.sail[1] - 1), tone: 'red' as const, good: false, rank: d.rank - 3 };
+  });
+  let bestDay: number | null = null;
+  days.forEach((c, i) => c?.good && (bestDay === null || c.rank > days[bestDay]!.rank + 1e-9) && (bestDay = i));
+  const top = bestDay === null ? null : days[bestDay]!;
+  const alike = top ? days.flatMap((c, i) => (c?.good && i !== bestDay && top.rank - c.rank < ALIKE ? [i] : [])) : [];
+  return { ...plan, days, bestDay, alike, none: bestDay !== null ? null : days.some(Boolean) ? 'poor' : 'nodata' };
 }
 
 /** URL-safe name for a spot ("PLAYA COCLES" → "playa-cocles", accents dropped). */

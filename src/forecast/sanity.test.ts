@@ -17,7 +17,7 @@ function checksOf(h: TimelineHour): Check[] {
     ['tide m', h.tideM, -1.5, 1.5], ['air °C', h.airC, 5, 45], ['feels °C', h.feelsC, 5, 60], ['cloud %', h.cloudPct, 0, 100],
     ['rain %', h.rainPct, 0, 100], ['humidity %', h.humidityPct, 0, 100], ['UV', h.uv, 0, 15], ['squall', h.squall, 0, 2],
     ['share', r.share, 0, 1], ['level', r.level, 0, 4],
-    ['score', r.score, 0, r.activity === 'surf' ? 10 : 100],
+    ['score', r.score, 0, 100],
   ];
   if (r.surf) out.push(['hb m', r.surf.hb, 0, 15], ['range lo', r.surf.range[0], 0, 15], ['range hi', r.surf.range[1], r.surf.range[0], 15], ['hs m', r.surf.hs, 0, 15], ['tp s', r.surf.tp, 0, 30], ['swell dir', r.surf.dir, 0, 360], ['surf wind kt', r.surf.windKt, 0, 120], ['surf wind from', r.surf.windFromDeg, 0, 360]);
   if (r.fish) out.push(['moon illum', r.fish.moonIllum, 0, 1]);
