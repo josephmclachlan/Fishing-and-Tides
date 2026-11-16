@@ -22,6 +22,14 @@ export interface SyncUiDeps {
   onDone?: (s: SyncSummary) => void;
 }
 
+/** What a sync is doing, for the map's Settings sheet (kmap/shell.ts), which shows it in words. */
+export type SyncStatus =
+  | { state: 'running'; phase: string; pct: number; mb: string }
+  | { state: 'done' | 'cancelled' | 'failed' }
+  | { state: 'partial'; n: number };
+export const SYNC_EVENT = 'ft:sync';
+const emit = (s: SyncStatus) => document.dispatchEvent(new CustomEvent<SyncStatus>(SYNC_EVENT, { detail: s }));
+
 const mb = (bytes: number) => (bytes / 1e6).toFixed(bytes < 1e7 ? 1 : 0);
 
 /** "TUE 02 08:00 · 18 MB" in Costa Rica time, like the clock and VALID beside it. */
@@ -76,6 +84,7 @@ export function mountSyncUi(root: HTMLElement, deps: SyncUiDeps) {
     btn.setAttribute('aria-busy', 'true');
     btn.title = t('sync.cancelTitle');
     btn.textContent = t('sync.starting');
+    emit({ state: 'running', phase: 'start', pct: 0, mb: '0' });
     try {
       const s = await syncForTrip({
         styleUrl: deps.styleUrl,
@@ -85,17 +94,20 @@ export function mountSyncUi(root: HTMLElement, deps: SyncUiDeps) {
         onProgress: (p) => {
           const pct = Math.floor((100 * p.done) / Math.max(1, p.total));
           btn.textContent = t('sync.running', { phase: t(`sync.phase.${p.phase}` as Key), pct, mb: mb(p.bytes) });
+          emit({ state: 'running', phase: p.phase, pct, mb: mb(p.bytes) });
         },
       });
       saveSummary(deps.storage, s);
       renderLast();
       const missing = s.failed + s.feedsFailed.length + (s.staticOk === false ? 1 : 0);
       say(missing ? t('sync.partial', { n: missing }) : t('sync.done'));
+      emit(missing ? { state: 'partial', n: missing } : { state: 'done' });
       deps.onDone?.(s);
     } catch (err) {
       const cancelled = (err as Error)?.name === 'AbortError';
       if (!cancelled) console.warn('sync failed', err);
       say(cancelled ? t('sync.cancelled') : t('sync.failed'));
+      emit({ state: cancelled ? 'cancelled' : 'failed' });
     } finally {
       running = null;
       idle();

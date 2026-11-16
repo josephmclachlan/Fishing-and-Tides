@@ -1012,3 +1012,10 @@ sup.gd-cite { font-size: 0.68em; line-height: 0; margin-left: 1px; font-weight: 
 .gd-fn ol { margin: 0; padding-left: 20px; font-size: 12px; line-height: 1.35; }
 .gd-fn li + li { margin-top: 3px; }
 .gd-fn a { color: inherit; }
+
+/* VISIBILITY YOU SAW: the small log form under its row (layers/clarity.ts). */
+.vis-form { display: grid; gap: 6px; padding: 6px 0 8px; }
+.vis-form[hidden] { display: none; }
+.vis-in { font: inherit; font-size: 16px; min-height: 44px; padding: 0 10px; color: inherit; background: transparent; border: 1px solid currentColor; }
+.vis-btns { display: flex; gap: 6px; }
+.vis-msg:empty { display: none; }
