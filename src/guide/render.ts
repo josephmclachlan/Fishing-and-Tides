@@ -6,7 +6,7 @@
  */
 import { t, type Key } from '../i18n';
 import { artFor, artSvg, GROUP_ART } from './art';
-import { cleanHtml } from './clean';
+import { cleanHtml, dispatchLinkHtml } from './clean';
 import {
   FLAGS, GROUP_BYS, hurtsToTouch, isFood, latinOnly, nameOf, poisonToEat, riskToEat, SIZE_BANDS, SORTS, TOUCH_KINDS, touchLevel,
   type GdFilter, type GroupBy, type Section,
@@ -23,6 +23,15 @@ export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', 
 export const icon = (body: string, cls = '') => `<svg viewBox="0 0 24 24" aria-hidden="true"${cls ? ` class="${cls}"` : ''}>${body}</svg>`;
 
 /** A link from a ciguatera warning to the CIGUATERA page (PLAN 7.101). */
+/** Ciguatera size advice for this species: the limit to keep, whether it is published or an estimate, and why. */
+export function ciguaSizeHtml(c: NonNullable<Species['eat']>['ciguaSize'], lang: Lang): string {
+  if (!c || !txt(c.advice, lang)) return '';
+  const lim = [c.maxCm ? `${c.maxCm} cm` : '', c.maxKg ? `${c.maxKg} kg` : ''].filter(Boolean).join(' · ');
+  const head = lim ? `<p class="gd-csz"><b>${esc(t('gd.csz.keep', { lim }))}</b> <span class="gd-b">${esc(t(`gd.csz.${c.basis}` as Key))}</span></p>` : `<p class="gd-csz"><span class="gd-b">${esc(t(`gd.csz.${c.basis}` as Key))}</span></p>`;
+  const src = c.sources?.length ? `<p class="gd-csz-src">${esc(c.sources.join(' · '))}</p>` : '';
+  return block(t('gd.h.ciguaSize'), head + paras(txt(c.advice, lang)) + src, 'gd-warn');
+}
+
 const ciguateraLink = (risks: readonly string[]): string =>
   risks.includes('ciguatera') ? `<p><a class="cig-link" href="#ciguatera">${esc(t('gd.ciguateraLink'))}</a></p>` : '';
 
@@ -398,6 +407,8 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
           .filter(([, v]) => txt(v, lang))
           .map(([k, v]) => `<dt>${esc(t(k))}</dt><dd>${esc(txt(v, lang))}</dd>`)
           .join('')}</dl>` +
+        (s.group !== 'plants-algae' ? dispatchLinkHtml(lang) : '') +
+        ciguaSizeHtml(e.ciguaSize, lang) +
         (e.risks?.length ? block(t('gd.h.eatRisk'), chips(e.risks.map((r) => tx(RISK_WORDS[r], lang))) + pText(e.riskNote, lang) + ciguateraLink(e.risks), 'gd-warn') : '')
       );
     }

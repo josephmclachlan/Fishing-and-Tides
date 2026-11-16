@@ -174,8 +174,16 @@ export function mountDispatchPage(deps: DispatchPageDeps) {
     show();
     if (wasHidden || r.section) scrollTo(r.section, !wasHidden);
   };
-  window.addEventListener('hashchange', fromHash);
-  window.addEventListener('popstate', () => fromHash());
+  // A tap on a #link fires popstate before hashchange, and popstate carries no old URL: track it here, so the
+  // back button returns to the exact page and species it was opened from (not the map).
+  let here = location.href;
+  const onNav = (e?: HashChangeEvent) => {
+    const old = e?.oldURL ?? here;
+    here = location.href;
+    fromHash(old !== here ? ({ oldURL: old } as HashChangeEvent) : undefined);
+  };
+  window.addEventListener('hashchange', onNav);
+  window.addEventListener('popstate', () => onNav());
 
   const open = (section: DpSection | null = null) => {
     cameFrom = fromOf(location.hash);
