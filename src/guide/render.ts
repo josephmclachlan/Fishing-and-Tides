@@ -9,7 +9,7 @@ import { UI } from '../icons/ui';
 import { artFor, artSvg, GROUP_ART } from './art';
 import { fishKindFor } from '../fishing/guide-link';
 import { citeTab } from './cite';
-import { cleanHtml, dispatchLinkHtml } from './clean';
+import { cleanHtml, dispatchLinkHtml, hasDispatch } from './clean';
 import {
   FLAGS, GROUP_BYS, hurtsToTouch, isFood, latinOnly, nameOf, poisonToEat, riskToEat, SIZE_BANDS, SORTS, TOUCH_KINDS, touchLevel,
   type GdFilter, type GroupBy, type Section,
@@ -301,7 +301,7 @@ export function tabsFor(s: Species): GdTab[] {
   if (s.diet || s.predators || s.behaviour || s.reproduction || s.lifespan) out.push('life');
   // Shown for every species with food notes, not only the edible list: a banned or risky one carries a banner (emergencyHtml).
   if (s.eat && (isFood(s) || hasEatInfo(s.eat))) out.push('catch');
-  if (s.eat?.clean) out.push('clean');
+  if (s.eat?.clean || s.eat?.cleanNotes) out.push('clean');
   if (s.danger || s.eat?.risks?.length || s.edible === 'toxic' || s.edible === 'caution' || s.edible === 'protected' || s.edibleNote) out.push('safety');
   if (s.sources?.length || s.check || s.photos?.length || s.evidence?.length) out.push('sources');
   return out;
@@ -375,6 +375,19 @@ function statusBadges(s: Species, lang: Lang): string {
 const block = (title: string, body: string, cls = '') => (body ? `<section class="gd-blk${cls ? ` ${cls}` : ''}"><h4 class="fc-mono">${esc(title)}</h4>${body}</section>` : '');
 const pText = (v: Txt | undefined, lang: Lang) => (txt(v, lang) ? paras(txt(v, lang)) : '');
 const chips = (words: string[]) => (words.length ? `<div class="gd-tags">${words.map((w) => `<span>${esc(w)}</span>`).join('')}</div>` : '');
+/** Fun facts, Joseph 2026-11-16: the name first, then the surprising things, on a card of their own. */
+function factsHtml(s: Species, lang: Lang): string {
+  if (!s.facts?.length) return '';
+  return `<section class="gd-blk gd-fun"><h4 class="fc-mono">${esc(t('gd.h.facts'))}</h4><ul>${s.facts
+    .map((f) => `<li class="${f.kind}">${f.kind === 'name' ? `<b>${esc(t('gd.h.factName'))}</b> ` : ''}${esc(txt(f.text, lang))}</li>`)
+    .join('')}</ul></section>`;
+}
+
+/** Eaten here but endangered worldwide, with no ban found (Joseph 2026-11-16): ask for a live release. Banned ones have their own banner. */
+const releaseNote = (s: Species): Key | undefined =>
+  (s.edible === 'yes' || s.edible === 'caution') && !s.eat?.illegal && (s.status?.iucn === 'CR' || s.status?.iucn === 'EN')
+    ? s.status.iucn === 'CR' ? 'gd.release.CR' : 'gd.release.EN'
+    : undefined;
 const checkMark = () => ` <span class="gd-b chk" title="${esc(t('gd.checkTitle'))}">${icon(ICONS.check)}${esc(t('gd.check'))}</span>`;
 
 function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
@@ -384,6 +397,7 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
     case 'about':
       return (
         (txt(s.about, lang) ? paras(txt(s.about, lang), 'gd-lede') : '') +
+        factsHtml(s, lang) +
         block(t('gd.h.where'), pText(s.where, lang)) +
         block(t('gd.h.season'), pText(s.season, lang)) +
         block(t('gd.k.habitat'), chips((s.habitats ?? []).map((h) => tx(HABITAT_WORDS[h], lang)))) +
@@ -422,6 +436,7 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
         emergencyHtml(s) +
         block(t('gd.h.taste'), q + pText(e.taste, lang)) +
         block(t('gd.h.rules'), txt(e.rules, lang) ? paras(txt(e.rules, lang)) + (e.rulesCheck ? `<p>${checkMark()} ${esc(t('gd.checkTitle'))}</p>` : '') : '', 'gd-rules') +
+        (releaseNote(s) ? `<p class="gd-release">${icon(ICONS.shield)}${esc(t(releaseNote(s)!))}</p>` : '') +
         block(t('gd.h.methods'), chips((e.methods ?? []).map((m) => tx(METHOD_WORDS[m], lang)))) +
         `<dl class="gd-dl gd-fish">${(
           [
@@ -431,13 +446,13 @@ function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
           .filter(([, v]) => txt(v, lang))
           .map(([k, v]) => `<dt>${esc(t(k))}</dt><dd>${esc(txt(v, lang))}</dd>`)
           .join('')}</dl>` +
-        (s.group !== 'plants-algae' ? dispatchLinkHtml(lang) : '') +
+        (hasDispatch(s.group) ? dispatchLinkHtml(lang) : '') +
         ciguaSizeHtml(e.ciguaSize, lang) +
         (e.risks?.length ? block(t('gd.h.eatRisk'), chips(e.risks.map((r) => tx(RISK_WORDS[r], lang))) + pText(e.riskNote, lang) + ciguateraLink(e.risks), 'gd-warn') : '')
       );
     }
     case 'clean':
-      return emergencyHtml(s) + (e?.clean ? cleanHtml(e.clean, lang, e.cleanNotes) : '') + block(t('gd.h.cook'), pText(e?.cook, lang));
+      return emergencyHtml(s) + cleanHtml(e?.clean, lang, e?.cleanNotes, s.group) + block(t('gd.h.cook'), pText(e?.cook, lang));
     case 'safety': {
       const d = s.danger;
       return (
