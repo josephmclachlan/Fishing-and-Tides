@@ -628,13 +628,91 @@ export function mountKineticMap(d: KmDeps) {
       bindComposer(shBody);
     }
   };
+  /**
+   * The map key (Joseph 2026-11-16): on a desktop, one line for every layer drawn, so "what are these yellow dots" is answered
+   * without a tap; on a phone the top layer's key, and a tap on any mark names it (tapKey below).
+   */
+  /** One line of the desktop key: the layer's marks as small swatches, its name, and what it shows (in full on hover). */
+  const OWN_WHAT: Record<string, [string, string]> = {
+    rating: ['Each beach in its rating colour for this activity', 'Cada playa en el color de su calificación'],
+    heat: ['Each reef in its coral heat alert colour', 'Cada arrecife en el color de su alerta de calor'],
+    private: ['Your logged sites, as 5 km cells', 'Sus sitios, como celdas de 5 km'],
+  };
+  const keyLine = (id: KmLayer) => {
+    const lv = (ns: number[]) => ns.map((n) => `<i class="k-lmlv" style="--k:var(--lv${n})"></i>`).join('');
+    let sw = '', what = '';
+    if (isOwnLayer(id)) {
+      sw = id === 'rating' ? lv([0, 1, 2, 3, 4]) : id === 'heat' ? lv([3, 2, 1, 0]) : `<i class="k-sw-glyph">${glyphSvg('lock', GLYPH_PAINT.ink, 14)}</i>`;
+      what = L2(...(OWN_WHAT[id] ?? ['', '']));
+    } else {
+      const fk = FIELD_OF[id];
+      const ramp = (cols: readonly string[]) => `<i class="k-lmramp" style="background:linear-gradient(90deg,${cols.join(',')})"></i>`;
+      const marks = LEGEND[id].filter((it) => it.sw !== 'none' && !((fk || id === 'fishing') && it.sw === 'fill')).slice(0, 3).map(keySw).join('');
+      sw = (fk ? ramp(bandCss(fk)) : id === 'fishing' ? ramp(rampCss(['--lv2', '--lv3', '--ac4'], 6)) : '') + marks;
+      what = t(legendWhatKey(id) as Key);
+    }
+    const short = what.split(/(?<=[a-z0-9)])[.:;](\s|$)/i)[0];
+    return `<li title="${esc(what)}"><span class="k-lkeys k-lmsw">${sw}</span><b>${esc(layerName(id))}</b><span class="k-lmwhat">${esc(short)}</span></li>`;
+  };
   const renderLegMini = () => {
     const el = $('k-legmini');
     const on = order();
+    if (WIDE.matches) {
+      const ids = on.filter((id) => legend(id));
+      el.hidden = !lcol || !ids.length;
+      el.classList.add('k-legall');
+      el.innerHTML = `<span class="k-mono">${L2('Key · every layer on', 'Clave · cada capa activa')}</span><ul class="k-lmall">${ids.map(keyLine).join('')}</ul>`;
+      return;
+    }
+    el.classList.remove('k-legall');
     // SPEAR shows its own key alone (Joseph 2026-11-16: the beach ratings matter less there; the coast strip stays on the map).
     const top = S.act === 'spear' && on.includes('spear') ? 'spear' : on.find((id) => legend(id));
-    el.hidden = (WIDE.matches && !lcol) || !top;
-    if (top) el.innerHTML = `<span class="k-mono">${esc(layerName(top))}</span>${legend(top)}`;
+    el.hidden = !top;
+    if (top) el.innerHTML = `<span class="k-mono">${esc(layerName(top))}</span>${legend(top)}<small class="k-lmtap">${L2('Tap any mark to name it', 'Toque una marca para ver qué es')}</small>`;
+  };
+  /**
+   * Tap a mark (phone): a dot, line, ring or label drawn by a layer that is on, and a card names the layer, says what the mark
+   * means and shows its key. Marks with their own card (lightning, storms, live observations, wave crests, rips, sargassum,
+   * coral sites) and the depth contours (labelled on the map) keep theirs; a tap on open water keeps the WHAT'S HERE card.
+   */
+  const OWN_CARD = new Set(['ob-dot', 'ob-label', 'lt-dot', 'st-ring', 'st-label', 'wv-crest', 'rp-site', 'rp-coast', 'sg-mat', 'sg-beach', 'cs-sites']);
+  const MARK_TYPES = new Set(['circle', 'symbol', 'line']);
+  const tapCard = document.createElement('aside');
+  tapCard.className = 'k-tapcard';
+  tapCard.hidden = true;
+  tapCard.setAttribute('role', 'dialog');
+  stage.appendChild(tapCard);
+  const tapKey = (pt: { x: number; y: number }) => {
+    tapCard.hidden = true;
+    const on = order().filter((id): id is LayerId => !isOwnLayer(id) && id !== 'depth');
+    const styleIds: [string, LayerId][] = [];
+    for (const l of map.getStyle()?.layers ?? []) {
+      if (!MARK_TYPES.has(l.type) || OWN_CARD.has(l.id)) continue;
+      const owner = on.find((id) => LAYERS.find((x) => x.id === id)?.mapPrefixes?.some((p) => l.id.startsWith(p)));
+      if (owner && map.getLayoutProperty(l.id, 'visibility') !== 'none') styleIds.push([l.id, owner]);
+    }
+    if (!styleIds.length) return false;
+    const B = 10;
+    const own = map.queryRenderedFeatures([[pt.x - B, pt.y - B], [pt.x + B, pt.y + B]], { layers: [...OWN_CARD].filter((id) => map.getLayer(id)) });
+    if (own.length) return false;
+    const hits = map.queryRenderedFeatures([[pt.x - B, pt.y - B], [pt.x + B, pt.y + B]], { layers: styleIds.map(([id]) => id) });
+    if (!hits.length) return false;
+    // The top layer in the key's order wins where marks overlap.
+    const ownerOf = (h: (typeof hits)[number]) => styleIds.find(([id]) => id === h.layer.id)![1];
+    const hit = hits.sort((a, b) => on.indexOf(ownerOf(a)) - on.indexOf(ownerOf(b)))[0];
+    const id = ownerOf(hit), p = (hit.properties ?? {}) as Record<string, unknown>;
+    const items = LEGEND[id].filter((it) => it.sw !== 'none');
+    const named = typeof p.sp === 'string' && p.sp ? titleCase(p.sp) : typeof p.label === 'string' && p.label && !/\n/.test(p.label) && p.label.length < 40 ? p.label : '';
+    const title = named || (items.length === 1 ? sentence(t(legendItemKey(id, LEGEND[id].indexOf(items[0]) + 1) as Key)) : layerName(id));
+    // The zone's reason, depth and nearest place: words in sentence case, the place (no digits, last) in title case.
+    const parts = typeof p.where === 'string' && p.where ? p.where.split(' · ') : [];
+    const where = parts.length ? `<p class="k-tcwhere">${esc(parts.map((x, i) => (i === parts.length - 1 && i > 0 && !/\d/.test(x) ? placeCase(x) : sentence(x).replace(/(\d) M\b/g, '$1 m'))).join(' · '))}</p>` : '';
+    tapCard.innerHTML = `<div class="k-tchd"><span class="k-mono">${L2('You tapped', 'Tocó')} · ${esc(layerName(id))}</span><button type="button" class="k-ib" aria-label="${L2('Close', 'Cerrar')}">${CLOSE}</button></div><b class="k-tct">${esc(title)}</b>${where}<p>${esc(t(legendWhatKey(id) as Key))}</p>${legend(id)}`;
+    tapCard.querySelector('button')!.addEventListener('click', () => (tapCard.hidden = true));
+    tapCard.hidden = false;
+    // Its own card replaces WHAT'S HERE for this tap.
+    document.querySelectorAll<HTMLElement>('.help-card').forEach((c) => (c.hidden = true));
+    return true;
   };
 
   /* ---------- readings ---------- */
@@ -1394,6 +1472,7 @@ export function mountKineticMap(d: KmDeps) {
   map.on('click', (e) => {
     if (!WIDE.matches && S.sheet && S.sheet !== 'here') return closeSheet();
     if (S.sheet && S.sheet !== 'here') return;
+    if (!WIDE.matches) tapKey(e.point);
     map.easeTo({ center: e.lngLat, duration: 350 });
   });
 
