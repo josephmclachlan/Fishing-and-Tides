@@ -34,6 +34,7 @@ import { t, type Key } from '../i18n';
 import { zoneAt, type ZonePoly } from '../zone-lookup';
 import { spearStatus } from '../rules';
 import { spotWater } from '../fishing/spot-water';
+import { whenMapShown } from '../map-shown';
 import { SPEAR_SPECIES, spearScore, spearWindow } from '../fishing/spear';
 
 const { COAST, SPOT } = TIER_ZOOM;
@@ -108,6 +109,7 @@ export interface FishingLayer {
 
 export function mountFishing(map: Map, input: FishingInput, initial: { species: SpeciesId; month: number }, occurrences: OccurrenceFile | null = null): FishingLayer {
   const built = buildCells(input);
+  const jobs = { zones: {}, spear: {}, rules: {} };
   let sp = speciesById(initial.species);
   let month = initial.month;
   const amber = cssColour('--amber', '#ffb000');
@@ -207,9 +209,8 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     zonesGj.features = [...nearly, ...far, ...near];
     return true;
   };
-  const refreshZones = () => {
-    if (buildZones()) (map.getSource('fh-zones') as GeoJSONSource | undefined)?.setData(zonesGj);
-  };
+  // Circling the zones is map drawing: it waits until the map is first shown (map-shown.ts).
+  const refreshZones = () => whenMapShown(jobs.zones, () => buildZones() && (map.getSource('fh-zones') as GeoJSONSource | undefined)?.setData(zonesGj));
 
   // SPEAR areas (src/fishing/spear.ts): the best target's habitat in the breath-hold depth window, cell by cell and as circled zones, drawn
   // as the fishing ones are but in green; where the law bans spearing (a national park, closed water) the water that would otherwise be
@@ -256,7 +257,8 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
     });
     return true;
   };
-  const refreshSpear = () => {
+  const refreshSpear = () => whenMapShown(jobs.spear, spearNow);
+  const spearNow = () => {
     if (!buildSpear()) return;
     (map.getSource('sp') as GeoJSONSource | undefined)?.setData(spearGj);
     (map.getSource('sp-zones') as GeoJSONSource | undefined)?.setData(spearZonesGj);
@@ -427,13 +429,16 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
       rules = z;
       // A national park (IUCN II: Cahuita, where spear guns are banned and line fishing is disputed, rule.cahuita.*) or
       // closed water gets no circle. The refuges (Gandoca-Manzanillo, Limoncito) have no fishing rule found, so they keep theirs.
-      rule = Uint8Array.from(built.cells, (c) => {
-        const p = zoneAt(z, [c.lng, c.lat]);
-        return noZone(p) ? 2 : p ? 1 : 0;
+      // Only the circles and the spear shading read these, so they too wait for the map.
+      whenMapShown(jobs.rules, () => {
+        rule = Uint8Array.from(built.cells, (c) => {
+          const p = zoneAt(z, [c.lng, c.lat]);
+          return noZone(p) ? 2 : p ? 1 : 0;
+        });
+        law = Uint8Array.from(built.cells, (c) => ({ ok: 0, check: 1, banned: 2 })[spearStatus(zoneAt(z, [c.lng, c.lat]))]);
+        refreshZones();
+        refreshSpear();
       });
-      law = Uint8Array.from(built.cells, (c) => ({ ok: 0, check: 1, banned: 2 })[spearStatus(zoneAt(z, [c.lng, c.lat]))]);
-      refreshZones();
-      refreshSpear();
     },
     setBoat(cells, key) {
       if (key === boatKey) return;
