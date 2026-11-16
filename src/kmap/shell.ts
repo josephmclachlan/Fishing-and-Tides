@@ -579,9 +579,11 @@ export function mountKineticMap(d: KmDeps) {
   };
   const renderLegMini = () => {
     const el = $('k-legmini');
-    const top = order().find((id) => legend(id));
+    const on = order(), top = on.find((id) => legend(id));
     el.hidden = (WIDE.matches && !lcol) || !top;
-    if (top) el.innerHTML = `<span class="k-mono">${esc(layerName(top))}</span>${legend(top)}`;
+    // SPEAR: its own key (green water, red ban, dashed amber CHECK) sits under the beach ratings, not only in the Layers sheet.
+    const own = S.act === 'spear' && top !== 'spear' && on.includes('spear') ? 'spear' : null;
+    if (top) el.innerHTML = [top, own].filter((id): id is KmLayer => !!id).map((id) => `<span class="k-mono">${esc(layerName(id))}</span>${legend(id)}`).join('');
   };
 
   /* ---------- readings ---------- */
