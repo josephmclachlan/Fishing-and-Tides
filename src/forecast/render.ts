@@ -30,6 +30,11 @@ const GUIDE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12c3
 const DISPATCH_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14L16 4l2 2L8 16zM8 16l-2 4M18 14c0 2-1.3 3.5-3 3.5S12 16 12 14c0-1.6 3-5 3-5s3 3.4 3 5z"/></svg>';
 const CORAL_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-9M12 15l-4-4V7M12 12l4-4V5M8 11l-3-2M16 8l3-1M6 21h12"/></svg>';
 const THEME_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 2a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg>';
+const ID_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l6 6"/></svg>';
+const NOTES_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3zM5 17a3 3 0 013-3h11M9 8h6"/></svg>';
+const SURF_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 16c3 0 3-3 6-3s3 3 6 3 3-3 6-3M2 20c3 0 3-3 6-3s3 3 6 3 3-3 6-3M4 10c1-4 5-7 10-6-3 1-4 3-4 6"/></svg>';
+const SAFETY_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M5.6 5.6l3.9 3.9M14.5 14.5l3.9 3.9M18.4 5.6l-3.9 3.9M9.5 14.5l-3.9 3.9"/></svg>';
+const AID_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg>';
 const GO_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
 
 /** The page's frame: header, tabs, hero, and the sections the page fills in. */
@@ -76,15 +81,14 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
       </div>
     </section>
     <p class="fc-down-msg fc-in" id="fc-down" role="status" hidden>${esc(t('fc.unavailable'))}</p>
-    ${o.guide ? `<nav class="fc-links fc-in" aria-label="${esc(t('fc.links'))}">
-      <button type="button" class="fc-link" id="fc-idlink" data-for="fish dive spear snorkel">${GUIDE_ICON}<span><b>${esc(t('fc.idLink'))}</b><small>${esc(t('fc.idLinkSub'))}</small></span><i aria-hidden="true">→</i></button>
-      <a class="fc-link" href="#dispatch" data-for="fish spear">${DISPATCH_ICON}<span><b>${esc(t('dp.link'))}</b><small>${esc(t('dp.linkSub'))}</small></span><i aria-hidden="true">→</i></a>
-      <a class="fc-link" href="#notes/water" data-for="surf swim snorkel dive spear fish sail">${GUIDE_ICON}<span><b>${esc(t('nt.waterLink'))}</b><small>${esc(t('nt.waterLinkSub'))}</small></span><i aria-hidden="true">→</i></a>
-      <a class="fc-link" href="#notes" data-for="fish spear dive snorkel">${DISPATCH_ICON}<span><b>${esc(t('nt.link'))}</b><small>${esc(t('nt.linkSub'))}</small></span><i aria-hidden="true">→</i></a>
-      <a class="fc-link" href="#notes/surf" data-for="surf">${GUIDE_ICON}<span><b>${esc(t('nt.surfLink'))}</b><small>${esc(t('nt.surfLinkSub'))}</small></span><i aria-hidden="true">→</i></a>
-      <a class="fc-link" href="#notes/water" data-for="surf swim snorkel dive spear fish sail">${GUIDE_ICON}<span><b>${esc(t('nt.waterLink'))}</b><small>${esc(t('nt.waterLinkSub'))}</small></span><i aria-hidden="true">→</i></a>
-      <a class="fc-link" href="#notes/aid" data-for="surf swim fish spear dive snorkel">${GUIDE_ICON}<span><b>${esc(t('nt.aidLink'))}</b><small>${esc(t('nt.aidLinkSub'))}</small></span><i aria-hidden="true">→</i></a>
-    </nav>` : ''}
+    ${o.guide ? `<nav class="fc-links fc-in" aria-label="${esc(t('fc.links'))}">${([
+      ['button', '', 'fish dive spear snorkel', 'fc.idLink', 'fc.lk.id', ID_ICON],
+      ['a', '#dispatch', 'fish spear', 'dp.link', 'fc.lk.handle', DISPATCH_ICON],
+      ['a', '#notes', 'fish spear dive snorkel', 'nt.link', 'fc.lk.notes', NOTES_ICON],
+      ['a', '#notes/surf', 'surf', 'nt.surfLink', 'fc.lk.surf', SURF_ICON],
+      ['a', '#notes/water', 'surf swim snorkel dive spear fish sail', 'nt.waterLink', 'fc.lk.water', SAFETY_ICON],
+      ['a', '#notes/aid', 'surf swim fish spear dive snorkel sail', 'nt.aidLink', 'fc.lk.aid', AID_ICON],
+    ] as [string, string, string, Key, Key, string][]).map(([tag, href, ous, full, short, icon]) => `<${tag} class="fc-link"${tag === 'a' ? ` href="${href}"` : ' type="button" id="fc-idlink"'} data-for="${ous}" title="${esc(t(full))}">${icon}<span>${esc(t(short))}</span></${tag}>`).join('')}</nav>` : ''}
     <section class="fc-sec fc-in" aria-labelledby="fc-cond-h">
       <div class="fc-sec-head"><h2 id="fc-cond-h">${esc(t('fc.conditions'))}</h2><p class="fc-mono" id="fc-cond-when"></p></div>
       <div class="fc-tiles" id="fc-tiles"></div>

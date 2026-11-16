@@ -1,0 +1,55 @@
+/** Extra pictograms for the Rules, Cooking, Seasons and Words tabs, on the same 24 px grid and rules as icons.ts. */
+import type { Pict } from '../icons';
+
+const FISH = 'M2 12c3-5 8-6 13-3.5l5-3v13l-5-3C10 18 5 17 2 12z';
+const TANK = 'M9 7h6v14H9zM10.5 7V4h3v3M12 4V2M9 11h6';
+const NET = 'M3 6h18v12H3zM3 12h18M9 6v12M15 6v12';
+const DOLLAR = 'M12 3v18M16 7.5C15 6.3 13.7 6 12 6c-2.4 0-4 1-4 2.8 0 4 8 1.6 8 5.7 0 1.9-1.7 3-4 3-1.8 0-3.3-.5-4.3-1.8';
+
+export const MISC_PICTS = {
+  fish: { d: FISH, dots: [[7, 11.2, 1.1]] },
+  nofish: { d: FISH, x: true },
+  lobster: { d: 'M9 8c3-1.5 6-.5 7 4s-3 5.5-7 4S6 9.5 9 8zM16 12l5-2.5v5zM9 8L5 4M10 8L7 3M6.5 11H3M6.5 13.5H3.5' },
+  turtle: { d: 'M5 16a7 7 0 0 1 14 0zM9.5 16l1-5h3l1 5M19 13.5l2.5-2M5 17.5l-2 2M19 17.5l2 2M8.5 19.5l-1 2M15.5 19.5l1 2' },
+  shark: { d: 'M2 18c5 0 9-1 11-3-.5-4 .5-8 3-11 .3 4 2 8 6 11-4 1-6 2-8 3zM2 21h20' },
+  conch: { d: 'M12 4c4.5 0 8 3 8 8 0 4-3 7-7 7-3 0-5-2-5-4.5 0-2.5 2-4 4-4 1.7 0 3 1.2 3 2.5M5 19l4-1.5M4 15l3-1' },
+  manatee: { d: 'M3 12c0-3.5 4-5.5 9-5.5 5 0 9 2 9 5.5 0 3.2-2 4.5-4 4.5-2 0-2.5-2-4.5-2H11c-2 0-3.5 2-5.5 2C3.8 16.5 3 14.5 3 12zM8 17.5l-1 3.5M6.5 10.5h.01' },
+  octopus: { d: 'M6 11a6 6 0 0 1 12 0c0 2-1 3-2 3H8c-1 0-2-1-2-3zM8 14c0 3-2 4-3 5M11 14c0 3-1 5-1 6M14 14c0 3 1 5 1 6M16 14c0 3 2 4 3 5', dots: [[10, 10, 1], [14, 10, 1]] },
+  spine: { d: 'M12 3v12M8 5l4 10M16 5l-4 10M5 8l7 7M19 8l-7 7M7 19h10' },
+  thermo: { d: 'M10 14.5V5a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0zM12 9v7', dots: [[12, 17, 1.6]] },
+  snow: { d: 'M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9M9 4.5l3 2 3-2M9 19.5l3-2 3 2' },
+  cooler: { d: 'M3 9h18v11H3zM2 9V6h20v3M9 14h6' },
+  fridge: { d: 'M6 3h12v18H6zM6 10h12M9 6v2M9 13v4' },
+  fire: { d: 'M12 21c-4 0-6-2.5-6-6 0-3 2-5 3-7 1 1.5 1.5 2 2.5 2C12 7 11 5 12 3c4 2 7 6 7 11 0 4-3 7-7 7z' },
+  pot: { d: 'M4 10h16v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM2 10h2M20 10h2M8 6c0-1.5 1-1.5 1-3M12 6c0-1.5 1-1.5 1-3M16 6c0-1.5 1-1.5 1-3' },
+  pan: { d: 'M3 12h13v2a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5zM16 12l6-2' },
+  lime: { d: 'M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0zM12 4v16M4.5 9.5l15 5M19.5 9.5l-15 5' },
+  leaf: { d: 'M4 20C4 10 10 4 20 4c0 10-6 16-16 16zM4 20L14 10' },
+  coconut: { d: 'M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0z', dots: [[9, 9.5, 1.2], [13.5, 8.5, 1.2], [11, 13, 1.2]] },
+  drop: { d: 'M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z' },
+  jar: { d: 'M8 3h8v3H8zM6 6h12v15H6zM6 11h12' },
+  knife: { d: 'M3 20L14 9c3-3 5-4 7-4 0 2-1 4-4 7l-5 4zM3 20l3-1' },
+  board: { d: 'M3 7h18v10H3zM17 12h.01' },
+  calendar: { d: 'M4 6h16v15H4zM4 10h16M8 3v4M16 3v4' },
+  ruler: { d: 'M2 9h20v6H2zM6 9v3M10 9v4M14 9v3M18 9v4' },
+  egg: { d: 'M12 3c-3.5 0-6 5-6 9a6 6 0 0 0 12 0c0-4-2.5-9-6-9z' },
+  park: { d: 'M12 21v-6M12 3l6 8h-3l4 5H5l4-5H6z' },
+  net: { d: NET },
+  nonet: { d: NET, x: true },
+  notank: { d: TANK, x: true },
+  dollar: { d: DOLLAR },
+  nodollar: { d: DOLLAR, x: true },
+  bank: { d: 'M3 9l9-5 9 5zM5 9v9M10 9v9M14 9v9M19 9v9M3 21h18' },
+  moon: { d: 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z' },
+  swell: { d: 'M2 14c3-7 6-7 9 0s6 7 9 0M2 19c3-4 6-4 9 0s6 4 9 0' },
+  tide: { d: 'M3 8c3-2 6 2 9 0s6-2 9 0M12 21v-9M9 18l3 3 3-3' },
+  weed: { d: 'M12 21c0-5-3-6-3-10 0-3 2-4 3-7 1 3 3 4 3 7 0 4-3 5-3 10zM12 21c-3-1-6-1-8-4M12 21c3-1 6-1 8-4' },
+  layers: { d: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5' },
+  shield: { d: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z' },
+  boat: { d: 'M3 14h18l-3 5H6zM12 14V4l5 8' },
+  weight: { d: 'M8 8h8l3 12H5zM12 3v5' },
+  line: { d: 'M7 3v11a4 4 0 0 0 8 0V8M15 8l-2 2M15 8l2 2' },
+  bolt: { d: 'M13 2L5 14h6l-1 8 8-12h-6z' },
+  stack: { d: 'M4 17h16M4 12h16M4 7h16' },
+  pin: { d: 'M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z', dots: [[12, 10, 2.2]] },
+} as const satisfies Record<string, Pict>;

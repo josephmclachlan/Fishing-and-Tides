@@ -5,6 +5,7 @@
  */
 import type { Block, L, Source } from '../ciguatera/content';
 import type { NtTab } from './route';
+import type { VBlock } from './vis';
 import { rules } from './sections/rules';
 import { surf } from './sections/surf';
 import { aid } from './sections/aid';
@@ -17,12 +18,15 @@ import { words } from './sections/words';
 
 const L = (en: string, es: string): L => ({ en, es });
 
+export type NBlock = Block | VBlock;
+
 export interface Section {
   id: NtTab;
   title: L;
   /** One line under the title. */
   lede: L;
-  blocks: Block[];
+  /** Text blocks (shared with the ciguatera page) and the visual blocks of vis.ts. */
+  blocks: NBlock[];
   /** The sources this tab's `{key}` markers name. */
   sources: Record<string, Source>;
 }

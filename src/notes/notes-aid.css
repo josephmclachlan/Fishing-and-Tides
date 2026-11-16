@@ -1,0 +1,8 @@
+/* First aid tab: styles only those tabs use. Shared blocks are in notes.css. */
+.nt-art path.nt-aid-limb { fill: var(--fc-sand); }
+.nt-art rect.nt-aid-ok { fill: var(--fc-lv3); stroke: none; }
+.nt-art rect.nt-aid-hot { fill: var(--fc-lv0); stroke: none; }
+.nt-art circle.nt-aid-bulb { fill: var(--fc-lv0); stroke: none; }
+.nt-art rect.nt-aid-wrap { fill: var(--fc-sand); }
+.nt-art circle.nt-aid-sting { fill: var(--fc-lv0); stroke: var(--fc-ink); stroke-width: 2; }
+.nt-art-wrap .nt-tick { stroke-width: 2; }

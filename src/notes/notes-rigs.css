@@ -1,0 +1,122 @@
+/* Rigs and Releasing fish tabs: styles only those tabs use. Shared blocks are in notes.css.
+   Drawing parts (art/rigs.ts): line in ink, leader in teal, hooks in the second ink, bait in coral, the danger colour
+   only for venomous spines and "do not". The knot kit cuts a gap round the nearer strand at every crossing
+   (`nt-rigs-halo`, in the drawing's own background colour). */
+.nt-art .nt-rigs-ln { stroke: var(--fc-ink); stroke-width: 2.1; }
+.nt-art .nt-rigs-ld { stroke: var(--fc-ac4); stroke-width: 2.4; }
+.nt-art .nt-rigs-hk { stroke: var(--fc-ink2); stroke-width: 2.6; fill: none; }
+.nt-art .nt-rigs-dash { stroke-dasharray: 3 3; }
+.nt-art .nt-rigs-back { stroke: color-mix(in srgb, var(--fc-ink) 50%, var(--fc-block)); }
+.nt-art .nt-rigs-halo { stroke: var(--fc-block); stroke-width: 6.5; stroke-linecap: butt; }
+.nt-art .nt-rigs-pan { stroke: var(--fc-line); stroke-width: 1; }
+.nt-art .nt-rigs-ar { stroke: var(--fc-ac1); stroke-width: 2; stroke-dasharray: 4 4; }
+.nt-art .nt-rigs-arh { stroke: var(--fc-ac1); stroke-width: 2.2; }
+.nt-art .nt-rigs-dim { stroke: var(--fc-ink2); stroke-width: 1.2; }
+.nt-art .nt-rigs-span { stroke: var(--fc-ink); stroke-width: 3; stroke-linecap: butt; }
+
+/* tackle */
+.nt-art .nt-rigs-sk { fill: var(--fc-ink2); stroke: var(--fc-ink); stroke-width: 1.4; }
+.nt-art .nt-rigs-thru { stroke: var(--fc-block); stroke-width: 1.2; stroke-dasharray: 2 2; }
+.nt-art .nt-rigs-opt { stroke-dasharray: 3 3; fill: none; }
+.nt-art .nt-rigs-sw, .nt-art .nt-rigs-swb { fill: none; stroke: var(--fc-ink2); stroke-width: 2; }
+.nt-art .nt-rigs-swb { fill: var(--fc-ink2); }
+.nt-art .nt-rigs-bead { fill: var(--fc-ac2); stroke: var(--fc-ink); stroke-width: 1.2; }
+.nt-art .nt-rigs-knot { fill: var(--fc-ink); stroke: none; }
+.nt-art .nt-rigs-bt { fill: var(--fc-coral); stroke: var(--fc-ink); stroke-width: 1.3; }
+.nt-art .nt-rigs-bt-l { stroke: var(--fc-coral); stroke-width: 1.3; }
+.nt-art .nt-rigs-bf { fill: color-mix(in srgb, var(--fc-foam) 70%, var(--fc-sea-a)); stroke: var(--fc-ink); stroke-width: 1.4; }
+.nt-art .nt-rigs-dot { fill: var(--fc-ink); stroke: none; }
+.nt-art .nt-rigs-bed { fill: var(--fc-sand); stroke: none; }
+.nt-art .nt-rigs-rock { fill: var(--fc-murk); stroke: none; }
+.nt-art .nt-rigs-surf { stroke: var(--fc-ink); stroke-width: 1.6; }
+.nt-art .nt-rigs-pile { fill: var(--fc-sand); stroke: var(--fc-ink); stroke-width: 2; }
+.nt-art .nt-rigs-deck { stroke-width: 4; }
+.nt-art .nt-rigs-inset { fill: var(--fc-block); stroke: var(--fc-ink); stroke-width: 1.4; }
+.nt-art .nt-rigs-alt { stroke: var(--fc-ink2); stroke-dasharray: 3 3; }
+.nt-art .nt-rigs-cur { stroke: var(--fc-ink); stroke-width: 2; stroke-dasharray: 6 8; opacity: 0.7; animation: nt-rigs-run 1.4s linear infinite; }
+.nt-art .nt-rigs-curw { stroke: var(--fc-foam); stroke-width: 2.4; stroke-dasharray: 8 10; animation: nt-rigs-run 1.1s linear infinite; }
+.fc[data-scheme='light'] .nt-art .nt-rigs-curw { stroke: var(--fc-ink); stroke-width: 1.6; }
+.nt-art .nt-rigs-curh { stroke: var(--fc-ink); stroke-width: 2; }
+.nt-art .nt-rigs-slide { stroke: var(--fc-ac1); stroke-width: 3; stroke-dasharray: 3 7; animation: nt-rigs-slide 1.2s linear infinite; }
+.nt-art .nt-rigs-onbed, .nt-art .nt-rigs-onsea { fill: var(--fc-ink); paint-order: stroke; stroke: var(--fc-block); stroke-width: 4px; stroke-linejoin: round; }
+.nt-art .nt-rigs-onbed { stroke: var(--fc-sand); }
+.nt-art .nt-rigs-dz { fill: var(--fc-sev-danger); }
+.nt-art .nt-rigs-swim { animation: nt-rigs-swim 1.6s ease-in-out infinite alternate; }
+
+/* outfits */
+.nt-art .nt-rigs-spool { fill: var(--fc-card); stroke: var(--fc-ink); stroke-width: 2.4; }
+.nt-art .nt-rigs-wound { stroke: var(--fc-ink2); stroke-width: 14; fill: none; }
+.nt-art .nt-rigs-hub { fill: var(--fc-block); stroke: var(--fc-ink); }
+.nt-art .nt-rigs-rod { stroke: var(--fc-ink); stroke-width: 3.2; }
+.nt-art .nt-rigs-grip { stroke: var(--fc-ink2); stroke-width: 7; }
+.nt-art .nt-rigs-guide { stroke: var(--fc-ink); stroke-width: 1.6; fill: none; }
+.nt-art .nt-rigs-reel { stroke: var(--fc-ink); stroke-width: 2.2; }
+.nt-art .nt-rigs-reelb { fill: var(--fc-ink2); stroke: var(--fc-ink); }
+.nt-art .nt-rigs-spoolr { fill: var(--fc-ac4); stroke: var(--fc-ink); }
+
+/* charts */
+.nt-art .nt-rigs-pic path { stroke: var(--fc-ink); stroke-width: 1.9; vector-effect: non-scaling-stroke; }
+.nt-art .nt-rigs-picd { fill: var(--fc-ink); stroke: none; }
+.nt-art .nt-rigs-yes { fill: var(--fc-ac3); stroke: var(--fc-ink); stroke-width: 1.4; }
+.nt-art .nt-rigs-no0 { fill: var(--fc-line); stroke: none; }
+.nt-art .nt-rigs-grid { stroke: var(--fc-line); stroke-width: 1; }
+.nt-art .nt-rigs-bar { fill: var(--fc-ink); stroke: none; }
+.nt-art .nt-rigs-barl { fill: none; stroke: var(--fc-ac4); stroke-width: 2.4; }
+
+/* cast net, lionfish */
+.nt-art .nt-rigs-bank { fill: var(--fc-sand); stroke: none; }
+.nt-art .nt-rigs-net, .nt-art .nt-rigs-netc { stroke: var(--fc-ink); stroke-width: 1.8; fill: none; }
+.nt-art .nt-rigs-mesh { stroke: var(--fc-ink2); stroke-width: 1; }
+.nt-art .nt-rigs-lion { fill: var(--fc-card); stroke: var(--fc-ink); stroke-width: 2; }
+.nt-art .nt-rigs-stripe { stroke: var(--fc-ink2); stroke-width: 2.6; }
+.nt-art .nt-rigs-fin { stroke: var(--fc-ink2); stroke-width: 1.5; }
+.nt-art .nt-rigs-spine { stroke: var(--fc-sev-danger); stroke-width: 2.4; }
+
+/* release drawings */
+.nt-art .nt-rigs-fish path { vector-effect: non-scaling-stroke; }
+.nt-art .nt-rigs-fb { fill: var(--fc-card); stroke: var(--fc-ink); }
+.nt-art .nt-rigs-eyeb { fill: var(--fc-card); stroke: var(--fc-ink); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+.nt-art .nt-rigs-scale { stroke: var(--fc-ink); }
+.nt-art .nt-rigs-hand { fill: var(--fc-sand); stroke: var(--fc-ink); stroke-width: 2; }
+.nt-art .nt-rigs-handp { stroke: var(--fc-ink); stroke-width: 0.7; fill: var(--fc-sand); }
+.nt-art .nt-rigs-drop { fill: var(--fc-sea-a); stroke: none; }
+.nt-art .nt-rigs-ok { stroke: var(--fc-ac3); stroke-width: 3.4; }
+.nt-art .nt-rigs-no { stroke: var(--fc-sev-danger); stroke-width: 3; }
+.nt-art .nt-rigs-tool { stroke: var(--fc-ink); stroke-width: 2.6; }
+.nt-art .nt-rigs-tooln { fill: var(--fc-ink); stroke: none; }
+.nt-art .nt-rigs-grip2 { stroke: var(--fc-ac0); stroke-width: 5; }
+.nt-art .nt-rigs-ring { stroke: var(--fc-ink); stroke-width: 2.2; fill: none; }
+.nt-art .nt-rigs-jaw { fill: var(--fc-ink); stroke: var(--fc-ink); stroke-width: 1.4; }
+.nt-art .nt-rigs-handl { stroke: var(--fc-ink); stroke-width: 1.4; }
+.nt-art .nt-rigs-cut { stroke: var(--fc-ac1); stroke-width: 2; }
+.nt-art .nt-rigs-cloth { fill: color-mix(in srgb, var(--fc-sea-a) 40%, var(--fc-block)); stroke: var(--fc-ink); }
+.nt-art .nt-rigs-hoop { stroke: var(--fc-ink); stroke-width: 2.4; fill: none; }
+.nt-art .nt-rigs-netb { stroke: var(--fc-ink2); stroke-width: 1.6; }
+.nt-art .nt-rigs-clock { fill: var(--fc-card); stroke: var(--fc-ink); }
+.nt-art .nt-rigs-hid { stroke: var(--fc-ink); stroke-width: 1.6; stroke-dasharray: 3 4; }
+.nt-art .nt-rigs-kick { stroke: var(--fc-foam); stroke-width: 2.4; }
+.fc[data-scheme='light'] .nt-art .nt-rigs-kick { stroke: var(--fc-ink); }
+.nt-art .nt-rigs-away { animation: nt-rigs-away 2.4s ease-in-out infinite; }
+.nt-art .nt-rigs-shell { fill: color-mix(in srgb, var(--fc-murk) 70%, var(--fc-card)); stroke: var(--fc-ink); }
+.nt-art .nt-rigs-scute { stroke: var(--fc-ink); stroke-width: 1.4; }
+.nt-art .nt-rigs-flip, .nt-art .nt-rigs-head { fill: color-mix(in srgb, var(--fc-murk) 70%, var(--fc-card)); stroke: var(--fc-ink); }
+.nt-art .nt-rigs-tail { stroke: var(--fc-ink); stroke-width: 3; }
+.nt-art .nt-rigs-sky { fill: var(--fc-block); stroke: none; }
+.nt-art .nt-rigs-clip { stroke: var(--fc-ink); stroke-width: 2.4; }
+.nt-art .nt-rigs-crate { stroke: var(--fc-ink); stroke-width: 2; }
+.nt-art .nt-rigs-down { animation: nt-rigs-down 3s ease-in-out infinite; }
+
+@keyframes nt-rigs-run { to { stroke-dashoffset: -14; } }
+@keyframes nt-rigs-slide { to { stroke-dashoffset: -10; } }
+@keyframes nt-rigs-swim { from { transform: translate(-3px, 1px); } to { transform: translate(3px, -1px); } }
+@keyframes nt-rigs-away { 0%, 15% { transform: translateX(0); } 85%, 100% { transform: translateX(-26px); } }
+@keyframes nt-rigs-down { 0%, 15% { transform: translateY(-34px); } 85%, 100% { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .nt-art .nt-rigs-cur, .nt-art .nt-rigs-curw, .nt-art .nt-rigs-slide, .nt-art .nt-rigs-swim, .nt-art .nt-rigs-away, .nt-art .nt-rigs-down { animation: none; }
+}
+
+/* Tall drawings sit beside their numbered list on wide screens instead of filling the whole width. */
+@media (min-width: 760px) {
+  .nt-fig:has(> svg[class*='nt-art-rg']), .nt-fig:has(> svg[class*='nt-art-rl']) { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); gap: 8px 24px; align-items: start; }
+  .nt-fig:has(> svg[class*='nt-art-rg']) .nt-marks, .nt-fig:has(> svg[class*='nt-art-rl']) .nt-marks { margin-top: 0; }
+}
