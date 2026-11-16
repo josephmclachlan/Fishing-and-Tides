@@ -58,7 +58,7 @@ describe('notes content', () => {
   it('escapes text and numbers markers by first appearance', () => {
     const src = { a: { t: 'A', p: 'P' as const, what: { en: '', es: '' } }, b: { t: 'B', p: 'P' as const, what: { en: '', es: '' } } };
     const c = { order: [] as string[] };
-    expect(cited('x{b} y{a}{b} <i>', c, src)).toContain('1</a></sup> y<sup class="cig-sup"><a href="#cig-src-2" aria-label="source 2">2</a>,<a href="#cig-src-1"');
+    expect(cited('x{b} y{a}{b} <i>', c, src)).toContain('1</a></sup> y<sup class="cig-sup"><a href="#cig-src-1" aria-label="source 1">1</a>,<a href="#cig-src-2"');
     expect(esc('<&>')).toBe('&lt;&amp;&gt;');
     expect(tabsHtml('aid', 'en', notesHash)).toContain('aria-selected="true"');
   });

@@ -22,7 +22,7 @@ export function cited(text: string, cites: Cites, sources: Record<string, Source
       if (i < 0) i = cites.order.push(k) - 1;
       return i + 1;
     });
-    const uniq = [...new Set(nums)];
+    const uniq = [...new Set(nums)].sort((a, b) => a - b);
     return uniq.length ? `<sup class="cig-sup">${uniq.map((n) => `<a href="#cig-src-${n}" aria-label="source ${n}">${n}</a>`).join(',')}</sup>` : '';
   });
 }
