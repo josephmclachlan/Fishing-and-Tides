@@ -170,7 +170,7 @@ export function mountSpotPage(root: HTMLElement, map: Map, deps: SpotPageDeps) {
     set('sp-rip', `${t(`rip.${r.rip.level}` as Key)} · ${t(`rip.str.${r.rip.strength}` as Key)} ${r.rip.speedMs.toFixed(1)} ${t('unit.ms')}`, r.rip.level === 'HIGH' ? 'red' : r.rip.level === 'MOD' ? '' : 'green');
     set('sp-drift', `${Math.abs(b.longshoreMs).toFixed(1)} ${t('unit.ms')}`);
     const q = st.surf;
-    set('sp-surf', q ? `${t(`surf.band.${q.band}` as Key)} ${q.score.toFixed(1)}` : t('spot.noBreak'), q && (q.band === 'GOOD' || q.band === 'EPIC') ? 'green' : '');
+    set('sp-surf', q ? `${t(`surf.band.${q.band}` as Key)} ${Math.round(q.score * 10)}/100` : t('spot.noBreak'), q && (q.band === 'GOOD' || q.band === 'EPIC') ? 'green' : '');
     const s6 = surgeProfile(st.sea.Hs, st.sea.Tp, r.waves.refraction.K, r.waves.refraction.depth, [6])[0];
     set('sp-dive', s6 ? `${t(`dive.band.${s6.band}` as Key)} ${s6.uMs.toFixed(1)} ${t('unit.ms')}` : '--', !s6 ? '' : s6.band === 'DANGEROUS' ? 'red' : s6.band === 'SURGY' ? '' : 'green');
   };

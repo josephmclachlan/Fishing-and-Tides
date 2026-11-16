@@ -43,7 +43,7 @@ export const isPlanActivity = (x: unknown): x is PlanActivity => typeof x === 's
 
 /** The headline score each activity is shown and ranked by, and its full scale. */
 export const HEADLINE: Readonly<Record<PlanActivity, { id: string; max: number }>> = {
-  surf: { id: 'surfq', max: 10 },
+  surf: { id: 'surfq', max: 100 },
   fish: { id: 'bite', max: 100 },
   snorkel: { id: 'outing', max: 100 },
   dive: { id: 'outing', max: 100 },
@@ -63,7 +63,7 @@ export interface PlanDay {
   spot: string;
   startMs: number;
   endMs: number;
-  /** The headline score over the window (surf /10, the rest /100); null when that one metric has no data then. */
+  /** The headline score over the window (out of 100); null when that one metric has no data then. */
   value: number | null;
   tone: Tone;
   good: boolean;
