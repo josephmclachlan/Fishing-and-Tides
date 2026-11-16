@@ -18,18 +18,18 @@ const wrap = (inner: string) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox
 
 const full = markInner({ colour, ink: INK });
 const small = markInner({ colour, ink: INK, small: true });
-// The mark's drawn box is about x 6..60, y 6..56; centre it, then scale about the icon's centre.
-const centred = (inner: string, k: number) => `<g transform="translate(32 32) scale(${k}) translate(-33 -31)">${inner}</g>`;
+// The mark's drawn box is about x 6..59, y 8..57; centre it, then scale about the icon's centre.
+const centred = (inner: string, k: number) => `<g transform="translate(32 32) scale(${k}) translate(-32.5 -32.5)">${inner}</g>`;
 
 const files: Record<string, string> = {
-  'public/icon.svg': wrap(`<rect width="64" height="64" rx="14" fill="${BRAND_NAVY}"/>${centred(full, 0.92)}`),
-  'public/icon-maskable.svg': wrap(`<rect width="64" height="64" fill="${BRAND_NAVY}"/>${centred(full, 0.68)}`),
-  'public/favicon.svg': wrap(`<rect width="64" height="64" rx="14" fill="${BRAND_NAVY}"/>${centred(small, 0.98)}`),
+  'public/icon.svg': wrap(`<rect width="64" height="64" rx="14" fill="${BRAND_NAVY}"/>${centred(full, 0.8)}`),
+  'public/icon-maskable.svg': wrap(`<rect width="64" height="64" fill="${BRAND_NAVY}"/>${centred(full, 0.64)}`),
+  'public/favicon.svg': wrap(`<rect width="64" height="64" rx="14" fill="${BRAND_NAVY}"/>${centred(small, 0.9)}`),
 };
 for (const [path, svg] of Object.entries(files)) writeFileSync(path, svg);
 
 const pngs: [string, string, number][] = [
-  ['public/apple-touch-icon.png', `<rect width="64" height="64" fill="${BRAND_NAVY}"/>${centred(full, 0.8)}`, 180],
+  ['public/apple-touch-icon.png', `<rect width="64" height="64" fill="${BRAND_NAVY}"/>${centred(full, 0.76)}`, 180],
   ['public/icon-192.png', files['public/icon.svg'], 192],
   ['public/icon-512.png', files['public/icon.svg'], 512],
   ['public/icon-maskable-512.png', files['public/icon-maskable.svg'], 512],
