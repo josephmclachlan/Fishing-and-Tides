@@ -12,6 +12,8 @@ describe('citations', () => {
     expect(isCitation('FishBase')).toBe(true);
     expect(isCitation('Cortés 2019')).toBe(true);
     expect(isCitation('2019')).toBe(true);
+    expect(isCitation('INBio specimen, 2001')).toBe(true);
+    expect(isCitation('Center for Biological Diversity, 27 nov 2025')).toBe(true);
     expect(isCitation('Ley 8436 art. 9')).toBe(true);
     expect(isCitation('+506 2755-0302')).toBe(false);
     expect(isCitation('about 80 cm')).toBe(false);

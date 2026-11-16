@@ -18,7 +18,7 @@ export interface Src {
 
 /** Words that make a bracket a source: databases, agencies, laws, documents, author-and-year. */
 const SRC_WORD =
-  /\b(FishBase|SeaLifeBase|AlgaeBase|WoRMS|FAO|IUCN|iNaturalist|GBIF|OBIS|CDC|NOAA|FDA|EPA|ANSES|INCOPESCA|SINAC|MINAE|MAG|AJDIP|Ley|Decreto|Reglamento|ICCAT|Wikipedia|brochure|folleto|report|informe|census|censo|et al)\b|https?:\/\/|\b[\w-]+\.(org|com|gov|edu|net)\b/i;
+  /\b(FishBase|SeaLifeBase|AlgaeBase|WoRMS|FAO|IUCN|INBio|USNM|MCZ|Brenesia|Center for Biological Diversity|iNaturalist|GBIF|OBIS|CDC|NOAA|FDA|EPA|ANSES|INCOPESCA|SINAC|MINAE|MAG|AJDIP|Ley|Decreto|Reglamento|ICCAT|Wikipedia|brochure|folleto|report|informe|census|censo|et al)\b|https?:\/\/|\b[\w-]+\.(org|com|gov|edu|net)\b/i;
 const AUTHOR_YEAR = /\p{Lu}[\p{L}'’-]+(?: et al\.?| (?:&|and|y) \p{Lu}[\p{L}'’-]+)?,? (?:1[89]|20)\d\d[a-z]?\b/u;
 const YEAR = /^(?:1[89]|20)\d\d[a-z]?$/;
 const PHONE = /^\+?\d[\d\s-]{6,}$/;
