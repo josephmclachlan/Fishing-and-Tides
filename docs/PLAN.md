@@ -308,7 +308,7 @@ Keep the whole encyclopedia and every word of the research; answers and pictures
 - [x] 14.3 Identify: first ask what kind of thing it is (fish, shark or ray, turtle, crab, coral, plant and so on), then shape, colours, markings and size as picture answers, with live photo matches after every answer and a side-by-side check with the look-alike at the end
 - [x] 14.4 Flip: swipe photo cards over any shelf, group or search result
 - [x] 14.5 SurCast look on the guide's other pages (ciguatera, dispatch, field notes links and the list cards)
-- [ ] 14.6 Coast drawing (F): tap beach, mangrove, seagrass, reef, open water or offshore to browse what lives there
+- [x] 14.6 Coast drawing (F): tap beach, mangrove, seagrass, reef, open water or offshore to browse what lives there
 
 ## Phase 9: Final review (last, after every task above)
 - [x] 9.1 Full Opus 5.5 (high effort) review of the whole project: for every variable and verdict (surf, dive and snorkel, clarity, fishing shore and offshore, sailing and boat, rip, sargassum, weather), re-check that it uses every data feed now available (forecast, satellite, live observations, climatology) correctly and in depth, with the right units, times and fall-backs. Write the feature x input findings into `docs/SYNC.md` and fix the gaps (**O**, needs all of Phases 2 to 7). Done 2026-11-04: science and math audit, items A to R (tide metres vs cycle position, the wave–current factor, coral alerts 3 to 5, rip channels and break angle, wind per spot and blended gusts, wave trains on their own periods, tide size, one set of verdict limits, Secchi from Lee et al. 2015, IUCN 2022 coral status, lionfish ciguatera note, surge note), fixed in ten PRs; the clarity review that followed is tracked in 7.12

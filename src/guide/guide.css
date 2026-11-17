@@ -790,3 +790,37 @@
 .gd[data-scheme='dark'] .gd-list .gd-card { box-shadow: 0 -2px 12px color-mix(in srgb, var(--gd-c) 22%, transparent); }
 @media (hover: hover) { .gd .gd-list .gd-card:hover { border-color: var(--gd-c); } }
 @media (min-width: 760px) { .gd-list .gd-card { padding: 0; } }
+
+/* --- The coast drawing (PLAN 14.6, option F): where are you? Tap a part to see what lives there. Each part has its
+   own colour; the one showing glows. */
+.gd-coast { margin: 14px 0 4px; }
+.gd-coast-h { margin: 0; font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 72; font-size: 26px; line-height: 1; text-transform: uppercase; }
+.gd-coast-p { margin: 4px 0 6px; font-size: 14px; color: var(--fc-ink2); }
+.gd-coast-d { border: 1.5px solid var(--fc-line); background: var(--gd-glass); }
+.gd-coast-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.gd-coast-svg path { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.gd-coast-land { stroke: var(--fc-sev-caution); stroke-width: 2; }
+.gd-coast-bed { stroke: var(--fc-ink2); stroke-width: 1.8; }
+.gd-coast-sea { stroke-width: 1.4; }
+.gd-coast-sea.r0 { stroke: var(--fc-t-paddle); } .gd-coast-sea.r1 { stroke: var(--fc-t-snorkel); opacity: 0.8; }
+.gd-coast-sea.r2 { stroke: var(--fc-t-dive); opacity: 0.6; } .gd-coast-sea.r3 { stroke: var(--fc-t-swim); opacity: 0.45; }
+.gd .z-beach { --zc: var(--fc-sev-caution); } .gd .z-mangrove { --zc: var(--fc-t-sail); } .gd .z-seagrass { --zc: var(--fc-t-snorkel); }
+.gd .z-reef { --zc: var(--fc-coral); } .gd .z-open { --zc: var(--fc-t-paddle); } .gd .z-deep { --zc: var(--fc-t-dive); }
+.gd-cz { cursor: pointer; outline: none; }
+.gd-coast-svg .gd-cz-a { fill: transparent; stroke: none; pointer-events: all; transition: fill 0.2s; }
+.gd-coast-svg .gd-cz-art { stroke: var(--zc); stroke-width: 1.8; opacity: 0.85; }
+.gd-cz-l { font: 700 12px var(--fc-mono); letter-spacing: 0.06em; text-transform: uppercase; fill: var(--fc-ink); pointer-events: none; }
+.gd-cz-n { fill: var(--zc); font-weight: 600; }
+.gd-coast-svg .gd-cz.on .gd-cz-a, .gd-coast-svg .gd-cz:focus-visible .gd-cz-a { fill: color-mix(in srgb, var(--zc) 18%, transparent); }
+.gd-coast-svg .gd-cz.on .gd-cz-art { opacity: 1; stroke-width: 2.4; }
+.gd-cz.on .gd-cz-l { fill: var(--zc); }
+.gd[data-scheme='dark'] .gd-coast-sea, .gd[data-scheme='dark'] .gd-coast-land { filter: drop-shadow(0 0 2px currentColor); }
+.gd[data-scheme='dark'] .gd-coast-svg .gd-cz-art { filter: drop-shadow(0 0 3px var(--zc)); }
+.gd[data-scheme='dark'] .gd-cz.on .gd-cz-l { filter: drop-shadow(0 0 4px var(--zc)); }
+.gd:not([data-scheme='dark']) .gd-cz.on .gd-cz-l, .gd:not([data-scheme='dark']) .gd-cz-n { fill: color-mix(in srgb, var(--zc) 65%, var(--fc-ink)); }
+@media (hover: hover) { .gd-coast-svg .gd-cz:hover .gd-cz-a { fill: color-mix(in srgb, var(--zc) 10%, transparent); } }
+.gd-coast-on { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.gd-coast-on span { flex: 1 1 auto; }
+.gd .gd-coast-on .gd-qf { height: 36px; }
+.gd[data-mode='identify'] .gd-coast, .gd[data-mode='saved'] .gd-coast { display: none; }
+@media (min-width: 760px) { .gd-coast-d { max-width: 760px; } }
