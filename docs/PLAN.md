@@ -303,13 +303,13 @@ Visual first, plain full sentences, numbered superscript sources. Grouped PRs, w
 - [x] 12.9 Forecast hour chart, map legends, tide and spot chart text, coral wording (other-findings F, M, T, K)
 
 ## Phase 13: Square, bold, colour-coded look (Joseph 2026-11-17: square crisp lines beat bubbly and rounded, on every page including the map and the ID guide; Kinetic's bold activity headers, each activity in its own colour when tapped, pictures colour-coded at a glance with pop-up words on tap; the infographics keep the originals' detail with better art and animation)
-- [x] 13.1 SAIL and SWIM (rip) hero pictures redrawn: the rose as an instrument with a solid bezel, a proper hull, cabin, keel and cream sails, heel as a tag; the rip with sandbars, the darker channel, marching current arrows, the sandy plume and a swimmer showing the way out; square knock-out tags; tap any part for a square box of plain words (English and Spanish)
+- [x] 13.1 SAIL hero picture redrawn: the rose as an instrument with a solid bezel, a proper hull, cabin, keel and cream sails, heel as a tag; square knock-out tags; tap any part for a square box of plain words (English and Spanish). SWIM keeps its earlier picture (Joseph 2026-11-17)
 - [x] 13.2 Square corners and crisp 1-2 px lines on every panel, chip, button and pop-up (forecast, coral, field notes, guide, ciguatera, dispatch); square line caps and mitred corners in drawings and icons. The phone map's pills, sheet and wheel are squared in the map thread's PR #365
 - [ ] 13.3 Bold Kinetic activity headers everywhere activities are picked (map bar, field notes, guide), each lit in its own colour when selected. Done: field notes, ciguatera and dispatch tabs; the map bar and wheel in PR #365; left: the guide (its rebuild thread)
-- [x] 13.4 SURF, FISH and PADDLE hero pictures redrawn the same way, with tap words
+- [x] 13.4 PADDLE hero picture redrawn the same way, with tap words. SURF and FISH keep their earlier pictures (Joseph 2026-11-17)
 - [x] 13.5 SNORKEL, DIVE and SPEAR hero pictures redrawn the same way, with tap words
 - [x] 13.6 The condition card drawings (tiles) in the same look: square line ends and markers, H/L tags, a sharp pointer on the scales, a rating bar and number chip on rated cards, and tap a card to open its tip
-- [ ] 13.7 Field notes, ciguatera and dispatch drawings in the same look. Done: the rip drawing and square number badges everywhere
+- [x] 13.7 Field notes drawings in the same look: the rip drawing and square number badges. The fish drawings (releasing, cooking, ciguatera, dispatch) stay as they were (Joseph 2026-11-17: "I like the older fish drawings")
 
 ## Phase 14: Species guide Atlas (Joseph 2026-11-17 chose option E of the guide rethink, then the coast drawing F; mockups https://claude.ai/artifact/AtMGjPodjPAxQf9wDwkzJx)
 Keep the whole encyclopedia and every word of the research; answers and pictures first, long text under a fold, SurCast run colours with glow. One PR per task.

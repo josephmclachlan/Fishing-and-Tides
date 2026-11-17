@@ -38,7 +38,7 @@ import { moonPhase } from '../physics/astro';
 import type { Plan } from '../metrics/plan';
 import { chopFor, type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour } from './model';
 import { cmp, dayHoursOf, headline, pushOf, levelWord, moonAgeDays, n0, n1, planDayOf, sentence, tideNow } from './view';
-import { arrow, brackets, chevron, clamp, D2R, dimLine, DISP, ease, keyTag, MONO, lerp, moonPath, overlaps, rgba, sq, tag, tagSize, TAU, txt, type Ctx2D, type Hot, type RGB, type Tokens } from './kit';
+import { arrow, brackets, capsule, clamp, D2R, dimLine, DISP, hatch, keyTag, MONO, lerp, moonPath, overlaps, rgba, sq, tag, tagSize, TAU, txt, type Ctx2D, type Hot, type RGB, type Tokens } from './kit';
 import { boomDeg, coastPose, heelDeg, REEF_HEEL_DEG, type SailPose } from '../physics/heel';
 import type { PointOfSail } from '../boat/route';
 
@@ -461,173 +461,35 @@ export class HeroEngine {
 interface Style { ink: string; soft: string; faint: string; on: RGB; fd: RGB; T: Tokens; reduced: boolean; hot: Hot[] }
 type Box = { x: number; y: number; w: number; h: number };
 
-/**
- * SURF, side on (PLAN 13.1): the sea on the left rolls in toward a beach on the right, where a 1.7 m adult stands
- * beside a shortboard on the same metres-to-pixels scale. The waves come in sets on the reading's period (one crest
- * passes every `period` s, so a long-period swell rolls in slowly and evenly) and break as they reach the beach: a
- * swell hump steepens, the lip pitches forward over a hollow face, then falls into whitewater that runs up to the
- * sand. Each wave's face is inside the reading's range, the set's biggest at the top of it; the range is a band
- * across the picture with its numbers as a tag. Body marks run from the figure's knee, waist, chest and head across
- * the waves to tags on the left, solid where today's bigger waves reach. A ruler under the water spans one crest gap
- * and says the period; a small compass shows where the swell comes from against the beach.
- */
-function drawSurf(c: Ctx2D, A: Box, tt0: number, s: NonNullable<HeroParams['surf']>, S: Style) {
-  const { x, y, w, h } = A, tt = S.reduced ? 3.1 : tt0, fs = clamp(Math.min(w, 760) / 380, 1, 1.3);
-  const ink = S.ink, fdc = rgba(S.fd), cream = (al: number) => rgba(CREAM, al);
-  const headH = Math.round(36 * fs), footH = Math.round(30 * fs);
-  const maxM = Math.max(2.05, s.hi * 1.12);
-  const base = y + h - footH, mpx = (base - (y + headH + 6)) / maxM, u = BODY_M.head * mpx;
-  c.lineCap = 'butt'; c.lineJoin = 'miter'; c.miterLimit = 6;
-
-  // --- Layout: guide tags on the left (one width), the figure and board on the right, the sea between.
-  const guides = s.guides.filter(([m]) => m <= maxM);
-  let dm = Infinity;
-  for (let i = 1; i < guides.length; i++) dm = Math.min(dm, Math.abs(guides[i][0] - guides[i - 1][0]) * mpx);
-  const gsz = Math.min(9 * fs, (dm - 4) / 1.9), gMax = w * 0.24;
-  const gw = Math.max(...guides.map(([, n]) => tagSize(c, n, gsz, gMax).w), 30);
-  const bw = BOARD_M.wid * mpx, bcx = x + w - 2 - bw / 2, pcx = bcx - bw / 2 - 0.05 * u;
-  const lx = x + gw + 10, rx = pcx - 0.17 * u - 4; // the sea from lx to the waterline at rx
-
-  // --- The waves: a set rolling in on the period, each breaking as it nears the beach.
-  const cw = rx - lx, lam = clamp(cw * 0.44, 80, 240), v = lam / Math.max(4, s.period), P = tt * v;
-  // A set: each wave a different size inside the range, the biggest at the top of it, the next ones never alike.
-  const SET = [0.15, 1, 0.45, 0.8, 0, 0.6];
-  const n0w = Math.ceil((P - cw - lam * 0.5) / lam), n1w = Math.floor((P + lam * 0.6) / lam);
-  const crests: number[] = [];
-  c.save(); c.beginPath(); c.rect(lx + 7, y, rx - lx - 7, base - y + 1); c.clip();
-  for (let n = n1w; n >= n0w; n--) {
-    const xc = lx + P - n * lam, k = (xc - lx) / cw;
-    const Hm = s.lo + (s.hi - s.lo) * SET[((n % 6) + 6) % 6], H = Math.max(3, Hm * mpx);
-    // Stages as the crest nears the beach: swell, steepening, the lip pitching, the collapse, the whitewater running in.
-    const st = ease(0.05, 0.42, k), sl = ease(0.38, 0.6, k), br = ease(0.58, 0.72, k), bo = ease(0.66, 1, k);
-    if (k < 0.6) crests.push(xc);
-    const Lb = lam * 0.5, Lf = lam * 0.42 * (1 - 0.5 * st), Hh = H * (0.8 + 0.2 * ease(0, 0.4, k)) * (1 - 0.5 * br);
-    const L2 = (p: number, q: number) => p + (q - p) * sl;
-    const C: [number, number] = [xc + Lf * 0.15 * sl, base - Hh];
-    const T: [number, number] = [L2(C[0], xc + Lf * 1.2), L2(C[1], base - Hh * 0.12)], O: [number, number] = [L2(C[0], xc + Lf * 1.12), L2(C[1], base - Hh * 1.04)];
-    const I: [number, number] = [L2(C[0], xc + Lf), L2(C[1], base - Hh * 0.72)], U: [number, number] = [L2(C[0], xc + Lf * 0.32), L2(C[1], base - Hh * 0.8)];
-    const c1: [number, number] = [L2(lerp(xc + Lf * 0.35, xc + Lf * 0.04, st), xc + Lf * 0.06), L2(lerp(base - Hh, base - Hh * 0.55, st), base - Hh * 0.45)];
-    const c2x = L2(lerp(xc + Lf * 0.5, xc + Lf * 0.2, st), xc + Lf * 0.14), toe = xc + Lf * L2(1, 1.3);
-    const shape = (close: boolean) => {
-      c.beginPath(); c.moveTo(xc - Lb, base);
-      c.bezierCurveTo(xc - Lb * 0.5, base, xc - Lb * 0.35, C[1], C[0], C[1]);
-      c.quadraticCurveTo(O[0], O[1], T[0], T[1]);
-      c.quadraticCurveTo(I[0], I[1], U[0], U[1]);
-      c.bezierCurveTo(c1[0], c1[1], c2x, base, toe, base);
-      if (close) c.closePath();
-    };
-    if (br < 1) {
-      const al0 = c.globalAlpha;
-      c.globalAlpha = al0 * (1 - br * 0.75);
-      shape(true); c.fillStyle = rgba(S.on, 0.16); c.fill();
-      c.save(); shape(true); c.clip();
-      c.strokeStyle = rgba(S.on, 0.62); c.lineWidth = 1; c.beginPath();
-      for (let yy = base - 2; yy > base - Hh * 1.2; yy -= 3.2) { c.moveTo(xc - Lb, Math.round(yy) + 0.5); c.lineTo(xc + lam, Math.round(yy) + 0.5); }
-      c.stroke(); c.restore();
-      shape(false); c.strokeStyle = ink; c.lineWidth = 2.2; c.stroke();
-      // The lip, heavier where it throws.
-      if (sl > 0.02) { c.lineWidth = 3.4; c.beginPath(); c.moveTo(C[0], C[1]); c.quadraticCurveTo(O[0], O[1], T[0], T[1]); c.stroke(); }
-      c.globalAlpha = al0;
-    }
-    if (br > 0 && k < 1.12) {
-      // The lip lands and bursts into foam; the whitewater runs on, a steep front and a long back, lower as it goes.
-      const fx1 = xc + Lf * 1.4 + bo * lam * 0.25, fx0 = fx1 - Lf * 1.6 - bo * lam * 0.25, Hf = H * 0.62 * (1 - bo * 0.75) * Math.min(1, br * 1.4);
-      const al = 1 - ease(0.95, 1.1, k);
-      const top = (xx: number) => {
-        const q = (xx - fx0) / (fx1 - fx0), f = q <= 0.78 ? Math.pow(Math.sin((Math.PI / 2) * (q / 0.78)), 1.2) : Math.pow(Math.max(0, Math.cos((Math.PI / 2) * ((q - 0.78) / 0.22))), 0.6);
-        return base - Hf * f * (0.86 + 0.14 * hash1(n * 7 + Math.round(xx - xc)));
-      };
-      c.fillStyle = cream(0.95 * al); c.beginPath(); c.moveTo(fx0, base);
-      for (let xx = fx0; xx <= fx1; xx += 3) c.lineTo(xx, top(xx));
-      c.lineTo(fx1, base); c.closePath(); c.fill();
-      c.strokeStyle = rgba(S.on, al); c.lineWidth = 1.5; c.beginPath();
-      for (let xx = fx0; xx <= fx1; xx += 3) (xx === fx0 ? c.moveTo(xx, top(xx)) : c.lineTo(xx, top(xx)));
-      c.stroke();
-      for (let i = 0; i < 10; i++) {
-        const px = fx0 + hash1(n * 3 + i) * (fx1 - fx0), py = top(px) - 2 - hash1(n * 5 + i) * Hf * 0.4 * (1 - bo);
-        c.fillStyle = cream(0.85 * al * (1 - bo)); c.fillRect(Math.round(px), Math.round(py), 2 + (i % 2), 2 + (i % 2));
-      }
-      for (let i = 0; i < 14; i++) {
-        const px = fx0 - hash1(n * 5 + i) * lam * 0.45 * bo, ph = 1 + hash1(n * 11 + i) * 3;
-        c.fillStyle = cream(0.6 * al * bo); c.fillRect(Math.round(px), Math.round(base - ph - 1), 2, 2);
-      }
-    }
+function drawSurf(c: Ctx2D, A: Box, tt: number, s: NonNullable<HeroParams['surf']>, S: Style) {
+  const { x, y, w, h } = A, maxM = Math.max(2.2, s.hi * 1.2);
+  const base = y + h - 14, top = y + 30, mpx = (base - top) / maxM, lx = x + 40;
+  const rx = x + w - 58;
+  for (const [m, n] of s.guides) {
+    if (m > maxM) continue;
+    const yy = base - m * mpx;
+    c.strokeStyle = S.faint; c.lineWidth = 1; c.setLineDash([2, 4]); c.beginPath(); c.moveTo(lx, yy); c.lineTo(rx, yy); c.stroke(); c.setLineDash([]);
+    c.fillStyle = S.ink; txt(c, n, x + w, yy, 'right', 10.5, 700);
+    c.fillStyle = S.soft; txt(c, dec(m, 1), x, yy, 'left', 10.5);
   }
-  // The waves come in from beyond the picture: fade them in over the sea's first few metres.
-  const fade = c.createLinearGradient(lx + 7, 0, lx + 40, 0);
-  fade.addColorStop(0, 'rgba(0,0,0,1)'); fade.addColorStop(1, 'rgba(0,0,0,0)');
-  c.globalCompositeOperation = 'destination-out'; c.fillStyle = fade; c.fillRect(lx + 7, y, 34, base - y + 1); c.globalCompositeOperation = 'source-over';
-  c.restore();
-  // --- The face range: a band across the sea over the waves, a bracket at its left end.
-  const yHi = base - s.hi * mpx, yLo = base - s.lo * mpx;
-  c.fillStyle = rgba(S.on, 0.1); c.fillRect(lx, yHi, rx - lx, Math.max(2, yLo - yHi));
-  c.strokeStyle = rgba(S.on, 0.6); c.lineWidth = 1; c.setLineDash([6, 4]);
-  c.beginPath(); c.moveTo(lx, Math.round(yHi) + 0.5); c.lineTo(rx, Math.round(yHi) + 0.5); c.moveTo(lx, Math.round(yLo) + 0.5); c.lineTo(rx, Math.round(yLo) + 0.5); c.stroke(); c.setLineDash([]);
-  // The water line and the beach under the figure.
-  c.strokeStyle = ink; c.lineWidth = 2; c.beginPath(); c.moveTo(lx, base + 1); c.lineTo(rx, base + 1); c.stroke();
-  c.fillStyle = rgba(S.T.sand); c.beginPath(); c.moveTo(rx - 14, base + 9); c.lineTo(rx + 6, base); c.lineTo(x + w, base); c.lineTo(x + w, base + 9); c.closePath(); c.fill();
-  c.fillStyle = rgba(S.on, 0.35);
-  for (let i = 0; i < 40; i++) c.fillRect(Math.round(rx + hash1(i + 3) * (x + w - rx)), Math.round(base + 2 + hash1(i + 9) * 6), 1.5, 1.5);
-  c.strokeStyle = ink; c.lineWidth = 2; c.beginPath(); c.moveTo(rx - 14, base + 9); c.lineTo(rx + 6, base); c.lineTo(x + w, base); c.stroke();
-
-  // --- Body marks: from the figure across the waves to their tags; solid where the bigger waves reach.
-  const gTags: Box[] = [];
-  for (const [m, n] of guides) {
-    const yy = Math.round(base - m * mpx) + 0.5, reach = m <= s.hi + 1e-9;
-    c.strokeStyle = reach ? rgba(S.on, 0.85) : rgba(S.on, 0.5); c.lineWidth = 1; c.setLineDash([3, 3]);
-    c.beginPath(); c.moveTo(x + gw + 2, yy); c.lineTo(m >= BODY_M.head ? pcx : pcx - 0.15 * u, yy); c.stroke(); c.setLineDash([]);
-    gTags.push(tag(c, n, x, yy, 'left', gsz, ink, reach ? fdc : ink, !reach, gMax));
-  }
-  // The range's bracket at the sea's left end.
-  c.fillStyle = ink; c.fillRect(lx, yHi, 5, Math.max(2, yLo - yHi)); c.fillRect(lx, yHi, 10, 2); c.fillRect(lx, yLo - 2, 10, 2);
-
-  // --- The figure and the board, to scale.
-  drawPerson(c, pcx, base, mpx, tt, S, base + footH * 0.55, x + w);
-
-  // --- The period: crest marks riding along the water line, a ruler one crest gap long.
-  c.fillStyle = ink;
-  for (const xc of crests) if (xc > lx + 8 && xc < rx - 4) { c.beginPath(); c.moveTo(xc, base + 3); c.lineTo(xc - 4, base + 9); c.lineTo(xc + 4, base + 9); c.closePath(); c.fill(); }
-  const ry = Math.round(base + footH * 0.62) + 0.5, r0 = lx + 8, r1 = Math.min(r0 + lam, rx - 4);
-  const ps = tagSize(c, s.everyK, 9 * fs, r1 - r0 - 8 > 60 ? r1 - r0 - 8 : Infinity);
-  const inside = ps.w <= r1 - r0 - 10;
-  c.strokeStyle = ink; c.lineWidth = 1.5; c.beginPath();
-  c.moveTo(r0, ry - 5); c.lineTo(r0, ry + 5); c.moveTo(r1, ry - 5); c.lineTo(r1, ry + 5);
-  if (inside) { const m0 = (r0 + r1) / 2 - ps.w / 2 - 3, m1 = (r0 + r1) / 2 + ps.w / 2 + 3; c.moveTo(r0, ry); c.lineTo(m0, ry); c.moveTo(m1, ry); c.lineTo(r1, ry); }
-  else { c.moveTo(r0, ry); c.lineTo(r1, ry); }
+  c.strokeStyle = S.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(lx, base); c.lineTo(rx, base); c.stroke();
+  c.fillStyle = S.soft; txt(c, '0 m', x, base, 'left', 10.5);
+  // Swell crests travelling across on the swell's own period, their faces between the range's two ends.
+  const w0 = TAU / Math.max(4, s.period), lam = Math.max(170, (rx - lx) * 0.62), mid = (s.lo + s.hi) / 2, half = (s.hi - s.lo) / 2;
+  const hAt = (xx: number) => {
+    const u = (xx - lx) / lam, ph = TAU * u - w0 * tt;
+    const crest = mid + half * Math.sin(w0 * tt * 0.5 + u * 1.3);
+    return base - (crest * Math.pow(0.5 + 0.5 * Math.cos(ph), 2.2) + 0.04) * mpx;
+  };
+  hatch(c, lx, rx, top, base - 1, hAt, 3.2, rgba(S.on, 0.78));
+  c.strokeStyle = S.ink; c.lineWidth = 2.4; c.beginPath();
+  for (let xx = lx; xx <= rx; xx += 3) { const yy = hAt(xx); xx === lx ? c.moveTo(xx, yy) : c.lineTo(xx, yy); }
   c.stroke();
-  for (const [ax, dir] of [[r0, 1], [r1, -1]] as const) { c.beginPath(); c.moveTo(ax + 1 * dir, ry); c.lineTo(ax + 7 * dir, ry - 3.5); c.lineTo(ax + 7 * dir, ry + 3.5); c.closePath(); c.fill(); }
-  const pt = inside ? tag(c, s.everyK, (r0 + r1) / 2, ry, 'center', 9 * fs, ink, fdc, false, r1 - r0 - 8) : tag(c, s.everyK, r1 + 6, ry, 'left', 9 * fs, ink, fdc, false, rx - r1 - 8);
-
-  // --- Header: the face range as the lead tag; the swell's direction against the beach on a small compass.
-  const cb = Math.round(32 * fs), cbx = x + w - cb, cby = y + 1, ccx = cbx + cb / 2, ccy = cby + cb / 2, cr = cb / 2;
-  c.strokeStyle = ink; c.lineWidth = 1.5; c.strokeRect(cbx + 0.75, cby + 0.75, cb - 1.5, cb - 1.5);
-  c.fillStyle = ink; c.beginPath(); c.moveTo(ccx, cby - 3); c.lineTo(ccx - 3, cby + 2); c.lineTo(ccx + 3, cby + 2); c.closePath(); c.fill(); // north
-  const pol = (r: number, d: number): [number, number] => [ccx + Math.sin(d * D2R) * r, ccy - Math.cos(d * D2R) * r];
-  if (s.facing !== null) {
-    // The land behind the beach: sand filling the box past the shore line, square to the way the beach faces.
-    const b = pol(cr * 0.45, s.facing + 180), ex = Math.cos(s.facing * D2R) * cb, ey = Math.sin(s.facing * D2R) * cb, bx = -Math.sin(s.facing * D2R) * cb, by = Math.cos(s.facing * D2R) * cb;
-    c.save(); c.beginPath(); c.rect(cbx + 1.5, cby + 1.5, cb - 3, cb - 3); c.clip();
-    c.fillStyle = rgba(S.T.sand); c.beginPath(); c.moveTo(b[0] - ex, b[1] - ey); c.lineTo(b[0] + ex, b[1] + ey); c.lineTo(b[0] + ex + bx, b[1] + ey + by); c.lineTo(b[0] - ex + bx, b[1] - ey + by); c.closePath(); c.fill();
-    c.strokeStyle = ink; c.lineWidth = 2; c.beginPath(); c.moveTo(b[0] - ex, b[1] - ey); c.lineTo(b[0] + ex, b[1] + ey); c.stroke();
-    c.restore();
-  }
-  {
-    const a0 = pol(cr * 0.95, s.dir), a1 = pol(s.facing === null ? cr * 0.4 : cr * 0.05, s.dir + 180);
-    c.strokeStyle = ink; c.lineWidth = 2.4; c.beginPath(); c.moveTo(a0[0], a0[1]); c.lineTo(a1[0], a1[1]); c.stroke();
-    arrow(c, a1[0], a1[1], s.dir + 180, 6, ink);
-  }
-  const ft = tag(c, s.fromK, cbx - 6, ccy, 'right', 9 * fs, ink, ink, true, w * 0.42);
-  const rt = tag(c, s.rangeK, x, ccy, 'left', 11 * fs, ink, fdc, false, ft.x - x - 8);
-  // A leader from the range tag down to its bracket.
-  c.strokeStyle = ink; c.lineWidth = 1.5; c.beginPath(); c.moveTo(lx + 2.5, rt.y + rt.h); c.lineTo(lx + 2.5, yHi); c.stroke();
-
-  // --- Tap targets, most specific first.
-  S.hot.push({ x: cbx - 4 - (cbx - ft.x), y: cby - 4, w: x + w - ft.x + 8, h: cb + 8, k: 'surf.dir' });
-  S.hot.push({ x: Math.min(r0, pt.x) - 4, y: ry - 12, w: Math.max(r1, pt.x + pt.w) - Math.min(r0, pt.x) + 8, h: 24, k: 'surf.period' });
-  S.hot.push({ x: rt.x, y: rt.y, w: rt.w, h: rt.h, k: 'surf.range' });
-  S.hot.push({ x: rx + 2, y: base - u - 6, w: x + w - rx - 2, h: u + 10, k: 'surf.body' });
-  for (const g of gTags) S.hot.push({ x: g.x, y: g.y - 3, w: g.w, h: g.h + 6, k: 'surf.body' });
-  S.hot.push({ x: lx, y: Math.min(yHi, base - 0.4 * mpx) - 8, w: rx - lx, h: base - Math.min(yHi, base - 0.4 * mpx) + 10, k: 'surf.range' });
+  // The range bracket.
+  const y1 = base - s.hi * mpx, y2 = base - s.lo * mpx;
+  c.fillStyle = S.ink; c.fillRect(lx - 12, y1, 6, Math.max(2, y2 - y1));
+  c.fillStyle = S.ink; txt(c, s.caption, lx - 12, y + 6, 'left', 10.5, 700);
+  drawPerson(c, rx - 2, base, mpx, tt, S, rx);
 }
 
 /** The page's off-white (foam, boards, hulls, the figure's shorts): light on every level colour, in both themes. */
@@ -638,69 +500,115 @@ const DARK: RGB = [12, 22, 28];
 export const BOARD_M = { len: 1.85, wid: 0.5 } as const;
 
 /**
- * A standing adult seen from the front, feet on the 0 m line and the crown at BODY_M.head (1.7 m) on the wave scale
- * (`mpx` px a metre), with a shortboard of BOARD_M standing on its tail to the right, one hand on its rail. Drawn in hard
- * filled shapes: ink body, cream board shorts and board. It breathes a little (still under reduced motion). The caption
- * goes under the feet at `labelY`, kept left of `right`.
+ * A standing adult with a shortboard planted behind, drawn to the wave scale: feet on the 0 m line, the crown at
+ * BODY_M.head (1.7 m) on the same metres-to-pixels scale as the crests and guide lines, the board at its real length.
+ * Only the left half is drawn, highly translucent, at the right end of the chart (`cx` is its centre line, `edge` the label's
+ * right limit), so the waves and numbers read through it. A light halo keeps it legible on every level colour; the arms and chest ease gently so it is alive
+ * without moving the scale (still under reduced motion).
  */
-export function drawPerson(c: Ctx2D, cx: number, base: number, mpx: number, tt: number, S: Style, labelY = base + 14, right = Infinity) {
-  const u = BODY_M.head * mpx;
-  if (!(u > 8) || !Number.isFinite(cx)) return;
-  const br = S.reduced ? 0 : Math.sin(tt * 1.5), ink = S.ink;
+function paintPerson(c: Ctx2D, cx: number, base: number, mpx: number, tt: number, S: Style) {
+  const u = BODY_M.head * mpx; // crown height in px
+  const br = S.reduced ? 0 : Math.sin(tt * 1.6), sway = S.reduced ? 0 : Math.sin(tt * 0.7);
+  const cream = (a: number) => rgba(CREAM, a);
   c.save();
-  c.lineCap = 'butt'; c.lineJoin = 'miter'; c.miterLimit = 6;
-  // The board on its tail: pointed nose, wide point a little behind the middle, a squash tail.
-  const L = BOARD_M.len * mpx, bw = BOARD_M.wid * mpx, bcx = cx + bw / 2 + 0.05 * u, bt = base - 1;
-  const board = () => {
-    c.beginPath(); c.moveTo(bcx, bt - L);
-    c.bezierCurveTo(bcx + bw * 0.3, bt - L * 0.95, bcx + bw * 0.5, bt - L * 0.72, bcx + bw * 0.5, bt - L * 0.46);
-    c.bezierCurveTo(bcx + bw * 0.5, bt - L * 0.2, bcx + bw * 0.38, bt - L * 0.05, bcx + bw * 0.2, bt);
-    c.lineTo(bcx - bw * 0.2, bt);
-    c.bezierCurveTo(bcx - bw * 0.38, bt - L * 0.05, bcx - bw * 0.5, bt - L * 0.2, bcx - bw * 0.5, bt - L * 0.46);
-    c.bezierCurveTo(bcx - bw * 0.5, bt - L * 0.72, bcx - bw * 0.3, bt - L * 0.95, bcx, bt - L);
+  // Contact shadow on the sand line.
+  c.fillStyle = rgba(S.on, 0.22);
+  c.beginPath(); c.ellipse(cx - 0.04 * u, base + 1, 0.3 * u, 0.022 * u + 1, 0, 0, TAU); c.fill();
+
+  // The board: nose up, leaning back and a little left, tail in the sand, a stringer, a rail stripe and a deck panel.
+  const L = BOARD_M.len * mpx, Wd = BOARD_M.wid * mpx, lean = -0.13 + 0.004 * sway;
+  c.save();
+  c.translate(cx - 0.17 * u, base);
+  c.rotate(lean);
+  const bp = () => {
+    c.beginPath();
+    c.moveTo(0, -L); // nose
+    c.bezierCurveTo(Wd * 0.46, -L * 0.82, Wd * 0.52, -L * 0.42, Wd * 0.46, -L * 0.12);
+    c.bezierCurveTo(Wd * 0.44, -L * 0.03, Wd * 0.3, 0, Wd * 0.14, 0); // tail
+    c.lineTo(-Wd * 0.14, 0);
+    c.bezierCurveTo(-Wd * 0.3, 0, -Wd * 0.44, -L * 0.03, -Wd * 0.46, -L * 0.12);
+    c.bezierCurveTo(-Wd * 0.52, -L * 0.42, -Wd * 0.46, -L * 0.82, 0, -L);
     c.closePath();
   };
-  board(); c.fillStyle = rgba(CREAM, 0.97); c.fill();
-  c.save(); board(); c.clip();
-  c.fillStyle = ink; c.fillRect(bcx - bw, bt - L * 0.74, bw * 2, Math.max(2, L * 0.035)); c.fillRect(bcx - bw, bt - L * 0.69, bw * 2, Math.max(1.5, L * 0.012)); // nose stripes
-  c.strokeStyle = rgba(S.on, 0.75); c.lineWidth = 1; c.beginPath();
-  for (let yy = bt - L * 0.24; yy < bt - 2; yy += 3) { c.moveTo(bcx - bw * 0.36, Math.round(yy) + 0.5); c.lineTo(bcx + bw * 0.36, Math.round(yy) + 0.5); } // the tail pad
-  c.stroke();
-  c.strokeStyle = rgba(S.on, 0.7); c.beginPath(); c.moveTo(bcx + 0.5, bt - L + 3); c.lineTo(bcx + 0.5, bt - L * 0.25); c.stroke(); // stringer
+  bp(); c.fillStyle = cream(0.96); c.fill();
+  c.save(); bp(); c.clip();
+  c.fillStyle = rgba(S.on, 0.9); c.fillRect(-Wd, -L * 0.7, Wd * 2, L * 0.16); // stripe
+  c.fillStyle = rgba(S.on, 0.9); c.fillRect(-Wd, -L * 0.5, Wd * 2, L * 0.03);
+  c.fillStyle = rgba(S.fd, 0.5); c.beginPath(); c.moveTo(-Wd, -L * 0.2); c.lineTo(Wd, -L * 0.28); c.lineTo(Wd, -L * 0.08); c.lineTo(-Wd, -L * 0.02); c.closePath(); c.fill();
   c.restore();
-  board(); c.strokeStyle = ink; c.lineWidth = 2; c.stroke();
+  c.strokeStyle = rgba(S.on, 1); c.lineWidth = 2; bp(); c.stroke();
+  c.lineWidth = 1; c.strokeStyle = rgba(S.on, 0.55); c.beginPath(); c.moveTo(0, -L * 0.96); c.lineTo(0, -L * 0.03); c.stroke();
+  c.restore();
 
-  // The figure, front on. Heights as shares of the 1.7 m crown.
-  const Y = (k: number) => base - k * u, X = (k: number) => cx + k * u;
-  const sh = Y(0.815) - 0.003 * u * br;
-  c.fillStyle = ink;
-  const poly = (pts: [number, number][]) => { c.beginPath(); pts.forEach(([px, py], i) => (i ? c.lineTo(px, py) : c.moveTo(px, py))); c.closePath(); c.fill(); };
-  for (const sd of [-1, 1]) {
-    // Leg: thigh, knee, ankle; a foot turned a little out.
-    poly([[X(sd * 0.012), Y(0.47)], [X(sd * 0.098), Y(0.47)], [X(sd * 0.078), Y(0.27)], [X(sd * 0.062), Y(0.045)], [X(sd * 0.03), Y(0.045)], [X(sd * 0.022), Y(0.27)]]);
-    poly([[X(sd * 0.026), Y(0.05)], [X(sd * 0.066), Y(0.05)], [X(sd * 0.09), base], [X(sd * 0.02), base]]);
+  const hipY = base - 0.5 * u, shY = base - 0.8 * u - 0.004 * u * br, neckY = base - 0.855 * u;
+  const headR = 0.062 * u, headY = base - 0.935 * u, hx = cx + sway * 0.004 * u;
+  const limbs = (col: string, grow: number) => {
+    c.strokeStyle = col;
+    for (const sd of [-1, 1]) {
+      capsule(c, hx + sd * 0.045 * u, hipY, cx + sd * 0.042 * u, base - 0.26 * u, 0.066 * u + grow);
+      capsule(c, cx + sd * 0.042 * u, base - 0.26 * u, cx + sd * 0.046 * u, base - 0.03 * u, 0.05 * u + grow);
+      capsule(c, cx + sd * 0.046 * u, base - 0.014 * u, cx + sd * 0.085 * u, base - 0.014 * u, 0.026 * u + grow);
+    }
+    capsule(c, hx, shY + 0.07 * u, hx, hipY - 0.02 * u, 0.13 * u + grow);
+    capsule(c, hx - 0.085 * u, shY + 0.012 * u, hx + 0.085 * u, shY + 0.012 * u, 0.06 * u + grow);
+    for (const sd of [-1, 1]) {
+      const el = 0.03 * u * (1 + 0.5 * br * sd);
+      capsule(c, hx + sd * 0.095 * u, shY + 0.02 * u, hx + sd * (0.12 * u + el), base - 0.57 * u, 0.042 * u + grow);
+      capsule(c, hx + sd * (0.12 * u + el), base - 0.57 * u, hx + sd * 0.115 * u, base - 0.4 * u, 0.036 * u + grow);
+    }
+    capsule(c, hx, shY - 0.02 * u, hx, neckY, 0.04 * u + grow);
+  };
+  limbs(cream(0.9), 0.022 * u);
+  c.fillStyle = cream(0.9); c.beginPath(); c.arc(hx, headY, headR + 0.018 * u, 0, TAU); c.fill();
+  limbs(S.ink, 0);
+  c.fillStyle = S.ink; c.beginPath(); c.arc(hx, headY, headR, 0, TAU); c.fill();
+  // Board shorts: a light panel with a level-colour drawstring band.
+  c.strokeStyle = cream(0.97);
+  capsule(c, hx, hipY - 0.03 * u, hx, hipY + 0.03 * u, 0.15 * u);
+  for (const sd of [-1, 1]) capsule(c, hx + sd * 0.045 * u, hipY + 0.02 * u, cx + sd * 0.043 * u, base - 0.34 * u, 0.07 * u);
+  c.strokeStyle = rgba(S.on, 0.9); c.lineWidth = Math.max(1.5, 0.014 * u);
+  c.beginPath(); c.moveTo(hx - 0.075 * u, hipY - 0.045 * u); c.lineTo(hx + 0.075 * u, hipY - 0.045 * u); c.stroke();
+  c.restore();
+}
+/** Opacity of the whole figure over the chart. */
+const PERSON_ALPHA = 0.3;
+/**
+ * The left half of the figure and board (`cx` is the centre line), drawn as ONE solid image and then faded as a whole,
+ * so overlapping limbs and board never show through each other (no joints, no wire look); the height tick and label
+ * stay crisp (`edge` is the label's right limit).
+ */
+export function drawPerson(c: Ctx2D, cx: number, base: number, mpx: number, tt: number, S: Style, edge = cx + 40) {
+  const u = BODY_M.head * mpx; // crown height in px
+  if (!(u > 8) || !Number.isFinite(cx)) return;
+  const ox = cx - 0.9 * u, oy = base - 1.25 * u, w = 0.9 * u, h = 1.3 * u;
+  const dpr = typeof c.getTransform === 'function' ? Math.max(1, c.getTransform().a || 1) : 1;
+  let layer: HTMLCanvasElement | null = null;
+  if (typeof document !== 'undefined') {
+    try {
+      layer = document.createElement('canvas');
+      layer.width = Math.max(1, Math.ceil(w * dpr)); layer.height = Math.max(1, Math.ceil(h * dpr));
+    } catch { layer = null; }
   }
-  // Torso: shoulders, chest, waist, hips.
-  poly([[X(-0.035), sh - 0.022 * u], [X(0.035), sh - 0.022 * u], [X(0.128), sh], [X(0.128), sh + 0.03 * u], [X(0.108), Y(0.7)], [X(0.086), Y(0.58)], [X(0.098), Y(0.5)], [X(-0.098), Y(0.5)], [X(-0.086), Y(0.58)], [X(-0.108), Y(0.7)], [X(-0.128), sh + 0.03 * u], [X(-0.128), sh]]);
-  c.fillRect(X(-0.026), Y(0.865), 0.052 * u, Y(0.8) - Y(0.865)); // neck
-  c.beginPath(); c.arc(cx, Y(1 - 0.068), 0.068 * u, 0, TAU); c.fill(); // head
-  // Arms: the left hanging, the right reaching to the board's rail.
-  c.strokeStyle = ink; c.lineWidth = 0.046 * u;
-  c.beginPath(); c.moveTo(X(-0.112), sh + 0.02 * u); c.lineTo(X(-0.15), Y(0.63)); c.lineTo(X(-0.142), Y(0.46)); c.stroke();
-  const railX = bcx - bw * 0.5 + 1;
-  c.beginPath(); c.moveTo(X(0.112), sh + 0.02 * u); c.lineTo(X(0.16), Y(0.64)); c.lineTo(railX, Y(0.52)); c.stroke();
-  c.fillRect(X(-0.164), Y(0.47), 0.044 * u, 0.06 * u); // hand
-  // Board shorts: cream, a dark waistband, split between the legs.
-  c.fillStyle = rgba(CREAM, 0.97);
-  poly([[X(-0.1), Y(0.555)], [X(0.1), Y(0.555)], [X(0.108), Y(0.39)], [X(0.014), Y(0.39)], [X(0), Y(0.45)], [X(-0.014), Y(0.39)], [X(-0.108), Y(0.39)]]);
-  c.fillStyle = ink; c.fillRect(X(-0.1), Y(0.555), 0.2 * u, Math.max(2, 0.018 * u));
-  c.strokeStyle = ink; c.lineWidth = 1.5; c.beginPath();
-  c.moveTo(X(-0.1), Y(0.555)); c.lineTo(X(-0.108), Y(0.39)); c.lineTo(X(-0.014), Y(0.39)); c.lineTo(X(0), Y(0.45)); c.lineTo(X(0.014), Y(0.39)); c.lineTo(X(0.108), Y(0.39)); c.lineTo(X(0.1), Y(0.555)); c.stroke();
-  c.fillStyle = rgba(S.on, 0.85); c.fillRect(X(0.05), Y(0.53), 0.04 * u, 0.1 * u); // a side panel
-  // The caption under the feet.
-  c.font = `700 ${(8.5 * 1.12).toFixed(1)}px ${MONO}`;
-  const lw = c.measureText(t('fc.g.person').toUpperCase()).width;
-  c.fillStyle = ink; txt(c, t('fc.g.person'), Math.min(cx + bw * 0.25, right - lw / 2 - 1), labelY, 'center', 8.5, 700);
+  const lc = layer?.getContext('2d') ?? null;
+  if (layer && lc) {
+    lc.setTransform(dpr, 0, 0, dpr, -ox * dpr, -oy * dpr);
+    paintPerson(lc, cx, base, mpx, tt, S);
+    c.save();
+    c.globalAlpha = (typeof c.globalAlpha === 'number' ? c.globalAlpha : 1) * PERSON_ALPHA;
+    c.drawImage(layer, ox, oy, w, h);
+    c.restore();
+  } else {
+    // No offscreen canvas (tests): draw directly, clipped to the left half.
+    c.save();
+    c.beginPath(); c.rect(ox, oy, w, h); c.clip();
+    paintPerson(c, cx, base, mpx, tt, S);
+    c.restore();
+  }
+  // Height tick at the crown and the label, kept inside the chart's right edge.
+  c.save();
+  c.strokeStyle = S.soft; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(cx - 0.14 * u, base - u); c.lineTo(edge, base - u); c.stroke();
+  c.fillStyle = S.ink; txt(c, t('fc.g.person'), edge, Math.max(base - 1.17 * u, 8), 'right', 10.5, 700);
   c.restore();
 }
 
@@ -971,180 +879,119 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
   S.hot.push({ x: cx - R - 10, y: cy - R - 10, w: 2 * R + 20, h: 2 * R + 20, k: 'sail.wind' });
 }
 
-/**
- * FISH (PLAN 13.1): three instruments. The moon as a lunar bezel, like the SAIL rose: a solid band with the 29 days
- * knocked out, NEW and FULL as tags on it, the band thicker over the big-tide days around them (lit share 15% or less,
- * 85% or more, as the moon tile's spring/neap words), today's day a cream marker on it and the lit shape inside. Today's
- * tide hour by hour as a crisp chart: the best window a hatched block with its times, NOW a square on the curve with a
- * small arrow rising or falling, the next turn marked and written above. Under them a fish finder: an ink screen
- * scrolling as the boat moves, the seabed a bright band, fish as the classic arches, as many as the bite share.
- */
+const SCHOOLS = [[0.16, 0.45, 0.13, 0.2, 0.01, 0.9], [0.48, 0.62, 0.17, 0.22, 0.007, 1], [0.78, 0.38, 0.11, 0.17, 0.013, 0.8], [0.32, 0.82, 0.12, 0.12, 0.006, 0.6], [0.95, 0.7, 0.14, 0.2, 0.009, 0.85]];
 function drawFish(c: Ctx2D, A: Box, tt0: number, a: NonNullable<HeroParams['fish']>, S: Style) {
-  const { x, y, w, h } = A, tt = S.reduced ? 3 : tt0, fs = clamp(Math.min(w, 760) / 380, 1, 1.3);
-  const ink = S.ink, fdc = rgba(S.fd), cream = (al: number) => rgba(CREAM, al);
-  const topH = Math.round(h * 0.52);
-  c.lineCap = 'butt'; c.lineJoin = 'miter'; c.miterLimit = 6;
-
-  // --- The moon on its bezel.
-  const litSz = 9 * fs, litH = Math.round(litSz * 1.9);
-  const Ro = Math.max(34, Math.min((topH - litH - 18) / 2, w * 0.19)), bw = Math.max(12, Ro * 0.2), Ri = Ro - bw, Rm = Ri - Math.max(4, Ro * 0.08);
-  const cx = x + Ro + 6, cy = y + Ro + 6;
-  const angOf = (d: number) => -Math.PI / 2 + (d / 29.53) * TAU;
-  c.fillStyle = ink; c.beginPath(); c.arc(cx, cy, Ro, 0, TAU); c.arc(cx, cy, Ri, 0, TAU, true); c.fill();
-  // The big-tide days: the band thicker outside, around new and full moon (lit 15% or less, 85% or more).
-  const sp = (Math.acos(0.7) / TAU) * 29.53;
-  for (const d of [0, 29.53 / 2]) { c.beginPath(); c.arc(cx, cy, Ro + 5, angOf(d - sp), angOf(d + sp)); c.arc(cx, cy, Ro - 1, angOf(d + sp), angOf(d - sp), true); c.closePath(); c.fill(); }
-  c.strokeStyle = fdc;
+  const { x, y, w, h } = A, tt = S.reduced ? 3 : tt0;
+  const wide = w > h * 1.15, topH = h * (wide ? 0.46 : 0.48);
+  // Moon on a lunar-age bezel.
+  const R = Math.min(topH * 0.36, w * 0.15), cx = x + R + 22, cy = y + R + 22;
+  const age = a.age, ageA = -Math.PI / 2 + (age / 29.53) * TAU;
+  c.strokeStyle = S.ink; c.lineWidth = 3; c.beginPath(); c.arc(cx, cy, R + 16, 0, TAU); c.stroke();
+  c.lineWidth = 6; c.beginPath(); c.arc(cx, cy, R + 9, -Math.PI / 2, ageA); c.stroke();
   for (let d = 0; d < 30; d++) {
-    const an = angOf(d), major = d === 0 || d === 7 || d === 15 || d === 22, l = bw * (major ? 0.62 : 0.34);
-    c.lineWidth = major ? 2.2 : 1.2;
-    c.beginPath(); c.moveTo(cx + Math.cos(an) * (Ro - 2), cy + Math.sin(an) * (Ro - 2)); c.lineTo(cx + Math.cos(an) * (Ro - 2 - l), cy + Math.sin(an) * (Ro - 2 - l)); c.stroke();
+    const an = -Math.PI / 2 + (d / 29.53) * TAU, l = d % 7 === 0 ? 7 : 3.5;
+    c.strokeStyle = d <= age ? rgba(S.fd) : S.soft; c.lineWidth = d % 7 === 0 ? 1.8 : 1;
+    c.beginPath(); c.moveTo(cx + Math.cos(an) * (R + 12.5 - l / 2), cy + Math.sin(an) * (R + 12.5 - l / 2)); c.lineTo(cx + Math.cos(an) * (R + 12.5 + l / 2) * 0.98, cy + Math.sin(an) * (R + 12.5 + l / 2) * 0.98); c.stroke();
   }
-  const nt = tag(c, a.newK ?? 'NEW', cx, cy - Ri - bw / 2, 'center', 7 * fs, fdc, ink, false, Ro * 1.1);
-  const ft = tag(c, a.fullK ?? 'FULL', cx, cy + Ri + bw / 2, 'center', 7 * fs, fdc, ink, false, Ro * 1.1);
-  void nt; void ft;
-  // The disc: the dark side, the lit side and a few craters.
-  c.fillStyle = rgba(S.on, 0.28); c.beginPath(); c.arc(cx, cy, Rm, 0, TAU); c.fill();
+  // The bezel's two named points in words (day 0 new moon at the top, day 15 full moon at the bottom), not bare day numbers.
+  ([[0, a.newK ?? '0', -1], [14.77, a.fullK ?? '15', 1]] as const).forEach(([d, s, side]) => {
+    const an = -Math.PI / 2 + (d / 29.53) * TAU;
+    c.fillStyle = S.soft; txt(c, s, cx + Math.cos(an) * (R + 22) + 12, cy + Math.sin(an) * (R + 22) + side * 4, 'left', 9, 700);
+  });
+  const pa = 0.55 + 0.45 * Math.sin(tt * 2);
+  c.fillStyle = S.ink; c.beginPath(); c.arc(cx + Math.cos(ageA) * (R + 9), cy + Math.sin(ageA) * (R + 9), 5 + pa * 1.5, 0, TAU); c.fill();
+  c.fillStyle = rgba(S.on, 0.16); c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.fill();
   if (a.illum > 0.01) {
-    c.fillStyle = rgba(S.T.moon); moonPath(c, cx, cy, Rm, a.illum, a.waxing); c.fill();
-    c.save(); moonPath(c, cx, cy, Rm, a.illum, a.waxing); c.clip();
-    [[0.35, -0.25, 0.2], [-0.1, 0.3, 0.15], [0.15, 0.55, 0.1], [0.5, 0.25, 0.11], [-0.35, -0.4, 0.12]].forEach(([q, r, s]) => { c.fillStyle = rgba(S.fd, 0.22); c.beginPath(); c.arc(cx + q * Rm, cy + r * Rm, s * Rm, 0, TAU); c.fill(); });
+    c.fillStyle = rgba(S.T.moon); moonPath(c, cx, cy, R, a.illum, a.waxing); c.fill();
+    c.save(); moonPath(c, cx, cy, R, a.illum, a.waxing); c.clip();
+    [[0.35, -0.25, 0.22], [-0.1, 0.3, 0.16], [0.15, 0.55, 0.1], [0.5, 0.25, 0.12]].forEach(([u, v, r]) => { c.fillStyle = rgba(S.fd, 0.22); c.beginPath(); c.arc(cx + u * R, cy + v * R, r * R, 0, TAU); c.fill(); });
     c.restore();
   }
-  c.strokeStyle = ink; c.lineWidth = 1.5; c.beginPath(); c.arc(cx, cy, Rm, 0, TAU); c.stroke();
-  // Today's marker on the band: a cream square turned to the centre.
-  {
-    const an = angOf(a.age), mr = Ri + bw / 2, ms = bw + 5;
-    c.save(); c.translate(cx + Math.cos(an) * mr, cy + Math.sin(an) * mr); c.rotate(an);
-    c.fillStyle = cream(1); c.fillRect(-ms / 2, -ms / 2, ms, ms); c.strokeStyle = ink; c.lineWidth = 2; c.strokeRect(-ms / 2 + 1, -ms / 2 + 1, ms - 2, ms - 2);
-    c.fillStyle = ink; c.beginPath(); c.moveTo(-ms / 2 - 1, -4); c.lineTo(-ms / 2 - 6, 0); c.lineTo(-ms / 2 - 1, 4); c.closePath(); c.fill();
-    c.restore();
-  }
-  const lt = tag(c, a.litK, x, cy + Ro + 8 + litH / 2, 'left', litSz, ink, fdc, false, 2 * Ro + 30);
-
-  // --- Today's tide.
-  const tx0 = Math.round(cx + Ro + 18 * fs), tx1 = x + w - 2, tv = a.tide.filter(fin);
-  let tideBox: Box | null = null, bestBox: Box | null = null, nowBox: Box | null = null;
-  if (tv.length >= 2 && tx1 - tx0 > 80) {
-    c.fillStyle = ink; txt(c, a.tideK, tx0, y + 7 * fs, 'left', 10 * fs, 800);
-    const n = a.tide.length - 1;
-    const lane = y + 22 * fs; // the second title line: the next turn
-    if (a.turn) {
-      c.font = `700 ${(9 * fs * 1.12).toFixed(1)}px ${MONO}`;
-      const tw = c.measureText(a.turn.label.toUpperCase()).width, sz = tw + 14 > tx1 - tx0 ? 9 * fs * Math.max(0.7, (tx1 - tx0 - 14) / tw) : 9 * fs;
-      c.fillStyle = ink; c.beginPath();
-      if (a.turn.high) { c.moveTo(tx0, lane + 4); c.lineTo(tx0 + 4, lane - 3); c.lineTo(tx0 + 8, lane + 4); } else { c.moveTo(tx0, lane - 3); c.lineTo(tx0 + 4, lane + 4); c.lineTo(tx0 + 8, lane - 3); }
-      c.closePath(); c.fill();
-      c.fillStyle = S.soft; txt(c, a.turn.label, tx0 + 13, lane, 'left', sz, 700);
-    }
-    const bl = lane + 20 * fs, cy0 = bl + 12 * fs, cy1 = y + topH - 22 * fs; // best-tag lane, curve area, axis
+  c.strokeStyle = S.ink; c.lineWidth = 1.2; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.stroke();
+  // Two short lines under the bezel ("MOON 43% LIT" / "DAY 7 OF 29"), clear of the FULL mark and the tide's hour labels.
+  const [m1, m2] = a.moon.split(' · ');
+  c.fillStyle = S.ink; txt(c, m1, cx - R - 16, cy + R + 42, 'left', 10.5, 700);
+  if (m2) txt(c, m2, cx - R - 16, cy + R + 55, 'left', 10.5, 700);
+  // Today's tide from the harmonic prediction, hour by hour.
+  const tv = a.tide.filter(fin);
+  const tx0 = cx + R + 46, tx1 = x + w, ty0 = y + 26, ty1 = y + topH - 6, tm = (ty0 + ty1) / 2, amp = (ty1 - ty0) * 0.36;
+  if (tv.length >= 2 && tx1 - tx0 > 60) {
     const lo = Math.min(...tv), hi = Math.max(...tv), mid = (lo + hi) / 2, half = Math.max(0.03, (hi - lo) / 2);
+    const n = a.tide.length - 1;
     const at = (hr: number) => { const i = clamp(Math.floor(hr), 0, n - 1), k = hr - i, p = a.tide[i], q = a.tide[i + 1]; return fin(p) && fin(q) ? p + (q - p) * k : mid; };
-    const hx = (hr: number) => tx0 + (clamp(hr, 0, 24) / 24) * (tx1 - tx0), hy = (hr: number) => (cy0 + cy1) / 2 - ((at(hr) - mid) / half) * ((cy1 - cy0) / 2 - 4);
-    tideBox = { x: tx0, y: y, w: tx1 - tx0, h: cy1 + 18 * fs - y };
+    const hx = (hr: number) => tx0 + (hr / 24) * (tx1 - tx0), hy = (hr: number) => tm - ((at(hr) - mid) / half) * amp;
     if (a.best) {
-      const b0 = clamp(a.best[0], 0, 24), b1 = clamp(a.best[1], 0, 24), bx0 = Math.round(hx(b0)), bx1 = Math.max(bx0 + 4, Math.round(hx(b1)));
-      c.fillStyle = rgba(S.on, 0.14); c.fillRect(bx0, bl - 9 * fs, bx1 - bx0, cy1 - bl + 9 * fs);
-      c.save(); c.beginPath(); c.rect(bx0, bl - 9 * fs, bx1 - bx0, cy1 - bl + 9 * fs); c.clip();
-      c.strokeStyle = rgba(S.on, 0.6); c.lineWidth = 1; c.beginPath();
-      for (let k = -(cy1 - bl) - 20; k < bx1 - bx0 + 20; k += 5) { c.moveTo(bx0 + k, cy1); c.lineTo(bx0 + k + (cy1 - bl) + 10, bl - 10 * fs); }
+      const [b0, b1] = [clamp(a.best[0], 0, 24), clamp(a.best[1], 0, 24)];
+      c.fillStyle = S.faint; c.fillRect(hx(b0), ty0 - 4, hx(b1) - hx(b0), ty1 - ty0 + 4);
+      c.save(); c.beginPath(); c.rect(hx(b0), ty0 - 4, hx(b1) - hx(b0), ty1 - ty0 + 4); c.clip();
+      c.strokeStyle = rgba(S.on, 0.5); c.lineWidth = 1; c.beginPath();
+      for (let k = -60; k < 120; k += 5) { c.moveTo(hx(b0) + k, ty1); c.lineTo(hx(b0) + k + 40, ty0 - 4); }
       c.stroke(); c.restore();
-      c.strokeStyle = ink; c.lineWidth = 1.5; c.strokeRect(bx0 + 0.75, bl - 9 * fs + 0.75, bx1 - bx0 - 1.5, cy1 - bl + 9 * fs - 1.5);
-      const s = a.bestT ? `${a.bestK} ${a.bestT}` : a.bestK, bs = tagSize(c, s, 8.5 * fs, tx1 - tx0);
-      const bxc = clamp((bx0 + bx1) / 2, tx0 + bs.w / 2, tx1 - bs.w / 2);
-      bestBox = tag(c, s, bxc, bl, 'center', 8.5 * fs, ink, fdc, false, tx1 - tx0);
+      // Lower when the tide's turn sits on its own line under the title (Spanish), so the two never touch.
+      c.font = `700 ${(10.5 * 1.12).toFixed(1)}px ${MONO}`;
+      const oneLine = !a.turn || tx0 + c.measureText(a.tideK.toUpperCase()).width + 10 < tx1 - c.measureText(a.turn.label.toUpperCase()).width;
+      c.fillStyle = S.ink; txt(c, a.bestK, hx((b0 + b1) / 2), oneLine ? ty0 + 4 : ty0 + 14, 'center', 9.5, 800);
     }
-    // The water under the curve, the curve, the axis with its hours.
-    c.fillStyle = rgba(S.on, 0.16); c.beginPath(); c.moveTo(hx(0), cy1);
+    c.strokeStyle = S.soft; c.lineWidth = 1; c.beginPath(); c.moveTo(tx0, tm); c.lineTo(tx1, tm); c.stroke();
+    c.fillStyle = rgba(S.on, 0.2); c.beginPath(); c.moveTo(hx(0), ty1);
     for (let hr = 0; hr <= n; hr += 0.25) c.lineTo(hx(hr), hy(hr));
-    c.lineTo(hx(n), cy1); c.closePath(); c.fill();
-    c.strokeStyle = ink; c.lineWidth = 2.5; c.beginPath();
+    c.lineTo(hx(n), ty1); c.closePath(); c.fill();
+    c.strokeStyle = S.ink; c.lineWidth = 2.6; c.beginPath();
     for (let hr = 0; hr <= n; hr += 0.25) (hr ? c.lineTo(hx(hr), hy(hr)) : c.moveTo(hx(hr), hy(hr)));
     c.stroke();
-    c.lineWidth = 1.5; c.beginPath(); c.moveTo(tx0, Math.round(cy1) + 0.5); c.lineTo(tx1, Math.round(cy1) + 0.5);
-    for (let hr = 0; hr <= 24; hr += 3) { c.moveTo(Math.round(hx(hr)) + 0.5, cy1); c.lineTo(Math.round(hx(hr)) + 0.5, cy1 + (hr % 6 ? 3 : 5)); }
-    c.stroke();
-    // The next turn on the curve.
-    if (a.turn && a.turn.h >= 0 && a.turn.h <= n) {
-      const px = hx(a.turn.h), py = hy(a.turn.h) + (a.turn.high ? -7 : 7);
-      c.fillStyle = ink; c.beginPath();
-      if (a.turn.high) { c.moveTo(px - 4, py - 4); c.lineTo(px + 4, py - 4); c.lineTo(px, py + 2); } else { c.moveTo(px - 4, py + 4); c.lineTo(px + 4, py + 4); c.lineTo(px, py - 2); }
-      c.closePath(); c.fill();
+    [0, 6, 12, 18, 24].forEach((hr) => { c.fillStyle = S.soft; txt(c, String(hr).padStart(2, '0'), hx(hr), ty1 + 10, hr === 0 ? 'left' : hr === 24 ? 'right' : 'center', 9); });
+    c.fillStyle = S.ink; txt(c, a.tideK, tx0, y + 8, 'left', 10.5, 700);
+    if (a.turn) {
+      // Side by side when they fit; in a narrow box (Spanish words are longer) the turn goes under the title, clear of the BEST mark (review 2026-11-16).
+      c.font = `700 ${(10.5 * 1.12).toFixed(1)}px ${MONO}`;
+      const fits = tx0 + c.measureText(a.tideK.toUpperCase()).width + 10 < tx1 - c.measureText(a.turn.label.toUpperCase()).width;
+      if (fits) txt(c, a.turn.label, tx1, y + 8, 'right', 10.5, 700);
+      else txt(c, a.turn.label, tx0, y + 21, 'left', 10.5, 700);
     }
-    // Now: a dashed line, a square on the curve, a small arrow rising or falling, its tag under the axis.
-    const nh = clamp(a.nowH, 0, n), nx = Math.round(hx(nh)) + 0.5, ny = hy(nh);
-    c.strokeStyle = ink; c.lineWidth = 1.5; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(nx, cy0 - 4); c.lineTo(nx, cy1); c.stroke(); c.setLineDash([]);
-    c.fillStyle = cream(1); c.fillRect(nx - 5.5, ny - 5.5, 11, 11); c.strokeStyle = ink; c.lineWidth = 2.5; c.strokeRect(nx - 4.25, ny - 4.25, 8.5, 8.5);
-    const rising = a.turn ? a.turn.high : at(nh + 0.5) >= at(nh);
-    {
-      const ph = S.reduced ? 0.5 : (tt / 1.6) % 1, ax = nx + (nx > tx1 - 20 ? -14 : 14), dy = rising ? -1 : 1;
-      for (let i = 0; i < 2; i++) {
-        const k = (ph + i * 0.5) % 1;
-        c.strokeStyle = rgba(S.on, Math.min(1, k * 4, (1 - k) * 3)); chevron(c, ax, ny + dy * (k * 12 - 4), dy < 0 ? -Math.PI / 2 : Math.PI / 2, 6, 2.2);
-      }
+    if (!S.reduced) {
+      const sw = (tt * 1.4) % n;
+      c.strokeStyle = rgba(S.on, 0.6); c.lineWidth = 1; c.beginPath(); c.moveTo(hx(sw), ty0); c.lineTo(hx(sw), ty1); c.stroke();
+      c.fillStyle = rgba(S.on, 0.7); c.beginPath(); c.arc(hx(sw), hy(sw), 3.5, 0, TAU); c.fill();
     }
-    const ns = tagSize(c, a.nowK, 8 * fs), nxc = clamp(nx, tx0 + ns.w / 2, tx1 - ns.w / 2), nty = cy1 + 11 * fs;
-    nowBox = tag(c, a.nowK, nxc, nty, 'center', 8 * fs, ink, fdc);
-    [0, 6, 12, 18, 24].forEach((hr) => {
-      const al: CanvasTextAlign = hr === 0 ? 'left' : hr === 24 ? 'right' : 'center', lx = hx(hr);
-      c.font = `600 ${(8 * fs * 1.12).toFixed(1)}px ${MONO}`;
-      const lw = c.measureText('00').width, l0 = al === 'left' ? lx : al === 'right' ? lx - lw : lx - lw / 2;
-      if (overlaps({ x: l0, y: nty - 5, w: lw, h: 10 }, nowBox!, 3)) return;
-      c.fillStyle = S.soft; txt(c, String(hr).padStart(2, '0'), lx, nty, al, 8 * fs, 600);
-    });
-    nowBox = { x: Math.min(nowBox.x, nx - 8), y: Math.min(ny - 8, nowBox.y), w: Math.max(nowBox.x + nowBox.w, nx + 8) - Math.min(nowBox.x, nx - 8), h: nowBox.y + nowBox.h - Math.min(ny - 8, nowBox.y) };
+    const nh = clamp(a.nowH, 0, n);
+    const pr = (tt % 2.2) / 2.2;
+    c.strokeStyle = rgba(S.on, 0.8 * (1 - pr)); c.lineWidth = 2; c.beginPath(); c.arc(hx(nh), hy(nh), 5 + pr * 13, 0, TAU); c.stroke();
+    c.fillStyle = S.ink; c.beginPath(); c.arc(hx(nh), hy(nh), 5.5, 0, TAU); c.fill();
+    txt(c, a.nowK, hx(nh) + (nh > 3 ? -10 : 10), hy(nh) - 14, nh > 3 ? 'right' : 'left', 9.5, 800);
   }
-
-  // --- The fish finder: an ink screen scrolling right to left, the seabed, fish as arches.
-  const et = tag(c, a.echo, x, y + topH + 9 * fs, 'left', 9.5 * fs, ink, fdc, false, w);
-  const sy0 = Math.round(et.y + et.h + 5), sy1 = Math.round(y + h - 1);
-  if (sy1 - sy0 < 40) return;
-  c.fillStyle = ink; c.fillRect(x, sy0, w, sy1 - sy0);
-  const cs = Math.round(3 * fs), pad = 4, scaleW = 14, gx0 = x + pad, gx1 = x + w - pad - scaleW;
-  const cols = Math.floor((gx1 - gx0) / cs) + 1, rows = Math.floor((sy1 - sy0 - 2 * pad) / cs);
-  const off = tt * 4, base0 = Math.floor(off), frac = off - base0;
-  const dens = 0.12 + 0.78 * clamp(a.share, 0, 1), SLOT = 15;
-  const L1: number[] = [], L2: number[] = [], L3: number[] = [];
-  const put = (i: number, j: number, lv: number) => { if (j < 0 || j >= rows) return; (lv === 3 ? L3 : lv === 2 ? L2 : L1).push(i, j); };
-  for (let i = 0; i <= cols; i++) {
-    const wi = base0 + i;
-    // Seabed: a rolling bottom, the first return bright, the ground under it grainy and fading.
-    const bd = Math.round(rows * (0.78 + 0.07 * Math.sin(wi * 0.045) + 0.04 * Math.sin(wi * 0.13 + 1)));
-    put(i, bd, 3); put(i, bd + 1, 3); put(i, bd + 2, 2); put(i, bd + 3, 2);
-    for (let j = bd + 4; j < rows; j++) { const r = hash1(wi * 131 + j * 7); if (r < 0.75 - (j - bd) * 0.06) put(i, j, r < 0.25 ? 2 : 1); }
-    // Surface clutter.
-    if (hash1(wi * 17) < 0.55) put(i, 0, 1);
-    if (hash1(wi * 29 + 3) < 0.25) put(i, 1, 1);
-    // A fish in this column's slot: an arch, brightest at its middle.
-    const sl = Math.floor(wi / SLOT);
-    if (hash1(sl * 3.17 + 0.5) < dens) {
-      const fc = sl * SLOT + 3 + Math.floor(hash1(sl * 7.7) * (SLOT - 9)), aw = 3 + Math.floor(hash1(sl * 1.93) * 3);
-      const fr = Math.round(rows * (0.2 + 0.45 * hash1(sl * 5.31)));
-      const dx = (wi - fc) / aw;
-      if (Math.abs(dx) <= 1 && fr < bd - 5) { const r = fr + Math.round(dx * dx * 2.4); put(i, r, Math.abs(dx) < 0.55 ? 3 : 2); put(i, r + 1, 2); }
+  // Echo-sounder strip: schools as dense as the bite score.
+  const ex0 = x, ex1 = x + w, ey0 = y + topH + (wide ? 34 : 40), ey1 = y + h, cs = 2;
+  const cols = Math.floor((ex1 - ex0) / cs), rows = Math.max(0, Math.floor((ey1 - ey0 - 16) / cs));
+  if (rows < 6 || cols < 10) return;
+  const top = ey0 + 16, amt = 0.35 + 0.9 * a.share;
+  c.fillStyle = S.ink; txt(c, a.echo, ex0, ey0 + 4, 'left', 10.5, 700);
+  c.strokeStyle = S.ink; c.lineWidth = 2; c.strokeRect(ex0 + 1, top, ex1 - ex0 - 2, rows * cs);
+  const q = new Uint8Array(cols * rows);
+  const sc = SCHOOLS.map(([sx, sy, rx, ry, sp, am]) => [((((sx - tt * sp) % 1.25) + 1.25) % 1.25) - 0.12, sy + 0.04 * Math.sin(tt * 0.5 + sx * 9), rx, ry, am * amt]);
+  for (let j = 0; j < rows; j++) {
+    const v = j / rows, th = 0.3 * Math.exp(-(((v - 0.2) / 0.07) ** 2));
+    for (let i = 0; i < cols; i++) {
+      const u = i / cols;
+      let f = th + 0.1 * Math.sin(u * 19 + v * 7 + tt * 0.3) * Math.sin(v * 11 - u * 6 - tt * 0.2);
+      for (const [sx, sy, rx, ry, am] of sc) { const dx = (u - sx) / rx, dy = (v - sy) / ry; f += am * Math.exp(-(dx * dx + dy * dy)); }
+      q[j * cols + i] = Math.min(6, Math.max(0, Math.floor(f * 6.2)));
     }
-    // Faint plankton specks in mid-water.
-    if (hash1(wi * 53 + 11) < 0.18) put(i, 3 + Math.floor(hash1(wi * 71) * (bd - 6)), 1);
   }
-  c.save(); c.beginPath(); c.rect(gx0, sy0 + pad, gx1 - gx0, rows * cs); c.clip();
-  ([[L1, rgba(S.fd, 0.35)], [L2, rgba(S.fd, 0.85)], [L3, cream(1)]] as const).forEach(([L, col]) => {
-    c.fillStyle = col; c.beginPath();
-    for (let k = 0; k < L.length; k += 2) c.rect(Math.round(gx0 + (L[k] - frac) * cs), sy0 + pad + L[k + 1] * cs, cs, cs);
+  const AL = [0, 0.07, 0.15, 0.25, 0.38, 0.55, 0.78];
+  for (let lv = 1; lv <= 6; lv++) {
+    c.fillStyle = rgba(S.on, AL[lv]); c.beginPath();
+    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) if (q[j * cols + i] === lv) c.rect(ex0 + i * cs, top + j * cs, cs + 0.3, cs + 0.3);
     c.fill();
-  });
-  c.restore();
-  // The depth scale down the right edge, and the newest sounding at the right of the picture.
-  c.strokeStyle = rgba(S.fd, 0.7); c.lineWidth = 1; c.beginPath();
-  c.moveTo(gx1 + 4.5, sy0 + pad); c.lineTo(gx1 + 4.5, sy1 - pad);
-  for (let k = 0; k <= 4; k++) { const yy = Math.round(sy0 + pad + (k / 4) * rows * cs) + 0.5; c.moveTo(gx1 + 4, yy); c.lineTo(gx1 + 10, yy); }
+  }
+  c.strokeStyle = S.ink; c.lineWidth = 1; c.beginPath();
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+    const v = q[j * cols + i];
+    if (i + 1 < cols && q[j * cols + i + 1] !== v && Math.max(v, q[j * cols + i + 1]) >= 2) { c.moveTo(ex0 + (i + 1) * cs, top + j * cs); c.lineTo(ex0 + (i + 1) * cs, top + (j + 1) * cs); }
+    if (j + 1 < rows && q[(j + 1) * cols + i] !== v && Math.max(v, q[(j + 1) * cols + i]) >= 2) { c.moveTo(ex0 + i * cs, top + (j + 1) * cs); c.lineTo(ex0 + (i + 1) * cs, top + (j + 1) * cs); }
+  }
   c.stroke();
-
-  // --- Tap targets, most specific first.
-  if (nowBox) S.hot.push({ ...nowBox, k: 'fish.now' });
-  if (bestBox) S.hot.push({ ...bestBox, k: 'fish.best' });
-  S.hot.push({ x: x, y: y, w: 2 * Ro + 12, h: lt.y + lt.h - y, k: 'fish.moon' });
-  if (tideBox) S.hot.push({ ...tideBox, k: 'fish.tide' });
-  S.hot.push({ x: x, y: et.y, w: w, h: sy1 - et.y, k: 'fish.echo' });
+  const bot = top + rows * cs;
+  hatch(c, ex0 + 2, ex1 - 2, bot - 16, bot - 1, (xx) => bot - 8 - 5 * Math.sin((xx - ex0) * 0.02) - 3 * Math.sin((xx - ex0) * 0.061), 3, rgba(S.on, 0.85));
 }
 
 /**
@@ -1348,176 +1195,43 @@ function drawPaddle(c: Ctx2D, A: Box, tt0: number, a: NonNullable<HeroParams['pa
 /** Deterministic 0..1 noise for texture (sand grain, foam edges), so a picture does not shimmer frame to frame. */
 const hash1 = (n: number) => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
 
-/** Points along a polyline at arc length `d` (clamped), with the direction there. */
-function along(pts: [number, number][], d: number): [number, number, number] {
-  let rest = Math.max(0, d);
-  for (let i = 1; i < pts.length; i++) {
-    const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], L = Math.hypot(x1 - x0, y1 - y0);
-    if (rest <= L || i === pts.length - 1) { const k = L ? Math.min(1, rest / L) : 0; return [x0 + (x1 - x0) * k, y0 + (y1 - y0) * k, Math.atan2(y1 - y0, x1 - x0)]; }
-    rest -= L;
-  }
-  return [pts[0][0], pts[0][1], 0];
-}
-const polyLen = (pts: [number, number][]) => pts.reduce((n, p, i) => (i ? n + Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) : 0), 0);
 
-/** Chevrons marching along a path at `v` px/s, `gap` px apart, fading in and out at its ends. */
-function march(c: Ctx2D, pts: [number, number][], tt: number, v: number, gap: number, s: number, wd: number, col: RGB, alpha: number) {
-  const L = polyLen(pts);
-  if (L < 4) return;
-  const off = (tt * v) % gap;
-  for (let d = off; d < L; d += gap) {
-    const [x, y, a] = along(pts, d), u = d / L, f = Math.min(1, u * 5, (1 - u) * 5);
-    c.strokeStyle = rgba(col, alpha * f);
-    chevron(c, x, y, a, s, wd);
-  }
-}
 
-/**
- * SWIM: a beach from above, read in one look. Sea at the top, sand at the bottom. Waves break white over the sandbars
- * either side; in the gap between them the water is deeper and darker and does not break: the rip. Chevrons show the
- * water running along the shore into the gap, out through it and fanning out past the waves, where a cloud of sandy
- * water spreads. A swimmer shows the way out: carried out, sideways along the beach out of the current, then in with
- * the waves. The rip's width, speed and plume grow with the risk. Square tags carry the words; every part is a tap
- * target that opens its plain-words box.
- */
-function drawSwim(c: Ctx2D, A: Box, tt0: number, a: NonNullable<HeroParams['swim']>, S: Style, Y: number) {
-  const { x, y, w, h } = A, tt = S.reduced ? 4.2 : tt0, cx = x + w * 0.56, fs = clamp(Math.min(w, 760) / 380, 1, 1.3);
-  const rk = a.rip === 'HIGH' ? 1 : a.rip === 'MOD' ? 0.7 : 0.42;
-  const gap = w * (a.rip === 'HIGH' ? 0.085 : a.rip === 'MOD' ? 0.068 : 0.05), top = y + h * 0.1;
-  const barTop = y + h * 0.24, barBot = Y - h * 0.1; // the sandbars, where the waves break
-  const ink = S.ink, cream = (al: number) => rgba(CREAM, al), riskC = S.T[a.rip === 'HIGH' ? 'lv0' : a.rip === 'MOD' ? 'lv2' : 'lv3'];
-  const shore = (xx: number) => Y + Math.sin(xx * 0.035 + 1.3) * 2 - Math.exp(-sq((xx - cx) / (gap * 1.6))) * 5;
-  // Channel half-width at height yy: narrow neck at the shore, a little wider out by the bar.
-  const half = (yy: number) => (yy >= barTop ? gap * (1 - 0.12 * clamp((Y - yy) / (Y - barTop), 0, 1)) : gap * (0.88 - 0.3 * clamp((barTop - yy) / (barTop - top), 0, 1)));
-
-  // --- The sandbars: shallow, a paler stipple either side of the channel.
-  c.save();
-  for (let i = 0; i < 520; i++) {
-    const u = hash1(i), v = hash1(i + 999), xx = x + u * w, yy = barTop + v * (barBot - barTop);
-    if (Math.abs(xx - cx) < half(yy) + 6) continue;
-    c.fillStyle = cream(0.16 + 0.18 * hash1(i + 77)); c.fillRect(Math.round(xx), Math.round(yy), 2, 2);
-  }
-  c.restore();
-  // --- The channel: deeper water, darker, hatched, from the shore out past the bar.
-  c.save();
-  c.beginPath(); c.moveTo(cx - half(Y), Y);
-  for (let yy = Y; yy >= top; yy -= 6) c.lineTo(cx - half(yy), yy);
-  for (let yy = top; yy <= Y; yy += 6) c.lineTo(cx + half(yy), yy);
-  c.closePath();
-  c.fillStyle = rgba(S.on, 0.12 + 0.08 * rk); c.fill(); c.clip();
-  c.strokeStyle = rgba(S.on, 0.16); c.lineWidth = 1; c.beginPath();
-  for (let k = -h; k < w + h; k += 6) { c.moveTo(x + k, Y); c.lineTo(x + k + (Y - top), top); }
-  c.stroke(); c.restore();
-  c.strokeStyle = rgba(S.on, 0.55); c.lineWidth = 1; c.setLineDash([4, 3]);
-  for (const sd of [-1, 1]) { c.beginPath(); for (let yy = Y - 4; yy >= top + 6; yy -= 6) { const xx = cx + sd * half(yy); yy === Y - 4 ? c.moveTo(xx, yy) : c.lineTo(xx, yy); } c.stroke(); }
-  c.setLineDash([]);
-
-  // --- The rip head: a mushroom of sandy water past the waves, breathing out.
-  const hy = top + 4, br = S.reduced ? 0.5 : 0.5 + 0.5 * Math.sin(tt * 0.7), sand = S.T.sand;
-  const pw = w * (0.08 + 0.06 * rk) * (0.94 + 0.1 * br), ph = h * (0.07 + 0.03 * rk) * (0.94 + 0.1 * br);
-  const plume = () => {
-    c.beginPath(); c.moveTo(cx - half(top + 10), top + 12);
-    c.bezierCurveTo(cx - pw * 0.7, top + 10, cx - pw * 1.25, hy + ph * 0.5, cx - pw, hy - ph * 0.15);
-    c.bezierCurveTo(cx - pw * 0.8, hy - ph, cx + pw * 0.8, hy - ph, cx + pw, hy - ph * 0.15);
-    c.bezierCurveTo(cx + pw * 1.25, hy + ph * 0.5, cx + pw * 0.7, top + 10, cx + half(top + 10), top + 12);
-    c.closePath();
-  };
-  plume(); c.fillStyle = rgba(sand, 0.55); c.fill();
-  c.save(); plume(); c.clip();
-  for (let i = 0; i < 160; i++) { c.fillStyle = rgba(CREAM, 0.15 + 0.3 * hash1(i + 3)); c.fillRect(Math.round(cx - pw * 1.3 + hash1(i + 400) * pw * 2.6), Math.round(hy - ph + hash1(i + 800) * (top + 14 - hy + ph)), 2, 2); }
-  c.restore();
-  plume(); c.strokeStyle = rgba(S.on, 0.7); c.lineWidth = 1.2; c.setLineDash([3, 3]); c.stroke(); c.setLineDash([]);
-
-  // --- Breaking waves over the bars: white bands rolling in, a sharp front, a ragged foam back; across the channel
-  // only the unbroken swell line, because the deeper water lets the wave through without breaking.
-  for (let i = 0; i < 4; i++) {
-    const k = (tt / 10 + i / 4) % 1, yy = barTop + k * (barBot - barTop), al = Math.min(1, k * 5, (1 - k) * 5);
-    const bh = 3 + k * 5;
-    for (const [x0, x1] of [[x, cx - half(yy) - 3], [cx + half(yy) + 3, x + w]] as const) {
-      if (x1 - x0 < 4) continue;
-      c.fillStyle = cream(0.92 * al); c.fillRect(x0, yy - bh, x1 - x0, bh);
-      // Whitewater left behind the break: grains of foam, thinning out to sea.
-      for (let j = 0; j < (x1 - x0) * 0.5; j++) { const fx = x0 + hash1(j * 7 + i * 131) * (x1 - x0), fd = Math.pow(hash1(j * 13 + i * 71), 1.8) * (10 + 10 * k); c.fillStyle = cream(0.6 * al * (1 - fd / 20)); c.fillRect(Math.round(fx), Math.round(yy - bh - fd - 2), 2, 2); }
-      c.fillStyle = rgba(S.on, 0.55 * al); c.fillRect(x0, yy, x1 - x0, 1.5);
-    }
-    c.strokeStyle = rgba(S.on, 0.3 * al); c.lineWidth = 1; c.beginPath(); c.moveTo(cx - half(yy), yy); c.lineTo(cx + half(yy), yy); c.stroke();
-  }
-
-  // --- The beach: sand with grain, the wet strip, the shore break washing up and back.
-  c.fillStyle = rgba(sand); c.beginPath(); c.moveTo(x, y + h);
+function drawSwim(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['swim']>, S: Style, Y: number) {
+  const { x, y, w, h } = A, cx = x + w * 0.56, gap = w * (a.rip === 'HIGH' ? 0.1 : a.rip === 'MOD' ? 0.075 : 0.05);
+  const shore = (xx: number) => Y + Math.sin(xx * 0.03 + tt * 0.8) * 2.5 + Math.exp(-sq((xx - cx) / (gap * 1.4))) * -6;
+  c.fillStyle = rgba(S.T.sand); c.beginPath(); c.moveTo(x, y + h);
   for (let xx = x; xx <= x + w; xx += 4) c.lineTo(xx, shore(xx));
   c.lineTo(x + w, y + h); c.closePath(); c.fill();
-  c.save(); c.clip();
-  c.fillStyle = rgba(S.on, 0.16); c.fillRect(x, Y - 6, w, 12);
-  for (let i = 0; i < 380; i++) { c.fillStyle = rgba(S.on, 0.1 + 0.12 * hash1(i + 5)); c.fillRect(Math.round(x + hash1(i + 11) * w), Math.round(Y + hash1(i + 23) * (y + h - Y)), 1.5, 1.5); }
-  c.restore();
-  const wash = S.reduced ? 0 : Math.sin(tt * 1.1) * 3;
-  c.strokeStyle = cream(0.95); c.lineWidth = 3; c.lineCap = 'butt'; c.beginPath();
-  for (let xx = x; xx <= x + w; xx += 4) { const yy = shore(xx) - 3 + wash * (0.6 + 0.4 * Math.sin(xx * 0.05)); xx === x ? c.moveTo(xx, yy) : c.lineTo(xx, yy); }
-  c.stroke();
-  c.strokeStyle = ink; c.lineWidth = 2; c.beginPath();
+  c.strokeStyle = S.ink; c.lineWidth = 2; c.beginPath();
   for (let xx = x; xx <= x + w; xx += 4) (xx === x ? c.moveTo(xx, shore(xx)) : c.lineTo(xx, shore(xx)));
   c.stroke();
-
-  // --- The current: feeders along the shore into the gap, out through the neck, fanning out at the head.
-  const v = 26 + 34 * rk, sz = 5 + 2 * rk, fy = Y - 12;
-  const paths: [number, number][][] = [
-    [[x + 8, fy], [cx - half(fy) - 6, fy]], [[x + w - 8, fy], [cx + half(fy) + 6, fy]],
-    [[cx, Y - 6], [cx, top + 14]],
-    [[cx - 4, top + 10], [cx - pw * 0.7, hy - ph * 0.35], [cx - pw * 1.15, hy + ph * 0.25]], [[cx + 4, top + 10], [cx + pw * 0.7, hy - ph * 0.35], [cx + pw * 1.15, hy + ph * 0.25]],
-  ];
-  paths.forEach((pp, i) => march(c, pp, tt, i === 2 ? v * 1.5 : v, i === 2 ? 15 : 20, i === 2 ? sz + 2 : sz, i === 2 ? 3 : 2.2, S.on, i === 2 ? 1 : 0.75));
-
-  // --- The way out: carried out, sideways along the beach, back in with the waves.
-  const side = 1, ox = cx, oy = Y - (Y - barTop) * 0.25, py = barTop + (barBot - barTop) * 0.45;
-  const exX = cx + side * (half(py) + w * 0.13), inX = exX + side * w * 0.04;
-  const way: [number, number][] = [[ox, oy], [ox, py], [exX, py], [inX, Y - 10]];
-  c.strokeStyle = cream(0.95); c.lineWidth = 2; c.setLineDash([5, 4]); c.beginPath(); way.forEach(([px, qy], i) => (i ? c.lineTo(px, qy) : c.moveTo(px, qy))); c.stroke(); c.setLineDash([]);
-  c.fillStyle = cream(0.95); { const ang = Math.atan2(Y - 10 - py, inX - exX); c.save(); c.translate(inX, Y - 10); c.rotate(ang); c.beginPath(); c.moveTo(4, 0); c.lineTo(-7, -5); c.lineTo(-7, 5); c.closePath(); c.fill(); c.restore(); }
-  const LW = polyLen(way), cyc = 11, u = S.reduced ? 0.55 : ((tt % cyc) / cyc);
-  // Slow while carried out, quick across, steady in.
-  const d = LW * (u < 0.3 ? (u / 0.3) * 0.3 : u < 0.7 ? 0.3 + ((u - 0.3) / 0.4) * 0.45 : 0.75 + ((u - 0.7) / 0.3) * 0.25);
-  const [sxp, syp] = along(way, d), stroke = S.reduced ? 0.5 : Math.sin(tt * 6);
-  // The swimmer from above: a ring of white water, arms reaching in turn, the head.
-  c.strokeStyle = cream(0.7); c.lineWidth = 1.5; c.strokeRect(sxp - 11, syp - 7, 22, 16);
-  c.strokeStyle = ink; c.lineWidth = 3; c.lineCap = 'butt';
-  c.beginPath(); c.moveTo(sxp - 3, syp + 1); c.lineTo(sxp - 9, syp - 5 - 5 * stroke); c.moveTo(sxp + 3, syp + 1); c.lineTo(sxp + 9, syp - 5 + 5 * stroke); c.stroke();
-  c.fillStyle = cream(1); c.beginPath(); c.arc(sxp, syp + 1, 4.6, 0, TAU); c.fill(); c.strokeStyle = ink; c.lineWidth = 2; c.stroke();
-  const sw = tag(c, a.sideK, exX + 4, py - 15, 'right', 9 * fs, cream(0.95), rgba(DARK));
-
-  // --- Words: the rip's own tag in its colour, the shore break, the beach's call.
-  const rt = tag(c, a.ripK, cx - half(barTop + 30) - 10, barTop + 30, 'right', 10.5 * fs, ink, rgba(S.fd), false, cx - half(barTop + 30) - 10 - (x + 14));
-  c.fillStyle = rgba(riskC); c.fillRect(rt.x - 12, rt.y, 12, rt.h); c.strokeStyle = ink; c.lineWidth = 1.5; c.strokeRect(rt.x - 12 + 0.75, rt.y + 0.75, 10.5, rt.h - 1.5);
-  c.strokeStyle = ink; c.lineWidth = 1.5; c.beginPath(); c.moveTo(rt.x + rt.w, rt.y + rt.h / 2); c.lineTo(cx - 3, rt.y + rt.h / 2); c.stroke();
-  const st = tag(c, a.shore, x, Y - 30, 'left', 9.5 * fs, ink, ink, true);
-  const fx0 = x + 4, fyy = Y + (y + h - Y) * 0.58;
-  const ft = tag(c, a.flag, fx0 + 22, fyy, 'left', 9.5 * fs, ink, rgba(S.fd), false, x + w - fx0 - 22);
-  c.fillStyle = rgba(riskC); c.fillRect(fx0, ft.y, ft.h, ft.h); c.strokeStyle = ink; c.lineWidth = 2; c.strokeRect(fx0 + 1, ft.y + 1, ft.h - 2, ft.h - 2);
-
-  // --- The sun with its UV ring: one hard block per index point, up to 11.
-  let uvBox: Box | null = null;
-  if (a.uv !== null) {
-    const sr = Math.min(w, h) * 0.06, sx = x + w - sr - 18, sy = y + sr + 14;
-    c.fillStyle = ink; c.beginPath(); c.arc(sx, sy, sr, 0, TAU); c.fill();
-    c.lineCap = 'butt';
-    for (let i = 0; i < 11; i++) {
-      const a0 = -Math.PI / 2 + (i / 11) * TAU + 0.07, a1 = a0 + TAU / 11 - 0.14;
-      c.strokeStyle = i < Math.round(a.uv) ? ink : rgba(S.on, 0.22); c.lineWidth = 6; c.beginPath(); c.arc(sx, sy, sr + 9, a0, a1); c.stroke();
-    }
-    tag(c, a.uvK, sx - sr - 18, sy, 'right', 10 * fs, ink, rgba(S.fd));
-    uvBox = { x: sx - sr - 14, y: sy - sr - 14, w: 2 * sr + 28, h: 2 * sr + 28 };
+  // Crests coming in, broken where the rip runs out.
+  for (let i = 0; i < 5; i++) {
+    const k = (tt / 9 + i / 5) % 1, yy = y + h * 0.08 + k * (Y - y - h * 0.1), al = Math.min(1, k * 4) * (k > 0.93 ? (1 - k) / 0.07 : 1);
+    c.strokeStyle = rgba(S.on, 0.75 * al); c.lineWidth = 1.2 + k * k * 4; c.beginPath();
+    c.moveTo(x, yy); c.lineTo(cx - gap * (1 + k), yy + 2 * (1 - k)); c.moveTo(cx + gap * (1 + k), yy + 2 * (1 - k)); c.lineTo(x + w, yy); c.stroke();
   }
-
-  // --- Tap targets, most specific first.
-  S.hot.push({ x: sw.x, y: sw.y, w: sw.w, h: sw.h, k: 'swim.out' });
-  S.hot.push({ x: Math.min(ox, exX) - 14, y: py - 14, w: Math.abs(exX - ox) + 28, h: Y - py + 4, k: 'swim.out' });
-  S.hot.push({ x: rt.x - 12, y: rt.y, w: rt.w + 12, h: rt.h, k: 'swim.rip' });
-  S.hot.push({ x: ft.x - 22, y: ft.y, w: ft.w + 22, h: ft.h, k: 'swim.flag' });
-  S.hot.push({ x: st.x, y: st.y, w: st.w, h: st.h, k: 'swim.shore' });
-  if (uvBox) S.hot.push({ ...uvBox, k: 'swim.uv' });
-  S.hot.push({ x: cx - half(top) - 6, y: top - 10, w: 2 * half(top) + 12, h: Y - top + 10, k: 'swim.rip' });
-  S.hot.push({ x: x, y: Y - 10, w: w, h: 20, k: 'swim.shore' });
-  S.hot.push({ x: x, y: barTop - 12, w: w, h: barBot - barTop + 12, k: 'swim.waves' });
+  const ay = y + h * 0.38;
+  c.strokeStyle = S.ink; c.fillStyle = S.ink; c.lineWidth = 2.5; c.beginPath(); c.moveTo(cx, Y - 18); c.lineTo(cx, ay); c.stroke();
+  c.beginPath(); c.moveTo(cx, ay - 10); c.lineTo(cx - 7, ay + 2); c.lineTo(cx + 7, ay + 2); c.closePath(); c.fill();
+  txt(c, a.ripK, cx + 12, ay + 4, 'left', 11, 700);
+  c.fillStyle = S.soft; txt(c, a.shore, x + w, Y - 14, 'right', 10.5, 600);
+  // A dot in the rip's colour with its plain words (only Cocles and Playa Negra fly flags).
+  const fx0 = x + w * 0.16, fy = Y + (y + h - Y) * 0.78;
+  c.beginPath(); c.arc(fx0, fy - 10, 9, 0, TAU);
+  c.fillStyle = rgba(S.T[a.rip === 'HIGH' ? 'lv0' : a.rip === 'MOD' ? 'lv2' : 'lv3']); c.fill(); c.lineWidth = 2; c.strokeStyle = S.ink; c.stroke();
+  c.fillStyle = S.ink; txt(c, a.flag, fx0 + 18, fy - 10, 'left', 10.5, 700);
+  // The sun with its UV ring, one segment per index point up to 11.
+  if (a.uv !== null) {
+    const sr = Math.min(w, h) * 0.085, sx = x + w - sr - 22, sy = y + sr + 22;
+    c.fillStyle = S.ink; c.beginPath(); c.arc(sx, sy, sr, 0, TAU); c.fill();
+    for (let i = 0; i < 11; i++) {
+      const a0 = -Math.PI / 2 + (i / 11) * TAU + 0.05, a1 = a0 + TAU / 11 - 0.1;
+      c.strokeStyle = i < Math.round(a.uv) ? S.ink : S.faint; c.lineWidth = 5; c.beginPath(); c.arc(sx, sy, sr + 10, a0, a1); c.stroke();
+    }
+    c.fillStyle = S.ink; txt(c, a.uvK, sx - sr - 22, sy, 'right', 11, 700);
+  }
 }
 
 // --- snorkel, dive and spear: one section from the surface to the reef -----------------------------------------------

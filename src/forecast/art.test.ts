@@ -120,10 +120,11 @@ describe('hero engine draws every activity without a NaN', () => {
           e.still();
         }
   }, 60_000);
-  it('SAIL and SWIM: every part of the picture you can tap has its plain words in English and Spanish, and a tap finds it', async () => {
+  it('SAIL: every part of the picture you can tap has its plain words in English and Spanish, and a tap finds it', async () => {
     const { en } = await import('../i18n/en');
     const { es } = await import('../i18n/es');
-    for (const a of ['sail', 'swim'] as const) {
+    // SWIM, SURF and FISH keep their earlier pictures (Joseph 2026-11-17), so they have no tap targets.
+    for (const a of ['sail'] as const) {
       const deps = full(), fx = recCtx(), ov = recCtx();
       const cv = (c: ReturnType<typeof recCtx>) => ({ getContext: () => c, width: 0, height: 0 }) as unknown as HTMLCanvasElement;
       const e = new HeroEngine(cv(fx), cv(ov), box(390, 760), box(358, 300));
@@ -153,16 +154,16 @@ describe('hero engine draws every activity without a NaN', () => {
       expect(e.active).toBeNull();
     }
   });
-  it('SURF, FISH and PADDLE: every part of the picture you can tap has its plain words in English and Spanish, and a tap finds it', async () => {
+  it('PADDLE: every part of the picture you can tap has its plain words in English and Spanish, and a tap finds it', async () => {
     const { en } = await import('../i18n/en');
     const { es } = await import('../i18n/es');
-    for (const a of ['surf', 'fish', 'paddle'] as const)
+    for (const a of ['paddle'] as const)
       for (const [w, h] of [[390, 760], [1440, 680]]) {
         const deps = full(), fx = recCtx(), ov = recCtx();
         const cv = (c: ReturnType<typeof recCtx>) => ({ getContext: () => c, width: 0, height: 0 }) as unknown as HTMLCanvasElement;
-        const e = new HeroEngine(cv(fx), cv(ov), box(w, h), box(Math.min(w - 32, 520), a === 'fish' ? 330 : 270));
+        const e = new HeroEngine(cv(fx), cv(ov), box(w, h), box(Math.min(w - 32, 520), 270));
         e.setTokens(tokens(), true);
-        const { sp, plan, tl } = ctxFor(deps, a, a === 'surf' ? 'SALSA BRAVA' : 'PLAYA COCLES');
+        const { sp, plan, tl } = ctxFor(deps, a, 'PLAYA COCLES');
         e.set(heroParams(readAt(deps, a, sp, at), { deps, ms: at, plan, tl }), 0);
         e.resize();
         e.overlay(5);
