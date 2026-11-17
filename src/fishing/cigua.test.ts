@@ -32,8 +32,8 @@ describe('ciguatera agrees across the map, forecast and guide', () => {
   it('uses the guide sizes: horse-eye jack 42 cm is the strictest jack', () => {
     expect(ciguaSpecies('jack').find((s) => s.sci === 'Caranx latus')!.size).toEqual({ basis: 'published', cm: 42, kg: 1 });
     expect(strictestCm('jack')).toBe(42);
-    expect(strictestCm('kingfish')).toBe(75);
-    expect(strictestCm('wahoo')).toBe(90);
+    expect(strictestCm('kingfish')).toBe(71);
+    expect(strictestCm('wahoo')).toBe(103);
   });
   it('draws a bar per species, red for the high tier, and the boat chart', () => {
     const html = ciguaNoteHtml('jack', 'high');
@@ -41,7 +41,7 @@ describe('ciguatera agrees across the map, forecast and guide', () => {
     expect(html.match(/cz-row/g)!.length).toBe(5);
     expect(html).toContain('42 cm');
     expect(ciguaNoteHtml('snook', undefined)).toBe('');
-    expect(ciguaBoatHtml(['kingfish', 'wahoo'])).toContain('75 cm');
+    expect(ciguaBoatHtml(['kingfish', 'wahoo'])).toContain("71 cm");
   });
 });
 
@@ -50,7 +50,7 @@ describe('forecast ciguatera line', () => {
     const { ciguaLine } = await import('../forecast/view');
     const [line] = ciguaLine(['snook', 'jack', 'grouper']);
     expect(line).toMatch(/42 cm/);
-    expect(line).toMatch(/33 cm/);
+    expect(line).toMatch(/49 cm/);
     expect(ciguaLine(['snook', 'mullet'])).toEqual([]);
   });
 });
