@@ -5,6 +5,7 @@
  * Its own link `#ciguatera[/<tab>]` (route.ts); other pages hide on it and it hides on theirs.
  */
 import { brandLine } from '../brand';
+import { setCover } from '../cover';
 import { rememberOrigin, storedOrigin } from '../origin';
 import { t } from '../i18n';
 import { landing, MAP_HASH } from '../forecast/model';
@@ -110,7 +111,7 @@ export function mountCiguateraPage(deps: CiguateraPageDeps) {
   const show = () => {
     if (!el.hidden) return;
     el.hidden = false;
-    document.body.classList.add('fc-open');
+    setCover('ciguatera', true);
     mapMeta = meta?.getAttribute('content') ?? null;
     $('cig-back-l').textContent = CHROME.back[cameFrom === 'map' ? 'forecast' : cameFrom][lang];
     applyScheme();
@@ -121,7 +122,7 @@ export function mountCiguateraPage(deps: CiguateraPageDeps) {
   const hide = () => {
     if (el.hidden) return;
     el.hidden = true;
-    document.body.classList.remove('fc-open');
+    setCover('ciguatera', false);
     if (mapMeta !== null) meta?.setAttribute('content', mapMeta);
   };
   /**

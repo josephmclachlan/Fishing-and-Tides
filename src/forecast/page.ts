@@ -13,6 +13,7 @@
  * written out by render.ts, which are pure and tested.
  */
 import { t, type Key } from '../i18n';
+import { setCover } from '../cover';
 import { localDayStart, sunTimes, type SunTimes } from '../physics/astro';
 import { REGION, SPOTS, SPOT_RENAMES } from '../region';
 import { localClock } from '../tide-chart';
@@ -1019,12 +1020,12 @@ export function mountForecastPage(deps: ForecastDeps) {
   let timer = 0;
   // The main page: cover the map from the start, so it does not flash up before the first render.
   let booting = landing(location.hash) === 'forecast';
-  if (booting) (el.hidden = false), document.body.classList.add('fc-open');
+  if (booting) (el.hidden = false), setCover('forecast', true);
   const show = () => {
     if (!el.hidden && !booting) return;
     booting = false;
     el.hidden = false;
-    document.body.classList.add('fc-open');
+    setCover('forecast', true);
     openedAt = Date.now();
     scrolledFor = '';
     applyScheme();
@@ -1044,7 +1045,7 @@ export function mountForecastPage(deps: ForecastDeps) {
   const hide = () => {
     if (el.hidden) return;
     el.hidden = true;
-    document.body.classList.remove('fc-open');
+    setCover('forecast', false);
     window.clearTimeout(timer);
     // The map's way back reads where the forecast was (PLAN 7.67).
     window.dispatchEvent(new CustomEvent('fc-hide'));

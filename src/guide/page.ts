@@ -15,8 +15,10 @@
  * phone's back button closes the species, then the page.
  */
 import { brandLine } from '../brand';
+import { runTaskLoader } from '../boot';
+import { setCover } from '../cover';
 import { idButtonHtml } from '../id-button';
-import { t } from '../i18n';
+import { t, type Key } from '../i18n';
 import { landing } from '../forecast/model';
 import { loadIndex, loadSpecies } from './data';
 import { noAnswers, stepsFor, type IdAnswers, type IdStep } from './identify';
@@ -36,6 +38,8 @@ import './guide.css';
 const SCHEME_KEY = 'ft.fcScheme';
 const SORT_KEY = 'ft.gdSort';
 const BY_KEY = 'ft.gdBy';
+/** What the guide's loader names under its icons in turn. */
+const GUIDE_PARTS = ['species', 'photos', 'groups', 'families', 'edible', 'danger', 'identify', 'coast'] as const;
 const FAV_KEY = 'ft.gdFav';
 const EXP_KEY = 'ft.gdExp';
 const LAY_KEY = 'ft.gdLay';
@@ -417,11 +421,24 @@ export function mountGuidePage(deps: GuidePageDeps) {
   io?.observe(moreBtn);
   moreBtn.addEventListener('click', more);
 
+  let loading: Promise<unknown> | null = null;
   const load = () => {
-    if (idx) return;
+    if (idx || loading) return;
     failed = false;
     render();
-    loadIndex(base).then(
+    // The first time the guide opens, the SurCast loader says it is opening the guide while the list comes in.
+    const got = loadIndex(base);
+    loading = got;
+    void got.finally(() => (loading = null)).catch(() => {});
+    // Not over the launch screen, which already covers start-up when the app opens on the guide.
+    if (!document.querySelector('.sc-launch:not(.sc-gone)')) void runTaskLoader(got, {
+      title: t('boot.guide'),
+      parts: GUIDE_PARTS.map((p) => t(`boot.gpart.${p}` as Key)),
+      loading: (part) => t('boot.loading', { step: part }),
+      ready: t('boot.ready'),
+      slow: t('boot.guideSlow'),
+    });
+    got.then(
       (ix) => {
         idx = ix;
         for (const e of ix.entries) hays.set(e.id, haystack(e)), bySci.set(e.sci.toLowerCase(), e.id), byId.set(e.id, e);
@@ -785,7 +802,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
   const show = () => {
     if (!el.hidden) return;
     el.hidden = false;
-    document.body.classList.add('fc-open');
+    setCover('guide', true);
     mapMeta = meta?.getAttribute('content') ?? null;
     $('gd-back-l').textContent = t(cameFrom === 'coral' ? 'gd.back.coral' : 'gd.back.forecast');
     applyScheme();
@@ -798,7 +815,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
     hideDetail();
     closeFlip();
     el.hidden = true;
-    document.body.classList.remove('fc-open');
+    setCover('guide', false);
     if (mapMeta !== null) meta?.setAttribute('content', mapMeta);
   };
   const fromHash = (e?: HashChangeEvent) => {

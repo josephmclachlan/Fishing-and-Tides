@@ -5,6 +5,7 @@
  * species guide's cleaning tab and the fishing panel, and the phone's back button works.
  */
 import { brandLine } from '../brand';
+import { setCover } from '../cover';
 import { rememberOrigin, storedOrigin } from '../origin';
 import { t } from '../i18n';
 import { LEDE, TITLE, tr, type Lang } from './content';
@@ -156,7 +157,7 @@ export function mountDispatchPage(deps: DispatchPageDeps) {
   const show = () => {
     if (!el.hidden) return;
     el.hidden = false;
-    document.body.classList.add('fc-open');
+    setCover('dispatch', true);
     mapMeta = meta?.getAttribute('content') ?? null;
     $('dp-back-l').textContent = t(cameFrom === 'guide' ? 'dp.back.guide' : 'dp.back.forecast');
     applyScheme();
@@ -165,7 +166,7 @@ export function mountDispatchPage(deps: DispatchPageDeps) {
   const hide = () => {
     if (el.hidden) return;
     el.hidden = true;
-    document.body.classList.remove('fc-open');
+    setCover('dispatch', false);
     if (mapMeta !== null) meta?.setAttribute('content', mapMeta);
   };
   /**
