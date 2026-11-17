@@ -15,6 +15,7 @@ import '../forecast/forecast.css';
 import '../notes/notes.css';
 import '../notes/notes-aid.css';
 import './ciguatera.css';
+import '../guide/surcast-pages.css';
 
 const SCHEME_KEY = 'ft.fcScheme';
 type Store = Pick<Storage, 'getItem' | 'setItem'> | undefined;

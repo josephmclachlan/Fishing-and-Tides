@@ -307,7 +307,7 @@ Keep the whole encyclopedia and every word of the research; answers and pictures
 - [x] 14.2 Atlas home: search on top, a wide "Identify it" bar between search and the species (not a small button), the 12 groups as tiles, families as photo shelves, Edible, Dangerous and Common here as filters, "species with no record here" kept
 - [x] 14.3 Identify: first ask what kind of thing it is (fish, shark or ray, turtle, crab, coral, plant and so on), then shape, colours, markings and size as picture answers, with live photo matches after every answer and a side-by-side check with the look-alike at the end
 - [x] 14.4 Flip: swipe photo cards over any shelf, group or search result
-- [ ] 14.5 SurCast look on the guide's other pages (ciguatera, dispatch, field notes links and the list cards)
+- [x] 14.5 SurCast look on the guide's other pages (ciguatera, dispatch, field notes links and the list cards)
 - [ ] 14.6 Coast drawing (F): tap beach, mangrove, seagrass, reef, open water or offshore to browse what lives there
 
 ## Phase 9: Final review (last, after every task above)
