@@ -484,3 +484,150 @@ body.fc-open { overflow: hidden; }
   .fc .fc-ctl.fc-guideb span { display: none; }
   .fc .fc-ctl.fc-guideb svg { width: 32px; height: 32px; }
 }
+/* --- days 8 to 16 (forecast rethink D, 2026-11-17): a row per day, square bars in the rating's colour; nothing past day 16 */
+.fc-ol { display: grid; gap: 2px; }
+.fc-olh { margin: 14px 0 6px; color: var(--fc-ink2); border-top: 2px solid var(--fc-ink); padding-top: 8px; }
+.fc-olh:first-child { margin-top: 0; }
+.fc .fc-olr {
+  appearance: none; border: 0; border-radius: 0; background: none; color: var(--fc-ink); font: inherit; text-align: left; cursor: pointer;
+  display: grid; grid-template-columns: 4.6em 5.6em minmax(0, 1fr) 4.6em; align-items: center; gap: 10px; min-height: 34px; padding: 2px 4px;
+}
+.fc .fc-olr:disabled { cursor: default; }
+.fc-old { font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 80; font-size: 16px; line-height: 1; white-space: nowrap; }
+.fc-olw { font-size: 11px; color: var(--fc-ink2); white-space: nowrap; }
+.fc-olb { display: block; height: 12px; background: var(--fc-block); position: relative; }
+.fc-olb i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c, var(--fc-lvn)); }
+.fc-olv { font-family: var(--fc-disp); font-weight: 850; font-variation-settings: 'wdth' 74; font-size: 18px; line-height: 1; text-align: right; white-space: nowrap; }
+.fc-olv small { font-size: 0.62em; font-weight: 700; margin-left: 2px; }
+.fc .fc-olr.on { outline: 2px solid var(--fc-ink); outline-offset: -2px; opacity: 1; }
+@media (hover: hover) { .fc .fc-olr:not(:disabled):hover { background: var(--fc-block); } }
+
+/* --- the time dock (forecast rethink D): pinned to the bottom of the page, square and crisp */
+.fc-dock {
+  position: sticky; bottom: 0; z-index: 30; background: var(--fc-bg); border-top: 2px solid var(--fc-ink);
+  padding: 8px var(--fc-g-r) calc(10px + env(safe-area-inset-bottom, 0px)) var(--fc-g-l);
+}
+.fc.fc-down .fc-dock { display: none; }
+.fc-dk-in { max-width: 1312px; margin: 0 auto; }
+.fc-dk-h { display: flex; align-items: center; gap: 10px; min-height: 30px; }
+.fc-dk-when { font-family: var(--fc-disp); font-weight: 850; font-variation-settings: 'wdth' 78; font-size: 20px; line-height: 1; text-transform: uppercase; letter-spacing: -0.005em; white-space: nowrap; }
+.fc-dk-sun { font-size: 11px; color: var(--fc-ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.fc .fc-dk-now {
+  margin-left: auto; flex: none; min-height: 32px; padding: 0 10px; border: 2px solid var(--fc-ink); border-radius: 0; background: var(--fc-ink); color: var(--fc-bg);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+}
+.fc .fc-dk-now[hidden] { display: none; }
+.fc-dk-cells { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 2px; height: 26px; margin-top: 6px; }
+.fc .fc-dk-c { appearance: none; border: 0; border-radius: 0; padding: 0; min-width: 0; background: var(--c, var(--fc-lvn)); cursor: pointer; position: relative; }
+.fc .fc-dk-c.nt { opacity: 0.45; }
+.fc .fc-dk-c.past { opacity: 0.18; cursor: default; }
+.fc .fc-dk-c.on { outline: 2px solid var(--fc-ink); outline-offset: 1px; z-index: 1; }
+.fc-dk-marks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); font-size: 9px; color: var(--fc-ink2); margin-top: 3px; }
+.fc-dk-strip { position: relative; height: 46px; margin-top: 6px; touch-action: none; cursor: ew-resize; }
+.fc-dk-strip canvas { display: block; width: 100%; height: 100%; }
+.fc-dk-strip:focus-visible { outline: 2px solid var(--fc-ink); outline-offset: 2px; }
+@media (min-width: 960px) { .fc-dk-strip { height: 40px; } .fc-dk-cells { height: 22px; } }
+@media (prefers-reduced-motion: no-preference) { .fc .fc-dk-c { transition: background-color 0.4s, opacity 0.3s; } }
+.fc-dk-sun { display: inline-flex; align-items: center; gap: 4px; }
+.fc-dk-sun svg { width: 13px; height: 13px; flex: none; fill: none; stroke: var(--fc-c-sun); stroke-width: 1.6; stroke-linecap: square; }
+
+/* --- black glass (dark scheme only; Joseph 2026-11-17: "I don't want to lose a lot of the black glass"). The map's
+   recipe (PR #365): a plain near-black ground, panels of smoked glass
+   (a translucent near-black, a blur, a faint lit hairline and a drop shadow), and the dock's top edge lit in the
+   activity colours. Corners stay square; the hero stays the rating's colour field; the light scheme is unchanged.
+   The canvases knock shapes out in --fc-block and --fc-c-card, so those match the glass as it sits on the ground. */
+.fc[data-scheme='dark'] {
+  --fc-bg: #03060b; --fc-block: #0a1019; --fc-card: #0a1019; --fc-c-card: #0a1019; --fc-c-night: #111a27;
+  --fc-glass: rgb(10 16 25 / 0.86); --fc-glass-edge: rgb(237 243 250 / 0.08);
+  background: var(--fc-bg);
+}
+.fc[data-scheme='dark'] .fc-tile { box-shadow: inset 0 0 0 1px var(--fc-glass-edge), 0 6px 20px rgb(0 0 0 / 0.45); }
+.fc[data-scheme='dark'] .fc-hx,
+.fc[data-scheme='dark'] .fc-down-msg,
+.fc[data-scheme='dark'] .fc-ol {
+  background: var(--fc-glass); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  box-shadow: inset 0 0 0 1px var(--fc-glass-edge), 0 6px 20px rgb(0 0 0 / 0.45);
+}
+/* A rated tile keeps its rating bar along the top (PR #366) under the glass's hairline. */
+.fc[data-scheme='dark'] .fc-hx { border-color: var(--fc-glass-edge); }
+.fc[data-scheme='dark'] .fc-hx-lab { background: transparent; }
+.fc[data-scheme='dark'] .fc-hx-read { box-shadow: inset 0 0 0 1px var(--fc-glass-edge); }
+.fc[data-scheme='dark'] .fc-ol { padding: 6px; }
+.fc[data-scheme='dark'] .fc-ol .fc-olh { border-top: 0; padding-top: 2px; }
+.fc[data-scheme='dark'] .fc-olb { background: rgb(237 243 250 / 0.06); }
+@media (hover: hover) { .fc[data-scheme='dark'] .fc-olr:not(:disabled):hover { background: rgb(237 243 250 / 0.05); } }
+/* The dock: smoked glass over the page, its top edge lit in the activity colours. */
+.fc[data-scheme='dark'] .fc-dock {
+  background: rgb(3 6 11 / 0.84); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  border-top: 0; box-shadow: 0 -10px 28px rgb(0 0 0 / 0.5);
+}
+.fc[data-scheme='dark'] .fc-dock::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; pointer-events: none;
+  background: linear-gradient(90deg, var(--fc-t-surf), var(--fc-t-paddle), var(--fc-t-snorkel), var(--fc-t-sail), var(--fc-lv2), var(--fc-t-fish), var(--fc-t-swim), var(--fc-t-dive));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--fc-tbar) 55%, transparent);
+}
+.fc[data-scheme='dark'] .fc-dk-cells { padding: 2px; background: rgb(237 243 250 / 0.04); box-shadow: inset 0 0 0 1px var(--fc-glass-edge); }
+.fc[data-scheme='dark'] .fc-live { box-shadow: inset 0 0 0 1px var(--fc-glass-edge); }
+
+/* --- original D's cards, square (Joseph 2026-11-17: "make the info graphic and cards styled like your original D
+   design ... the black glass slightly tinted yellow or green or blue"). In the dark scheme the hero, the spot cards and
+   the rated condition cards are plain neutral black glass (Joseph: no tint), drawn and lettered in the rating's bright
+   accent, with a square edge in it. The day bars, the dock cells and the strips keep the solid colours.
+   `--fc-gl*` (cards) and `--fc-gh*` (hero) are kept per level so a card can differ later; plain hex, as the canvases read them. */
+.fc[data-scheme='dark'] { --fc-gl0: #0a1019; --fc-gl1: #0a1019; --fc-gl2: #0a1019; --fc-gl3: #0a1019; --fc-gl4: #0a1019; --fc-gln: #0a1019; --fc-gh0: #070b12; --fc-gh1: #070b12; --fc-gh2: #070b12; --fc-gh3: #070b12; --fc-gh4: #070b12; --fc-ghn: #070b12; }
+.fc[data-scheme='dark'] .l0 { --g: var(--fc-gl0); --a: var(--fc-ac0); }
+.fc[data-scheme='dark'] .l1 { --g: var(--fc-gl1); --a: var(--fc-ac1); }
+.fc[data-scheme='dark'] .l2 { --g: var(--fc-gl2); --a: var(--fc-ac2); }
+.fc[data-scheme='dark'] .l3 { --g: var(--fc-gl3); --a: var(--fc-ac3); }
+.fc[data-scheme='dark'] .l4 { --g: var(--fc-gl4); --a: var(--fc-ac4); }
+.fc[data-scheme='dark'] .ln { --g: var(--fc-gln); --a: var(--fc-acn); }
+.fc[data-scheme='dark'] .fc-hero { --fc-lv0: var(--fc-gh0); --fc-on0: var(--fc-ac0); --fc-lv1: var(--fc-gh1); --fc-on1: var(--fc-ac1); --fc-lv2: var(--fc-gh2); --fc-on2: var(--fc-ac2); --fc-lv3: var(--fc-gh3); --fc-on3: var(--fc-ac3); --fc-lv4: var(--fc-gh4); --fc-on4: var(--fc-ac4); --fc-lvn: var(--fc-ghn); --fc-onn: var(--fc-acn); --fc-field: var(--fc-ghn); --fc-on-field: var(--fc-acn);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fc-on-field) 55%, transparent) }
+.fc[data-scheme='dark'][data-level='0'] .fc-hero { --fc-field: var(--fc-gh0); --fc-on-field: var(--fc-ac0); }
+.fc[data-scheme='dark'][data-level='1'] .fc-hero { --fc-field: var(--fc-gh1); --fc-on-field: var(--fc-ac1); }
+.fc[data-scheme='dark'][data-level='2'] .fc-hero { --fc-field: var(--fc-gh2); --fc-on-field: var(--fc-ac2); }
+.fc[data-scheme='dark'][data-level='3'] .fc-hero { --fc-field: var(--fc-gh3); --fc-on-field: var(--fc-ac3); }
+.fc[data-scheme='dark'][data-level='4'] .fc-hero { --fc-field: var(--fc-gh4); --fc-on-field: var(--fc-ac4); }
+.fc[data-scheme='dark'] .fc-hero .fc-segs i { border-width: 1px; }
+.fc[data-scheme='dark'] .fc-hero .fc-chips li { border-width: 1px; border-color: color-mix(in srgb, currentColor 60%, transparent); }
+.fc[data-scheme='dark'] .fc .fc-spot, .fc[data-scheme='dark'] .fc-spot {
+  background: var(--g, var(--fc-block)); color: var(--fc-ink);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--a, var(--fc-acn)) 50%, transparent);
+}
+.fc[data-scheme='dark'] .fc-spot .fc-sr { color: var(--a, var(--fc-acn)); }
+.fc[data-scheme='dark'] .fc-spot .fc-strip i { background: var(--c); }
+.fc[data-scheme='dark'] .fc-spot .fc-strip-l, .fc[data-scheme='dark'] .fc-spot .fc-swx { color: var(--fc-ink2); }
+.fc[data-scheme='dark'] .fc .fc-spot[aria-selected='true'], .fc[data-scheme='dark'] .fc-spot[aria-selected='true'] {
+  box-shadow: inset 0 0 0 1.5px var(--a, var(--fc-acn)), 0 0 0 2px var(--fc-bg), 0 0 0 3.5px var(--fc-ink);
+}
+.fc[data-scheme='dark'] .fc-tile.has-lv { background: var(--g); box-shadow: inset 0 5px 0 var(--c), inset 0 0 0 1px color-mix(in srgb, var(--a) 45%, transparent), 0 6px 20px rgb(0 0 0 / 0.45); }
+.fc[data-scheme='dark'] .fc-tile.has-lv .fc-t-val { color: var(--a); }
+
+/* --- glow (Joseph 2026-11-17 picked "B, full glow" from the glow mockups): in the dark scheme every drawing, rating
+   word, number and bar gives off a halo in its own rating or activity colour, over the neutral black glass. The edges
+   stay square. Light mode has none: glow does not read in sunlight. `--gl` is the halo's strength, `--gb` its blur. */
+.fc[data-scheme='dark'] { --gl: 0.75; --gb: 10px; }
+.fc[data-scheme='dark'] .fc-hero canvas { filter: drop-shadow(0 0 calc(var(--gb) * 0.6) color-mix(in srgb, var(--fc-on-field) calc(var(--gl) * 100%), transparent)); }
+.fc[data-scheme='dark'] .fc-rword, .fc[data-scheme='dark'] .fc-rscore, .fc[data-scheme='dark'] .fc-hn { text-shadow: 0 0 calc(var(--gb) * 1.6) color-mix(in srgb, var(--fc-on-field) calc(var(--gl) * 100%), transparent); }
+.fc[data-scheme='dark'] .fc-segs i { box-shadow: 0 0 var(--gb) color-mix(in srgb, currentColor calc(var(--gl) * 100%), transparent); }
+.fc[data-scheme='dark'] .fc-t-viz { filter: drop-shadow(0 0 calc(var(--gb) * 0.6) color-mix(in srgb, var(--a, var(--fc-ac)) calc(var(--gl) * 90%), transparent)); }
+.fc[data-scheme='dark'] .fc-tile.has-lv .fc-t-val, .fc[data-scheme='dark'] .fc-spot .fc-sr { text-shadow: 0 0 var(--gb) color-mix(in srgb, var(--a, var(--fc-ac)) calc(var(--gl) * 100%), transparent); }
+.fc[data-scheme='dark'] .fc-spot .fc-strip i:not(.ln) { box-shadow: 0 0 calc(var(--gb) * 0.8) color-mix(in srgb, var(--c) calc(var(--gl) * 100%), transparent); }
+.fc[data-scheme='dark'] .fc-tab[aria-selected='true'] { text-shadow: 0 0 calc(var(--gb) * 1.6) color-mix(in srgb, var(--tc) calc(var(--gl) * 100%), transparent); }
+.fc[data-scheme='dark'] .fc-tab-bar { box-shadow: 0 0 var(--gb) var(--fc-tbar); }
+.fc[data-scheme='dark'] .fc-bar { box-shadow: 0 0 calc(var(--gb) * 1.8) color-mix(in srgb, var(--c) calc(var(--gl) * 70%), transparent); }
+.fc[data-scheme='dark'] .fc-olb i { box-shadow: 0 0 var(--gb) color-mix(in srgb, var(--c) calc(var(--gl) * 100%), transparent); }
+.fc[data-scheme='dark'] .fc-hx-in canvas { filter: drop-shadow(0 0 calc(var(--gb) * 0.4) color-mix(in srgb, var(--fc-c-acc) calc(var(--gl) * 80%), transparent)); }
+.fc[data-scheme='dark'] .fc-dk-c:not(.nt):not(.past) { box-shadow: 0 0 calc(var(--gb) * 0.9) color-mix(in srgb, var(--c) calc(var(--gl) * 90%), transparent); }
+.fc[data-scheme='dark'] .fc-dk-c.on { box-shadow: 0 0 calc(var(--gb) * 1.4) rgb(255 255 255 / 0.55); }
+.fc[data-scheme='dark'] .fc-dk-strip canvas { filter: drop-shadow(0 0 calc(var(--gb) * 0.5) rgb(124 213 174 / calc(var(--gl) * 0.9))); }
+.fc[data-scheme='dark'] .fc-dk-when { text-shadow: 0 0 calc(var(--gb) * 1.4) rgb(237 243 250 / calc(var(--gl) * 0.6)); }
+.fc[data-scheme='dark'] .fc-dock::before { box-shadow: 0 0 calc(var(--gb) * 2) color-mix(in srgb, var(--fc-tbar) 70%, transparent); }
+/* The score meter as lit segments (the mockup's GOOD bar), and a lit square edge on the hero and rated cards. */
+.fc[data-scheme='dark'] .fc-segs { gap: 4px; }
+.fc[data-scheme='dark'] .fc-segs i { width: 20px; height: 9px; border: 0; background: linear-gradient(90deg, currentColor var(--f), color-mix(in srgb, currentColor 18%, transparent) var(--f)); box-shadow: none; }
+.fc[data-scheme='dark'] .fc-segs i[style*='--f:100%'] { box-shadow: 0 0 10px color-mix(in srgb, currentColor 80%, transparent); }
+.fc[data-scheme='dark'] .fc-hero { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fc-on-field) 70%, transparent), 0 0 24px -6px var(--fc-on-field); }
+.fc[data-scheme='dark'] .fc-tile.has-lv { box-shadow: inset 0 5px 0 var(--c), inset 0 0 0 1px color-mix(in srgb, var(--a) 60%, transparent), 0 0 18px -6px var(--a), 0 6px 20px rgb(0 0 0 / 0.45); }
+/* The tide and the water and feels bars glow in their own drawing (PR #366): no second halo on top. */
+.fc[data-scheme='dark'] .fc-tile:is([data-kind='tide'], [data-kind='water'], [data-kind='feels']) .fc-t-viz { filter: none; }
