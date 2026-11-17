@@ -818,10 +818,42 @@
    cross-section the full width of the page, and under it a strip of square buttons, each under its own part. Picking
    a part lights its column like a beam rising from its button, brightens its seabed and life, and dims the rest. */
 .gd-coast { margin: 18px 0 4px; }
-.gd-coast-h { margin: 0; font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 72; font-size: 26px; line-height: 1; text-transform: uppercase; }
-.gd-coast-p { margin: 4px 0 10px; font-size: 14px; color: var(--fc-ink2); }
-.gd-coast-d { position: relative; border: 1.5px solid var(--fc-line); background: var(--gd-glass); }
-.fc[data-scheme='dark'] .gd-coast-d { box-shadow: 0 0 0 1px color-mix(in srgb, var(--fc-t-paddle) 10%, transparent), 0 18px 40px -24px color-mix(in srgb, var(--fc-t-paddle) 45%, transparent); }
+/* Folded by default (Joseph 2026-11-17): one clean square header row that opens the drawing. */
+.gd-coast-x { border: 1.5px solid var(--fc-line); background: var(--gd-glass); }
+.gd-coast-sum {
+  display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 12px 10px 14px; cursor: pointer; list-style: none;
+  -webkit-tap-highlight-color: transparent; transition: background 0.2s ease;
+}
+.gd-coast-sum::-webkit-details-marker { display: none; }
+.gd-coast-sum::marker { content: ''; }
+.gd-coast-gl { flex: none; width: 64px; height: 32px; overflow: visible; }
+.gd-coast-gl path { fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; stroke: var(--zc-ink, var(--zc)); }
+.gd-coast-gl .gd-coast-gl-w { stroke: var(--fc-t-paddle); stroke-width: 1.6; }
+.gd-coast-gl .gd-coast-gl-s { fill: color-mix(in srgb, var(--fc-c-sun) 30%, transparent); stroke: var(--fc-c-sun); stroke-width: 1.4; }
+.gd:not([data-scheme='dark']) .gd-coast-gl path { stroke: color-mix(in srgb, var(--zc) 72%, var(--fc-ink)); }
+.gd:not([data-scheme='dark']) .gd-coast-gl .gd-coast-gl-w { stroke: var(--fc-t-paddle); }
+.gd[data-scheme='dark'] .gd-coast-gl { filter: drop-shadow(0 0 3px color-mix(in srgb, var(--fc-t-paddle) 60%, transparent)); }
+.gd-coast-st { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.gd-coast-h { margin: 0; font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 72; font-size: 24px; line-height: 1; text-transform: uppercase; }
+.gd-coast-st small { font-size: 13px; line-height: 1.3; color: var(--fc-ink2); }
+.gd .gd-coast-pick { flex: none; padding: 5px 8px; border: 1.5px solid var(--zc); color: var(--zc-ink, var(--zc)); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.gd:not([data-scheme='dark']) .gd-coast-pick { color: color-mix(in srgb, var(--zc) 72%, var(--fc-ink)); }
+.gd[data-scheme='dark'] .gd-coast-pick { box-shadow: 0 0 10px color-mix(in srgb, var(--zc) 40%, transparent); }
+.gd-coast-x[open] .gd-coast-pick { display: none; }
+.gd-coast-x[open] .gd-coast-st small { display: none; }
+.gd-coast-chev { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border: 1.5px solid var(--fc-ink); }
+.gd-coast-chev svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: square; stroke-linejoin: miter; transform: rotate(90deg); transition: transform 0.25s ease; }
+.gd-coast-x[open] .gd-coast-chev svg { transform: rotate(-90deg); }
+@media (hover: hover) { .gd-coast-sum:hover { background: color-mix(in srgb, var(--fc-t-paddle) 7%, transparent); } .gd-coast-sum:hover .gd-coast-chev { border-color: var(--fc-t-paddle); color: var(--fc-t-paddle); } }
+.gd-coast-sum:focus-visible { outline: 3px solid var(--fc-ink); outline-offset: -3px; }
+.gd-coast-x[open] .gd-coast-sum { border-bottom: 1.5px solid var(--fc-line); }
+.gd-coast-body { animation: gd-coast-open 0.3s ease; }
+@keyframes gd-coast-open { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .gd-coast-body { animation: none; } .gd-coast-chev svg { transition: none; } }
+@media (max-width: 480px) { .gd-coast-sum:has(.gd-coast-pick:not([hidden])) small { display: none; } .gd-coast-h { font-size: 21px; } .gd-coast-st small { font-size: 12px; } .gd-coast-gl { width: 44px; } .gd-coast-sum { gap: 10px; } }
+.gd-coast-p { margin: 0; padding: 8px 14px; font-size: 13px; color: var(--fc-ink2); }
+.gd-coast-d { position: relative; border-top: 1.5px solid var(--fc-line); }
+.fc[data-scheme='dark'] .gd-coast-x[open] { box-shadow: 0 0 0 1px color-mix(in srgb, var(--fc-t-paddle) 10%, transparent), 0 18px 40px -24px color-mix(in srgb, var(--fc-t-paddle) 45%, transparent); }
 .gd .z-beach { --zc: var(--fc-sev-caution); } .gd .z-mangrove { --zc: var(--fc-t-sail); } .gd .z-seagrass { --zc: var(--fc-t-snorkel); }
 .gd .z-reef { --zc: var(--fc-coral); } .gd .z-open { --zc: var(--fc-t-paddle); } .gd .z-deep { --zc: var(--fc-t-dive); }
 /* On the light scheme each colour darkens toward ink, so lines read in sunlight. */

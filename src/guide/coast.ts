@@ -226,6 +226,15 @@ export function coastHtml(on: Zone | null, counts: Record<Zone, number>): string
   return `<div class="gd-cs-art${on ? ' has-on' : ''}" data-on="${on ?? ''}">${svg}</div><div class="gd-cs-strip" role="group" aria-label="${t('gd.coast.title')}" style="grid-template-columns:${cols}">${strip}</div>`;
 }
 
+/** The folded section's little picture: the coast in one line, its seabed in the six parts' colours. */
+export function coastGlyph(): string {
+  const bed: Record<Zone, string> = {
+    beach: 'M2 13 C6 12 9 12 12 15', mangrove: 'M12 15 C15 18 18 19 22 20', seagrass: 'M22 20 H31',
+    reef: 'M31 20 C33 17 36 16 38 17 C40 18 41 20 42 22', open: 'M42 22 L51 24', deep: 'M51 24 C52 26 53 29 54 31',
+  };
+  return `<svg class="gd-coast-gl" viewBox="0 0 64 32" aria-hidden="true" focusable="false"><path class="gd-coast-gl-w" d="M12 15 q2.6 -2 5.2 0 t5.2 0 t5.2 0 t5.2 0 t5.2 0 t5.2 0 t5.2 0 t5.2 0 t4 0"/><circle class="gd-coast-gl-s" cx="55" cy="7" r="3"/>${ZONES.map((z) => `<path class="z-${z}" d="${bed[z]}"/>`).join('')}</svg>`;
+}
+
 /** Bring a drawn coast up to date without rebuilding it (its motion keeps running): counts and the part showing.
  *  Rebuilds only when it is empty or the language changed. */
 export function updateCoast(root: HTMLElement, on: Zone | null, counts: Record<Zone, number>): void {

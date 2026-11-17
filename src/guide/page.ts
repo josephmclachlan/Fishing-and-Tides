@@ -20,7 +20,7 @@ import { t } from '../i18n';
 import { landing } from '../forecast/model';
 import { loadIndex, loadSpecies } from './data';
 import { noAnswers, stepsFor, type IdAnswers, type IdStep } from './identify';
-import { updateCoast, wireCoast, ZONE_HABITATS, zoneCounts, zoneOf, type Zone } from './coast';
+import { coastGlyph, updateCoast, wireCoast, ZONE_HABITATS, zoneCounts, zoneOf, type Zone } from './coast';
 import { flipDeckHtml } from './flip';
 import { idCheckHtml, idHtml } from './identify-view';
 import {
@@ -103,7 +103,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       <div class="fc-in">${idButtonHtml({ cls: 'gd-idbar', attrs: 'data-idbar', gid: 'gd-id-g' })}</div>
       <nav class="gd-modes fc-in" id="gd-modes" role="tablist" aria-label="${esc(t('gd.modes'))}"></nav>
       <div class="gd-groups-w fc-in"><div class="gd-groups" id="gd-groups" role="toolbar" aria-label="${esc(t('gd.groups'))}"></div></div>
-      <section class="gd-coast fc-in" aria-labelledby="gd-coast-h"><h2 class="gd-coast-h" id="gd-coast-h">${esc(t('gd.coast.title'))}</h2><p class="gd-coast-p">${esc(t('gd.coast.hint'))}</p><div class="gd-coast-d" id="gd-coast"></div><p class="gd-coast-on fc-mono" id="gd-coast-on" hidden></p></section>
+      <section class="gd-coast fc-in" aria-labelledby="gd-coast-h"><details class="gd-coast-x" id="gd-coast-x"><summary class="gd-coast-sum">${coastGlyph()}<span class="gd-coast-st"><h2 class="gd-coast-h" id="gd-coast-h">${esc(t('gd.coast.title'))}</h2><small>${esc(t('gd.coast.sub'))}</small></span><span class="gd-coast-pick fc-mono" id="gd-coast-pick" hidden></span><span class="gd-coast-chev" aria-hidden="true">${svg(ICONS.next)}</span></summary><div class="gd-coast-body"><p class="gd-coast-p">${esc(t('gd.coast.hint'))}</p><div class="gd-coast-d" id="gd-coast"></div></div></details><p class="gd-coast-on fc-mono" id="gd-coast-on" hidden></p></section>
       <div class="gd-tools gd-tools2 fc-in">
         <div id="gd-common-w"></div>
         <button type="button" class="fc-ctl gd-fbtn" id="gd-fbtn" aria-expanded="false" aria-controls="gd-filters">${svg(ICONS.filter)}<span>${t('gd.filters')}</span><b id="gd-fn" hidden></b></button>
@@ -259,6 +259,11 @@ export function mountGuidePage(deps: GuidePageDeps) {
     const zone = zoneOf(f.habitats);
     updateCoast($('gd-coast'), zone, zoneCounts(all, f, mode, group, hays));
     $('gd-coast-on').hidden = !zone;
+    // Folded, the header still says which part is showing, in its colour.
+    const pick = $('gd-coast-pick');
+    pick.hidden = !zone;
+    pick.className = `gd-coast-pick fc-mono${zone ? ` z-${zone}` : ''}`;
+    pick.textContent = zone ? t(`gd.coast.${zone}`) : '';
     if (zone) $('gd-coast-on').innerHTML = `<span>${esc(t('gd.coast.on', { zone: t(`gd.coast.${zone}`) }))}</span><button type="button" class="gd-qf" data-coast-clear>${esc(t('gd.coast.clear'))}</button>`;
     const fn = activeCount(f);
     $('gd-fn').textContent = String(fn);
