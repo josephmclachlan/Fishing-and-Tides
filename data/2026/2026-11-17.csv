@@ -13894,3 +13894,7 @@ t,site,source,model,var,value,issued
 2026-11-17T16:05Z,limon,gauge,,tideM,0.054419,
 2026-11-17T16:15Z,limon,gauge,,levelM,0.0885,
 2026-11-17T16:15Z,limon,gauge,,tideM,0.053052,
+2026-11-17T16:25Z,limon,gauge,,levelM,0.0859,
+2026-11-17T16:25Z,limon,gauge,,tideM,0.052015,
+2026-11-17T16:35Z,limon,gauge,,levelM,0.0858,
+2026-11-17T16:35Z,limon,gauge,,tideM,0.051334,
