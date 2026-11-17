@@ -911,3 +911,15 @@
   :root[data-theme="modern"][data-scheme="dark"] .k-sheet.k-phs::after{border-radius:0}
   .km .k-sheet.k-phs .k-sh-grab::before{border-radius:0;height:4px}
 }
+
+/* The wheel, square and crisp (Joseph 2026-11-17): straight-edged slices with a hard colour rule on the outer edge, no glow;
+   the current activity and the one under the thumb fill with their own colour, labels in the bold activity type. */
+.km .k-wh-e{stroke-width:4;stroke-linecap:butt;filter:none}
+.km .k-wh-g{filter:none}
+.km .k-wh-sl text{font-family:var(--disp);font-weight:850;font-variation-settings:"wdth" 72;font-size:12px;letter-spacing:0}
+.km .k-wh-sl.k-sel .k-wh-f{fill:color-mix(in srgb,var(--wc) 30%,var(--c-card))}
+.km .k-wh-sl.k-hov .k-wh-f{fill:var(--wc)}
+.km .k-wh-sl.k-hov text{fill:var(--bg)}
+.km .k-wh-sl.k-hov .k-wh-g{stroke:var(--bg)}
+.km .k-wh-sl.k-hov .k-wh-e{stroke:var(--bg)}
+.km .k-wh-hub b{font-weight:850;font-variation-settings:"wdth" 72}
