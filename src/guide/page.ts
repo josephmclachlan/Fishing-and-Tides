@@ -318,15 +318,13 @@ export function mountGuidePage(deps: GuidePageDeps) {
     const secs = sections(shown, by, f.sort, lang);
     rows = rowsFor(secs, !group && by !== 'none' && by !== 'risk');
     order = rows.flatMap((r) => (r.k === 'card' || r.k === 'rec' ? [r.e.id] : []));
-    // Shelves are families and kinds; a search, and the danger list worst first, read best as a list.
-    const canShelf = by !== 'none' && by !== 'risk' && !f.q.trim();
+    // Shelves need groups to sit on: with no grouping, or the danger list worst first, it is a list. Pressing
+    // Shelves then brings the grouping back to Kind (the button is never dead: Joseph 2026-11-17).
+    const canShelf = by !== 'none' && by !== 'risk';
     listOpts.shelf = lay === 'shelf' && canShelf;
     el.dataset.lay = listOpts.shelf ? 'shelf' : 'list';
-    // The switch shows what is on screen; shelves wait while a search or the danger grouping needs the list.
-    el.querySelectorAll<HTMLButtonElement>('button[data-lay]').forEach((b) => {
-      b.setAttribute('aria-pressed', String(b.dataset.lay === el.dataset.lay));
-      if (b.dataset.lay === 'shelf') b.disabled = !canShelf;
-    });
+    // The switch shows what is on screen.
+    el.querySelectorAll<HTMLButtonElement>('button[data-lay]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lay === el.dataset.lay)));
     $('gd-tkey').innerHTML = listOpts.shelf && shown.length ? tileKeyHtml() : '';
     $('gd-intro').innerHTML = introHtml(mode);
     $('gd-count').textContent = shown.length ? t('gd.shown', { n: itemCount(rows) }) : '';
@@ -526,6 +524,12 @@ export function mountGuidePage(deps: GuidePageDeps) {
       // [data-lay] matched every click on the page and swallowed it (LIST and the species links did nothing).
       lay = b.dataset.lay === 'list' ? 'list' : 'shelf';
       put(storage, LAY_KEY, lay);
+      const by = byNow();
+      if (lay === 'shelf' && (by === 'none' || by === 'risk')) {
+        if (mode === 'danger') dangerBy = 'sub';
+        else (f.by = 'sub'), put(storage, BY_KEY, f.by);
+        drawPicks();
+      }
       render();
     } else if (hit('[data-clear]')) {
       Object.assign(f, { encounter: [], habitats: [], seen: [], times: [], methods: [], sizes: [], flags: [], records: false });
