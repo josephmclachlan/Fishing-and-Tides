@@ -1187,8 +1187,8 @@ export function mountForecastPage(deps: ForecastDeps) {
   };
   window.addEventListener('hashchange', fromHash);
 
-  /** Open on a spot and activity (defaults: the remembered ones, or the spot nearest the map). */
-  const open = (opts: { spot?: string; activity?: FcActivity } = {}) => {
+  /** Open on a spot and activity (defaults: the remembered ones, or the spot nearest the map); `plan` scrolls to PLAN AHEAD. */
+  const open = (opts: { spot?: string; activity?: FcActivity; plan?: boolean } = {}) => {
     if (opts.activity) act = opts.activity;
     if (opts.spot) spotName = opts.spot;
     sel = null;
@@ -1198,6 +1198,10 @@ export function mountForecastPage(deps: ForecastDeps) {
     }
     show();
     syncHash();
+    if (opts.plan) {
+      renderPlan();
+      requestAnimationFrame(() => $('fc-pl-sec').scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' }));
+    }
   };
   /** Go to the map. Back from the map returns here: to the page that pushed the forecast, or by its own entry. */
   const close = () => {

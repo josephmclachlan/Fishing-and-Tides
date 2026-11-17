@@ -129,7 +129,7 @@ export interface KmDeps {
   coralLayer: { setVisible(on: boolean): void };
   coralSites: () => readonly { lng: number; lat: number }[];
   onCoralSites: (fn: () => void) => void;
-  forecast: { open(o?: { spot?: string; activity?: FcActivity }): void; isOpen(): boolean; where(): { spot: string; activity: FcActivity } };
+  forecast: { open(o?: { spot?: string; activity?: FcActivity; plan?: boolean }): void; isOpen(): boolean; where(): { spot: string; activity: FcActivity } };
   openCoralPage: (reef: string) => void;
   /** The species guide (PLAN 7.91). */
   openGuide?: (mode?: 'identify' | 'edible') => void;
@@ -163,7 +163,7 @@ export interface KmDeps {
   /** A stamp that changes when any feed the ratings read changes. */
   version: () => string;
   /** The old drawers, opened restyled from Settings; SYNC runs the trip download. */
-  tools: { id: SheetId | 'sync'; label: string; sub: string }[];
+  tools: { id: SheetId | 'sync' | 'plan'; label: string; sub: string }[];
   /** The mode changed: the old CONDITIONS groups follow it. */
   onMode?: (m: Mode) => void;
 }
@@ -1808,9 +1808,11 @@ export function mountKineticMap(d: KmDeps) {
   });
 
   /** An old drawer (WATCH, BOAT, CORAL SITES, LIVE OBS, SYSTEM CHECK, CONDITIONS...), restyled, over the map. */
-  function openTool(id: SheetId | 'sync') {
+  function openTool(id: SheetId | 'sync' | 'plan') {
     closeSheet();
     if (id === 'sync') return void document.getElementById('sync')?.click();
+    // WATCH became the forecast page's PLAN AHEAD grid (PLAN 15.6): the spot and activity on the map, scrolled to it.
+    if (id === 'plan') return void d.forecast.open({ spot: spot().name, activity: S.act, plan: true });
     d.sheets.open(id);
   }
   // The kept drawer's own header bar: its name and the way back to the map.
@@ -1944,7 +1946,7 @@ export function mountKineticMap(d: KmDeps) {
   const bindTools = (el: HTMLElement) => {
     // Save for a trip stays in the sheet, so its row can show the progress; a second tap cancels.
     el.querySelectorAll<HTMLElement>('[data-tool]').forEach((b) =>
-      b.addEventListener('click', () => (b.dataset.tool === 'sync' ? void document.getElementById('sync')?.click() : openTool(b.dataset.tool as SheetId))),
+      b.addEventListener('click', () => (b.dataset.tool === 'sync' ? void document.getElementById('sync')?.click() : openTool(b.dataset.tool as SheetId | 'plan'))),
     );
   };
 
