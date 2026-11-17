@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { localDayStart } from '../physics/astro';
-import { daysAt, readAt, timeline } from './model';
+import { daysAt, timeline } from './model';
 import { dockCells, dockCellsHtml, dockMarks, drawDockStrip, stripHourAt, stripRange } from './dock';
-import { outlookView } from './view';
-import { outlookHtml } from './render';
 import { DAY0, full, H, recCtx, spot, tokens } from './testkit';
 
 const TZ = -6;
@@ -58,25 +56,5 @@ describe('time dock', () => {
     const html = dockCellsHtml(cells, () => 'x');
     expect((html.match(/<button/g) ?? []).length).toBe(24);
     expect(dockMarks(cells, (ms) => String(new Date(ms).getUTCHours()))).toHaveLength(4);
-  });
-});
-
-describe('days 8 to 16', () => {
-  it('rows for plan days 7..15 only, each read at its window start', () => {
-    const { deps, sp } = setup();
-    const p30 = daysAt(deps, 'surf', sp, DAY0 + 9 * H, 30);
-    // even from a longer plan, nothing past day 16
-    const rows = outlookView(p30, (ms) => readAt(deps, 'surf', sp, ms));
-    expect(rows).toHaveLength(9);
-    expect(rows[0].i).toBe(7);
-    expect(rows[8].i).toBe(15);
-    rows.forEach((r) => {
-      expect(r.width).toBeGreaterThanOrEqual(0);
-      expect(r.width).toBeLessThanOrEqual(1);
-      if (r.ms !== null) expect(r.ms).toBe(p30.days[r.i]!.startMs);
-    });
-    const html = outlookHtml(rows, 'LESS');
-    expect(html).toContain('LESS');
-    expect((html.match(/<button/g) ?? []).length).toBe(9);
   });
 });

@@ -324,8 +324,9 @@ Keep the whole encyclopedia and every word of the research; answers and pictures
 ## Phase 15: Forecast page option D (Joseph 2026-11-17: "D now, E's grid later"; mockups in project files `forecast-rethink/`)
 Keep the Kinetic Plus page's bold activity words and square cards; the drawings and the shared square tokens are the "square, bold and colour-coded" thread's.
 - [x] 15.1 One time for the whole page: a time dock pinned to the bottom (the shown hour and that day's sunrise and sunset, today's 24 hours as cells, the week as a strip to drag, Back to now), and the spot cards read at the page's hour (`src/forecast/dock.ts`)
-- [x] 15.2 Days 8 to 16 under the week: each day's best window as a row, marked less sure; nothing past day 16 (Joseph 2026-11-17: further out is no use)
+- [x] 15.2 Days 8 to 16 under the week: each day's best window as a row, marked less sure; nothing past day 16 (Joseph 2026-11-17: further out is no use). Replaced by 15.5.
 - [x] 15.4 Dark mode: neutral black glass (no tint) with the rating colour on square edges, words and drawings, and the full glow (Joseph picked B on 2026-11-17); light mode keeps the colour field
+- [x] 15.5 PLAN AHEAD replaces days 8 to 16 (Joseph 2026-11-17 picked mockup 3, the colour grid): drag across 16 days (8 on hatched less sure), pick up to 12 readings from the map's WATCH list (the activity's own set to start), and read every 3 hours or each day's best hour as square cells in the rating colours; tap a cell for what it means (`src/forecast/grid.ts`, `grid-html.ts`)
 - [ ] 15.3 E: the where-and-when grid (every beach by every day, tap a square for its hero and tiles), as a second view
 
 ## Phase 9: Final review (last, after every task above)
