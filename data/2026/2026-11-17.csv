@@ -14098,3 +14098,235 @@ t,site,source,model,var,value,issued
 2026-11-17T23:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_direction_10m,238,2026-11-17T18:20Z
 2026-11-17T23:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_gusts_10m,5.8,2026-11-17T18:20Z
 2026-11-17T23:00Z,MRLM,openmeteo,ecmwf_ifs025,pressure_msl,1010.3,2026-11-17T18:20Z
+2026-11-17T18:00Z,PLAYA NEGRA CAHUITA,wind,,u,-0.14401,2026-11-17T18:20Z
+2026-11-17T18:00Z,PLAYA NEGRA CAHUITA,wind,,v,-2.3084,2026-11-17T18:20Z
+2026-11-17T18:00Z,PLAYA BLANCA,wind,,u,-0.29417,2026-11-17T18:20Z
+2026-11-17T18:00Z,PLAYA BLANCA,wind,,v,-2.4117,2026-11-17T18:20Z
+2026-11-17T18:00Z,PUNTA CAHUITA,wind,,u,-0.41687,2026-11-17T18:20Z
+2026-11-17T18:00Z,PUNTA CAHUITA,wind,,v,-2.6416,2026-11-17T18:20Z
+2026-11-17T18:00Z,PLAYA NEGRA,wind,,u,-0.66679,2026-11-17T18:20Z
+2026-11-17T18:00Z,PLAYA NEGRA,wind,,v,-2.3571,2026-11-17T18:20Z
+2026-11-17T18:00Z,SALSA BRAVA,wind,,u,-0.75404,2026-11-17T18:20Z
+2026-11-17T18:00Z,SALSA BRAVA,wind,,v,-2.4311,2026-11-17T18:20Z
+2026-11-17T18:00Z,PLAYA COCLES,wind,,u,-0.80518,2026-11-17T18:20Z
+2026-11-17T18:00Z,PLAYA COCLES,wind,,v,-2.4787,2026-11-17T18:20Z
+2026-11-17T18:00Z,PLAYA CHIQUITA WEST,wind,,u,-0.89385,2026-11-17T18:20Z
+2026-11-17T18:00Z,PLAYA CHIQUITA WEST,wind,,v,-2.6117,2026-11-17T18:20Z
+2026-11-17T18:00Z,PLAYA CHIQUITA EAST,wind,,u,-0.9261,2026-11-17T18:20Z
+2026-11-17T18:00Z,PLAYA CHIQUITA EAST,wind,,v,-2.6693,2026-11-17T18:20Z
+2026-11-17T18:00Z,PUNTA UVA,wind,,u,-0.99716,2026-11-17T18:20Z
+2026-11-17T18:00Z,PUNTA UVA,wind,,v,-2.811,2026-11-17T18:20Z
+2026-11-17T18:00Z,PLAYA GRANDE,wind,,u,-1.0398,2026-11-17T18:20Z
+2026-11-17T18:00Z,PLAYA GRANDE,wind,,v,-2.8974,2026-11-17T18:20Z
+2026-11-17T18:00Z,MANZANILLO,wind,,u,-1.0959,2026-11-17T18:20Z
+2026-11-17T18:00Z,MANZANILLO,wind,,v,-3.0106,2026-11-17T18:20Z
+2026-11-17T18:00Z,PUNTA MONA,wind,,u,-1.2157,2026-11-17T18:20Z
+2026-11-17T18:00Z,PUNTA MONA,wind,,v,-3.2952,2026-11-17T18:20Z
+2026-11-17T18:00Z,GANDOCA,wind,,u,-1.1746,2026-11-17T18:20Z
+2026-11-17T18:00Z,GANDOCA,wind,,v,-3.379,2026-11-17T18:20Z
+2026-11-17T21:00Z,PLAYA NEGRA CAHUITA,wind,,u,0.038916,2026-11-17T18:20Z
+2026-11-17T21:00Z,PLAYA NEGRA CAHUITA,wind,,v,-0.44582,2026-11-17T18:20Z
+2026-11-17T21:00Z,PLAYA BLANCA,wind,,u,-0.038466,2026-11-17T18:20Z
+2026-11-17T21:00Z,PLAYA BLANCA,wind,,v,-0.475,2026-11-17T18:20Z
+2026-11-17T21:00Z,PUNTA CAHUITA,wind,,u,-0.20483,2026-11-17T18:20Z
+2026-11-17T21:00Z,PUNTA CAHUITA,wind,,v,-0.56523,2026-11-17T18:20Z
+2026-11-17T21:00Z,PLAYA NEGRA,wind,,u,-0.14184,2026-11-17T18:20Z
+2026-11-17T21:00Z,PLAYA NEGRA,wind,,v,-0.49859,2026-11-17T18:20Z
+2026-11-17T21:00Z,SALSA BRAVA,wind,,u,-0.27436,2026-11-17T18:20Z
+2026-11-17T21:00Z,SALSA BRAVA,wind,,v,-0.57677,2026-11-17T18:20Z
+2026-11-17T21:00Z,PLAYA COCLES,wind,,u,-0.24375,2026-11-17T18:20Z
+2026-11-17T21:00Z,PLAYA COCLES,wind,,v,-0.65237,2026-11-17T18:20Z
+2026-11-17T21:00Z,PLAYA CHIQUITA WEST,wind,,u,-0.18125,2026-11-17T18:20Z
+2026-11-17T21:00Z,PLAYA CHIQUITA WEST,wind,,v,-0.80191,2026-11-17T18:20Z
+2026-11-17T21:00Z,PLAYA CHIQUITA EAST,wind,,u,-0.16205,2026-11-17T18:20Z
+2026-11-17T21:00Z,PLAYA CHIQUITA EAST,wind,,v,-0.85947,2026-11-17T18:20Z
+2026-11-17T21:00Z,PUNTA UVA,wind,,u,-0.15566,2026-11-17T18:20Z
+2026-11-17T21:00Z,PUNTA UVA,wind,,v,-0.95446,2026-11-17T18:20Z
+2026-11-17T21:00Z,PLAYA GRANDE,wind,,u,-0.11068,2026-11-17T18:20Z
+2026-11-17T21:00Z,PLAYA GRANDE,wind,,v,-1.0628,2026-11-17T18:20Z
+2026-11-17T21:00Z,MANZANILLO,wind,,u,-0.099094,2026-11-17T18:20Z
+2026-11-17T21:00Z,MANZANILLO,wind,,v,-1.1469,2026-11-17T18:20Z
+2026-11-17T21:00Z,PUNTA MONA,wind,,u,-0.044932,2026-11-17T18:20Z
+2026-11-17T21:00Z,PUNTA MONA,wind,,v,-1.3972,2026-11-17T18:20Z
+2026-11-17T21:00Z,GANDOCA,wind,,u,0.001052,2026-11-17T18:20Z
+2026-11-17T21:00Z,GANDOCA,wind,,v,-1.5381,2026-11-17T18:20Z
+2026-11-17T18:00Z,MRLM,openmeteo,ecmwf_ifs,temperature_2m,29.3,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,ecmwf_ifs,dew_point_2m,25.1,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,ecmwf_ifs,wind_speed_10m,4,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,ecmwf_ifs,wind_direction_10m,43,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,ecmwf_ifs,wind_gusts_10m,17.9,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,ecmwf_ifs,pressure_msl,1011.4,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,temperature_2m,29.1,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,dew_point_2m,24.2,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_speed_10m,8,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_direction_10m,25,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_gusts_10m,10.5,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,pressure_msl,1011.2,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,icon_seamless,temperature_2m,30.3,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,icon_seamless,dew_point_2m,24.9,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,icon_seamless,wind_speed_10m,1.8,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,icon_seamless,wind_direction_10m,148,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,icon_seamless,wind_gusts_10m,8.2,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,icon_seamless,pressure_msl,1010.7,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,gfs_seamless,temperature_2m,32.1,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,gfs_seamless,dew_point_2m,22.8,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,gfs_seamless,wind_speed_10m,4.5,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,gfs_seamless,wind_direction_10m,56,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,gfs_seamless,wind_gusts_10m,7.2,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,gfs_seamless,pressure_msl,1011,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,ecmwf_ifs025,temperature_2m,28.2,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,ecmwf_ifs025,dew_point_2m,25.5,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_speed_10m,2.3,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_direction_10m,312,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_gusts_10m,15,2026-11-17T18:26Z
+2026-11-17T18:00Z,MRLM,openmeteo,ecmwf_ifs025,pressure_msl,1011.7,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ecmwf_ifs,temperature_2m,29.6,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ecmwf_ifs,dew_point_2m,24.7,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ecmwf_ifs,wind_speed_10m,5.1,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ecmwf_ifs,wind_direction_10m,54,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ecmwf_ifs,wind_gusts_10m,14,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ecmwf_ifs,pressure_msl,1010.7,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,temperature_2m,29.1,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,dew_point_2m,24.2,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_speed_10m,7.6,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_direction_10m,27,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_gusts_10m,10.3,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,pressure_msl,1010.4,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,icon_seamless,temperature_2m,30.6,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,icon_seamless,dew_point_2m,24.5,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,icon_seamless,wind_speed_10m,2.8,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,icon_seamless,wind_direction_10m,78,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,icon_seamless,wind_gusts_10m,8.9,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,icon_seamless,pressure_msl,1010,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,gfs_seamless,temperature_2m,31.1,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,gfs_seamless,dew_point_2m,23.5,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,gfs_seamless,wind_speed_10m,4.3,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,gfs_seamless,wind_direction_10m,54,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,gfs_seamless,wind_gusts_10m,7,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,gfs_seamless,pressure_msl,1009.9,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ecmwf_ifs025,temperature_2m,28.2,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ecmwf_ifs025,dew_point_2m,25.5,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_speed_10m,2.2,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_direction_10m,308,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_gusts_10m,13.8,2026-11-17T18:26Z
+2026-11-17T19:00Z,MRLM,openmeteo,ecmwf_ifs025,pressure_msl,1011,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ecmwf_ifs,temperature_2m,29.5,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ecmwf_ifs,dew_point_2m,24.2,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ecmwf_ifs,wind_speed_10m,3.7,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ecmwf_ifs,wind_direction_10m,49,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ecmwf_ifs,wind_gusts_10m,13.2,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ecmwf_ifs,pressure_msl,1009.7,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,temperature_2m,29.1,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,dew_point_2m,24,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_speed_10m,6.8,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_direction_10m,27,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_gusts_10m,9.3,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,pressure_msl,1009.8,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,icon_seamless,temperature_2m,30.3,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,icon_seamless,dew_point_2m,24.7,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,icon_seamless,wind_speed_10m,4.4,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,icon_seamless,wind_direction_10m,69,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,icon_seamless,wind_gusts_10m,9.7,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,icon_seamless,pressure_msl,1009.2,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,gfs_seamless,temperature_2m,29.8,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,gfs_seamless,dew_point_2m,24,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,gfs_seamless,wind_speed_10m,3.9,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,gfs_seamless,wind_direction_10m,49,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,gfs_seamless,wind_gusts_10m,7,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,gfs_seamless,pressure_msl,1009.1,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ecmwf_ifs025,temperature_2m,28.2,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ecmwf_ifs025,dew_point_2m,25.2,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_speed_10m,1.7,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_direction_10m,297,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_gusts_10m,11.3,2026-11-17T18:26Z
+2026-11-17T20:00Z,MRLM,openmeteo,ecmwf_ifs025,pressure_msl,1010.2,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ecmwf_ifs,temperature_2m,29.3,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ecmwf_ifs,dew_point_2m,23.9,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ecmwf_ifs,wind_speed_10m,3.4,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ecmwf_ifs,wind_direction_10m,70,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ecmwf_ifs,wind_gusts_10m,10.1,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ecmwf_ifs,pressure_msl,1009.4,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,temperature_2m,29.1,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,dew_point_2m,24,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_speed_10m,6,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_direction_10m,34,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_gusts_10m,8.4,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,pressure_msl,1009.6,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,icon_seamless,temperature_2m,29.9,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,icon_seamless,dew_point_2m,25,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,icon_seamless,wind_speed_10m,3.5,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,icon_seamless,wind_direction_10m,71,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,icon_seamless,wind_gusts_10m,9.9,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,icon_seamless,pressure_msl,1009.3,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,gfs_seamless,temperature_2m,29.1,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,gfs_seamless,dew_point_2m,24,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,gfs_seamless,wind_speed_10m,3,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,gfs_seamless,wind_direction_10m,50,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,gfs_seamless,wind_gusts_10m,5.8,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,gfs_seamless,pressure_msl,1009.1,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ecmwf_ifs025,temperature_2m,27.8,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ecmwf_ifs025,dew_point_2m,25.1,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_speed_10m,1.6,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_direction_10m,277,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_gusts_10m,8.7,2026-11-17T18:26Z
+2026-11-17T21:00Z,MRLM,openmeteo,ecmwf_ifs025,pressure_msl,1009.8,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ecmwf_ifs,temperature_2m,28.6,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ecmwf_ifs,dew_point_2m,24.5,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ecmwf_ifs,wind_speed_10m,1.8,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ecmwf_ifs,wind_direction_10m,58,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ecmwf_ifs,wind_gusts_10m,9.5,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ecmwf_ifs,pressure_msl,1009.4,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,temperature_2m,29.1,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,dew_point_2m,24.3,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_speed_10m,4.9,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_direction_10m,37,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_gusts_10m,7,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,pressure_msl,1009.6,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,icon_seamless,temperature_2m,29.6,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,icon_seamless,dew_point_2m,25.1,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,icon_seamless,wind_speed_10m,2.2,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,icon_seamless,wind_direction_10m,75,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,icon_seamless,wind_gusts_10m,7.2,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,icon_seamless,pressure_msl,1009.2,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,gfs_seamless,temperature_2m,28.2,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,gfs_seamless,dew_point_2m,24.2,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,gfs_seamless,wind_speed_10m,2.4,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,gfs_seamless,wind_direction_10m,35,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,gfs_seamless,wind_gusts_10m,4.7,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,gfs_seamless,pressure_msl,1009.5,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ecmwf_ifs025,temperature_2m,26.9,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ecmwf_ifs025,dew_point_2m,24.9,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_speed_10m,1.6,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_direction_10m,256,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_gusts_10m,7.2,2026-11-17T18:26Z
+2026-11-17T22:00Z,MRLM,openmeteo,ecmwf_ifs025,pressure_msl,1009.9,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ecmwf_ifs,temperature_2m,27.1,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ecmwf_ifs,dew_point_2m,25.1,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ecmwf_ifs,wind_speed_10m,0.4,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ecmwf_ifs,wind_direction_10m,360,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ecmwf_ifs,wind_gusts_10m,5.4,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ecmwf_ifs,pressure_msl,1009.7,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,temperature_2m,29.2,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,dew_point_2m,24.3,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_speed_10m,4.1,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_direction_10m,21,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,wind_gusts_10m,6.4,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ukmo_global_deterministic_10km,pressure_msl,1010.2,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,icon_seamless,temperature_2m,28.9,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,icon_seamless,dew_point_2m,25.1,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,icon_seamless,wind_speed_10m,1.2,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,icon_seamless,wind_direction_10m,51,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,icon_seamless,wind_gusts_10m,4.7,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,icon_seamless,pressure_msl,1009.8,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,gfs_seamless,temperature_2m,26.7,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,gfs_seamless,dew_point_2m,23.7,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,gfs_seamless,wind_speed_10m,1.6,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,gfs_seamless,wind_direction_10m,7,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,gfs_seamless,wind_gusts_10m,4.1,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,gfs_seamless,pressure_msl,1010,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ecmwf_ifs025,temperature_2m,25.6,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ecmwf_ifs025,dew_point_2m,24.9,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_speed_10m,1.8,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_direction_10m,238,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_gusts_10m,5.8,2026-11-17T18:26Z
+2026-11-17T23:00Z,MRLM,openmeteo,ecmwf_ifs025,pressure_msl,1010.3,2026-11-17T18:26Z
