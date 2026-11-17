@@ -15,6 +15,7 @@
  * phone's back button closes the species, then the page.
  */
 import { brandLine } from '../brand';
+import { idButtonHtml } from '../id-button';
 import { t } from '../i18n';
 import { landing } from '../forecast/model';
 import { loadIndex, loadSpecies } from './data';
@@ -99,7 +100,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       <div class="gd-tools fc-in">
         <label class="gd-search">${svg(ICONS.search)}<input id="gd-q" type="search" enterkeyhint="search" autocomplete="off" spellcheck="false" placeholder="${esc(t('gd.search'))}" aria-label="${esc(t('gd.searchLabel'))}"></label>
       </div>
-      <div class="fc-in"><button type="button" class="gd-idbar" data-idbar>${svg(ICONS.identify)}<span><b>${esc(t('gd.idbar'))}</b><small>${esc(t('gd.idbarSub'))}</small></span>${svg(ICONS.next)}</button></div>
+      <div class="fc-in">${idButtonHtml({ cls: 'gd-idbar', attrs: 'data-idbar', gid: 'gd-id-g' })}</div>
       <nav class="gd-modes fc-in" id="gd-modes" role="tablist" aria-label="${esc(t('gd.modes'))}"></nav>
       <div class="gd-groups-w fc-in"><div class="gd-groups" id="gd-groups" role="toolbar" aria-label="${esc(t('gd.groups'))}"></div></div>
       <section class="gd-coast fc-in" aria-labelledby="gd-coast-h"><h2 class="gd-coast-h" id="gd-coast-h">${esc(t('gd.coast.title'))}</h2><p class="gd-coast-p">${esc(t('gd.coast.hint'))}</p><div class="gd-coast-d" id="gd-coast"></div><p class="gd-coast-on fc-mono" id="gd-coast-on" hidden></p></section>

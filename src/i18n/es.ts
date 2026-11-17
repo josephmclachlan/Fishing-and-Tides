@@ -2263,7 +2263,7 @@ export const es: Dict = {
   'gd.tab.clean': 'Limpiar',
   'gd.tab.safety': 'Seguridad',
   'gd.tab.sources': 'Fuentes',
-  'gd.idbar': 'Identificarlo',
+  'gd.idbar': 'Identificar una especie',
   'gd.idbarSub': '¿Vio algo? Pez, tiburón, tortuga, coral, planta: responda unas preguntas con imágenes.',
   'gd.ans.title': 'Las cuatro respuestas',
   'gd.ans.eat': 'Comer',
