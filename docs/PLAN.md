@@ -307,7 +307,7 @@ Visual first, plain full sentences, numbered superscript sources. Grouped PRs, w
 - [ ] 13.3 Bold Kinetic activity headers everywhere activities are picked (map bar, field notes, guide), each lit in its own colour when selected. Done: field notes, ciguatera and dispatch tabs; the map bar and wheel in PR #365; left: the guide (its rebuild thread)
 - [x] 13.4 SURF, FISH and PADDLE hero pictures redrawn the same way, with tap words
 - [x] 13.5 SNORKEL, DIVE and SPEAR hero pictures redrawn the same way, with tap words
-- [ ] 13.6 The condition card drawings (tiles) in the same look
+- [x] 13.6 The condition card drawings (tiles) in the same look: square line ends and markers, H/L tags, a sharp pointer on the scales, a rating bar and number chip on rated cards, and tap a card to open its tip
 - [ ] 13.7 Field notes, ciguatera and dispatch drawings in the same look. Done: the rip drawing and square number badges everywhere
 
 ## Phase 9: Final review (last, after every task above)

@@ -22,6 +22,18 @@ describe('conditions tile pictures (PLAN 7.69)', () => {
           drawTile(k, c, 160, 90, t, z, { ...P, reduced: true });
         }
   });
+  it('draws every line with square ends, never round ones (PLAN 13.6)', () => {
+    const series = Array.from({ length: 24 }, (_, i) => 0.2 * Math.sin(i / 2));
+    const z: TileViz = { v: 1, deg: 90, period: 9, sky: 'storm', rainPct: 60, from: 6, to: 9, series, mean: series, at: 13, turnAt: 17, turnHigh: true, count: 3, rel: 20 };
+    for (const k of [...KINDS, 'push' as const]) {
+      const c = recCtx();
+      const caps: string[] = [];
+      const real = c as unknown as Record<string, unknown>;
+      const spy = new Proxy(real, { set(t, key: string, v) { if (key === 'lineCap' || key === 'lineJoin') caps.push(String(v)); t[key] = v; return true; } });
+      drawTile(k, spy as unknown as typeof c, 160, 90, 2.3, z, P);
+      expect(caps.filter((x) => x === 'round'), k).toEqual([]);
+    }
+  });
   it('draws nothing into a box too small to hold it', () => {
     const c = recCtx();
     drawTile('swell', c, 2, 2, 0, { v: 1 }, P);

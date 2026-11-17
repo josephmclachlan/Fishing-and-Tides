@@ -774,6 +774,18 @@ export function mountForecastPage(deps: ForecastDeps) {
   $('fc-pop-x').addEventListener('click', () => showPop(null));
   el.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) showPop(null); });
   $('fc-hero').addEventListener('pointercancel', () => (swipe = null));
+  // Tap a condition card to open its plain-words tip (phones have no hover); tap again, or another card, to swap.
+  $('fc-tiles').addEventListener('click', (e) => {
+    const tg = e.target as HTMLElement;
+    if (tg.closest('a')) return;
+    const card = tg.closest<HTMLElement>('.fc-tile');
+    const open = card?.querySelector('.fc-t-tip') && !card.classList.contains('is-open') ? card : null;
+    $('fc-tiles').querySelectorAll('.fc-tile.is-open').forEach((x) => x.classList.remove('is-open'));
+    open?.classList.add('is-open');
+  });
+  $('fc-tiles').addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') $('fc-tiles').querySelectorAll('.fc-tile.is-open').forEach((x) => x.classList.remove('is-open'));
+  });
   $('fc-best').addEventListener('click', () => {
     const ms = Number($('fc-best').dataset.ms);
     if ($('fc-best').dataset.ms && Number.isFinite(ms)) pick(ms, true);
