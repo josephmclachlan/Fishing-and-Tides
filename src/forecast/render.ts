@@ -71,6 +71,7 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
     <section class="fc-hero fc-bleed" id="fc-hero" aria-labelledby="fc-k">
       <canvas id="fc-fx" aria-hidden="true"></canvas>
       <canvas id="fc-ov" aria-hidden="true"></canvas>
+      <div class="fc-pop" id="fc-pop" role="dialog" aria-live="polite" hidden><b class="fc-pop-t" id="fc-pop-t"></b><p class="fc-pop-b" id="fc-pop-b"></p><button type="button" class="fc-pop-x" id="fc-pop-x" aria-label="${esc(t('fc.pop.close'))}">&times;</button></div>
       <div class="fc-hero-in fc-in">
         <div class="fc-h-meta fc-mono"><span id="fc-k">--</span><span id="fc-when"></span></div>
         <div class="fc-h-art" id="fc-art" role="img" aria-label=""></div>

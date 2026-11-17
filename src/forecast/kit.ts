@@ -151,3 +151,46 @@ export function fitCanvas(cv: HTMLCanvasElement, maxDpr = 2): { w: number; h: nu
   cv.getContext('2d')!.setTransform(dpr, 0, 0, dpr, 0, 0);
   return { w: r.width, h: r.height };
 }
+
+/**
+ * A label as a hard-edged block (the Kinetic look: square, no rounding): `fill` behind, the caps text knocked out in
+ * `ink`. Anchored at (x, y) by `align` (left edge, centre or right edge; y is the middle). Returns the box it drew.
+ */
+export function tag(c: Ctx2D, s: string, x: number, y: number, align: CanvasTextAlign, size: number, fill: string, ink: string, outline = false, maxW = Infinity): { x: number; y: number; w: number; h: number } {
+  c.font = `800 ${(size * 1.12).toFixed(1)}px ${MONO}`;
+  // Longer words (Spanish) shrink to fit their room rather than run off the picture, down to 70%.
+  const full = c.measureText(s.toUpperCase()).width + Math.round(size * 0.6) * 2;
+  if (full > maxW) { size *= Math.max(0.7, maxW / full); c.font = `800 ${(size * 1.12).toFixed(1)}px ${MONO}`; }
+  const tw = c.measureText(s.toUpperCase()).width, px = Math.round(size * 0.6), h = Math.round(size * 1.9);
+  const w = Math.round(tw + px * 2), x0 = Math.round(align === 'center' ? x - w / 2 : align === 'right' ? x - w : x), y0 = Math.round(y - h / 2);
+  if (outline) {
+    c.strokeStyle = fill; c.lineWidth = 1.5; c.lineJoin = 'miter'; c.strokeRect(x0 + 0.75, y0 + 0.75, w - 1.5, h - 1.5);
+  } else { c.fillStyle = fill; c.fillRect(x0, y0, w, h); }
+  c.fillStyle = outline ? fill : ink; c.textAlign = 'left'; c.textBaseline = 'middle';
+  c.fillText(s.toUpperCase(), x0 + px, y0 + h / 2 + 0.5);
+  return { x: x0, y: y0, w, h };
+}
+
+/** A hard chevron (two square-ended strokes meeting in a mitre) at (x, y) pointing along `ang` radians (0 = +x). */
+export function chevron(c: Ctx2D, x: number, y: number, ang: number, s: number, wd: number) {
+  const ca = Math.cos(ang), sa = Math.sin(ang);
+  const p = (u: number, v: number): [number, number] => [x + u * ca - v * sa, y + u * sa + v * ca];
+  const a = p(-s * 0.6, -s * 0.75), b = p(s * 0.4, 0), d = p(-s * 0.6, s * 0.75);
+  c.lineWidth = wd; c.lineCap = 'butt'; c.lineJoin = 'miter'; c.miterLimit = 6;
+  c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(d[0], d[1]); c.stroke();
+}
+
+/** Four corner brackets around a box (the highlight on a tapped part of a picture). */
+export function brackets(c: Ctx2D, x: number, y: number, w: number, h: number, arm: number, wd: number) {
+  const a = Math.min(arm, w / 2, h / 2);
+  c.lineWidth = wd; c.lineCap = 'butt'; c.lineJoin = 'miter';
+  c.beginPath();
+  c.moveTo(x, y + a); c.lineTo(x, y); c.lineTo(x + a, y);
+  c.moveTo(x + w - a, y); c.lineTo(x + w, y); c.lineTo(x + w, y + a);
+  c.moveTo(x + w, y + h - a); c.lineTo(x + w, y + h); c.lineTo(x + w - a, y + h);
+  c.moveTo(x + a, y + h); c.lineTo(x, y + h); c.lineTo(x, y + h - a);
+  c.stroke();
+}
+
+/** A part of a hero picture that explains itself when tapped: its box (hero px) and the key of its words. */
+export interface Hot { x: number; y: number; w: number; h: number; k: string }

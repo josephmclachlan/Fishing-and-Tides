@@ -8,16 +8,20 @@
  *            swell profile on the swell's own period; particles travel with the swell's direction
  *   FISH     the moon's phase and age on a lunar bezel; today's tide curve with the best window, now and the next
  *            turn; an echo-sounder strip whose density follows the bite score
- *   SWIM     a beach from above: crests broken where the rip runs out, a dot in the rip's colour,
- *            the shore break, a sun with a UV ring of 11 segments
+ *   SWIM     a beach from above (PLAN 13.1): white water over the sandbars, the darker rip channel between them
+ *            with chevrons running in along the shore, out through the gap and fanning out into a sandy plume, a
+ *            swimmer showing the way out (out, sideways, in), the rip chance as a coloured square, a UV ring of 11 blocks
  *   SNORKEL  a section from the surface to the reef: a snorkeller, sight lines fading to murk at the visibility,
  *            marker posts every 5 m, the water over the reef at this tide
  *   DIVE     a depth column: a diver at the activity depth, range arcs at 5, 10 and 15 m, murk past the visibility,
  *            a lead line, the surge swinging with its strength
  *   SPEAR    the DIVE column with a breath-hold freediver, no tank, a speargun held out in front and a surface float on its line
- *   SAIL     a chart-room wind rose with a damped needle, barbs, the no-go wedge and the gust sector, the boat at its
+ *   SAIL     (redrawn PLAN 13.1) a chart-room wind rose with a solid bezel, a damped needle, barbs, the no-go wedge and the gust sector, the boat at its
  *            hub on the harder coast leg with the wind angle; the boat in section from astern heeled to leeward by
  *            the rule-of-thumb heel (physics/heel.ts) on a protractor with the reef band; a 0-30 kt scale
+ *
+ * Words in the pictures are square knock-out tags. Each part of the SAIL and SWIM pictures is a tap target (`hots`): the
+ * page brackets the tapped part and shows its plain words in a square box.
  *
  * Also the live-map card's radar (rings in real kilometres when the map capture gives its scale).
  */
@@ -29,7 +33,7 @@ import { moonPhase } from '../physics/astro';
 import type { Plan } from '../metrics/plan';
 import { chopFor, type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour } from './model';
 import { cmp, dayHoursOf, headline, pushOf, levelWord, moonAgeDays, n0, n1, planDayOf, sentence, tideNow } from './view';
-import { capsule, clamp, D2R, DISP, hatch, MONO, lerp, moonPath, rgba, sq, TAU, txt, type Ctx2D, type RGB, type Tokens } from './kit';
+import { brackets, capsule, chevron, clamp, D2R, DISP, hatch, MONO, lerp, moonPath, rgba, sq, tag, TAU, txt, type Ctx2D, type Hot, type RGB, type Tokens } from './kit';
 import { reefAt } from './tiles';
 import { boomDeg, coastPose, heelDeg, REEF_HEEL_DEG, type SailPose } from '../physics/heel';
 import type { PointOfSail } from '../boat/route';
@@ -55,7 +59,7 @@ export interface HeroParams {
   fish?: { illum: number; waxing: boolean; age: number; moon: string; tide: (number | null)[]; nowH: number; best: [number, number] | null; turn: { h: number; label: string } | null; share: number; tideK: string; bestK: string; nowK: string; echo: string; newK?: string; fullK?: string };
   /** Paddling: the launch beach on the left, the sea to its right, the wind's arrow in that frame (rel: where it blows toward, degrees clockwise from out-to-sea). */
   paddle?: { craft: 'kayak' | 'sup'; rel: number | null; effKt: number; side: 'offshore' | 'onshore' | 'cross' | 'calm'; rangeKm: number; rangeK: string; pushK: string; windK: string; shoreK: string; seaK: string; capK: string };
-  swim?: { rip: 'LOW' | 'MOD' | 'HIGH'; ripK: string; shore: string; flag: string; uv: number | null; uvK: string };
+  swim?: { rip: 'LOW' | 'MOD' | 'HIGH'; ripK: string; shore: string; flag: string; uv: number | null; uvK: string; sideK: string };
   water?: { visM: number | null; vis: string; depthM: number; waterM: number | null; overReef: string; chop: string; hvis: string; at: string; surge: string; surgeMs: number };
 }
 
@@ -125,7 +129,7 @@ export function heroParams(r: FcRead, ctx: { deps: FcDeps; ms: number; plan: Pla
     const s = r.swim;
     base.swim = {
       rip: s.rip, ripK: `${t('fc.ripRisk')} · ${t(`fc.ripw.${s.rip}` as Key).toLowerCase()}`, shore: t('fc.cap.shore', { m: n1(s.breakerM) }),
-      flag: t(`fc.flagw.${s.rip}` as Key), uv: fin(s.uv) ? s.uv : null, uvK: fin(s.uv) ? `UV ${n0(s.uv)}` : '',
+      flag: t(`fc.flagw.${s.rip}` as Key), uv: fin(s.uv) ? s.uv : null, uvK: fin(s.uv) ? `UV ${n0(s.uv)}` : '', sideK: t('fc.swim.side'),
     };
   }
   if (r.water && r.score !== null) {
@@ -213,6 +217,7 @@ export class HeroEngine {
     if (p.sail?.fromDeg !== undefined && p.sail.fromDeg !== null && modeChanged) this.SN.a = p.sail.fromDeg;
     if (modeChanged) {
       this.modeT0 = now;
+      this.active = null;
       this.init();
     }
   }
@@ -378,7 +383,8 @@ export class HeroEngine {
     c.save();
     c.globalAlpha = mA;
     const on = this.onCol as unknown as RGB;
-    const S: Style = { ink: rgba(on, 1), soft: rgba(on, 0.68), faint: rgba(on, 0.24), on, fd: this.fdCol as unknown as RGB, T: this.T, reduced: this.reduced };
+    this.hots = [];
+    const S: Style = { ink: rgba(on, 1), soft: rgba(on, 0.68), faint: rgba(on, 0.24), on, fd: this.fdCol as unknown as RGB, T: this.T, reduced: this.reduced, hot: this.hots };
     c.fillStyle = S.ink; c.strokeStyle = S.ink;
     const p = this.p, A = this.AR;
     if (p.act === 'surf' && p.surf) drawSurf(c, A, tt, p.surf, S);
@@ -388,7 +394,28 @@ export class HeroEngine {
     else if (p.act === 'swim' && p.swim) drawSwim(c, A, tt, p.swim, S, this.shoreY());
     else if (p.act === 'snorkel' && p.water) drawSnorkel(c, A, tt, p.water, S);
     else if ((p.act === 'dive' || p.act === 'spear') && p.water) drawDive(c, A, tt, p.water, S, p.act);
+    // The tapped part, held in corner brackets; and once, as a picture opens, a quick sweep over each tappable part.
+    const big = (k: string) => this.hots.filter((q) => q.k === k).sort((m, n) => n.w * n.h - m.w * m.h)[0];
+    c.strokeStyle = S.ink;
+    if (this.active) {
+      const q = big(this.active);
+      if (q) { const pu = this.reduced ? 0 : 1.5 * (0.5 + 0.5 * Math.sin(tt * 5)); brackets(c, q.x - 3 - pu, q.y - 3 - pu, q.w + 6 + 2 * pu, q.h + 6 + 2 * pu, 12, 3); }
+    } else if (!this.reduced) {
+      const keys = [...new Set(this.hots.map((q) => q.k))], since = tt - this.modeT0 - 1.2, i = Math.floor(since / 0.45);
+      if (since > 0 && i < keys.length) { const q = big(keys[i]), f = 1 - (since % 0.45) / 0.45; c.globalAlpha = mA * f * 0.85; brackets(c, q.x - 3, q.y - 3, q.w + 6, q.h + 6, 10, 2.5); }
+    }
     c.restore();
+  }
+  /** Tappable parts drawn in the last frame, and the one tapped (its box is bracketed, the page shows its words). */
+  hots: Hot[] = [];
+  active: string | null = null;
+  /** The part under a point in hero px (the first, most specific, match), or null. */
+  hit(px: number, py: number): Hot | null {
+    return this.hots.find((q) => px >= q.x && px <= q.x + q.w && py >= q.y && py <= q.y + q.h) ?? null;
+  }
+  /** The biggest box of a part (where its words box points). */
+  boxOf(k: string): Hot | null {
+    return this.hots.filter((q) => q.k === k).sort((m, n) => n.w * n.h - m.w * m.h)[0] ?? null;
   }
   /** A still frame for reduced motion: the field run for a moment, then held. */
   still() {
@@ -403,7 +430,7 @@ export class HeroEngine {
   }
 }
 
-interface Style { ink: string; soft: string; faint: string; on: RGB; fd: RGB; T: Tokens; reduced: boolean }
+interface Style { ink: string; soft: string; faint: string; on: RGB; fd: RGB; T: Tokens; reduced: boolean; hot: Hot[] }
 type Box = { x: number; y: number; w: number; h: number };
 
 function drawSurf(c: Ctx2D, A: Box, tt: number, s: NonNullable<HeroParams['surf']>, S: Style) {
@@ -439,6 +466,8 @@ function drawSurf(c: Ctx2D, A: Box, tt: number, s: NonNullable<HeroParams['surf'
 
 /** The figure's halo, shorts and board deck: light on every level colour, in both themes. */
 const CREAM: RGB = [255, 246, 232];
+/** Text on a cream tag: dark in both themes. */
+const DARK: RGB = [12, 22, 28];
 /** Typical shortboard, m: the figure is drawn at BODY_M.head on the same scale, so the board reads true beside it. */
 export const BOARD_M = { len: 1.85, wid: 0.5 } as const;
 
@@ -604,17 +633,20 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
   if (a.fromDeg !== null) {
     // No-go wedge either side of the wind, inside the card.
     c.save(); wedge(0, ri, from - 40, from + 40); c.fillStyle = rgba(S.on, 0.07); c.fill(); c.clip(); stripes(5, rgba(S.on, 0.1)); c.restore();
-    // Gust sector on the bezel, hatched; it widens with the gust.
+  }
+  // The bezel: a solid ink band, its degree ticks knocked out in the field colour (an instrument, read at a glance).
+  c.fillStyle = S.ink; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.arc(cx, cy, ri, 0, TAU, true); c.fill();
+  if (a.fromDeg !== null) {
     const sp = 12 + 8 * g;
-    c.save(); wedge(ri, R, from - sp, from + sp); c.fillStyle = rgba(S.on, 0.18 + 0.16 * g); c.fill(); c.clip(); stripes(4, rgba(S.on, 0.6)); c.restore();
+    c.save(); wedge(ri, R, from - sp, from + sp); c.fillStyle = rgba(CREAM, 0.35 + 0.35 * g); c.fill(); c.clip(); stripes(3, rgba(CREAM, 0.95)); c.restore();
   }
-  c.strokeStyle = S.ink; c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.stroke();
-  c.lineWidth = 1; c.strokeStyle = S.soft; c.beginPath(); c.arc(cx, cy, ri, 0, TAU); c.stroke();
+  const fdc = rgba(S.fd);
   for (let d = 0; d < 360; d += 5) {
-    const l = d % 30 === 0 ? R - ri : d % 10 === 0 ? (R - ri) * 0.6 : (R - ri) * 0.35;
-    c.strokeStyle = d % 30 === 0 ? S.ink : S.soft; c.lineWidth = d % 30 === 0 ? 1.6 : 1;
-    c.beginPath(); line(pol(R, d), pol(R - l, d)); c.stroke();
+    const l = d % 30 === 0 ? (R - ri) * 0.62 : d % 10 === 0 ? (R - ri) * 0.42 : (R - ri) * 0.24;
+    c.strokeStyle = fdc; c.lineWidth = d % 30 === 0 ? 2 : 1.2;
+    c.beginPath(); line(pol(R - 1, d), pol(R - 1 - l, d)); c.stroke();
   }
+  c.strokeStyle = S.ink; c.lineWidth = 1; c.beginPath(); c.arc(cx, cy, R + 4, 0, TAU); c.stroke();
   // Hairline 16-point star and the dotted ring, as on a chart's compass rose.
   c.strokeStyle = S.faint; c.lineWidth = 1; c.beginPath();
   for (let i = 0; i < 16; i++) {
@@ -641,17 +673,17 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
     c.strokeStyle = S.ink; c.lineWidth = 1.4; c.beginPath(); c.arc(cx, cy, ra, (d0 - 90) * D2R, (d1 - 90) * D2R); c.stroke();
     c.beginPath(); line(pol(ra - 4, P.headingDeg), pol(ra + 4, P.headingDeg)); c.stroke();
     const lp = pol(ra + 10, P.headingDeg + rel / 2);
-    c.fillStyle = S.ink; tx(`${Math.round(P.twa)}°`, lp[0], lp[1], 'center', small ? 8.5 : 9.5, 800);
+    tag(c, `${Math.round(P.twa)}°`, lp[0], lp[1], 'center', (small ? 8.5 : 9.5) * fs, S.ink, fdc);
   }
   if (a.fromDeg !== null) {
     // Needle from the wind's side to the boat, the head towards it; barbs on the tail (a full barb 10 kt, a half 5 kt).
     const an = SN.a * D2R, ux = Math.sin(an), uy = -Math.cos(an), px = -uy, py = ux;
     const tail = R + 14, head = P ? L * 0.72 : 10;
-    c.strokeStyle = S.ink; c.fillStyle = S.ink; c.lineWidth = 3; c.lineCap = 'round';
+    c.strokeStyle = S.ink; c.fillStyle = S.ink; c.lineWidth = 3.4; c.lineCap = 'butt';
     c.beginPath(); c.moveTo(cx + ux * tail, cy + uy * tail); c.lineTo(cx + ux * (head + 10), cy + uy * (head + 10)); c.stroke();
-    c.beginPath(); c.moveTo(cx + ux * head, cy + uy * head); c.lineTo(cx + ux * (head + 13) + px * 6, cy + uy * (head + 13) + py * 6); c.lineTo(cx + ux * (head + 13) - px * 6, cy + uy * (head + 13) - py * 6); c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(cx + ux * head, cy + uy * head); c.lineTo(cx + ux * (head + 16) + px * 7, cy + uy * (head + 16) + py * 7); c.lineTo(cx + ux * (head + 12), cy + uy * (head + 12)); c.lineTo(cx + ux * (head + 16) - px * 7, cy + uy * (head + 16) - py * 7); c.closePath(); c.fill();
     const barb = (d: number, len: number) => { const bx = cx + ux * d, by = cy + uy * d; c.beginPath(); c.moveTo(bx, by); c.lineTo(bx + (ux * 0.5 + px) * len, by + (uy * 0.5 + py) * len); c.stroke(); };
-    c.lineWidth = 2.4;
+    c.lineWidth = 2.6;
     const full = Math.floor(Math.round(a.windKt / 5) / 2), half = Math.round(a.windKt / 5) % 2;
     let d = tail;
     for (let i = 0; i < Math.min(full, 5); i++, d -= 7) barb(d, 13);
@@ -668,17 +700,19 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
     c.beginPath(); c.moveTo(0, -L / 2);
     c.bezierCurveTo(bw * 0.55, -L * 0.3, bw * 0.55, L * 0.2, bw * 0.4, L / 2); c.lineTo(-bw * 0.4, L / 2);
     c.bezierCurveTo(-bw * 0.55, L * 0.2, -bw * 0.55, -L * 0.3, 0, -L / 2); c.closePath();
-    c.fillStyle = rgba(S.fd); c.fill(); c.strokeStyle = S.ink; c.lineWidth = 2; c.stroke();
+    c.fillStyle = rgba(CREAM, 0.97); c.fill(); c.strokeStyle = S.ink; c.lineWidth = 2; c.lineJoin = 'miter'; c.stroke();
+    c.strokeStyle = S.ink; c.lineWidth = 1.2; c.strokeRect(-bw * 0.16, L * 0.14, bw * 0.32, L * 0.24); // cockpit
+    c.strokeRect(-bw * 0.13, -L * 0.2, bw * 0.26, L * 0.26); // cabin top
     const mY = -L * 0.08, bl = L * 0.52, bx = lee * Math.sin(boom) * bl, by = mY + Math.cos(boom) * bl;
     // Mainsail: the boom straight, the sail's foot bellied to leeward of it.
     const qx = bx / 2 + lee * Math.cos(boom) * bl * 0.2, qy = (mY + by) / 2 + Math.sin(boom) * bl * 0.2;
-    c.fillStyle = rgba(S.on, 0.4); c.beginPath(); c.moveTo(0, mY); c.quadraticCurveTo(qx, qy, bx, by); c.closePath(); c.fill();
+    c.fillStyle = rgba(CREAM, 0.9); c.beginPath(); c.moveTo(0, mY); c.quadraticCurveTo(qx, qy, bx, by); c.closePath(); c.fill();
     c.strokeStyle = S.ink; c.lineWidth = 1.4; c.beginPath(); c.moveTo(0, mY); c.quadraticCurveTo(qx, qy, bx, by); c.stroke();
     c.lineWidth = 2.4; c.beginPath(); c.moveTo(0, mY); c.lineTo(bx, by); c.stroke();
     // Jib: tack at the bow, clew a little to leeward, sheeted a touch wider than the main.
     const jb = Math.min(85, boomDeg(P.twa) + 6) * D2R, jl = L * 0.4, jx = lee * Math.sin(jb) * jl * 0.8, jy = -L / 2 + Math.cos(jb) * jl;
     c.strokeStyle = S.ink; c.lineWidth = 1.6; c.beginPath(); c.moveTo(0, -L / 2 + 2); c.quadraticCurveTo(jx * 0.5 + lee * L * 0.08, (-L / 2 + jy) / 2, jx, jy); c.stroke();
-    c.fillStyle = S.ink; c.beginPath(); c.arc(0, mY, 2.6, 0, TAU); c.fill();
+    c.fillStyle = S.ink; c.fillRect(-2.6, mY - 2.6, 5.2, 5.2);
     c.restore();
   }
   // Captions under the rose: where the wind is from, the leg, the other leg.
@@ -692,8 +726,10 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
   // --- The section, seen from astern.
   const sx0 = Math.max(cx + R + (small ? 20 : 34), x + w * 0.54), sx1 = x + w, sw = sx1 - sx0, hc = sx0 + sw * 0.5;
   const sy = Math.min(y + h - 14 * fs, cy + R + foot - 14 * fs); // the wind scale's line
-  c.fillStyle = S.ink; tx(a.heelK, sx0, y + 6 * fs, 'left', small ? 8.5 : 9.5, 800);
-  if (P) { c.fillStyle = S.ink; tx(P.tackK, sx0, y + 19 * fs, 'left', small ? 8 : 9, 700); c.fillStyle = S.soft; tx(a.ruleK, sx0, y + 31 * fs, 'left', small ? 7 : 8, 600); }
+  // The heel itself leads, as a tag; the tack and the boat it is worked out for under it.
+  const heelTag = () => P ? tag(c, a.heelNow.replace('{d}', String(Math.round(Math.max(0, SN.h)))) + (SN.h >= REEF_HEEL_DEG ? ` · ${a.reefK}` : ''), sx0, y + 9 * fs, 'left', (small ? 10 : 11.5) * fs, S.ink, rgba(S.fd)) : null;
+  if (!P) { c.fillStyle = S.ink; tx(a.heelK, sx0, y + 6 * fs, 'left', small ? 8.5 : 9.5, 800); }
+  if (P) { c.fillStyle = S.ink; tx(P.tackK, sx0, y + 28 * fs, 'left', small ? 8 : 9, 700); c.fillStyle = S.soft; tx(a.ruleK, sx0, y + 40 * fs, 'left', small ? 7 : 8, 600); }
   // The masthead level with the top of the rose, the keel bulb clear of the scale's title.
   const B = Math.max(24, Math.min(sw * 0.36, R * 0.62)); // beam
   const wl = Math.min(sy - 34 * fs - B * 1.05, cy + R * 0.32); // waterline
@@ -721,14 +757,15 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
   for (let d = -5; d <= 45; d += 5) { const q0 = pp(pr, d), q1 = pp(pr + (d % 10 ? 4 : 8), d); line(q0, q1); }
   c.stroke();
   [10, 20, 30].forEach((d) => { const q = pp(pr + 16, d); c.fillStyle = S.soft; tx(`${d}°`, q[0], q[1], 'center', 8, 600); });
-  const rq = pp(pr + 10, 47); c.fillStyle = S.ink; tx(a.reefK, rq[0], rq[1], lee > 0 ? 'left' : 'right', 7.5, 800);
+  // The reef label just inside the band's end, so it never runs off the picture.
+  const rq = pp(pr - 13, 38); c.fillStyle = S.ink; tx(a.reefK, rq[0], rq[1], 'center', 7.5, 800);
   // Upright reference.
   c.strokeStyle = S.faint; c.lineWidth = 1; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(hc, wl + B * 0.3); c.lineTo(hc, wl - pr - 10); c.stroke(); c.setLineDash([]);
   const heel = P ? Math.max(0, SN.h) : 0;
   // The wind across the boat, from the windward side, level (it does not heel).
   if (P) {
     const ay = wl - mH * 0.62, ax1 = hc - lee * B * 0.55, ax0 = clamp(hc - lee * (B * 0.6 + Math.min(sw * 0.42, B * 1.5)), sx0, sx1);
-    c.strokeStyle = S.ink; c.lineWidth = 2; c.lineCap = 'round';
+    c.strokeStyle = S.ink; c.lineWidth = 2; c.lineCap = 'butt';
     for (const [dy, k] of [[0, 1], [-11, 0.7], [11, 0.7]] as const) {
       const o = S.reduced ? 0 : ((tt * 30) % 8) * lee;
       const xa = ax0 + (ax1 - ax0) * (1 - k) + o, xb = ax1 + o * 0.2;
@@ -743,23 +780,36 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
   // The boat, rotated by the heel about the waterline.
   c.save(); c.translate(hc, wl + sea * 0.5); c.rotate(lee * heel * D2R);
   const hb = B / 2;
+  // The hull in section: flared topsides to a hard turn of the bilge, a flat run to the keel root, a cambered deck.
   const hull = () => {
     c.beginPath(); c.moveTo(-hb, -0.2 * B);
-    c.bezierCurveTo(-hb, 0.14 * B, -0.26 * B, 0.27 * B, 0, 0.28 * B); c.bezierCurveTo(0.26 * B, 0.27 * B, hb, 0.14 * B, hb, -0.2 * B);
-    c.quadraticCurveTo(0, -0.27 * B, -hb, -0.2 * B); c.closePath();
+    c.lineTo(-hb * 0.94, 0.04 * B); c.quadraticCurveTo(-hb * 0.86, 0.2 * B, -0.2 * B, 0.25 * B); c.lineTo(0, 0.28 * B);
+    c.lineTo(0.2 * B, 0.25 * B); c.quadraticCurveTo(hb * 0.86, 0.2 * B, hb * 0.94, 0.04 * B); c.lineTo(hb, -0.2 * B);
+    c.quadraticCurveTo(0, -0.25 * B, -hb, -0.2 * B); c.closePath();
   };
   // Keel and bulb.
   c.beginPath(); c.moveTo(-0.05 * B, 0.25 * B); c.lineTo(-0.035 * B, 0.98 * B); c.lineTo(0.035 * B, 0.98 * B); c.lineTo(0.05 * B, 0.25 * B); c.closePath();
-  c.fillStyle = rgba(S.fd); c.fill(); c.strokeStyle = S.ink; c.lineWidth = 1.4; c.stroke();
-  c.fillStyle = S.ink; c.beginPath(); c.ellipse(0, 1.0 * B, 0.13 * B, 0.05 * B, 0, 0, TAU); c.fill();
-  hull(); c.fillStyle = rgba(S.fd); c.fill(); c.strokeStyle = S.ink; c.lineWidth = 2; c.stroke();
+  c.fillStyle = S.ink; c.fill();
+  c.beginPath(); c.moveTo(-0.13 * B, 1.0 * B); c.lineTo(-0.1 * B, 0.95 * B); c.lineTo(0.12 * B, 0.95 * B); c.lineTo(0.15 * B, 1.0 * B); c.lineTo(0.12 * B, 1.05 * B); c.lineTo(-0.1 * B, 1.05 * B); c.closePath(); c.fill(); // bulb
+  hull(); c.fillStyle = rgba(CREAM, 0.97); c.fill();
+  c.save(); hull(); c.clip(); c.fillStyle = S.ink; c.fillRect(-B, 0.02 * B, 2 * B, 0.05 * B); c.restore(); // waterline stripe
+  hull(); c.strokeStyle = S.ink; c.lineWidth = 2; c.lineJoin = 'miter'; c.stroke();
+  // Cabin top and the lifelines on their stanchions.
+  c.fillStyle = rgba(CREAM, 0.97); c.beginPath(); c.moveTo(-0.26 * B, -0.235 * B); c.lineTo(-0.2 * B, -0.36 * B); c.lineTo(0.2 * B, -0.36 * B); c.lineTo(0.26 * B, -0.235 * B); c.closePath(); c.fill(); c.lineWidth = 1.6; c.stroke();
+  c.fillStyle = S.ink; c.fillRect(-0.14 * B, -0.33 * B, 0.08 * B, 0.04 * B); c.fillRect(0.06 * B, -0.33 * B, 0.08 * B, 0.04 * B);
+  c.lineWidth = 1.2; c.beginPath(); c.moveTo(-hb + 1, -0.2 * B); c.lineTo(-hb + 1, -0.42 * B); c.lineTo(-0.3 * B, -0.42 * B); c.moveTo(hb - 1, -0.2 * B); c.lineTo(hb - 1, -0.42 * B); c.lineTo(0.3 * B, -0.42 * B); c.stroke();
   // Shrouds over the spreaders, the mast, the main sheeted out to leeward.
   const spY = -mH * 0.55, spX = 0.24 * B;
   c.strokeStyle = S.soft; c.lineWidth = 1; c.beginPath();
   c.moveTo(-hb + 2, -0.2 * B); c.lineTo(-spX, spY); c.lineTo(0, -mH); c.lineTo(spX, spY); c.lineTo(hb - 2, -0.2 * B); c.moveTo(-spX, spY); c.lineTo(spX, spY); c.stroke();
   if (P) {
     const gy = -0.24 * B - B * 0.35, bo = boomDeg(P.twa) * D2R, bx = lee * Math.sin(bo) * B * 1.2;
-    c.fillStyle = rgba(S.on, 0.3); c.beginPath(); c.moveTo(0, -mH + 3); c.quadraticCurveTo(bx * 0.7 + lee * 3, gy - mH * 0.35, bx, gy); c.lineTo(0, gy); c.closePath(); c.fill();
+    c.fillStyle = rgba(CREAM, 0.9); c.beginPath(); c.moveTo(0, -mH + 3); c.quadraticCurveTo(bx * 0.7 + lee * 3, gy - mH * 0.35, bx, gy); c.lineTo(0, gy); c.closePath(); c.fill();
+    // Battens across the main, and a telltale flicking off its leech.
+    c.save(); c.clip(); c.strokeStyle = rgba(S.on, 0.5); c.lineWidth = 1; c.beginPath();
+    for (const k of [0.25, 0.5, 0.75]) { const yy = -mH + 3 + (gy + mH - 3) * k; c.moveTo(0, yy); c.lineTo(bx * 1.2, yy); }
+    c.stroke(); c.restore();
+    { const ty = gy - (gy + mH) * 0.45, tx0 = bx * 0.55 + lee * 2, fl = S.reduced ? 0 : Math.sin(tt * 9) * 2.5; c.strokeStyle = S.ink; c.lineWidth = 1.6; c.beginPath(); c.moveTo(tx0, ty); c.lineTo(tx0 + lee * 9, ty + fl); c.stroke(); }
     c.strokeStyle = S.ink; c.lineWidth = 1.6; c.beginPath(); c.moveTo(0, -mH + 3); c.quadraticCurveTo(bx * 0.7 + lee * 3, gy - mH * 0.35, bx, gy); c.stroke();
     c.lineWidth = 2.2; c.beginPath(); c.moveTo(0, gy); c.lineTo(bx, gy); c.stroke();
   }
@@ -775,7 +825,7 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
   if (P) {
     const q0 = pp(pr - 6, heel), q1 = pp(pr + 11, heel);
     c.strokeStyle = S.ink; c.lineWidth = 3; c.beginPath(); line(q0, q1); c.stroke();
-    c.fillStyle = S.ink; tx(a.heelNow.replace('{d}', String(Math.round(heel))) + (heel >= REEF_HEEL_DEG ? ` · ${a.reefK}` : ''), sx1, sy - 26 * fs, 'right', small ? 10 : 11.5, 800);
+    heelTag();
   }
 
   // --- Wind scale 0-30 kt: ticks, the mean solid above the line, the gusts hatched beyond it.
@@ -793,6 +843,13 @@ function drawSail(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['sail'
   c.fillStyle = S.ink; tx(a.windK, sx0, sy - 26 * fs, 'left', small ? 8.5 : 9.5, 800);
   c.fillStyle = S.ink; tx(a.kt, sx0, sy - 15 * fs, 'left', 8.5, 800);
   if (a.gustKt !== null) { c.fillStyle = rgba(S.on, 0.55 + 0.45 * g); tx(a.gust, sx1, sy - 15 * fs, 'right', 8.5, 800); }
+
+  // Tap targets, most specific first.
+  if (P) S.hot.push({ x: cx - L * 0.55, y: cy - L * 0.55, w: L * 1.1, h: L * 1.1, k: 'sail.boat' });
+  if (a.fromDeg !== null) { const np = pol(ri * 0.62, from); S.hot.push({ x: np[0] - 22, y: np[1] - 22, w: 44, h: 44, k: 'sail.nogo' }); }
+  S.hot.push({ x: sx0 - 4, y: sy - 34 * fs, w: sw + 8, h: 34 * fs + 18, k: 'sail.gust' });
+  S.hot.push({ x: sx0 - 4, y: y, w: sw + 8, h: sy - 34 * fs - y, k: 'sail.heel' });
+  S.hot.push({ x: cx - R - 10, y: cy - R - 10, w: 2 * R + 20, h: 2 * R + 20, k: 'sail.wind' });
 }
 
 const SCHOOLS = [[0.16, 0.45, 0.13, 0.2, 0.01, 0.9], [0.48, 0.62, 0.17, 0.22, 0.007, 1], [0.78, 0.38, 0.11, 0.17, 0.013, 0.8], [0.32, 0.82, 0.12, 0.12, 0.006, 0.6], [0.95, 0.7, 0.14, 0.2, 0.009, 0.85]];
@@ -958,41 +1015,179 @@ function drawPaddle(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['pad
   c.fillStyle = S.soft; txt(c, a.capK, bx, by + 30, 'center', 10.5, 700);
 }
 
-function drawSwim(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['swim']>, S: Style, Y: number) {
-  const { x, y, w, h } = A, cx = x + w * 0.56, gap = w * (a.rip === 'HIGH' ? 0.1 : a.rip === 'MOD' ? 0.075 : 0.05);
-  const shore = (xx: number) => Y + Math.sin(xx * 0.03 + tt * 0.8) * 2.5 + Math.exp(-sq((xx - cx) / (gap * 1.4))) * -6;
-  c.fillStyle = rgba(S.T.sand); c.beginPath(); c.moveTo(x, y + h);
+/** Deterministic 0..1 noise for texture (sand grain, foam edges), so a picture does not shimmer frame to frame. */
+const hash1 = (n: number) => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+
+/** Points along a polyline at arc length `d` (clamped), with the direction there. */
+function along(pts: [number, number][], d: number): [number, number, number] {
+  let rest = Math.max(0, d);
+  for (let i = 1; i < pts.length; i++) {
+    const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], L = Math.hypot(x1 - x0, y1 - y0);
+    if (rest <= L || i === pts.length - 1) { const k = L ? Math.min(1, rest / L) : 0; return [x0 + (x1 - x0) * k, y0 + (y1 - y0) * k, Math.atan2(y1 - y0, x1 - x0)]; }
+    rest -= L;
+  }
+  return [pts[0][0], pts[0][1], 0];
+}
+const polyLen = (pts: [number, number][]) => pts.reduce((n, p, i) => (i ? n + Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) : 0), 0);
+
+/** Chevrons marching along a path at `v` px/s, `gap` px apart, fading in and out at its ends. */
+function march(c: Ctx2D, pts: [number, number][], tt: number, v: number, gap: number, s: number, wd: number, col: RGB, alpha: number) {
+  const L = polyLen(pts);
+  if (L < 4) return;
+  const off = (tt * v) % gap;
+  for (let d = off; d < L; d += gap) {
+    const [x, y, a] = along(pts, d), u = d / L, f = Math.min(1, u * 5, (1 - u) * 5);
+    c.strokeStyle = rgba(col, alpha * f);
+    chevron(c, x, y, a, s, wd);
+  }
+}
+
+/**
+ * SWIM: a beach from above, read in one look. Sea at the top, sand at the bottom. Waves break white over the sandbars
+ * either side; in the gap between them the water is deeper and darker and does not break: the rip. Chevrons show the
+ * water running along the shore into the gap, out through it and fanning out past the waves, where a cloud of sandy
+ * water spreads. A swimmer shows the way out: carried out, sideways along the beach out of the current, then in with
+ * the waves. The rip's width, speed and plume grow with the risk. Square tags carry the words; every part is a tap
+ * target that opens its plain-words box.
+ */
+function drawSwim(c: Ctx2D, A: Box, tt0: number, a: NonNullable<HeroParams['swim']>, S: Style, Y: number) {
+  const { x, y, w, h } = A, tt = S.reduced ? 4.2 : tt0, cx = x + w * 0.56, fs = clamp(Math.min(w, 760) / 380, 1, 1.3);
+  const rk = a.rip === 'HIGH' ? 1 : a.rip === 'MOD' ? 0.7 : 0.42;
+  const gap = w * (a.rip === 'HIGH' ? 0.085 : a.rip === 'MOD' ? 0.068 : 0.05), top = y + h * 0.1;
+  const barTop = y + h * 0.24, barBot = Y - h * 0.1; // the sandbars, where the waves break
+  const ink = S.ink, cream = (al: number) => rgba(CREAM, al), riskC = S.T[a.rip === 'HIGH' ? 'lv0' : a.rip === 'MOD' ? 'lv2' : 'lv3'];
+  const shore = (xx: number) => Y + Math.sin(xx * 0.035 + 1.3) * 2 - Math.exp(-sq((xx - cx) / (gap * 1.6))) * 5;
+  // Channel half-width at height yy: narrow neck at the shore, a little wider out by the bar.
+  const half = (yy: number) => (yy >= barTop ? gap * (1 - 0.12 * clamp((Y - yy) / (Y - barTop), 0, 1)) : gap * (0.88 - 0.3 * clamp((barTop - yy) / (barTop - top), 0, 1)));
+
+  // --- The sandbars: shallow, a paler stipple either side of the channel.
+  c.save();
+  for (let i = 0; i < 520; i++) {
+    const u = hash1(i), v = hash1(i + 999), xx = x + u * w, yy = barTop + v * (barBot - barTop);
+    if (Math.abs(xx - cx) < half(yy) + 6) continue;
+    c.fillStyle = cream(0.16 + 0.18 * hash1(i + 77)); c.fillRect(Math.round(xx), Math.round(yy), 2, 2);
+  }
+  c.restore();
+  // --- The channel: deeper water, darker, hatched, from the shore out past the bar.
+  c.save();
+  c.beginPath(); c.moveTo(cx - half(Y), Y);
+  for (let yy = Y; yy >= top; yy -= 6) c.lineTo(cx - half(yy), yy);
+  for (let yy = top; yy <= Y; yy += 6) c.lineTo(cx + half(yy), yy);
+  c.closePath();
+  c.fillStyle = rgba(S.on, 0.12 + 0.08 * rk); c.fill(); c.clip();
+  c.strokeStyle = rgba(S.on, 0.16); c.lineWidth = 1; c.beginPath();
+  for (let k = -h; k < w + h; k += 6) { c.moveTo(x + k, Y); c.lineTo(x + k + (Y - top), top); }
+  c.stroke(); c.restore();
+  c.strokeStyle = rgba(S.on, 0.55); c.lineWidth = 1; c.setLineDash([4, 3]);
+  for (const sd of [-1, 1]) { c.beginPath(); for (let yy = Y - 4; yy >= top + 6; yy -= 6) { const xx = cx + sd * half(yy); yy === Y - 4 ? c.moveTo(xx, yy) : c.lineTo(xx, yy); } c.stroke(); }
+  c.setLineDash([]);
+
+  // --- The rip head: a mushroom of sandy water past the waves, breathing out.
+  const hy = top + 4, br = S.reduced ? 0.5 : 0.5 + 0.5 * Math.sin(tt * 0.7), sand = S.T.sand;
+  const pw = w * (0.08 + 0.06 * rk) * (0.94 + 0.1 * br), ph = h * (0.07 + 0.03 * rk) * (0.94 + 0.1 * br);
+  const plume = () => {
+    c.beginPath(); c.moveTo(cx - half(top + 10), top + 12);
+    c.bezierCurveTo(cx - pw * 0.7, top + 10, cx - pw * 1.25, hy + ph * 0.5, cx - pw, hy - ph * 0.15);
+    c.bezierCurveTo(cx - pw * 0.8, hy - ph, cx + pw * 0.8, hy - ph, cx + pw, hy - ph * 0.15);
+    c.bezierCurveTo(cx + pw * 1.25, hy + ph * 0.5, cx + pw * 0.7, top + 10, cx + half(top + 10), top + 12);
+    c.closePath();
+  };
+  plume(); c.fillStyle = rgba(sand, 0.55); c.fill();
+  c.save(); plume(); c.clip();
+  for (let i = 0; i < 160; i++) { c.fillStyle = rgba(CREAM, 0.15 + 0.3 * hash1(i + 3)); c.fillRect(Math.round(cx - pw * 1.3 + hash1(i + 400) * pw * 2.6), Math.round(hy - ph + hash1(i + 800) * (top + 14 - hy + ph)), 2, 2); }
+  c.restore();
+  plume(); c.strokeStyle = rgba(S.on, 0.7); c.lineWidth = 1.2; c.setLineDash([3, 3]); c.stroke(); c.setLineDash([]);
+
+  // --- Breaking waves over the bars: white bands rolling in, a sharp front, a ragged foam back; across the channel
+  // only the unbroken swell line, because the deeper water lets the wave through without breaking.
+  for (let i = 0; i < 4; i++) {
+    const k = (tt / 10 + i / 4) % 1, yy = barTop + k * (barBot - barTop), al = Math.min(1, k * 5, (1 - k) * 5);
+    const bh = 3 + k * 5;
+    for (const [x0, x1] of [[x, cx - half(yy) - 3], [cx + half(yy) + 3, x + w]] as const) {
+      if (x1 - x0 < 4) continue;
+      c.fillStyle = cream(0.92 * al); c.fillRect(x0, yy - bh, x1 - x0, bh);
+      // Whitewater left behind the break: grains of foam, thinning out to sea.
+      for (let j = 0; j < (x1 - x0) * 0.5; j++) { const fx = x0 + hash1(j * 7 + i * 131) * (x1 - x0), fd = Math.pow(hash1(j * 13 + i * 71), 1.8) * (10 + 10 * k); c.fillStyle = cream(0.6 * al * (1 - fd / 20)); c.fillRect(Math.round(fx), Math.round(yy - bh - fd - 2), 2, 2); }
+      c.fillStyle = rgba(S.on, 0.55 * al); c.fillRect(x0, yy, x1 - x0, 1.5);
+    }
+    c.strokeStyle = rgba(S.on, 0.3 * al); c.lineWidth = 1; c.beginPath(); c.moveTo(cx - half(yy), yy); c.lineTo(cx + half(yy), yy); c.stroke();
+  }
+
+  // --- The beach: sand with grain, the wet strip, the shore break washing up and back.
+  c.fillStyle = rgba(sand); c.beginPath(); c.moveTo(x, y + h);
   for (let xx = x; xx <= x + w; xx += 4) c.lineTo(xx, shore(xx));
   c.lineTo(x + w, y + h); c.closePath(); c.fill();
-  c.strokeStyle = S.ink; c.lineWidth = 2; c.beginPath();
+  c.save(); c.clip();
+  c.fillStyle = rgba(S.on, 0.16); c.fillRect(x, Y - 6, w, 12);
+  for (let i = 0; i < 380; i++) { c.fillStyle = rgba(S.on, 0.1 + 0.12 * hash1(i + 5)); c.fillRect(Math.round(x + hash1(i + 11) * w), Math.round(Y + hash1(i + 23) * (y + h - Y)), 1.5, 1.5); }
+  c.restore();
+  const wash = S.reduced ? 0 : Math.sin(tt * 1.1) * 3;
+  c.strokeStyle = cream(0.95); c.lineWidth = 3; c.lineCap = 'butt'; c.beginPath();
+  for (let xx = x; xx <= x + w; xx += 4) { const yy = shore(xx) - 3 + wash * (0.6 + 0.4 * Math.sin(xx * 0.05)); xx === x ? c.moveTo(xx, yy) : c.lineTo(xx, yy); }
+  c.stroke();
+  c.strokeStyle = ink; c.lineWidth = 2; c.beginPath();
   for (let xx = x; xx <= x + w; xx += 4) (xx === x ? c.moveTo(xx, shore(xx)) : c.lineTo(xx, shore(xx)));
   c.stroke();
-  // Crests coming in, broken where the rip runs out.
-  for (let i = 0; i < 5; i++) {
-    const k = (tt / 9 + i / 5) % 1, yy = y + h * 0.08 + k * (Y - y - h * 0.1), al = Math.min(1, k * 4) * (k > 0.93 ? (1 - k) / 0.07 : 1);
-    c.strokeStyle = rgba(S.on, 0.75 * al); c.lineWidth = 1.2 + k * k * 4; c.beginPath();
-    c.moveTo(x, yy); c.lineTo(cx - gap * (1 + k), yy + 2 * (1 - k)); c.moveTo(cx + gap * (1 + k), yy + 2 * (1 - k)); c.lineTo(x + w, yy); c.stroke();
-  }
-  const ay = y + h * 0.38;
-  c.strokeStyle = S.ink; c.fillStyle = S.ink; c.lineWidth = 2.5; c.beginPath(); c.moveTo(cx, Y - 18); c.lineTo(cx, ay); c.stroke();
-  c.beginPath(); c.moveTo(cx, ay - 10); c.lineTo(cx - 7, ay + 2); c.lineTo(cx + 7, ay + 2); c.closePath(); c.fill();
-  txt(c, a.ripK, cx + 12, ay + 4, 'left', 11, 700);
-  c.fillStyle = S.soft; txt(c, a.shore, x + w, Y - 14, 'right', 10.5, 600);
-  // A dot in the rip's colour with its plain words (only Cocles and Playa Negra fly flags).
-  const fx0 = x + w * 0.16, fy = Y + (y + h - Y) * 0.78;
-  c.beginPath(); c.arc(fx0, fy - 10, 9, 0, TAU);
-  c.fillStyle = rgba(S.T[a.rip === 'HIGH' ? 'lv0' : a.rip === 'MOD' ? 'lv2' : 'lv3']); c.fill(); c.lineWidth = 2; c.strokeStyle = S.ink; c.stroke();
-  c.fillStyle = S.ink; txt(c, a.flag, fx0 + 18, fy - 10, 'left', 10.5, 700);
-  // The sun with its UV ring, one segment per index point up to 11.
+
+  // --- The current: feeders along the shore into the gap, out through the neck, fanning out at the head.
+  const v = 26 + 34 * rk, sz = 5 + 2 * rk, fy = Y - 12;
+  const paths: [number, number][][] = [
+    [[x + 8, fy], [cx - half(fy) - 6, fy]], [[x + w - 8, fy], [cx + half(fy) + 6, fy]],
+    [[cx, Y - 6], [cx, top + 14]],
+    [[cx - 4, top + 10], [cx - pw * 0.7, hy - ph * 0.35], [cx - pw * 1.15, hy + ph * 0.25]], [[cx + 4, top + 10], [cx + pw * 0.7, hy - ph * 0.35], [cx + pw * 1.15, hy + ph * 0.25]],
+  ];
+  paths.forEach((pp, i) => march(c, pp, tt, i === 2 ? v * 1.5 : v, i === 2 ? 15 : 20, i === 2 ? sz + 2 : sz, i === 2 ? 3 : 2.2, S.on, i === 2 ? 1 : 0.75));
+
+  // --- The way out: carried out, sideways along the beach, back in with the waves.
+  const side = 1, ox = cx, oy = Y - (Y - barTop) * 0.25, py = barTop + (barBot - barTop) * 0.45;
+  const exX = cx + side * (half(py) + w * 0.13), inX = exX + side * w * 0.04;
+  const way: [number, number][] = [[ox, oy], [ox, py], [exX, py], [inX, Y - 10]];
+  c.strokeStyle = cream(0.95); c.lineWidth = 2; c.setLineDash([5, 4]); c.beginPath(); way.forEach(([px, qy], i) => (i ? c.lineTo(px, qy) : c.moveTo(px, qy))); c.stroke(); c.setLineDash([]);
+  c.fillStyle = cream(0.95); { const ang = Math.atan2(Y - 10 - py, inX - exX); c.save(); c.translate(inX, Y - 10); c.rotate(ang); c.beginPath(); c.moveTo(4, 0); c.lineTo(-7, -5); c.lineTo(-7, 5); c.closePath(); c.fill(); c.restore(); }
+  const LW = polyLen(way), cyc = 11, u = S.reduced ? 0.55 : ((tt % cyc) / cyc);
+  // Slow while carried out, quick across, steady in.
+  const d = LW * (u < 0.3 ? (u / 0.3) * 0.3 : u < 0.7 ? 0.3 + ((u - 0.3) / 0.4) * 0.45 : 0.75 + ((u - 0.7) / 0.3) * 0.25);
+  const [sxp, syp] = along(way, d), stroke = S.reduced ? 0.5 : Math.sin(tt * 6);
+  // The swimmer from above: a ring of white water, arms reaching in turn, the head.
+  c.strokeStyle = cream(0.7); c.lineWidth = 1.5; c.strokeRect(sxp - 11, syp - 7, 22, 16);
+  c.strokeStyle = ink; c.lineWidth = 3; c.lineCap = 'butt';
+  c.beginPath(); c.moveTo(sxp - 3, syp + 1); c.lineTo(sxp - 9, syp - 5 - 5 * stroke); c.moveTo(sxp + 3, syp + 1); c.lineTo(sxp + 9, syp - 5 + 5 * stroke); c.stroke();
+  c.fillStyle = cream(1); c.beginPath(); c.arc(sxp, syp + 1, 4.6, 0, TAU); c.fill(); c.strokeStyle = ink; c.lineWidth = 2; c.stroke();
+  const sw = tag(c, a.sideK, exX + 4, py - 15, 'right', 9 * fs, cream(0.95), rgba(DARK));
+
+  // --- Words: the rip's own tag in its colour, the shore break, the beach's call.
+  const rt = tag(c, a.ripK, cx - half(barTop + 30) - 10, barTop + 30, 'right', 10.5 * fs, ink, rgba(S.fd), false, cx - half(barTop + 30) - 10 - (x + 14));
+  c.fillStyle = rgba(riskC); c.fillRect(rt.x - 12, rt.y, 12, rt.h); c.strokeStyle = ink; c.lineWidth = 1.5; c.strokeRect(rt.x - 12 + 0.75, rt.y + 0.75, 10.5, rt.h - 1.5);
+  c.strokeStyle = ink; c.lineWidth = 1.5; c.beginPath(); c.moveTo(rt.x + rt.w, rt.y + rt.h / 2); c.lineTo(cx - 3, rt.y + rt.h / 2); c.stroke();
+  const st = tag(c, a.shore, x, Y - 30, 'left', 9.5 * fs, ink, ink, true);
+  const fx0 = x + 4, fyy = Y + (y + h - Y) * 0.58;
+  const ft = tag(c, a.flag, fx0 + 22, fyy, 'left', 9.5 * fs, ink, rgba(S.fd), false, x + w - fx0 - 22);
+  c.fillStyle = rgba(riskC); c.fillRect(fx0, ft.y, ft.h, ft.h); c.strokeStyle = ink; c.lineWidth = 2; c.strokeRect(fx0 + 1, ft.y + 1, ft.h - 2, ft.h - 2);
+
+  // --- The sun with its UV ring: one hard block per index point, up to 11.
+  let uvBox: Box | null = null;
   if (a.uv !== null) {
-    const sr = Math.min(w, h) * 0.085, sx = x + w - sr - 22, sy = y + sr + 22;
-    c.fillStyle = S.ink; c.beginPath(); c.arc(sx, sy, sr, 0, TAU); c.fill();
+    const sr = Math.min(w, h) * 0.06, sx = x + w - sr - 18, sy = y + sr + 14;
+    c.fillStyle = ink; c.beginPath(); c.arc(sx, sy, sr, 0, TAU); c.fill();
+    c.lineCap = 'butt';
     for (let i = 0; i < 11; i++) {
-      const a0 = -Math.PI / 2 + (i / 11) * TAU + 0.05, a1 = a0 + TAU / 11 - 0.1;
-      c.strokeStyle = i < Math.round(a.uv) ? S.ink : S.faint; c.lineWidth = 5; c.beginPath(); c.arc(sx, sy, sr + 10, a0, a1); c.stroke();
+      const a0 = -Math.PI / 2 + (i / 11) * TAU + 0.07, a1 = a0 + TAU / 11 - 0.14;
+      c.strokeStyle = i < Math.round(a.uv) ? ink : rgba(S.on, 0.22); c.lineWidth = 6; c.beginPath(); c.arc(sx, sy, sr + 9, a0, a1); c.stroke();
     }
-    c.fillStyle = S.ink; txt(c, a.uvK, sx - sr - 22, sy, 'right', 11, 700);
+    tag(c, a.uvK, sx - sr - 18, sy, 'right', 10 * fs, ink, rgba(S.fd));
+    uvBox = { x: sx - sr - 14, y: sy - sr - 14, w: 2 * sr + 28, h: 2 * sr + 28 };
   }
+
+  // --- Tap targets, most specific first.
+  S.hot.push({ x: sw.x, y: sw.y, w: sw.w, h: sw.h, k: 'swim.out' });
+  S.hot.push({ x: Math.min(ox, exX) - 14, y: py - 14, w: Math.abs(exX - ox) + 28, h: Y - py + 4, k: 'swim.out' });
+  S.hot.push({ x: rt.x - 12, y: rt.y, w: rt.w + 12, h: rt.h, k: 'swim.rip' });
+  S.hot.push({ x: ft.x - 22, y: ft.y, w: ft.w + 22, h: ft.h, k: 'swim.flag' });
+  S.hot.push({ x: st.x, y: st.y, w: st.w, h: st.h, k: 'swim.shore' });
+  if (uvBox) S.hot.push({ ...uvBox, k: 'swim.uv' });
+  S.hot.push({ x: cx - half(top) - 6, y: top - 10, w: 2 * half(top) + 12, h: Y - top + 10, k: 'swim.rip' });
+  S.hot.push({ x: x, y: Y - 10, w: w, h: 20, k: 'swim.shore' });
+  S.hot.push({ x: x, y: barTop - 12, w: w, h: barBot - barTop + 12, k: 'swim.waves' });
 }
 
 // --- snorkel and dive: shared reef, figures and murk ---------------------------------------------------------------

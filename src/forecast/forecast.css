@@ -149,6 +149,28 @@ body.fc-open { overflow: hidden; }
   transition: background-color 0.9s cubic-bezier(0.65, 0, 0.25, 1), color 0.9s cubic-bezier(0.65, 0, 0.25, 1);
 }
 .fc-hero canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+/* A tapped part of the hero picture: a square ink block with its plain words, a notch pointing at the part. */
+.fc-pop {
+  position: absolute; z-index: 3; width: min(320px, calc(100% - 24px)); padding: 12px 40px 13px 14px; border-radius: 0;
+  background: var(--fc-on-field); color: var(--fc-field); box-shadow: 0 0 0 2px var(--fc-field), 6px 6px 0 0 rgb(0 0 0 / 0.28);
+  animation: fc-pop-in 0.22s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+.fc-pop[hidden] { display: none; }
+.fc-pop::before {
+  content: ''; position: absolute; left: calc(var(--ax, 50%) - 8px); width: 16px; height: 9px; background: var(--fc-on-field);
+  clip-path: polygon(0 100%, 50% 0, 100% 100%);
+}
+.fc-pop[data-side='below']::before { top: -9px; }
+.fc-pop[data-side='above']::before { bottom: -9px; transform: scaleY(-1); }
+.fc-pop-t { display: block; font-family: var(--fc-disp); font-weight: 850; font-variation-settings: 'wdth' 82; font-size: 21px; line-height: 1.02; text-transform: uppercase; letter-spacing: 0.01em; }
+.fc-pop-b { margin: 7px 0 0; font-size: 15px; line-height: 1.38; font-weight: 500; }
+.fc .fc-pop-x {
+  position: absolute; right: 0; top: 0; width: 38px; height: 38px; border: 0; border-left: 2px solid var(--fc-field); border-bottom: 2px solid var(--fc-field);
+  background: none; color: inherit; font-size: 22px; line-height: 1; cursor: pointer; border-radius: 0;
+}
+@keyframes fc-pop-in { from { opacity: 0; transform: translateY(6px) scale(0.98); } }
+@media (prefers-reduced-motion: reduce) { .fc-pop { animation: none; } }
+.fc-h-art { cursor: pointer; }
 .fc-hero-in { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: 'meta' 'art' 'num' 'words' 'rate' 'chips' 'best'; padding: 16px 0 20px; }
 .fc-h-meta { grid-area: meta; display: flex; justify-content: space-between; gap: 12px; font-size: 12px; font-weight: 600; }
 .fc-h-meta span:last-child { text-align: right; }

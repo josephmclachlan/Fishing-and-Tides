@@ -120,6 +120,39 @@ describe('hero engine draws every activity without a NaN', () => {
           e.still();
         }
   }, 60_000);
+  it('SAIL and SWIM: every part of the picture you can tap has its plain words in English and Spanish, and a tap finds it', async () => {
+    const { en } = await import('../i18n/en');
+    const { es } = await import('../i18n/es');
+    for (const a of ['sail', 'swim'] as const) {
+      const deps = full(), fx = recCtx(), ov = recCtx();
+      const cv = (c: ReturnType<typeof recCtx>) => ({ getContext: () => c, width: 0, height: 0 }) as unknown as HTMLCanvasElement;
+      const e = new HeroEngine(cv(fx), cv(ov), box(390, 760), box(358, 300));
+      e.setTokens(tokens(), true);
+      const { sp, plan, tl } = ctxFor(deps, a, 'PLAYA COCLES');
+      e.set(heroParams(readAt(deps, a, sp, at), { deps, ms: at, plan, tl }), 0);
+      e.resize();
+      e.overlay(5);
+      const keys = [...new Set(e.hots.map((q) => q.k))];
+      expect(keys.length).toBeGreaterThanOrEqual(4);
+      for (const k of keys) {
+        expect(k.startsWith(`${a}.`)).toBe(true);
+        for (const dict of [en, es] as unknown as Record<string, string>[]) {
+          expect(dict[`fc.pop.${k}.t`], `${k} title`).toBeTruthy();
+          expect(dict[`fc.pop.${k}.b`], `${k} words`).toBeTruthy();
+        }
+        const q = e.boxOf(k)!;
+        expect(Number.isFinite(q.x + q.y + q.w + q.h)).toBe(true);
+        expect(e.hit(q.x + q.w / 2, q.y + q.h / 2)).not.toBeNull();
+      }
+      expect(e.hit(-50, -50)).toBeNull();
+      // A tapped part stays bracketed while the picture runs; a new activity clears it.
+      e.active = keys[0];
+      e.overlay(5.1);
+      expect(e.active).toBe(keys[0]);
+      e.set({ act: 'surf', level: 2, ok: false }, 6);
+      expect(e.active).toBeNull();
+    }
+  });
   it('draws the radar with and without the map\'s scale; kilometre labels only with it', () => {
     const c1 = recCtx(), c2 = recCtx();
     drawRadar(c1, 390, 460, 3, { cx: 195, cy: 230, kmPx: 40, name: 'Playa Cocles', level: 2, T: tokens(), reduced: false });
