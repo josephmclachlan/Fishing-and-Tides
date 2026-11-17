@@ -923,3 +923,11 @@
 .km .k-wh-sl.k-hov .k-wh-g{stroke:var(--bg)}
 .km .k-wh-sl.k-hov .k-wh-e{stroke:var(--bg)}
 .km .k-wh-hub b{font-weight:850;font-variation-settings:"wdth" 72}
+/* Square-look pass (PLAN 13.x, with the square-look thread): no rounding at all on the phone's floating controls, each with
+   a crisp 1.5 px rule; dots and pins stay round. */
+@media (max-width:1099.98px){
+  .km .k-back,.km .k-actpill,.km .k-findtop,.km .k-ctrls .k-ib,.km .k-top.k-acts .k-tab,.km .k-sheet.k-phs{border-radius:0}
+  .km .k-back,.km .k-findtop,.km .k-ctrls .k-ib,.km .k-top.k-acts .k-tab:not([aria-selected="true"]),
+  :root[data-theme="modern"][data-scheme="dark"] .k-back,:root[data-theme="modern"][data-scheme="dark"] .k-findtop,
+  :root[data-theme="modern"][data-scheme="dark"] .k-ctrls .k-ib,:root[data-theme="modern"][data-scheme="dark"] .k-top.k-acts .k-tab:not([aria-selected="true"]){box-shadow:inset 0 0 0 1.5px var(--line),0 6px 20px rgba(0,0,0,.35)}
+}
