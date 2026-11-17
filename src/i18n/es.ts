@@ -2089,6 +2089,7 @@ export const es: Dict = {
   'gd.id.features': 'Algo que te llamó la atención',
   'gd.h.marks': 'Marcas clave',
   'fc.guide': 'Guía de especies',
+  'fc.guideShort': 'Especies',
   'fc.lk.id': 'Identificar',
   'fc.lk.handle': 'Manejo',
   'fc.lk.notes': 'Notas de campo',

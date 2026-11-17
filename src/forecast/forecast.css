@@ -459,3 +459,28 @@ body.fc-open { overflow: hidden; }
 .fc-down-msg { margin: 14px 0; padding: 14px 16px; border-left: 3px solid var(--fc-ink2); background: var(--fc-c-card); font-size: 15px; line-height: 1.4; }
 .fc-down-msg[hidden] { display: none; }
 .fc-down .fc-sec { display: none; }
+
+/* PLAN 7.168 (Joseph 2026-11-17): the species guide button wears the SurCast logo colours so it draws the eye. Square, a
+   spectrum edge, a bigger fish and a bold display label, like the guide's IDENTIFY bar. */
+.fc .fc-ctl.fc-guideb {
+  --sc-spec: linear-gradient(90deg, var(--fc-t-snorkel), var(--fc-t-surf) 30%, var(--fc-t-dive) 50%, var(--fc-t-swim) 70%, var(--fc-t-fish) 85%, var(--fc-t-sail));
+  height: 46px; padding: 0 12px 0 9px; gap: 7px; border: 2px solid transparent; border-radius: 0; color: var(--fc-ink);
+  background: linear-gradient(100deg, color-mix(in srgb, var(--fc-t-snorkel) 16%, var(--fc-card)), var(--fc-card) 75%) padding-box, var(--sc-spec) border-box;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--fc-t-snorkel) 34%, transparent), 0 0 22px color-mix(in srgb, var(--fc-t-swim) 18%, transparent);
+  transition: box-shadow 0.25s, transform 0.12s;
+}
+.fc .fc-ctl.fc-guideb svg { width: 28px; height: 28px; stroke: var(--fc-t-snorkel); stroke-width: 2.2; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--fc-t-snorkel) 60%, transparent)); }
+.fc .fc-ctl.fc-guideb span {
+  font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 72; font-size: 21px; line-height: 1; letter-spacing: 0.01em; text-transform: uppercase;
+  background: var(--sc-spec); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.fc .fc-ctl.fc-guideb:hover, .fc .fc-ctl.fc-guideb:focus-visible { box-shadow: 0 0 22px color-mix(in srgb, var(--fc-t-snorkel) 50%, transparent), 0 0 30px color-mix(in srgb, var(--fc-t-swim) 28%, transparent); }
+.fc .fc-ctl.fc-guideb:active { transform: translateY(1px); }
+.fc:not([data-scheme='dark']) .fc-ctl.fc-guideb { box-shadow: 0 2px 10px color-mix(in srgb, var(--fc-t-snorkel) 30%, transparent); }
+.fc:not([data-scheme='dark']) .fc-ctl.fc-guideb svg { filter: none; }
+/* Narrow phones: the label goes and the fish grows to fill a bigger square. */
+@media (max-width: 400px) {
+  .fc .fc-ctl.fc-guideb { width: 46px; padding: 0; }
+  .fc .fc-ctl.fc-guideb span { display: none; }
+  .fc .fc-ctl.fc-guideb svg { width: 32px; height: 32px; }
+}

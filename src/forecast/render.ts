@@ -48,7 +48,7 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
       <p class="fc-brand fc-mono">${brandLine(esc(t('fc.region')), 'fc-hide-s')}</p>
       <div class="fc-ctrls">
         <button type="button" class="fc-ctl fc-back" id="fc-back" title="${esc(t('fc.backTitle'))}">${MAP_ICON}<span>${esc(t('fc.back'))}</span></button>
-        ${o.guide ? `<button type="button" class="fc-ctl fc-sq" id="fc-guide" aria-label="${esc(t('fc.guide'))}" title="${esc(t('fc.guide'))}">${GUIDE_ICON}</button>` : ''}
+        ${o.guide ? `<button type="button" class="fc-ctl fc-guideb" id="fc-guide" aria-label="${esc(t('fc.guide'))}" title="${esc(t('fc.guide'))}">${GUIDE_ICON}<span>${esc(t('fc.guideShort'))}</span></button>` : ''}
         ${o.coral ? `<button type="button" class="fc-ctl fc-sq" id="fc-coral" aria-label="${esc(t('fc.coral'))}" title="${esc(t('fc.coral'))}">${CORAL_ICON}</button>` : ''}
         <div class="fc-lang" role="group" aria-label="${esc(t('fc.langGroup'))}">
           <button type="button" data-lang="en" aria-pressed="${o.lang === 'en'}">EN</button><button type="button" data-lang="es" aria-pressed="${o.lang === 'es'}">ES</button>
