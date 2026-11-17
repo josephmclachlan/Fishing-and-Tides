@@ -21,7 +21,7 @@ import { loadIndex, loadSpecies } from './data';
 import { noAnswers, stepsFor, type IdAnswers, type IdStep } from './identify';
 import { idHtml } from './identify-view';
 import {
-  activeCount, DEFAULT_FILTER, isHere, groupCounts, GROUP_BYS, haystack, inView, matches, modeCounts, sections, SORTS,
+  activeCount, DEFAULT_FILTER, isHere, groupCounts, GROUP_BYS, haystack, inView, matches, nameOf, modeCounts, sections, SORTS,
   type GdFilter, type GroupBy, type SortKey,
 } from './filter';
 import { detailHtml, esc, expandHtml, filtersHtml, groupsHtml, ICONS, introHtml, itemCount, modesHtml, pickersHtml, rowsFor, rowsHtml, type Row } from './render';
@@ -164,6 +164,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
   let failed = false;
   const hays = new Map<string, string>();
   const bySci = new Map<string, string>();
+  const byId = new Map<string, Entry>();
   let rows: Row[] = [];
   let drawn = 0;
   /** The species of the list in the order drawn, for the arrows on a species. */
@@ -299,7 +300,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
     loadIndex(base).then(
       (ix) => {
         idx = ix;
-        for (const e of ix.entries) hays.set(e.id, haystack(e)), bySci.set(e.sci.toLowerCase(), e.id);
+        for (const e of ix.entries) hays.set(e.id, haystack(e)), bySci.set(e.sci.toLowerCase(), e.id), byId.set(e.id, e);
         $('gd-sub').textContent = t('gd.sub', { n: ix.entries.filter((e) => e.tier === 'full' && (f.expanded || isHere(e))).length });
         render();
         if (openId) drawDetail();
@@ -402,13 +403,25 @@ export function mountGuidePage(deps: GuidePageDeps) {
         history.pushState({ gd: 1, gdD: 1 }, '', b.getAttribute('href'));
         openDetail(r.id, 'about');
       }
-    } else if ((b = hit('a.gd-d-tab')) && plain) {
+    } else if ((b = hit('a[data-jump]')) && plain) {
+      // A jump chip or one of the four answers: scroll to that section, and keep it in the link.
       ev.preventDefault();
-      const k = b.dataset.tab;
+      const k = b.dataset.jump;
       if (isGdTab(k) && openId) {
         tab = k;
         history.replaceState(history.state, '', guideHash({ mode, group, id: openId, tab }));
-        drawDetail(false);
+        jumpTo(k);
+      }
+    } else if ((b = hit('sup.gd-cite'))) {
+      // A source number: open the list and show that source.
+      const n = Number(b.textContent?.split(',')[0]);
+      const fold = el.querySelector<HTMLDetailsElement>('.gd-fn-fold');
+      const li = el.querySelectorAll<HTMLElement>('#gd-fn-list > li')[n - 1];
+      if (fold && li) {
+        fold.open = true;
+        el.querySelectorAll('#gd-fn-list > li.on').forEach((x) => x.classList.remove('on'));
+        li.classList.add('on');
+        scrollSheetTo(li, 120);
       }
     } else if ((b = hit('[data-go]')) && b.dataset.go) {
       history.replaceState(history.state, '', guideHash({ mode, group, id: b.dataset.go }));
@@ -442,7 +455,38 @@ export function mountGuidePage(deps: GuidePageDeps) {
   });
   q.addEventListener('keydown', (e) => e.key === 'Enter' && q.blur());
 
-  // --- a species, on top of the list
+  // --- a species, on top of the list: one page, with jump chips that follow the reader down it
+  /** Scroll the species page so an element sits just under the sticky bar and chips (plus `extra` px). */
+  const scrollSheetTo = (x: HTMLElement, extra = 0, smooth = true) => {
+    const bar = (el.querySelector<HTMLElement>('.gd-d-top')?.offsetHeight ?? 0) + (el.querySelector<HTMLElement>('.gd-d-tabs')?.offsetHeight ?? 0);
+    const top = sheet.scrollTop + x.getBoundingClientRect().top - sheet.getBoundingClientRect().top - bar - 8 - extra;
+    sheet.scrollTo?.({ top: Math.max(0, top), behavior: smooth && !REDUCED() ? 'smooth' : 'auto' });
+  };
+  const REDUCED = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const jumpTo = (k: GdTab, smooth = true) => {
+    const sec = el.querySelector<HTMLElement>(`#gd-s-${k}`);
+    if (sec) scrollSheetTo(sec, 0, smooth);
+  };
+  /** Light the chip of the section being read, and keep it in view in the row. */
+  let spyFrame = 0;
+  const spy = () => {
+    spyFrame = 0;
+    const nav = el.querySelector<HTMLElement>('.gd-d-tabs');
+    if (!nav || sheet.hidden) return;
+    const line = nav.getBoundingClientRect().bottom + 24;
+    let cur = '';
+    for (const s of el.querySelectorAll<HTMLElement>('.gd-sec')) if (s.getBoundingClientRect().top <= line) cur = s.dataset.sec ?? '';
+    if (!cur) cur = el.querySelector<HTMLElement>('.gd-sec')?.dataset.sec ?? '';
+    for (const a of nav.querySelectorAll<HTMLElement>('a[data-jump]')) {
+      const on = a.dataset.jump === cur;
+      if (on === (a.getAttribute('aria-current') === 'true')) continue;
+      if (on) {
+        a.setAttribute('aria-current', 'true');
+        nav.scrollTo?.({ left: a.offsetLeft - nav.clientWidth / 2 + a.offsetWidth / 2, behavior: REDUCED() ? 'auto' : 'smooth' });
+      } else a.removeAttribute('aria-current');
+    }
+  };
+  sheet.addEventListener('scroll', () => { if (!spyFrame) spyFrame = requestAnimationFrame(spy); }, { passive: true });
   const drawDetail = (fresh = true) => {
     if (!current || current.id !== openId) return;
     const i = openId ? order.indexOf(openId) : -1;
@@ -454,11 +498,18 @@ export function mountGuidePage(deps: GuidePageDeps) {
         return id ? guideHash({ mode, group, id }) : null;
       },
       tabHref: (k) => guideHash({ mode, group, id: openId, tab: k }),
+      peer: (sci) => {
+        const id = bySci.get(sci.toLowerCase());
+        const e = id ? byId.get(id) : undefined;
+        return e ? { name: nameOf(e, lang), thumb: e.thumb ? base + e.thumb : undefined } : null;
+      },
       fav: !!openId && favs.has(openId),
     });
     if (fresh) sheet.scrollTop = 0;
-    else el.querySelector<HTMLElement>('.gd-d-tabs')?.scrollIntoView?.({ block: 'nearest' });
+    // Opened at a section (a shared link, an answer on another page): go straight there.
+    if (fresh && tab !== 'about') jumpTo(tab, false);
     if (fresh) el.querySelector<HTMLElement>('.gd-d-close')?.focus({ preventScroll: true });
+    spy();
   };
   let asked = '';
   const openDetail = (id: string, t_: GdTab) => {
@@ -555,7 +606,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
     else if (changed || qChanged) render();
     if (r.id) {
       if (r.id !== openId || sheet.hidden) openDetail(r.id, r.tab ?? 'about');
-      else if ((r.tab ?? 'about') !== tab) (tab = r.tab ?? 'about'), drawDetail(false);
+      else if ((r.tab ?? 'about') !== tab) (tab = r.tab ?? 'about'), jumpTo(tab);
     } else hideDetail();
   };
   window.addEventListener('hashchange', fromHash);
