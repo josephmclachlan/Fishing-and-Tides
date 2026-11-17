@@ -1891,7 +1891,14 @@ const mapIfShown = () => {
   startMap(map);
   releaseMapWork();
 };
-new MutationObserver(mapIfShown).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+// Checked a moment after the cover changes, never at once: on a hash change each page hears it in turn, so going from
+// one page to another (the guide to the forecast) can leave nothing covering the map between the two, and the map
+// loader opened over the forecast saying "Opening the map" (Joseph 2026-11-17).
+let coverCheck = 0;
+new MutationObserver(() => {
+  window.clearTimeout(coverCheck);
+  coverCheck = window.setTimeout(mapIfShown, 0);
+}).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 window.setTimeout(mapIfShown, 0);
 // Every start-up feed has been handed to the launch screen: when they are in, draw the open page once with everything,
 // then fade the launch screen (PLAN 7.160).

@@ -128,6 +128,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       <div class="gd-flip-deck" id="gd-flip-deck" aria-live="off"></div>
       <div class="gd-flip-nav"><button type="button" class="fc-ctl" data-flip-step="-1" aria-label="${esc(t('gd.flip.prev'))}">${svg(ICONS.back)}</button><p class="fc-mono">${esc(t('gd.flip.hint'))}</p><button type="button" class="fc-ctl" data-flip-step="1" aria-label="${esc(t('gd.flip.next'))}">${svg(ICONS.next)}</button></div>
     </div>
+    <div class="gd-scrim" id="gd-scrim" aria-hidden="true" hidden></div>
     <div class="gd-sheet" id="gd-sheet" role="dialog" aria-modal="true" aria-labelledby="gd-d-title" hidden><div class="gd-sheet-in" id="gd-detail"></div></div>`;
   document.body.appendChild(el);
   // The old photo cache kept failed loads as if they were photos (2026-11-16): drop it; the worker now fills guide-photos-v2.
@@ -142,7 +143,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
     true,
   );
   const $ = <T extends HTMLElement = HTMLElement>(id: string) => el.querySelector<T>('#' + id)!;
-  const page = $('gd-page'), list = $('gd-list'), sheet = $('gd-sheet'), detail = $('gd-detail'), moreBtn = $('gd-more');
+  const page = $('gd-page'), list = $('gd-list'), sheet = $('gd-sheet'), scrim = $('gd-scrim'), detail = $('gd-detail'), moreBtn = $('gd-more');
   const q = $<HTMLInputElement>('gd-q');
 
   // --- light / dark: shared with the FORECAST and CORAL pages; the OS setting until one is picked
@@ -742,6 +743,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
     tab = t_;
     if (sheet.hidden) {
       sheet.hidden = false;
+      scrim.hidden = false;
       page.inert = true;
       el.classList.add('gd-open');
     }
@@ -765,6 +767,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
     const was = openId;
     openId = null;
     sheet.hidden = true;
+    scrim.hidden = true;
     page.inert = false;
     el.classList.remove('gd-open');
     // Back to the card it was opened from.
@@ -777,6 +780,10 @@ export function mountGuidePage(deps: GuidePageDeps) {
       hideDetail();
     }
   };
+
+  // On a wide screen the species opens as a panel on the right: a tap or click on the dimmed page beside it closes it,
+  // like any drawer (Joseph 2026-11-17). On a phone the panel fills the screen, so there is no space beside it.
+  scrim.addEventListener('click', () => closeDetail());
 
   // --- keys: Escape closes the species, then the page; arrows step through the list on a species
   document.addEventListener('keydown', (e) => {
