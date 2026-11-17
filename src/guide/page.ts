@@ -187,7 +187,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
   const saveFavs = () => put(storage, FAV_KEY, JSON.stringify([...favs]));
   /** The identify answers and the question showing. */
   let idA: IdAnswers = noAnswers();
-  let idStep: IdStep = 'kind';
+  let idStep: IdStep = 'group';
   const listOpts = { lang, base, href: (id: string) => guideHash({ mode, group, id }), fav: (id: string) => favs.has(id) };
 
   // --- the controls, drawn once and updated in place (keeps focus and the strip's scroll)
@@ -333,8 +333,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
   const idAnswer = (k: string, v: string) => {
     const a = idA;
     let advance = false;
-    if (k === 'kind') (a.kind = a.kind === v ? undefined : (v as IdAnswers['kind'])), (a.group = undefined), (a.sub = undefined), (a.shape = []), (advance = !!a.kind);
-    else if (k === 'group') (a.group = a.group === v ? undefined : (v as IdAnswers['group'])), (a.sub = undefined), (a.shape = []), (advance = !!a.group);
+    if (k === 'group') (a.group = a.group === v ? undefined : (v as IdAnswers['group'])), (a.sub = undefined), (a.shape = []), (advance = !!a.group);
     else if (k === 'sub') (a.sub = a.sub === v ? undefined : v), (advance = !!a.sub);
     else if (k === 'size') (a.size = a.size === v ? undefined : (v as IdAnswers['size'])), (advance = !!a.size);
     else if (k === 'night') a.night = !a.night;
@@ -364,7 +363,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       toId();
     } else if (hit('[data-id-reset]')) {
       idA = noAnswers();
-      idStep = 'kind';
+      idStep = 'group';
       render();
       toId();
     } else if ((b = hit('[data-showmap]'))) {
@@ -396,7 +395,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       render();
     } else if (hit('#gd-fbtn')) setFilters($('gd-filters').hidden === true);
     else if (hit('[data-retry]')) load();
-    else if ((b = hit('a.gd-card, a.gd-rec, .gd-look a')) && plain) {
+    else if ((b = hit('a.gd-card, a.gd-rec, .gd-look a, a.gd-id-tl')) && plain) {
       ev.preventDefault();
       const r = parseGuideRoute(b.getAttribute('href') ?? '');
       if (r?.id) {

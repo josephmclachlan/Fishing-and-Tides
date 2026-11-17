@@ -4,7 +4,7 @@
  */
 import { t, type Key } from '../i18n';
 import { artSvg, GROUP_ART } from './art';
-import { SIZE_BANDS } from './filter';
+import { nameOf, SIZE_BANDS } from './filter';
 import { fits, groupsOf, identify, shapesOf, stepsFor, subsOf, type IdAnswers, type IdStep } from './identify';
 import { cardHtml, esc, expandHtml, icon, ICONS, type ListOpts } from './render';
 import { COLOR_WORDS, COLORS, FEATURE_WORDS, FEATURES, GROUP_WORDS, SHAPE_WORDS, PATTERN_WORDS, PATTERNS, POSITION_WORDS, POSITIONS, SUB_WORDS, tx, type Entry, type Lang } from './types';
@@ -13,13 +13,12 @@ import { COLOR_WORDS, COLORS, FEATURE_WORDS, FEATURES, GROUP_WORDS, SHAPE_WORDS,
 export const ID_MAX = 60;
 
 const STEP_KEY: Record<IdStep, Key> = {
-  kind: 'gd.id.s.kind', group: 'gd.id.s.group', sub: 'gd.id.s.sub', size: 'gd.id.s.size', shape: 'gd.id.s.shape', look: 'gd.id.s.look', where: 'gd.id.s.where', results: 'gd.id.s.results',
+  group: 'gd.id.s.group', sub: 'gd.id.s.sub', size: 'gd.id.s.size', shape: 'gd.id.s.shape', look: 'gd.id.s.look', where: 'gd.id.s.where', results: 'gd.id.s.results',
 };
 
 /** What a step's answer says, for the row of steps. */
 function answerText(s: IdStep, a: IdAnswers, lang: Lang): string {
   switch (s) {
-    case 'kind': return a.kind ? t(a.kind === 'plant' ? 'gd.id.plant' : 'gd.id.animal') : '';
     case 'group': return a.group ? tx(GROUP_WORDS[a.group].short, lang) : '';
     case 'sub': return a.sub ? tx(SUB_WORDS[a.sub], lang) : '';
     case 'size': return a.size ? t(`gd.size.${a.size}` as Key) : '';
@@ -47,8 +46,6 @@ const chip = (field: string, v: string, label: string, on: boolean, pre = '') =>
 function question(s: IdStep, list: readonly Entry[], a: IdAnswers, lang: Lang): string {
   const n = (b: IdAnswers) => fits(identify(list, b)).length;
   switch (s) {
-    case 'kind':
-      return `<div class="gd-id-tiles two">${tile('kind', 'animal', t('gd.id.animal'), a.kind === 'animal', artSvg('fish', 'gd-id-art') , t('gd.id.animalSub'))}${tile('kind', 'plant', t('gd.id.plant'), a.kind === 'plant', artSvg('seaweed', 'gd-id-art'), t('gd.id.plantSub'))}</div>`;
     case 'group':
       return `<div class="gd-id-tiles">${groupsOf(a.kind)
         .map((g) => tile('group', g, tx(GROUP_WORDS[g].short, lang), a.group === g, artSvg(GROUP_ART[g], 'gd-id-art'), String(n({ ...a, group: g, sub: undefined })), `g-${g}`))
@@ -79,6 +76,18 @@ function question(s: IdStep, list: readonly Entry[], a: IdAnswers, lang: Lang): 
   }
 }
 
+/**
+ * What could fit so far, as photos, under every question (Joseph 2026-11-17: photos from the first tap, not only at
+ * the end). Tapping one opens it.
+ */
+function liveHtml(found: readonly Entry[], o: ListOpts, max = 8): string {
+  const withPic = found.filter((e) => e.thumb).slice(0, max);
+  if (!withPic.length) return '';
+  return `<div class="gd-id-live"><p class="fc-mono gd-id-k">${esc(t('gd.id.live', { n: found.length }))}</p><div class="gd-id-th">${withPic
+    .map((e) => `<a class="gd-id-tl g-${e.group}" href="${esc(o.href(e.id))}" title="${esc(nameOf(e, o.lang))}"><img src="${esc(o.base + e.thumb)}" alt="${esc(nameOf(e, o.lang))}" loading="lazy" decoding="async" width="120" height="90"><span>${esc(nameOf(e, o.lang))}</span></a>`)
+    .join('')}</div></div>`;
+}
+
 /** The whole identify view for one step. Returns the markup and the ids of the results in order (for the arrows). */
 export function idHtml(list: readonly Entry[], a: IdAnswers, step: IdStep, o: ListOpts, expanded = false): { html: string; order: string[] } {
   const { lang } = o;
@@ -104,19 +113,20 @@ export function idHtml(list: readonly Entry[], a: IdAnswers, step: IdStep, o: Li
       order: top.map((r) => r.e.id),
       html: `<div class="gd-id">${head}<section class="gd-id-res">
         <div class="gd-id-q"><h3>${esc(t('gd.id.results', { n: found.length }))}</h3><p>${esc(t('gd.id.resultsHint'))}</p>
-        <div class="gd-id-nav"><button type="button" class="fc-ctl" data-step="${steps[i - 1] ?? 'kind'}">${icon(ICONS.back)}<span>${esc(t('gd.id.back'))}</span></button><button type="button" class="fc-ctl" data-id-reset>${esc(t('gd.id.again'))}</button></div></div>
+        <div class="gd-id-nav"><button type="button" class="fc-ctl" data-step="${steps[i - 1] ?? 'group'}">${icon(ICONS.back)}<span>${esc(t('gd.id.back'))}</span></button><button type="button" class="fc-ctl" data-id-reset>${esc(t('gd.id.again'))}</button></div></div>
         ${strong.length ? `<h4 class="fc-mono gd-id-k">${esc(t('gd.id.best'))}</h4>${cards(strong)}` : `<p class="gd-empty">${esc(t('gd.none'))}</p>`}
         ${rest.length ? `<h4 class="fc-mono gd-id-k">${esc(t('gd.id.maybe'))}</h4>${cards(rest)}` : ''}
         <div class="gd-id-exp"><p>${esc(t(expanded ? 'gd.id.expOn' : 'gd.id.expOff'))}</p>${expandHtml(expanded)}</div>
       </section></div>`,
     };
   }
-  const single = cur === 'kind' || cur === 'group' || cur === 'sub' || cur === 'size';
+  const single = cur === 'group' || cur === 'sub' || cur === 'size';
   const next = steps[i + 1] ?? 'results';
   return {
     order: [],
     html: `<div class="gd-id">${head}<section class="gd-id-q"><h3>${esc(t(`gd.id.q.${cur}` as Key))}</h3><p>${esc(t(`gd.id.h.${cur}` as Key))}</p>
       ${question(cur, list, a, lang)}
+      ${liveHtml(found.map((r) => r.e), o)}
       <div class="gd-id-nav">
         ${i > 0 ? `<button type="button" class="fc-ctl" data-step="${steps[i - 1]}">${icon(ICONS.back)}<span>${esc(t('gd.id.back'))}</span></button>` : ''}
         ${single ? `<button type="button" class="fc-ctl" data-step="${next}">${esc(t('gd.id.skip'))}</button>` : `<button type="button" class="fc-ctl" data-step="${next}">${esc(t('gd.id.next'))}</button>`}
