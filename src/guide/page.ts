@@ -19,12 +19,14 @@ import { t } from '../i18n';
 import { landing } from '../forecast/model';
 import { loadIndex, loadSpecies } from './data';
 import { noAnswers, stepsFor, type IdAnswers, type IdStep } from './identify';
-import { idHtml } from './identify-view';
+import { coastHtml, ZONE_HABITATS, zoneCounts, zoneOf, type Zone } from './coast';
+import { flipDeckHtml } from './flip';
+import { idCheckHtml, idHtml } from './identify-view';
 import {
-  activeCount, DEFAULT_FILTER, isHere, groupCounts, GROUP_BYS, haystack, inView, matches, modeCounts, sections, SORTS,
+  activeCount, DEFAULT_FILTER, isHere, groupCounts, GROUP_BYS, haystack, inView, matches, nameOf, modeCounts, sections, SORTS,
   type GdFilter, type GroupBy, type SortKey,
 } from './filter';
-import { detailHtml, esc, expandHtml, filtersHtml, groupsHtml, ICONS, introHtml, itemCount, modesHtml, pickersHtml, rowsFor, rowsHtml, type Row } from './render';
+import { commonHtml, detailHtml, esc, expandHtml, flipButton, layHtml, tileKeyHtml, filtersHtml, groupsHtml, ICONS, introHtml, itemCount, modesHtml, pickersHtml, rowsFor, rowsHtml, type Row } from './render';
 import { guideHash, isGdTab, parseGuideRoute, type GdMode, type GdTab } from './route';
 import { GROUPS, type Entry, type Group, type GuideIndex, type Lang, type Species } from './types';
 import '../forecast/forecast.css';
@@ -35,8 +37,10 @@ const SORT_KEY = 'ft.gdSort';
 const BY_KEY = 'ft.gdBy';
 const FAV_KEY = 'ft.gdFav';
 const EXP_KEY = 'ft.gdExp';
-/** Species drawn per step as the list scrolls. */
+const LAY_KEY = 'ft.gdLay';
+/** Species drawn per step as the list scrolls; on shelves, whole shelves at a time. */
 const CHUNK = 48;
+const SHELVES = 8;
 
 type Store = Pick<Storage, 'getItem' | 'setItem'> | undefined;
 const get = (s: Store, k: string) => {
@@ -92,20 +96,32 @@ export function mountGuidePage(deps: GuidePageDeps) {
         <p class="fc-subline fc-mono"><b id="gd-sub">${t('gd.loading')}</b></p>
         <p class="gd-nlinks fc-mono"><a href="#notes/aid">${esc(t('nt.aid'))}</a> · <a href="#notes/rules">${esc(t('nt.rules'))}</a> · <a href="#notes/words">${esc(t('nt.words'))}</a></p>
       </header>
-      <nav class="gd-modes fc-in" id="gd-modes" role="tablist" aria-label="${esc(t('gd.modes'))}"></nav>
-      <div class="gd-groups-w fc-in"><div class="gd-groups" id="gd-groups" role="toolbar" aria-label="${esc(t('gd.groups'))}"></div></div>
       <div class="gd-tools fc-in">
         <label class="gd-search">${svg(ICONS.search)}<input id="gd-q" type="search" enterkeyhint="search" autocomplete="off" spellcheck="false" placeholder="${esc(t('gd.search'))}" aria-label="${esc(t('gd.searchLabel'))}"></label>
+      </div>
+      <div class="fc-in"><button type="button" class="gd-idbar" data-idbar>${svg(ICONS.identify)}<span><b>${esc(t('gd.idbar'))}</b><small>${esc(t('gd.idbarSub'))}</small></span>${svg(ICONS.next)}</button></div>
+      <nav class="gd-modes fc-in" id="gd-modes" role="tablist" aria-label="${esc(t('gd.modes'))}"></nav>
+      <div class="gd-groups-w fc-in"><div class="gd-groups" id="gd-groups" role="toolbar" aria-label="${esc(t('gd.groups'))}"></div></div>
+      <section class="gd-coast fc-in" aria-labelledby="gd-coast-h"><h2 class="gd-coast-h" id="gd-coast-h">${esc(t('gd.coast.title'))}</h2><p class="gd-coast-p">${esc(t('gd.coast.hint'))}</p><div class="gd-coast-d" id="gd-coast"></div><p class="gd-coast-on fc-mono" id="gd-coast-on" hidden></p></section>
+      <div class="gd-tools gd-tools2 fc-in">
+        <div id="gd-common-w"></div>
         <button type="button" class="fc-ctl gd-fbtn" id="gd-fbtn" aria-expanded="false" aria-controls="gd-filters">${svg(ICONS.filter)}<span>${t('gd.filters')}</span><b id="gd-fn" hidden></b></button>
+        <div id="gd-lay-w"></div>
         <div class="gd-picks" id="gd-picks"></div>
         <div id="gd-exp"></div>
       </div>
       <div class="gd-filters fc-in" id="gd-filters" hidden></div>
       <div class="fc-in" id="gd-intro"></div>
-      <p class="gd-count fc-in fc-mono" id="gd-count" aria-live="polite"></p>
+      <div class="gd-countrow fc-in"><p class="gd-count fc-mono" id="gd-count" aria-live="polite"></p><span id="gd-flipall-w" hidden>${flipButton(null)}</span></div>
+      <div class="fc-in" id="gd-tkey"></div>
       <div class="gd-list fc-in" id="gd-list"></div>
       <div class="fc-in gd-more-w"><button type="button" class="fc-ctl gd-more" id="gd-more" hidden>${t('gd.more')}</button></div>
       <footer class="fc-foot fc-in"><p class="fc-note">${t('gd.note')}</p></footer>
+    </div>
+    <div class="gd-flip" id="gd-flip" role="dialog" aria-modal="true" aria-labelledby="gd-flip-t" hidden>
+      <div class="gd-flip-top"><button type="button" class="fc-ctl gd-flip-x" data-flip-close>${svg(ICONS.close)}<span>${esc(t('gd.flip.close'))}</span></button><b id="gd-flip-t"></b><span class="fc-mono" id="gd-flip-n"></span></div>
+      <div class="gd-flip-deck" id="gd-flip-deck" aria-live="off"></div>
+      <div class="gd-flip-nav"><button type="button" class="fc-ctl" data-flip-step="-1" aria-label="${esc(t('gd.flip.prev'))}">${svg(ICONS.back)}</button><p class="fc-mono">${esc(t('gd.flip.hint'))}</p><button type="button" class="fc-ctl" data-flip-step="1" aria-label="${esc(t('gd.flip.next'))}">${svg(ICONS.next)}</button></div>
     </div>
     <div class="gd-sheet" id="gd-sheet" role="dialog" aria-modal="true" aria-labelledby="gd-d-title" hidden><div class="gd-sheet-in" id="gd-detail"></div></div>`;
   document.body.appendChild(el);
@@ -164,6 +180,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
   let failed = false;
   const hays = new Map<string, string>();
   const bySci = new Map<string, string>();
+  const byId = new Map<string, Entry>();
   let rows: Row[] = [];
   let drawn = 0;
   /** The species of the list in the order drawn, for the arrows on a species. */
@@ -186,14 +203,21 @@ export function mountGuidePage(deps: GuidePageDeps) {
   const saveFavs = () => put(storage, FAV_KEY, JSON.stringify([...favs]));
   /** The identify answers and the question showing. */
   let idA: IdAnswers = noAnswers();
-  let idStep: IdStep = 'kind';
-  const listOpts = { lang, base, href: (id: string) => guideHash({ mode, group, id }), fav: (id: string) => favs.has(id) };
+  let idStep: IdStep = 'group';
+  /** Shelves of photos (the Atlas home, the default) or the full list. */
+  let lay: 'shelf' | 'list' = get(storage, LAY_KEY) === 'list' ? 'list' : 'shelf';
+  const listOpts = { lang, base, href: (id: string) => guideHash({ mode, group, id }), fav: (id: string) => favs.has(id), shelf: false };
+  /** Common here: Abundant and Common on this coast. */
+  const COMMON = ['common', 'frequent'] as const;
+  const commonOn = () => f.seen.length === COMMON.length && COMMON.every((x) => f.seen.includes(x));
 
   // --- the controls, drawn once and updated in place (keeps focus and the strip's scroll)
   $('gd-modes').innerHTML = modesHtml(mode, { all: 0, identify: 0, edible: 0, danger: 0, saved: 0 });
   $('gd-groups').innerHTML = groupsHtml(group, Object.fromEntries(GROUPS.map((g) => [g, 0])) as Record<Group, number>, lang);
   $('gd-filters').innerHTML = filtersHtml(f, lang);
   $('gd-exp').innerHTML = expandHtml(f.expanded);
+  $('gd-common-w').innerHTML = commonHtml(false);
+  $('gd-lay-w').innerHTML = layHtml(lay);
   const drawPicks = () => ($('gd-picks').innerHTML = pickersHtml({ ...f, by: byNow() }, mode));
   drawPicks();
   const setFilters = (open: boolean) => {
@@ -205,6 +229,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
   const modeBar = () => {
     const on = el.querySelector<HTMLElement>('.gd-mode[aria-selected="true"]');
     const bar = el.querySelector<HTMLElement>('.gd-mode-bar');
+    if (bar && !on) bar.style.width = '0';
     if (!on || !bar || el.hidden) return;
     bar.style.width = `${on.offsetWidth}px`;
     bar.style.transform = `translate(${on.offsetLeft}px, ${on.offsetTop + on.offsetHeight - 5}px)`;
@@ -229,6 +254,11 @@ export function mountGuidePage(deps: GuidePageDeps) {
       b.querySelector('b')!.textContent = String(n);
       b.toggleAttribute('data-empty', !n);
     });
+    // The coast drawing: each part's count, and the part showing (when the habitat filter is exactly one part).
+    const zone = zoneOf(f.habitats);
+    $('gd-coast').innerHTML = coastHtml(zone, zoneCounts(all, f, mode, group, hays));
+    $('gd-coast-on').hidden = !zone;
+    if (zone) $('gd-coast-on').innerHTML = `<span>${esc(t('gd.coast.on', { zone: t(`gd.coast.${zone}`) }))}</span><button type="button" class="gd-qf" data-coast-clear>${esc(t('gd.coast.clear'))}</button>`;
     const fn = activeCount(f);
     $('gd-fn').textContent = String(fn);
     $('gd-fn').hidden = !fn;
@@ -237,6 +267,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       b.classList.toggle('on', on);
       b.setAttribute('aria-pressed', String(on));
     });
+    $('gd-common').setAttribute('aria-pressed', String(commonOn()));
     el.querySelector<HTMLInputElement>('input[data-f="records"]')!.checked = f.records;
     el.querySelectorAll<HTMLInputElement>('input[data-f="expanded"]').forEach((i) => (i.checked = f.expanded));
     modeBar();
@@ -245,7 +276,10 @@ export function mountGuidePage(deps: GuidePageDeps) {
   // --- the list
   const more = () => {
     let end = drawn, n = 0;
-    while (end < rows.length && n < CHUNK) if (rows[end++].k === 'card' || rows[end - 1].k === 'rec') n++;
+    if (listOpts.shelf) {
+      // Whole shelves: stop at the heading after the eighth.
+      while (end < rows.length && !(n >= SHELVES && end > drawn && (rows[end].k === 'head' || rows[end].k === 'banner'))) if (rows[end++].k === 'head') n++;
+    } else while (end < rows.length && n < CHUNK) if (rows[end++].k === 'card' || rows[end - 1].k === 'rec') n++;
     // Keep a section's heading with its first species.
     while (end < rows.length && rows[end].k !== 'card' && rows[end].k !== 'rec' && end > drawn && rows[end - 1].k !== 'card' && rows[end - 1].k !== 'rec') end++;
     if (end > drawn) list.insertAdjacentHTML('beforeend', rowsHtml(rows.slice(drawn, end), listOpts));
@@ -262,11 +296,15 @@ export function mountGuidePage(deps: GuidePageDeps) {
     const all = idx.entries;
     counts(all);
     if (mode === 'identify') {
+      listOpts.shelf = false;
+      $('gd-tkey').innerHTML = '';
       const r = idHtml(f.expanded ? all : all.filter(isHere), idA, idStep, listOpts, f.expanded);
       order = r.order;
       $('gd-intro').innerHTML = '';
       $('gd-count').textContent = '';
+      $('gd-flipall-w').hidden = true;
       list.innerHTML = r.html;
+      fillCheck(r.order);
       rows = [];
       drawn = 0;
       moreBtn.hidden = true;
@@ -280,11 +318,37 @@ export function mountGuidePage(deps: GuidePageDeps) {
     const secs = sections(shown, by, f.sort, lang);
     rows = rowsFor(secs, !group && by !== 'none' && by !== 'risk');
     order = rows.flatMap((r) => (r.k === 'card' || r.k === 'rec' ? [r.e.id] : []));
+    // Shelves are families and kinds; a search, and the danger list worst first, read best as a list.
+    const canShelf = by !== 'none' && by !== 'risk' && !f.q.trim();
+    listOpts.shelf = lay === 'shelf' && canShelf;
+    el.dataset.lay = listOpts.shelf ? 'shelf' : 'list';
+    // The switch shows what is on screen; shelves wait while a search or the danger grouping needs the list.
+    el.querySelectorAll<HTMLButtonElement>('[data-lay]').forEach((b) => {
+      b.setAttribute('aria-pressed', String(b.dataset.lay === el.dataset.lay));
+      if (b.dataset.lay === 'shelf') b.disabled = !canShelf;
+    });
+    $('gd-tkey').innerHTML = listOpts.shelf && shown.length ? tileKeyHtml() : '';
     $('gd-intro').innerHTML = introHtml(mode);
     $('gd-count').textContent = shown.length ? t('gd.shown', { n: itemCount(rows) }) : '';
+    $('gd-flipall-w').hidden = order.length < 2;
     list.innerHTML = shown.length ? '' : `<p class="gd-empty">${esc(t(mode === 'saved' ? 'gd.fav.none' : 'gd.none'))}</p>`;
     drawn = 0;
     if (shown.length) more();
+  };
+  /** The look-alike check under the best match: needs the species' own file for its look-alikes. */
+  const fillCheck = (ids: readonly string[]) => {
+    const box = list.querySelector<HTMLElement>('#gd-id-check');
+    const top = box?.dataset.top ? byId.get(box.dataset.top) : undefined;
+    if (!box || !top) return;
+    const runner = ids[1] ? byId.get(ids[1]) : undefined;
+    const peer = (sci: string) => {
+      const id = bySci.get(sci.toLowerCase());
+      return id ? byId.get(id) : undefined;
+    };
+    const draw = (s: Species | null) => {
+      if (box.isConnected) box.innerHTML = idCheckHtml(top, s, listOpts, peer, runner);
+    };
+    loadSpecies(top.id, base).then(draw, () => draw(null));
   };
   const io = typeof IntersectionObserver === 'function'
     ? new IntersectionObserver((es) => es.some((e) => e.isIntersecting) && !moreBtn.hidden && more(), { root: el, rootMargin: '900px 0px' })
@@ -299,7 +363,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
     loadIndex(base).then(
       (ix) => {
         idx = ix;
-        for (const e of ix.entries) hays.set(e.id, haystack(e)), bySci.set(e.sci.toLowerCase(), e.id);
+        for (const e of ix.entries) hays.set(e.id, haystack(e)), bySci.set(e.sci.toLowerCase(), e.id), byId.set(e.id, e);
         $('gd-sub').textContent = t('gd.sub', { n: ix.entries.filter((e) => e.tier === 'full' && (f.expanded || isHere(e))).length });
         render();
         if (openId) drawDetail();
@@ -332,8 +396,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
   const idAnswer = (k: string, v: string) => {
     const a = idA;
     let advance = false;
-    if (k === 'kind') (a.kind = a.kind === v ? undefined : (v as IdAnswers['kind'])), (a.group = undefined), (a.sub = undefined), (a.shape = []), (advance = !!a.kind);
-    else if (k === 'group') (a.group = a.group === v ? undefined : (v as IdAnswers['group'])), (a.sub = undefined), (a.shape = []), (advance = !!a.group);
+    if (k === 'group') (a.group = a.group === v ? undefined : (v as IdAnswers['group'])), (a.sub = undefined), (a.shape = []), (advance = !!a.group);
     else if (k === 'sub') (a.sub = a.sub === v ? undefined : v), (advance = !!a.sub);
     else if (k === 'size') (a.size = a.size === v ? undefined : (v as IdAnswers['size'])), (advance = !!a.size);
     else if (k === 'night') a.night = !a.night;
@@ -349,6 +412,62 @@ export function mountGuidePage(deps: GuidePageDeps) {
     if (advance) toId();
   };
 
+  // --- Flip (PLAN 14.4): a shelf or the whole list as cards to swipe
+  const flip = $('gd-flip'), deck = $('gd-flip-deck');
+  let flipIds: string[] = [];
+  const flipStep = () => (deck.firstElementChild as HTMLElement | null)?.offsetWidth ?? deck.clientWidth;
+  const flipAt = () => Math.max(0, Math.min(flipIds.length - 1, Math.round(deck.scrollLeft / Math.max(1, flipStep() + 10))));
+  const flipCount = () => ($('gd-flip-n').textContent = flipIds.length ? `${flipAt() + 1} / ${flipIds.length}` : '');
+  let flipFrame = 0;
+  deck.addEventListener('scroll', () => { if (!flipFrame) flipFrame = requestAnimationFrame(() => ((flipFrame = 0), flipCount())); }, { passive: true });
+  const openFlip = (ids: string[], title: string) => {
+    const es = ids.map((id) => byId.get(id)).filter((e): e is Entry => !!e);
+    if (!es.length) return;
+    flipIds = es.map((e) => e.id);
+    $('gd-flip-t').textContent = title;
+    deck.innerHTML = flipDeckHtml(es, listOpts);
+    flip.hidden = false;
+    el.classList.add('gd-flipping');
+    deck.scrollLeft = 0;
+    flipCount();
+    flip.querySelector<HTMLElement>('.gd-flip-x')?.focus({ preventScroll: true });
+  };
+  const closeFlip = () => {
+    if (flip.hidden) return;
+    flip.hidden = true;
+    el.classList.remove('gd-flipping');
+    deck.innerHTML = '';
+    flipIds = [];
+  };
+  const flipBy = (d: number) => deck.scrollTo?.({ left: (flipAt() + d) * (flipStep() + 10), behavior: REDUCED() ? 'auto' : 'smooth' });
+  /** The species of the shelf that starts with `id`: from it to the next heading. */
+  const shelfOf = (id: string): { ids: string[]; title: string } => {
+    const i = rows.findIndex((r) => r.k === 'card' && r.e.id === id);
+    let h = i;
+    while (h > 0 && rows[h].k !== 'head') h--;
+    const ids: string[] = [];
+    for (let j = i; j >= 0 && j < rows.length && rows[j].k !== 'head' && rows[j].k !== 'banner'; j++) {
+      const r = rows[j];
+      if (r.k === 'card') ids.push(r.e.id);
+    }
+    const head = rows[h];
+    return { ids, title: head?.k === 'head' ? head.s.title : '' };
+  };
+
+  /** A part of the coast: show what lives there (again: everywhere), and bring the list up to meet it. */
+  const pickZone = (z: Zone) => {
+    f.habitats = zoneOf(f.habitats) === z ? [] : [...ZONE_HABITATS[z]];
+    render();
+    if (f.habitats.length) {
+      const row = el.querySelector<HTMLElement>('.gd-countrow');
+      if (row) el.scrollTo?.({ top: row.offsetTop - 140, behavior: REDUCED() ? 'auto' : 'smooth' });
+    }
+  };
+  el.addEventListener('keydown', (e) => {
+    const g = (e.target as Element)?.closest?.<HTMLElement>('[data-zone]');
+    if (g && (e.key === 'Enter' || e.key === ' ')) (e.preventDefault(), pickZone(g.dataset.zone as Zone));
+  });
+
   // --- clicks and typing
   el.addEventListener('click', (ev) => {
     const target = ev.target as Element;
@@ -363,7 +482,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       toId();
     } else if (hit('[data-id-reset]')) {
       idA = noAnswers();
-      idStep = 'kind';
+      idStep = 'group';
       render();
       toId();
     } else if ((b = hit('[data-showmap]'))) {
@@ -379,7 +498,16 @@ export function mountGuidePage(deps: GuidePageDeps) {
       b.setAttribute('aria-pressed', String(on));
       b.querySelector('span')!.textContent = t(on ? 'gd.fav.on' : 'gd.fav.off');
       render();
-    } else if ((b = hit('.gd-mode'))) setView(b.dataset.mode as GdMode, group);
+    } else if ((b = hit('[data-flip-at]'))) {
+      const sh = shelfOf(b.dataset.flipAt!);
+      openFlip(sh.ids, sh.title);
+    } else if ((b = hit('[data-zone]'))) pickZone(b.dataset.zone as Zone);
+    else if (hit('[data-coast-clear]')) (f.habitats = []), render();
+    else if (hit('[data-flip-all]')) openFlip(order, $('gd-count').textContent ?? '');
+    else if (hit('[data-flip-close]')) closeFlip();
+    else if ((b = hit('[data-flip-step]'))) flipBy(Number(b.dataset.flipStep));
+    else if (hit('[data-idbar]')) setView('identify', null);
+    else if ((b = hit('.gd-mode'))) setView(b.dataset.mode as GdMode, group);
     else if ((b = hit('.gd-g'))) {
       const g = (b.dataset.group || null) as Group | null;
       setView(mode, g === group ? null : g);
@@ -390,25 +518,44 @@ export function mountGuidePage(deps: GuidePageDeps) {
       const arr = f[k] as string[];
       f[k] = (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]) as never;
       render();
+    } else if (hit('#gd-common')) {
+      f.seen = commonOn() ? [] : [...COMMON];
+      render();
+    } else if ((b = hit('[data-lay]'))) {
+      lay = b.dataset.lay === 'list' ? 'list' : 'shelf';
+      put(storage, LAY_KEY, lay);
+      render();
     } else if (hit('[data-clear]')) {
       Object.assign(f, { encounter: [], habitats: [], seen: [], times: [], methods: [], sizes: [], flags: [], records: false });
       render();
     } else if (hit('#gd-fbtn')) setFilters($('gd-filters').hidden === true);
     else if (hit('[data-retry]')) load();
-    else if ((b = hit('a.gd-card, a.gd-rec, .gd-look a')) && plain) {
+    else if ((b = hit('a.gd-card, a.gd-st, a.gd-rec, .gd-look a, a.gd-id-tl, .gd-id-chk a, .gd-fc a')) && plain) {
       ev.preventDefault();
       const r = parseGuideRoute(b.getAttribute('href') ?? '');
       if (r?.id) {
         history.pushState({ gd: 1, gdD: 1 }, '', b.getAttribute('href'));
         openDetail(r.id, 'about');
       }
-    } else if ((b = hit('a.gd-d-tab')) && plain) {
+    } else if ((b = hit('a[data-jump]')) && plain) {
+      // A jump chip or one of the four answers: scroll to that section, and keep it in the link.
       ev.preventDefault();
-      const k = b.dataset.tab;
+      const k = b.dataset.jump;
       if (isGdTab(k) && openId) {
         tab = k;
         history.replaceState(history.state, '', guideHash({ mode, group, id: openId, tab }));
-        drawDetail(false);
+        jumpTo(k);
+      }
+    } else if ((b = hit('sup.gd-cite'))) {
+      // A source number: open the list and show that source.
+      const n = Number(b.textContent?.split(',')[0]);
+      const fold = el.querySelector<HTMLDetailsElement>('.gd-fn-fold');
+      const li = el.querySelectorAll<HTMLElement>('#gd-fn-list > li')[n - 1];
+      if (fold && li) {
+        fold.open = true;
+        el.querySelectorAll('#gd-fn-list > li.on').forEach((x) => x.classList.remove('on'));
+        li.classList.add('on');
+        scrollSheetTo(li, 120);
       }
     } else if ((b = hit('[data-go]')) && b.dataset.go) {
       history.replaceState(history.state, '', guideHash({ mode, group, id: b.dataset.go }));
@@ -442,7 +589,38 @@ export function mountGuidePage(deps: GuidePageDeps) {
   });
   q.addEventListener('keydown', (e) => e.key === 'Enter' && q.blur());
 
-  // --- a species, on top of the list
+  // --- a species, on top of the list: one page, with jump chips that follow the reader down it
+  /** Scroll the species page so an element sits just under the sticky bar and chips (plus `extra` px). */
+  const scrollSheetTo = (x: HTMLElement, extra = 0, smooth = true) => {
+    const bar = (el.querySelector<HTMLElement>('.gd-d-top')?.offsetHeight ?? 0) + (el.querySelector<HTMLElement>('.gd-d-tabs')?.offsetHeight ?? 0);
+    const top = sheet.scrollTop + x.getBoundingClientRect().top - sheet.getBoundingClientRect().top - bar - 8 - extra;
+    sheet.scrollTo?.({ top: Math.max(0, top), behavior: smooth && !REDUCED() ? 'smooth' : 'auto' });
+  };
+  const REDUCED = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const jumpTo = (k: GdTab, smooth = true) => {
+    const sec = el.querySelector<HTMLElement>(`#gd-s-${k}`);
+    if (sec) scrollSheetTo(sec, 0, smooth);
+  };
+  /** Light the chip of the section being read, and keep it in view in the row. */
+  let spyFrame = 0;
+  const spy = () => {
+    spyFrame = 0;
+    const nav = el.querySelector<HTMLElement>('.gd-d-tabs');
+    if (!nav || sheet.hidden) return;
+    const line = nav.getBoundingClientRect().bottom + 24;
+    let cur = '';
+    for (const s of el.querySelectorAll<HTMLElement>('.gd-sec')) if (s.getBoundingClientRect().top <= line) cur = s.dataset.sec ?? '';
+    if (!cur) cur = el.querySelector<HTMLElement>('.gd-sec')?.dataset.sec ?? '';
+    for (const a of nav.querySelectorAll<HTMLElement>('a[data-jump]')) {
+      const on = a.dataset.jump === cur;
+      if (on === (a.getAttribute('aria-current') === 'true')) continue;
+      if (on) {
+        a.setAttribute('aria-current', 'true');
+        nav.scrollTo?.({ left: a.offsetLeft - nav.clientWidth / 2 + a.offsetWidth / 2, behavior: REDUCED() ? 'auto' : 'smooth' });
+      } else a.removeAttribute('aria-current');
+    }
+  };
+  sheet.addEventListener('scroll', () => { if (!spyFrame) spyFrame = requestAnimationFrame(spy); }, { passive: true });
   const drawDetail = (fresh = true) => {
     if (!current || current.id !== openId) return;
     const i = openId ? order.indexOf(openId) : -1;
@@ -454,11 +632,18 @@ export function mountGuidePage(deps: GuidePageDeps) {
         return id ? guideHash({ mode, group, id }) : null;
       },
       tabHref: (k) => guideHash({ mode, group, id: openId, tab: k }),
+      peer: (sci) => {
+        const id = bySci.get(sci.toLowerCase());
+        const e = id ? byId.get(id) : undefined;
+        return e ? { name: nameOf(e, lang), thumb: e.thumb ? base + e.thumb : undefined } : null;
+      },
       fav: !!openId && favs.has(openId),
     });
     if (fresh) sheet.scrollTop = 0;
-    else el.querySelector<HTMLElement>('.gd-d-tabs')?.scrollIntoView?.({ block: 'nearest' });
+    // Opened at a section (a shared link, an answer on another page): go straight there.
+    if (fresh && tab !== 'about') jumpTo(tab, false);
     if (fresh) el.querySelector<HTMLElement>('.gd-d-close')?.focus({ preventScroll: true });
+    spy();
   };
   let asked = '';
   const openDetail = (id: string, t_: GdTab) => {
@@ -510,7 +695,11 @@ export function mountGuidePage(deps: GuidePageDeps) {
     if (e.key === 'Escape') {
       e.stopPropagation();
       if (!sheet.hidden) closeDetail();
+      else if (!flip.hidden) closeFlip();
       else close();
+    } else if (sheet.hidden && !flip.hidden && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      e.preventDefault();
+      flipBy(e.key === 'ArrowLeft' ? -1 : 1);
     } else if (!sheet.hidden && !typingIn && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
       const i = openId ? order.indexOf(openId) : -1;
       const id = i < 0 ? undefined : order[i + (e.key === 'ArrowLeft' ? -1 : 1)];
@@ -534,6 +723,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
   const hide = () => {
     if (el.hidden) return;
     hideDetail();
+    closeFlip();
     el.hidden = true;
     document.body.classList.remove('fc-open');
     if (mapMeta !== null) meta?.setAttribute('content', mapMeta);
@@ -555,7 +745,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
     else if (changed || qChanged) render();
     if (r.id) {
       if (r.id !== openId || sheet.hidden) openDetail(r.id, r.tab ?? 'about');
-      else if ((r.tab ?? 'about') !== tab) (tab = r.tab ?? 'about'), drawDetail(false);
+      else if ((r.tab ?? 'about') !== tab) (tab = r.tab ?? 'about'), jumpTo(tab);
     } else hideDetail();
   };
   window.addEventListener('hashchange', fromHash);

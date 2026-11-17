@@ -1,0 +1,40 @@
+/* The SurCast look on the guide's other pages (PLAN 14.5, Joseph 2026-11-17): the Kinetic bold type and crisp square
+   lines these pages already have, fused with SurCast's black glass, glow and neon. Each page keeps one colour of its
+   own for its titles, current tab and section headings; panels sit on glass with a thin line and a soft glow in
+   their own colour. On the light scheme the glow goes and the colour darkens toward ink, so it reads in sunlight.
+   Loaded by the ciguatera, field notes and dispatch pages; only adds to their own CSS. */
+
+#ciguatera-page { --pg: var(--fc-sev-caution); }
+#notes-page { --pg: var(--fc-t-snorkel); }
+#dispatch-page { --pg: var(--fc-t-fish); }
+#ciguatera-page, #notes-page, #dispatch-page { --pg-ink: var(--pg); --pg-glass: color-mix(in srgb, var(--fc-card) 82%, transparent); }
+#ciguatera-page:not([data-scheme='dark']), #notes-page:not([data-scheme='dark']), #dispatch-page:not([data-scheme='dark']) {
+  --pg-ink: color-mix(in srgb, var(--pg) 70%, var(--fc-ink));
+}
+
+/* Tabs and the section strip: the current one lit in the page's colour. */
+.cig .cig-tab[aria-selected='true'] { color: var(--pg-ink); border-bottom-color: var(--pg); }
+.fc[data-scheme='dark'] .cig-tab[aria-selected='true'] { text-shadow: 0 0 12px color-mix(in srgb, var(--pg) 55%, transparent); box-shadow: 0 6px 10px -6px var(--pg); }
+@media (hover: hover) { .dp .dp-navb:hover { color: var(--pg-ink); border-bottom-color: var(--pg); } }
+
+/* Titles and headings: Kinetic type in the page's colour, with a glowing rule under the big ones. */
+.cig-title, .dp-h h2 { color: var(--pg-ink); }
+.cig-title::after, .dp-h h2::after { content: ''; display: block; height: 2px; margin-top: 8px; background: var(--pg); }
+.fc[data-scheme='dark'] .cig-title, .fc[data-scheme='dark'] .dp-h h2 { text-shadow: 0 0 18px color-mix(in srgb, var(--pg) 50%, transparent); }
+.fc[data-scheme='dark'] .cig-title::after, .fc[data-scheme='dark'] .dp-h h2::after { box-shadow: 0 0 10px var(--pg); }
+.nt-h { color: var(--pg-ink); }
+.fc[data-scheme='dark'] .nt-h { text-shadow: 0 0 12px color-mix(in srgb, var(--pg) 45%, transparent); }
+.nt-alert .nt-h { color: var(--fc-bg); text-shadow: none !important; }
+
+/* Panels: black glass, a thin line in their own colour, a soft glow. Square corners stay. */
+.cig-box { background: linear-gradient(100deg, color-mix(in srgb, var(--c, var(--fc-ink)) 16%, var(--fc-card)), var(--pg-glass) 75%); border: 1px solid color-mix(in srgb, var(--c, var(--fc-ink)) 40%, transparent); border-left-width: 8px; border-left-color: var(--c, var(--fc-ink)); }
+.fc[data-scheme='dark'] .cig-box { box-shadow: 0 0 16px color-mix(in srgb, var(--c, var(--fc-ink)) 22%, transparent); }
+.nt-tiles li:not(.nt-unk) { background: var(--pg-glass); border-left-color: color-mix(in srgb, var(--c, var(--fc-ink)) 35%, var(--fc-line)); border-right-color: color-mix(in srgb, var(--c, var(--fc-ink)) 35%, var(--fc-line)); border-bottom-color: color-mix(in srgb, var(--c, var(--fc-ink)) 35%, var(--fc-line)); }
+.fc[data-scheme='dark'] .nt-tiles li:not(.nt-unk) { box-shadow: 0 -3px 14px color-mix(in srgb, var(--c, var(--fc-ink)) 28%, transparent); }
+
+/* Big numbers glow in their own colour. */
+.fc[data-scheme='dark'] .dp-stats .dp-big { text-shadow: 0 0 20px color-mix(in srgb, var(--c) 55%, transparent); }
+.fc[data-scheme='dark'] .nt-big { text-shadow: 0 0 16px color-mix(in srgb, var(--pg) 35%, transparent); }
+
+/* The emergency bar keeps its flat red (it must read first), with a red glow round it on the dark scheme. */
+.fc[data-scheme='dark'] .cig .cig-sos { box-shadow: 0 0 18px color-mix(in srgb, var(--fc-lv0) 45%, transparent); }
