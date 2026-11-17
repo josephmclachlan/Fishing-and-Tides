@@ -765,3 +765,50 @@
 .km .k-keyx{appearance:none;cursor:pointer;display:flex;align-items:center;gap:4px;height:28px;padding:0 8px;border:1px solid var(--line);background:none;color:var(--ink);font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:2px}
 /* The paddle verdict chip under KAYAK may be long in Spanish or on a 320 px phone: it wraps inside the screen instead of running off it. */
 .km .k-fishsw span.k-fchip{height:auto;min-height:36px;max-width:100%;padding-block:6px;white-space:normal;line-height:1.25}
+
+/* ======================================================================================================
+   Phone map first (Joseph 2026-11-17, layout B, PLAN 7.162). Under 1100 px the header no longer takes a band of the
+   screen: back, the activity pill, Find and Settings float over the map, and the activity row drops down from the pill.
+   The bar's own box stays see-through, so a drag between its buttons still pans the map.
+   ====================================================================================================== */
+.km .k-actpill,.km .k-findtop{display:none}
+@media (max-width:1099.98px){
+  .km .k-app{grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"stage" "dock"}
+  .km .k-top{position:absolute;left:0;right:0;top:0;background:none;border-bottom:0;pointer-events:none;grid-template-columns:auto auto minmax(0,1fr) auto;grid-template-areas:"back pill find ctrls" "tabs tabs tabs tabs";column-gap:8px;padding:max(10px, env(safe-area-inset-top, 0px)) 10px 0}
+  .km .k-top>*{pointer-events:auto}
+  .km .k-ttl,.km .k-ctrls .k-lang,.km .k-ctrls .k-themeb{display:none}
+  .km .k-back,.km .k-actpill,.km .k-findtop,.km .k-ctrls .k-ib{height:46px;border:0;background:color-mix(in srgb,var(--c-card) 90%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 0 0 1px var(--line),0 4px 14px rgba(6,12,22,.22);color:var(--ink)}
+  .km .k-back{width:46px;min-width:46px;padding:0;justify-content:center;border-radius:50%}
+  .km .k-back .k-bt{display:none}
+  .km .k-ctrls .k-ib{width:46px;border-radius:50%}
+  .km .k-actpill{grid-area:pill;appearance:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:0 10px 0 13px;border-radius:23px;font-family:var(--disp);font-weight:850;font-variation-settings:"wdth" 76;font-size:17px;text-transform:uppercase;white-space:nowrap;color:var(--pc)}
+  .km .k-actpill svg{width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:square;stroke-linejoin:miter;overflow:visible}
+  .km .k-actpill svg:last-child{width:14px;height:14px;color:var(--ink2);transition:transform .25s}
+  .km .k-actpill[aria-expanded="true"] svg:last-child{transform:rotate(180deg)}
+  .km .k-findtop{grid-area:find;appearance:none;cursor:pointer;min-width:0;display:flex;align-items:center;gap:8px;padding:0 14px;border-radius:23px;font-family:var(--body);font-size:14px;color:var(--ink2);white-space:nowrap;overflow:hidden}
+  .km .k-findtop svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:square}
+  .km .k-findtop span{overflow:hidden;text-overflow:ellipsis}
+  /* The row of activities, only while the pill is open: one swipeable line of chips under the bar. */
+  .km .k-tabs{display:none}
+  .km .k-top.k-acts .k-tabs{display:flex;flex-wrap:nowrap;justify-content:flex-start;gap:6px;overflow-x:auto;scrollbar-width:none;margin:8px -10px 0;padding:0 10px 6px;pointer-events:none}
+  .km .k-top.k-acts .k-tabs::-webkit-scrollbar{display:none}
+  .km .k-top .k-tab-bar{display:none}
+  .km .k-top.k-acts .k-tab{pointer-events:auto;flex:none;height:40px;padding:0 13px;gap:6px;border-radius:20px;opacity:1;font-size:15px;color:var(--ink);background:color-mix(in srgb,var(--c-card) 92%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 0 0 1px var(--line),0 4px 14px rgba(6,12,22,.2)}
+  .km .k-top.k-acts .k-tab svg{display:block;color:var(--tc)}
+  .km .k-top.k-acts .k-tab[aria-selected="true"]{box-shadow:0 0 0 2px var(--tc),0 4px 14px rgba(6,12,22,.2);color:var(--tc)}
+  .km .k-top.k-acts .k-tab.k-coral{margin-left:0;padding-left:13px;border-left:0}
+  /* What sat under the old header now sits under the floating bar. */
+  .km .k-readbar{top:calc(var(--k-tool-top,66px) + 6px)}
+  .km .k-fishsw,.km .k-mocktag{top:calc(var(--k-tool-top,66px) + 66px)}
+  .km .k-toast{top:calc(var(--k-tool-top,66px) + 8px)}
+  /* Find lives in the bar now. */
+  .km .k-mapbtns #k-find{display:none}
+}
+.km .k-actpill[data-id="surf"]{--pc:var(--t-surf)}
+.km .k-actpill[data-id="fish"]{--pc:var(--t-fish)}
+.km .k-actpill[data-id="swim"]{--pc:var(--t-swim)}
+.km .k-actpill[data-id="snorkel"]{--pc:var(--t-snorkel)}
+.km .k-actpill[data-id="dive"]{--pc:var(--t-dive)}
+.km .k-actpill[data-id="sail"]{--pc:var(--t-sail)}
+.km .k-actpill[data-id="paddle"]{--pc:var(--t-paddle)}
+.km .k-actpill[data-id="coral"]{--pc:var(--t-coral)}

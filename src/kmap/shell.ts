@@ -223,6 +223,8 @@ export function mountKineticMap(d: KmDeps) {
   app.innerHTML = `
   <header class="k-top">
     <button type="button" class="k-back" id="k-back">${BACK}<span class="k-bt"><span class="k-b1">${L2('Forecast', 'Pronóstico')}</span><span class="k-b2" id="k-backsub"></span></span></button>
+    <button type="button" class="k-actpill" id="k-actpill" aria-expanded="false" aria-controls="k-tabs"></button>
+    <button type="button" class="k-findtop" id="k-findtop">${svg('<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>')}<span id="k-findtxt"></span></button>
     <div class="k-ttl"><p class="k-brand k-mono"><span class="sc-brand">${markSvg(16, { small: true })}${WORDMARK}</span><span class="k-hide-s"> · Caribe Sur</span></p><h1>${L2('Map', 'Mapa')} <em id="k-ttlact"></em></h1></div>
     <nav class="k-tabs" id="k-tabs" role="tablist" aria-label="${L2('Activity', 'Actividad')}"><span class="k-tab-bar" id="k-tabbar"></span></nav>
     <div class="k-ctrls">
@@ -363,7 +365,27 @@ export function mountKineticMap(d: KmDeps) {
     tabBar.style.transform = `translate(${tb.offsetLeft}px, ${tb.offsetTop + tb.offsetHeight - 5}px)`;
   };
   new ResizeObserver(() => placeBar()).observe(tabs);
+  /* Phone (Joseph 2026-11-17, layout B): the activity row folds into one pill in a floating top bar, so the map runs to the
+     top of the screen. A tap on the pill drops the row of activities under the bar; picking one folds it away again. */
+  const topBar = app.querySelector<HTMLElement>('.k-top')!, pillBtn = $('k-actpill');
+  const showActs = (open: boolean) => {
+    topBar.classList.toggle('k-acts', open);
+    pillBtn.setAttribute('aria-expanded', String(open));
+  };
+  pillBtn.addEventListener('click', () => showActs(!topBar.classList.contains('k-acts')));
+  tabs.addEventListener('click', (e) => (e.target as HTMLElement).closest('.k-tab') && showActs(false));
+  topBar.addEventListener('keydown', (e) => e.key === 'Escape' && topBar.classList.contains('k-acts') && (showActs(false), pillBtn.focus()));
+  map.on('dragstart', () => showActs(false));
+  const renderPill = () => {
+    const m = mode();
+    pillBtn.dataset.id = m;
+    pillBtn.innerHTML = `${svg(ICON[m])}<span>${modeName(m)}</span>${svg('<path d="M6 9l6 6 6-6"/>')}`;
+    pillBtn.setAttribute('aria-label', `${L2('Activity', 'Actividad')}: ${modeName(m)}. ${L2('Tap to change', 'Toca para cambiar')}`);
+    $('k-findtxt').textContent = S.coral ? L2('Find a reef', 'Buscar arrecife') : L2('Find a beach', 'Buscar playa');
+  };
+  $('k-findtop').addEventListener('click', () => (S.sheet === 'find' ? closeSheet() : openSheet('find')));
   const renderTabs = () => {
+    renderPill();
     tabs.querySelectorAll<HTMLElement>('.k-tab').forEach((b) => b.setAttribute('aria-selected', String(S.coral ? b.dataset.id === 'coral' : b.dataset.id === S.act)));
     root.dataset.act = S.act;
     if (S.coral) root.dataset.coral = '1';
