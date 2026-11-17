@@ -195,7 +195,7 @@ export function brackets(c: Ctx2D, x: number, y: number, w: number, h: number, a
 /** A part of a hero picture that explains itself when tapped: its box (hero px) and the key of its words. */
 export interface Hot { x: number; y: number; w: number; h: number; k: string }
 
-/** The box `tag` would draw for `s` (same shrink-to-fit rule), without drawing it: to lay words out before they go down. */
+/** The size `tag` would draw `s` at (same font, padding and Spanish shrink), without drawing it: for laying words out first. */
 export function tagSize(c: Ctx2D, s: string, size: number, maxW = Infinity): { w: number; h: number } {
   c.font = `800 ${(size * 1.12).toFixed(1)}px ${MONO}`;
   const full = c.measureText(s.toUpperCase()).width + Math.round(size * 0.6) * 2;
@@ -227,3 +227,10 @@ export function dimLine(c: Ctx2D, x1: number, y1: number, x2: number, y2: number
   head(x2, y2, ca, sa);
   if (both) head(x1, y1, -ca, -sa);
 }
+
+/** Whether two boxes overlap (with `pad` px of air kept between them). */
+export const overlaps = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }, pad = 0) =>
+  a.x < b.x + b.w + pad && b.x < a.x + a.w + pad && a.y < b.y + b.h + pad && b.y < a.y + a.h + pad;
+
+/** Smoothstep 0..1 of `v` between `a` and `b`. */
+export const ease = (a: number, b: number, v: number) => { const k = clamp((v - a) / (b - a), 0, 1); return k * k * (3 - 2 * k); };
