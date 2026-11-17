@@ -4,6 +4,7 @@
  * fixture and compares the numbers in it with the model's). page.ts puts these into the DOM and draws the canvases.
  */
 import { brandLine } from '../brand';
+import { idButtonHtml } from '../id-button';
 import { dec, t, type Key } from '../i18n';
 import type { FcActivity, Level } from './model';
 import { NT_ACTS, notesHash } from '../notes/route';
@@ -33,7 +34,6 @@ const GUIDE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12c3
 const DISPATCH_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14L16 4l2 2L8 16zM8 16l-2 4M18 14c0 2-1.3 3.5-3 3.5S12 16 12 14c0-1.6 3-5 3-5s3 3.4 3 5z"/></svg>';
 const CORAL_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-9M12 15l-4-4V7M12 12l4-4V5M8 11l-3-2M16 8l3-1M6 21h12"/></svg>';
 const THEME_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 2a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg>';
-const ID_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l6 6"/></svg>';
 const NOTES_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3zM5 17a3 3 0 013-3h11M9 8h6"/></svg>';
 const AID_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg>';
 const GO_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
@@ -83,13 +83,13 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
       </div>
     </section>
     <p class="fc-down-msg fc-in" id="fc-down" role="status" hidden>${esc(t('fc.unavailable'))}</p>
-    ${o.guide ? `<nav class="fc-links fc-in" aria-label="${esc(t('fc.links'))}">${([
-      ['button', '', 'fish dive spear snorkel', 'fc.idLink', 'fc.lk.id', ID_ICON],
+    ${o.guide ? `<div class="fc-in fc-idbig-w">${idButtonHtml({ cls: 'fc-idbig', attrs: 'id="fc-idlink" data-for="fish dive spear snorkel"', gid: 'fc-id-g', title: t('fc.idLink') })}</div>
+    <nav class="fc-links fc-in" aria-label="${esc(t('fc.links'))}">${([
       ['a', '#dispatch', 'fish spear', 'dp.link', 'fc.lk.handle', DISPATCH_ICON],
       // Each activity's own field notes (its tabs only, most specific first), and its First aid tab.
       ...NT_ACTS.map((a) => ['a', notesHash(undefined, a), a, 'nt.actLink', 'fc.lk.notes', NOTES_ICON]),
       ...NT_ACTS.map((a) => ['a', notesHash('aid', a), a, 'nt.aidLink', 'fc.lk.aid', AID_ICON]),
-    ] as [string, string, string, Key, Key, string][]).map(([tag, href, ous, full, short, icon]) => `<${tag} class="fc-link"${tag === 'a' ? ` href="${href}"` : ' type="button" id="fc-idlink"'} data-for="${ous}" title="${esc(t(full))}">${icon}<span>${esc(t(short))}</span></${tag}>`).join('')}</nav>` : ''}
+    ] as [string, string, string, Key, Key, string][]).map(([tag, href, ous, full, short, icon]) => `<${tag} class="fc-link" href="${href}" data-for="${ous}" title="${esc(t(full))}">${icon}<span>${esc(t(short))}</span></${tag}>`).join('')}</nav>` : ''}
     <section class="fc-sec fc-in" aria-labelledby="fc-cond-h">
       <div class="fc-sec-head"><h2 id="fc-cond-h">${esc(t('fc.conditions'))}</h2><p class="fc-mono" id="fc-cond-when"></p></div>
       <div class="fc-tiles" id="fc-tiles"></div>

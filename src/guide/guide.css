@@ -93,7 +93,13 @@
   appearance: none; border: 0; background: none; color: var(--fc-ink); font: 600 14px var(--fc-body); padding: 0; margin: 0; width: 100%; min-width: 0; cursor: pointer; outline: none;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.gd-pick:focus-within { outline: 3px solid var(--fc-ink); outline-offset: 2px; }
+/* One box (Joseph 2026-11-17: "these multiple nested boxes look terrible"): the select draws no focus ring of its own
+   (the page-wide .fc :focus-visible ring was drawing a second box inside, and a ring outside the frame a third), so
+   the frame itself shows focus: its line thickens and turns the guide's accent colour. */
+.gd .gd-pick select:focus, .gd .gd-pick select:focus-visible { outline: none; }
+.gd .gd-pick:focus-within { outline: none; border-color: var(--fc-t-snorkel); box-shadow: inset 0 0 0 1px var(--fc-t-snorkel); }
+.gd[data-scheme='dark'] .gd-pick:focus-within { box-shadow: inset 0 0 0 1px var(--fc-t-snorkel), 0 0 14px color-mix(in srgb, var(--fc-t-snorkel) 35%, transparent); }
+@media (hover: hover) { .gd-pick:hover { box-shadow: inset 0 0 0 1px var(--fc-ink); } }
 .gd-pick select option { background: var(--fc-card); color: var(--fc-ink); }
 
 .gd-filters { margin-top: 12px; padding: 12px 0 4px; border-top: 2px solid var(--fc-ink); display: grid; gap: 10px 28px; }
@@ -552,27 +558,14 @@
 .gd-id-tl span { display: block; padding: 4px 6px 6px; font-size: 11.5px; line-height: 1.2; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (hover: hover) { .gd-id-tl:hover span { text-decoration: underline; } }
 
-/* The Atlas home (Joseph 2026-11-17): search first, then a wide Identify bar between search and the species, square. */
-.gd .gd-idbar {
-  display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 8px; padding: 12px 14px; text-align: left; cursor: pointer; font: inherit;
-  color: var(--fc-t-snorkel); border: 1.5px solid var(--fc-t-snorkel); background: linear-gradient(100deg, color-mix(in srgb, var(--fc-t-snorkel) 18%, var(--fc-card)), var(--fc-card) 70%);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--fc-t-snorkel) 35%, transparent), inset 0 0 22px color-mix(in srgb, var(--fc-t-snorkel) 10%, transparent);
-}
-.gd .gd-idbar small { color: var(--fc-ink); }
-.gd .gd-idbar > svg { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--fc-t-snorkel) 70%, transparent)); }
-.gd .gd-idbar b { text-shadow: 0 0 14px color-mix(in srgb, var(--fc-t-snorkel) 60%, transparent); }
-.gd .gd-idbar > svg { flex: none; width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: square; stroke-linejoin: miter; }
-.gd .gd-idbar > svg:last-child { width: 22px; height: 22px; margin-left: auto; }
-.gd-idbar span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.gd-idbar b { font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 72; font-size: 26px; line-height: 0.95; text-transform: uppercase; }
-.gd-idbar small { font-size: 13px; line-height: 1.3; }
+/* The Atlas home (Joseph 2026-11-17): search first, then the big Identify button (src/id-button.css) between search
+   and the species. Hidden while identifying. */
+.gd .gd-idbar { margin-top: 10px; }
 .gd[data-mode='identify'] .gd-idbar { display: none; }
-@media (hover: hover) { .gd .gd-idbar:hover { box-shadow: 0 0 26px color-mix(in srgb, var(--fc-t-snorkel) 55%, transparent); } }
 
 /* On the light scheme the neon words darken toward ink so they still read in sunlight. */
 .gd:not([data-scheme='dark']) .gd-an:not(.t-none) { color: color-mix(in srgb, var(--ac) 62%, var(--fc-ink)); }
 .gd:not([data-scheme='dark']) .gd-sec-h, .gd:not([data-scheme='dark']) .gd-d-tab[aria-current='true'] { color: color-mix(in srgb, var(--sc) 78%, var(--fc-ink)); }
-.gd:not([data-scheme='dark']) .gd-idbar { color: color-mix(in srgb, var(--fc-t-snorkel) 80%, var(--fc-ink)); }
 
 /* --- The Atlas home, part 2 (PLAN 14.2, Joseph 2026-11-17): Kinetic type and crisp square lines on SurCast black
    glass, each thing glowing in its own colour. */
@@ -660,6 +653,36 @@
 @media (hover: hover) { .gd .gd-st:hover { border-color: var(--gd-c); box-shadow: 0 0 16px color-mix(in srgb, var(--gd-c) 45%, transparent); } .gd-st:hover b { text-decoration: underline; } }
 .gd .gd-st:focus-visible { outline: 3px solid var(--fc-ink); outline-offset: 2px; }
 @media (min-width: 760px) { .gd .gd-st { flex-basis: 172px; } }
+
+/* Shelf arrows and dragging (desktop, Joseph 2026-11-17). Each end of a shelf fades into the page where there is more
+   to see, with a square glass arrow over the photos; the arrow and fade go at the end the shelf has reached. Phones
+   swipe, so the arrows show only with a mouse. A mouse can also drag a shelf sideways. */
+.gd-shelf { position: relative; }
+.gd .gd-sa { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .gd-lane { cursor: grab; }
+  .gd-lane.gd-drag { cursor: grabbing; scroll-snap-type: none; user-select: none; }
+  .gd-lane.gd-drag .gd-st { pointer-events: none; }
+  .gd .gd-sa {
+    position: absolute; z-index: 2; top: 4px; display: grid; place-items: center; width: 56px; padding: 0;
+    aspect-ratio: auto; height: calc(var(--gd-st-w, 148px) * 0.75); border: 0; cursor: pointer; color: var(--fc-ink);
+    transition: opacity 0.2s ease;
+  }
+  .gd .gd-sa.l { left: 0; background: linear-gradient(90deg, var(--fc-bg) 30%, transparent); justify-items: start; padding-left: max(6px, calc(var(--fc-g-l) - 10px)); }
+  .gd .gd-sa.r { right: 0; background: linear-gradient(270deg, var(--fc-bg) 30%, transparent); justify-items: end; padding-right: max(6px, calc(var(--fc-g-r) - 10px)); }
+  .gd .gd-sa svg {
+    box-sizing: content-box; width: 22px; height: 22px; padding: 8px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: square; stroke-linejoin: miter;
+    background: color-mix(in srgb, var(--fc-card) 86%, transparent); border: 1.5px solid var(--fc-t-snorkel);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .gd[data-scheme='dark'] .gd-sa svg { box-shadow: 0 0 12px color-mix(in srgb, var(--fc-t-snorkel) 45%, transparent); }
+  .gd .gd-sa:hover svg { transform: scale(1.08); box-shadow: 0 0 18px color-mix(in srgb, var(--fc-t-snorkel) 65%, transparent); }
+  .gd .gd-sa.l:hover svg { transform: translateX(-2px) scale(1.08); }
+  .gd .gd-sa.r:hover svg { transform: translateX(2px) scale(1.08); }
+  .gd .gd-sa:focus-visible svg { outline: 3px solid var(--fc-ink); outline-offset: 2px; }
+  .gd-shelf[data-at='start'] .gd-sa.l, .gd-shelf[data-at='end'] .gd-sa.r, .gd-shelf[data-at='both'] .gd-sa { opacity: 0; pointer-events: none; }
+}
+@media (min-width: 760px) { .gd-shelf { --gd-st-w: 172px; } }
 
 /* The colour marks: small square plates, lit in the mark's colour. */
 .gd-tgs { position: absolute; left: 5px; bottom: 5px; display: flex; gap: 3px; }
@@ -791,36 +814,140 @@
 @media (hover: hover) { .gd .gd-list .gd-card:hover { border-color: var(--gd-c); } }
 @media (min-width: 760px) { .gd-list .gd-card { padding: 0; } }
 
-/* --- The coast drawing (PLAN 14.6, option F): where are you? Tap a part to see what lives there. Each part has its
-   own colour; the one showing glows. */
-.gd-coast { margin: 14px 0 4px; }
+/* --- The coast drawing (PLAN 14.6, option F; redrawn 2026-11-17 after Joseph's review). A filled, lit
+   cross-section the full width of the page, and under it a strip of square buttons, each under its own part. Picking
+   a part lights its column like a beam rising from its button, brightens its seabed and life, and dims the rest. */
+.gd-coast { margin: 18px 0 4px; }
 .gd-coast-h { margin: 0; font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 72; font-size: 26px; line-height: 1; text-transform: uppercase; }
-.gd-coast-p { margin: 4px 0 6px; font-size: 14px; color: var(--fc-ink2); }
-.gd-coast-d { border: 1.5px solid var(--fc-line); background: var(--gd-glass); }
-.gd-coast-svg { display: block; width: 100%; height: auto; overflow: visible; }
-.gd-coast-svg path { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.gd-coast-land { stroke: var(--fc-sev-caution); stroke-width: 2; }
-.gd-coast-bed { stroke: var(--fc-ink2); stroke-width: 1.8; }
-.gd-coast-sea { stroke-width: 1.4; }
-.gd-coast-sea.r0 { stroke: var(--fc-t-paddle); } .gd-coast-sea.r1 { stroke: var(--fc-t-snorkel); opacity: 0.8; }
-.gd-coast-sea.r2 { stroke: var(--fc-t-dive); opacity: 0.6; } .gd-coast-sea.r3 { stroke: var(--fc-t-swim); opacity: 0.45; }
+.gd-coast-p { margin: 4px 0 10px; font-size: 14px; color: var(--fc-ink2); }
+.gd-coast-d { position: relative; border: 1.5px solid var(--fc-line); background: var(--gd-glass); }
+.fc[data-scheme='dark'] .gd-coast-d { box-shadow: 0 0 0 1px color-mix(in srgb, var(--fc-t-paddle) 10%, transparent), 0 18px 40px -24px color-mix(in srgb, var(--fc-t-paddle) 45%, transparent); }
 .gd .z-beach { --zc: var(--fc-sev-caution); } .gd .z-mangrove { --zc: var(--fc-t-sail); } .gd .z-seagrass { --zc: var(--fc-t-snorkel); }
 .gd .z-reef { --zc: var(--fc-coral); } .gd .z-open { --zc: var(--fc-t-paddle); } .gd .z-deep { --zc: var(--fc-t-dive); }
-.gd-cz { cursor: pointer; outline: none; }
-.gd-coast-svg .gd-cz-a { fill: transparent; stroke: none; pointer-events: all; transition: fill 0.2s; }
-.gd-coast-svg .gd-cz-art { stroke: var(--zc); stroke-width: 1.8; opacity: 0.85; }
-.gd-cz-l { font: 700 12px var(--fc-mono); letter-spacing: 0.06em; text-transform: uppercase; fill: var(--fc-ink); pointer-events: none; }
-.gd-cz-n { fill: var(--zc); font-weight: 600; }
-.gd-coast-svg .gd-cz.on .gd-cz-a, .gd-coast-svg .gd-cz:focus-visible .gd-cz-a { fill: color-mix(in srgb, var(--zc) 18%, transparent); }
-.gd-coast-svg .gd-cz.on .gd-cz-art { opacity: 1; stroke-width: 2.4; }
-.gd-cz.on .gd-cz-l { fill: var(--zc); }
-.gd[data-scheme='dark'] .gd-coast-sea, .gd[data-scheme='dark'] .gd-coast-land { filter: drop-shadow(0 0 2px currentColor); }
-.gd[data-scheme='dark'] .gd-coast-svg .gd-cz-art { filter: drop-shadow(0 0 3px var(--zc)); }
-.gd[data-scheme='dark'] .gd-cz.on .gd-cz-l { filter: drop-shadow(0 0 4px var(--zc)); }
-.gd:not([data-scheme='dark']) .gd-cz.on .gd-cz-l, .gd:not([data-scheme='dark']) .gd-cz-n { fill: color-mix(in srgb, var(--zc) 65%, var(--fc-ink)); }
-@media (hover: hover) { .gd-coast-svg .gd-cz:hover .gd-cz-a { fill: color-mix(in srgb, var(--zc) 10%, transparent); } }
+/* On the light scheme each colour darkens toward ink, so lines read in sunlight. */
+.gd:not([data-scheme='dark']) .gd-coast-d [class*='z-'] { --zc-ink: color-mix(in srgb, var(--zc) 72%, var(--fc-ink)); }
+.gd[data-scheme='dark'] .gd-coast-d [class*='z-'] { --zc-ink: var(--zc); }
+
+/* The picture: never cropped sideways (the strip's columns line up under it), only trimmed top and bottom on wide
+   screens, where sky and deep water have room to spare. */
+.gd-cs-art { position: relative; aspect-ratio: 1200 / 520; overflow: hidden; }
+@media (min-width: 700px) { .gd-cs-art { aspect-ratio: 1200 / 400; } }
+@media (min-width: 1000px) { .gd-cs-art { aspect-ratio: 1200 / 340; } }
+.gd-coast-svg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.gd-coast-svg path, .gd-coast-svg use, .gd-coast-svg circle { vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Sky, sun, water, light. */
+.gd-coast-svg .k0 { stop-color: var(--fc-card); stop-opacity: 0; } .gd-coast-svg .k1 { stop-color: var(--fc-t-paddle); stop-opacity: 0.1; }
+.gd-cs-sun circle { fill: color-mix(in srgb, var(--fc-c-sun) 22%, transparent); stroke: var(--fc-c-sun); stroke-width: 1.5; }
+.gd-cs-sun .halo { fill: none; stroke-width: 1; opacity: 0.35; stroke-dasharray: 2 5; }
+.gd-coast-svg .w0 { stop-color: color-mix(in srgb, var(--fc-t-paddle) 38%, var(--fc-bg)); }
+.gd-coast-svg .w1 { stop-color: color-mix(in srgb, var(--fc-t-surf) 24%, var(--fc-bg)); }
+.gd-coast-svg .w2 { stop-color: color-mix(in srgb, var(--fc-t-dive) 16%, var(--fc-bg)); }
+.gd-coast-svg .f0 { stop-color: var(--fc-bg); stop-opacity: 0; } .gd-coast-svg .f1 { stop-color: var(--fc-bg); stop-opacity: 0.5; }
+.gd:not([data-scheme='dark']) .gd-coast-svg .f1 { stop-color: var(--fc-t-dive); stop-opacity: 0.16; }
+.gd-coast-svg .s0 { stop-color: color-mix(in srgb, var(--fc-sand) 82%, var(--fc-bg)); } .gd-coast-svg .s1 { stop-color: color-mix(in srgb, var(--fc-sand) 34%, var(--fc-bg)); }
+.gd-coast-svg .s2 { stop-color: color-mix(in srgb, var(--fc-sand) 10%, var(--fc-bg)); }
+.gd-cs-strata use { fill: none; stroke: var(--fc-sand); stroke-width: 1; stroke-dasharray: 1 7; }
+.gd[data-scheme='dark'] .gd-cs-strata use { stroke: color-mix(in srgb, var(--fc-sand) 60%, var(--fc-ink)); }
+.gd-coast-svg .r0 { stop-color: var(--fc-foam); stop-opacity: 0.16; } .gd-coast-svg .r1 { stop-color: var(--fc-foam); stop-opacity: 0; }
+.gd:not([data-scheme='dark']) .gd-coast-svg .r0 { stop-opacity: 0.45; }
+.gd-cs-rays path { fill: url(#gd-cs-ray); animation: gd-cs-ray 7s ease-in-out infinite; }
+.gd-cs-rays path:nth-child(2) { animation-delay: -2.4s; } .gd-cs-rays path:nth-child(3) { animation-delay: -4.6s; } .gd-cs-rays .r4 { animation-delay: -1.2s; }
+@keyframes gd-cs-ray { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+
+/* The seabed and its edge, each part's stretch in its own colour; the part showing burns brighter. */
+.gd-cs-bed { stroke: none; }
+.gd-coast-svg #gd-cs-edge stop { stop-color: var(--zc-ink); }
+.gd-cs-edge { fill: none; stroke-width: 2; opacity: 0.75; }
+.gd-cedge { fill: none; stroke: var(--zc-ink); stroke-width: 4; opacity: 0; transition: opacity 0.35s ease; }
+.gd-cedge.hov { opacity: 0.6; } .gd-cedge.on { opacity: 1; }
+.gd[data-scheme='dark'] .gd-cedge { filter: drop-shadow(0 0 6px var(--zc)); }
+
+/* The beams: each part's column fills with its colour from the bottom up. */
+.gd-coast-svg linearGradient[id^='gd-cs-bm-'] .b0 { stop-color: var(--zc); stop-opacity: 0.5; }
+.gd-coast-svg linearGradient[id^='gd-cs-bm-'] .b1 { stop-color: var(--zc); stop-opacity: 0.14; }
+.gd-coast-svg linearGradient[id^='gd-cs-bm-'] .b2 { stop-color: var(--zc); stop-opacity: 0.03; }
+.gd-cbeam { pointer-events: none; }
+.gd[data-scheme='dark'] .gd-cbeam { mix-blend-mode: screen; }
+.gd:not([data-scheme='dark']) .gd-cbeam { mix-blend-mode: multiply; }
+/* The beam's crisp square sides. */
+.gd-cbeam-e { fill: none; stroke: var(--zc); stroke-width: 1; opacity: 0; transition: opacity 0.35s ease; pointer-events: none; }
+.gd-cbeam-e.hov { opacity: 0.35; } .gd-cbeam-e.on { opacity: 0.8; }
+.gd-cbeam { opacity: 0; transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0.4); transition: opacity 0.35s ease, transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.gd-cbeam.hov { opacity: 0.5; transform: scaleY(0.85); }
+.gd-cbeam.on { opacity: 1; transform: scaleY(1); }
+.gd:not([data-scheme='dark']) .gd-cbeam.on { opacity: 0.5; } .gd:not([data-scheme='dark']) .gd-cbeam.hov { opacity: 0.3; }
+
+/* The life in each part: dark glass fill, a neon line in the part's colour. */
+.gd-ca { --zl: var(--zc-ink); transition: opacity 0.35s ease, filter 0.35s ease; }
+.gd-ca path { fill: none; stroke: var(--zl); stroke-width: 1.6; }
+.gd-ca .gd-cs-solid, .gd-ca .gd-cs-canopy, .gd-ca .gd-cs-leaf { fill: color-mix(in srgb, var(--zc) 20%, transparent); }
+.gd-ca .gd-cs-fish { fill: color-mix(in srgb, var(--zc) 30%, transparent); stroke-width: 1.3; }
+.gd-ca .gd-cs-trunk { stroke-width: 3.2; } .gd-ca .gd-cs-root { stroke-width: 1.8; } .gd-ca .gd-cs-coral { stroke-width: 3; }
+.gd-ca .gd-cs-thin { stroke-width: 1; opacity: 0.8; }
+.gd-ca circle { fill: var(--zl); stroke: none; }
+.gd-ca .gd-cs-bird { stroke-width: 1.6; }
+.gd[data-scheme='dark'] .gd-ca { filter: drop-shadow(0 0 3px color-mix(in srgb, var(--zc) 70%, transparent)); }
+.gd[data-scheme='dark'] .gd-ca.hov, .gd[data-scheme='dark'] .gd-ca.on { filter: drop-shadow(0 0 6px var(--zc)) brightness(1.15); }
+.gd-cs-art.has-on .gd-ca:not(.on):not(.hov) { opacity: 0.28; }
+.gd-cs-art.has-hov:not(.has-on) .gd-ca:not(.hov) { opacity: 0.55; }
+
+/* The surface. */
+.gd-cs-wave, .gd-cs-calm { fill: none; stroke: var(--fc-t-paddle); stroke-width: 1.8; }
+.gd-cs-wave.w2 { stroke: var(--fc-t-snorkel); stroke-width: 1.2; opacity: 0.55; animation-duration: 5.2s; animation-direction: reverse; }
+.gd-cs-wave { animation: gd-cs-wave 3.4s linear infinite; }
+@keyframes gd-cs-wave { to { transform: translateX(-40px); } }
+.gd-cs-foam { fill: none; stroke: var(--fc-foam); stroke-width: 1.8; animation: gd-cs-foam 3.4s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+.gd-cs-foam.f2 { stroke-width: 1.2; animation-delay: -1.7s; }
+@keyframes gd-cs-foam { 0%, 100% { transform: scale(0.92); opacity: 0.6; } 50% { transform: scale(1.05); opacity: 1; } }
+.gd:not([data-scheme='dark']) .gd-cs-foam { stroke: var(--fc-t-paddle); }
+.gd-cs-glow { fill: none; stroke: var(--fc-c-sun); stroke-width: 1.6; animation: gd-cs-ray 3s ease-in-out infinite; }
+.gd[data-scheme='dark'] .gd-cs-wave:not(.w2), .gd[data-scheme='dark'] .gd-cs-calm { filter: drop-shadow(0 0 3px var(--fc-t-paddle)); }
+.gd[data-scheme='dark'] .gd-cs-sun { filter: drop-shadow(0 0 8px var(--fc-c-sun)); }
+
+/* Life moves. */
+.gd-cs-sway { transform-box: fill-box; transform-origin: 50% 100%; animation: gd-cs-sway 3.6s ease-in-out infinite alternate; animation-delay: var(--sd, 0s); }
+@keyframes gd-cs-sway { from { transform: rotate(calc(-1 * var(--sr, 3deg))); } to { transform: rotate(var(--sr, 3deg)); } }
+.gd-cs-palm { transform-box: fill-box; transform-origin: 50% 60%; animation: gd-cs-palm 5s ease-in-out infinite alternate; }
+@keyframes gd-cs-palm { from { transform: rotate(-2deg); } to { transform: rotate(2.5deg); } }
+.gd-cs-school { animation: gd-cs-school 9s ease-in-out infinite; }
+@keyframes gd-cs-school { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-16px, 4px); } }
+.gd-cs-jelly { transform-box: fill-box; transform-origin: 50% 0; animation: gd-cs-jelly 3.2s ease-in-out infinite; }
+@keyframes gd-cs-jelly { 0%, 100% { transform: translateY(0) scaleY(1); } 40% { transform: translateY(-4px) scaleY(0.9); } }
+.gd-cs-bird { animation: gd-cs-bird 4s ease-in-out infinite; } .gd-cs-bird.b2 { animation-delay: -1.7s; }
+@keyframes gd-cs-bird { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+.gd-cs-bub circle { animation: gd-cs-bub 3.6s ease-in infinite; } .gd-cs-bub circle:nth-child(2) { animation-delay: -1.2s; } .gd-cs-bub circle:nth-child(3) { animation-delay: -2.4s; }
+@keyframes gd-cs-bub { 0% { transform: translateY(12px); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-14px); opacity: 0; } }
+.gd-cs-glint circle { animation: gd-cs-ray 2.6s ease-in-out infinite; } .gd-cs-glint circle:nth-child(2n) { animation-delay: -1.3s; }
+@media (prefers-reduced-motion: reduce) {
+  .gd-coast-svg *, .gd-coast-svg *::before { animation: none !important; }
+  .gd-cbeam, .gd-cedge, .gd-ca { transition: none; }
+}
+
+/* The hit areas in the picture (the strip below holds the real buttons). */
+.gd-czh { fill: transparent; cursor: pointer; }
+
+/* The strip: one square button under each part, its name in Kinetic type and its count in its colour. The one
+   showing is lit from its top edge, joining the beam above. */
+.gd-cs-strip { display: grid; border-top: 1.5px solid var(--fc-line); }
+.gd .gd-cz {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; min-height: 58px;
+  padding: 8px 2px 9px; border: 0; border-left: 1px solid var(--fc-line); border-radius: 0; background: transparent; color: var(--fc-ink); font: inherit;
+  cursor: pointer; text-align: center; transition: background 0.25s ease, color 0.25s ease;
+}
+.gd .gd-cz:first-child { border-left: 0; }
+.gd .gd-cz::before { content: ''; position: absolute; left: 0; right: 0; top: -1.5px; height: 3px; background: var(--zc); transform: scaleX(0.18); opacity: 0.7; transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s; }
+.gd .gd-cz b { font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 70; font-size: clamp(12px, 2.6vw, 19px); line-height: 0.95; text-transform: uppercase; letter-spacing: 0.01em; text-wrap: balance; overflow-wrap: anywhere; }
+.gd .gd-cz-n { font-size: clamp(11px, 2.2vw, 14px); font-weight: 600; color: var(--zc-ink); }
+.gd .gd-cz.hov::before { transform: scaleX(0.6); opacity: 1; }
+.gd .gd-cz.hov { background: color-mix(in srgb, var(--zc) 8%, transparent); }
+.gd .gd-cz.on { background: linear-gradient(180deg, color-mix(in srgb, var(--zc) 30%, transparent), color-mix(in srgb, var(--zc) 8%, transparent)); color: var(--zc-ink); }
+.gd .gd-cz.on::before { transform: scaleX(1); opacity: 1; }
+.gd[data-scheme='dark'] .gd-cz.on::before { box-shadow: 0 0 14px var(--zc), 0 0 4px var(--zc); }
+.gd[data-scheme='dark'] .gd-cz.on b { text-shadow: 0 0 12px color-mix(in srgb, var(--zc) 70%, transparent); }
+.gd .gd-cz:focus-visible { outline: 3px solid var(--fc-ink); outline-offset: -3px; }
+
 .gd-coast-on { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
 .gd-coast-on span { flex: 1 1 auto; }
 .gd .gd-coast-on .gd-qf { height: 36px; }
 .gd[data-mode='identify'] .gd-coast, .gd[data-mode='saved'] .gd-coast { display: none; }
-@media (min-width: 760px) { .gd-coast-d { max-width: 760px; } }

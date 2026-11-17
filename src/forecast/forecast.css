@@ -10,7 +10,7 @@
  */
 .fc {
   --fc-bg: #eef3f8; --fc-ink: #0a1626; --fc-ink2: #46576c; --fc-block: #dfe7f0; --fc-line: #cfd9e4; --fc-card: #ffffff;
-  --fc-t-surf: #0a66e0; --fc-t-fish: #e4441c; --fc-t-swim: #d4176b; --fc-t-snorkel: #00877a; --fc-t-dive: #4338d6; --fc-t-sail: #2a8a1e; --fc-t-paddle: #0a8fb8;
+  --fc-t-surf: #0a66e0; --fc-t-fish: #e4441c; --fc-t-swim: #d4176b; --fc-t-snorkel: #00877a; --fc-t-dive: #4338d6; --fc-t-sail: #2a8a1e; --fc-t-paddle: #0a8fb8; --fc-t-coral: #b4670e;
   --fc-c-card: #ffffff; --fc-c-head: #a5dbc2; --fc-c-night: #f2f6fa; --fc-c-grid: #e2e8ef; --fc-c-grid2: #cfd9e4; --fc-c-acc: #0a76e6;
   --fc-c-bar: #7f90a4; --fc-c-ink2: #46576c; --fc-c-warm: #f2711c; --fc-c-win: #1f9d55; --fc-c-sun: #e8a200;
   --fc-rd-bg: #0a1626; --fc-rd-fg: #eef3f8;
@@ -36,7 +36,7 @@
 }
 .fc[data-scheme='dark'] {
   --fc-bg: #070c14; --fc-ink: #edf3fa; --fc-ink2: #a2b2c5; --fc-block: #0f1723; --fc-line: #2a3749; --fc-card: #0f1723;
-  --fc-t-surf: #4d9dff; --fc-t-fish: #ff7a52; --fc-t-swim: #ff5fa2; --fc-t-snorkel: #2fd6c2; --fc-t-dive: #9a93ff; --fc-t-sail: #74d65e; --fc-t-paddle: #4fc3f7;
+  --fc-t-surf: #4d9dff; --fc-t-fish: #ff7a52; --fc-t-swim: #ff5fa2; --fc-t-snorkel: #2fd6c2; --fc-t-dive: #9a93ff; --fc-t-sail: #74d65e; --fc-t-paddle: #4fc3f7; --fc-t-coral: #f0a040;
   --fc-c-card: #0f1723; --fc-c-head: #1b4a3b; --fc-c-night: #141e2c; --fc-c-grid: #1d2837; --fc-c-grid2: #2a3749; --fc-c-acc: #3d9bff;
   --fc-c-bar: #6c7e93; --fc-c-ink2: #a2b2c5; --fc-c-warm: #ff8a3d; --fc-c-win: #3fcf7d; --fc-c-sun: #ffc53d;
   --fc-rd-bg: #1f5c49; --fc-rd-fg: #e8f6f0;
@@ -443,6 +443,10 @@ body.fc-open { overflow: hidden; }
 .fc[data-act='fish'] .fc-link[data-for~='fish'], .fc[data-act='dive'] .fc-link[data-for~='dive'],
 .fc[data-act='spear'] .fc-link[data-for~='spear'], .fc[data-act='snorkel'] .fc-link[data-for~='snorkel'],
 .fc[data-act='surf'] .fc-link[data-for~='surf'], .fc[data-act='swim'] .fc-link[data-for~='swim'], .fc[data-act='sail'] .fc-link[data-for~='sail'] { display: inline-flex; }
+/* The big Identify button (src/id-button.css), on fish, dive, spear and snorkel. */
+
+.fc .fc-idbig { display: none; margin-top: 14px; }
+.fc[data-act='fish'] .fc-idbig, .fc[data-act='dive'] .fc-idbig, .fc[data-act='spear'] .fc-idbig, .fc[data-act='snorkel'] .fc-idbig { display: flex; }
 /* PADDLE: the kayak / paddleboard switch, shown only on that tab. */
 .fc .fc-craft { display: none; gap: 6px; margin: 4px 0 10px; }
 .fc[data-act='paddle'] .fc-craft { display: flex; }
