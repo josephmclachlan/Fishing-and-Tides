@@ -6,6 +6,7 @@
 import { offsetOfX, slots, xOfOffset, ZONES } from './model';
 import { clamp, fitCanvas, hatch, L2, MONO, rgba, tok } from './dom';
 import type { Level } from '../forecast/model';
+import { RUN_TOKENS } from '../brand';
 
 export interface ScrubData {
   /** Rating level at each slot start offset (hours from now), null without data. */
@@ -16,6 +17,35 @@ export interface ScrubData {
   date: (o: number) => { wd: string; n: number; hh: number };
   /** The week's best window (offsets in hours), as the forecast page finds it between sunrise and sunset. */
   best?: { a: number; b: number } | null;
+}
+
+/** How far the runs fan out at an offset (0 tight, 1 widest): flat over the forecast, opening through LOW CONF, widest in the OUTLOOK. */
+export function runSpread(o: number): number {
+  if (o <= 168) return 0.1 + (0.08 * o) / 168;
+  if (o <= 384) return 0.18 + (0.52 * (o - 168)) / 216;
+  return Math.min(1, 0.7 + (0.3 * (o - 384)) / 336);
+}
+/** The logo's eight runs (src/brand.ts RUN_TOKENS order) across the header strip. */
+function drawRuns(c: CanvasRenderingContext2D, w: number, hd: number) {
+  const mid = hd / 2, amp = hd / 2 - 2;
+  c.save();
+  c.lineWidth = 1.2;
+  c.lineCap = 'round';
+  RUN_TOKENS.forEach((t, i) => {
+    const k = (i - 3.5) / 3.5, col = tok(`t-${t}`);
+    c.strokeStyle = rgba(col, 0.9);
+    c.shadowColor = rgba(col, 0.7);
+    c.shadowBlur = 3;
+    c.beginPath();
+    for (let x = 0; x <= w; x += 3) {
+      const o = offsetOfX(x, w), sp = runSpread(o);
+      const y = mid + amp * sp * (0.75 * k + 0.25 * Math.sin(o / 31 + i * 1.7));
+      if (x === 0) c.moveTo(x, y);
+      else c.lineTo(x, y);
+    }
+    c.stroke();
+  });
+  c.restore();
 }
 
 export function mountScrub(el: HTMLElement, onSet: (o: number) => void) {
@@ -33,18 +63,26 @@ export function mountScrub(el: HTMLElement, onSet: (o: number) => void) {
     c.clearRect(0, 0, w, h);
     c.fillStyle = rgba(tok('c-card'));
     c.fillRect(0, 0, w, h);
-    // Band header in the chart's green.
+    // Band header: a faint wash per band, then the logo's eight forecast runs (PLAN 7.167). They run tight while the
+    // forecast is sure and fan out over LOW CONF and the OUTLOOK, so the header itself says how far to trust each stretch.
     for (const z of ZONES) {
       const x0 = xOfOffset(z.a, w), x1 = xOfOffset(z.b, w);
-      c.fillStyle = rgba(tok('c-head'), z.band === 'forecast' ? 1 : z.band === 'lowconf' ? 0.6 : 0.32);
+      c.fillStyle = rgba(tok('c-head'), z.band === 'forecast' ? 0.45 : z.band === 'lowconf' ? 0.28 : 0.14);
       c.fillRect(x0, 0, x1 - x0, hd);
-      if (z.band === 'lowconf') hatch(c, x0, 0, x1, hd, 5, rgba(tok('c-ink2'), 0.35), 1);
-      c.fillStyle = rgba(tok('c-ink2'));
+    }
+    drawRuns(c, w, hd);
+    for (const z of ZONES) {
+      const x0 = xOfOffset(z.a, w), x1 = xOfOffset(z.b, w);
+      const lab = { forecast: L2('Forecast · 7 d', 'Pronóstico · 7 d'), lowconf: L2('Low conf', 'Baja conf.'), outlook: L2('Outlook', 'Perspectiva') }[z.band].toUpperCase();
+      if (x1 - x0 <= 50) continue;
       c.font = `600 ${big ? 10 : 9}px ${MONO}`;
       c.textBaseline = 'middle';
       c.textAlign = 'left';
-      const lab = { forecast: L2('Forecast · 7 d', 'Pronóstico · 7 d'), lowconf: L2('Low conf', 'Baja conf.'), outlook: L2('Outlook', 'Perspectiva') }[z.band];
-      if (x1 - x0 > 50) c.fillText(lab.toUpperCase(), x0 + 5, hd / 2 + 0.5);
+      // The label on its own backing, so the runs never cross the letters.
+      c.fillStyle = rgba(tok('c-card'), 0.88);
+      c.fillRect(x0 + 2, 2, Math.min(x1 - x0 - 4, c.measureText(lab).width + 7), hd - 4);
+      c.fillStyle = rgba(tok('ink'), 0.85);
+      c.fillText(lab, x0 + 5, hd / 2 + 0.5);
     }
     // Nights in the forecast week.
     c.fillStyle = rgba(tok('c-night'));
