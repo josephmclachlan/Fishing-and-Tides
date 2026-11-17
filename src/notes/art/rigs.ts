@@ -7,7 +7,6 @@
 import { badge, type Fig } from './fig';
 import { RIGS_PICTS } from '../picts/rigs';
 import { clinch, dOf, dropper, n1, palomar, surgeon, type Pt } from './knots';
-import { openHand, palmUp, reefFish } from './fishkit';
 
 type Lang = 'en' | 'es';
 
@@ -364,12 +363,20 @@ function lionfish(lang: Lang): string {
 
 // ---------------------------------------------------------------- release drawings
 
-/** A fish on its side, head left, in a 100 by 40 box, placed at (x, y) and scaled by s; `flip` turns it head right. The shared reef fish (fishkit.ts). */
+/** A fish on its side, head left, in a 100 by 40 box, placed at (x, y) and scaled by s; `flip` turns it head right. */
 function fish(x: number, y: number, s: number, flip = false, extra = ''): string {
-  return reefFish(x, y, s, { flip, extra, plain: s < 0.9 });
+  const t = flip ? `translate(${x + 100 * s} ${y}) scale(${-s} ${s})` : `translate(${x} ${y}) scale(${s})`;
+  return (
+    `<g class="nt-rigs-fish" transform="${t}">` +
+    '<path class="nt-rigs-fb" d="M2 20 C12 6 40 2 64 8 C76 11 84 15 90 14 L100 3 L97 20 L100 37 L90 26 C84 25 76 29 64 32 C40 38 12 34 2 20 Z"/>' +
+    '<path d="M38 5 C44 -2 54 -2 62 7"/><path d="M22 9 C18 16 18 25 22 31"/><path d="M2 20 H10"/>' +
+    '<circle class="nt-rigs-dot" cx="12" cy="16" r="2.4"/>' + extra +
+    '</g>'
+  );
 }
-/** A hand cupped under the fish, its palm top at (x, y) (fishkit.ts palmUp, centred on x). */
-const palm = (x: number, y: number, s = 0.8) => palmUp(x - 18 * s, y - 8 * s, s);
+/** An open hand from below, palm up (a cupped support). */
+const palm = (x: number, y: number) =>
+  `<path class="nt-rigs-hand" d="M${x - 14} ${y + 34} V${y + 4} a3.5 3.5 0 0 1 7 0 a3.5 3.5 0 0 1 7 0 a3.5 3.5 0 0 1 7 0 a3.5 3.5 0 0 1 7 0 V${y + 34}"/><path class="nt-rigs-handl" d="M${x - 7} ${y + 4} v8 M${x} ${y + 4} v8 M${x + 7} ${y + 4} v8"/>`;
 /** Pliers, jaws pointing to (x, y), handles going down right. */
 const pliers = (x: number, y: number, a = 0) =>
   `<g transform="translate(${x} ${y}) rotate(${a})"><path class="nt-rigs-jaw" d="M0 0 L20 -4 L20 4 Z"/><path class="nt-rigs-tool" d="M20 -3 C30 -6 40 -12 58 -16 M20 3 C30 6 40 12 58 16"/><circle class="nt-rigs-tooln" cx="21" cy="0" r="3.4"/><path class="nt-rigs-grip2" d="M38 -10 C46 -13 52 -15 60 -16 M38 10 C46 13 52 15 60 16"/></g>`;
@@ -391,7 +398,8 @@ function rlReady(lang: Lang): string {
 
 /** Wet hands: hands under falling water. 280 by 120. */
 function rlWet(lang: Lang): string {
-  const hand = (x: number, flip: boolean) => openHand(flip ? x - 54 : x - 30, 36, 2.1, flip);
+  const hand = (x: number, flip: boolean) =>
+    `<g transform="translate(${x} 40) scale(${flip ? -3 : 3} 3)"><path class="nt-rigs-handp" d="M8 13V6a1.4 1.4 0 0 1 2.8 0v5M10.8 10.5V4.6a1.4 1.4 0 0 1 2.8 0v5.9M13.6 10.5V5.6a1.4 1.4 0 0 1 2.8 0v7.4c0 4.5-2.6 7.5-5.8 7.5-2.5 0-4-1.4-5.6-4.2L3.8 13.6a1.4 1.4 0 0 1 2.4-1.4L8 14"/></g>`;
   return (
     hand(66, false) + hand(214, true) +
     [[110, 14], [126, 30], [140, 10], [156, 26], [170, 12], [118, 50], [162, 48]].map(([x, y]) => drop(x, y, 1.1)).join('') +
@@ -402,10 +410,10 @@ function rlWet(lang: Lang): string {
 /** Support the body along its length with both hands; under a minute in the air. 280 by 120. */
 function rlHold(lang: Lang): string {
   return (
-    fish(30, 30, 1.9, false) + palm(80, 98, 1.15) + palm(150, 97, 1.15) +
+    fish(30, 30, 1.9, false) + palm(80, 84) + palm(170, 82) +
     `<circle class="nt-rigs-clock" cx="252" cy="26" r="16"/><path class="nt-rigs-tool" d="M252 26 V16 M252 26 L260 30"/>` +
     lbl(252, 58, '< 60 s', 'middle', 'nt-lbl') +
-    `<path class="nt-rigs-no" d="M40 6 l12 12 M52 6 l-12 12"/>` + lbl(60, 13, w(lang, 'EYES · GILLS', 'OJOS · AGALLAS'), 'start')
+    `<path class="nt-rigs-no" d="M38 26 l12 12 M50 26 l-12 12"/>` + lbl(44, 18, w(lang, 'EYES · GILLS', 'OJOS · AGALLAS'), 'start')
   );
 }
 
@@ -437,7 +445,7 @@ function rlRevive(lang: Lang): string {
     `<rect class="nt-sea" x="0" y="0" width="280" height="120"/>` +
     `<path class="nt-rigs-curw" d="M4 30 H56 M4 56 H52 M4 82 H56 M80 16 H250 M230 96 H274"/>` +
     `<path class="nt-rigs-curh" d="M50 25 L56 30 L50 35 M50 77 L56 82 L50 87 M244 11 L250 16 L244 21 M268 91 L274 96 L268 101"/>` +
-    fish(64, 34, 1.8, false) + palm(150, 100, 1.15) +
+    fish(64, 34, 1.8, false) + palm(150, 92) +
     lbl(10, 112, w(lang, 'CURRENT', 'CORRIENTE'), 'start', 'nt-lbl nt-lbl-s nt-rigs-onsea')
   );
 }
