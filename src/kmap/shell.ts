@@ -51,7 +51,7 @@ import { saveScheme, currentScheme, storedScheme } from '../theme';
 import { BANDS } from '../time';
 import type { TimeStore } from '../time';
 import {
-  GROUPS, MODES, OLD_PRESET, isCustom, isMode, isOwnLayer, layerDef, loadOrders, moveLayer, offered, orderOf, saveOrders, toggleLayer,
+  GROUPS, MODES, OLD_PRESET, SUGGESTED, isCustom, isMode, isOwnLayer, layerDef, loadOrders, moveLayer, offered, orderOf, saveOrders, toggleLayer,
   type KmGroup, type KmLayer, type Mask, type Mode,
 } from './model';
 import { mountPaddleMap } from './paddle-map';
@@ -620,6 +620,9 @@ export function mountKineticMap(d: KmDeps) {
   const composerHTML = () => {
     const o = order(), m = mode();
     const rest = offered(m).filter((x) => !o.includes(x));
+    // The activity's other good layers first (PLAN 7.166), then everything else by group.
+    const good = SUGGESTED[m].filter((x) => rest.includes(x)), other = rest.filter((x) => !good.includes(x));
+    const chips = (ls: readonly KmLayer[]) => `<div class="k-adds">${ls.map((x) => `<button type="button" class="k-addc" data-add="${x}">${PLUS}${esc(layerName(x))}</button>`).join('')}</div>`;
     const cite = citer(settings.lang());
     return cite.finish(`<div class="k-preset"><div class="k-pl"><span class="k-pv">${esc(modeName(m))}</span><span class="k-pc">${isCustom(orders, m) ? L2('Mine', 'Mía') : L2('Standard', 'Estándar')}</span></div><button type="button" class="k-tbtn" data-reset ${isCustom(orders, m) ? '' : 'disabled'}>${L2('Reset', 'Restablecer')}</button></div>
     <p class="k-lc-cap k-mono"><span>${o.length} ${L2('on', 'activas')}</span><span>${L2('Top layer is drawn over the rest', 'La de arriba se dibuja encima')}</span></p>
@@ -630,9 +633,10 @@ export function mountKineticMap(d: KmDeps) {
       })
       .join('')}</ol>
     <div class="k-addh"><b>${L2('Add a layer', 'Añadir capa')}</b><span class="k-mono">${rest.length}</span></div>
+    ${good.length ? `<p class="k-addg k-mono">${L2('Good for', 'Buenas para')} ${esc(modeName(m))}</p>${chips(good)}` : ''}
     ${GROUPS.map((g) => {
-      const ls = rest.filter((x) => layerDef(x).group === g);
-      return ls.length ? `<p class="k-addg k-mono">${esc(groupName(g))}</p><div class="k-adds">${ls.map((x) => `<button type="button" class="k-addc" data-add="${x}">${PLUS}${esc(layerName(x))}</button>`).join('')}</div>` : '';
+      const ls = other.filter((x) => layerDef(x).group === g);
+      return ls.length ? `<p class="k-addg k-mono">${esc(groupName(g))}</p>${chips(ls)}` : '';
     }).join('')}`, L2('SOURCES', 'FUENTES'));
   };
   const bindComposer = (el: HTMLElement) => {

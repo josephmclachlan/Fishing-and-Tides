@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CELL_DEG, KM_LAYERS, MODES, PRESETS, coastNear, isCustom, loadOrders, moveLayer, offered, offsetOfX, orderOf, placeChips, DOT_R, privateCells, saveOrders, slots,
+  CELL_DEG, KM_LAYERS, MODES, PRESETS, SUGGESTED, coastNear, isCustom, loadOrders, moveLayer, offered, offsetOfX, orderOf, placeChips, DOT_R, privateCells, saveOrders, slots,
   toggleLayer, xOfOffset, mapActForCond, type Mask,
 } from './model';
 import { LAYERS } from '../layers/registry';
@@ -22,6 +22,18 @@ describe('kinetic map layers', () => {
     for (const m of MODES) {
       expect(new Set(PRESETS[m]).size).toBe(PRESETS[m].length);
       for (const id of PRESETS[m]) expect(offered(m)).toContain(id);
+    }
+  });
+  it('starts each mode with three or four layers, its other good layers suggested next (PLAN 7.166)', () => {
+    for (const m of MODES) {
+      expect(PRESETS[m].length).toBeGreaterThanOrEqual(3);
+      expect(PRESETS[m].length).toBeLessThanOrEqual(4);
+      expect(new Set(SUGGESTED[m]).size).toBe(SUGGESTED[m].length);
+      for (const id of SUGGESTED[m]) {
+        expect(offered(m)).toContain(id);
+        expect(PRESETS[m]).not.toContain(id);
+      }
+      if (m !== 'coral') expect(PRESETS[m]).toContain('lightning');
     }
   });
   it('keeps changes per mode and drops junk on load', () => {
