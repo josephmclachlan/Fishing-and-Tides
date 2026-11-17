@@ -584,7 +584,8 @@
 .gd:not([data-scheme='dark']) .gd-mode[aria-selected='true']:not([data-mode='all']) { color: color-mix(in srgb, var(--mc) 78%, var(--fc-ink)); text-shadow: none; }
 
 /* The twelve groups as tiles: a grid, each drawn in its group's colour, glowing when picked. */
-.gd-groups-w { margin: 6px 0 0; }
+/* Top margin only: the side margins stay auto (.fc-in) so the row is centred on wide screens like the rest. */
+.gd-groups-w { margin: 6px auto 0; }
 .gd-groups { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; overflow: visible; padding: 4px 0 8px; scroll-snap-type: none; }
 .gd .gd-g {
   position: relative; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 3px; min-height: 76px; padding: 7px 7px 8px;
@@ -606,7 +607,7 @@
 .gd:not([data-scheme='dark']) .gd-g[aria-pressed='true'] span { color: color-mix(in srgb, var(--gd-c) 70%, var(--fc-ink)); text-shadow: none; }
 @media (hover: hover) { .gd .gd-g:hover:not([aria-pressed='true']) { background: var(--fc-block); border-color: var(--gd-c); } }
 @media (min-width: 560px) { .gd-groups { grid-template-columns: repeat(6, minmax(0, 1fr)); } .gd .gd-g { font-size: 10.5px; } }
-@media (min-width: 960px) { .gd-groups { grid-template-columns: repeat(12, minmax(0, 1fr)); } .gd-groups-w { margin-left: 0; margin-right: 0; } }
+@media (min-width: 960px) { .gd-groups { grid-template-columns: repeat(12, minmax(0, 1fr)); } }
 
 /* Common here, and shelves or list: square chips that glow when on. */
 .gd .gd-qf, .gd-lay button {
@@ -817,7 +818,7 @@
 /* --- The coast drawing (PLAN 14.6, option F; redrawn 2026-11-17 after Joseph's review). A filled, lit
    cross-section the full width of the page, and under it a strip of square buttons, each under its own part. Picking
    a part lights its column like a beam rising from its button, brightens its seabed and life, and dims the rest. */
-.gd-coast { margin: 18px 0 4px; }
+.gd-coast { margin-top: 18px; margin-bottom: 4px; }
 /* Folded by default (Joseph 2026-11-17): one clean square header row that opens the drawing. */
 .gd-coast-x { border: 1.5px solid var(--fc-line); background: var(--gd-glass); }
 .gd-coast-sum {
