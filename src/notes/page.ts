@@ -106,7 +106,10 @@ export function mountNotesPage(deps: NotesPageDeps) {
 
   const render = () => {
     $('nt-tabs').innerHTML = tabsHtml(tab, lang, (t) => notesHash(t, act), act);
-    $('nt-h1').textContent = act ? `${TITLE[lang]}: ${ACT_NAME[act][lang]}` : TITLE[lang];
+    // The activity's own name in its own colour, and the page's tabs lit in it (the forecast's Kinetic header).
+    $('nt-h1').innerHTML = act ? `${esc(TITLE[lang])}: <span class="nt-act">${esc(ACT_NAME[act][lang])}</span>` : esc(TITLE[lang]);
+    if (act) el.dataset.act = act;
+    else delete el.dataset.act;
     $('nt-sub').textContent = subFor(act, lang);
     $('nt-body').innerHTML = sectionHtml(tab, lang, act);
     $('nt-body').setAttribute('aria-label', tab);

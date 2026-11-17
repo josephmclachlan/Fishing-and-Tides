@@ -1,7 +1,7 @@
 /* FIELD NOTES visual blocks (vis.ts). Kinetic Plus, like the DISPATCH page: square corners, 2px ink lines, display
    type for big numbers, mono caps for labels, flat colour from the page tokens only. Tones: go = mint, warn = amber,
    stop = red, unk = dashed outline (dashed means not sure, as on the map), info = plain. */
-.cig .nt-i { width: 30px; height: 30px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.cig .nt-i { width: 30px; height: 30px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: square; stroke-linejoin: miter; }
 .cig .nt-i circle { fill: currentColor; stroke: none; }
 .cig .nt-i .nt-x { stroke: var(--fc-sev-danger); stroke-width: 2.6; }
 .nt-h { margin: 22px 0 10px; font: 800 clamp(20px, 4.4vw, 26px)/1 var(--fc-disp); font-variation-settings: 'wdth' 74; text-transform: uppercase; }
@@ -43,7 +43,7 @@
 /* drawings */
 .nt-fig { margin: 12px 0 18px; }
 .nt-art { display: block; width: 100%; height: auto; background: var(--fc-block); color: var(--fc-ink); }
-.nt-art path, .nt-art rect { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.nt-art path, .nt-art rect { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: square; stroke-linejoin: miter; }
 .nt-art text { fill: currentColor; stroke: none; }
 .nt-art .nt-sea { fill: color-mix(in srgb, var(--fc-sea-a) 26%, var(--fc-block)); stroke: none; }
 .nt-art .nt-sand { fill: var(--fc-sand); stroke: none; }
@@ -127,7 +127,7 @@
 .nt-cmp td > div { display: flex; gap: 8px; align-items: flex-start; }
 .nt-cmp td span { min-width: 0; overflow-wrap: anywhere; }
 .nt-rh { display: flex; gap: 8px; align-items: center; }
-.nt-chip { display: block; flex: none; width: 22px; height: 22px; background: var(--c); color: var(--o); fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.nt-chip { display: block; flex: none; width: 22px; height: 22px; background: var(--c); color: var(--o); fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: square; stroke-linejoin: miter; }
 .nt-chip circle { fill: currentColor; stroke: none; }
 .nt-chip.nt-unk { background: none; outline: 2px dashed var(--fc-ink2); outline-offset: -2px; color: var(--fc-ink); }
 .nt-chip.nt-info { background: var(--fc-ink); color: var(--fc-bg); }

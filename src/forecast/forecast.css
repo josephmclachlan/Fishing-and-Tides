@@ -234,7 +234,7 @@ body.fc-open { overflow: hidden; }
 .fc .fc-spot {
   --w-s: 132px; --w-l: 288px;
   appearance: none; border: 0; flex: 0 0 auto; width: var(--w-s); height: 96px; overflow: hidden; text-align: left; background: var(--c); color: var(--o);
-  padding: 0; display: flex; border-radius: 2px; transition: width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s;
+  padding: 0; display: flex; border-radius: 0; transition: width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s;
 }
 .fc-s-a { flex: 0 0 var(--w-s); box-sizing: border-box; padding: 10px 11px; display: grid; grid-template-rows: auto 1fr auto; gap: 2px; min-width: 0; }
 .fc-s-b { flex: 0 0 calc(var(--w-l) - var(--w-s)); box-sizing: border-box; padding: 10px 12px 10px 4px; display: grid; grid-template-rows: auto 1fr; align-content: space-between; opacity: 0; transition: opacity 0.25s; }
@@ -260,7 +260,7 @@ body.fc-open { overflow: hidden; }
 
 /* --- conditions tiles */
 .fc-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.fc-tile { position: relative; background: var(--fc-block); border-radius: 2px; height: 226px; padding: 13px 13px 12px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; min-width: 0; overflow: hidden; }
+.fc-tile { position: relative; background: var(--fc-block); border-radius: 0; height: 226px; padding: 13px 13px 12px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; min-width: 0; overflow: hidden; }
 .fc-tile[role='button'] { cursor: pointer; }
 .fc-t-top { display: flex; justify-content: space-between; gap: 6px; min-width: 0; }
 .fc-t-top .fc-mono:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -293,7 +293,7 @@ body.fc-open { overflow: hidden; }
 .fc-lv-t b { font-family: var(--fc-disp); font-weight: 850; font-variation-settings: 'wdth' 74; font-size: clamp(30px, 5vw, 64px); line-height: 0.88; letter-spacing: -0.025em; }
 .fc-lv-s1 { font-family: var(--fc-disp); font-weight: 700; font-variation-settings: 'wdth' 82; font-size: clamp(19px, 2vw, 26px); line-height: 1.05; }
 .fc-lv-s2 { color: var(--fc-map-mut); font-size: 13.5px; }
-.fc-lv-go { position: absolute; z-index: 2; right: var(--fc-g-r); bottom: 22px; width: 60px; height: 60px; background: var(--fc-map-go); display: grid; place-items: center; border-radius: 2px; transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.fc-lv-go { position: absolute; z-index: 2; right: var(--fc-g-r); bottom: 22px; width: 60px; height: 60px; background: var(--fc-map-go); display: grid; place-items: center; border-radius: 0; transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .fc-lv-go svg { width: 26px; height: 26px; fill: none; stroke: var(--fc-map-go-ink); stroke-width: 2.6; stroke-linecap: square; }
 .fc-live:hover .fc-lv-go { transform: translateX(4px); }
 .fc .fc-live:focus-visible { outline: 3px solid var(--fc-ink); outline-offset: -3px; }
@@ -304,7 +304,7 @@ body.fc-open { overflow: hidden; }
 .fc-dd { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fc-dn { font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 74; font-size: 24px; line-height: 1; margin: 2px 0 6px; text-decoration-color: var(--fc-tbar); }
 .fc-ba { position: relative; display: block; }
-.fc-bar { position: absolute; left: 0; right: 0; bottom: 0; height: var(--h); background: var(--c); color: var(--o); transform-origin: bottom; padding: 7px 5px; border-radius: 2px 2px 0 0; overflow: hidden; }
+.fc-bar { position: absolute; left: 0; right: 0; bottom: 0; height: var(--h); background: var(--c); color: var(--o); transform-origin: bottom; padding: 7px 5px; border-radius: 0 0 0; overflow: hidden; }
 .fc-day .fc-bv { font-family: var(--fc-disp); font-weight: 850; font-variation-settings: 'wdth' 66; font-size: 17px; line-height: 1; letter-spacing: -0.02em; display: block; white-space: normal; }
 .fc-day .fc-bw { margin-top: 8px; font-size: 10px; color: var(--fc-ink2); white-space: nowrap; overflow: hidden; display: grid; gap: 3px; justify-items: center; }
 .fc-uvc { display: inline-flex; align-items: center; gap: 4px; color: var(--fc-ink); }
@@ -344,7 +344,7 @@ body.fc-open { overflow: hidden; }
 .fc-hx-in canvas { position: absolute; left: 0; top: 0; display: block; }
 .fc-hx-key { display: flex; flex-wrap: wrap; gap: 6px 16px; }
 .fc-hx-key span { display: inline-flex; align-items: center; gap: 6px; }
-.fc-hx-key i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; }
+.fc-hx-key i { display: inline-block; width: 14px; height: 10px; border-radius: 0; }
 .fc-hx-key .k-night { background: var(--fc-c-night); box-shadow: inset 0 0 0 1px var(--fc-c-grid2); }
 .fc-hx-key .k-win { background: var(--fc-c-win); opacity: 0.85; }
 .fc-hx-key .k-sun { width: 3px; background: var(--fc-c-sun); }
@@ -424,7 +424,7 @@ body.fc-open { overflow: hidden; }
   font-weight: 700; color: var(--bg); background: var(--green); border-color: var(--green);
   box-shadow: 0 0 12px color-mix(in srgb, var(--green) 35%, transparent); text-shadow: none;
 }
-.fc-launch .fc-ret-ico { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.fc-launch .fc-ret-ico { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: square; stroke-linejoin: miter; }
 .fc-launch .fc-ret-k { letter-spacing: 0.08em; }
 .fc-launch .fc-ret-s { font-size: 11px; font-weight: 600; opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .fc-launch:hover, .fc-launch:focus-visible { filter: brightness(1.1); box-shadow: 0 0 18px color-mix(in srgb, var(--green) 60%, transparent); }
