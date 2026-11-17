@@ -70,19 +70,32 @@ export const isKmLayer = (x: unknown): x is KmLayer => typeof x === 'string' && 
 export const isOwnLayer = (x: KmLayer): x is OwnLayer => x === 'rating' || x === 'range' || x === 'heat' || x === 'private';
 
 /**
- * Starting layers per mode, top first (mockup G, approved 2026-11-11), with lightning wherever people are in or on
- * the water. Every other layer is one tap away under ADD A LAYER.
+ * Starting layers per mode, top first: three or four, so the phone map stays readable (Joseph 2026-11-17, layout B,
+ * PLAN 7.166), with lightning wherever people are in or on the water. Every other layer is one tap away: SUGGESTED first,
+ * then ADD A LAYER by group.
  */
 export const PRESETS: Readonly<Record<Mode, readonly KmLayer[]>> = {
-  surf: ['rating', 'lightning', 'rip', 'surf', 'wind', 'weather', 'waves', 'reefs', 'depth'],
-  fish: ['rating', 'lightning', 'fishing', 'currents', 'fronts', 'zones', 'seamarks', 'chl', 'depth'],
-  swim: ['rating', 'lightning', 'weather', 'rip', 'sargassum', 'clarity', 'sst'],
-  snorkel: ['rating', 'lightning', 'currents', 'waves', 'zones', 'reefs', 'clarity'],
-  dive: ['rating', 'lightning', 'seamarks', 'currents', 'zones', 'reefs', 'clarity', 'depth'],
-  spear: ['rating', 'lightning', 'spear', 'currents', 'zones', 'reefs', 'clarity', 'depth'],
-  sail: ['rating', 'lightning', 'weather', 'obs', 'wind', 'currents', 'waves', 'anchorages', 'ais', 'seamarks'],
-  paddle: ['rating', 'range', 'lightning', 'wind', 'waves', 'currents', 'rip', 'weather', 'reefs', 'zones', 'anchorages'],
-  coral: ['private', 'heat', 'zones', 'reefs', 'sst'],
+  surf: ['rating', 'lightning', 'surf', 'waves'],
+  fish: ['rating', 'lightning', 'fishing', 'zones'],
+  swim: ['rating', 'lightning', 'rip', 'weather'],
+  snorkel: ['rating', 'lightning', 'clarity', 'reefs'],
+  dive: ['rating', 'lightning', 'clarity', 'reefs'],
+  spear: ['rating', 'lightning', 'spear', 'zones'],
+  sail: ['rating', 'lightning', 'wind', 'waves'],
+  paddle: ['rating', 'range', 'lightning', 'rip'],
+  coral: ['private', 'heat', 'reefs'],
+};
+/** The rest of each mode's starting set before PLAN 7.166 (mockup G, 2026-11-11): offered first, as "good for" the activity. */
+export const SUGGESTED: Readonly<Record<Mode, readonly KmLayer[]>> = {
+  surf: ['rip', 'wind', 'weather', 'reefs', 'depth'],
+  fish: ['currents', 'fronts', 'seamarks', 'chl', 'depth'],
+  swim: ['sargassum', 'clarity', 'sst'],
+  snorkel: ['currents', 'waves', 'zones'],
+  dive: ['seamarks', 'currents', 'zones', 'depth'],
+  spear: ['currents', 'reefs', 'clarity', 'depth'],
+  sail: ['weather', 'obs', 'currents', 'anchorages', 'ais', 'seamarks'],
+  paddle: ['wind', 'waves', 'currents', 'weather', 'reefs', 'zones', 'anchorages'],
+  coral: ['zones', 'sst'],
 };
 
 /** Layers offered in a mode: the coral-only ones only in CORAL, BEACH RATINGS not in CORAL. */
