@@ -423,22 +423,19 @@
 .km body.km-on #hud>.panel.open,
 .km body.km-on[data-sheet="cond"] #hud>#cond-panel,
 .km body.km-on #hud .help-card,
-.km body.km-on #hud>.rules-card:not([hidden]),
-.km body.km-on #hud>.watch-pop:not([hidden]){visibility:visible}
-/* The cards an old drawer opens (WATCH's 5-day forecast, the zone RULES and SOURCE cards): over the drawer and its
+.km body.km-on #hud>.rules-card:not([hidden]){visibility:visible}
+/* The cards an old drawer opens (the zone RULES and SOURCE cards): over the drawer and its
    head, below the top bar, with their own close button back. */
-.km body.km-on #hud>.rules-card,.km body.km-on #hud>.watch-pop{position:fixed!important;z-index:40!important;left:50%!important;top:calc(var(--k-tool-top,64px) + 8px)!important;bottom:auto!important;transform:translateX(-50%)!important;width:min(560px,calc(100vw - 16px))!important;max-height:calc(100dvh - var(--k-tool-top,64px) - 16px)!important;overflow-y:auto;overscroll-behavior:contain;background:var(--bg)!important;border:2px solid var(--ink)!important;border-radius:2px;box-shadow:0 14px 40px rgba(6,12,22,.22)!important;padding:14px 16px 16px!important}
-.km body.km-on #hud>.watch-pop{width:min(760px,calc(100vw - 16px))!important}
+.km body.km-on #hud>.rules-card{position:fixed!important;z-index:40!important;left:50%!important;top:calc(var(--k-tool-top,64px) + 8px)!important;bottom:auto!important;transform:translateX(-50%)!important;width:min(560px,calc(100vw - 16px))!important;max-height:calc(100dvh - var(--k-tool-top,64px) - 16px)!important;overflow-y:auto;overscroll-behavior:contain;background:var(--bg)!important;border:2px solid var(--ink)!important;border-radius:2px;box-shadow:0 14px 40px rgba(6,12,22,.22)!important;padding:14px 16px 16px!important}
 /* With a drawer open, the card starts under the drawer's own head bar (which sits above the old HUD). */
-.km body.km-tool #hud>.rules-card,.km body.km-tool #hud>.watch-pop{top:calc(var(--k-tool-top,64px) + 64px)!important;max-height:calc(100dvh - var(--k-tool-top,64px) - 72px)!important}
+.km body.km-tool #hud>.rules-card{top:calc(var(--k-tool-top,64px) + 64px)!important;max-height:calc(100dvh - var(--k-tool-top,64px) - 72px)!important}
 /* A desktop keeps the drawer open in the right column: the card sits beside it, clear of its head. */
 @media (min-width:1100px){
-  .km body.km-tool #hud>.watch-pop,.km body.km-tool #hud>.rules-card{left:auto!important;right:408px!important;transform:none!important}
-  .km body.km-tool #hud>.watch-pop{width:min(760px,calc(100vw - 424px))!important}
+  .km body.km-tool #hud>.rules-card{left:auto!important;right:408px!important;transform:none!important}
   .km body.km-tool #hud>.rules-card{width:min(560px,calc(100vw - 424px))!important}
 }
 .km #hud>.rules-card>.ph .rules-close{margin-left:auto}
-.km #hud>.panel.rules-card>.ph .sheet-x,.km #hud>.panel.watch-pop>.ph .sheet-x,.km #hud>.panel.help-card>.ph .sheet-x{display:grid;place-items:center;margin-left:auto;appearance:none;cursor:pointer;width:36px;height:36px;border:2px solid var(--ink);background:none;color:var(--ink);border-radius:2px;font-size:13px;line-height:1;padding:0;flex:0 0 auto}
+.km #hud>.panel.rules-card>.ph .sheet-x,.km #hud>.panel.help-card>.ph .sheet-x{display:grid;place-items:center;margin-left:auto;appearance:none;cursor:pointer;width:36px;height:36px;border:2px solid var(--ink);background:none;color:var(--ink);border-radius:2px;font-size:13px;line-height:1;padding:0;flex:0 0 auto}
 .km body.km-on #hud .reticle,.km body.km-on #hud .alert{display:none!important}
 
 /* ---------- rating tiles on the spots (coast.ts) ---------- */
@@ -593,9 +590,7 @@
 .km #hud .panel .vis-form .lbl{text-transform:none;letter-spacing:0;font-family:var(--body);font-size:13.5px;font-weight:500;color:var(--ink)}
 .km #hud .panel .vis-in{border:2px solid var(--ink);border-radius:2px;background:var(--bg);color:var(--ink);font-family:var(--disp);font-weight:800;font-size:20px}
 .km #hud .panel .vis-msg{margin:4px 0 8px;text-transform:none;letter-spacing:0;font-family:var(--body);font-size:13px;color:var(--ink)}
-.km #hud .panel .wt-sec{margin-top:10px}
-.km #hud .panel .wt-chips,.km #hud .panel .boat-btns{display:flex;flex-wrap:wrap;gap:6px}
-.km #hud .panel .wt-go{width:100%;margin-top:10px}
+.km #hud .panel .boat-btns{display:flex;flex-wrap:wrap;gap:6px}
 /* A feed row: lamp, name and age on one line, its value and detail under the name (each wrapper is a plain block,
    or its single child would land in the 14 px lamp column and print one letter per line). */
 .km #hud .panel .ck-feed{display:block;padding:0;border:0;border-bottom:1px solid var(--line)}
