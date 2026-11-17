@@ -237,7 +237,7 @@ Phone map layout B (Joseph 2026-11-17 picked B after the mockups at https://clau
 - [x] 7.164 Fish controls (EAT/SPORT, where you fish, the fish picker, boat water, best spots) move off the map into the sheet (**O**)
 - [x] 7.165 Press and hold the activity pill for a half wheel of every activity: slide to one and let go (**O**)
 - [x] 7.166 Each activity starts with 3 or 4 layers; the app's other starting layers and every other layer are one tap away in the sheet, grouped (**S**)
-- [ ] 7.167 The logo's look on the phone map: black glass, glowing activity colours, the spectrum edge on the sheet, and the logo's forecast runs as the time bar (**O**)
+- [x] 7.167 The logo's look on the phone map: black glass, glowing activity colours, the spectrum edge on the sheet, and the logo's forecast runs as the time bar (**O**)
 
 ## Phase 8: History and logs (see docs/HISTORY.md)
 Save what the app sees so it can show the past, and keep private logs (catches, coral sites) in a database only approved people can read. One PR per step.
