@@ -64,7 +64,6 @@ export const BASE: Readonly<Record<string, BaseRow>> = {
   "Mugil liza": {"id":"mugil-liza","sci":"Mugil liza","en":"Lebranche mullet","es":"Lisa","cigua":false,"edible":"yes"},
   "Mulloidichthys martinicus": {"id":"mulloidichthys-martinicus","sci":"Mulloidichthys martinicus","en":"Yellow goatfish","es":"Salmonete amarillo","cigua":true,"edible":"yes","size":{"basis":"none"}},
   "Mycteroperca bonaci": {"id":"mycteroperca-bonaci","sci":"Mycteroperca bonaci","en":"Black grouper","es":"Cherna negrillo","cigua":true,"edible":"caution","size":{"basis":"published","cm":70,"kg":4.5}},
-  "Mycteroperca tigris": {"id":"mycteroperca-tigris","sci":"Mycteroperca tigris","en":"Tiger grouper","es":"Cuna gata","cigua":true,"edible":"caution","size":{"basis":"never"}},
   "Octopus briareus": {"id":"octopus-briareus","sci":"Octopus briareus","en":"Caribbean reef octopus","es":"Pulpo de arrecife","cigua":false,"edible":"yes"},
   "Octopus insularis": {"id":"octopus-insularis","sci":"Octopus insularis","en":"Common octopus","es":"Pulpo","cigua":false,"edible":"yes"},
   "Ocyurus chrysurus": {"id":"ocyurus-chrysurus","sci":"Ocyurus chrysurus","en":"Yellowtail snapper","es":"Rabirrubia","cigua":true,"edible":"yes","size":{"basis":"estimate","cm":40,"kg":1}},
