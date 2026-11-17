@@ -93,7 +93,13 @@
   appearance: none; border: 0; background: none; color: var(--fc-ink); font: 600 14px var(--fc-body); padding: 0; margin: 0; width: 100%; min-width: 0; cursor: pointer; outline: none;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.gd-pick:focus-within { outline: 3px solid var(--fc-ink); outline-offset: 2px; }
+/* One box (Joseph 2026-11-17: "these multiple nested boxes look terrible"): the select draws no focus ring of its own
+   (the page-wide .fc :focus-visible ring was drawing a second box inside, and a ring outside the frame a third), so
+   the frame itself shows focus: its line thickens and turns the guide's accent colour. */
+.gd .gd-pick select:focus, .gd .gd-pick select:focus-visible { outline: none; }
+.gd .gd-pick:focus-within { outline: none; border-color: var(--fc-t-snorkel); box-shadow: inset 0 0 0 1px var(--fc-t-snorkel); }
+.gd[data-scheme='dark'] .gd-pick:focus-within { box-shadow: inset 0 0 0 1px var(--fc-t-snorkel), 0 0 14px color-mix(in srgb, var(--fc-t-snorkel) 35%, transparent); }
+@media (hover: hover) { .gd-pick:hover { box-shadow: inset 0 0 0 1px var(--fc-ink); } }
 .gd-pick select option { background: var(--fc-card); color: var(--fc-ink); }
 
 .gd-filters { margin-top: 12px; padding: 12px 0 4px; border-top: 2px solid var(--fc-ink); display: grid; gap: 10px 28px; }
