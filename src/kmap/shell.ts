@@ -59,6 +59,7 @@ import type { PaddleMark } from './paddle-geo';
 import { pushOf } from '../forecast/view';
 import { hex, tok } from './dom';
 import { ARROW, BACK, CLOSE, GRIP, ICON, L2, LOCK, PLUS, compass, esc, fin, levelWord, modeName, resetTokens, setKmLang, svg } from './dom';
+import { mountActWheel } from './wheel';
 import { mountCoast, type PinData } from './coast';
 import { readDetails, type Detail } from './detail';
 import { mountScrub } from './scrub';
@@ -392,7 +393,32 @@ export function mountKineticMap(d: KmDeps) {
     topBar.classList.toggle('k-acts', open);
     pillBtn.setAttribute('aria-expanded', String(open));
   };
-  pillBtn.addEventListener('click', () => showActs(!topBar.classList.contains('k-acts')));
+  /* Press and hold the pill for the activity wheel (PLAN 7.165): slide to an activity and let go. */
+  const wheel = mountActWheel({
+    current: mode,
+    hint: () => [L2('Let go to switch', 'Suelte para cambiar'), L2('Slide to an activity', 'Deslice a una actividad')],
+    onPick: (m) => tabs.querySelector<HTMLElement>(`.k-tab[data-id="${m}"]`)?.click(),
+  });
+  let holdT = 0, held = false;
+  pillBtn.addEventListener('pointerdown', (e) => {
+    if (WIDE.matches || e.button > 0) return;
+    held = false;
+    pillBtn.setPointerCapture(e.pointerId);
+    holdT = window.setTimeout(() => {
+      held = true;
+      showActs(false);
+      wheel.open(pillBtn.getBoundingClientRect().bottom + 6, MODES.map((m) => ({ id: m, label: modeName(m) })));
+    }, 330);
+  });
+  pillBtn.addEventListener('pointermove', (e) => held && wheel.move(e));
+  pillBtn.addEventListener('pointerup', (e) => (clearTimeout(holdT), held && wheel.up(e, true)));
+  pillBtn.addEventListener('pointercancel', () => clearTimeout(holdT));
+  pillBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+  pillBtn.addEventListener('click', () => {
+    // The click that ends a hold belongs to the wheel, not the row.
+    if (held) return void (held = false);
+    showActs(!topBar.classList.contains('k-acts'));
+  });
   tabs.addEventListener('click', (e) => (e.target as HTMLElement).closest('.k-tab') && showActs(false));
   topBar.addEventListener('keydown', (e) => e.key === 'Escape' && topBar.classList.contains('k-acts') && (showActs(false), pillBtn.focus()));
   map.on('dragstart', () => showActs(false));
