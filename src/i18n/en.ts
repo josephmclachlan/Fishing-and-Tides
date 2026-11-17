@@ -2095,6 +2095,8 @@ export const en = {
   'gd.id.q.kind': 'What did you see?',
   'gd.id.h.kind': 'Corals, sponges and anemones are animals.',
   'gd.id.live': 'Could be · {n} fit so far',
+  'gd.id.check': 'Is it really the {name}? Check the look-alike',
+  'gd.id.checkTwo': '{name} or the next best? Compare them',
   'gd.id.q.group': 'What kind of thing was it?',
   'gd.id.h.group': 'Corals, sponges and anemones are animals. The number is how many could fit.',
   'gd.id.q.sub': 'Which one?',

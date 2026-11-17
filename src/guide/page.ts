@@ -19,7 +19,7 @@ import { t } from '../i18n';
 import { landing } from '../forecast/model';
 import { loadIndex, loadSpecies } from './data';
 import { noAnswers, stepsFor, type IdAnswers, type IdStep } from './identify';
-import { idHtml } from './identify-view';
+import { idCheckHtml, idHtml } from './identify-view';
 import {
   activeCount, DEFAULT_FILTER, isHere, groupCounts, GROUP_BYS, haystack, inView, matches, nameOf, modeCounts, sections, SORTS,
   type GdFilter, type GroupBy, type SortKey,
@@ -290,6 +290,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       $('gd-intro').innerHTML = '';
       $('gd-count').textContent = '';
       list.innerHTML = r.html;
+      fillCheck(r.order);
       rows = [];
       drawn = 0;
       moreBtn.hidden = true;
@@ -318,6 +319,21 @@ export function mountGuidePage(deps: GuidePageDeps) {
     list.innerHTML = shown.length ? '' : `<p class="gd-empty">${esc(t(mode === 'saved' ? 'gd.fav.none' : 'gd.none'))}</p>`;
     drawn = 0;
     if (shown.length) more();
+  };
+  /** The look-alike check under the best match: needs the species' own file for its look-alikes. */
+  const fillCheck = (ids: readonly string[]) => {
+    const box = list.querySelector<HTMLElement>('#gd-id-check');
+    const top = box?.dataset.top ? byId.get(box.dataset.top) : undefined;
+    if (!box || !top) return;
+    const runner = ids[1] ? byId.get(ids[1]) : undefined;
+    const peer = (sci: string) => {
+      const id = bySci.get(sci.toLowerCase());
+      return id ? byId.get(id) : undefined;
+    };
+    const draw = (s: Species | null) => {
+      if (box.isConnected) box.innerHTML = idCheckHtml(top, s, listOpts, peer, runner);
+    };
+    loadSpecies(top.id, base).then(draw, () => draw(null));
   };
   const io = typeof IntersectionObserver === 'function'
     ? new IntersectionObserver((es) => es.some((e) => e.isIntersecting) && !moreBtn.hidden && more(), { root: el, rootMargin: '900px 0px' })
@@ -435,7 +451,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       render();
     } else if (hit('#gd-fbtn')) setFilters($('gd-filters').hidden === true);
     else if (hit('[data-retry]')) load();
-    else if ((b = hit('a.gd-card, a.gd-st, a.gd-rec, .gd-look a, a.gd-id-tl')) && plain) {
+    else if ((b = hit('a.gd-card, a.gd-st, a.gd-rec, .gd-look a, a.gd-id-tl, .gd-id-chk a')) && plain) {
       ev.preventDefault();
       const r = parseGuideRoute(b.getAttribute('href') ?? '');
       if (r?.id) {

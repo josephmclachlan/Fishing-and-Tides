@@ -675,3 +675,48 @@
 .gd-tkey .gd-tg { width: 16px; height: 16px; }
 .gd-tkey .gd-tg svg { width: 10px; height: 10px; }
 .gd-lay button:disabled { opacity: 0.35; cursor: default; }
+
+/* --- Identify, part 2 (PLAN 14.3, Joseph 2026-11-17): picture answers on black glass, square, each lit when picked,
+   and a side-by-side look-alike check under the best match. */
+.gd .gd-id-t {
+  --ic: var(--gd-c, var(--fc-t-snorkel)); position: relative; border: 1.5px solid color-mix(in srgb, var(--ic) 45%, transparent); background: var(--gd-glass);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.gd .gd-id-t svg { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--ic) 55%, transparent)); }
+.gd .gd-id-t[aria-pressed='true'] {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ic) 22%, var(--fc-card)), var(--gd-glass)); color: var(--fc-ink); border-color: var(--ic);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--ic) 45%, transparent), inset 0 0 14px color-mix(in srgb, var(--ic) 14%, transparent);
+}
+.gd .gd-id-t[aria-pressed='true'] svg { color: var(--ic); }
+.gd .gd-id-t[aria-pressed='true'] small { color: var(--fc-ink2); }
+.gd .gd-id-t[aria-pressed='true'] > span { color: var(--ic); text-shadow: 0 0 10px color-mix(in srgb, var(--ic) 55%, transparent); }
+.gd:not([data-scheme='dark']) .gd-id-t[aria-pressed='true'] > span { color: color-mix(in srgb, var(--ic) 70%, var(--fc-ink)); text-shadow: none; }
+.gd .gd-id-t[aria-pressed='true']::after {
+  content: ''; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: var(--ic); box-shadow: 0 0 8px var(--ic);
+}
+@media (hover: hover) { .gd .gd-id-t:hover:not([aria-pressed='true']) { border-color: var(--ic); } }
+.gd-id-tiles.pics { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.gd-id-tiles.pics .gd-id-t { min-height: 92px; padding: 8px; font-size: 12.5px; line-height: 1.2; gap: 6px; }
+.gd-id-tiles.pics .gd-id-t svg { width: 100%; height: 44px; }
+.gd-id-tiles.pics.sm .gd-id-t svg { height: 34px; }
+.gd .gd-pic path { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.gd .gd-pic .gd-pic-sea { stroke: var(--fc-ink2); stroke-width: 1.5; }
+.gd .gd-pic .gd-pic-dot { fill: currentColor; stroke: none; }
+.gd .gd-pic-s .gd-pic-m { stroke-width: 1.8; }
+@media (min-width: 700px) { .gd-id-tiles.pics { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); } }
+
+.gd-id-chk {
+  margin: 4px 0 16px; padding: 12px; border: 1.5px solid var(--fc-t-snorkel); background: linear-gradient(180deg, color-mix(in srgb, var(--fc-t-snorkel) 12%, var(--fc-card)), var(--gd-glass));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--fc-t-snorkel) 30%, transparent);
+}
+.gd-id-chk-h { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 74; font-size: 20px; line-height: 1.05; text-transform: uppercase; color: var(--fc-t-snorkel); text-shadow: 0 0 12px color-mix(in srgb, var(--fc-t-snorkel) 50%, transparent); }
+.gd:not([data-scheme='dark']) .gd-id-chk-h { color: color-mix(in srgb, var(--fc-t-snorkel) 80%, var(--fc-ink)); text-shadow: none; }
+.gd .gd-id-chk-h svg { flex: none; width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: square; }
+.gd-id-chk .gd-la li:last-child { border-bottom: 0; padding-bottom: 0; }
+.gd-id-chk .gd-la a { text-decoration: none; color: inherit; display: block; }
+.gd-id-chk .gd-la figure { border-top: 2px solid var(--gd-c, var(--fc-ink)); }
+.gd-id-chk .gd-la p { margin: 8px 0 0; font-size: 14.5px; line-height: 1.4; }
+.gd-id-cmp { margin: 8px 0 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; font-size: 14px; line-height: 1.4; }
+.gd-id-cmp dt { font-family: var(--fc-mono); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fc-ink2); margin-top: 6px; }
+.gd-id-cmp dd { margin: 0; }
+.gd:not([data-scheme='dark']) .gd-id-t svg, .gd:not([data-scheme='dark']) .gd-g > svg { filter: none; }

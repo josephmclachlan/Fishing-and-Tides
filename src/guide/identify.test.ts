@@ -60,3 +60,27 @@ describe('guessLook', () => {
     expect(guessLook('', [], 'fish')).toBeUndefined();
   });
 });
+
+describe('identify, part 2 (PLAN 14.3): picture answers and the look-alike check', async () => {
+  const { idCheckHtml } = await import('./identify-view');
+  const { patternPic, shapePic, wherePic } = await import('./id-pics');
+  const { PATTERNS, POSITIONS, SHAPES } = await import('./types');
+  const ent = (id: string, o: object = {}) => ({ id, tier: 'full', group: 'fish', sub: 'x', sci: id, en: [id], es: [id], ...o }) as never;
+  const o = { lang: 'en' as const, base: '/', href: (id: string) => `#guide/identify/${id}` };
+  it('draws every shape but "other", every marking and every place', () => {
+    for (const s of SHAPES) expect(shapePic(s).includes('<path') || s === 'other').toBe(true);
+    for (const p of PATTERNS) expect(patternPic(p)).toContain('<path');
+    for (const p of POSITIONS) expect(wherePic(p)).toContain('gd-pic-dot');
+  });
+  it('checks the best match against its look-alikes, with how to tell them apart', () => {
+    const h = idCheckHtml(ent('a'), { lookalikes: [{ sci: 'b', tip: { en: 'B has a red tail[^2].', es: 'B' } }] }, o, (sci) => (sci === 'b' ? ent('b') : undefined));
+    expect(h).toContain('B has a red tail.');
+    expect(h).toContain('#guide/identify/b');
+    expect(h).not.toContain('[^');
+  });
+  it('falls back to the runner-up with each one\'s key marks, and to nothing', () => {
+    const top = ent('a', { look: { marks: { en: 'Five bars', es: 'x' } } });
+    expect(idCheckHtml(top, null, o, () => undefined, ent('c'))).toContain('Five bars');
+    expect(idCheckHtml(top, null, o, () => undefined)).toBe('');
+  });
+});
