@@ -33,7 +33,7 @@ export function dockCells(
   tl: readonly TimelineHour[], nowMs: number, showMs: number, dayStartOf: (ms: number) => number,
   beyond?: (ms: number) => { level: Level | null; day: boolean },
 ): DockCell[] {
-  // Past the week (days 8 to 30): that day's hours, read one by one.
+  // Past the week (days 8 to 16): that day's hours, read one by one.
   if (beyond && (!tl.length || showMs >= tl[tl.length - 1].ms + H)) {
     const d0 = dayStartOf(showMs);
     return Array.from({ length: 24 }, (_, k) => {

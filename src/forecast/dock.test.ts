@@ -61,21 +61,22 @@ describe('time dock', () => {
   });
 });
 
-describe('days 8 to 30', () => {
-  it('rows for plan days 7..29 in two tiers, each read at its window start', () => {
+describe('days 8 to 16', () => {
+  it('rows for plan days 7..15 only, each read at its window start', () => {
     const { deps, sp } = setup();
     const p30 = daysAt(deps, 'surf', sp, DAY0 + 9 * H, 30);
+    // even from a longer plan, nothing past day 16
     const rows = outlookView(p30, (ms) => readAt(deps, 'surf', sp, ms));
-    expect(rows).toHaveLength(p30.days.length - 7);
+    expect(rows).toHaveLength(9);
     expect(rows[0].i).toBe(7);
-    expect(rows.filter((r) => r.tier === 1)).toHaveLength(9);
+    expect(rows[8].i).toBe(15);
     rows.forEach((r) => {
       expect(r.width).toBeGreaterThanOrEqual(0);
       expect(r.width).toBeLessThanOrEqual(1);
       if (r.ms !== null) expect(r.ms).toBe(p30.days[r.i]!.startMs);
     });
-    const html = outlookHtml(rows, 'LESS', 'TYPICAL');
+    const html = outlookHtml(rows, 'LESS');
     expect(html).toContain('LESS');
-    expect(html).toContain('TYPICAL');
+    expect((html.match(/<button/g) ?? []).length).toBe(9);
   });
 });

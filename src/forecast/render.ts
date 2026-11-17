@@ -200,12 +200,11 @@ export function daysHtml(list: readonly DayView[], bestLabel: string): string {
     .join('');
 }
 
-/** Days 8 to 30: one row per day, its best window, a bar as long as its headline, and the headline; two tiers. */
-export function outlookHtml(list: readonly OutlookRow[], less: string, typical: string): string {
+/** Days 8 to 16: one row per day, its best window, a bar as long as its headline, and the headline. */
+export function outlookHtml(list: readonly OutlookRow[], less: string): string {
   const row = (d: OutlookRow) =>
-    `<button type="button" class="fc-olr ${lvCls(d.level)} t${d.tier}" data-i="${d.i}" ${d.ms === null ? 'disabled' : `data-ms="${d.ms}"`}><span class="fc-old">${esc(d.dd)}</span><span class="fc-olw fc-mono">${esc(d.window)}</span><span class="fc-olb" aria-hidden="true"><i style="width:${(d.width * 100).toFixed(0)}%"></i></span><span class="fc-olv">${esc(d.value)}${d.unit ? `<small>${esc(d.unit)}</small>` : ''}</span></button>`;
-  const a = list.filter((d) => d.tier === 1), b = list.filter((d) => d.tier === 2);
-  return `${a.length ? `<p class="fc-olh fc-mono">${esc(less)}</p>${a.map(row).join('')}` : ''}${b.length ? `<p class="fc-olh fc-mono">${esc(typical)}</p>${b.map(row).join('')}` : ''}`;
+    `<button type="button" class="fc-olr ${lvCls(d.level)}" data-i="${d.i}" ${d.ms === null ? 'disabled' : `data-ms="${d.ms}"`}><span class="fc-old">${esc(d.dd)}</span><span class="fc-olw fc-mono">${esc(d.window)}</span><span class="fc-olb" aria-hidden="true"><i style="width:${(d.width * 100).toFixed(0)}%"></i></span><span class="fc-olv">${esc(d.value)}${d.unit ? `<small>${esc(d.unit)}</small>` : ''}</span></button>`;
+  return list.length ? `<p class="fc-olh fc-mono">${esc(less)}</p>${list.map(row).join('')}` : '';
 }
 
 /** The hour readout: when, the rating, then every row's value (activity rows over weather rows). */

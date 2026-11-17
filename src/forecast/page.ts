@@ -20,7 +20,7 @@ import type { Spot } from '../metrics/forecast';
 import type { Plan } from '../metrics/plan';
 import { drawRadar, heroParams, HeroEngine, numVar, VMAX } from './art';
 import { bestBands, chartLayout, drawChartBase, drawChartTop, rowsFor, type ChartLayout } from './charts';
-import { clamp, readTokens, rgba, TAU, type Tokens, type TokenName } from './kit';
+import { clamp, parseCol, readTokens, rgba, TAU, type Tokens, type TokenName } from './kit';
 import { drawTile } from './tiles';
 import {
   bestHtml, chartLabelsHtml, chipsHtml, daysHtml, esc, outlookHtml, rateHtml, readoutHtml, shellHtml, spotsHtml, tilesHtml,
@@ -119,6 +119,8 @@ export function mountForecastPage(deps: ForecastDeps) {
   const media = window.matchMedia?.('(prefers-color-scheme: dark)');
   const scheme = () => (get(storage, SCHEME_KEY) as 'light' | 'dark' | null) ?? (media?.matches ? 'dark' : 'light');
   let T: Tokens | null = null;
+  /** The hero reads its own tokens: in the dark scheme it is glass tinted with the rating, inked in the bright accent (forecast.css). */
+  const heroTokens = () => readTokens($('fc-hero'));
   const applyScheme = () => {
     const s = scheme();
     el.dataset.scheme = s;
@@ -126,7 +128,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     if (el.hidden) return;
     themeMeta();
     T = readTokens(el);
-    engine.setTokens(T, true);
+    engine.setTokens(heroTokens(), true);
     chartDirty = true;
     drawAll(true);
   };
@@ -347,7 +349,7 @@ export function mountForecastPage(deps: ForecastDeps) {
   };
 
   // --- conditions tiles
-  let tiles: { el: HTMLElement; cv: HTMLCanvasElement; c: CanvasRenderingContext2D; w: number; h: number; v: TileView; drawn: boolean }[] = [];
+  let tiles: { el: HTMLElement; cv: HTMLCanvasElement; c: CanvasRenderingContext2D; w: number; h: number; v: TileView; drawn: boolean; B?: string }[] = [];
   const tileVis = new Set<Element>();
   const tio = 'IntersectionObserver' in window ? new IntersectionObserver((es) => es.forEach((e) => (e.isIntersecting ? tileVis.add(e.target) : tileVis.delete(e.target))), { rootMargin: '60px' }) : null;
   const sizeTiles = () => {
@@ -376,8 +378,13 @@ export function mountForecastPage(deps: ForecastDeps) {
     for (const o of tiles) {
       if (!all && !reduced && o.drawn && !tileVis.has(o.el)) continue;
       o.drawn = true;
+      // The knock-outs match the card: in the dark scheme a rated card is glass tinted with its rating (forecast.css --g).
+      if (all || !o.B) {
+        const g = getComputedStyle(o.el).getPropertyValue('--g').trim();
+        o.B = g ? rgba(parseCol(g)) : B;
+      }
       const A = o.v.kind === 'uv' && o.v.lv !== null ? rgba(T[`uv${4 - o.v.lv}` as TokenName]) : o.v.lv !== null ? rgba(T[lvTok(o.v.lv, 'ac')]) : heroA;
-      drawTile(o.v.kind, o.c, o.w, o.h, reduced ? 3.2 : tt, o.v.viz, { I, A, B, sand: T.sand, reduced, words });
+      drawTile(o.v.kind, o.c, o.w, o.h, reduced ? 3.2 : tt, o.v.viz, { I, A, B: o.B, sand: T.sand, reduced, words });
     }
   };
   const renderTiles = (anim: boolean) => {
@@ -416,18 +423,19 @@ export function mountForecastPage(deps: ForecastDeps) {
       $('fc-days').querySelectorAll<HTMLElement>('.fc-bar').forEach((b, i) => b.animate?.([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], { duration: 620, delay: i * 50, easing: 'cubic-bezier(.7,0,.2,1)', fill: 'backwards' }));
   };
 
-  // --- days 8 to 30: worked out once the section nears the screen (30 days of windows is more work than the week's 7)
+  // --- days 8 to 16: worked out once the section nears the screen (16 days of windows is more work than the week's 7).
+  // Nothing past day 16: the models stop there and a forecast further out is no use (Joseph 2026-11-17).
   let olVis = false;
   let olKey = '';
-  let plan30: Plan | null = null;
+  let plan16: Plan | null = null;
   const renderOutlook = () => {
     if (!olVis || !plan) return;
     const sp = spot();
     const k = `${planKey}|${dataVer()}`;
-    if (k !== olKey) (plan30 = daysAt(deps, act, sp, Date.now(), 30)), (olKey = k);
-    if (!plan30) return;
-    html('fc-outlook', outlookHtml(outlookView(plan30, (ms) => read(sp, ms)), t('fc.ol.less'), t('fc.ol.typical')));
-    const on = sel === null ? -1 : Math.floor((localDayStart(sel, TZ) - plan30.startMs) / DAY);
+    if (k !== olKey) (plan16 = daysAt(deps, act, sp, Date.now(), 16)), (olKey = k);
+    if (!plan16) return;
+    html('fc-outlook', outlookHtml(outlookView(plan16, (ms) => read(sp, ms)), t('fc.ol.less')));
+    const on = sel === null ? -1 : Math.floor((localDayStart(sel, TZ) - plan16.startMs) / DAY);
     $('fc-outlook').querySelectorAll<HTMLElement>('.fc-olr').forEach((b) => b.classList.toggle('on', Number(b.dataset.i) === on));
   };
 
@@ -772,7 +780,7 @@ export function mountForecastPage(deps: ForecastDeps) {
 
   const render = (anim = false) => {
     if (el.hidden) return;
-    if (!T) (T = readTokens(el)), engine.setTokens(T, true);
+    if (!T) (T = readTokens(el)), engine.setTokens(heroTokens(), true);
     ensureData();
     renderTabs();
     renderHero();
