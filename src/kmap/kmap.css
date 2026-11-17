@@ -771,12 +771,14 @@
    screen: back, the activity pill, Find and Settings float over the map, and the activity row drops down from the pill.
    The bar's own box stays see-through, so a drag between its buttons still pans the map.
    ====================================================================================================== */
-.km .k-actpill,.km .k-findtop{display:none}
+.km .k-actpill,.km .k-findtop{display:none;--pc:var(--ink)}
 @media (max-width:1099.98px){
   .km .k-app{grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"stage" "dock"}
   .km .k-top{position:absolute;left:0;right:0;top:0;background:none;border-bottom:0;pointer-events:none;grid-template-columns:auto auto minmax(0,1fr) auto;grid-template-areas:"back pill find ctrls" "tabs tabs tabs tabs";column-gap:8px;padding:max(10px, env(safe-area-inset-top, 0px)) 10px 0}
   .km .k-top>*{pointer-events:auto}
-  .km .k-ttl,.km .k-ctrls .k-lang,.km .k-ctrls .k-themeb{display:none}
+  .km .k-ctrls .k-lang,.km .k-ctrls .k-themeb{display:none}
+  /* The title gives way to the pill on screen but stays the page's heading for screen readers. */
+  .km .k-top .k-ttl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .km .k-back,.km .k-actpill,.km .k-findtop,.km .k-ctrls .k-ib{height:46px;border:0;background:color-mix(in srgb,var(--c-card) 90%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 0 0 1px var(--line),0 4px 14px rgba(6,12,22,.22);color:var(--ink)}
   .km .k-back{width:46px;min-width:46px;padding:0;justify-content:center;border-radius:50%}
   .km .k-back .k-bt{display:none}
@@ -834,3 +836,33 @@
   .km .k-sh-body>.k-fishsw .k-fbrow{pointer-events:auto}
   .km .k-sh-body>.k-fishsw[hidden]{display:none}
 }
+
+/* The activity wheel (layout B, PLAN 7.165): a half wheel under the top bar while the pill is held. */
+.km .k-wheel{position:fixed;inset:0;z-index:45;pointer-events:none;visibility:hidden}
+.km .k-wheel.k-on{pointer-events:auto;visibility:visible;touch-action:none;user-select:none;-webkit-user-select:none}
+.km .k-wh-dim{position:absolute;inset:0;background:rgba(3,6,11,.62);opacity:0;transition:opacity .22s}
+.km .k-wheel.k-on .k-wh-dim{opacity:1}
+.km .k-wh-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.km .k-wh-sl{opacity:0;transform:rotate(-25deg) scale(.45);transition:transform .45s cubic-bezier(.2,1.25,.4,1),opacity .25s}
+.km .k-wheel.k-in .k-wh-sl{opacity:1;transform:none}
+.km .k-wh-sl[data-id="surf"]{--wc:var(--t-surf)}
+.km .k-wh-sl[data-id="fish"]{--wc:var(--t-fish)}
+.km .k-wh-sl[data-id="swim"]{--wc:var(--t-swim)}
+.km .k-wh-sl[data-id="snorkel"]{--wc:var(--t-snorkel)}
+.km .k-wh-sl[data-id="dive"]{--wc:var(--t-dive)}
+.km .k-wh-sl[data-id="spear"]{--wc:var(--t-spear,var(--t-fish))}
+.km .k-wh-sl[data-id="sail"]{--wc:var(--t-sail)}
+.km .k-wh-sl[data-id="paddle"]{--wc:var(--t-paddle)}
+.km .k-wh-sl[data-id="coral"]{--wc:var(--t-coral)}
+.km .k-wh-f{fill:color-mix(in srgb,var(--c-card) 94%,transparent);stroke:var(--bg);stroke-width:2;transition:fill .12s}
+.km .k-wh-e{fill:none;stroke:var(--wc);stroke-width:2.4;stroke-linecap:round;filter:drop-shadow(0 0 4px var(--wc))}
+.km .k-wh-g{fill:none;stroke:var(--wc);stroke-width:2.2;stroke-linecap:square;stroke-linejoin:miter;overflow:visible;filter:drop-shadow(0 0 3px var(--wc))}
+.km .k-wh-sl text{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;fill:var(--ink);text-anchor:middle;pointer-events:none}
+.km .k-wh-sl.k-sel .k-wh-f{fill:color-mix(in srgb,var(--wc) 26%,var(--c-card))}
+.km .k-wh-sl.k-hov .k-wh-f{fill:var(--ink)}
+.km .k-wh-sl.k-hov text{fill:var(--bg)}
+.km .k-wh-sl.k-hov .k-wh-g{stroke:var(--bg);filter:none}
+.km .k-wh-hub{position:absolute;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;text-align:center}
+.km .k-wh-hub b{font-family:var(--disp);font-weight:850;font-variation-settings:"wdth" 76;font-size:26px;text-transform:uppercase;line-height:1;color:var(--ink)}
+.km .k-wh-hub span{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.km .k-actpill{touch-action:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
