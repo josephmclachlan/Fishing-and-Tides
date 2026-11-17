@@ -6,8 +6,10 @@ import { t, type Key } from '../i18n';
 import { artSvg, GROUP_ART } from './art';
 import { nameOf, SIZE_BANDS } from './filter';
 import { fits, groupsOf, identify, shapesOf, stepsFor, subsOf, type IdAnswers, type IdStep } from './identify';
+import { stripCites } from './cite';
+import { patternPic, shapePic, wherePic } from './id-pics';
 import { cardHtml, esc, expandHtml, icon, ICONS, type ListOpts } from './render';
-import { COLOR_WORDS, COLORS, FEATURE_WORDS, FEATURES, GROUP_WORDS, SHAPE_WORDS, PATTERN_WORDS, PATTERNS, POSITION_WORDS, POSITIONS, SUB_WORDS, tx, type Entry, type Lang } from './types';
+import { COLOR_WORDS, COLORS, FEATURE_WORDS, FEATURES, GROUP_WORDS, SHAPE_WORDS, PATTERN_WORDS, PATTERNS, POSITION_WORDS, POSITIONS, SUB_WORDS, tx, type Entry, type Lang, type Species } from './types';
 
 /** How many results to show. */
 export const ID_MAX = 60;
@@ -59,17 +61,20 @@ function question(s: IdStep, list: readonly Entry[], a: IdAnswers, lang: Lang): 
         tile('size', b, t(`gd.size.${b}` as Key), a.size === b, `<i class="gd-id-sz" style="--i:${i}"></i>`, t(`gd.id.like.${b}` as Key)),
       ).join('')}</div>`;
     case 'shape':
-      return `<div class="gd-chips">${shapesOf(list, a).map((v) => chip('shape', v, tx(SHAPE_WORDS[v], lang), a.shape.includes(v))).join('')}</div>`;
+      // Picture answers (Joseph 2026-11-17): the outline first, its words under it.
+      return `<div class="gd-id-tiles pics${a.group ? ` g-${a.group}` : ''}">${shapesOf(list, a)
+        .map((v) => tile('shape', v, tx(SHAPE_WORDS[v], lang), a.shape.includes(v), shapePic(v)))
+        .join('')}</div>`;
     case 'look':
       return `<p class="fc-mono gd-id-k">${esc(t('gd.id.colors'))}</p><div class="gd-chips gd-sw">${COLORS.map((c) =>
         chip('colors', c, tx(COLOR_WORDS[c], lang), a.colors.includes(c), `<i class="sw-${c}"></i>`),
-      ).join('')}</div><p class="fc-mono gd-id-k">${esc(t('gd.id.marks'))}</p><div class="gd-chips">${PATTERNS.map((p) =>
-        chip('pattern', p, tx(PATTERN_WORDS[p], lang), a.pattern.includes(p)),
+      ).join('')}</div><p class="fc-mono gd-id-k">${esc(t('gd.id.marks'))}</p><div class="gd-id-tiles pics sm">${PATTERNS.map((p) =>
+        tile('pattern', p, tx(PATTERN_WORDS[p], lang), a.pattern.includes(p), patternPic(p)),
       ).join('')}</div><p class="fc-mono gd-id-k">${esc(t('gd.id.features'))}</p><div class="gd-chips">${featuresOf(list, a).map((x) =>
         chip('features', x, tx(FEATURE_WORDS[x], lang), a.features.includes(x)),
       ).join('')}</div>`;
     case 'where':
-      return `<div class="gd-chips">${POSITIONS.map((p) => chip('position', p, tx(POSITION_WORDS[p], lang), a.position.includes(p))).join('')}</div>
+      return `<div class="gd-id-tiles pics sm">${POSITIONS.map((p) => tile('position', p, tx(POSITION_WORDS[p], lang), a.position.includes(p), wherePic(p))).join('')}</div>
         <p class="fc-mono gd-id-k">${esc(t('gd.id.when'))}</p><div class="gd-chips">${chip('night', '1', t('gd.id.night'), !!a.night)}</div>`;
     default:
       return '';
@@ -114,7 +119,7 @@ export function idHtml(list: readonly Entry[], a: IdAnswers, step: IdStep, o: Li
       html: `<div class="gd-id">${head}<section class="gd-id-res">
         <div class="gd-id-q"><h3>${esc(t('gd.id.results', { n: found.length }))}</h3><p>${esc(t('gd.id.resultsHint'))}</p>
         <div class="gd-id-nav"><button type="button" class="fc-ctl" data-step="${steps[i - 1] ?? 'group'}">${icon(ICONS.back)}<span>${esc(t('gd.id.back'))}</span></button><button type="button" class="fc-ctl" data-id-reset>${esc(t('gd.id.again'))}</button></div></div>
-        ${strong.length ? `<h4 class="fc-mono gd-id-k">${esc(t('gd.id.best'))}</h4>${cards(strong)}` : `<p class="gd-empty">${esc(t('gd.none'))}</p>`}
+        ${strong.length ? `<h4 class="fc-mono gd-id-k">${esc(t('gd.id.best'))}</h4>${cards(strong.slice(0, 1))}<div class="gd-id-check" id="gd-id-check" data-top="${esc(top[0].e.id)}"></div>${strong.length > 1 ? cards(strong.slice(1)) : ''}` : `<p class="gd-empty">${esc(t('gd.none'))}</p>`}
         ${rest.length ? `<h4 class="fc-mono gd-id-k">${esc(t('gd.id.maybe'))}</h4>${cards(rest)}` : ''}
         <div class="gd-id-exp"><p>${esc(t(expanded ? 'gd.id.expOn' : 'gd.id.expOff'))}</p>${expandHtml(expanded)}</div>
       </section></div>`,
@@ -133,4 +138,37 @@ export function idHtml(list: readonly Entry[], a: IdAnswers, step: IdStep, o: Li
         <button type="button" class="fc-ctl gd-id-go" data-step="results">${esc(t('gd.id.see', { n: found.length }))}</button>
       </div></section></div>`,
   };
+}
+
+/**
+ * The last step (PLAN 14.3): before trusting the best match, check it side by side with what it is mistaken for. The
+ * look-alikes the research names come first, each with how to tell them apart; with none, the runner-up, each with its
+ * key marks. Photos side by side, so the difference is seen, not read.
+ */
+export function idCheckHtml(
+  top: Entry,
+  s: Pick<Species, 'lookalikes'> | null,
+  o: ListOpts,
+  peer: (sci: string) => Entry | undefined,
+  runnerUp?: Entry,
+): string {
+  const { lang } = o;
+  const fig = (e: Entry | undefined, name: string) => {
+    const img = e?.thumb ? `<img src="${esc(o.base + e.thumb)}" alt="" loading="lazy" decoding="async" width="240" height="180">` : `<span class="gd-la-na">${artSvg(GROUP_ART[e?.group ?? top.group], 'gd-gal-art')}</span>`;
+    const inner = `${img}<figcaption>${esc(name)}</figcaption>`;
+    return `<figure class="g-${e?.group ?? top.group}">${e ? `<a href="${esc(o.href(e.id))}">${inner}</a>` : inner}</figure>`;
+  };
+  const marks = (e: Entry) => stripCites(tx(e.look?.marks, lang)).trim();
+  const pairs: string[] = [];
+  for (const l of s?.lookalikes?.slice(0, 2) ?? []) {
+    const it = peer(l.sci);
+    const tip = stripCites(tx(l.tip, lang)).trim();
+    pairs.push(`<li><div class="gd-la-pair">${fig(top, nameOf(top, lang))}${fig(it, it ? nameOf(it, lang) : l.sci)}</div>${tip ? `<p>${esc(tip)}</p>` : ''}</li>`);
+  }
+  if (!pairs.length && runnerUp) {
+    const a = marks(top), b = marks(runnerUp);
+    pairs.push(`<li><div class="gd-la-pair">${fig(top, nameOf(top, lang))}${fig(runnerUp, nameOf(runnerUp, lang))}</div>${a || b ? `<dl class="gd-id-cmp">${a ? `<dt>${esc(nameOf(top, lang))}</dt><dd>${esc(a)}</dd>` : ''}${b ? `<dt>${esc(nameOf(runnerUp, lang))}</dt><dd>${esc(b)}</dd>` : ''}</dl>` : ''}</li>`);
+  }
+  if (!pairs.length) return '';
+  return `<section class="gd-id-chk"><h4 class="gd-id-chk-h">${icon(ICONS.identify)}<span>${esc(t(s?.lookalikes?.length ? 'gd.id.check' : 'gd.id.checkTwo', { name: nameOf(top, lang) }))}</span></h4><ul class="gd-la">${pairs.join('')}</ul></section>`;
 }

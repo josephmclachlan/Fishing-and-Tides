@@ -2094,6 +2094,8 @@ export const es: Dict = {
   'gd.id.q.kind': '¿Qué viste?',
   'gd.id.h.kind': 'Los corales, esponjas y anémonas son animales.',
   'gd.id.live': 'Podría ser · {n} posibles hasta ahora',
+  'gd.id.check': '¿De verdad es {name}? Compara con el parecido',
+  'gd.id.checkTwo': '¿{name} o el siguiente? Compáralos',
   'gd.id.q.group': '¿Qué tipo de ser era?',
   'gd.id.h.group': 'Los corales, esponjas y anémonas son animales. El número es cuántas especies podrían ser.',
   'gd.id.q.sub': '¿Cuál de ellos?',
