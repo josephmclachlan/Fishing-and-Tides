@@ -812,3 +812,18 @@
 .km .k-actpill[data-id="sail"]{--pc:var(--t-sail)}
 .km .k-actpill[data-id="paddle"]{--pc:var(--t-paddle)}
 .km .k-actpill[data-id="coral"]{--pc:var(--t-coral)}
+
+/* Phone: one sliding sheet (layout B, PLAN 7.163). The time dock is the sheet's head and always shows; the sheet's height
+   is set by shell.ts at the peek, half or full stop, and follows a drag of the grip, the head or the hour. */
+@media (max-width:1099.98px){
+  .km .k-app{grid-template-rows:minmax(0,1fr) var(--k-peek,190px)}
+  .km .k-sheet.k-phs{transform:none;visibility:visible;top:auto;bottom:0;max-height:none!important;height:var(--k-peek,190px);padding-bottom:0;border-top:0;border-radius:18px 18px 0 0;box-shadow:0 -8px 28px rgba(6,12,22,.28),0 0 0 1px var(--line);overflow:hidden;transition:height .42s cubic-bezier(.2,.8,.2,1)}
+  .km .k-sheet.k-phs.k-drag{transition:none}
+  .km .k-sheet.k-phs .k-sh-grab{width:100%;height:22px;margin:0;background:none;border-radius:0;display:grid;place-items:center;cursor:grab;touch-action:none;flex:none}
+  .km .k-sheet.k-phs .k-sh-grab::before{content:"";width:44px;height:5px;border-radius:3px;background:var(--line)}
+  .km .k-sheet.k-phs .k-dock{flex:none;border-top:0;padding-top:0;background:none}
+  .km .k-sheet.k-phs .k-dk-when,.km .k-sheet.k-phs .k-dk-meta,.km .k-sheet.k-phs .k-sh-head{touch-action:none}
+  .km .k-sheet.k-phs .k-sh-head{border-top:1px solid var(--line)}
+  .km .k-sheet.k-phs .k-sh-body{min-height:0;padding-bottom:calc(18px + var(--sb))}
+  .km .k-sheet.k-phs[data-stop="peek"] .k-sh-head,.km .k-sheet.k-phs[data-stop="peek"] .k-sh-body{visibility:hidden}
+}
