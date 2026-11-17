@@ -629,3 +629,5 @@ body.fc-open { overflow: hidden; }
 .fc[data-scheme='dark'] .fc-segs i[style*='--f:100%'] { box-shadow: 0 0 10px color-mix(in srgb, currentColor 80%, transparent); }
 .fc[data-scheme='dark'] .fc-hero { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fc-on-field) 70%, transparent), 0 0 24px -6px var(--fc-on-field); }
 .fc[data-scheme='dark'] .fc-tile.has-lv { box-shadow: inset 0 5px 0 var(--c), inset 0 0 0 1px color-mix(in srgb, var(--a) 60%, transparent), 0 0 18px -6px var(--a), 0 6px 20px rgb(0 0 0 / 0.45); }
+/* The tide and the water and feels bars glow in their own drawing (PR #366): no second halo on top. */
+.fc[data-scheme='dark'] .fc-tile:is([data-kind='tide'], [data-kind='water'], [data-kind='feels']) .fc-t-viz { filter: none; }
