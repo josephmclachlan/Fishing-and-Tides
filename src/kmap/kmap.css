@@ -891,3 +891,23 @@
   :root[data-theme="modern"][data-scheme="dark"] .k-sheet.k-phs>*{position:relative;z-index:1}
   :root[data-theme="modern"][data-scheme="dark"] .k-sheet.k-phs .k-sh-grab::before{background:#2a3749}
 }
+
+/* Square and crisp (Joseph 2026-11-17: "square and crisp looks better than bubbly and rounded"; bring back Kinetic's
+   bold activity labels and each activity's colour when picked). The phone's floating controls and sheet keep the
+   Kinetic 2 px corners; the pill and the picked activity are solid blocks of the activity's colour in the bold type. */
+@media (max-width:1099.98px){
+  .km .k-back,.km .k-actpill,.km .k-findtop,.km .k-ctrls .k-ib,.km .k-top.k-acts .k-tab{border-radius:2px}
+  .km .k-actpill{background:var(--pc);color:var(--bg);font-weight:850;font-variation-settings:"wdth" 72;font-size:20px;letter-spacing:-.01em;padding:0 10px 0 12px}
+  .km .k-actpill svg:last-child{color:inherit;opacity:.75}
+  :root[data-theme="modern"][data-scheme="dark"] .k-actpill{background:var(--pc);box-shadow:0 6px 20px rgba(0,0,0,.45)}
+  :root[data-theme="modern"][data-scheme="dark"] .k-actpill svg:first-child{filter:none}
+  :root[data-theme="modern"][data-scheme="dark"] .k-actpill span{text-shadow:none}
+  .km .k-top.k-acts .k-tab{height:42px;padding:0 12px;font-weight:850;font-variation-settings:"wdth" 72;font-size:18px;letter-spacing:-.01em;color:var(--tc)}
+  .km .k-top.k-acts .k-tab[aria-selected="true"],
+  :root[data-theme="modern"][data-scheme="dark"] .k-top.k-acts .k-tab[aria-selected="true"]{background:var(--tc);color:var(--bg);box-shadow:0 6px 20px rgba(0,0,0,.35)}
+  .km .k-top.k-acts .k-tab[aria-selected="true"] svg{color:var(--bg);filter:none}
+  .km .k-sheet.k-phs{border-radius:0;border-top:2px solid var(--ink)}
+  .km .k-sheet.k-phs::before{left:0;right:0;top:-2px;height:2px;border-radius:0}
+  :root[data-theme="modern"][data-scheme="dark"] .k-sheet.k-phs::after{border-radius:0}
+  .km .k-sheet.k-phs .k-sh-grab::before{border-radius:0;height:4px}
+}
