@@ -11,11 +11,15 @@
  *   SWIM     a beach from above (PLAN 13.1): white water over the sandbars, the darker rip channel between them
  *            with chevrons running in along the shore, out through the gap and fanning out into a sandy plume, a
  *            swimmer showing the way out (out, sideways, in), the rip chance as a coloured square, a UV ring of 11 blocks
- *   SNORKEL  a section from the surface to the reef: a snorkeller, sight lines fading to murk at the visibility,
- *            marker posts every 5 m, the water over the reef at this tide
- *   DIVE     a depth column: a diver at the activity depth, range arcs at 5, 10 and 15 m, murk past the visibility,
- *            a lead line, the surge swinging with its strength
- *   SPEAR    the DIVE column with a breath-hold freediver, no tank, a speargun held out in front and a surface float on its line
+ *   SNORKEL  (redrawn PLAN 13.5) a section from the surface to the reef: a snorkeller floating face down, fins kicking;
+ *            a ruler and a cone of sight from the mask out to the visibility, murk past it; the water over the reef
+ *            at this tide as a dimension line; the surge as a swinging double arrow; brain and staghorn coral, a sea
+ *            fan, sponges, sea grass and fish on a faceted rock; the surface chopping with the wind
+ *   DIVE     (redrawn PLAN 13.5) a depth column read like an instrument: a solid depth scale with the metres in tags, a
+ *            diver with a tank at the activity depth, bubbles swelling as they rise, the sight ruler out to the visibility,
+ *            the surge under the diver swinging with its strength, a reef rising ahead
+ *   SPEAR    the DIVE column with a breath-hold freediver, no tank, a speargun held out in front, the 3 to 5 m of a shot
+ *            striped on the ruler, and a float with the dive flag on its line
  *   SAIL     (redrawn PLAN 13.1) a chart-room wind rose with a solid bezel, a damped needle, barbs, the no-go wedge and the gust sector, the boat at its
  *            hub on the harder coast leg with the wind angle; the boat in section from astern heeled to leeward by
  *            the rule-of-thumb heel (physics/heel.ts) on a protractor with the reef band; a 0-30 kt scale
@@ -33,8 +37,7 @@ import { moonPhase } from '../physics/astro';
 import type { Plan } from '../metrics/plan';
 import { chopFor, type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour } from './model';
 import { cmp, dayHoursOf, headline, pushOf, levelWord, moonAgeDays, n0, n1, planDayOf, sentence, tideNow } from './view';
-import { brackets, capsule, chevron, clamp, D2R, DISP, hatch, MONO, lerp, moonPath, rgba, sq, tag, TAU, txt, type Ctx2D, type Hot, type RGB, type Tokens } from './kit';
-import { reefAt } from './tiles';
+import { brackets, capsule, chevron, clamp, D2R, dimLine, DISP, hatch, keyTag, MONO, lerp, moonPath, rgba, sq, tag, tagSize, TAU, txt, type Ctx2D, type Hot, type RGB, type Tokens } from './kit';
 import { boomDeg, coastPose, heelDeg, REEF_HEEL_DEG, type SailPose } from '../physics/heel';
 import type { PointOfSail } from '../boat/route';
 
@@ -60,7 +63,11 @@ export interface HeroParams {
   /** Paddling: the launch beach on the left, the sea to its right, the wind's arrow in that frame (rel: where it blows toward, degrees clockwise from out-to-sea). */
   paddle?: { craft: 'kayak' | 'sup'; rel: number | null; effKt: number; side: 'offshore' | 'onshore' | 'cross' | 'calm'; rangeKm: number; rangeK: string; pushK: string; windK: string; shoreK: string; seaK: string; capK: string };
   swim?: { rip: 'LOW' | 'MOD' | 'HIGH'; ripK: string; shore: string; flag: string; uv: number | null; uvK: string; sideK: string };
-  water?: { visM: number | null; vis: string; depthM: number; waterM: number | null; overReef: string; chop: string; hvis: string; at: string; surge: string; surgeMs: number };
+  water?: {
+    visM: number | null; vis: string; depthM: number; waterM: number | null; overReef: string; chop: string; hvis: string; at: string; surge: string; surgeMs: number;
+    /** The surge's band (physics/surge.ts) and speed in words; the wind, kt, for the chop on the surface (null when that feed has nothing). */
+    band: 'CALM' | 'SURGY' | 'DANGEROUS'; surgeV: string; windKt: number | null;
+  };
 }
 
 /** Everything the hero picture shows, from the reading at the hero's hour (and the day's tide and best window). */
@@ -139,6 +146,7 @@ export function heroParams(r: FcRead, ctx: { deps: FcDeps; ms: number; plan: Pla
       waterM: w.waterM, overReef: w.waterM === null ? '' : t('fc.cap.overReef', { m: n1(w.waterM) }),
       chop: w.windKt === null ? '' : `${t('fc.chop')} · ${t(`fc.chop.${chopFor(w.windKt)}` as Key).toLowerCase()}`,
       hvis: t('fc.cap.hvis'), at: t('fc.cap.at', { d: w.depthM }), surge: `${t('fc.cap.surge')} · ${t(`fc.surge.${w.surge}` as Key).toLowerCase()}`, surgeMs: w.surgeMs,
+      band: w.surge, surgeV: `${dec(w.surgeMs, 2)} m/s`, windKt: w.windKt,
     };
   }
   return base;
@@ -298,8 +306,9 @@ export class HeroEngine {
       }
       out[0] = vx; out[1] = vy; out[2] = inX ? 0.35 + 0.6 * g + 0.4 * head : 0.3;
     } else {
+      // The specks swing with the surge on the picture's own 8 s beat, harder the stronger it is (gentler near the surface).
       const n = nz(x, y, tt * 0.5), sg = clamp((p.water?.surgeMs ?? 0.1) / 0.3, 0.3, 2);
-      const surge = p.act === 'dive' || p.act === 'spear' ? 16 * sg * Math.sin((TAU * tt) / 8) : 4 * Math.sin((TAU * tt) / 6);
+      const surge = (p.act === 'dive' || p.act === 'spear' ? 16 : 8) * sg * Math.sin((TAU * tt) / 8);
       out[0] = -4 + surge + 4 * n; out[1] = (p.act === 'dive' || p.act === 'spear' ? 3.5 : 0.5) + 3 * Math.sin(x * 0.01 + tt * 0.3); out[2] = 1;
     }
   }
@@ -322,6 +331,8 @@ export class HeroEngine {
     const BUCK = 5, paths = this.paths;
     for (const b of paths) b.length = 0;
     const Y = this.shoreY(), vis = this.p.water?.visM ?? 6, V = this.V;
+    // The water pictures: specks only under the surface, bright up to the mask and fading out at the visibility ahead of it.
+    const wf = dots && this.p.water ? waterFrame(AR, this.p.act as WaterKit, this.p.water) : null;
     const { PX, PY, OX, OY, LF, ML, PZ } = this;
     for (let i = 0; i < this.N; i++) {
       OX[i] = PX[i]; OY[i] = PY[i];
@@ -340,8 +351,8 @@ export class HeroEngine {
       }
       let br: number;
       if (dots) {
-        const d = clamp((x - AR.x) / AR.w, 0, 1) * 20, f = clamp(1 - d / Math.max(0.5, vis), 0, 1);
-        br = Math.pow(f, 1.3) * (0.35 + 0.65 * PZ[i]);
+        const d = wf ? Math.max(0, x - wf.mx) / wf.hm : clamp((x - AR.x) / AR.w, 0, 1) * 20, f = wf && y < wf.sy ? 0 : clamp(1 - d / Math.max(0.5, vis), 0, 1);
+        br = Math.pow(f, 1.3) * (0.25 + 0.5 * PZ[i]);
       } else {
         const life = LF[i] / ML[i], fade = Math.min(1, life * 6, (1 - life) * 4);
         br = V[2] * fade;
@@ -356,7 +367,7 @@ export class HeroEngine {
         c.fillStyle = rgba(this.onCol as unknown as RGB, ((b + 0.5) / BUCK) * 0.72 * mA);
         c.beginPath();
         for (const i of L) {
-          const d = clamp((PX[i] - AR.x) / AR.w, 0, 1), r = 0.6 + 2.1 * (1 - d) * (0.4 + 0.6 * PZ[i]);
+          const d = wf ? clamp((PX[i] - wf.mx) / wf.hm / Math.max(0.5, vis), 0, 1) : clamp((PX[i] - AR.x) / AR.w, 0, 1), r = 0.6 + 1.5 * (1 - d) * (0.4 + 0.6 * PZ[i]);
           c.moveTo(PX[i] + r, PY[i]); c.arc(PX[i], PY[i], r, 0, TAU);
         }
         c.fill();
@@ -1190,199 +1201,545 @@ function drawSwim(c: Ctx2D, A: Box, tt0: number, a: NonNullable<HeroParams['swim
   S.hot.push({ x: x, y: barTop - 12, w: w, h: barBot - barTop + 12, k: 'swim.waves' });
 }
 
-// --- snorkel and dive: shared reef, figures and murk ---------------------------------------------------------------
-function brainCoral(c: Ctx2D, bx: number, by: number, r: number, fill: string, cut: string) {
-  c.fillStyle = fill; c.beginPath(); c.ellipse(bx, by, r, r * 0.74, 0, Math.PI, 0); c.closePath(); c.fill();
-  c.strokeStyle = cut; c.lineWidth = 1.3;
-  for (let k = 1; k <= 3; k++) { c.beginPath(); c.ellipse(bx, by, r * (1 - k * 0.23), r * 0.74 * (1 - k * 0.23), 0, Math.PI * 1.04, -0.04 * Math.PI); c.stroke(); }
+// --- snorkel, dive and spear: one section from the surface to the reef -----------------------------------------------
+type WaterKit = 'snorkel' | 'dive' | 'spear';
+type WaterA = NonNullable<HeroParams['water']>;
+
+/**
+ * The frame the water pictures share with the field (whose drifting specks fade out at the visibility): the surface,
+ * the swimmer's eye (the mask) and its length, metres to pixels along the sight line ahead of it, and for DIVE and
+ * SPEAR the depth scale (metres to pixels down, its left edge). The sight line always reaches past the visibility, so
+ * the murk starts inside the picture.
+ */
+function waterFrame(A: Box, act: WaterKit, a: Pick<WaterA, 'visM' | 'depthM'>) {
+  const { x, y, w, h } = A, fs = clamp(Math.min(w, 760) / 380, 1, 1.3), vis = a.visM ?? 0;
+  // SPEAR reads 0 to 8 m ahead (a shot is 3 to 5 m and its visibility counts in full from 6 m); clearer water runs off the end.
+  const hspan = act === 'spear' ? 8 : Math.max(6, vis * 1.25);
+  if (act === 'snorkel') {
+    const sy = y + Math.max(46 * fs, Math.min(h * 0.2, 72 * fs)), u = clamp(w * 0.47, 150, 250);
+    const mx = x + 24 * fs + u * 0.97, ey = sy + u * 0.026;
+    return { fs, sy, u, mx, ey, hspan, hm: (x + w - 8 - mx) / hspan, mp: 0, span: 0, bx: x, bw: 0 };
+  }
+  const sy = y + 30 * fs, span = a.depthM + 6, mp = (y + h - 6 - sy) / span;
+  const bx = x + 26 * fs, bw = 7 * fs, u = act === 'spear' ? clamp(w * 0.4, 130, 210) : clamp(w * 0.46, 140, 240);
+  const mx = bx + bw + 14 * fs + u * (act === 'spear' ? 1.07 : 0.97), ey = sy + a.depthM * mp;
+  return { fs, sy, u, mx, ey, hspan, hm: (x + w - 8 - mx) / hspan, mp, span, bx, bw };
 }
-function branchCoral(c: Ctx2D, x: number, y: number, len: number, ang: number, depth: number, wd: number, sway: number) {
-  if (!depth || len < 2.5) return;
+
+/** Level colour for a band: what is fine, what needs care, what is bad. */
+const bandCol = (S: Style, b: 0 | 1 | 2) => rgba(S.T[b === 0 ? 'lv3' : b === 1 ? 'lv2' : 'lv0']);
+const surgeLv = (a: WaterA): 0 | 1 | 2 => (a.band === 'DANGEROUS' ? 2 : a.band === 'SURGY' ? 1 : 0);
+/** Chop by the snorkeller's words (model.ts chopFor): flat and light are fine, choppy needs care, rough is bad. */
+const chopLv = (kt: number): 0 | 1 | 2 => { const k = chopFor(kt); return k === 'rough' ? 2 : k === 'choppy' ? 1 : 0; };
+/** Water over the reef: under 0.5 m you touch the coral (outing.ts), under 0.8 m it is shallow (tiles.ts tipBand). */
+const reefLv = (m: number): 0 | 1 | 2 => (m < 0.5 ? 2 : m < 0.8 ? 1 : 0);
+const hits = (p: Box, q: Box, pad = 4) => p.x < q.x + q.w + pad && q.x < p.x + p.w + pad && p.y < q.y + q.h + pad && q.y < p.y + p.h + pad;
+
+/** A filled polygon from points. */
+function poly(c: Ctx2D, pts: [number, number][], fill?: string, line?: string, wd = 1.5) {
+  c.beginPath(); pts.forEach(([px, py], i) => (i ? c.lineTo(px, py) : c.moveTo(px, py))); c.closePath();
+  if (fill) { c.fillStyle = fill; c.fill(); }
+  if (line) { c.strokeStyle = line; c.lineWidth = wd; c.lineJoin = 'miter'; c.stroke(); }
+}
+
+/** Brain coral: a hard dome cut by meandering grooves, the way the real one looks from the side. */
+function brainCoral(c: Ctx2D, bx: number, by: number, r: number, S: Style, seed: number) {
+  const rv = r * 0.72;
+  const dome = () => { c.beginPath(); c.moveTo(bx - r, by); c.bezierCurveTo(bx - r, by - rv * 1.33, bx + r, by - rv * 1.33, bx + r, by); c.closePath(); };
+  dome(); c.fillStyle = S.ink; c.fill();
+  c.save(); dome(); c.clip();
+  c.strokeStyle = rgba(S.fd, 0.85); c.lineWidth = Math.max(1, r * 0.075); c.lineJoin = 'miter'; c.lineCap = 'butt';
+  const gap = Math.max(3.2, r * 0.2);
+  for (let k = 0, yy = by - gap * 0.6; yy > by - rv * 1.1; k++, yy -= gap) {
+    c.beginPath();
+    for (let xx = bx - r; xx <= bx + r; xx += 2) {
+      const q = yy + Math.sin(xx * (0.5 / Math.max(1, r * 0.12)) + hash1(seed + k) * 6) * gap * 0.32;
+      xx === bx - r ? c.moveTo(xx, q) : c.lineTo(xx, q);
+    }
+    c.stroke();
+  }
+  c.restore();
+  dome(); c.strokeStyle = S.ink; c.lineWidth = 2; c.stroke();
+}
+/** Branching (staghorn) coral: square-ended limbs forking upwards, pale growing tips; it sways with the surge. */
+function branchCoral(c: Ctx2D, x: number, y: number, len: number, ang: number, depth: number, wd: number, sway: number, S: Style, seed: number) {
+  if (depth <= 0 || len < 2.5) return;
   const a = ang + sway, x2 = x + Math.sin(a) * len, y2 = y - Math.cos(a) * len;
-  c.lineWidth = wd; c.lineCap = 'round'; c.beginPath(); c.moveTo(x, y); c.lineTo(x2, y2); c.stroke();
-  branchCoral(c, x2, y2, len * 0.72, ang - 0.5, depth - 1, wd * 0.72, sway * 1.2);
-  branchCoral(c, x2, y2, len * 0.7, ang + 0.42, depth - 1, wd * 0.72, sway * 1.2);
+  c.strokeStyle = S.ink; c.lineWidth = wd; c.lineCap = 'butt'; c.beginPath(); c.moveTo(x, y); c.lineTo(x2, y2); c.stroke();
+  if (depth === 1) { c.fillStyle = rgba(CREAM, 0.9); c.fillRect(x2 - wd * 0.5, y2 - wd * 0.5, wd, wd); return; }
+  const j = hash1(seed) - 0.5;
+  branchCoral(c, x2, y2, len * (0.74 + 0.1 * j), ang - 0.48 - 0.15 * j, depth - 1, wd * 0.74, sway * 1.25, S, seed * 2 + 1);
+  branchCoral(c, x2, y2, len * (0.7 - 0.1 * j), ang + 0.44 + 0.12 * j, depth - 1, wd * 0.74, sway * 1.25, S, seed * 2 + 2);
 }
-function seaFan(c: Ctx2D, x: number, y: number, r: number, sway: number, fill: string, line: string) {
-  c.fillStyle = fill; c.beginPath(); c.moveTo(x, y);
-  for (let i = 0; i <= 16; i++) { const a = -1.05 + (i / 16) * 2.1 + sway; c.lineTo(x + Math.sin(a) * r, y - Math.cos(a) * r * 0.95); }
-  c.closePath(); c.fill();
-  c.strokeStyle = line; c.lineWidth = 1;
-  for (let i = 0; i <= 8; i++) { const a = -1 + (i / 8) * 2 + sway; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + Math.sin(a) * r * 0.45, y - Math.cos(a) * r * 0.55, x + Math.sin(a) * r * 0.96, y - Math.cos(a) * r * 0.9); c.stroke(); }
-  c.lineWidth = 2.4; c.beginPath(); c.moveTo(x, y + 2); c.lineTo(x + Math.sin(sway) * r * 0.25, y - r * 0.25); c.stroke();
-}
-/** A swimmer seen side on, facing right, mask at (0, 0). */
-function figure(c: Ctx2D, mx: number, my: number, s: number, tt: number, kit: 'snorkel' | 'dive' | 'spear', body: string, cut: string, gear: string) {
-  c.save(); c.translate(mx, my); c.scale(s, s);
-  const kick = Math.sin(tt * (kit === 'snorkel' ? 3.4 : 2.4));
-  c.strokeStyle = body; c.fillStyle = body;
-  capsule(c, -14, 3, -50, 5, 13);
-  capsule(c, -50, 5, -76, 3 + kick * 4, 6.5);
-  capsule(c, -50, 6, -76, 8 - kick * 4, 6.5);
-  c.beginPath(); c.moveTo(-74, 3 + kick * 4); c.lineTo(-94, kick * 7 - 2); c.lineTo(-92, 6 + kick * 6); c.closePath(); c.fill();
-  c.beginPath(); c.moveTo(-74, 8 - kick * 4); c.lineTo(-94, 6 - kick * 6); c.lineTo(-91, 14 - kick * 7); c.closePath(); c.fill();
-  capsule(c, -16, 7, 6, 13, 4.5);
-  c.beginPath(); c.arc(-4, 0, 7.5, 0, TAU); c.fill();
-  c.fillStyle = cut; c.fillRect(-1.5, -4.5, 7, 5);
-  c.fillStyle = gear; c.strokeStyle = gear;
-  if (kit === 'dive') {
-    capsule(c, -44, -8, -18, -8, 8.5);
-    c.fillStyle = cut; c.fillRect(-20, -12, 2, 8);
-    c.strokeStyle = body; c.lineWidth = 1.6; c.beginPath(); c.moveTo(-18, -8); c.quadraticCurveTo(-6, -12, 2, 4); c.stroke();
-  } else if (kit === 'spear') {
-    // A breath-hold hunter: no tank. The speargun held out in front (stock at the hands, barrel and band forward, the shaft's tip beyond), its line to the float above.
-    c.lineCap = 'round'; c.strokeStyle = gear; c.lineWidth = 3.2; c.beginPath(); c.moveTo(4, 12); c.lineTo(58, 10); c.stroke();
-    c.lineWidth = 1.6; c.beginPath(); c.moveTo(16, 11.6); c.quadraticCurveTo(22, 17, 34, 10.8); c.stroke();
-    c.lineWidth = 1.2; c.beginPath(); c.moveTo(58, 10); c.lineTo(66, 9.7); c.stroke();
-    c.strokeStyle = body; c.lineWidth = 1; c.setLineDash([2, 3]); c.beginPath(); c.moveTo(-4, 13); c.quadraticCurveTo(-30, -60, -26, -150); c.stroke(); c.setLineDash([]);
-    c.fillStyle = gear; c.beginPath(); c.arc(-26, -152, 5, 0, TAU); c.fill();
-    c.lineCap = 'butt';
-  } else { c.lineWidth = 3; c.lineCap = 'round'; c.beginPath(); c.moveTo(-8, -3); c.lineTo(-9, -22); c.lineTo(-5, -25); c.stroke(); c.lineCap = 'butt'; }
+/** Sea fan: a flat net on a short stalk, ribs fanning out and cross-threads between them; it bends with the surge. */
+function seaFan(c: Ctx2D, x: number, y: number, r: number, sway: number, S: Style) {
+  c.save(); c.translate(x, y); c.rotate(sway);
+  const N = 9, rim: [number, number][] = [];
+  for (let i = 0; i <= N; i++) { const a = -1.0 + (i / N) * 2.0; rim.push([Math.sin(a) * r, -Math.cos(a) * r * 0.95 - r * 0.12]); }
+  poly(c, [[0, -r * 0.12], ...rim], rgba(S.on, 0.2));
+  c.strokeStyle = S.ink; c.lineWidth = 1.1; c.lineCap = 'butt'; c.beginPath();
+  for (const [px, py] of rim) { c.moveTo(0, -r * 0.12); c.lineTo(px, py); }
+  for (const k of [0.38, 0.62, 0.84]) rim.forEach(([px, py], i) => { const qx = px * k, qy = -r * 0.12 + (py + r * 0.12) * k; i ? c.lineTo(qx, qy) : c.moveTo(qx, qy); });
+  c.stroke();
+  c.lineWidth = 2; c.beginPath(); rim.forEach(([px, py], i) => (i ? c.lineTo(px, py) : c.moveTo(px, py))); c.stroke();
+  c.lineWidth = 3; c.beginPath(); c.moveTo(0, 2); c.lineTo(0, -r * 0.14); c.stroke();
   c.restore();
 }
-/** Stepped murk: flat bands of the field colour, thicker past the visibility. */
-function murk(c: Ctx2D, x0: number, x1: number, y0: number, y1: number, vis: number, mpx: number, fd: RGB) {
-  const steps: [number, number][] = [[vis * 0.7, 0.18], [vis * 0.85, 0.34], [vis, 0.58], [vis * 1.12, 0.78], [vis * 1.28, 0.9]];
-  for (const [d, a] of steps) { const xx = x0 + d * mpx; if (xx >= x1) break; c.fillStyle = rgba(fd, a); c.fillRect(xx, y0, x1 - xx, y1 - y0); }
-}
-function reefScene(c: Ctx2D, x0: number, x1: number, yTop: number, yBot: number, mx: number, mpx: number, tt: number, S: Style) {
-  const rAt = (xx: number) => yTop + (1 - reefAt(clamp((xx - x0) / (x1 - x0), 0, 1))) * (yBot - yTop) * 0.5;
-  c.fillStyle = rgba(S.on, 0.34); c.beginPath(); c.moveTo(x0, yBot);
-  for (let xx = x0; xx <= x1; xx += 3) c.lineTo(xx, rAt(xx));
-  c.lineTo(x1, yBot); c.closePath(); c.fill();
-  hatch(c, x0, x1, yTop, yBot, rAt, 3.4, rgba(S.on, 0.35));
-  c.strokeStyle = S.ink; c.lineWidth = 2; c.beginPath();
-  for (let xx = x0; xx <= x1; xx += 3) (xx === x0 ? c.moveTo(xx, rAt(xx)) : c.lineTo(xx, rAt(xx)));
-  c.stroke();
-  const sw = S.reduced ? 0 : Math.sin(tt * 0.9) * 0.12, sc = clamp(mpx / 18, 0.65, 1.4);
-  const list: [number, 'brain' | 'branch' | 'fan', number][] = [[1.5, 'brain', 15], [4, 'branch', 26], [6.5, 'fan', 30], [9, 'brain', 12], [11.5, 'branch', 22], [14, 'fan', 26], [16.5, 'brain', 14]];
-  for (const [m, k, r] of list) {
-    const xx = mx + m * mpx;
-    if (xx > x1 - 6 || xx < x0) continue;
-    const yy = rAt(xx) + 2, rr = r * sc;
-    c.strokeStyle = S.ink; c.fillStyle = S.ink;
-    if (k === 'brain') brainCoral(c, xx, yy, rr, S.ink, rgba(S.fd));
-    else if (k === 'branch') branchCoral(c, xx, yy, rr * 0.55, 0, 4, 4 * sc, sw * 0.5);
-    else seaFan(c, xx, yy, rr, sw, rgba(S.on, 0.6), S.ink);
-  }
-  return rAt;
-}
-function drawSnorkel(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['water']>, S: Style) {
-  const { x, y, w, h } = A, wide = w > h * 1.15, s = wide ? 1.1 : 0.8, vis = a.visM ?? 0;
-  const span = Math.max(16.5, vis * 1.15);
-  const sy = y + h * 0.26, mx = x + 98 * s + 6, mpx = (x + w - mx) / span;
-  const bob = S.reduced ? 0 : Math.sin(tt * 1.3) * 1.5;
-  const surf = (xx: number) => sy + Math.sin(xx * 0.09 - tt * 2.2) * 2 + Math.sin(xx * 0.21 + tt * 3.1) * 1.1;
-  c.fillStyle = rgba(S.on, 0.07); c.fillRect(x, sy, w, h - (sy - y));
-  const rAt = reefScene(c, x, x + w, y + h * 0.66, y + h, mx, mpx, tt, S);
-  // Marker posts every 5 m.
-  for (let m = 5; m < span; m += 5) {
-    const xx = mx + m * mpx, yb = rAt(xx), y0 = sy + 26;
-    c.fillStyle = S.ink; c.fillRect(xx - 1, y0, 2, yb - y0);
-    c.font = `700 ${(10 * 1.12).toFixed(1)}px "Geist Mono Variable", monospace`;
-    const tw = c.measureText(`${m} M`).width + 10;
-    c.fillRect(xx - tw / 2, y0 - 9, tw, 17); c.fillStyle = rgba(S.fd); txt(c, `${m} m`, xx, y0 - 0.5, 'center', 10, 700);
-  }
-  if (a.visM !== null) {
-    const ex = mx + 5 * s, ey = sy + 5 + bob;
-    for (let k = 0; k < 7; k++) {
-      const an = (-3 + k * 4.2) * D2R, L = (vis * mpx) / Math.cos(an);
-      for (let seg = 0; seg < 4; seg++) {
-        const f0 = seg / 4, f1 = (seg + 1) / 4;
-        c.strokeStyle = rgba(S.on, 0.8 - seg * 0.2); c.lineWidth = 1.6 - seg * 0.25;
-        c.beginPath(); c.moveTo(ex + Math.cos(an) * L * f0, ey + Math.sin(an) * L * f0); c.lineTo(ex + Math.cos(an) * L * f1, ey + Math.sin(an) * L * f1); c.stroke();
-      }
-    }
-    murk(c, mx, x + w + 40, sy + 3, y + h, vis, mpx, S.fd);
-  }
-  c.strokeStyle = S.ink; c.lineWidth = 2.4; c.beginPath();
-  for (let xx = x; xx <= x + w; xx += 3) (xx === x ? c.moveTo(xx, surf(xx)) : c.lineTo(xx, surf(xx)));
-  c.stroke();
-  figure(c, mx, sy + 5 + bob, s, tt, 'snorkel', S.ink, rgba(S.fd), S.ink);
-  // Horizontal visibility ruler, metres from the mask.
-  const ry = y + 14;
-  c.strokeStyle = S.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(mx, ry); c.lineTo(mx + vis * mpx, ry); c.stroke();
-  c.strokeStyle = S.soft; c.setLineDash([3, 4]); c.beginPath(); c.moveTo(mx + vis * mpx, ry); c.lineTo(x + w, ry); c.stroke(); c.setLineDash([]);
-  for (let m = 0; m <= Math.floor(span); m++) {
-    const xx = mx + m * mpx;
-    c.strokeStyle = m <= vis ? S.ink : S.soft; c.lineWidth = m % 5 ? 1 : 1.8;
-    c.beginPath(); c.moveTo(xx, ry - (m % 5 ? 3 : 6)); c.lineTo(xx, ry + (m % 5 ? 3 : 6)); c.stroke();
-  }
-  if (a.visM !== null) {
-    const vx = mx + vis * mpx;
-    c.fillStyle = S.ink; c.fillRect(vx - 1.5, ry - 10, 3, 20);
-    const right = vx + 120 > x + w;
-    // The caption under the ruler starts at the mask: a short reading would print over it, so it drops a line (review 2026-11-16).
-    c.font = `600 ${(9.5 * 1.12).toFixed(1)}px ${MONO}`;
-    const capEnd = mx + c.measureText(a.hvis.toUpperCase()).width + 10;
-    c.font = `800 ${(11 * 1.12).toFixed(1)}px ${MONO}`;
-    const lx2 = right ? vx - 8 : vx + 8, vw = c.measureText(a.vis.toUpperCase()).width;
-    const clash = (right ? lx2 - vw : lx2) < capEnd;
-    c.fillStyle = S.ink;
-    txt(c, a.vis, lx2, ry + (clash ? 32 : 18), right ? 'right' : 'left', 11, 800);
-  }
-  c.fillStyle = S.soft; txt(c, a.hvis, mx, ry + 18, 'left', 9.5, 600);
-  if (a.chop) { c.fillStyle = S.soft; txt(c, a.chop, x + w, sy - 12, 'right', 10, 600); }
-  // Water over the reef at this tide.
-  if (a.waterM !== null) {
-    const bx = mx + 3.2 * mpx, by = rAt(bx) - 3;
-    c.strokeStyle = S.ink; c.lineWidth = 1.5; c.beginPath();
-    c.moveTo(bx, sy + 8); c.lineTo(bx, by); c.moveTo(bx - 5, sy + 8); c.lineTo(bx + 5, sy + 8); c.moveTo(bx - 5, by); c.lineTo(bx + 5, by); c.stroke();
-    c.fillStyle = S.ink; txt(c, a.overReef, bx - 8, (sy + by) / 2 + 10, 'right', 10.5, 700);
-  }
-}
-function drawDive(c: Ctx2D, A: Box, tt: number, a: NonNullable<HeroParams['water']>, S: Style, kit: 'dive' | 'spear' = 'dive') {
-  const { x, y, w, h } = A, wide = w > h * 1.15, s = wide ? 1.05 : 0.74, vis = a.visM ?? 0;
-  const span = 20, top = y + 16, bot = y + h - 4, mp = (bot - top) / span, lx = x + 26;
-  const sg = clamp(a.surgeMs / 0.3, 0.3, 2);
-  const surge = S.reduced ? 0 : Math.sin((TAU * tt) / 8) * sg;
-  for (let k = 1; k < 4; k++) { c.fillStyle = rgba(S.on, 0.045 * k); c.fillRect(lx, top + k * 5 * mp, x + w - lx, 5 * mp); }
-  c.strokeStyle = S.soft; c.lineWidth = 1; c.setLineDash([2, 4]);
-  for (let k = 1; k < 4; k++) { c.beginPath(); c.moveTo(lx, top + k * 5 * mp); c.lineTo(x + w, top + k * 5 * mp); c.stroke(); }
-  c.setLineDash([]);
-  // The diver at the activity depth, the reef just below.
-  const my = top + a.depthM * mp, sb = my + 2.5 * mp, mx = lx + 120 * s, mpx = (x + w - mx) / 17;
-  reefScene(c, lx, x + w, sb - 6, bot + 4, mx, mpx, tt, S);
-  const dmx = mx + surge * 7;
-  if (a.visM !== null) {
-    c.save(); c.beginPath(); c.rect(lx, top, x + w - lx, sb - top); c.clip();
-    [5, 10, 15].forEach((m) => {
-      const r = m * mpx, on = Math.abs(m - vis) < 2.5;
-      c.strokeStyle = on ? S.ink : S.soft; c.lineWidth = on ? 2.6 : 1.2; if (!on) c.setLineDash([4, 4]);
-      c.beginPath(); c.arc(dmx, my, r, -34 * D2R, 34 * D2R); c.stroke(); c.setLineDash([]);
-    });
-    c.strokeStyle = S.ink; c.lineWidth = 2.6; c.beginPath(); c.arc(dmx, my, vis * mpx, -34 * D2R, 34 * D2R); c.stroke();
+/** Tube sponges: a cluster of upright tubes, square-cut, their open mouths showing. */
+function sponges(c: Ctx2D, x: number, y: number, hh: number, S: Style) {
+  const tubes: [number, number, number][] = [[-0.55, 0.62, -0.08], [0, 1, 0.02], [0.5, 0.78, 0.1]];
+  for (const [dx, k, lean] of tubes) {
+    const tw = hh * 0.22, th = hh * k, bx = x + dx * hh * 0.5;
+    c.save(); c.translate(bx, y); c.rotate(lean);
+    c.fillStyle = S.ink; c.fillRect(-tw / 2, -th, tw, th);
+    c.fillStyle = rgba(S.fd, 0.9); c.fillRect(-tw / 2 + 2, -th + 2, tw - 4, Math.max(2, tw * 0.28));
+    c.strokeStyle = rgba(S.fd, 0.6); c.lineWidth = 1; c.beginPath(); c.moveTo(-tw * 0.15, -th + tw * 0.6); c.lineTo(-tw * 0.15, -th * 0.15); c.stroke();
     c.restore();
-    murk(c, mx, x + w + 40, top + 2, bot + 4, vis, mpx, S.fd);
-    [5, 10].forEach((m) => { const r = m * mpx; c.fillStyle = S.ink; txt(c, `${m} m`, dmx + r * Math.cos(-34 * D2R) + 4, my + r * Math.sin(-34 * D2R) - 6, 'center', 10, 700); });
-    const r = vis * mpx;
-    c.fillStyle = S.ink; txt(c, a.vis, Math.min(dmx + r * Math.cos(-30 * D2R) - 4, x + w), Math.max(top + 10, my + r * Math.sin(-30 * D2R) - 8), 'right', 11, 800);
   }
-  c.strokeStyle = S.ink; c.lineWidth = 2.4; c.beginPath();
-  for (let xx = lx; xx <= x + w; xx += 3) { const yy = top + Math.sin(xx * 0.08 - tt * 1.6) * 1.8; xx === lx ? c.moveTo(xx, yy) : c.lineTo(xx, yy); }
+}
+/** Sea grass on the sand: a few blades leaning with the surge. */
+function grass(c: Ctx2D, x: number, y: number, hh: number, sway: number, S: Style) {
+  c.strokeStyle = S.ink; c.lineWidth = 1.6; c.lineCap = 'butt'; c.beginPath();
+  for (let i = 0; i < 5; i++) { const bx = x + (i - 2) * 3, l = hh * (0.6 + 0.4 * hash1(i + x)); c.moveTo(bx, y); c.quadraticCurveTo(bx + sway * l * 0.6, y - l * 0.6, bx + sway * l * 1.4 + (i - 2) * 1.5, y - l); }
   c.stroke();
-  // Lead line with a mark every 5 m down to the diver's depth.
-  const lb = lx + surge * 3;
-  c.strokeStyle = S.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(lx, top - 8); c.lineTo(lb, my); c.stroke();
-  for (let m = 0; m <= span; m++) {
-    const yy = top + m * mp, xx = lx + (lb - lx) * Math.min(1, m / a.depthM);
-    c.strokeStyle = m % 5 ? S.soft : S.ink; c.lineWidth = m % 5 ? 1 : 3;
-    c.beginPath(); c.moveTo(xx - (m % 5 ? 3 : 6), yy); c.lineTo(xx + (m % 5 ? 3 : 6), yy); c.stroke();
-    if (m % 5 === 0) { c.fillStyle = S.soft; txt(c, String(m), x + 2, yy, 'left', 9.5, 600); }
+}
+/** A reef fish side on, nose along `dir` (1 right, -1 left): body, forked tail, fin, eye and a bar cut out of the field colour. */
+function fish(c: Ctx2D, fx: number, fy: number, L: number, dir: 1 | -1, ph: number, S: Style, col = S.ink) {
+  c.save(); c.translate(fx, fy); c.scale(dir, 1);
+  const b = L * 0.2, tw = Math.sin(ph) * L * 0.07;
+  c.fillStyle = col; c.beginPath();
+  c.moveTo(L * 0.5, 0); c.quadraticCurveTo(L * 0.18, -b * 1.5, -L * 0.22, -b * 0.35); c.lineTo(-L * 0.5, -b * 1.1 + tw); c.lineTo(-L * 0.4, tw); c.lineTo(-L * 0.5, b * 1.1 + tw); c.lineTo(-L * 0.22, b * 0.35);
+  c.quadraticCurveTo(L * 0.18, b * 1.4, L * 0.5, 0); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(L * 0.12, -b * 0.95); c.lineTo(-L * 0.12, -b * 1.35); c.lineTo(-L * 0.18, -b * 0.6); c.closePath(); c.fill(); // dorsal fin
+  c.fillStyle = rgba(S.fd, 0.95); c.fillRect(L * 0.3, -b * 0.42, Math.max(1.5, L * 0.07), Math.max(1.5, L * 0.07));
+  if (L > 12) { c.strokeStyle = rgba(S.fd, 0.75); c.lineWidth = Math.max(1, L * 0.04); c.beginPath(); c.moveTo(L * 0.16, -b * 0.85); c.lineTo(L * 0.16, b * 0.8); c.stroke(); }
+  c.restore();
+}
+
+/** The reef: sand along the bottom, a hard faceted rock over it (its top line `top`), the corals on it, a few fish. */
+function reefBed(c: Ctx2D, A: Box, pts: [number, number][], ys: number, k: number, sway: number, S: Style, list: [number, 'brain' | 'branch' | 'fan' | 'sponge' | 'grass', number][]) {
+  const { x, y, w, h } = A;
+  const top = (xx: number) => { for (let i = 1; i < pts.length; i++) if (xx <= pts[i][0]) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]; return y0 + (y1 - y0) * ((xx - x0) / Math.max(1e-6, x1 - x0)); } return pts[pts.length - 1][1]; };
+  // Sand, with grain and a few ripple marks.
+  c.fillStyle = rgba(S.T.sand); c.fillRect(x, ys, w, y + h - ys);
+  for (let i = 0; i < w * 0.5; i++) { c.fillStyle = rgba(S.on, 0.12 + 0.14 * hash1(i + 7)); c.fillRect(Math.round(x + hash1(i + 11) * w), Math.round(ys + 2 + hash1(i + 29) * (y + h - ys - 3)), 1.5, 1.5); }
+  c.fillStyle = S.ink; c.fillRect(x, ys, w, 1.5);
+  // The rock: one hard silhouette with faceted edges, built of old coral heads (crisp blocks cut in the field colour).
+  poly(c, [[x, ys], ...pts, [x + w, ys]], rgba(S.on, 0.42));
+  c.save(); poly(c, [[x, ys], ...pts, [x + w, ys]]); c.clip();
+  const bh = 15 * k, bwd = 26 * k, rTop = Math.min(...pts.map((p) => p[1]));
+  c.strokeStyle = rgba(S.fd, 0.4); c.lineWidth = 1.2; c.beginPath();
+  for (let j = 0, yy = ys; yy > rTop - bh; j++, yy -= bh) {
+    for (let i = -1, xx = x - (j % 2) * bwd * 0.5; xx < x + w; i++, xx += bwd) {
+      const q = hash1(i * 31 + j * 7), y0 = yy - bh * (0.15 + 0.2 * q), x0 = xx + bwd * 0.12, x1 = xx + bwd * (0.88 - 0.12 * q);
+      c.moveTo(x0, yy - 1); c.lineTo(x0, y0 + bh * 0.25); c.lineTo(x0 + bwd * 0.2, y0); c.lineTo(x1 - bwd * 0.15, y0); c.lineTo(x1, y0 + bh * 0.3); c.lineTo(x1, yy - 1);
+    }
   }
-  c.fillStyle = S.ink; c.beginPath(); c.moveTo(lb - 4, my - 12); c.lineTo(lb + 4, my - 12); c.lineTo(lb + 7, my); c.lineTo(lb - 7, my); c.closePath(); c.fill();
-  c.fillStyle = S.ink; txt(c, a.at, lx + 14, my - 18, 'left', 10.5, 800);
-  for (let i = 0; i < (kit === 'spear' ? 0 : 9); i++) { // a breath-hold hunter breathes out only at the surface: no bubble stream
-    const k = S.reduced ? i / 9 : (tt * 0.32 + i / 9) % 1, by = my - 6 - k * (my - top - 10), bx = dmx + 8 * s + Math.sin(k * 14 + i) * 3;
-    c.strokeStyle = rgba(S.on, 0.95 - k * 0.5); c.lineWidth = 1.3; c.beginPath(); c.arc(bx, by, 1.6 + k * 3.2, 0, TAU); c.stroke();
+  c.stroke(); c.restore();
+  c.strokeStyle = S.ink; c.lineWidth = 2; c.lineJoin = 'miter'; c.beginPath(); pts.forEach(([px, py], i) => (i ? c.lineTo(px, py) : c.moveTo(px, py))); c.stroke();
+  for (const [f, kind, s] of list) {
+    const xx = x + f * w, yy = top(xx) + 1, r = s * k;
+    if (kind === 'brain') brainCoral(c, xx, yy, r, S, Math.round(f * 100));
+    else if (kind === 'branch') branchCoral(c, xx, yy, r * 0.42, 0, 4, Math.max(2.5, r * 0.12), sway * 0.5, S, Math.round(f * 50) + 1);
+    else if (kind === 'fan') seaFan(c, xx, yy, r, sway * 0.6, S);
+    else if (kind === 'sponge') sponges(c, xx, yy, r, S);
+    else grass(c, xx, yy, r, sway, S);
   }
-  figure(c, dmx, my, s, tt, kit, S.ink, rgba(S.fd), rgba(S.T.lv2));
-  // Surge: a double arrow swinging as far as the surge is strong.
-  const sx = mx - 30 * s, syy = my + 1.6 * mp, sw2 = surge * 10;
-  c.strokeStyle = S.ink; c.fillStyle = S.ink; c.lineWidth = 2;
-  c.beginPath(); c.moveTo(sx - 24 + sw2, syy); c.lineTo(sx + 24 + sw2, syy); c.stroke();
-  [-1, 1].forEach((sgn) => { c.beginPath(); c.moveTo(sx + sw2 + sgn * 30, syy); c.lineTo(sx + sw2 + sgn * 21, syy - 5.5); c.lineTo(sx + sw2 + sgn * 21, syy + 5.5); c.closePath(); c.fill(); });
-  txt(c, a.surge, sx, syy + 15, 'center', 10.5, 800);
+  return top;
+}
+
+/** A closed, smooth outline through `pts` (quadratic curves between their midpoints): bodies, limbs, a hard fill. */
+function blob(c: Ctx2D, pts: [number, number][], fill?: string, line?: string, wd = 1) {
+  const n = pts.length, m = (i: number): [number, number] => [(pts[i][0] + pts[(i + 1) % n][0]) / 2, (pts[i][1] + pts[(i + 1) % n][1]) / 2];
+  c.beginPath(); const s = m(n - 1); c.moveTo(s[0], s[1]);
+  for (let i = 0; i < n; i++) { const e = m(i); c.quadraticCurveTo(pts[i][0], pts[i][1], e[0], e[1]); }
+  c.closePath();
+  if (fill) { c.fillStyle = fill; c.fill(); }
+  if (line) { c.strokeStyle = line; c.lineWidth = wd; c.lineJoin = 'miter'; c.stroke(); }
+}
+
+/** Points of the swimmer's figure, in body lengths: the torso and a leg (from the hip), the fins' foot pocket and blade. */
+const TORSO: [number, number][] = [[-0.06, -0.034], [-0.1, -0.05], [-0.15, -0.06], [-0.22, -0.056], [-0.29, -0.046], [-0.34, -0.048], [-0.39, -0.06], [-0.44, -0.05], [-0.455, -0.01], [-0.44, 0.04], [-0.38, 0.048], [-0.3, 0.054], [-0.22, 0.066], [-0.15, 0.066], [-0.1, 0.055], [-0.065, 0.03]];
+const LEG: [number, number][] = [[0.02, -0.058], [-0.05, -0.05], [-0.1, -0.04], [-0.145, -0.032], [-0.19, -0.04], [-0.24, -0.036], [-0.3, -0.022], [-0.322, -0.018], [-0.326, 0.01], [-0.3, 0.014], [-0.22, 0.022], [-0.15, 0.03], [-0.1, 0.038], [-0.04, 0.048], [0.02, 0.05]];
+
+/**
+ * A swimmer side on, face down and facing right: a smooth silhouette in hard ink, the details cut out of it in the
+ * field colour. The eye (behind the mask) is at (ox, oy) and the body is `u` long from the crown to the heels' fin
+ * tips (SPEAR's long blades reach about a tenth further). `kick` runs -1..1: a flutter kick from the hips, the knees
+ * easing on the down-stroke and the blades bending against it. SNORKEL wears a mask and a snorkel standing out of the
+ * water; DIVE a tank on the back with its harness, a weight belt and a regulator; SPEAR (breath-hold, no tank) a
+ * hood, a weight belt, long freediving blades and a speargun held out in front. Returns the gun's butt (where the
+ * float line is tied) or the hip.
+ */
+function swimmer(c: Ctx2D, ox: number, oy: number, u: number, kick: number, kit: WaterKit, S: Style): [number, number] {
+  const ink = S.ink, cut = rgba(S.fd);
+  const P = (px: number, py: number): [number, number] => [ox + px * u, oy + py * u];
+  const finL = kit === 'spear' ? 0.3 : 0.2;
+  const limb = (pts: [number, number][], wds: number[], fill: string, edge?: string) => {
+    const L: [number, number][] = [], R: [number, number][] = [];
+    pts.forEach((p, i) => {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], n = Math.hypot(dx, dy) || 1;
+      const nx = -dy / n, ny = dx / n, hw = (wds[i] * u) / 2;
+      L.push([p[0] + nx * hw, p[1] + ny * hw]); R.push([p[0] - nx * hw, p[1] - ny * hw]);
+    });
+    blob(c, [...L, ...R.reverse()], fill);
+    if (edge) { c.strokeStyle = edge; c.lineWidth = 1.2; c.beginPath(); L.forEach(([px, py], i) => (i ? c.lineTo(px, py) : c.moveTo(px, py))); c.stroke(); }
+  };
+  const leg = (sd: number, fill: string) => {
+    // Hip angle: the legs sink a touch and swing with the kick; past the knee the shin bends up on the down-stroke.
+    const k = kick * sd, th = -0.05 + (kit === 'snorkel' ? 0.08 : 0.13) * k, bend = 0.06 + 0.14 * Math.max(0, k);
+    const [hx, hy] = P(-0.42, 0.0), ct = Math.cos(th), st = Math.sin(th), cb = Math.cos(bend), sb = Math.sin(bend);
+    const tf = (px: number, py: number): [number, number] => {
+      let qx = px, qy = py;
+      if (px < -0.145) { const rx = px + 0.145, ry = py; qx = -0.145 + rx * cb - ry * sb; qy = rx * sb + ry * cb; }
+      return [hx + (qx * ct - qy * st) * u, hy + (qx * st + qy * ct) * u];
+    };
+    blob(c, LEG.map(([px, py]) => tf(px, py)), fill);
+    // The fin: a foot pocket over the foot, then the blade, bent against the stroke, two rails cut along it.
+    const fb = -0.16 * k, cf = Math.cos(fb), sf = Math.sin(fb);
+    const fp = (px: number, py: number) => { const rx = px + 0.36, ry = py; return px < -0.36 ? tf(-0.36 + rx * cf - ry * sf, rx * sf + ry * cf) : tf(px, py); };
+    poly(c, [fp(-0.295, -0.026), fp(-0.36, -0.028), fp(-0.36 - finL, -0.036), fp(-0.36 - finL, 0.008), fp(-0.36, 0.022), fp(-0.3, 0.024)], fill);
+    if (fill === ink) {
+      c.strokeStyle = cut; c.lineWidth = 1; c.beginPath();
+      { const a = fp(-0.375, -0.004), b = fp(-0.35 - finL, -0.014); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); }
+      const a = fp(-0.36, -0.028), b = fp(-0.36, 0.022); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]);
+      c.stroke();
+    }
+  };
+  leg(-1, rgba(S.on, 0.5)); // the far leg, a shade back
+  blob(c, TORSO.map(([px, py]) => P(px, py)), ink);
+  leg(1, ink);
+  // Head.
+  c.fillStyle = ink; c.beginPath(); c.ellipse(ox - 0.032 * u, oy - 0.006 * u, 0.058 * u, 0.054 * u, 0, 0, TAU); c.fill();
+  c.strokeStyle = cut; c.lineWidth = 1.2; c.lineCap = 'butt';
+  // DIVE and SPEAR wear a weight belt with its buckle.
+  if (kit !== 'snorkel') {
+    c.lineWidth = Math.max(2, 0.014 * u); c.beginPath(); c.moveTo(...P(-0.392, -0.058)); c.lineTo(...P(-0.39, 0.05)); c.stroke();
+    c.fillStyle = rgba(CREAM, 0.95); c.fillRect(...P(-0.402, 0.036), 0.022 * u, 0.018 * u);
+  }
+  // The near arm: along the body (SNORKEL), folded under the chest (DIVE), reaching forward to the gun (SPEAR).
+  if (kit === 'spear') limb([P(-0.1, 0.012), P(-0.01, 0.08), P(0.1, 0.13)], [0.046, 0.034, 0.03], ink, cut);
+  else if (kit === 'dive') limb([P(-0.11, 0.008), P(-0.22, 0.058), P(-0.34, 0.06)], [0.046, 0.034, 0.03], ink, cut);
+  else limb([P(-0.11, 0.008), P(-0.24, 0.048), P(-0.37, 0.046)], [0.046, 0.034, 0.028], ink, cut);
+  // Mask: an ink frame round a lens of field colour with a glint; the strap round the head.
+  const [mxa, mya] = P(0.0, -0.03);
+  c.fillStyle = ink; c.fillRect(mxa, mya, 0.034 * u, 0.05 * u);
+  c.fillStyle = cut; c.fillRect(mxa + 0.004 * u, mya + 0.008 * u, 0.024 * u, 0.034 * u);
+  c.strokeStyle = rgba(CREAM, 0.95); c.lineWidth = 1.4; c.beginPath(); c.moveTo(mxa + 0.008 * u, mya + 0.03 * u); c.lineTo(mxa + 0.022 * u, mya + 0.013 * u); c.stroke();
+  c.strokeStyle = cut; c.lineWidth = 1.4; c.beginPath(); c.moveTo(...P(0.0, -0.016)); c.lineTo(...P(-0.078, -0.03)); c.stroke();
+  if (kit === 'snorkel') {
+    // The snorkel: mouthpiece, a J bend up the side of the head, the tube standing clear of the water with a pale tip.
+    const tw = Math.max(3, 0.02 * u);
+    c.strokeStyle = ink; c.lineWidth = tw; c.lineJoin = 'miter'; c.lineCap = 'butt';
+    c.beginPath(); c.moveTo(...P(0.02, 0.034)); c.lineTo(...P(-0.02, 0.036)); c.lineTo(...P(-0.048, -0.03)); c.lineTo(...P(-0.054, -0.2)); c.stroke();
+    c.strokeStyle = rgba(CREAM, 0.95); c.beginPath(); c.moveTo(...P(-0.053, -0.17)); c.lineTo(...P(-0.054, -0.2)); c.stroke();
+    c.strokeStyle = cut; c.lineWidth = 1.2; c.beginPath(); c.moveTo(...P(-0.044, -0.03)); c.lineTo(...P(-0.03, -0.024)); c.stroke();
+  }
+  if (kit === 'dive') {
+    // The tank on the back, valve forward, crossed by the harness; the hose over the shoulder to the regulator.
+    const [tx0, ty0] = P(-0.37, -0.122), tl = 0.27 * u, th = 0.066 * u;
+    c.fillStyle = ink; c.fillRect(tx0, ty0, tl, th);
+    c.fillRect(tx0 + tl, ty0 + th * 0.25, 0.02 * u, th * 0.4); // valve
+    c.fillRect(tx0 + tl + 0.014 * u, ty0 + th * 0.05, 0.014 * u, th * 0.7); // first stage
+    c.strokeStyle = cut; c.lineWidth = 1.2; c.beginPath();
+    c.moveTo(tx0 + 2, ty0 + th * 0.3); c.lineTo(tx0 + tl - 2, ty0 + th * 0.3); // highlight along the cylinder
+    for (const f of [0.28, 0.66]) { c.moveTo(tx0 + tl * f, ty0); c.lineTo(tx0 + tl * f, ty0 + th + 0.03 * u); }
+    c.stroke();
+    c.strokeStyle = ink; c.lineWidth = Math.max(1.8, 0.012 * u); c.beginPath();
+    c.moveTo(tx0 + tl + 0.028 * u, ty0 + th * 0.4); c.bezierCurveTo(...P(-0.03, -0.02), ...P(-0.06, 0.09), ...P(0.02, 0.034)); c.stroke();
+    c.fillStyle = ink; c.fillRect(...P(0.016, 0.018), 0.03 * u, 0.03 * u); // second stage
+    c.fillStyle = cut; c.fillRect(...P(0.026, 0.026), 0.012 * u, 0.012 * u);
+  }
+  if (kit === 'spear') {
+    // The speargun: grip in the hand, a long barrel, the shaft along its top to a hard point, the band stretched back.
+    const [hx, hy] = P(0.1, 0.13), L = 0.5 * u, bh = Math.max(3, 0.02 * u), tip = hx + L + 0.06 * u;
+    c.fillStyle = ink; c.fillRect(hx - 0.05 * u, hy - bh / 2, L + 0.05 * u, bh);
+    poly(c, [[hx - 0.012 * u, hy], [hx + 0.012 * u, hy], [hx + 0.006 * u, hy + 0.05 * u], [hx - 0.018 * u, hy + 0.05 * u]], ink); // grip
+    c.fillRect(hx + L - 0.03 * u, hy - bh / 2 - 2.5, 0.022 * u, bh + 5); // muzzle
+    c.strokeStyle = ink; c.lineWidth = 1.5; c.beginPath(); c.moveTo(hx, hy - bh / 2 - 1.5); c.lineTo(tip, hy - bh / 2 - 1.5); c.stroke();
+    poly(c, [[tip, hy - bh / 2 - 4.5], [tip + 0.05 * u, hy - bh / 2 - 1.5], [tip, hy - bh / 2 + 1.5]], ink);
+    c.strokeStyle = rgba(CREAM, 0.95); c.lineWidth = 2; c.beginPath(); c.moveTo(hx + L - 0.02 * u, hy - bh / 2 - 2.5); c.lineTo(hx + L * 0.45, hy - bh / 2 - 1.5); c.stroke();
+    return [hx - 0.05 * u, hy];
+  }
+  return P(-0.4, 0);
+}
+
+/** Stepped murk past the visibility: flat bands of the field colour, thicker with each step, so what lies past it fades out. */
+function murk(c: Ctx2D, x0: number, x1: number, y0: number, y1: number, vis: number, mpx: number, fd: RGB) {
+  const steps: [number, number][] = [[vis * 0.75, 0.18], [vis * 0.88, 0.34], [vis, 0.52], [vis * 1.15, 0.68], [vis * 1.32, 0.8]];
+  for (const [d, a] of steps) { const xx = Math.round(x0 + d * mpx); if (xx >= x1) break; c.fillStyle = rgba(fd, a); c.fillRect(xx, y0, x1 - xx, y1 - y0); }
+}
+
+/** The surface: a crisp line whose chop follows the wind (flat, light, choppy, rough), whitecaps when it is rough. */
+function surface(c: Ctx2D, x0: number, x1: number, sy: number, tt: number, kt: number | null, S: Style) {
+  const lv = kt === null ? 0 : chopLv(kt), k = kt === null ? 'light' : chopFor(kt);
+  const amp = k === 'flat' ? 1 : k === 'light' ? 2 : k === 'choppy' ? 3.2 : 4.4, lam = k === 'flat' || k === 'light' ? 34 : 22;
+  const at = (xx: number) => { const ph = (xx / lam) * TAU - tt * 2.4; return sy - (lv ? amp * (1 - 2 * Math.abs(Math.sin(ph / 2))) : amp * Math.sin(ph)) + Math.sin(xx * 0.13 + tt * 1.7) * 0.6; };
+  c.strokeStyle = S.ink; c.lineWidth = 2.2; c.lineJoin = 'miter'; c.lineCap = 'butt'; c.beginPath();
+  for (let xx = x0; xx <= x1; xx += 2) (xx === x0 ? c.moveTo(xx, at(xx)) : c.lineTo(xx, at(xx)));
+  c.stroke();
+  if (lv === 2) {
+    c.fillStyle = rgba(CREAM, 0.95);
+    for (let i = 0; x0 + (i + 0.5) * lam < x1; i++) { const cx = x0 + (i + ((tt * 2.4) / TAU) % 1) * lam; if (hash1(i) > 0.5 && cx < x1 - 6) c.fillRect(Math.round(cx - 4), Math.round(at(cx) - 3), 8, 2.5); }
+  }
+  return at;
+}
+
+/** Visibility ahead of the eye: a ruler in metres from the mask, solid as far as you can see and fading past it. */
+function sightRuler(c: Ctx2D, mx: number, ey: number, x1: number, hm: number, hspan: number, vis: number | null, fs: number, S: Style, above = false) {
+  if (vis === null) return; // no reading: no ruler, rather than one that claims a distance
+  const step = hspan <= 8 ? 1 : hspan <= 16 ? 2 : 5, v = vis;
+  c.lineCap = 'butt';
+  c.strokeStyle = S.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(mx, ey); c.lineTo(Math.min(x1, mx + v * hm), ey); c.stroke();
+  if (mx + v * hm > x1) poly(c, [[x1 + 2, ey], [x1 - 7, ey - 4.5], [x1 - 7, ey + 4.5]], S.ink);
+  c.strokeStyle = rgba(S.on, 0.45); c.lineWidth = 1.5; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(mx + v * hm, ey); c.lineTo(x1, ey); c.stroke(); c.setLineDash([]);
+  for (let m = step; mx + m * hm <= x1 + 0.5; m += step) {
+    const xx = mx + m * hm, seen = m <= v + 1e-6;
+    c.strokeStyle = seen ? S.ink : rgba(S.on, 0.4); c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(xx, ey - 4); c.lineTo(xx, ey + 4); c.stroke();
+    // The number on the visibility line itself would be cut by it, and its tag says it.
+    if (vis !== null && Math.abs(xx - (mx + v * hm)) < 8) continue;
+    c.fillStyle = seen ? S.ink : rgba(S.on, 0.4); txt(c, `${m}`, xx, ey + (above ? -11 : 11) * fs, 'center', 7.5 * fs, 700);
+  }
+}
+
+/**
+ * The words over the surface: the visibility at its own line (the line runs down from it to the reef) and the chop.
+ * The visibility goes first, beside its line; the chop takes the right end of the row, or the left end when the
+ * visibility is there, or `row2`. Nothing lands on anything in `taken` (the SPEAR float) or on each other.
+ */
+function topTags(c: Ctx2D, a: WaterA, wx: number, row: number, row2: number, x0: number, x1: number, fs: number, S: Style, taken: Box[], chop: boolean, at: (x: number) => number, top: (x: number) => number) {
+  const ink = S.ink, cut = rgba(S.fd);
+  let visB: Box | null = null, chopB: Box | null = null;
+  if (a.visM !== null) {
+    const m = tagSize(c, a.vis, 10 * fs, x1 - x0);
+    let px = clamp(wx - 1, x0, x1 - m.w);
+    for (const cx of [wx - 1, wx + 1 - m.w, wx - m.w / 2]) {
+      const b = { x: clamp(cx, x0, x1 - m.w), y: row - m.h / 2, w: m.w, h: m.h };
+      if (!taken.some((q) => hits(b, q))) { px = b.x; break; }
+    }
+    visB = tag(c, a.vis, px, row, 'left', 10 * fs, ink, cut, false, x1 - x0);
+    taken.push(visB);
+    c.strokeStyle = ink; c.lineWidth = 1.5; c.beginPath(); c.moveTo(wx, visB.y + visB.h); c.lineTo(wx, at(wx) - 1); c.stroke();
+    if (wx < x1 - 4) { c.setLineDash([5, 3]); c.lineWidth = 2; c.beginPath(); c.moveTo(wx, at(wx) + 3); c.lineTo(wx, top(wx)); c.stroke(); c.setLineDash([]); }
+  }
+  if (chop && a.chop && a.windKt !== null) {
+    const sz = 9 * fs, mw = (x1 - x0) * 0.6, m = tagSize(c, a.chop, sz, mw), cw = m.w + m.h;
+    const cands: [number, number][] = [[x1 - cw, row], [x0, row], [x1 - cw, row2]];
+    const [cx, cy] = cands.find(([px, py]) => !taken.some((q) => hits({ x: px, y: py - m.h / 2, w: cw, h: m.h }, q))) ?? cands[2];
+    chopB = keyTag(c, a.chop, cx, cy, 'left', sz, ink, cut, bandCol(S, chopLv(a.windKt)), mw);
+  }
+  return { visB, chopB };
+}
+
+/**
+ * SNORKEL: a section from the surface to the reef. The snorkeller floats face down at the surface, fins kicking; ahead of
+ * the mask a ruler in metres and a cone of sight run out to the visibility, where a line drops to the reef and the water
+ * past it fades to murk. On the left a dimension line gives the water over the reef at this tide (the reef sits lower
+ * the more water there is), and a double arrow swings with the surge at that depth. The reef: sand, a faceted rock,
+ * brain coral, staghorn, a sea fan, tube sponges, sea grass and a few fish. The surface chops with the wind.
+ */
+function drawSnorkel(c: Ctx2D, A: Box, tt0: number, a: WaterA, S: Style) {
+  const { x, y, w, h } = A, tt = S.reduced ? 3.2 : tt0, F = waterFrame(A, 'snorkel', a), { fs, sy, u, mx, hm, hspan } = F;
+  const ink = S.ink, cut = rgba(S.fd), vis = a.visM;
+  const ys = y + h - 14 * fs, deep = clamp((a.waterM ?? 1.5) / 2, 0, 1), col = (ys - 26 * fs - sy) * lerp(0.6, 1, deep), cy = sy + col;
+  const swing = S.reduced ? 0 : Math.sin((TAU * tt) / 8), sg = clamp(a.surgeMs / 0.3, 0.3, 2);
+  const kick = S.reduced ? 0.4 : Math.sin(tt * 3.4), bob = S.reduced ? 0 : Math.sin(tt * 1.3) * 1.2, ey = F.ey + bob;
+  const k = u / 168, dx = x + 10 * fs;
+
+  // --- Words on the left (laid out first, so the corals under them stay low enough to keep clear).
+  const size = 9.5 * fs, ty1 = sy + col * 0.3, ty2 = sy + col * 0.6, tagH = Math.round(size * 1.9);
+  const surgeS = `${a.surge} · ${a.surgeV}`;
+  const tw = Math.max(a.waterM === null ? 0 : tagSize(c, a.overReef, size, w - 30).w + tagH, tagSize(c, surgeS, size, w - 30).w + tagH);
+  const labR = dx + 8 + tw, room = cy - (ty2 + tagH / 2) - 6;
+
+  // --- The water column and the reef.
+  c.fillStyle = rgba(S.on, 0.06); c.fillRect(x, sy, w, ys - sy);
+  const pts: [number, number][] = [];
+  for (let xx = x, i = 0; xx < x + w + 1; xx += 16 * fs, i++) {
+    const f = (xx - x) / w, big = -col * 0.16 * Math.exp(-sq((f - 0.8) / 0.1)) + col * 0.06 * Math.exp(-sq((f - 0.56) / 0.06));
+    pts.push([Math.min(xx, x + w), Math.min(ys - 4, xx < dx + 10 ? cy : cy + big + (hash1(i + 40) - 0.5) * 7 * fs)]);
+  }
+  if (pts[pts.length - 1][0] < x + w) pts.push([x + w, pts[pts.length - 1][1]]);
+  const sway = (S.reduced ? 0 : swing) * 0.12 * sg;
+  type Coral = 'brain' | 'branch' | 'fan' | 'sponge' | 'grass';
+  const tallness: Record<Coral, number> = { brain: 0.75, branch: 1.15, fan: 1.1, sponge: 1, grass: 1 };
+  const list = ([[0.1, 'brain', 14], [0.2, 'branch', 30], [0.3, 'sponge', 24], [0.4, 'fan', 34], [0.5, 'brain', 18], [0.58, 'grass', 14], [0.67, 'branch', 34], [0.78, 'fan', 40], [0.87, 'sponge', 28], [0.96, 'brain', 15]] as [number, Coral, number][])
+    .map(([f, kind, r]): [number, Coral, number] => [f, kind, x + f * w - r * k < labR ? Math.min(r, room / (tallness[kind] * k)) : r])
+    .filter((q) => q[2] >= 6);
+  const top = reefBed(c, A, pts, ys, k, sway, S, list);
+
+  // --- Fish: a small school mid-water ahead, a parrotfish by the coral head; they drift and turn their tails.
+  const fx0 = mx + (x + w - mx) * 0.45 + (S.reduced ? 0 : Math.sin(tt * 0.21) * 16), fy0 = sy + col * 0.42;
+  for (let i = 0; i < 5; i++) fish(c, fx0 + (hash1(i + 1) - 0.5) * 60 * k, fy0 + (hash1(i + 9) - 0.5) * 24 * k, 11 * k, -1, tt * 6 + i, S);
+  { const px = x + w * 0.66 + (S.reduced ? 0 : Math.sin(tt * 0.15) * 10); fish(c, px, top(px) - 22 * k, 24 * k, 1, tt * 4, S); }
+
+  // --- What you can see: a cone from the mask to the visibility, the murk past it, the visibility line down to the reef.
+  const ex = mx + 0.02 * u;
+  let wx = x + w;
+  if (vis !== null) {
+    wx = Math.min(x + w - 4, ex + vis * hm);
+    const half = Math.min(col * 0.42, (wx - ex) * 0.22);
+    c.save(); c.beginPath(); c.rect(x, sy + 2, w, ys - sy); c.clip();
+    poly(c, [[ex, ey], [wx, ey - half], [wx, ey + half]], rgba(CREAM, 0.14));
+    c.strokeStyle = rgba(S.on, 0.5); c.lineWidth = 1; c.setLineDash([4, 3]); c.beginPath(); c.moveTo(ex, ey); c.lineTo(wx, ey - half); c.moveTo(ex, ey); c.lineTo(wx, ey + half); c.stroke(); c.setLineDash([]);
+    c.restore();
+    murk(c, ex, x + w + 40, sy + 3, ys, vis, hm, S.fd);
+  }
+  sightRuler(c, ex, ey, x + w - 4, hm, hspan, vis, fs, S);
+  const at = surface(c, x, x + w, sy, tt, a.windKt, S);
+  swimmer(c, mx, ey, u, kick, 'snorkel', S);
+
+  // --- Words over the surface: the visibility at its line, the chop.
+  const { visB, chopB } = topTags(c, a, wx, y + 10 * fs, y + 32 * fs, x, x + w, fs, S, [], true, at, top);
+
+  // --- Water over the reef: a dimension line from the surface to the rock, its depth in a keyed tag.
+  let wB: Box | null = null;
+  if (a.waterM !== null) {
+    const y0 = at(dx) + 2, y1 = top(dx) - 1;
+    c.strokeStyle = ink; c.lineWidth = 1.5; c.beginPath(); c.moveTo(dx - 6, y1); c.lineTo(dx + 6, y1); c.moveTo(dx - 6, y0 - 2); c.lineTo(dx + 6, y0 - 2); c.stroke();
+    dimLine(c, dx, y0, dx, y1, 7 * fs, 1.8, ink);
+    wB = keyTag(c, a.overReef, dx + 8, ty1, 'left', size, ink, cut, bandCol(S, reefLv(a.waterM)), w - 30);
+  }
+  // --- Surge at this depth: a double arrow swinging as far, and as hard, as the water moves.
+  const hl = (12 + 22 * clamp(a.surgeMs / 0.6, 0, 1)) * fs, sx = dx + 8 + hl + 6 + swing * hl * 0.35, sy2 = ty2 - 17 * fs;
+  dimLine(c, sx - hl, sy2, sx + hl, sy2, 8 * fs, 2.6, ink);
+  const sB = keyTag(c, surgeS, dx + 8, ty2, 'left', size, ink, cut, bandCol(S, surgeLv(a)), w - 30);
+
+  // --- Tap targets, most specific first.
+  if (visB) S.hot.push({ ...visB, k: 'snorkel.vis' });
+  if (chopB) S.hot.push({ ...chopB, k: 'snorkel.chop' });
+  if (wB) S.hot.push({ ...wB, k: 'snorkel.water' });
+  S.hot.push({ ...sB, k: 'snorkel.surge' });
+  S.hot.push({ x: dx + 8, y: sy2 - 10, w: 2 * hl + 14, h: 20, k: 'snorkel.surge' });
+  if (a.waterM !== null) S.hot.push({ x: dx - 10, y: sy + 4, w: 20, h: top(dx) - sy - 4, k: 'snorkel.water' });
+  if (vis !== null) S.hot.push({ x: ex, y: ey - 14, w: Math.max(24, wx - ex + 10), h: Math.max(28, top(wx) - ey + 14), k: 'snorkel.vis' });
+  S.hot.push({ x, y: sy - 10, w, h: 20, k: 'snorkel.chop' });
+  const rt = Math.min(...pts.map((p) => p[1])) - 34 * k;
+  S.hot.push({ x, y: rt, w, h: y + h - rt, k: 'snorkel.reef' });
+}
+
+/**
+ * DIVE and SPEAR: a depth column read like an instrument. On the left a solid depth scale with the metres in tags, the
+ * activity depth lit and carried across to the swimmer by a dashed line. DIVE: a diver with a tank, bubbles rising and
+ * swelling towards the surface. SPEAR: a breath-hold freediver, a speargun out in front, its line up to a float with
+ * the dive flag; a striped band on the ruler is the 3 to 5 m a shot needs. Ahead of the mask the ruler runs out to
+ * the visibility and the reef past it fades to murk. Under the swimmer a double arrow swings with the surge, as far
+ * and as hard as the water moves, and the swimmer and the reef's soft corals swing with it.
+ */
+function drawDive(c: Ctx2D, A: Box, tt0: number, a: WaterA, S: Style, kit: 'dive' | 'spear' = 'dive') {
+  const { x, y, w, h } = A, tt = S.reduced ? 3.2 : tt0, F = waterFrame(A, kit, a), { fs, sy, u, mp, span, bx, bw, hspan, hm } = F;
+  const ink = S.ink, cut = rgba(S.fd), vis = a.visM, K = kit;
+  const sg = clamp(a.surgeMs / 0.3, 0.3, 2), swing = S.reduced ? 0 : Math.sin((TAU * tt) / 8);
+  const hl = (14 + 26 * clamp(a.surgeMs / 0.6, 0, 1)) * fs;
+  const mx = F.mx + swing * hl * 0.22, ey = F.ey + (S.reduced ? 0 : Math.sin(tt * 0.9) * 1.5), k = u / 140;
+  const dY = (m: number) => sy + m * mp, ys = dY(span - 0.5);
+
+  // --- Water: a shade deeper every 5 m.
+  for (let m = 0; m < span; m += 5) { c.fillStyle = rgba(S.on, 0.03 + 0.025 * (m / 5)); c.fillRect(bx + bw, dY(m), x + w - bx - bw, Math.min(5, span - m) * mp); }
+  // --- The bottom: sand, and a reef rising ahead of the swimmer.
+  const reefTop = a.depthM + 2.8, pts: [number, number][] = [], m0 = 0.6;
+  for (let xx = bx + bw, i = 0; xx < x + w + 1; xx += 16 * fs, i++) {
+    const f = (xx - x) / w, rise = clamp((f - m0) / 0.13, 0, 1) * clamp((1.04 - f) / 0.08, 0.3, 1);
+    pts.push([Math.min(xx, x + w), Math.min(ys - 3, dY(lerp(span - 0.9, reefTop, rise)) + (hash1(i + 60) - 0.5) * 8 * fs)]);
+  }
+  if (pts[pts.length - 1][0] < x + w) pts.push([x + w, pts[pts.length - 1][1]]);
+  const sway = swing * 0.12 * sg;
+  // On the sand under the surge tag the corals stay low enough to keep clear of it.
+  const room = dY(span - 0.9) - (F.ey + 49 * fs + 9.5 * fs * 0.95) - 6, RB = { x: bx + bw, y, w: x + w - bx - bw, h };
+  const tallness: Record<string, number> = { brain: 0.75, branch: 1.15, fan: 1.1, sponge: 1, grass: 1 };
+  const corals = ([[0.05, 'grass', 12], [0.15, 'brain', 13], [0.27, 'branch', 26], [0.4, 'fan', 28], [0.5, 'brain', 11], [0.58, 'grass', 10],
+    [0.75, 'sponge', 28], [0.81, 'brain', 17], [0.88, 'fan', 36], [0.96, 'branch', 30]] as [number, 'brain' | 'branch' | 'fan' | 'sponge' | 'grass', number][])
+    .map(([f, kind, r]): [number, 'brain' | 'branch' | 'fan' | 'sponge' | 'grass', number] => [f, kind, RB.x + f * RB.w < x + w * (m0 + 0.06) ? Math.min(r, room / (tallness[kind] * k)) : r])
+    .filter((q) => q[2] >= 6);
+  const top = reefBed(c, RB, pts, ys, k, sway, S, corals);
+
+  // --- Fish about the reef; for SPEAR a snapper on the line ahead, 4 m off, the shot it is lining up.
+  const fx0 = x + w * 0.84 + (S.reduced ? 0 : Math.sin(tt * 0.2) * 14), fy0 = dY(reefTop) - (K === 'spear' ? 24 : 46) * k;
+  for (let i = 0; i < 6; i++) fish(c, fx0 + (hash1(i + 3) - 0.5) * 56 * k, fy0 + (hash1(i + 13) - 0.5) * 26 * k, 10 * k, -1, tt * 6 + i, S);
+  const ex = mx + 0.02 * u;
+  if (K === 'spear') fish(c, F.mx + 0.02 * u + 4 * hm + (S.reduced ? 0 : Math.sin(tt * 0.5) * 3), F.ey - 0.075 * u, 24 * k, 1, tt * 3.5, S);
+  else { const gx = x + w * 0.7; fish(c, gx, top(gx) - 44 * k, 26 * k, 1, tt * 3, S); }
+
+  // --- What you can see: murk past the visibility, the line where it ends.
+  let wx = x + w;
+  if (vis !== null) { wx = Math.min(x + w - 4, F.mx + 0.02 * u + vis * hm); murk(c, F.mx + 0.02 * u, x + w + 40, sy + 3, ys, vis, hm, S.fd); }
+  if (K === 'spear') {
+    // The shot: 3 to 5 m ahead, striped on the ruler.
+    const s0 = F.mx + 0.02 * u + 3 * hm, s1 = Math.min(x + w - 4, F.mx + 0.02 * u + 5 * hm);
+    c.save(); c.beginPath(); c.rect(s0, F.ey - 5, s1 - s0, 10); c.fillStyle = rgba(S.on, 0.18); c.fill(); c.clip();
+    c.strokeStyle = S.ink; c.lineWidth = 1; c.beginPath(); for (let xx = s0 - 12; xx < s1 + 12; xx += 4) { c.moveTo(xx, F.ey + 5); c.lineTo(xx + 10, F.ey - 5); } c.stroke(); c.restore();
+  }
+  sightRuler(c, F.mx + 0.02 * u, F.ey, x + w - 4, hm, hspan, vis, fs, S);
+
+  // --- The surface, the depth scale, the line across at the swimmer's depth.
+  const at = surface(c, bx + bw, x + w, sy, tt, a.windKt, S);
+  c.fillStyle = ink; c.fillRect(bx, sy - 4, bw, span * mp + 4);
+  c.strokeStyle = cut; c.lineWidth = 1.2; c.beginPath();
+  for (let m = 1; m < span; m++) { const yy = Math.round(dY(m)) + 0.5, l = m % 2 ? bw * 0.45 : bw; c.moveTo(bx + bw - l, yy); c.lineTo(bx + bw, yy); }
+  c.stroke();
+  const tagS = 8 * fs;
+  for (let m = 0; m <= span; m += 2) {
+    const here = m === a.depthM;
+    tag(c, String(m), bx - 3, dY(m), 'right', tagS, here ? rgba(CREAM) : ink, here ? rgba(DARK) : cut);
+  }
+  // Pointer and dashed line to the swimmer's depth.
+  poly(c, [[bx + bw, F.ey], [bx + bw + 7 * fs, F.ey - 5 * fs], [bx + bw + 7 * fs, F.ey + 5 * fs]], ink);
+  c.strokeStyle = ink; c.lineWidth = 1.5; c.setLineDash([4, 3]); c.beginPath(); c.moveTo(bx + bw + 8 * fs, F.ey); c.lineTo(mx - u - 2, F.ey); c.stroke(); c.setLineDash([]);
+  const atB = tag(c, a.at, bx + bw + 6 * fs, F.ey - 26 * fs, 'left', 9.5 * fs, ink, cut);
+
+  // --- Bubbles from the regulator, swelling as they rise (less pressure) and wobbling; a freediver breathes out only at the top.
+  if (K === 'dive') {
+    for (let i = 0; i < 12; i++) {
+      const q = S.reduced ? (i + 0.5) / 12 : (tt * 0.3 + i / 12 + hash1(i) * 0.04) % 1, by = ey + 0.03 * u - q * (ey + 0.03 * u - sy - 6);
+      const bxp = ex + 0.01 * u + Math.sin(q * 11 + i * 2.1) * (2 + q * 4) + q * 6, r = (1.4 + q * 3.6) * (0.75 + 0.5 * hash1(i + 5)) * fs;
+      c.strokeStyle = rgba(CREAM, 0.95 - q * 0.45); c.lineWidth = 1.4; c.beginPath(); c.arc(bxp, by, r, 0, TAU); c.stroke();
+    }
+  }
+  // --- The swimmer, and for SPEAR the float line up to the float and its flag.
+  const kick = S.reduced ? 0.4 : Math.sin(tt * (K === 'spear' ? 1.8 : 2.4));
+  const butt = swimmer(c, mx, ey, u, kick, K, S);
+  let floatB: Box | null = null;
+  if (K === 'spear') {
+    const fx = F.mx - 0.2 * u + swing * hl * 0.1, fy = at(fx), fl = 30 * fs, fh = 9 * fs;
+    c.strokeStyle = ink; c.lineWidth = 1.3; c.beginPath(); c.moveTo(butt[0], butt[1]); c.quadraticCurveTo(butt[0] - 0.12 * u, (butt[1] + fy) / 2, fx - fl * 0.3, fy + fh * 0.4); c.stroke();
+    // The float: a hard torpedo with a band; the pole and the diver-down flag, red with a white diagonal, flying.
+    poly(c, [[fx - fl / 2, fy - fh * 0.2], [fx - fl / 2 + fh * 0.4, fy - fh * 0.6], [fx + fl / 2 - fh * 0.4, fy - fh * 0.6], [fx + fl / 2, fy - fh * 0.2], [fx + fl / 2, fy + fh * 0.2], [fx + fl / 2 - fh * 0.4, fy + fh * 0.5], [fx - fl / 2 + fh * 0.4, fy + fh * 0.5], [fx - fl / 2, fy + fh * 0.2]], rgba(CREAM, 0.97), ink, 1.6);
+    c.fillStyle = ink; c.fillRect(fx - 2, fy - fh * 0.6, 4, fh * 1.1);
+    const ph = fy - fh * 0.6, pt = ph - 26 * fs, fw = 20 * fs, fhh = 13 * fs, fl2 = S.reduced ? 0 : Math.sin(tt * 5) * 1.6;
+    c.strokeStyle = ink; c.lineWidth = 2; c.beginPath(); c.moveTo(fx, ph); c.lineTo(fx, pt); c.stroke();
+    const flag: [number, number][] = [[fx + 1, pt], [fx + 1 + fw * 0.5, pt + fl2 * 0.5], [fx + 1 + fw, pt + fl2], [fx + 1 + fw, pt + fhh + fl2], [fx + 1 + fw * 0.5, pt + fhh + fl2 * 0.5], [fx + 1, pt + fhh]];
+    poly(c, flag, rgba(S.T.lv0));
+    c.save(); poly(c, flag); c.clip();
+    poly(c, [[fx + 1, pt - 1], [fx + 1 + fw * 0.26, pt - 1], [fx + 1 + fw + 1, pt + fhh + fl2 - fhh * 0.3], [fx + 1 + fw + 1, pt + fhh + fl2 + 1], [fx + 1 + fw * 0.74, pt + fhh + fl2 + 1], [fx, pt + fhh * 0.3]], rgba(CREAM, 0.97));
+    c.restore();
+    poly(c, flag, undefined, ink, 1.5);
+    floatB = { x: fx - fl / 2 - 4, y: pt - 4, w: Math.max(fl, fw + fl / 2) + 8, h: fy + fh - pt + 6 };
+  }
+
+  // --- Words over the surface: the visibility at its line, the chop for DIVE (SPEAR's float stands there instead).
+  const { visB, chopB } = topTags(c, a, wx, y + 10 * fs, sy + 16 * fs, bx + bw + 4, x + w, fs, S, floatB ? [floatB] : [], K === 'dive', at, top);
+
+  // --- Surge: a double arrow under the swimmer, swinging with the water; its band keyed in the tag.
+  const scx = F.mx - 0.45 * u, sax = scx + swing * hl * 0.4, say = F.ey + 30 * fs;
+  dimLine(c, sax - hl, say, sax + hl, say, 9 * fs, 2.8, ink);
+  const surgeS = `${a.surge} · ${a.surgeV}`;
+  const sm = tagSize(c, surgeS, 9.5 * fs, w * 0.66), sw = sm.w + sm.h;
+  const sB = keyTag(c, surgeS, clamp(scx - sw / 2, bx + bw + 8 * fs, x + w - sw), say + 19 * fs, 'left', 9.5 * fs, ink, cut, bandCol(S, surgeLv(a)), w * 0.66);
+
+  // --- Tap targets, most specific first.
+  const P = kit;
+  if (visB) S.hot.push({ ...visB, k: `${P}.vis` });
+  if (chopB) S.hot.push({ ...chopB, k: `${P}.chop` });
+  if (floatB) S.hot.push({ ...floatB, k: `${P}.float` });
+  S.hot.push({ ...atB, k: `${P}.depth` });
+  S.hot.push({ ...sB, k: `${P}.surge` });
+  S.hot.push({ x: sax - hl - 4, y: say - 10, w: 2 * hl + 8, h: 20, k: `${P}.surge` });
+  S.hot.push({ x: F.mx - u * (K === 'spear' ? 1.08 : 0.98), y: F.ey - 0.13 * u, w: u * (K === 'spear' ? 1.8 : 1.04), h: 0.3 * u, k: `${P}.diver` });
+  S.hot.push({ x: x, y: sy - 8, w: bx + bw + 6 - x, h: span * mp + 16, k: `${P}.depth` });
+  if (vis !== null) S.hot.push({ x: F.mx, y: F.ey - 14, w: Math.max(24, wx - F.mx + 10), h: 28, k: `${P}.vis` });
+  if (vis !== null) S.hot.push({ x: wx - 10, y: sy, w: 20, h: top(wx) - sy, k: `${P}.vis` });
+  if (chopB) S.hot.push({ x: bx + bw, y: sy - 8, w: x + w - bx - bw, h: 16, k: `${P}.chop` });
 }
 
 // --- the live-map card's radar -------------------------------------------------------------------------------------
