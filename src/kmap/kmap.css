@@ -776,7 +776,9 @@
   .km .k-app{grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"stage" "dock"}
   .km .k-top{position:absolute;left:0;right:0;top:0;background:none;border-bottom:0;pointer-events:none;grid-template-columns:auto auto minmax(0,1fr) auto;grid-template-areas:"back pill find ctrls" "tabs tabs tabs tabs";column-gap:8px;padding:max(10px, env(safe-area-inset-top, 0px)) 10px 0}
   .km .k-top>*{pointer-events:auto}
-  .km .k-ttl,.km .k-ctrls .k-lang,.km .k-ctrls .k-themeb{display:none}
+  .km .k-ctrls .k-lang,.km .k-ctrls .k-themeb{display:none}
+  /* The title gives way to the pill on screen but stays the page's heading for screen readers. */
+  .km .k-top .k-ttl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .km .k-back,.km .k-actpill,.km .k-findtop,.km .k-ctrls .k-ib{height:46px;border:0;background:color-mix(in srgb,var(--c-card) 90%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 0 0 1px var(--line),0 4px 14px rgba(6,12,22,.22);color:var(--ink)}
   .km .k-back{width:46px;min-width:46px;padding:0;justify-content:center;border-radius:50%}
   .km .k-back .k-bt{display:none}
