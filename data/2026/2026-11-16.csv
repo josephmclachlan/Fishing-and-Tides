@@ -9411,3 +9411,4 @@ t,site,source,model,var,value,issued
 2026-11-16T23:45Z,limon,gauge,,tideM,0.15965,
 2026-11-16T23:55Z,limon,gauge,,levelM,0.1515,
 2026-11-16T23:55Z,limon,gauge,,tideM,0.15423,
+2026-11-16T12:00Z,SARG_BOX,sargassum,,cellsSeen,0,
