@@ -19,6 +19,8 @@
  */
 import { markSvg, WORDMARK } from '../brand';
 import { bandCss, FIELD_STEPS, FIELD_TICKS, onFieldSteps, rampCss, type FieldKind } from '../layers/bands';
+import { guideLinkFor } from '../fishing/guide-link';
+import { KINDS, type KindId } from '../species/kinds';
 import { HEAT_STEPS } from '../layers/fishing';
 import type { Map as MlMap } from 'maplibre-gl';
 import type { Plan } from '../metrics/plan';
@@ -1307,7 +1309,11 @@ export function mountKineticMap(d: KmDeps) {
     const spots = fi.spots.length
       ? fi.spots.map((r) => `<li><button type="button" class="k-fspot${r.on ? ' k-on' : ''}" data-fly="${r.n}"><span class="k-fn">${r.n + 1}</span><span><b>${esc(r.place ? placeCase(r.place) : L2('Unnamed spot', 'Sitio sin nombre'))}</b><small>${esc(sentence(r.line))}</small>${tags(r.why)}</span>${ARROW}</button></li>`).join('')
       : `<li><span>${L2('No good water for this fish within 15 km of the crosshair. Move the map and look again.', 'No hay buena agua para este pez a 15 km de la mira. Mueva el mapa y mire otra vez.')}</span></li>`;
-    return `${cigSheetHTML(fi)}<section class="k-fsec" id="k-ftimes"><p class="k-mono k-fcap">${L2('Best times today', 'Mejores horas hoy')}${fi.bite !== null ? ` · ${L2('Bite now', 'Picada ahora')} ${fi.bite}/100` : ''}</p>${strip}<ul class="k-fwins">${wins}</ul></section>
+    // The fish's profile in the species guide (Joseph 2026-11-17: the link was missing): its page, or the guide's list of its kind.
+    // A kind of one species opens its page; a kind of several (snook) opens the guide listing them.
+    const ph = fi.id in KINDS ? guideLinkFor(fi.id as KindId) : '', nm = titleCase(fi.name);
+    const prof = ph ? `<a class="k-link k-fprof" href="${esc(ph)}"><span>${esc(ph.includes('?q=') ? L2(`${nm} in the species guide`, `${nm} en la guía de especies`) : L2(`${nm}: species profile`, `${nm}: ficha de la especie`))}</span>${ARROW}</a>` : '';
+    return `${prof}${cigSheetHTML(fi)}<section class="k-fsec" id="k-ftimes"><p class="k-mono k-fcap">${L2('Best times today', 'Mejores horas hoy')}${fi.bite !== null ? ` · ${L2('Bite now', 'Picada ahora')} ${fi.bite}/100` : ''}</p>${strip}<ul class="k-fwins">${wins}</ul></section>
       <section class="k-fsec" id="k-fspots"><p class="k-mono k-fcap">${L2('Best spots near the crosshair', 'Mejores sitios cerca de la mira')}</p><ul class="k-fspots">${spots}</ul></section>`;
   };
   /** + Catch: where and when, of the fish on the map, at the crosshair or the phone's own position (no track needed). */

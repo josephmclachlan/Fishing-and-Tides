@@ -25,7 +25,9 @@
 }
 /* The map's title block sits between FORECAST and the buttons: 50 to 100 px on a phone. The name sizes itself to
    that width (a container query), dropping the mark first, so it is never cut or pushed under the buttons. */
-.km .k-top .k-ttl { container-type: inline-size; }
+/* Only below 1100 px, where the title sits in a stretching column: on wider screens its column is sized to its content,
+   and a size container has no content width, so it shrank to nothing and "Map" spilled over the tabs (Joseph 2026-11-17). */
+@media (max-width: 1099.98px) { .km .k-top .k-ttl { container-type: inline-size; } }
 .km .k-top .k-ttl .k-brand .sc-brand { gap: 4px; }
 @media (max-width: 600px) {
   .km .k-top .k-ttl .k-brand { overflow: visible; margin-bottom: 3px; }
@@ -38,3 +40,6 @@
 @container (max-width: 92px) {
   .km .k-top .k-ttl .k-brand .sc-mark { display: none; }
 }
+
+/* Under 1366 px the place name after SurCast gives its room to the activity words. */
+@media (min-width: 1100px) and (max-width: 1365.98px) { .km .k-top .k-ttl .k-hide-s { display: none; } }

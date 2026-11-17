@@ -647,14 +647,16 @@
 .km body.km-on #cond-panel .ro.k-empty{display:none}
 /* Activity tabs: one row at every width. Type scales with the row (container units); icons drop out when narrow. */
 .km .k-tabs{flex-wrap:nowrap;justify-content:space-between;gap:0 .4em;container-type:inline-size}
-.km .k-tab{font-size:min(19px,100cqw/max(26,var(--nch,43)*.6))}
+/* The divisors are the row's width in ems per letter, gaps and the CORAL rule included (measured 2026-11-17: the old .6 and .82 ran the last tabs under the buttons on 1100-1600 px screens). */
+.km .k-tab{font-size:min(19px,100cqw/max(33,var(--nch,43)*.78))}
 .km .k-tab svg{display:none}
-@container (min-width:470px){.km .k-tab{font-size:min(max(19px,clamp(18px,1.48vw,25px)),100cqw/max(33,var(--nch,43)*.82));gap:5px}.km .k-tab svg{display:block}}
+@container (min-width:470px){.km .k-tab{font-size:min(max(19px,clamp(18px,1.48vw,25px)),100cqw/max(44,var(--nch,43)*1.14));gap:5px}.km .k-tab svg{display:block}}
 
 
 /* Labelled links under the spot card: identify what you see (fish, dive, spear, snorkel), kill, bleed, ice (fish, spear). */
 .km .k-links{display:grid;gap:8px;margin-top:8px}
 .km .k-link{appearance:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:0 14px;border:2px solid var(--ink);background:none;color:var(--ink);text-decoration:none;font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:2px;text-align:left}
+.km .k-fprof{margin:0 0 14px}
 .km .k-link svg{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:square}
 
 /* Superscript source numbers on tiles and layer rows, and the numbered list under them (src/sources.ts). */
