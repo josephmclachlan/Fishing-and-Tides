@@ -663,3 +663,11 @@ body.fc-open { overflow: hidden; }
 .fc[data-scheme='dark'] .fc-tile.has-lv { box-shadow: inset 0 5px 0 var(--c), inset 0 0 0 1px color-mix(in srgb, var(--a) 60%, transparent), 0 0 18px -6px var(--a), 0 6px 20px rgb(0 0 0 / 0.45); }
 /* The tide and the water and feels bars glow in their own drawing (PR #366): no second halo on top. */
 .fc[data-scheme='dark'] .fc-tile:is([data-kind='tide'], [data-kind='water'], [data-kind='feels']) .fc-t-viz { filter: none; }
+
+/* The card tip in the dark scheme: dark glass with the activity colour lit along its top edge, so it sits in the
+   glass page instead of a white block (Joseph 2026-11-17, glow questions). Light mode keeps the solid ink tip. */
+.fc[data-scheme='dark'] .fc-t-tip {
+  background: rgb(5 9 15 / 0.95); color: var(--fc-ink); border-top: 4px solid var(--fc-tbar);
+  box-shadow: inset 0 0 0 1px rgb(237 243 250 / 0.14), 0 -6px 18px -8px var(--fc-tbar);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
