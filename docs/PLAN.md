@@ -237,7 +237,8 @@ Phone map layout B (Joseph 2026-11-17 picked B after the mockups at https://clau
 - [x] 7.164 Fish controls (EAT/SPORT, where you fish, the fish picker, boat water, best spots) move off the map into the sheet (**O**)
 - [x] 7.165 Press and hold the activity pill for a half wheel of every activity: slide to one and let go (**O**)
 - [x] 7.166 Each activity starts with 3 or 4 layers; the app's other starting layers and every other layer are one tap away in the sheet, grouped (**S**)
-- [ ] 7.167 The logo's look on the phone map: black glass, glowing activity colours, the spectrum edge on the sheet, and the logo's forecast runs as the time bar (**O**)
+- [x] 7.167 The logo's look on the phone map: black glass, glowing activity colours, the spectrum edge on the sheet, and the logo's forecast runs as the time bar (**O**)
+- [x] 7.168 The forecast page's species guide button in the SurCast logo colours: bigger, square, a spectrum edge and a bold SPECIES label (icon only under 400 px) (**S**)
 
 ## Phase 8: History and logs (see docs/HISTORY.md)
 Save what the app sees so it can show the past, and keep private logs (catches, coral sites) in a database only approved people can read. One PR per step.
@@ -309,6 +310,22 @@ Visual first, plain full sentences, numbered superscript sources. Grouped PRs, w
 - [x] 13.5 SNORKEL, DIVE and SPEAR hero pictures redrawn the same way, with tap words
 - [x] 13.6 The condition card drawings (tiles) in the same look: square line ends and markers, H/L tags, a sharp pointer on the scales, a rating bar and number chip on rated cards, and tap a card to open its tip
 - [x] 13.7 Field notes, ciguatera and dispatch drawings in the same look: the rip drawing, square number badges everywhere, one shared well-drawn reef fish and hands (fishkit.ts) in the releasing, cooking, words, ciguatera and dispatch drawings, a crisp lionfish, barracuda and moray
+
+## Phase 14: Species guide Atlas (Joseph 2026-11-17 chose option E of the guide rethink, then the coast drawing F; mockups https://claude.ai/artifact/AtMGjPodjPAxQf9wDwkzJx)
+Keep the whole encyclopedia and every word of the research; answers and pictures first, long text under a fold, SurCast run colours with glow. One PR per task.
+- [x] 14.1 One page per species: the seven tabs become sections on one scrolling page with sticky jump chips (old tab links open at that section), the four answers (eat, hurts, rules, how common here) under the name, look-alikes as photo pairs, long texts as one sentence plus "More", first aid always whole, sources numbered once for the page with one list
+- [x] 14.2 Atlas home: search on top, a wide "Identify it" bar between search and the species (not a small button), the 12 groups as tiles, families as photo shelves, Edible, Dangerous and Common here as filters, "species with no record here" kept
+- [x] 14.3 Identify: first ask what kind of thing it is (fish, shark or ray, turtle, crab, coral, plant and so on), then shape, colours, markings and size as picture answers, with live photo matches after every answer and a side-by-side check with the look-alike at the end
+- [x] 14.4 Flip: swipe photo cards over any shelf, group or search result
+- [x] 14.5 SurCast look on the guide's other pages (ciguatera, dispatch, field notes links and the list cards)
+- [x] 14.6 Coast drawing (F): tap beach, mangrove, seagrass, reef, open water or offshore to browse what lives there
+
+## Phase 15: Forecast page option D (Joseph 2026-11-17: "D now, E's grid later"; mockups in project files `forecast-rethink/`)
+Keep the Kinetic Plus page's bold activity words and square cards; the drawings and the shared square tokens are the "square, bold and colour-coded" thread's.
+- [x] 15.1 One time for the whole page: a time dock pinned to the bottom (the shown hour and that day's sunrise and sunset, today's 24 hours as cells, the week as a strip to drag, Back to now), and the spot cards read at the page's hour (`src/forecast/dock.ts`)
+- [x] 15.2 Days 8 to 16 under the week: each day's best window as a row, marked less sure; nothing past day 16 (Joseph 2026-11-17: further out is no use)
+- [x] 15.4 Dark mode: neutral black glass (no tint) with the rating colour on square edges, words and drawings, and the full glow (Joseph picked B on 2026-11-17); light mode keeps the colour field
+- [ ] 15.3 E: the where-and-when grid (every beach by every day, tap a square for its hero and tiles), as a second view
 
 ## Phase 9: Final review (last, after every task above)
 - [x] 9.1 Full Opus 5.5 (high effort) review of the whole project: for every variable and verdict (surf, dive and snorkel, clarity, fishing shore and offshore, sailing and boat, rip, sargassum, weather), re-check that it uses every data feed now available (forecast, satellite, live observations, climatology) correctly and in depth, with the right units, times and fall-backs. Write the feature x input findings into `docs/SYNC.md` and fix the gaps (**O**, needs all of Phases 2 to 7). Done 2026-11-04: science and math audit, items A to R (tide metres vs cycle position, the wave–current factor, coral alerts 3 to 5, rip channels and break angle, wind per spot and blended gusts, wave trains on their own periods, tide size, one set of verdict limits, Secchi from Lee et al. 2015, IUCN 2022 coral status, lionfish ciguatera note, surge note), fixed in ten PRs; the clarity review that followed is tracked in 7.12

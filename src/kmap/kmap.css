@@ -647,14 +647,16 @@
 .km body.km-on #cond-panel .ro.k-empty{display:none}
 /* Activity tabs: one row at every width. Type scales with the row (container units); icons drop out when narrow. */
 .km .k-tabs{flex-wrap:nowrap;justify-content:space-between;gap:0 .4em;container-type:inline-size}
-.km .k-tab{font-size:min(19px,100cqw/max(26,var(--nch,43)*.6))}
+/* The divisors are the row's width in ems per letter, gaps and the CORAL rule included (measured 2026-11-17: the old .6 and .82 ran the last tabs under the buttons on 1100-1600 px screens). */
+.km .k-tab{font-size:min(19px,100cqw/max(33,var(--nch,43)*.78))}
 .km .k-tab svg{display:none}
-@container (min-width:470px){.km .k-tab{font-size:min(max(19px,clamp(18px,1.48vw,25px)),100cqw/max(33,var(--nch,43)*.82));gap:5px}.km .k-tab svg{display:block}}
+@container (min-width:470px){.km .k-tab{font-size:min(max(19px,clamp(18px,1.48vw,25px)),100cqw/max(44,var(--nch,43)*1.14));gap:5px}.km .k-tab svg{display:block}}
 
 
 /* Labelled links under the spot card: identify what you see (fish, dive, spear, snorkel), kill, bleed, ice (fish, spear). */
 .km .k-links{display:grid;gap:8px;margin-top:8px}
 .km .k-link{appearance:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:0 14px;border:2px solid var(--ink);background:none;color:var(--ink);text-decoration:none;font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:2px;text-align:left}
+.km .k-fprof{margin:0 0 14px}
 .km .k-link svg{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:square}
 
 /* Superscript source numbers on tiles and layer rows, and the numbered list under them (src/sources.ts). */
@@ -866,3 +868,68 @@
 .km .k-wh-hub b{font-family:var(--disp);font-weight:850;font-variation-settings:"wdth" 76;font-size:26px;text-transform:uppercase;line-height:1;color:var(--ink)}
 .km .k-wh-hub span{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
 .km .k-actpill{touch-action:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+
+/* ======================================================================================================
+   The logo's look on the phone map (Joseph 2026-11-17, layout B, PLAN 7.167). In the dark scheme the floating controls
+   are black glass over the map, the activity colours glow where something is picked, and the sheet carries the
+   word mark's spectrum as a thin lit edge. The light scheme keeps white glass for sunlight, with the same edge.
+   ====================================================================================================== */
+.km{--k-spectrum:linear-gradient(90deg,var(--t-snorkel),var(--t-paddle),var(--t-surf),var(--t-dive),var(--t-swim),var(--t-fish),var(--t-coral),var(--t-sail))}
+@media (max-width:1099.98px){
+  .km .k-sheet.k-phs::before{content:"";position:absolute;left:22px;right:22px;top:0;height:2px;border-radius:2px;background:var(--k-spectrum);z-index:2;pointer-events:none}
+  :root[data-theme="modern"][data-scheme="dark"] .k-back,
+  :root[data-theme="modern"][data-scheme="dark"] .k-actpill,
+  :root[data-theme="modern"][data-scheme="dark"] .k-findtop,
+  :root[data-theme="modern"][data-scheme="dark"] .k-ctrls .k-ib,
+  :root[data-theme="modern"][data-scheme="dark"] .k-top.k-acts .k-tab{background:rgba(3,6,11,.8);box-shadow:inset 0 0 0 1px rgba(237,243,250,.1),0 6px 20px rgba(0,0,0,.45)}
+  :root[data-theme="modern"][data-scheme="dark"] .k-actpill svg:first-child,
+  :root[data-theme="modern"][data-scheme="dark"] .k-top.k-acts .k-tab svg{filter:drop-shadow(0 0 4px currentColor)}
+  :root[data-theme="modern"][data-scheme="dark"] .k-actpill span{text-shadow:0 0 12px color-mix(in srgb,var(--pc) 55%,transparent)}
+  :root[data-theme="modern"][data-scheme="dark"] .k-top.k-acts .k-tab[aria-selected="true"]{box-shadow:0 0 0 1.5px var(--tc),0 0 16px -2px var(--tc),0 6px 20px rgba(0,0,0,.45)}
+  :root[data-theme="modern"][data-scheme="dark"] .k-sheet.k-phs{background:rgba(3,6,11,.94);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:0 -10px 34px rgba(0,0,0,.5),inset 0 0 0 1px rgba(237,243,250,.07)}
+  :root[data-theme="modern"][data-scheme="dark"] .k-sheet.k-phs::before{box-shadow:0 0 12px rgba(124,213,174,.45)}
+  /* A soft glow of the activity's colour at the sheet's top, as on the launch screen. */
+  :root[data-theme="modern"][data-scheme="dark"] .k-sheet.k-phs::after{content:"";position:absolute;inset:0 0 auto;height:120px;border-radius:18px 18px 0 0;pointer-events:none;background:radial-gradient(70% 100% at 30% 0%,color-mix(in srgb,var(--tbar,var(--ink)) 18%,transparent),transparent 70%)}
+  :root[data-theme="modern"][data-scheme="dark"] .k-sheet.k-phs>*{position:relative;z-index:1}
+  :root[data-theme="modern"][data-scheme="dark"] .k-sheet.k-phs .k-sh-grab::before{background:#2a3749}
+}
+
+/* Square and crisp (Joseph 2026-11-17: "square and crisp looks better than bubbly and rounded"; bring back Kinetic's
+   bold activity labels and each activity's colour when picked). The phone's floating controls and sheet keep the
+   Kinetic 2 px corners; the pill and the picked activity are solid blocks of the activity's colour in the bold type. */
+@media (max-width:1099.98px){
+  .km .k-back,.km .k-actpill,.km .k-findtop,.km .k-ctrls .k-ib,.km .k-top.k-acts .k-tab{border-radius:2px}
+  .km .k-actpill{background:var(--pc);color:var(--bg);font-weight:850;font-variation-settings:"wdth" 72;font-size:20px;letter-spacing:-.01em;padding:0 10px 0 12px}
+  .km .k-actpill svg:last-child{color:inherit;opacity:.75}
+  :root[data-theme="modern"][data-scheme="dark"] .k-actpill{background:var(--pc);box-shadow:0 6px 20px rgba(0,0,0,.45)}
+  :root[data-theme="modern"][data-scheme="dark"] .k-actpill svg:first-child{filter:none}
+  :root[data-theme="modern"][data-scheme="dark"] .k-actpill span{text-shadow:none}
+  .km .k-top.k-acts .k-tab{height:42px;padding:0 12px;font-weight:850;font-variation-settings:"wdth" 72;font-size:18px;letter-spacing:-.01em;color:var(--tc)}
+  .km .k-top.k-acts .k-tab[aria-selected="true"],
+  :root[data-theme="modern"][data-scheme="dark"] .k-top.k-acts .k-tab[aria-selected="true"]{background:var(--tc);color:var(--bg);box-shadow:0 6px 20px rgba(0,0,0,.35)}
+  .km .k-top.k-acts .k-tab[aria-selected="true"] svg{color:var(--bg);filter:none}
+  .km .k-sheet.k-phs{border-radius:0;border-top:2px solid var(--ink)}
+  .km .k-sheet.k-phs::before{left:0;right:0;top:-2px;height:2px;border-radius:0}
+  :root[data-theme="modern"][data-scheme="dark"] .k-sheet.k-phs::after{border-radius:0}
+  .km .k-sheet.k-phs .k-sh-grab::before{border-radius:0;height:4px}
+}
+
+/* The wheel, square and crisp (Joseph 2026-11-17): straight-edged slices with a hard colour rule on the outer edge, no glow;
+   the current activity and the one under the thumb fill with their own colour, labels in the bold activity type. */
+.km .k-wh-e{stroke-width:4;stroke-linecap:butt;filter:none}
+.km .k-wh-g{filter:none}
+.km .k-wh-sl text{font-family:var(--disp);font-weight:850;font-variation-settings:"wdth" 72;font-size:12px;letter-spacing:0}
+.km .k-wh-sl.k-sel .k-wh-f{fill:color-mix(in srgb,var(--wc) 30%,var(--c-card))}
+.km .k-wh-sl.k-hov .k-wh-f{fill:var(--wc)}
+.km .k-wh-sl.k-hov text{fill:var(--bg)}
+.km .k-wh-sl.k-hov .k-wh-g{stroke:var(--bg)}
+.km .k-wh-sl.k-hov .k-wh-e{stroke:var(--bg)}
+.km .k-wh-hub b{font-weight:850;font-variation-settings:"wdth" 72}
+/* Square-look pass (PLAN 13.x, with the square-look thread): no rounding at all on the phone's floating controls, each with
+   a crisp 1.5 px rule; dots and pins stay round. */
+@media (max-width:1099.98px){
+  .km .k-back,.km .k-actpill,.km .k-findtop,.km .k-ctrls .k-ib,.km .k-top.k-acts .k-tab,.km .k-sheet.k-phs{border-radius:0}
+  .km .k-back,.km .k-findtop,.km .k-ctrls .k-ib,.km .k-top.k-acts .k-tab:not([aria-selected="true"]),
+  :root[data-theme="modern"][data-scheme="dark"] .k-back,:root[data-theme="modern"][data-scheme="dark"] .k-findtop,
+  :root[data-theme="modern"][data-scheme="dark"] .k-ctrls .k-ib,:root[data-theme="modern"][data-scheme="dark"] .k-top.k-acts .k-tab:not([aria-selected="true"]){box-shadow:inset 0 0 0 1.5px var(--line),0 6px 20px rgba(0,0,0,.35)}
+}

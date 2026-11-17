@@ -1,5 +1,5 @@
 /**
- * The activity wheel (Joseph 2026-11-17, layout B, PLAN 7.165): press and hold the activity pill on a phone and a half
+ * The activity wheel (Joseph 2026-11-17, layout B, PLAN 7.165; square and crisp: straight-edged slices, no rounding): press and hold the activity pill on a phone and a half
  * wheel of every activity fans out under the top bar. Slide to one and let go to switch; let go anywhere else and the
  * wheel stays open for a tap. A tap outside it, or Escape, closes it. A short tap on the pill still drops the plain row.
  */
@@ -59,8 +59,8 @@ export function mountActWheel(opts: { onPick: (m: Mode) => void; current: () => 
         const [gx, gy] = P(rm - 14, m), [tx, ty] = P(r1 - 17, m);
         const cls = `k-wh-sl${it.id === cur ? ' k-sel' : ''}${hov === i ? ' k-hov' : ''}`;
         return `<g class="${cls}" data-id="${it.id}" style="transform-origin:${g!.cx}px ${g!.cy}px;${anim ? `transition-delay:${i * 22}ms` : ''}">
-          <path class="k-wh-f" d="M${x0} ${y0}A${r1} ${r1} 0 0 1 ${x1} ${y1}L${x2} ${y2}A${r0} ${r0} 0 0 0 ${x3} ${y3}Z"/>
-          <path class="k-wh-e" d="M${ex0} ${ey0}A${r1 - 2} ${r1 - 2} 0 0 1 ${ex1} ${ey1}"/>
+          <path class="k-wh-f" d="M${x0} ${y0}L${x1} ${y1}L${x2} ${y2}L${x3} ${y3}Z"/>
+          <path class="k-wh-e" d="M${ex0} ${ey0}L${ex1} ${ey1}"/>
           <svg class="k-wh-g" x="${gx - 10}" y="${gy - 10}" width="20" height="20" viewBox="0 0 24 24">${ICON[it.id]}</svg>
           <text x="${tx}" y="${ty + 3}">${esc(it.label)}</text></g>`;
       })

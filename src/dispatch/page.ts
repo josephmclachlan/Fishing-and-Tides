@@ -16,6 +16,7 @@ import { resetCitations, chartHtml, esc, gradeAt, GRADE_LEVEL, hoursLabel, metho
 import { GRADES } from './content';
 import '../forecast/forecast.css';
 import './dispatch.css';
+import '../guide/surcast-pages.css';
 
 const SCHEME_KEY = 'ft.fcScheme';
 type Store = Pick<Storage, 'getItem' | 'setItem'> | undefined;

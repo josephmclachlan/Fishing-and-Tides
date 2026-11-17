@@ -6,7 +6,8 @@
  * The research text writes sources in brackets ("... in some places (FishBase)", "Cortés (2019)", "(Ley 8436 art. 9)").
  * `citeText` (run by `npm run data:guide`) swaps each such bracket for a marker `[^k]`, where k is the source's place in
  * the species' `sources` (1-based); a bracket that names something not in the list is added to it, marked `x` so the
- * Sources tab does not list it twice. `citeTab` (render time) numbers a tab's markers in order and adds its list.
+ * Sources section does not list it twice. `citePage` (render time) numbers a species page's markers in order and adds its
+ * list; `citeTab` does the same for one tab of the other pages (sources.ts).
  */
 
 export interface Src {
@@ -98,9 +99,35 @@ export function citeTab(html: string, list: readonly Src[] | undefined, title: s
       `<sup class="gd-cite">${[...new Set(run.match(/\d+/g)!.map(Number))].sort((x, y) => x - y).join(',')}</sup>`,
     );
   if (!order.length || !list) return out;
-  const items = order
+  return `${out}<section class="gd-blk gd-fn"><h4 class="fc-mono">${escH(title)}</h4><ol>${srcItems(order, list)}</ol></section>`;
+}
+
+const srcItems = (order: readonly number[], list: readonly Src[]) =>
+  order
     .map((i) => list[i])
     .map((x) => `<li>${x.u ? `<a href="${escH(x.u)}" target="_blank" rel="noopener">${escH(x.t)}</a>` : escH(x.t)}</li>`)
     .join('');
-  return `${out}<section class="gd-blk gd-fn"><h4 class="fc-mono">${escH(title)}</h4><ol>${items}</ol></section>`;
+
+/**
+ * A whole species page with one numbering (Joseph 2026-11-17, the one-page species view): markers are numbered 1, 2, 3
+ * in the order they first appear anywhere on the page, and the list puts those first, in that order, then the
+ * species' other sources (not the ones added from a bracket, which are always cited) so nothing from the research is
+ * dropped. The list goes where the page has `<!--gd-fn-->`, or at the end.
+ */
+export function citePage(html: string, list: readonly Src[] | undefined, head: (n: number) => string): string {
+  const order: number[] = [];
+  const out = html
+    .replace(/\[\^(\d+)\]/g, (_, k: string) => {
+      const i = Number(k) - 1;
+      if (!list?.[i]) return '';
+      let n = order.indexOf(i);
+      if (n < 0) n = order.push(i) - 1;
+      return `<sup class="gd-cite">${n + 1}</sup>`;
+    })
+    .replace(/(?:<sup class="gd-cite">\d+<\/sup>){2,}/g, (run) =>
+      `<sup class="gd-cite">${[...new Set(run.match(/\d+/g)!.map(Number))].sort((x, y) => x - y).join(',')}</sup>`,
+    );
+  const all = list ? [...order, ...list.map((_, i) => i).filter((i) => !order.includes(i) && !list[i].x)] : [];
+  const fn = all.length && list ? `${head(all.length)}<ol id="gd-fn-list">${srcItems(all, list)}</ol>` : '';
+  return out.includes('<!--gd-fn-->') ? out.replace('<!--gd-fn-->', fn) : out + fn;
 }

@@ -4,11 +4,12 @@
  * fixture and compares the numbers in it with the model's). page.ts puts these into the DOM and draws the canvases.
  */
 import { brandLine } from '../brand';
+import { idButtonHtml } from '../id-button';
 import { dec, t, type Key } from '../i18n';
 import type { FcActivity, Level } from './model';
 import { NT_ACTS, notesHash } from '../notes/route';
 import type { ChartLayout } from './charts';
-import type { BestTimeView, DayView, HeroView, ReadoutView, SpotView, TileView } from './view';
+import type { BestTimeView, DayView, HeroView, OutlookRow, ReadoutView, SpotView, TileView } from './view';
 
 /** Escape text for HTML (spot names and translated words are plain text). */
 export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -33,7 +34,6 @@ const GUIDE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12c3
 const DISPATCH_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14L16 4l2 2L8 16zM8 16l-2 4M18 14c0 2-1.3 3.5-3 3.5S12 16 12 14c0-1.6 3-5 3-5s3 3.4 3 5z"/></svg>';
 const CORAL_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-9M12 15l-4-4V7M12 12l4-4V5M8 11l-3-2M16 8l3-1M6 21h12"/></svg>';
 const THEME_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 2a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg>';
-const ID_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l6 6"/></svg>';
 const NOTES_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3zM5 17a3 3 0 013-3h11M9 8h6"/></svg>';
 const AID_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg>';
 const GO_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
@@ -48,7 +48,7 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
       <p class="fc-brand fc-mono">${brandLine(esc(t('fc.region')), 'fc-hide-s')}</p>
       <div class="fc-ctrls">
         <button type="button" class="fc-ctl fc-back" id="fc-back" title="${esc(t('fc.backTitle'))}">${MAP_ICON}<span>${esc(t('fc.back'))}</span></button>
-        ${o.guide ? `<button type="button" class="fc-ctl fc-sq" id="fc-guide" aria-label="${esc(t('fc.guide'))}" title="${esc(t('fc.guide'))}">${GUIDE_ICON}</button>` : ''}
+        ${o.guide ? `<button type="button" class="fc-ctl fc-guideb" id="fc-guide" aria-label="${esc(t('fc.guide'))}" title="${esc(t('fc.guide'))}">${GUIDE_ICON}<span>${esc(t('fc.guideShort'))}</span></button>` : ''}
         ${o.coral ? `<button type="button" class="fc-ctl fc-sq" id="fc-coral" aria-label="${esc(t('fc.coral'))}" title="${esc(t('fc.coral'))}">${CORAL_ICON}</button>` : ''}
         <div class="fc-lang" role="group" aria-label="${esc(t('fc.langGroup'))}">
           <button type="button" data-lang="en" aria-pressed="${o.lang === 'en'}">EN</button><button type="button" data-lang="es" aria-pressed="${o.lang === 'es'}">ES</button>
@@ -84,13 +84,13 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
       </div>
     </section>
     <p class="fc-down-msg fc-in" id="fc-down" role="status" hidden>${esc(t('fc.unavailable'))}</p>
-    ${o.guide ? `<nav class="fc-links fc-in" aria-label="${esc(t('fc.links'))}">${([
-      ['button', '', 'fish dive spear snorkel', 'fc.idLink', 'fc.lk.id', ID_ICON],
+    ${o.guide ? `<div class="fc-in fc-idbig-w">${idButtonHtml({ cls: 'fc-idbig', attrs: 'id="fc-idlink" data-for="fish dive spear snorkel"', gid: 'fc-id-g', title: t('fc.idLink') })}</div>
+    <nav class="fc-links fc-in" aria-label="${esc(t('fc.links'))}">${([
       ['a', '#dispatch', 'fish spear', 'dp.link', 'fc.lk.handle', DISPATCH_ICON],
       // Each activity's own field notes (its tabs only, most specific first), and its First aid tab.
       ...NT_ACTS.map((a) => ['a', notesHash(undefined, a), a, 'nt.actLink', 'fc.lk.notes', NOTES_ICON]),
       ...NT_ACTS.map((a) => ['a', notesHash('aid', a), a, 'nt.aidLink', 'fc.lk.aid', AID_ICON]),
-    ] as [string, string, string, Key, Key, string][]).map(([tag, href, ous, full, short, icon]) => `<${tag} class="fc-link"${tag === 'a' ? ` href="${href}"` : ' type="button" id="fc-idlink"'} data-for="${ous}" title="${esc(t(full))}">${icon}<span>${esc(t(short))}</span></${tag}>`).join('')}</nav>` : ''}
+    ] as [string, string, string, Key, Key, string][]).map(([tag, href, ous, full, short, icon]) => `<${tag} class="fc-link" href="${href}" data-for="${ous}" title="${esc(t(full))}">${icon}<span>${esc(t(short))}</span></${tag}>`).join('')}</nav>` : ''}
     <section class="fc-sec fc-in" aria-labelledby="fc-cond-h">
       <div class="fc-sec-head"><h2 id="fc-cond-h">${esc(t('fc.conditions'))}</h2><p class="fc-mono" id="fc-cond-when"></p></div>
       <div class="fc-tiles" id="fc-tiles"></div>
@@ -107,6 +107,10 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
       <div class="fc-days" id="fc-days"></div>
       <div class="fc-daybase"></div>
     </section>
+    <section class="fc-sec fc-in" aria-labelledby="fc-ol-h" id="fc-ol-sec">
+      <div class="fc-sec-head"><h2 id="fc-ol-h">${esc(t('fc.ol.title'))}</h2><p class="fc-mono">${esc(t('fc.ol.cap'))}</p></div>
+      <div class="fc-ol" id="fc-outlook"></div>
+    </section>
     <section class="fc-sec fc-in" aria-labelledby="fc-hx-h">
       <div class="fc-sec-head"><h2 id="fc-hx-h">${esc(t('fc.hours'))}</h2><p class="fc-mono">${esc(t('fc.hoursCap'))}</p></div>
       <div class="fc-hx-read" id="fc-readout" aria-live="polite"></div>
@@ -117,6 +121,14 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
       <p class="fc-hx-hint fc-mono fc-hx-key"><span><i class="k-night"></i>${esc(t('fc.key.night'))}</span><span><i class="k-win"></i>${esc(t('fc.key.win'))}</span><span><i class="k-sun"></i>${esc(t('fc.key.sun'))}</span><span><i class="k-now"></i>${esc(t('fc.key.now'))}</span><span><i class="k-arr" aria-hidden="true">↗</i>${esc(t('fc.key.wind'))}</span><span><i class="k-tide"></i>${esc(t('fc.key.tide'))}</span><span class="k-rate"><b>${esc(t('fc.key.rate'))}</b>${[0, 1, 2, 3, 4].map((l) => `<span><i class="l${l}"></i>${esc(t(`fc.lvl.${l}` as Key))}</span>`).join('')}</span></p>
     </section>
     <footer class="fc-foot fc-in"><p class="fc-note">${esc(t('fc.note'))}</p></footer>
+  </div>
+  <div class="fc-dock" id="fc-dock" role="group" aria-label="${esc(t('fc.dock.aria'))}">
+    <div class="fc-dk-in">
+      <div class="fc-dk-h"><b class="fc-dk-when" id="fc-dk-when">--</b><span class="fc-mono fc-dk-sun" id="fc-dk-sun"></span><button type="button" class="fc-dk-now fc-mono" id="fc-dk-now" hidden>${esc(t('fc.backNow'))}</button></div>
+      <div class="fc-dk-cells" id="fc-dk-cells"></div>
+      <div class="fc-dk-marks fc-mono" id="fc-dk-marks" aria-hidden="true"></div>
+      <div class="fc-dk-strip" id="fc-dk-strip" role="slider" tabindex="0" aria-label="${esc(t('fc.dock.strip'))}" aria-valuemin="0" aria-valuemax="167" aria-valuenow="0"><canvas id="fc-dk-cv"></canvas></div>
+    </div>
   </div>`;
 }
 
@@ -140,7 +152,7 @@ export function bestHtml(b: BestTimeView): string {
 }
 
 /** The spot cards: name, the headline now, its word, the weather, and the next 12 hours as a level strip. */
-export function spotsHtml(list: readonly (SpotView & { id: string })[], cur: string): string {
+export function spotsHtml(list: readonly (SpotView & { id: string })[], cur: string, from: string = t('fc.now')): string {
   return list
     .map((s) => {
       const strip = s.strip.map((l) => `<i class="${lvCls(l)}" style="height:${l === null ? 12 : (l + 1) * 20}%"></i>`).join('');
@@ -153,7 +165,7 @@ export function spotsHtml(list: readonly (SpotView & { id: string })[], cur: str
         </span>
         <span class="fc-s-b">
           <span class="fc-swx fc-mono">${esc(wx) || '&nbsp;'}</span>
-          <span><span class="fc-strip" aria-hidden="true">${strip}</span><span class="fc-strip-l fc-mono" aria-hidden="true"><span>${esc(t('fc.now'))}</span><span>${esc(t('fc.plus12'))}</span></span></span>
+          <span><span class="fc-strip" aria-hidden="true">${strip}</span><span class="fc-strip-l fc-mono" aria-hidden="true"><span>${esc(from)}</span><span>${esc(t('fc.plus12'))}</span></span></span>
         </span>
       </button>`;
     })
@@ -187,6 +199,13 @@ export function daysHtml(list: readonly DayView[], bestLabel: string): string {
       </button>`;
     })
     .join('');
+}
+
+/** Days 8 to 16: one row per day, its best window, a bar as long as its headline, and the headline. */
+export function outlookHtml(list: readonly OutlookRow[], less: string): string {
+  const row = (d: OutlookRow) =>
+    `<button type="button" class="fc-olr ${lvCls(d.level)}" data-i="${d.i}" ${d.ms === null ? 'disabled' : `data-ms="${d.ms}"`}><span class="fc-old">${esc(d.dd)}</span><span class="fc-olw fc-mono">${esc(d.window)}</span><span class="fc-olb" aria-hidden="true"><i style="width:${(d.width * 100).toFixed(0)}%"></i></span><span class="fc-olv">${esc(d.value)}${d.unit ? `<small>${esc(d.unit)}</small>` : ''}</span></button>`;
+  return list.length ? `<p class="fc-olh fc-mono">${esc(less)}</p>${list.map(row).join('')}` : '';
 }
 
 /** The hour readout: when, the rating, then every row's value (activity rows over weather rows). */

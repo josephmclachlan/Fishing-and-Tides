@@ -1,0 +1,62 @@
+/* The big IDENTIFY button (src/id-button.ts, Joseph 2026-11-17): SurCast's eight runs as a square neon edge on black
+   glass, a soft glow in the same runs, a lens in the runs, the label in bold Kinetic type, and a slow light sweep.
+   Square corners. On the light scheme the glow and sweep go and the runs are the darker light-scheme tokens. */
+.sc-id {
+  --sc-runs: linear-gradient(90deg, var(--fc-t-snorkel), var(--fc-t-paddle) 14%, var(--fc-t-surf) 28%, var(--fc-t-dive) 43%,
+    var(--fc-t-swim) 57%, var(--fc-t-fish) 71%, var(--fc-t-coral) 85%, var(--fc-t-sail));
+  --sc-glass: linear-gradient(100deg, color-mix(in srgb, var(--fc-t-snorkel) 13%, var(--fc-card)), var(--fc-card) 42%, var(--fc-card) 70%, color-mix(in srgb, var(--fc-t-swim) 10%, var(--fc-card)));
+  position: relative; isolation: isolate; display: flex; align-items: center; gap: clamp(12px, 3vw, 20px);
+  width: 100%; min-height: 84px; margin: 0; padding: 14px clamp(14px, 3vw, 22px); border: 2px solid transparent; border-radius: 0;
+  background: none;
+  color: var(--fc-ink); font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: transform 0.18s ease;
+}
+/* The glow: the same runs, blurred, behind the panel. */
+.sc-id::before {
+  content: ''; position: absolute; inset: -2px; z-index: -2; background: var(--sc-runs); filter: blur(18px); opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.fc[data-scheme='dark'] .sc-id::before { opacity: 0.42; }
+/* The panel itself, over the glow: glass inside, the runs as its square edge. The light sweep is clipped to it. */
+.sc-id-sh {
+  position: absolute; inset: -2px; z-index: -1; overflow: hidden; pointer-events: none;
+  border: 2px solid transparent; background: var(--sc-glass) padding-box, var(--sc-runs) border-box;
+}
+.sc-id-sh::after {
+  content: ''; position: absolute; top: -20%; bottom: -20%; left: -40%; width: 30%; transform: skewX(-18deg) translateX(0);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--fc-ink) 10%, transparent), transparent);
+  animation: sc-id-sweep 6.5s ease-in-out 1.2s infinite;
+}
+.fc:not([data-scheme='dark']) .sc-id-sh::after { display: none; }
+@keyframes sc-id-sweep { 0% { transform: skewX(-18deg) translateX(0); } 38%, 100% { transform: skewX(-18deg) translateX(560%); } }
+
+.sc-id-lens { flex: none; width: clamp(44px, 10vw, 58px); height: clamp(44px, 10vw, 58px); overflow: visible; }
+.fc[data-scheme='dark'] .sc-id-lens { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--fc-t-surf) 60%, transparent)); }
+.sc-id-fish { transform-origin: 20px 20px; animation: sc-id-fish 4.8s ease-in-out infinite; }
+@keyframes sc-id-fish { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-2px); } }
+
+.sc-id-t { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1; }
+.sc-id-t b {
+  align-self: flex-start; font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 72; font-size: clamp(26px, 6.4vw, 40px);
+  line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase; text-wrap: balance;
+  color: var(--fc-t-surf); background: var(--sc-runs); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.fc[data-scheme='dark'] .sc-id-t b { filter: drop-shadow(0 0 12px color-mix(in srgb, var(--fc-t-dive) 45%, transparent)); }
+.sc-id-t small { font-size: 13.5px; line-height: 1.35; color: var(--fc-ink2); }
+
+/* The go arrow: a square in the last run's colour, nudging right when pointed at. */
+.sc-id-go {
+  flex: none; display: grid; place-items: center; width: 40px; height: 40px; margin-left: auto;
+  border: 2px solid var(--fc-t-sail); color: var(--fc-t-sail); transition: transform 0.18s ease, background 0.18s ease;
+}
+.fc[data-scheme='dark'] .sc-id-go { box-shadow: 0 0 12px color-mix(in srgb, var(--fc-t-sail) 45%, transparent); }
+.sc-id-go svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: square; stroke-linejoin: miter; }
+
+@media (hover: hover) {
+  .fc[data-scheme='dark'] .sc-id:hover::before { opacity: 0.7; }
+  .sc-id:hover .sc-id-go { transform: translateX(4px); background: color-mix(in srgb, var(--fc-t-sail) 16%, transparent); }
+}
+.sc-id:active { transform: scale(0.99); }
+.sc-id:focus-visible { outline: 3px solid var(--fc-ink); outline-offset: 3px; }
+@media (max-width: 420px) { .sc-id-t small { font-size: 12.5px; } .sc-id-go { width: 34px; height: 34px; } }
+@media (prefers-reduced-motion: reduce) { .sc-id-sh::after, .sc-id-fish { animation: none; } .sc-id, .sc-id-go { transition: none; } }
