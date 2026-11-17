@@ -232,8 +232,9 @@
 .gd-d-head .gd-badges:empty { display: none; }
 
 /* --- one page per species (Joseph 2026-11-17, option E): four answers, jump chips, sections that lead with a picture
-   or one sentence and keep the rest of the research under a fold. Square and crisp, Kinetic type; each section has its
-   SurCast run colour as an accent and the answers are colour fields that read at a glance (no glow, Joseph 04:50). */
+   or one sentence and keep the rest of the research under a fold. Joseph 2026-11-17: Kinetic's bold condensed type and
+   crisp square lines, fused with SurCast's black glass, glow and neon. Each section glows in its own run colour. */
+.gd { --gd-glass: color-mix(in srgb, var(--fc-card) 82%, transparent); }
 .gd .s-id { --sc: var(--fc-t-snorkel); }
 .gd .s-about { --sc: var(--fc-t-surf); }
 .gd .s-life { --sc: var(--fc-t-sail); }
@@ -244,23 +245,25 @@
 
 .gd-ans { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: 14px; }
 .gd .gd-an {
-  --ac: var(--fc-card); --ao: var(--fc-ink); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 5px; min-width: 0; padding: 9px 4px 10px;
-  background: var(--ac); color: var(--ao); border: 2px solid var(--fc-ink); text-decoration: none; text-align: center;
+  --ac: var(--fc-ink2); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 5px; min-width: 0; padding: 9px 4px 10px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ac) 16%, var(--fc-card)), var(--gd-glass)); color: var(--ac);
+  border: 1.5px solid var(--ac); box-shadow: 0 0 14px color-mix(in srgb, var(--ac) 28%, transparent), inset 0 0 18px color-mix(in srgb, var(--ac) 10%, transparent);
+  text-decoration: none; text-align: center;
 }
-.gd .gd-an.t-ok { --ac: var(--fc-t-sail); --ao: var(--fc-bg); }
-.gd .gd-an.t-warn { --ac: var(--fc-sev-caution); --ao: var(--fc-sev-on-caution); }
-.gd .gd-an.t-bad { --ac: var(--fc-sev-danger); --ao: var(--fc-sev-on); }
-.gd .gd-an.t-info { --ac: var(--fc-t-paddle); --ao: var(--fc-bg); }
-.gd .gd-an.t-none { border-color: var(--fc-line); }
-.gd-an .q { font-size: 9.5px; color: inherit; opacity: 0.8; }
-.gd-an b { font-family: var(--fc-disp); font-variation-settings: 'wdth' 74; font-size: clamp(13px, 3.8vw, 16px); line-height: 1; font-weight: 800; text-transform: uppercase; overflow-wrap: break-word; hyphens: auto; }
-.gd .gd-an-i { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: square; stroke-linejoin: miter; }
+.gd .gd-an.t-ok { --ac: var(--fc-t-sail); }
+.gd .gd-an.t-warn { --ac: var(--fc-sev-caution); }
+.gd .gd-an.t-bad { --ac: var(--fc-sev-danger); }
+.gd .gd-an.t-info { --ac: var(--fc-t-paddle); }
+.gd .gd-an.t-none { --ac: var(--fc-ink2); box-shadow: none; background: var(--gd-glass); }
+.gd-an .q { font-size: 9.5px; color: var(--fc-ink2); }
+.gd-an b { font-family: var(--fc-disp); font-variation-settings: 'wdth' 74; font-size: clamp(13px, 3.8vw, 16px); line-height: 1; font-weight: 800; text-transform: uppercase; overflow-wrap: break-word; hyphens: auto; text-shadow: 0 0 10px color-mix(in srgb, var(--ac) 60%, transparent); }
+.gd .gd-an.t-none b { color: var(--fc-ink); text-shadow: none; }
+.gd .gd-an-i { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: square; stroke-linejoin: miter; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--ac) 70%, transparent)); }
 .gd .gd-ens { width: 26px; height: 26px; overflow: visible; }
 .gd .gd-ens path { fill: none; stroke-width: 4.5; stroke-linecap: round; }
 .gd .gd-ens path.off { stroke: var(--fc-line); }
 .gd .gd-ens circle { fill: currentColor; }
-.gd .gd-an:not(.t-none) .gd-ens path.on { stroke: currentColor; }
-.gd .gd-an:not(.t-none) .gd-ens path.off { stroke: color-mix(in srgb, currentColor 25%, transparent); }
+.gd .gd-ens path.on { filter: drop-shadow(0 0 2px currentColor); }
 .gd .gd-ens .r-snorkel { stroke: var(--fc-t-snorkel); } .gd .gd-ens .r-paddle { stroke: var(--fc-t-paddle); } .gd .gd-ens .r-surf { stroke: var(--fc-t-surf); }
 .gd .gd-ens .r-dive { stroke: var(--fc-t-dive); } .gd .gd-ens .r-swim { stroke: var(--fc-t-swim); } .gd .gd-ens .r-fish { stroke: var(--fc-t-fish); }
 .gd .gd-ens .r-coral { stroke: var(--fc-lv1); } .gd .gd-ens .r-sail { stroke: var(--fc-t-sail); }
@@ -275,17 +278,22 @@
   font-family: var(--fc-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
 }
 .gd .gd-d-tab svg { width: 15px; height: 15px; fill: none; stroke: var(--sc); stroke-width: 2; stroke-linecap: square; stroke-linejoin: miter; }
-.gd .gd-d-tab[aria-current='true'] { color: var(--fc-bg); background: var(--sc); border-color: var(--sc); }
-.gd .gd-d-tab[aria-current='true'] svg { stroke: currentColor; }
+.gd .gd-d-tab[aria-current='true'] {
+  color: var(--sc); border-color: var(--sc); background: color-mix(in srgb, var(--sc) 12%, var(--fc-bg));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--sc) 40%, transparent); text-shadow: 0 0 8px color-mix(in srgb, var(--sc) 55%, transparent);
+}
 
 .gd-sec { scroll-margin-top: 120px; padding-top: 22px; }
-.gd-sec + .gd-sec { margin-top: 10px; border-top: 2px solid var(--fc-ink); }
+.gd-sec + .gd-sec { margin-top: 10px; border-top: 1px solid var(--fc-line); }
 .gd-sec-h {
-  display: flex; align-items: center; gap: 8px; margin: 0 0 4px; color: var(--fc-ink); font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 72;
-  font-size: 30px; line-height: 0.95; text-transform: uppercase; letter-spacing: -0.01em;
+  display: flex; align-items: center; gap: 10px; margin: 0 0 4px; color: var(--sc); font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 72;
+  font-size: 30px; line-height: 0.95; text-transform: uppercase; letter-spacing: -0.01em; text-shadow: 0 0 16px color-mix(in srgb, var(--sc) 55%, transparent);
 }
-.gd-sec-h svg { width: 30px; height: 30px; flex: none; padding: 4px; background: var(--sc); fill: none; stroke: var(--fc-bg); stroke-width: 2.2; stroke-linecap: square; stroke-linejoin: miter; }
-.gd-sec-h::after { content: ''; flex: 1; height: 4px; background: var(--sc); }
+.gd-sec-h svg {
+  width: 32px; height: 32px; flex: none; padding: 5px; border: 1.5px solid var(--sc); background: color-mix(in srgb, var(--sc) 14%, var(--fc-bg)); fill: none; stroke: var(--sc);
+  stroke-width: 2.2; stroke-linecap: square; stroke-linejoin: miter; box-shadow: 0 0 12px color-mix(in srgb, var(--sc) 45%, transparent); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--sc) 60%, transparent));
+}
+.gd-sec-h::after { content: ''; flex: 1; height: 2px; background: var(--sc); box-shadow: 0 0 8px var(--sc); }
 .gd-sec > .gd-facts-t { margin-top: 12px; }
 
 .gd-fold { margin: 2px 0 6px; }
@@ -539,21 +547,29 @@
 .gd-id-live { margin-top: 16px; }
 .gd-id-th { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 .gd-id-th::-webkit-scrollbar { display: none; }
-.gd .gd-id-tl { flex: 0 0 104px; display: block; text-decoration: none; background: var(--fc-card); border-top: 3px solid var(--gd-c); }
+.gd .gd-id-tl { flex: 0 0 104px; display: block; text-decoration: none; background: var(--gd-glass); border: 1px solid color-mix(in srgb, var(--gd-c) 60%, transparent); border-top: 2px solid var(--gd-c); box-shadow: 0 -2px 10px color-mix(in srgb, var(--gd-c) 30%, transparent); }
 .gd-id-tl img { display: block; width: 104px; height: 78px; object-fit: cover; background: var(--fc-block); }
 .gd-id-tl span { display: block; padding: 4px 6px 6px; font-size: 11.5px; line-height: 1.2; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (hover: hover) { .gd-id-tl:hover span { text-decoration: underline; } }
 
 /* The Atlas home (Joseph 2026-11-17): search first, then a wide Identify bar between search and the species, square. */
 .gd .gd-idbar {
-  display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 8px; padding: 12px 14px; text-align: left; cursor: pointer;
-  background: var(--fc-t-snorkel); color: var(--fc-bg); border: 2px solid var(--fc-ink); font: inherit;
+  display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 8px; padding: 12px 14px; text-align: left; cursor: pointer; font: inherit;
+  color: var(--fc-t-snorkel); border: 1.5px solid var(--fc-t-snorkel); background: linear-gradient(100deg, color-mix(in srgb, var(--fc-t-snorkel) 18%, var(--fc-card)), var(--fc-card) 70%);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--fc-t-snorkel) 35%, transparent), inset 0 0 22px color-mix(in srgb, var(--fc-t-snorkel) 10%, transparent);
 }
+.gd .gd-idbar small { color: var(--fc-ink); }
+.gd .gd-idbar > svg { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--fc-t-snorkel) 70%, transparent)); }
+.gd .gd-idbar b { text-shadow: 0 0 14px color-mix(in srgb, var(--fc-t-snorkel) 60%, transparent); }
 .gd .gd-idbar > svg { flex: none; width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: square; stroke-linejoin: miter; }
 .gd .gd-idbar > svg:last-child { width: 22px; height: 22px; margin-left: auto; }
 .gd-idbar span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .gd-idbar b { font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 72; font-size: 26px; line-height: 0.95; text-transform: uppercase; }
 .gd-idbar small { font-size: 13px; line-height: 1.3; }
 .gd[data-mode='identify'] .gd-idbar { display: none; }
-@media (hover: hover) { .gd .gd-idbar:hover { outline: 3px solid var(--fc-t-snorkel); outline-offset: 2px; } }
+@media (hover: hover) { .gd .gd-idbar:hover { box-shadow: 0 0 26px color-mix(in srgb, var(--fc-t-snorkel) 55%, transparent); } }
 
+/* On the light scheme the neon words darken toward ink so they still read in sunlight. */
+.gd:not([data-scheme='dark']) .gd-an:not(.t-none) { color: color-mix(in srgb, var(--ac) 62%, var(--fc-ink)); }
+.gd:not([data-scheme='dark']) .gd-sec-h, .gd:not([data-scheme='dark']) .gd-d-tab[aria-current='true'] { color: color-mix(in srgb, var(--sc) 78%, var(--fc-ink)); }
+.gd:not([data-scheme='dark']) .gd-idbar { color: color-mix(in srgb, var(--fc-t-snorkel) 80%, var(--fc-ink)); }
