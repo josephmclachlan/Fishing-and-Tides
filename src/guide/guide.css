@@ -573,3 +573,105 @@
 .gd:not([data-scheme='dark']) .gd-an:not(.t-none) { color: color-mix(in srgb, var(--ac) 62%, var(--fc-ink)); }
 .gd:not([data-scheme='dark']) .gd-sec-h, .gd:not([data-scheme='dark']) .gd-d-tab[aria-current='true'] { color: color-mix(in srgb, var(--sc) 78%, var(--fc-ink)); }
 .gd:not([data-scheme='dark']) .gd-idbar { color: color-mix(in srgb, var(--fc-t-snorkel) 80%, var(--fc-ink)); }
+
+/* --- The Atlas home, part 2 (PLAN 14.2, Joseph 2026-11-17): Kinetic type and crisp square lines on SurCast black
+   glass, each thing glowing in its own colour. */
+
+/* The lists: bold Kinetic labels, each in its own colour with a glow when picked. */
+.gd .gd-mode[data-mode='all'] { --mc: var(--fc-ink); }
+.gd .gd-mode[data-mode='edible'] { --mc: var(--fc-t-sail); }
+.gd .gd-mode[data-mode='danger'] { --mc: var(--fc-sev-danger); }
+.gd .gd-mode[data-mode='saved'] { --mc: var(--fc-sev-caution); }
+.gd .gd-mode[aria-selected='true'], .gd .gd-mode[data-mode='danger'][aria-selected='true'] { color: var(--mc); text-shadow: 0 0 16px color-mix(in srgb, var(--mc) 55%, transparent); }
+.gd .gd-mode[aria-selected='true'] svg { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--mc) 70%, transparent)); }
+.gd[data-mode='edible'] .gd-mode-bar { background: var(--fc-t-sail); box-shadow: 0 0 12px var(--fc-t-sail); }
+.gd[data-mode='danger'] .gd-mode-bar { background: var(--fc-sev-danger); box-shadow: 0 0 12px var(--fc-sev-danger); }
+.gd[data-mode='saved'] .gd-mode-bar { background: var(--fc-sev-caution); box-shadow: 0 0 12px var(--fc-sev-caution); }
+.gd[data-mode='all'] .gd-mode .gd-mode-bar { box-shadow: none; }
+.gd:not([data-scheme='dark']) .gd-mode[aria-selected='true']:not([data-mode='all']) { color: color-mix(in srgb, var(--mc) 78%, var(--fc-ink)); text-shadow: none; }
+
+/* The twelve groups as tiles: a grid, each drawn in its group's colour, glowing when picked. */
+.gd-groups-w { margin: 6px 0 0; }
+.gd-groups { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; overflow: visible; padding: 4px 0 8px; scroll-snap-type: none; }
+.gd .gd-g {
+  position: relative; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 3px; min-height: 76px; padding: 7px 7px 8px;
+  border: 1.5px solid color-mix(in srgb, var(--gd-c) 45%, transparent); background: var(--gd-glass); color: var(--fc-ink);
+  font-size: 9.5px; letter-spacing: 0.04em; line-height: 1.15; transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.gd .gd-g > svg { width: 40px; height: 26px; margin-bottom: auto; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--gd-c) 55%, transparent)); }
+.gd .gd-g span { white-space: normal; overflow-wrap: anywhere; }
+.gd .gd-g b { position: absolute; top: 6px; right: 7px; font-size: 10px; }
+.gd .gd-g.g-all { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; min-height: 40px; padding: 6px 10px; }
+.gd .gd-g.g-all > svg { margin: 0; width: 20px; height: 20px; }
+.gd .gd-g.g-all b { position: static; margin-left: auto; }
+.gd .gd-g[aria-pressed='true'] {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--gd-c) 22%, var(--fc-card)), var(--gd-glass)); color: var(--fc-ink); border-color: var(--gd-c);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--gd-c) 45%, transparent), inset 0 0 14px color-mix(in srgb, var(--gd-c) 14%, transparent);
+}
+.gd .gd-g[aria-pressed='true'] > svg { color: var(--gd-c); }
+.gd .gd-g[aria-pressed='true'] span { color: var(--gd-c); text-shadow: 0 0 10px color-mix(in srgb, var(--gd-c) 60%, transparent); }
+.gd:not([data-scheme='dark']) .gd-g[aria-pressed='true'] span { color: color-mix(in srgb, var(--gd-c) 70%, var(--fc-ink)); text-shadow: none; }
+@media (hover: hover) { .gd .gd-g:hover:not([aria-pressed='true']) { background: var(--fc-block); border-color: var(--gd-c); } }
+@media (min-width: 560px) { .gd-groups { grid-template-columns: repeat(6, minmax(0, 1fr)); } .gd .gd-g { font-size: 10.5px; } }
+@media (min-width: 960px) { .gd-groups { grid-template-columns: repeat(12, minmax(0, 1fr)); } .gd-groups-w { margin-left: 0; margin-right: 0; } }
+
+/* Common here, and shelves or list: square chips that glow when on. */
+.gd .gd-qf, .gd-lay button {
+  height: 46px; display: inline-flex; align-items: center; gap: 7px; padding: 0 12px; border: 2px solid var(--fc-ink); background: var(--fc-card); color: var(--fc-ink);
+  font: 600 11.5px var(--fc-mono); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+}
+.gd .gd-qf svg, .gd-lay svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: square; stroke-linejoin: miter; }
+.gd .gd-qf svg { opacity: 0.25; }
+.gd .gd-qf[aria-pressed='true'] {
+  --q: var(--fc-t-snorkel); color: var(--q); border-color: var(--q); background: linear-gradient(180deg, color-mix(in srgb, var(--q) 18%, var(--fc-card)), var(--fc-card));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--q) 40%, transparent); text-shadow: 0 0 10px color-mix(in srgb, var(--q) 50%, transparent);
+}
+.gd .gd-qf[aria-pressed='true'] svg { opacity: 1; }
+.gd:not([data-scheme='dark']) .gd-qf[aria-pressed='true'] { color: color-mix(in srgb, var(--fc-t-snorkel) 80%, var(--fc-ink)); text-shadow: none; }
+.gd-lay { display: flex; }
+.gd-lay button + button { border-left: 0; }
+.gd-lay button { padding: 0 11px; }
+.gd-lay button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.gd .gd-lay button[aria-pressed='true'] { background: var(--fc-ink); color: var(--fc-bg); }
+@media (min-width: 560px) { .gd-lay button span { position: static; width: auto; height: auto; clip-path: none; } }
+
+/* What the colours on the tiles mean. */
+.gd-tkey { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 4px 0 14px; font-size: 10px; color: var(--fc-ink2); }
+.gd-tkey span { display: inline-flex; align-items: center; gap: 5px; }
+
+/* Family shelves: a heading, then a row of photo tiles that scrolls sideways to the screen's edge. */
+.gd-shelf { margin: 0 calc(-1 * var(--fc-g-r)) 6px calc(-1 * var(--fc-g-l)); }
+.gd-lane {
+  display: flex; gap: 8px; overflow-x: auto; padding: 4px var(--fc-g-r) 12px var(--fc-g-l); scroll-snap-type: x proximity; scrollbar-width: none;
+  scroll-padding: 0 var(--fc-g-r) 0 var(--fc-g-l);
+}
+.gd-lane::-webkit-scrollbar { display: none; }
+.gd .gd-st {
+  flex: 0 0 148px; min-width: 0; scroll-snap-align: start; display: flex; flex-direction: column; text-decoration: none; color: var(--fc-ink);
+  background: var(--gd-glass); border: 1px solid color-mix(in srgb, var(--gd-c) 50%, transparent); border-top: 2px solid var(--gd-c);
+  box-shadow: 0 -2px 12px color-mix(in srgb, var(--gd-c) 25%, transparent);
+}
+.gd-st-im { position: relative; display: grid; place-items: center; aspect-ratio: 4 / 3; background: var(--fc-block); overflow: hidden; color: var(--gd-c); }
+.gd-st-im img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.gd-st-im > svg { width: 70%; height: auto; }
+.gd-st b { padding: 6px 8px 0; font-size: 13.5px; font-weight: 700; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gd-st small { padding: 3px 8px 8px; margin-top: auto; font-size: 9.5px; letter-spacing: 0.02em; color: var(--fc-ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gd-st .gd-star svg { width: 12px; height: 12px; margin-right: 3px; vertical-align: -1px; }
+@media (hover: hover) { .gd .gd-st:hover { border-color: var(--gd-c); box-shadow: 0 0 16px color-mix(in srgb, var(--gd-c) 45%, transparent); } .gd-st:hover b { text-decoration: underline; } }
+.gd .gd-st:focus-visible { outline: 3px solid var(--fc-ink); outline-offset: 2px; }
+@media (min-width: 760px) { .gd .gd-st { flex-basis: 172px; } }
+
+/* The colour marks: small square plates, lit in the mark's colour. */
+.gd-tgs { position: absolute; left: 5px; bottom: 5px; display: flex; gap: 3px; }
+.gd .gd-tg {
+  --t: var(--fc-ink); display: inline-grid; place-items: center; width: 20px; height: 20px; flex: none; color: var(--t);
+  background: color-mix(in srgb, var(--fc-bg) 72%, transparent); border: 1.5px solid var(--t); box-shadow: 0 0 8px color-mix(in srgb, var(--t) 65%, transparent);
+}
+.gd .gd-tg svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: square; stroke-linejoin: miter; filter: drop-shadow(0 0 3px var(--t)); }
+.gd .gd-tg.eat { --t: var(--fc-t-sail); }
+.gd .gd-tg.eat.care, .gd .gd-tg.dz.l1 { --t: var(--fc-sev-caution); }
+.gd .gd-tg.dz.l2, .gd .gd-tg.dz.l3, .gd .gd-tg.ban { --t: var(--fc-sev-danger); }
+.gd .gd-tg.ban { background: color-mix(in srgb, var(--fc-sev-danger) 28%, var(--fc-bg)); }
+.gd-tkey .gd-tg { width: 16px; height: 16px; }
+.gd-tkey .gd-tg svg { width: 10px; height: 10px; }
+.gd-lay button:disabled { opacity: 0.35; cursor: default; }
