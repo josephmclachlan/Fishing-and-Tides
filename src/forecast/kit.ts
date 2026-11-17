@@ -194,3 +194,36 @@ export function brackets(c: Ctx2D, x: number, y: number, w: number, h: number, a
 
 /** A part of a hero picture that explains itself when tapped: its box (hero px) and the key of its words. */
 export interface Hot { x: number; y: number; w: number; h: number; k: string }
+
+/** The box `tag` would draw for `s` (same shrink-to-fit rule), without drawing it: to lay words out before they go down. */
+export function tagSize(c: Ctx2D, s: string, size: number, maxW = Infinity): { w: number; h: number } {
+  c.font = `800 ${(size * 1.12).toFixed(1)}px ${MONO}`;
+  const full = c.measureText(s.toUpperCase()).width + Math.round(size * 0.6) * 2;
+  if (full > maxW) { size *= Math.max(0.7, maxW / full); c.font = `800 ${(size * 1.12).toFixed(1)}px ${MONO}`; }
+  return { w: Math.round(c.measureText(s.toUpperCase()).width + Math.round(size * 0.6) * 2), h: Math.round(size * 1.9) };
+}
+
+/**
+ * A tag with a colour key: a square of `key` (what the colour means: a level token) butted to its left and framed in
+ * `fill`, so the band reads before the words. Anchored like `tag`; returns the whole box.
+ */
+export function keyTag(c: Ctx2D, s: string, x: number, y: number, align: CanvasTextAlign, size: number, fill: string, ink: string, key: string, maxW = Infinity): { x: number; y: number; w: number; h: number } {
+  const m = tagSize(c, s, size, maxW), k = m.h, tw = m.w + k;
+  const x0 = Math.round(align === 'center' ? x - tw / 2 : align === 'right' ? x - tw : x);
+  const b = tag(c, s, x0 + k, y, 'left', size, fill, ink, false, maxW - k);
+  c.fillStyle = fill; c.fillRect(x0, b.y, k, b.h);
+  c.fillStyle = key; c.fillRect(x0 + 2, b.y + 2, k - 4, b.h - 4);
+  return { x: x0, y: b.y, w: b.w + k, h: b.h };
+}
+
+/** A dimension line from (x1, y1) to (x2, y2) with solid arrowheads `s` px long at both ends (or only at the second). */
+export function dimLine(c: Ctx2D, x1: number, y1: number, x2: number, y2: number, s: number, wd: number, col: string, both = true) {
+  const a = Math.atan2(y2 - y1, x2 - x1), ca = Math.cos(a), sa = Math.sin(a), hw = s * 0.42;
+  c.strokeStyle = col; c.fillStyle = col; c.lineWidth = wd; c.lineCap = 'butt';
+  c.beginPath(); c.moveTo(x1 + (both ? ca * s * 0.8 : 0), y1 + (both ? sa * s * 0.8 : 0)); c.lineTo(x2 - ca * s * 0.8, y2 - sa * s * 0.8); c.stroke();
+  const head = (hx: number, hy: number, dx: number, dy: number) => {
+    c.beginPath(); c.moveTo(hx, hy); c.lineTo(hx - dx * s - dy * hw, hy - dy * s + dx * hw); c.lineTo(hx - dx * s + dy * hw, hy - dy * s - dx * hw); c.closePath(); c.fill();
+  };
+  head(x2, y2, ca, sa);
+  if (both) head(x1, y1, -ca, -sa);
+}

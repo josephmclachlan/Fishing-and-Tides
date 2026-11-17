@@ -169,4 +169,35 @@ describe('hero engine draws every activity without a NaN', () => {
     drawPerson(n, 100, base, 2, 1, ST(true));
     expect(n.calls.length).toBe(0);
   });
+  it('SNORKEL, DIVE and SPEAR: every part of the picture you can tap has its plain words in English and Spanish, and a tap finds it', async () => {
+    const { en } = await import('../i18n/en');
+    const { es } = await import('../i18n/es');
+    for (const a of ['snorkel', 'dive', 'spear'] as const)
+      for (const [w, h] of [[390, 760], [1440, 680]]) {
+        const deps = full(), fx = recCtx(), ov = recCtx();
+        const cv = (c: ReturnType<typeof recCtx>) => ({ getContext: () => c, width: 0, height: 0 }) as unknown as HTMLCanvasElement;
+        const e = new HeroEngine(cv(fx), cv(ov), box(w, h), box(w < 600 ? 358 : 518, w < 600 ? 300 : 560));
+        e.setTokens(tokens(), true);
+        const { sp, plan, tl } = ctxFor(deps, a, 'PUNTA CAHUITA');
+        e.set(heroParams(readAt(deps, a, sp, at), { deps, ms: at, plan, tl }), 0);
+        e.resize();
+        e.overlay(5);
+        const keys = [...new Set(e.hots.map((q) => q.k))];
+        expect(keys.length).toBeGreaterThanOrEqual(4);
+        // SPEAR shares the DIVE drawing but its words are its own (breath-hold, the shot, the float).
+        if (a === 'spear') expect(keys).toContain('spear.float');
+        for (const k of keys) {
+          expect(k.startsWith(`${a}.`)).toBe(true);
+          for (const dict of [en, es] as unknown as Record<string, string>[]) {
+            expect(dict[`fc.pop.${k}.t`], `${k} title`).toBeTruthy();
+            expect(dict[`fc.pop.${k}.b`], `${k} words`).toBeTruthy();
+          }
+          const q = e.boxOf(k)!;
+          expect(Number.isFinite(q.x + q.y + q.w + q.h)).toBe(true);
+          expect(q.w > 0 && q.h > 0).toBe(true);
+          expect(e.hit(q.x + q.w / 2, q.y + q.h / 2)).not.toBeNull();
+        }
+        expect(e.hit(-50, -50)).toBeNull();
+      }
+  });
 });
