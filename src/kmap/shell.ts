@@ -1437,13 +1437,30 @@ export function mountKineticMap(d: KmDeps) {
         railR.querySelector('.k-sec-head')!.innerHTML = railHeadHTML();
       }
     }
-    if (S.sheet === 'spot' || S.sheet === 'coral') {
-      shBody.innerHTML = S.coral ? coralCardHTML() : spotCardHTML();
-      bindCard(shBody);
-      // Phone: the fish controls left the map (layout B); they lead the spot view, so the map stays clear.
-      if (!WIDE.matches && !S.coral) shBody.prepend(fishEl);
-      shTitle.textContent = S.coral ? L2('Reef', 'Arrecife') : L2('Spot', 'Sitio');
-    }
+    if (S.sheet === 'spot' || S.sheet === 'coral') fillSpot();
+    else if (!S.sheet && !WIDE.matches) prefillSoon();
+  };
+  const fillSpot = () => {
+    shBody.innerHTML = S.coral ? coralCardHTML() : spotCardHTML();
+    bindCard(shBody);
+    // Phone: the fish controls left the map (layout B); they lead the spot view, so the map stays clear.
+    if (!WIDE.matches && !S.coral) shBody.prepend(fishEl);
+    shTitle.textContent = S.coral ? L2('Reef', 'Arrecife') : L2('Spot', 'Sitio');
+    preStale = false;
+  };
+  /* Phone (Joseph 2026-11-17, PLAN 7.169): the spot view is drawn into the sheet while it rests at the peek, so a drag
+     up shows the forecast under your thumb instead of an empty sheet that fills on release. The scrubber re-renders the
+     spot every frame, so the hidden copy is refreshed when the phone is idle, and at once if a drag starts first. */
+  let preStale = true, preT = 0;
+  const prefill = () => {
+    preT = 0;
+    if (!S.sheet && !WIDE.matches && preStale) fillSpot();
+  };
+  const prefillSoon = () => {
+    preStale = true;
+    if (preT) return;
+    const ric = (window as Window & { requestIdleCallback?: (f: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+    preT = ric ? ric(prefill, { timeout: 400 }) : window.setTimeout(prefill, 150);
   };
   $('k-dkspot').addEventListener('click', () => openSheet(S.coral ? 'coral' : 'spot'));
   railR.addEventListener('click', (e) => {
@@ -1663,7 +1680,7 @@ export function mountKineticMap(d: KmDeps) {
     sheet.classList.remove('k-open', 'k-peek');
     scrim.classList.remove('k-on');
     delete root.dataset.sheet;
-    if (!WIDE.matches) setStop('peek');
+    if (!WIDE.matches) setStop('peek'), prefillSoon();
   }
 
   /* ---------- phone: one sliding sheet (Joseph 2026-11-17, layout B, PLAN 7.163) ----------
@@ -1702,6 +1719,7 @@ export function mountKineticMap(d: KmDeps) {
       h0 = sheet.getBoundingClientRect().height;
       moved = 0;
       (e.currentTarget as HTMLElement).setPointerCapture(id);
+      if (!S.sheet) prefill();
       sheet.classList.add('k-drag');
     };
     const move = (e: PointerEvent) => {
