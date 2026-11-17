@@ -269,6 +269,24 @@ export function mountKineticMap(d: KmDeps) {
   const $ = <T extends HTMLElement = HTMLElement>(id: string) => app.querySelector<T>(`#${id}`)!;
   const stage = $('k-stage'), railL = $('k-raill'), railR = $('k-railr'), sheet = $('k-sheet'), shBody = $('k-shbody'), shTitle = $('k-shtitle'), scrim = $('k-scrim');
 
+  /* The phone sheet's stops (layout B, PLAN 7.163; the drag and the views are wired with openSheet below). */
+  type Stop = 'peek' | 'half' | 'full';
+  const HALF_VIEWS = new Set(['spot', 'coral', 'layers', 'here', 'fish', 'spear']);
+  const dock = $('k-dock'), grab = sheet.querySelector<HTMLElement>('.k-sh-grab')!, shHead = sheet.querySelector<HTMLElement>('.k-sh-head')!;
+  let stop: Stop = 'peek';
+  const stopH = (s: Stop) => {
+    const vh = window.innerHeight, peekH = grab.offsetHeight + dock.offsetHeight;
+    const fullH = Math.max(peekH, vh - (app.querySelector('.k-top')!.getBoundingClientRect().bottom + 8));
+    return s === 'peek' ? peekH : s === 'full' ? fullH : Math.min(fullH, Math.max(peekH + 160, Math.round(vh * 0.56)));
+  };
+  function setStop(s: Stop) {
+    stop = s;
+    if (WIDE.matches) return;
+    sheet.style.height = `${stopH(s)}px`;
+    sheet.dataset.stop = s;
+    if (s === 'peek') shBody.scrollTop = 0;
+  }
+
   /* ---------- map padding: the stage is the map ---------- */
   const pad = () => {
     if (d.forecast.isOpen()) return;
@@ -1588,7 +1606,9 @@ export function mountKineticMap(d: KmDeps) {
       shBody.querySelector('[data-check]')?.addEventListener('click', () => openTool('check'));
     }
     sheet.classList.add('k-open');
-    scrim.classList.toggle('k-on', !WIDE.matches && !peek);
+    // The phone's sheet has no scrim: at half the map above it stays live (layout B).
+    scrim.classList.remove('k-on');
+    if (!WIDE.matches) setStop(stop === 'full' || !HALF_VIEWS.has(kind) || (part && !peek) ? 'full' : 'half');
     // Phone: the header (activity tabs, settings, back) stays above the scrim, so it still works with a sheet open.
     root.dataset.sheet = kind;
     shBody.scrollTop = 0;
@@ -1601,7 +1621,74 @@ export function mountKineticMap(d: KmDeps) {
     sheet.classList.remove('k-open', 'k-peek');
     scrim.classList.remove('k-on');
     delete root.dataset.sheet;
+    if (!WIDE.matches) setStop('peek');
   }
+
+  /* ---------- phone: one sliding sheet (Joseph 2026-11-17, layout B, PLAN 7.163) ----------
+     Under 1100 px the time dock is the head of the sheet, always on screen. The sheet rests at one of three stops: PEEK
+     (the dock only: spot, hour, the 30-day bar), HALF (the map still shows above it) and FULL (up to the top bar). Every
+     view the map has (spot, layers, under the crosshair, find, tools, settings, fish) opens inside it. Peek means no view
+     is open, so closing a view, a tap on the map or a drag of the map tucks the sheet back to the peek. */
+  const phoneMode = () => {
+    if (WIDE.matches) {
+      if (dock.parentElement !== app) railR.after(dock);
+      sheet.classList.remove('k-phs');
+      sheet.style.height = '';
+      delete sheet.dataset.stop;
+      return;
+    }
+    if (dock.parentElement !== sheet) grab.after(dock);
+    sheet.classList.add('k-phs');
+    setStop(S.sheet ? stop : 'peek');
+  };
+  // The stage ends above the peek, so the crosshair and the map's centre sit in the map you can see.
+  new ResizeObserver(() => {
+    root.style.setProperty('--k-peek', `${WIDE.matches ? 0 : stopH('peek')}px`);
+    if (!WIDE.matches) setStop(stop);
+  }).observe(dock);
+  window.addEventListener('resize', () => !WIDE.matches && setStop(stop));
+  {
+    // Drag the grip or the sheet's head to any height; let go and it settles on the nearest stop. A tap on the grip
+    // opens the spot to half, or tucks an open sheet back down.
+    let y0 = 0, h0 = 0, moved = 0, id = -1;
+    const down = (e: PointerEvent) => {
+      if (WIDE.matches || (e.target as HTMLElement).closest('button, a, input, select')) return;
+      id = e.pointerId;
+      y0 = e.clientY;
+      h0 = sheet.getBoundingClientRect().height;
+      moved = 0;
+      (e.currentTarget as HTMLElement).setPointerCapture(id);
+      sheet.classList.add('k-drag');
+    };
+    const move = (e: PointerEvent) => {
+      if (e.pointerId !== id) return;
+      const dy = e.clientY - y0;
+      moved = Math.max(moved, Math.abs(dy));
+      sheet.style.height = `${Math.max(stopH('peek'), Math.min(stopH('full'), h0 - dy))}px`;
+    };
+    const up = (e: PointerEvent) => {
+      if (e.pointerId !== id) return;
+      id = -1;
+      sheet.classList.remove('k-drag');
+      let to: Stop;
+      if (moved < 6) to = stop === 'peek' ? 'half' : 'peek';
+      else {
+        const h = sheet.getBoundingClientRect().height;
+        to = (['peek', 'half', 'full'] as Stop[]).reduce((b, x) => (Math.abs(stopH(x) - h) < Math.abs(stopH(b) - h) ? x : b), 'peek' as Stop);
+      }
+      if (to === 'peek') return closeSheet();
+      if (!S.sheet) openSheet(S.coral ? 'coral' : 'spot');
+      setStop(to);
+    };
+    for (const el of [grab, shHead, dock]) {
+      el.addEventListener('pointerdown', (e) => (el !== dock || (e.target as HTMLElement).closest('.k-dk-when, .k-dk-meta')) && down(e));
+      el.addEventListener('pointermove', move);
+      el.addEventListener('pointerup', up);
+      el.addEventListener('pointercancel', up);
+    }
+  }
+  map.on('dragstart', () => !WIDE.matches && S.sheet && closeSheet());
+  phoneMode();
   $('k-shclose').addEventListener('click', closeSheet);
   scrim.addEventListener('click', closeSheet);
   document.addEventListener('keydown', (e) => e.key === 'Escape' && S.sheet && closeSheet());
@@ -1914,7 +2001,7 @@ export function mountKineticMap(d: KmDeps) {
   });
   map.on('moveend', renderReadouts);
   map.on('move', () => WIDE.matches && renderReadouts());
-  WIDE.addEventListener('change', () => (closeSheet(), setTimeout(() => (renderAll(), pad()), 30)));
+  WIDE.addEventListener('change', () => (closeSheet(), phoneMode(), setTimeout(() => (renderAll(), pad()), 30)));
   d.onCoralSites(() => (coast.setCells(d.coralSites()), S.coral && renderSpot()));
   // Feeds arrive over the first seconds: redraw what reads them, at most every 2 s.
   let lastV = '';

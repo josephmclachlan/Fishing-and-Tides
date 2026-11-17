@@ -233,7 +233,7 @@ Built last, once Phases 2 to 6 are in. Each reuses the adapters, the layer regis
 - [x] 7.161 Phone map touch fix (Joseph 2026-11-17): a drag that starts in a gap of the FISH bar or beside the Tools/Find/Layers buttons pans the map again on every tab (their see-through boxes were catching touches), and the "What's here" card has an X to close it.
 Phone map layout B (Joseph 2026-11-17 picked B after the mockups at https://claude.ai/artifact/HHAZu8vSX6MHecJADsvs15: map first, one sliding sheet, hold the activity pill for a wheel). Phone only (under 1100 px); the desktop keeps its columns. One PR each, in order:
 - [x] 7.162 Floating top bar: back, an activity pill, Find and Settings float over the map, so the map runs to the top of the phone; tapping the pill drops the row of activities under the bar (language and light/dark stay in Settings) (**O**)
-- [ ] 7.163 One sliding sheet with peek, half and full stops: the spot card, time and readings in the peek and half; Layers, Find, Tools, Settings and What's here open inside the same sheet; dragging the map tucks it to the peek (**O**)
+- [x] 7.163 One sliding sheet with peek, half and full stops: the spot card, time and readings in the peek and half; Layers, Find, Tools, Settings and What's here open inside the same sheet; dragging the map tucks it to the peek (**O**)
 - [ ] 7.164 Fish controls (EAT/SPORT, where you fish, the fish picker, boat water, best spots) move off the map into the sheet (**O**)
 - [ ] 7.165 Press and hold the activity pill for a half wheel of every activity: slide to one and let go (**O**)
 - [ ] 7.166 Each activity starts with 3 or 4 layers; the app's other starting layers and every other layer are one tap away in the sheet, grouped (**S**)
