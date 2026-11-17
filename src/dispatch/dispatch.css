@@ -100,26 +100,12 @@
 .dp-art .dp-arrow, .dp-art .dp-hit { stroke: var(--fc-ac0); stroke-width: 3; }
 .dp-art .dp-club { stroke-width: 7; stroke: var(--fc-ink); }
 .dp-art .dp-clubhead { stroke-width: 11; stroke: var(--fc-ink); }
-.dp-art .dp-clubb { fill: color-mix(in srgb, var(--fc-sand) 70%, var(--fc-card)); stroke: var(--fc-ink); stroke-width: 1.8; }
 .dp-art .dp-water { stroke: var(--fc-sea-a); stroke-width: 3; }
-.dp-art .dp-blood { fill: color-mix(in srgb, var(--fc-ac0) 62%, transparent); stroke: none; }
+.dp-art .dp-blood { fill: color-mix(in srgb, var(--fc-ac0) 45%, transparent); stroke: none; }
 .dp-art .dp-cube { fill: var(--fc-card); stroke: var(--fc-sea-b); stroke-width: 2; }
 .dp-art .dp-clock { fill: currentColor; font-family: var(--fc-mono); font-size: 11px; font-weight: 700; }
-/* Numbered marks: a 17 by 17 ink square, the number centred, a hairline of the drawing's ground round it so it reads on the fish. */
-.dp-art .dp-bd rect { fill: var(--fc-ink); stroke: var(--fc-block); stroke-width: 1.5; }
+.dp-bd circle { fill: var(--fc-ink); stroke: none; }
 .dp-bd text { fill: var(--fc-bg); font-family: var(--fc-mono); font-size: 10px; font-weight: 700; }
-.dp-art .dp-ldr { stroke: var(--fc-ink2); stroke-width: 1; stroke-linecap: butt; }
-.dp-art .dp-tag { fill: var(--fc-ink); stroke: none; }
-.dp-art .dp-tag-t { fill: var(--fc-bg); }
-/* Blood drifts up out of the gills; the wire creeps along the spine. Off when the reader asks for less motion. */
-@keyframes dp-drift { from { transform: translate(0, 2px); opacity: 0.6; } to { transform: translate(2px, -3px); opacity: 1; } }
-@keyframes dp-creep { to { stroke-dashoffset: -12; } }
-.dp-art .dp-blood { transform-box: fill-box; animation: dp-drift 2.6s steps(6, end) infinite alternate; }
-.dp-art .dp-blood.b1 { animation-delay: -0.7s; }
-.dp-art .dp-blood.b2 { animation-delay: -1.4s; }
-.dp-art .dp-blood.b3 { animation-delay: -2.1s; }
-.dp-art .dp-wire { animation: dp-creep 1.2s linear infinite; }
-@media (prefers-reduced-motion: reduce) { .dp-art .dp-blood, .dp-art .dp-wire { animation: none; } }
 .dp-marks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .dp-marks li { display: flex; gap: 10px; align-items: baseline; }
 .dp-marks b { flex: 0 0 22px; height: 22px; display: inline-grid; place-items: center; background: var(--fc-ink); color: var(--fc-bg); font-family: var(--fc-mono); font-size: 12px; }

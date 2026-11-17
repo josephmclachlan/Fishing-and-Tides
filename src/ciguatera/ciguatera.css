@@ -48,7 +48,7 @@
 .cig-g .cig-chip { grid-row: span 2; align-self: start; display: grid; gap: 4px; justify-items: center; padding: 4px 8px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; text-align: center; background: var(--fc-block); color: var(--fc-ink); border: 1px solid var(--fc-line); }
 .cig-g b { font-weight: 700; }
 .cig-pips { display: flex; gap: 3px; }
-.cig-pips i { width: 8px; height: 8px; border: 1.5px solid var(--fc-ink2); }
+.cig-pips i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--fc-ink2); }
 .cig-pips i.on { background: var(--fc-ink); border-color: var(--fc-ink); }
 .cig-g.cig-bad .cig-chip { background: var(--fc-lv0); color: var(--fc-on0); border-color: var(--fc-ink); }
 .cig-g .cig-chip { justify-self: start; }
@@ -104,37 +104,26 @@
 /* Never-eat tiles on the risk tab. */
 .nt-anim li.nt-stop { background: color-mix(in srgb, var(--fc-lv0) 22%, var(--fc-card)); border: 2px solid var(--fc-lv0); }
 
-/* The ciguatera drawings (notes/art/cigua.ts): square and crisp, the shared reef fish (fishkit) tinted by how much toxin it holds. */
-.nt-art .cg-ns { vector-effect: non-scaling-stroke; stroke-miterlimit: 6; }
-.nt-art .fk-fish .cg-meat { fill: color-mix(in srgb, var(--fc-ink2) 35%, var(--fc-card)); }
-.nt-art .fk-fish .cg-t1 { fill: color-mix(in srgb, var(--fc-lv0) 26%, color-mix(in srgb, var(--fc-ink2) 26%, var(--fc-card))); }
-.nt-art .fk-fish .cg-t2 { fill: color-mix(in srgb, var(--fc-lv0) 62%, color-mix(in srgb, var(--fc-ink2) 26%, var(--fc-card))); }
-.nt-art .fk-fish.cg-open .fk-pec { display: none; }
-.nt-art .cg-tox { fill: var(--fc-lv0); stroke: var(--fc-ink); stroke-width: 1.5; }
-.nt-art .cg-gill { fill: none; stroke: var(--fc-ink); stroke-width: 1.5; }
-.nt-art .cg-glint { fill: var(--fc-card); stroke: none; }
-.nt-art .cg-gut { stroke: var(--fc-lv0); stroke-width: 5; }
-.nt-art .cg-seam { stroke: var(--fc-ink); stroke-width: 1; opacity: 0.6; }
-.nt-art .cg-cav { fill: color-mix(in srgb, var(--fc-lv0) 14%, var(--fc-card)); stroke: var(--fc-ink); stroke-dasharray: 4 3; stroke-width: 1.5; }
+/* The ciguatera drawings (notes/art/cigua.ts). */
+.nt-art .cg-meat { fill: color-mix(in srgb, var(--fc-ink2) 35%, var(--fc-card)); }
+.nt-art .cg-tox { fill: var(--fc-lv0); stroke: var(--fc-ink); }
+.nt-art .cg-gut { stroke: var(--fc-lv0); stroke-width: 7; }
+.nt-art .cg-cav { fill: color-mix(in srgb, var(--fc-lv0) 12%, var(--fc-card)); stroke-dasharray: 4 3; stroke-width: 1.5; }
+.nt-art .cg-fin { fill: color-mix(in srgb, var(--fc-ink2) 18%, var(--fc-block)); stroke-width: 1.5; }
 .nt-art .cg-eye { fill: var(--fc-ink); stroke: none; }
 .nt-art .cg-ln { stroke-width: 1.5; }
 .nt-art .cg-lead { stroke: var(--fc-ink2); stroke-width: 1.2; }
-.nt-art .cg-dot { fill: var(--fc-ink); stroke: none; }
 .nt-art .cg-pan { fill: color-mix(in srgb, var(--fc-sea-a) 22%, var(--fc-card)); stroke: none; }
 .nt-art .cg-arr { stroke-width: 2.4; }
 .nt-art .cg-rock { fill: color-mix(in srgb, var(--fc-sand) 70%, var(--fc-card)); stroke-width: 1.5; }
-.nt-art .cg-crk { stroke: var(--fc-ink); stroke-width: 1; opacity: 0.45; }
-.nt-art .cg-alg { fill: var(--fc-ac3); stroke: var(--fc-ink); stroke-width: 0.8; }
+.nt-art .cg-alg { fill: var(--fc-ac3); stroke: none; }
+.nt-art .cg-fish { fill: var(--fc-card); stroke-width: 1.6; }
 .nt-art .cg-skin { fill: color-mix(in srgb, var(--fc-sand) 80%, var(--fc-card)); stroke-width: 1.6; }
-.nt-art .cg-hair { fill: var(--fc-ink); stroke: var(--fc-ink); stroke-width: 1.6; }
-.fc[data-scheme='dark'] .nt-art .cg-hair { fill: var(--fc-bg); }
-.nt-art .cg-shirt { fill: color-mix(in srgb, var(--fc-sea-a) 55%, var(--fc-card)); stroke-width: 1.6; }
-.nt-art .cg-table { fill: color-mix(in srgb, var(--fc-sand) 45%, var(--fc-card)); stroke-width: 1.6; }
+.nt-art .cg-hair { fill: var(--fc-ink); stroke: none; }
+.nt-art .cg-shirt { fill: color-mix(in srgb, var(--fc-sea-b) 50%, var(--fc-card)); stroke-width: 1.6; }
 .nt-art .cg-plate { fill: var(--fc-card); stroke-width: 1.6; }
 .nt-art .cg-trk { fill: var(--fc-card); stroke: var(--fc-line); stroke-width: 1; }
-.nt-art .cg-tbar { fill: var(--fc-lv0); stroke: none; transform-box: fill-box; transform-origin: 0 50%; animation: cg-grow 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
-@keyframes cg-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@media (prefers-reduced-motion: reduce) { .nt-art .cg-tbar { animation: none; } }
+.nt-art .cg-tbar { fill: var(--fc-lv0); stroke: none; }
 .nt-art .cg-meal { stroke-width: 2; }
 .nt-art .cg-grid { stroke: var(--fc-line); stroke-width: 1; }
 .nt-art .cg-axis { stroke-width: 1.5; }

@@ -5,7 +5,6 @@
  * time in a tag. Small animations (steam, bubbles, the descending fish) stop under reduced motion.
  */
 import { badge, type Fig } from './fig';
-import { reefFish } from './fishkit';
 
 type Lang = 'en' | 'es';
 const w = (lang: Lang, en: string, es: string) => (lang === 'es' ? es : en);
@@ -17,23 +16,20 @@ const tag = (x: number, y: number, t: string) => {
 };
 const txt = (x: number, y: number, t: string, anchor = 'middle', cls = 'nt-lbl') => `<text class="${cls}" x="${x}" y="${y}" text-anchor="${anchor}">${t}</text>`;
 
-/** A rect with its corners cut at 45 degrees by `c`, as path data (the square look: no round corners). */
-const cham = (x: number, y: number, wd: number, h: number, c: number) =>
-  `M${x + c} ${y}H${x + wd - c}L${x + wd} ${y + c}V${y + h - c}L${x + wd - c} ${y + h}H${x + c}L${x} ${y + h - c}V${y + c}Z`;
-/** A pot from the side, (x0, y0) to (x1, y1), its bottom corners cut. */
-const pot = (x0: number, x1: number, y0: number, y1: number, c = 8) => `M${x0} ${y0}H${x1}V${y1 - c}L${x1 - c} ${y1}H${x0 + c}L${x0} ${y1 - c}Z`;
+/** A side-on fish with its nose to the left, centred on (x, y). */
+const fish = (x: number, y: number, s = 1, cls = 'nt-m-body') =>
+  `<g transform="translate(${x} ${y}) scale(${s})"><path class="${cls}" d="M-30 0C-20-13 0-14 14-6L30-14V14L14 6C0 14-20 13-30 0Z"/><circle class="nt-m-eye" cx="-20" cy="-2" r="2"/></g>`;
 
-/** Steam: three zigzag wisps that rise and fade. */
+/** Steam: three wavy lines that rise and fade. */
 const steam = (x: number, y: number) =>
-  [0, 14, 28].map((dx, i) => `<path class="nt-m-steam" style="animation-delay:${i * 0.5}s" d="M${x + dx} ${y}l-4-5 4-5-4-5 4-5-4-5 4-5"/>`).join('');
-/** Flames under a pan or pot: faceted tongues, each flickering on its own beat. */
+  [0, 14, 28].map((dx, i) => `<path class="nt-m-steam" style="animation-delay:${i * 0.5}s" d="M${x + dx} ${y} c-5-6 5-10 0-16s5-10 0-16"/>`).join('');
+/** Flames under a pan or pot. */
 const flames = (x0: number, x1: number, y: number) => {
   let s = '';
-  for (let x = x0, i = 0; x + 14 <= x1; x += 18, i++)
-    s += `<path class="nt-m-fire" style="animation-delay:${(i % 3) * -0.27}s" d="M${x} ${y}L${x + 1} ${y - 9}L${x + 5} ${y - 13}L${x + 7} ${y - 19}L${x + 10} ${y - 11}L${x + 13} ${y - 7}L${x + 14} ${y}Z"/>`;
+  for (let x = x0; x + 14 <= x1; x += 18) s += `<path class="nt-m-fire" d="M${x} ${y} c0-8 6-10 7-18 3 5 7 8 7 18z"/>`;
   return s;
 };
-const bubbles = (pts: [number, number][]) => pts.map(([x, y], i) => `<rect class="nt-m-bub" style="animation-delay:${i * 0.4}s" x="${x - 2.5}" y="${y - 2.5}" width="5" height="5"/>`).join('');
+const bubbles = (pts: [number, number][]) => pts.map(([x, y], i) => `<circle class="nt-m-bub" style="animation-delay:${i * 0.4}s" cx="${x}" cy="${y}" r="3"/>`).join('');
 
 /** The 63 °C check: a probe at an angle into the thickest part of a fillet, and a fork flaking it. 320 by 150. */
 export function tempArt(_lang: Lang): string {
@@ -60,7 +56,7 @@ export function cevicheArt(lang: Lang): string {
   const ice = [86, 118, 150, 182].map((x) => `<rect class="nt-m-ice" x="${x}" y="104" width="28" height="18"/>`).join('');
   return (
     ice +
-    '<path class="nt-m-glass" d="M70 54H214L208 78L192 96L172 104H112L92 96L76 78Z"/>' +
+    '<path class="nt-m-glass" d="M70 54H214C214 90 192 104 142 104S70 90 70 54Z"/>' +
     cubes.map(([x, y]) => `<rect class="nt-m-cube" x="${x}" y="${y}" width="13" height="13"/>`).join('') +
     '<path class="nt-rule" d="M76 62H208"/>' +
     '<circle class="nt-m-lime" cx="262" cy="78" r="24"/><path d="M262 54V102M238 78H286M245 61L279 95M279 61L245 95"/>' +
@@ -70,17 +66,16 @@ export function cevicheArt(lang: Lang): string {
 
 /** A frying or simmering pan from the side, with a handle. */
 const pan = (x0: number, x1: number, y: number) =>
-  `<path class="nt-m-pan" d="M${x0} ${y}H${x1}L${x1 - 6} ${y + 24}L${x1 - 14} ${y + 32}H${x0 + 14}L${x0 + 6} ${y + 24}Z"/>` +
-  `<path class="nt-m-handle" d="M${x1} ${y + 6}H${x1 + 34}"/><rect class="nt-m-grip" x="${x1 + 34}" y="${y + 2}" width="34" height="8"/>`;
+  `<path class="nt-m-pan" d="M${x0} ${y}H${x1}L${x1 - 4} ${y + 22}C${x1 - 6} ${y + 30} ${x1 - 14} ${y + 32} ${x1 - 22} ${y + 32}H${x0 + 22}C${x0 + 14} ${y + 32} ${x0 + 6} ${y + 30} ${x0 + 4} ${y + 22}Z"/><path class="nt-m-handle" d="M${x1} ${y + 6}H${x1 + 72}"/>`;
 
 /** Whole fish fried: three slashes to the bone, lying in shallow hot oil, 5 to 6 minutes a side. 320 by 130. */
 export function friedArt(lang: Lang): string {
   return (
     pan(50, 220, 78) +
-    // the shared reef fish, golden, three slashes to the bone on its side
-    reefFish(88, 64, 0.9, { body: 'nt-m-gold', extra: '<path class="nt-m-score" d="M37 8L33 31M49 7L45 32M61 9L57 31"/>' }) +
-    // the oil, over the lower third of the fish
-    '<path class="nt-m-oil" d="M53.5 92H216.5L214 102L206 110H64L56 102Z"/>' +
+    fish(135, 90, 1.35) +
+    '<path class="nt-m-cut" d="M114 76L120 102M132 74L138 104M150 76L154 102"/>' +
+    // the oil, over the lower half of the fish
+    '<path class="nt-m-oil" d="M52 94H218L214 100C212 108 206 110 198 110H72C64 110 58 108 56 100Z"/>' +
     '<path d="M50 78H220"/>' +
     bubbles([[80, 100], [178, 98], [200, 102], [100, 104]]).replace(/nt-m-bub/g, 'nt-m-bub nt-m-bubo') +
     flames(70, 200, 124) +
@@ -91,13 +86,12 @@ export function friedArt(lang: Lang): string {
 /** Rondón: a pot of coconut broth with roots and fish, steaming, a coconut beside it. 320 by 130. */
 export function rondonArt(lang: Lang): string {
   return (
-    steam(192, 40) +
-    `<path class="nt-m-pan" d="${pot(60, 220, 58, 116, 10)}"/>` +
+    steam(100, 52) +
+    '<path class="nt-m-pan" d="M60 58H220V104a12 12 0 0 1-12 12H72a12 12 0 0 1-12-12Z"/>' +
     '<path class="nt-m-handle" d="M60 70H44M220 70H236"/>' +
-    // a whole small fish floating in the broth, the roots (yuca, ñame) bobbing beside it
-    reefFish(122, 39, 0.36, { plain: true, body: 'nt-m-gold' }) +
-    '<path class="nt-m-milk" d="M60 58L76 53L96 57L116 52L136 57L156 52L176 57L196 52L220 58Z"/>' +
-    '<rect class="nt-m-root" x="82" y="46" width="22" height="14"/><rect class="nt-m-root" x="168" y="44" width="20" height="14"/>' +
+    '<path class="nt-m-milk" d="M60 58C84 46 104 64 128 52S178 48 220 58Z"/>' +
+    '<rect class="nt-m-root" x="82" y="46" width="22" height="14"/><rect class="nt-m-root" x="164" y="44" width="20" height="14"/>' +
+    '<path class="nt-m-body" d="M118 54C126 44 146 44 154 54C146 62 126 62 118 54Z"/>' +
     flames(76, 204, 130) +
     '<circle class="nt-m-coco" cx="270" cy="82" r="26"/><circle class="nt-m-milk" cx="270" cy="82" r="17"/>' +
     tag(10, 10, w(lang, 'FISH: 8 TO 10 MIN', 'PESCADO: 8 A 10 MIN'))
@@ -107,15 +101,14 @@ export function rondonArt(lang: Lang): string {
 /** Fish in coconut sauce: fillets half under a white coconut sauce in a pan on low heat, rice on a plate beside. 320 by 130. */
 export function sauceArt(lang: Lang): string {
   return (
-    steam(150, 66) +
+    steam(96, 44) +
     pan(50, 220, 74) +
-    '<path class="nt-m-fillet" d="M76 84L82 72L100 68L122 74L126 84Z"/><path class="nt-m-fillet" d="M138 82L144 70L162 66L184 72L188 82Z"/>' +
-    '<path class="nt-m-flk" d="M92 70L90 82M106 70L104 82M154 68L152 80M168 68L166 80"/>' +
-    '<path class="nt-m-sauce" d="M52 82L70 78L88 84L106 78L124 84L142 78L160 84L178 78L196 84L218 82L214 98L206 106H64L56 98Z"/>' +
+    '<path class="nt-m-body" d="M78 80C86 68 112 66 122 80C112 90 88 90 78 80Z"/><path class="nt-m-body" d="M140 78C148 66 174 64 184 78C174 88 150 88 140 78Z"/>' +
+    '<path class="nt-m-sauce" d="M52 82C76 76 92 88 118 82S164 76 192 82S212 80 218 82L214 96C212 104 206 106 198 106H72C64 106 58 104 56 96Z"/>' +
     '<path class="nt-m-herb" d="M88 86l4-3M140 88l4-3M170 84l4-3M110 92l4-3"/>' +
     flames(90, 190, 124) +
     // rice on a plate
-    '<path class="nt-m-rice" d="M266 110L272 100L282 94H294L304 100L310 110Z"/><path class="nt-m-plate" d="M254 110H318L310 118H262Z"/>' +
+    '<ellipse class="nt-m-plate" cx="282" cy="104" rx="32" ry="8"/><path class="nt-m-rice" d="M258 102C260 86 304 86 306 102Z"/>' +
     '<circle class="nt-m-coco" cx="282" cy="40" r="20"/><circle class="nt-m-milk" cx="282" cy="40" r="12"/>' +
     tag(10, 10, w(lang, '8 TO 10 MIN, LOW HEAT', '8 A 10 MIN, FUEGO BAJO')) + tag(10, 38, '63 °C')
   );
@@ -126,17 +119,17 @@ export function escabecheArt(lang: Lang): string {
   const arrow = (x: number) => `<path class="nt-flow" d="M${x} 84H${x + 14}"/><path class="nt-head" d="M${x + 9} 79L${x + 15} 84L${x + 9} 89"/>`;
   return (
     // 1 fry
-    pan(8, 66, 70).split('<path class="nt-m-handle"')[0] +
-    '<path class="nt-m-fillet" d="M18 70l14-4 2 6-14 4zM38 68l14-4 2 6-14 4z"/>' +
-    flames(14, 62, 118) + arrow(72) +
+    pan(8, 66, 74).split('<path class="nt-m-handle"')[0] +
+    '<path class="nt-m-body" d="M18 74l14-4 2 6-14 4zM38 72l14-4 2 6-14 4z"/>' +
+    flames(14, 62, 120) + arrow(72) +
     // 2 boil the vinegar with the vegetables
-    steam(104, 54) +
-    `<path class="nt-m-pan" d="${pot(96, 146, 58, 102, 7)}"/>` +
-    '<circle class="nt-m-ring" cx="112" cy="72" r="5"/><rect class="nt-m-root" x="124" y="72" width="8" height="8"/>' +
-    flames(98, 146, 118) + arrow(150) +
+    steam(104, 58) +
+    '<path class="nt-m-pan" d="M96 62H146V100a8 8 0 0 1-8 8H104a8 8 0 0 1-8-8Z"/>' +
+    '<circle class="nt-m-ring" cx="112" cy="76" r="5"/><circle class="nt-m-root" cx="128" cy="80" r="4"/>' +
+    flames(98, 146, 120) + arrow(150) +
     // 3 poured over the fish in a jar
     '<rect class="nt-m-glass" x="172" y="44" width="56" height="70"/><rect class="nt-m-lid" x="176" y="34" width="48" height="10"/>' +
-    '<path class="nt-m-slice" d="M180 100L220 94M182 82L222 76M180 64L218 58"/><circle class="nt-m-ring" cx="196" cy="106" r="5"/><rect class="nt-m-root" x="208" y="102" width="8" height="8"/>' +
+    '<path class="nt-m-body" d="M180 100L220 94M182 82L222 76M180 64L218 58"/><circle class="nt-m-ring" cx="196" cy="106" r="5"/><circle class="nt-m-root" cx="212" cy="106" r="4"/>' +
     arrow(232) +
     // 4 the fridge
     '<rect class="nt-m-glass" x="256" y="30" width="54" height="86"/><path d="M256 62H310M264 44v10M264 80v14"/>' +
@@ -148,14 +141,11 @@ export function escabecheArt(lang: Lang): string {
 /** Whole fish wrapped in banana leaf, tied with string, on hot coals. 320 by 130. */
 export function leafArt(lang: Lang): string {
   return (
-    flames(150, 296, 128) +
-    '<path class="nt-m-grate" d="M136 108H310M150 108V113M190 108V113M230 108V113M270 108V113"/>' +
-    // the whole fish, its head and tail out of a parcel of banana leaf tied twice with string
-    reefFish(150, 42, 1.3) +
-    `<path class="nt-m-leaf" d="${cham(176, 33, 82, 70, 10)}"/>` +
-    '<path class="nt-m-vein" d="M176 68H258M186 68L194 38M200 68L208 36M214 68L222 36M228 68L236 36M242 68L250 40M186 68L194 98M200 68L208 100M214 68L222 100M228 68L236 100M242 68L250 96"/>' +
-    '<path class="nt-m-fold" d="M176 50L258 46"/>' +
-    '<path class="nt-m-string" d="M198 33V103M238 33V103"/>' +
+    flames(70, 250, 122) +
+    '<path class="nt-ground" d="M40 98H280"/>' +
+    '<path class="nt-m-leaf" d="M64 72C100 50 220 50 256 72C220 94 100 94 64 72Z"/>' +
+    '<path d="M76 72H244"/><path class="nt-m-string" d="M126 56V88M194 56V88"/>' +
+    '<path d="M64 72L46 62M64 72L46 82M256 72L274 62M256 72L274 82"/>' +
     tag(10, 8, w(lang, '12 TO 15 MIN A SIDE', '12 A 15 MIN POR LADO')) + tag(10, 36, '63 °C')
   );
 }
@@ -164,13 +154,13 @@ export function leafArt(lang: Lang): string {
 export function lobsterArt(lang: Lang): string {
   /** A lobster tail from above, its fan at the right, starting at (x, y). */
   const tail = (x: number, y: number) =>
-    `<path class="nt-m-red" d="M${x} ${y - 9}H${x + 44}L${x + 52} ${y - 14}L${x + 60} ${y - 6}V${y + 6}L${x + 52} ${y + 14}L${x + 44} ${y + 9}H${x}L${x - 5} ${y}Z"/>` +
+    `<path class="nt-m-red" d="M${x} ${y - 9}H${x + 44}L${x + 52} ${y - 14}L${x + 60} ${y - 6}V${y + 6}L${x + 52} ${y + 14}L${x + 44} ${y + 9}H${x}Q${x - 6} ${y} ${x} ${y - 9}Z"/>` +
     [10, 20, 30, 40].map((d) => `<path d="M${x + d} ${y - 9}V${y + 9}"/>`).join('') + `<path d="M${x + 44} ${y - 9}V${y + 9}"/>`;
   return (
-    steam(150, 34) +
-    `<path class="nt-m-pan" d="${pot(70, 230, 40, 116, 10)}"/>` +
+    steam(96, 30) +
+    '<path class="nt-m-pan" d="M70 40H230V104a12 12 0 0 1-12 12H82a12 12 0 0 1-12-12Z"/>' +
     '<path class="nt-m-handle" d="M70 52H54M230 52H246"/>' +
-    `<path class="nt-m-water" d="${pot(72, 228, 54, 114, 9)}"/>` +
+    '<path class="nt-m-water" d="M72 54H228V104a10 10 0 0 1-10 10H82a10 10 0 0 1-10-10Z"/>' +
     tail(96, 74) + tail(134, 96) +
     bubbles([[90, 100], [206, 70], [214, 100], [120, 106]]) +
     flames(84, 214, 130) +
@@ -180,25 +170,13 @@ export function lobsterArt(lang: Lang): string {
 
 /** A live crab boiled 12 to 15 minutes from the return to a boil, shell bright orange-red. 320 by 130. */
 export function crabArt(lang: Lang): string {
-  // Drawn as its left half and mirrored about x = 180: a faceted shell, angled legs, an arm to a pincer claw.
-  const half = (m: boolean) => {
-    const t = m ? ' transform="translate(360 0) scale(-1 1)"' : '';
-    return (
-      `<g${t}>` +
-      '<path class="nt-m-leg" d="M142 80L118 88L108 104M146 90L126 102L120 120M154 96L142 110L142 126M140 70L116 70L102 80"/>' +
-      // the arm, then the claw: a palm with a fixed finger below and a hinged one above, a gap between them
-      '<path class="nt-m-red" d="M140 56L124 48L114 52L118 58L136 64Z"/>' +
-      '<g transform="translate(116 55) rotate(-172) scale(1.15)"><path class="nt-m-red" d="M0 -7L18 -10L26 -6V8L18 11L0 7Z"/>' +
-      '<path class="nt-m-red" d="M26 2L46 7L43 11L26 8ZM26 -6L48 -10L44 -3L27 -1Z"/></g>' +
-      '<rect class="nt-m-eye" x="167" y="24" width="6" height="6"/><path d="M170 30V40"/>' +
-      '</g>'
-    );
-  };
   return (
-    bubbles([[40, 110], [76, 100], [270, 112], [300, 98]]) +
-    half(false) + half(true) +
-    '<path class="nt-m-red" d="M126 70L136 50L158 40H202L224 50L234 70L222 92L200 100H160L138 92Z"/>' +
-    '<path class="nt-m-seam" d="M158 40L166 58H194L202 40M166 58L160 80M194 58L200 80M136 50L150 60M224 50L210 60"/>' +
+    bubbles([[40, 110], [76, 100], [262, 108], [292, 98]]) +
+    '<path d="M122 74L88 90M126 84L98 108M198 74L232 90M194 84L222 108M130 62L96 74M190 62L224 74"/>' +
+    '<path class="nt-m-red" d="M112 60L90 44C78 34 66 44 76 54M112 60L100 42C100 30 112 30 112 40"/>' +
+    '<path class="nt-m-red" d="M208 60L230 44C242 34 254 44 244 54M208 60L220 42C220 30 208 30 208 40"/>' +
+    '<ellipse class="nt-m-red" cx="160" cy="72" rx="52" ry="32"/>' +
+    '<circle class="nt-m-eye" cx="148" cy="46" r="3"/><circle class="nt-m-eye" cx="172" cy="46" r="3"/>' +
     tag(10, 8, w(lang, '12 TO 15 MIN', '12 A 15 MIN'))
   );
 }
@@ -206,72 +184,25 @@ export function crabArt(lang: Lang): string {
 /** Octopus: beaten, then simmered gently 45 to 60 minutes. 320 by 130. */
 export function octopusArt(lang: Lang): string {
   const arms = [
-    'M172 58L150 54L134 58L124 50L128 44', 'M176 66L150 78L132 76L118 88L122 98', 'M182 70L166 92L146 100L140 118L148 122', 'M192 72L188 96L176 110L180 124',
-    'M206 72L210 98L204 112L210 124', 'M214 72L222 96L236 108L234 122', 'M222 70L240 88L260 94L266 112L258 116', 'M228 64L252 72L270 68L284 80L280 90',
+    'M136 64C118 84 96 82 86 104', 'M146 70C136 92 118 100 116 122', 'M156 72C154 94 144 110 148 124', 'M166 72C170 94 180 108 176 124',
+    'M176 70C188 92 206 98 210 120', 'M186 64C206 82 228 80 238 102', 'M130 54C108 62 92 56 80 70', 'M192 54C214 62 230 56 242 70',
   ];
   return (
     arms.map((d) => `<path class="nt-m-arm" d="${d}"/>`).join('') +
-    '<path class="nt-m-body" d="M168 62L172 40L186 30H214L228 40L232 62L222 72H178Z"/>' +
-    '<path class="nt-m-seam" d="M180 40L190 34H210"/>' +
-    '<rect class="nt-m-eye" x="184" y="54" width="5" height="5"/><rect class="nt-m-eye" x="211" y="54" width="5" height="5"/>' +
+    '<path class="nt-m-body" d="M128 56C124 24 196 24 194 56C192 70 130 70 128 56Z"/>' +
+    '<circle class="nt-m-eye" cx="148" cy="52" r="3"/><circle class="nt-m-eye" cx="174" cy="52" r="3"/>' +
     tag(10, 8, w(lang, '45 TO 60 MIN, LOW HEAT', '45 A 60 MIN, FUEGO BAJO'))
   );
 }
 
-/**
- * Lionfish: the venom is in the spines, the flesh is safe. 320 by 130. Its own shape, not the reef fish: a long head
- * with a tentacle over the eye, thirteen tall separate dorsal spines joined low by membrane (red: venomous), a soft
- * dorsal and a round fan of a tail, huge fan pectorals of free rays, and venomous pelvic and anal spines. Zebra stripes.
- */
+/** Lionfish: the venom is in the spines, the flesh is safe. 320 by 130. */
 export function lionfishArt(lang: Lang): string {
-  /** The body's top and bottom edges, as straight runs (x, y). */
-  const TOP: [number, number][] = [[78, 78], [88, 64], [104, 56], [128, 52], [170, 54], [204, 62], [230, 72], [238, 76]];
-  const BOT: [number, number][] = [[78, 78], [88, 90], [106, 98], [128, 102], [170, 100], [204, 92], [230, 82], [238, 76]];
-  const yAt = (e: [number, number][], x: number) => {
-    for (let i = 1; i < e.length; i++) if (x <= e[i][0]) return +(e[i - 1][1] + ((x - e[i - 1][0]) / (e[i][0] - e[i - 1][0])) * (e[i][1] - e[i - 1][1])).toFixed(1);
-    return e[e.length - 1][1];
-  };
-  const body = 'M' + TOP.map(([x, y]) => `${x} ${y}`).join('L') + 'L' + BOT.slice(0, -1).reverse().map(([x, y]) => `${x} ${y}`).join('L') + 'Z';
-  // spiny dorsal: 13 spines, tallest in the middle, leaning back; the membrane joins them halfway up, deeply notched
-  const sx = Array.from({ length: 13 }, (_, i) => 104 + i * 7.5);
-  const tipY = (i: number) => 26 - 14 * Math.sin((Math.PI * (i + 1)) / 14);
-  let spines = '', memb = `M${sx[0]} ${yAt(TOP, sx[0])}`;
-  sx.forEach((x, i) => {
-    const y0 = yAt(TOP, x), x1 = x + 10, y1 = +tipY(i).toFixed(1);
-    spines += `M${x} ${y0}L${x1} ${y1}`;
-    memb += `L${+(x + 5).toFixed(1)} ${+(y0 + (y1 - y0) * 0.5).toFixed(1)}L${+(x + 6.8).toFixed(1)} ${+(y0 + (y1 - y0) * 0.26).toFixed(1)}`;
-  });
-  const xe = sx[12] + 6;
-  memb += `L${xe} ${yAt(TOP, xe)}Z`;
-  // zebra stripes, clipped to the body by its own edges
-  let stripes = '';
-  for (let x = 114; x <= 226; x += 12) stripes += `M${x} ${yAt(TOP, x) + 2}L${x - 3} ${yAt(BOT, x - 3) - 2}`;
-  // the pectoral fan: free rays from behind the gill, the membrane notched between their tips
-  const pb: [number, number] = [120, 80];
-  const tips: [number, number][] = [[200, 96], [196, 106], [186, 113], [172, 117], [156, 118], [142, 116], [130, 110]];
-  let fan = `M${pb[0]} ${pb[1]}`, rays = '';
-  tips.forEach(([x, y], i) => {
-    fan += `L${x} ${y}`;
-    if (i < tips.length - 1) fan += `L${+((x + tips[i + 1][0]) / 2 - (x - pb[0]) * 0.06).toFixed(1)} ${+((y + tips[i + 1][1]) / 2 - (y - pb[1]) * 0.2).toFixed(1)}`;
-    rays += `M${pb[0]} ${pb[1]}L${x} ${y}`;
-  });
+  const spines = ['M118 52L96 16', 'M132 48L122 10', 'M146 46L146 8', 'M160 46L170 10', 'M174 48L196 14', 'M188 52L220 22', 'M110 100L96 122', 'M124 104L116 126'];
   return (
-    // fins behind the body: soft dorsal, the tail fan, soft anal fin
-    '<path class="nt-m-memb" d="M206 63L214 46L230 54L234 74Z"/><path class="nt-m-ray" d="M210 62L216 48M218 66L224 51M226 70L230 54"/>' +
-    '<path class="nt-m-memb" d="M236 76L250 62L262 64L268 76L262 88L250 90Z"/><path class="nt-m-ray" d="M238 76L250 63M238 76L262 66M238 76H267M238 76L262 86M238 76L250 89"/>' +
-    '<path class="nt-m-memb" d="M206 92L230 82L228 100L214 104Z"/>' +
-    `<path class="nt-m-memb" d="${memb}"/>` +
-    `<path class="nt-m-lion" d="${body}"/>` +
-    `<path class="nt-m-stripe" d="${stripes}"/>` +
-    // head: gill cover, mouth, eye with its tentacle
-    '<path d="M120 54L112 78L120 99M78 78L92 80"/>' +
-    '<path class="nt-m-stripe" d="M106 57L103 97"/>' +
-    '<circle class="nt-m-eye" cx="97" cy="70" r="3.6"/><path class="nt-m-memb" d="M95 66L97 56L100 65Z"/>' +
-    `<path class="nt-m-memb" d="${fan}"/><path class="nt-m-ray" d="${rays}"/>` +
-    // venomous spines in red: the dorsal, the two pelvic and the three anal
-    `<path class="nt-m-spine" d="${spines}M110 98L100 122M118 100L112 124M204 92L208 112M210 90L216 110M216 87L224 106"/>` +
-    txt(244, 30, w(lang, 'VENOM', 'VENENO'), 'start', 'nt-lbl nt-m-bad') + '<path class="nt-m-lead" d="M240 26H204"/>' +
-    txt(314, 124, w(lang, 'FLESH: NO VENOM', 'CARNE: SIN VENENO'), 'end')
+    spines.map((d) => `<path class="nt-m-spine" d="${d}"/>`).join('') +
+    fish(160, 78, 2.1) +
+    '<path class="nt-m-cut" d="M126 62L132 96M146 58L152 98M166 58L172 98"/>' +
+    txt(244, 30, w(lang, 'VENOM', 'VENENO'), 'start', 'nt-lbl nt-m-bad') + txt(312, 112, w(lang, 'FLESH: NO VENOM', 'CARNE: SIN VENENO'), 'end')
   );
 }
 
@@ -347,7 +278,7 @@ export function thermoArt(lang: Lang): string {
     '<rect class="nt-m-midw" x="0" y="72" width="320" height="20"/>' +
     '<path class="nt-rule" d="M0 72H320M0 92H320"/>' +
     '<path class="nt-ground" d="M0 14H320"/>' +
-    reefFish(80, 75, 0.3, { plain: true, body: 'nt-m-sf' }) + reefFish(160, 74, 0.27, { plain: true, flip: true, body: 'nt-m-sf' }) + reefFish(222, 76, 0.3, { plain: true, body: 'nt-m-sf' }) +
+    fish(96, 82, 0.6) + fish(176, 80, 0.5) + fish(236, 84, 0.55) +
     txt(14, 40, w(lang, 'WARM', 'TIBIA'), 'start') + txt(14, 128, w(lang, 'COLD', 'FRÍA'), 'start') +
     txt(150, 40, w(lang, 'THERMOCLINE ↓', 'TERMOCLINA ↓'), 'middle') +
     '<path d="M300 22V138M294 130L300 138L306 130"/>' +
@@ -365,13 +296,13 @@ export function floatArt(_lang: Lang): string {
     '<path d="M70 44V6"/><rect class="nt-m-flag" x="70" y="6" width="34" height="22"/><path class="nt-m-flagd" d="M70 6L104 28"/>' +
     '<circle class="nt-m-buoy" cx="70" cy="44" r="12"/>' +
     '<path class="nt-m-line" d="M70 56C70 100 140 112 200 126"/>' +
-    reefFish(102, 92, 0.4, { plain: true, body: 'nt-m-sf' }) +
+    fish(122, 100, 0.55) +
     // the diver, head left: snorkel, mask, body, fins, and the speargun held out in front
     '<path class="nt-m-gun" d="M206 126H150M150 126l-6 -2v4z"/>' +
-    '<path class="nt-m-snork" d="M214 116V98H209"/>' +
+    '<path class="nt-m-snork" d="M214 116V100Q214 96 210 96"/>' +
     '<path class="nt-m-torso" d="M218 122L250 124"/><path class="nt-m-limb" d="M216 124L206 126M250 124L266 120M250 124L266 128"/>' +
     '<path class="nt-m-finp" d="M264 117L276 112L276 121ZM264 127L276 128L274 134Z"/>' +
-    '<circle class="nt-m-head" cx="212" cy="120" r="5"/><rect class="nt-m-mask" x="204" y="119" width="5" height="6"/>' +
+    '<circle class="nt-m-head" cx="212" cy="120" r="5"/><rect class="nt-m-mask" x="204" y="119" width="5" height="6" rx="1"/>' +
     badge(1, 120, 20) + badge(2, 56, 90) + badge(3, 236, 150)
   );
 }
@@ -386,7 +317,7 @@ export function descendArt(_lang: Lang): string {
     '<path class="nt-flow" d="M146 80V140"/><path class="nt-head" d="M138 134L146 144L154 134"/>' +
     // the clamp on the lip, the fish hanging from it, the weight under it
     '<path class="nt-m-clip" d="M170 126l-3 6M170 126l3 6"/>' +
-    reefFish(172, 123.3, 0.42, { plain: true, body: 'nt-m-sf' }) +
+    fish(193, 133, 0.7) +
     '<path class="nt-m-line" d="M170 134V142"/><path class="nt-m-wt" d="M163 142H177L175 156H165Z"/>' +
     '<path class="nt-rule" d="M16 162H304"/>' +
     badge(1, 128, 110)

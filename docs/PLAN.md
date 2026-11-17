@@ -309,7 +309,7 @@ Visual first, plain full sentences, numbered superscript sources. Grouped PRs, w
 - [x] 13.4 SURF, FISH and PADDLE hero pictures redrawn the same way, with tap words
 - [x] 13.5 SNORKEL, DIVE and SPEAR hero pictures redrawn the same way, with tap words
 - [x] 13.6 The condition card drawings (tiles) in the same look: square line ends and markers, H/L tags, a sharp pointer on the scales, a rating bar and number chip on rated cards, and tap a card to open its tip
-- [x] 13.7 Field notes, ciguatera and dispatch drawings in the same look: the rip drawing, square number badges everywhere, one shared well-drawn reef fish and hands (fishkit.ts) in the releasing, cooking, words, ciguatera and dispatch drawings, a crisp lionfish, barracuda and moray
+- [ ] 13.7 Field notes, ciguatera and dispatch drawings in the same look. Done: the rip drawing and square number badges everywhere
 
 ## Phase 14: Species guide Atlas (Joseph 2026-11-17 chose option E of the guide rethink, then the coast drawing F; mockups https://claude.ai/artifact/AtMGjPodjPAxQf9wDwkzJx)
 Keep the whole encyclopedia and every word of the research; answers and pictures first, long text under a fold, SurCast run colours with glow. One PR per task.

@@ -52,7 +52,6 @@ svg.nt-an .nt-an-cone { fill: color-mix(in srgb, var(--fc-ac1) 25%, var(--fc-car
 svg.nt-an .nt-an-tent { fill: color-mix(in srgb, var(--fc-ac1) 70%, var(--fc-ink)); }
 svg.nt-an .nt-an-eel { fill: color-mix(in srgb, var(--fc-ac3) 45%, var(--fc-card)); }
 svg.nt-an .nt-an-teeth { stroke-width: 1; }
-svg.nt-an .nt-an-fin { fill: color-mix(in srgb, var(--fc-ink2) 35%, var(--fc-card)); stroke-linejoin: miter; }
 svg.nt-an .nt-an-baracuda { fill: color-mix(in srgb, var(--fc-sea-a) 22%, var(--fc-card)); }
 svg.nt-an .nt-an-shark { fill: color-mix(in srgb, var(--fc-ink2) 40%, var(--fc-card)); }
 svg.nt-an .nt-an-crab, svg.nt-an .nt-an-claw { fill: color-mix(in srgb, var(--fc-ac0) 55%, var(--fc-card)); }
