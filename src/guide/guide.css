@@ -674,7 +674,7 @@
 .gd .gd-tg.ban { background: color-mix(in srgb, var(--fc-sev-danger) 28%, var(--fc-bg)); }
 .gd-tkey .gd-tg { width: 16px; height: 16px; }
 .gd-tkey .gd-tg svg { width: 10px; height: 10px; }
-.gd-lay button:disabled { opacity: 0.35; cursor: default; }
+
 
 /* --- Identify, part 2 (PLAN 14.3, Joseph 2026-11-17): picture answers on black glass, square, each lit when picked,
    and a side-by-side look-alike check under the best match. */
