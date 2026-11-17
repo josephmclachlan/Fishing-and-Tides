@@ -58,6 +58,8 @@ export const ICONS = {
   shelf: '<rect x="3" y="4" width="5" height="6"/><rect x="10" y="4" width="5" height="6"/><path d="M17 4h4v6h-4"/><rect x="3" y="14" width="5" height="6"/><rect x="10" y="14" width="5" height="6"/><path d="M17 14h4v6h-4"/>',
   list: '<rect x="3" y="4" width="5" height="4"/><rect x="3" y="10" width="5" height="4"/><rect x="3" y="16" width="5" height="4"/><path d="M11 6h10M11 12h10M11 18h10"/>',
   tick: '<path d="M4 12.5l5 5L20 6.5"/>',
+  /** Flip: a card on top of another. */
+  cards: '<rect x="7" y="3" width="13" height="16"/><path d="M4 7v14h12"/>',
   /** Not checked locally yet (the symbol set's question mark). */
   check: '<path d="M9.3 9.2a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2 1-1.2 1.9v.6"/><path d="M12 17.2v.6"/>',
 } as const;
@@ -192,8 +194,12 @@ export function recHtml(e: Entry, o: ListOpts): string {
   return `<li><a class="gd-rec" href="${esc(o.href(e.id))}" data-id="${esc(e.id)}"><i>${esc(e.sci)}</i>${name ? `<span>${esc(name)}</span>` : ''}${note ? `<small>${esc(note)}</small>` : ''}</a></li>`;
 }
 
-export function sectionHead(s: Section, n: number): string {
-  return `<header class="gd-sec-h${s.level ? ` lv${s.level}` : ''}"><h3${s.latin ? ' class="sci"' : ''}>${esc(s.title)}</h3><span class="gd-n fc-mono">${n}</span>${
+/** The button that opens a Flip deck (PLAN 14.4): on a shelf (`at` = its first species) or over the whole list. */
+export const flipButton = (at: string | null) =>
+  `<button type="button" class="gd-flipb" ${at ? `data-flip-at="${esc(at)}"` : 'data-flip-all'}>${icon(ICONS.cards)}<span>${esc(t(at ? 'gd.flip' : 'gd.flip.all'))}</span></button>`;
+
+export function sectionHead(s: Section, n: number, flipAt?: string): string {
+  return `<header class="gd-sec-h${s.level ? ` lv${s.level}` : ''}"><h3${s.latin ? ' class="sci"' : ''}>${esc(s.title)}</h3><span class="gd-n fc-mono">${n}</span>${flipAt && n > 1 ? flipButton(flipAt) : ''}${
     s.sub ? `<p class="gd-sec-sub${s.subLatin ? ' sci' : ''}">${esc(s.sub)}</p>` : ''
   }</header>`;
 }
@@ -233,6 +239,16 @@ export function rowsFor(secs: readonly Section[], banners: boolean): Row[] {
 /** Species shown: one that sits under several headings (the danger list groups by how it hurts) counts once. */
 export const itemCount = (rows: readonly Row[]) => new Set(rows.flatMap((r) => (r.k === 'card' || r.k === 'rec' ? [r.e.id] : []))).size;
 
+/** The first species after a heading, before the next heading (a shelf's Flip button names its shelf by it). */
+const firstCard = (rows: readonly Row[], i: number): string | undefined => {
+  for (let j = i + 1; j < rows.length; j++) {
+    const r = rows[j];
+    if (r.k === 'card') return r.e.id;
+    if (r.k === 'head' || r.k === 'banner') return undefined;
+  }
+  return undefined;
+};
+
 /** Markup for a run of rows: cards gathered in a grid, records in a list, each run opened and closed here. */
 export function rowsHtml(rows: readonly Row[], o: ListOpts): string {
   let html = '', open: 'cards' | 'recs' | null = null;
@@ -241,7 +257,7 @@ export function rowsHtml(rows: readonly Row[], o: ListOpts): string {
     else if (open === 'recs') html += '</ul>';
     open = null;
   };
-  for (const r of rows) {
+  rows.forEach((r, i) => {
     if (r.k === 'card') {
       if (open !== 'cards') close(), (html += o.shelf ? '<div class="gd-shelf"><div class="gd-lane">' : '<div class="gd-cards">'), (open = 'cards');
       html += o.shelf ? tileHtml(r.e, o) : cardHtml(r.e, o);
@@ -252,10 +268,10 @@ export function rowsHtml(rows: readonly Row[], o: ListOpts): string {
       close();
       html +=
         r.k === 'banner' ? groupBanner(r.g, r.n, o.lang)
-        : r.k === 'head' ? sectionHead(r.s, r.n)
+        : r.k === 'head' ? sectionHead(r.s, r.n, o.shelf ? firstCard(rows, i) : undefined)
         : `<p class="gd-rec-h fc-mono">${esc(t('gd.alsoRec'))} · ${r.n}</p>`;
     }
-  }
+  });
   close();
   return html;
 }

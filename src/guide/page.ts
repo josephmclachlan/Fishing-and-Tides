@@ -19,12 +19,13 @@ import { t } from '../i18n';
 import { landing } from '../forecast/model';
 import { loadIndex, loadSpecies } from './data';
 import { noAnswers, stepsFor, type IdAnswers, type IdStep } from './identify';
+import { flipDeckHtml } from './flip';
 import { idCheckHtml, idHtml } from './identify-view';
 import {
   activeCount, DEFAULT_FILTER, isHere, groupCounts, GROUP_BYS, haystack, inView, matches, nameOf, modeCounts, sections, SORTS,
   type GdFilter, type GroupBy, type SortKey,
 } from './filter';
-import { commonHtml, detailHtml, esc, expandHtml, layHtml, tileKeyHtml, filtersHtml, groupsHtml, ICONS, introHtml, itemCount, modesHtml, pickersHtml, rowsFor, rowsHtml, type Row } from './render';
+import { commonHtml, detailHtml, esc, expandHtml, flipButton, layHtml, tileKeyHtml, filtersHtml, groupsHtml, ICONS, introHtml, itemCount, modesHtml, pickersHtml, rowsFor, rowsHtml, type Row } from './render';
 import { guideHash, isGdTab, parseGuideRoute, type GdMode, type GdTab } from './route';
 import { GROUPS, type Entry, type Group, type GuideIndex, type Lang, type Species } from './types';
 import '../forecast/forecast.css';
@@ -109,11 +110,16 @@ export function mountGuidePage(deps: GuidePageDeps) {
       </div>
       <div class="gd-filters fc-in" id="gd-filters" hidden></div>
       <div class="fc-in" id="gd-intro"></div>
-      <p class="gd-count fc-in fc-mono" id="gd-count" aria-live="polite"></p>
+      <div class="gd-countrow fc-in"><p class="gd-count fc-mono" id="gd-count" aria-live="polite"></p><span id="gd-flipall-w" hidden>${flipButton(null)}</span></div>
       <div class="fc-in" id="gd-tkey"></div>
       <div class="gd-list fc-in" id="gd-list"></div>
       <div class="fc-in gd-more-w"><button type="button" class="fc-ctl gd-more" id="gd-more" hidden>${t('gd.more')}</button></div>
       <footer class="fc-foot fc-in"><p class="fc-note">${t('gd.note')}</p></footer>
+    </div>
+    <div class="gd-flip" id="gd-flip" role="dialog" aria-modal="true" aria-labelledby="gd-flip-t" hidden>
+      <div class="gd-flip-top"><button type="button" class="fc-ctl gd-flip-x" data-flip-close>${svg(ICONS.close)}<span>${esc(t('gd.flip.close'))}</span></button><b id="gd-flip-t"></b><span class="fc-mono" id="gd-flip-n"></span></div>
+      <div class="gd-flip-deck" id="gd-flip-deck" aria-live="off"></div>
+      <div class="gd-flip-nav"><button type="button" class="fc-ctl" data-flip-step="-1" aria-label="${esc(t('gd.flip.prev'))}">${svg(ICONS.back)}</button><p class="fc-mono">${esc(t('gd.flip.hint'))}</p><button type="button" class="fc-ctl" data-flip-step="1" aria-label="${esc(t('gd.flip.next'))}">${svg(ICONS.next)}</button></div>
     </div>
     <div class="gd-sheet" id="gd-sheet" role="dialog" aria-modal="true" aria-labelledby="gd-d-title" hidden><div class="gd-sheet-in" id="gd-detail"></div></div>`;
   document.body.appendChild(el);
@@ -289,6 +295,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       order = r.order;
       $('gd-intro').innerHTML = '';
       $('gd-count').textContent = '';
+      $('gd-flipall-w').hidden = true;
       list.innerHTML = r.html;
       fillCheck(r.order);
       rows = [];
@@ -316,6 +323,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
     $('gd-tkey').innerHTML = listOpts.shelf && shown.length ? tileKeyHtml() : '';
     $('gd-intro').innerHTML = introHtml(mode);
     $('gd-count').textContent = shown.length ? t('gd.shown', { n: itemCount(rows) }) : '';
+    $('gd-flipall-w').hidden = order.length < 2;
     list.innerHTML = shown.length ? '' : `<p class="gd-empty">${esc(t(mode === 'saved' ? 'gd.fav.none' : 'gd.none'))}</p>`;
     drawn = 0;
     if (shown.length) more();
@@ -397,6 +405,48 @@ export function mountGuidePage(deps: GuidePageDeps) {
     if (advance) toId();
   };
 
+  // --- Flip (PLAN 14.4): a shelf or the whole list as cards to swipe
+  const flip = $('gd-flip'), deck = $('gd-flip-deck');
+  let flipIds: string[] = [];
+  const flipStep = () => (deck.firstElementChild as HTMLElement | null)?.offsetWidth ?? deck.clientWidth;
+  const flipAt = () => Math.max(0, Math.min(flipIds.length - 1, Math.round(deck.scrollLeft / Math.max(1, flipStep() + 10))));
+  const flipCount = () => ($('gd-flip-n').textContent = flipIds.length ? `${flipAt() + 1} / ${flipIds.length}` : '');
+  let flipFrame = 0;
+  deck.addEventListener('scroll', () => { if (!flipFrame) flipFrame = requestAnimationFrame(() => ((flipFrame = 0), flipCount())); }, { passive: true });
+  const openFlip = (ids: string[], title: string) => {
+    const es = ids.map((id) => byId.get(id)).filter((e): e is Entry => !!e);
+    if (!es.length) return;
+    flipIds = es.map((e) => e.id);
+    $('gd-flip-t').textContent = title;
+    deck.innerHTML = flipDeckHtml(es, listOpts);
+    flip.hidden = false;
+    el.classList.add('gd-flipping');
+    deck.scrollLeft = 0;
+    flipCount();
+    flip.querySelector<HTMLElement>('.gd-flip-x')?.focus({ preventScroll: true });
+  };
+  const closeFlip = () => {
+    if (flip.hidden) return;
+    flip.hidden = true;
+    el.classList.remove('gd-flipping');
+    deck.innerHTML = '';
+    flipIds = [];
+  };
+  const flipBy = (d: number) => deck.scrollTo?.({ left: (flipAt() + d) * (flipStep() + 10), behavior: REDUCED() ? 'auto' : 'smooth' });
+  /** The species of the shelf that starts with `id`: from it to the next heading. */
+  const shelfOf = (id: string): { ids: string[]; title: string } => {
+    const i = rows.findIndex((r) => r.k === 'card' && r.e.id === id);
+    let h = i;
+    while (h > 0 && rows[h].k !== 'head') h--;
+    const ids: string[] = [];
+    for (let j = i; j >= 0 && j < rows.length && rows[j].k !== 'head' && rows[j].k !== 'banner'; j++) {
+      const r = rows[j];
+      if (r.k === 'card') ids.push(r.e.id);
+    }
+    const head = rows[h];
+    return { ids, title: head?.k === 'head' ? head.s.title : '' };
+  };
+
   // --- clicks and typing
   el.addEventListener('click', (ev) => {
     const target = ev.target as Element;
@@ -427,7 +477,13 @@ export function mountGuidePage(deps: GuidePageDeps) {
       b.setAttribute('aria-pressed', String(on));
       b.querySelector('span')!.textContent = t(on ? 'gd.fav.on' : 'gd.fav.off');
       render();
-    } else if (hit('[data-idbar]')) setView('identify', null);
+    } else if ((b = hit('[data-flip-at]'))) {
+      const sh = shelfOf(b.dataset.flipAt!);
+      openFlip(sh.ids, sh.title);
+    } else if (hit('[data-flip-all]')) openFlip(order, $('gd-count').textContent ?? '');
+    else if (hit('[data-flip-close]')) closeFlip();
+    else if ((b = hit('[data-flip-step]'))) flipBy(Number(b.dataset.flipStep));
+    else if (hit('[data-idbar]')) setView('identify', null);
     else if ((b = hit('.gd-mode'))) setView(b.dataset.mode as GdMode, group);
     else if ((b = hit('.gd-g'))) {
       const g = (b.dataset.group || null) as Group | null;
@@ -451,7 +507,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       render();
     } else if (hit('#gd-fbtn')) setFilters($('gd-filters').hidden === true);
     else if (hit('[data-retry]')) load();
-    else if ((b = hit('a.gd-card, a.gd-st, a.gd-rec, .gd-look a, a.gd-id-tl, .gd-id-chk a')) && plain) {
+    else if ((b = hit('a.gd-card, a.gd-st, a.gd-rec, .gd-look a, a.gd-id-tl, .gd-id-chk a, .gd-fc a')) && plain) {
       ev.preventDefault();
       const r = parseGuideRoute(b.getAttribute('href') ?? '');
       if (r?.id) {
@@ -616,7 +672,11 @@ export function mountGuidePage(deps: GuidePageDeps) {
     if (e.key === 'Escape') {
       e.stopPropagation();
       if (!sheet.hidden) closeDetail();
+      else if (!flip.hidden) closeFlip();
       else close();
+    } else if (sheet.hidden && !flip.hidden && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      e.preventDefault();
+      flipBy(e.key === 'ArrowLeft' ? -1 : 1);
     } else if (!sheet.hidden && !typingIn && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
       const i = openId ? order.indexOf(openId) : -1;
       const id = i < 0 ? undefined : order[i + (e.key === 'ArrowLeft' ? -1 : 1)];
@@ -640,6 +700,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
   const hide = () => {
     if (el.hidden) return;
     hideDetail();
+    closeFlip();
     el.hidden = true;
     document.body.classList.remove('fc-open');
     if (mapMeta !== null) meta?.setAttribute('content', mapMeta);
