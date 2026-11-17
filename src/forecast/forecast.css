@@ -602,3 +602,30 @@ body.fc-open { overflow: hidden; }
 }
 .fc[data-scheme='dark'] .fc-tile.has-lv { background: var(--g); box-shadow: inset 0 5px 0 var(--c), inset 0 0 0 1px color-mix(in srgb, var(--a) 45%, transparent), 0 6px 20px rgb(0 0 0 / 0.45); }
 .fc[data-scheme='dark'] .fc-tile.has-lv .fc-t-val { color: var(--a); }
+
+/* --- glow (Joseph 2026-11-17 picked "B, full glow" from the glow mockups): in the dark scheme every drawing, rating
+   word, number and bar gives off a halo in its own rating or activity colour, over the neutral black glass. The edges
+   stay square. Light mode has none: glow does not read in sunlight. `--gl` is the halo's strength, `--gb` its blur. */
+.fc[data-scheme='dark'] { --gl: 0.75; --gb: 10px; }
+.fc[data-scheme='dark'] .fc-hero canvas { filter: drop-shadow(0 0 calc(var(--gb) * 0.6) color-mix(in srgb, var(--fc-on-field) calc(var(--gl) * 100%), transparent)); }
+.fc[data-scheme='dark'] .fc-rword, .fc[data-scheme='dark'] .fc-rscore, .fc[data-scheme='dark'] .fc-hn { text-shadow: 0 0 calc(var(--gb) * 1.6) color-mix(in srgb, var(--fc-on-field) calc(var(--gl) * 100%), transparent); }
+.fc[data-scheme='dark'] .fc-segs i { box-shadow: 0 0 var(--gb) color-mix(in srgb, currentColor calc(var(--gl) * 100%), transparent); }
+.fc[data-scheme='dark'] .fc-t-viz { filter: drop-shadow(0 0 calc(var(--gb) * 0.6) color-mix(in srgb, var(--a, var(--fc-ac)) calc(var(--gl) * 90%), transparent)); }
+.fc[data-scheme='dark'] .fc-tile.has-lv .fc-t-val, .fc[data-scheme='dark'] .fc-spot .fc-sr { text-shadow: 0 0 var(--gb) color-mix(in srgb, var(--a, var(--fc-ac)) calc(var(--gl) * 100%), transparent); }
+.fc[data-scheme='dark'] .fc-spot .fc-strip i:not(.ln) { box-shadow: 0 0 calc(var(--gb) * 0.8) color-mix(in srgb, var(--c) calc(var(--gl) * 100%), transparent); }
+.fc[data-scheme='dark'] .fc-tab[aria-selected='true'] { text-shadow: 0 0 calc(var(--gb) * 1.6) color-mix(in srgb, var(--tc) calc(var(--gl) * 100%), transparent); }
+.fc[data-scheme='dark'] .fc-tab-bar { box-shadow: 0 0 var(--gb) var(--fc-tbar); }
+.fc[data-scheme='dark'] .fc-bar { box-shadow: 0 0 calc(var(--gb) * 1.8) color-mix(in srgb, var(--c) calc(var(--gl) * 70%), transparent); }
+.fc[data-scheme='dark'] .fc-olb i { box-shadow: 0 0 var(--gb) color-mix(in srgb, var(--c) calc(var(--gl) * 100%), transparent); }
+.fc[data-scheme='dark'] .fc-hx-in canvas { filter: drop-shadow(0 0 calc(var(--gb) * 0.4) color-mix(in srgb, var(--fc-c-acc) calc(var(--gl) * 80%), transparent)); }
+.fc[data-scheme='dark'] .fc-dk-c:not(.nt):not(.past) { box-shadow: 0 0 calc(var(--gb) * 0.9) color-mix(in srgb, var(--c) calc(var(--gl) * 90%), transparent); }
+.fc[data-scheme='dark'] .fc-dk-c.on { box-shadow: 0 0 calc(var(--gb) * 1.4) rgb(255 255 255 / 0.55); }
+.fc[data-scheme='dark'] .fc-dk-strip canvas { filter: drop-shadow(0 0 calc(var(--gb) * 0.5) rgb(124 213 174 / calc(var(--gl) * 0.9))); }
+.fc[data-scheme='dark'] .fc-dk-when { text-shadow: 0 0 calc(var(--gb) * 1.4) rgb(237 243 250 / calc(var(--gl) * 0.6)); }
+.fc[data-scheme='dark'] .fc-dock::before { box-shadow: 0 0 calc(var(--gb) * 2) color-mix(in srgb, var(--fc-tbar) 70%, transparent); }
+/* The score meter as lit segments (the mockup's GOOD bar), and a lit square edge on the hero and rated cards. */
+.fc[data-scheme='dark'] .fc-segs { gap: 4px; }
+.fc[data-scheme='dark'] .fc-segs i { width: 20px; height: 9px; border: 0; background: linear-gradient(90deg, currentColor var(--f), color-mix(in srgb, currentColor 18%, transparent) var(--f)); box-shadow: none; }
+.fc[data-scheme='dark'] .fc-segs i[style*='--f:100%'] { box-shadow: 0 0 10px color-mix(in srgb, currentColor 80%, transparent); }
+.fc[data-scheme='dark'] .fc-hero { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fc-on-field) 70%, transparent), 0 0 24px -6px var(--fc-on-field); }
+.fc[data-scheme='dark'] .fc-tile.has-lv { box-shadow: inset 0 5px 0 var(--c), inset 0 0 0 1px color-mix(in srgb, var(--a) 60%, transparent), 0 0 18px -6px var(--a), 0 6px 20px rgb(0 0 0 / 0.45); }
