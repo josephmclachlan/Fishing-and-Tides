@@ -73,42 +73,83 @@ function bars(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, list: [nu
   });
   c.lineCap = 'butt';
 }
+/** A cloud on a tile: [centre x as a share of w, base y as a share of h, width as a share of w, sway phase]. */
+type CloudSpec = [number, number, number, number];
+/** Where a drawn cloud sits, so rain and lightning fall from under it. */
+interface CloudBox { x0: number; x1: number; by: number }
+/** The three round tops over the square base, as [across, up, radius] shares of the cloud's width. Tallest top: 0.52 W. */
+const PUFFS: [number, number, number][] = [[0.26, -0.17, 0.17], [0.54, -0.27, 0.25], [0.8, -0.15, 0.15]];
+const CLOUD_TOP = 0.52;
 /**
- * Drifting clouds, each a plain puffy outline (three bumps on a hard flat base) so it reads as a cloud, not a bar,
- * with a square ledge in the reading's colour under it: [y of the base as a share of h, width as a share of w, unused, drift speed].
+ * Clouds, each a crisp outline (three round tops on a hard square base) that sways a little in place and always sits
+ * wholly inside the picture, never cut by the tile's edge (Joseph 2026-11-17), with a square ledge in the reading's
+ * colour under it. In the lit dark look the outline glows in that colour and the cloud holds a faint wash of it.
  */
-function clouds(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, list: [number, number, number, number][]) {
-  list.forEach(([yf, lf, , sp], i) => {
-    const W = Math.min(w * lf, h * 1.1), span = w + W, x = (((t * sp + i * 60) % span) + span) % span - W * 0.5, by = Math.round(h * yf);
-    const parts: [number, number, number][] = [[0.27, -0.2, 0.19], [0.55, -0.3, 0.25], [0.8, -0.17, 0.16]];
-    const circ = (cx: number, cy: number, r: number) => { c.moveTo(cx + r, cy); c.arc(cx, cy, r, 0, Math.PI * 2); };
+function clouds(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, list: CloudSpec[]): CloudBox[] {
+  const pad = 4;
+  return list.map(([xf, yf, lf, ph]) => {
+    const by = Math.round(h * yf);
+    // As wide as asked, but never so wide that the tallest top or either side leaves the box.
+    const W = Math.max(18, Math.min(w * lf, (by - pad - 2) / CLOUD_TOP, w - 2 * pad - 4));
+    const sway = P.reduced ? 0 : Math.sin(t * 0.4 + ph) * Math.min(6, w * 0.03);
+    const x = Math.round(clamp(w * xf - W / 2 + sway, pad, w - pad - W));
     const shape = (grow: number) => {
       c.beginPath();
-      for (const [u, v, r] of parts) circ(x + u * W, by + v * W, r * W + grow);
+      for (const [u, v, r] of PUFFS) { const cx = x + u * W, cy = by + v * W, rr = r * W + grow; c.moveTo(cx + rr, cy); c.arc(cx, cy, rr, 0, TAU); }
       c.rect(x + 0.06 * W - grow, by - 0.2 * W - grow, 0.9 * W + 2 * grow, 0.2 * W + 2 * grow);
     };
     // Ink a little larger, then the card colour on top: only the outer outline stays, cut square at the base.
+    c.save();
+    if (P.glow) { c.shadowColor = P.A; c.shadowBlur = 12; }
     c.fillStyle = P.I; shape(2); c.fill();
+    c.restore();
     c.fillStyle = P.B; shape(0); c.fill();
-    c.fillStyle = P.A; c.fillRect(x + 0.06 * W - 2, by + 5, 0.55 * W, 3);
+    if (P.glow) { c.globalAlpha = 0.14; c.fillStyle = P.A; shape(0); c.fill(); c.globalAlpha = 1; }
+    c.save();
+    if (P.glow) { c.shadowColor = P.A; c.shadowBlur = 8; }
+    c.fillStyle = P.A; c.fillRect(x + 0.06 * W, by + 5, Math.round(0.55 * W), 3);
+    c.restore();
+    return { x0: x + 0.1 * W, x1: x + 0.92 * W, by: by + 9 };
   });
 }
-function drops(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, n: number, y0: number) {
+/** Rain falling from under a cloud in even columns, two drops a column, slanting a little and fading as it falls. */
+function drops(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, n: number, from: CloudBox) {
+  const y0 = from.by, fall = Math.max(1, h - y0 - 2), span = Math.max(1, from.x1 - from.x0);
+  const cols = Math.max(2, Math.min(Math.round(n / 2), Math.floor(span / 8)));
+  c.save();
   c.lineCap = 'butt'; c.strokeStyle = P.A; c.lineWidth = 2;
-  for (let i = 0; i < n; i++) {
-    const x = ((i * 0.618034) % 1) * w, sp = 70 + ((i * 13) % 30), y = y0 + ((t * sp + i * 41) % Math.max(1, h - y0));
-    c.globalAlpha = 0.9 - ((y - y0) / Math.max(1, h - y0)) * 0.6;
-    c.beginPath(); c.moveTo(x, y); c.lineTo(x - 3, y + 9); c.stroke();
-  }
-  c.globalAlpha = 1;
+  if (P.glow) { c.shadowColor = P.A; c.shadowBlur = 6; }
+  for (let j = 0; j < cols; j++)
+    for (let k = 0; k < 2; k++) {
+      const f = (((t * (0.55 + ((j * 0.37) % 1) * 0.3) + k * 0.5 + j * 0.29) % 1) + 1) % 1;
+      const x = Math.min(w - 2, from.x0 + ((j + 0.5) * span) / cols - f * 5), y = y0 + f * (fall - 8);
+      c.globalAlpha = 0.95 - f * 0.65;
+      c.beginPath(); c.moveTo(x, y); c.lineTo(x - 2.5, y + 8); c.stroke();
+    }
+  c.restore();
+}
+/** A lightning bolt hanging from under a cloud, `s` tall, flashing now and then. */
+function bolt(c: Ctx2D, h: number, t: number, P: TilePaint, from: CloudBox, fill: string) {
+  const s = Math.max(12, Math.min(h - from.by - 2, h * 0.5)), bx = from.x0 + (from.x1 - from.x0) * 0.62, by = from.by - 4;
+  c.save();
+  c.globalAlpha = P.reduced ? 1 : (t % 3.2) < 0.18 ? 1 : 0.4;
+  if (P.glow) { c.shadowColor = P.A; c.shadowBlur = 14; }
+  c.fillStyle = fill; c.beginPath();
+  c.moveTo(bx + 0.2 * s, by); c.lineTo(bx - 0.2 * s, by + 0.48 * s); c.lineTo(bx + 0.04 * s, by + 0.48 * s); c.lineTo(bx - 0.12 * s, by + s);
+  c.lineTo(bx + 0.36 * s, by + 0.36 * s); c.lineTo(bx + 0.08 * s, by + 0.36 * s); c.lineTo(bx + 0.3 * s, by);
+  c.closePath(); c.fill();
+  c.restore();
 }
 function sun(c: Ctx2D, x: number, y: number, r: number, t: number, P: TilePaint) {
+  c.save();
+  if (P.glow) { c.shadowColor = P.A; c.shadowBlur = 14; }
   c.strokeStyle = P.A; c.lineWidth = 2.5; c.lineCap = 'butt';
   for (let i = 0; i < 12; i++) {
     const a = (i / 12) * TAU + t * 0.12;
     c.beginPath(); c.moveTo(x + Math.cos(a) * (r + 4), y + Math.sin(a) * (r + 4)); c.lineTo(x + Math.cos(a) * (r + 9), y + Math.sin(a) * (r + 9)); c.stroke();
   }
   c.fillStyle = P.A; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+  c.restore();
 }
 /** A thin profile wave of height `m` against a 0..`max` m scale with a reference line at `ref` m. */
 function waveBox(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, m: number, max: number, ref: number) {
@@ -184,18 +225,12 @@ const TV: Record<TileKind, Draw> = {
     const sky = z.sky ?? null;
     const r = Math.min(h * 0.3, w * 0.16), sx = w * 0.22 + r * 0.2, sy = h * 0.42;
     if (sky === 'sun' || sky === 'partly') sun(c, sx, sy, sky === 'sun' ? r * 1.15 : r, t, P);
-    if (sky === 'partly') clouds(c, w, h, t, P, [[0.62, 0.55, 0, 7]]);
-    else if (sky === 'cloud') clouds(c, w, h, t, P, [[0.45, 0.5, 0, 6], [0.75, 0.6, 0, -4]]);
+    if (sky === 'partly') clouds(c, w, h, t, P, [[0.64, 0.68, 0.52, 0]]);
+    else if (sky === 'cloud') clouds(c, w, h, t, P, [[0.4, 0.5, 0.5, 0], [0.68, 0.84, 0.44, 2]]);
     else if (sky === 'showers' || sky === 'rain' || sky === 'storm') {
-      clouds(c, w, h, t, P, [[0.44, 0.6, 0, 5]]);
-      drops(c, w, h, t, P, Math.round(8 + 0.3 * (z.rainPct ?? 40) + (sky === 'rain' ? 10 : 0)), h * 0.42);
-      if (sky === 'storm') {
-        const fl = P.reduced ? 1 : (t % 3.2) < 0.18 ? 1 : 0.35;
-        c.globalAlpha = fl; c.fillStyle = P.I; c.beginPath();
-        const bx = w * 0.62, by = h * 0.4;
-        c.moveTo(bx + 6, by); c.lineTo(bx - 6, by + h * 0.24); c.lineTo(bx + 2, by + h * 0.24); c.lineTo(bx - 4, by + h * 0.5); c.lineTo(bx + 12, by + h * 0.18); c.lineTo(bx + 3, by + h * 0.18); c.lineTo(bx + 10, by);
-        c.closePath(); c.fill(); c.globalAlpha = 1;
-      }
+      const [cl] = clouds(c, w, h, t, P, [[0.5, 0.46, 0.62, 0]]);
+      drops(c, w, h, t, P, Math.round(8 + 0.25 * (z.rainPct ?? 40) + (sky === 'rain' ? 8 : 0)), cl);
+      if (sky === 'storm') bolt(c, h, t, P, cl, P.I);
     } else if (sky === null) { c.strokeStyle = P.I; c.globalAlpha = 0.3; c.lineWidth = 4; c.beginPath(); c.moveTo(0, h * 0.5); c.lineTo(w * 0.6, h * 0.5); c.stroke(); c.globalAlpha = 1; }
   },
   swell(c, w, h, t, z, P) {
@@ -310,8 +345,8 @@ const TV: Record<TileKind, Draw> = {
   rain(c, w, h, t, z, P) {
     if (!fin(z.v)) return;
     const n = Math.round(4 + 0.36 * z.v);
-    clouds(c, w, h, t, P, [[0.36, 0.55, 0, 4]]);
-    drops(c, w, h, t, P, n, h * 0.46);
+    const [cl] = clouds(c, w, h, t, P, [[0.5, 0.42, 0.55, 0]]);
+    drops(c, w, h, t, P, n, cl);
   },
   window(c, w, h, t, z, P) {
     const bx = (hr: number) => (hr / 24) * w, y = h * 0.62;
@@ -467,9 +502,9 @@ const TV: Record<TileKind, Draw> = {
   },
   squall(c, w, h, t, z, P) {
     const lv = fin(z.v) ? z.v : 0;
-    clouds(c, w, h, t, P, [[0.45, 0.6, 0, 5]]);
-    drops(c, w, h, t, P, [2, 8, 16][clamp(Math.round(lv), 0, 2)], h * 0.5);
-    if (lv >= 2) { c.fillStyle = P.A; c.beginPath(); const bx = w * 0.7, by = h * 0.45; c.moveTo(bx + 5, by); c.lineTo(bx - 5, by + 16); c.lineTo(bx + 1, by + 16); c.lineTo(bx - 3, by + 30); c.lineTo(bx + 9, by + 12); c.lineTo(bx + 2, by + 12); c.lineTo(bx + 8, by); c.closePath(); c.fill(); }
+    const [cl] = clouds(c, w, h, t, P, [[0.5, 0.46, 0.6, 0]]);
+    drops(c, w, h, t, P, [2, 8, 16][clamp(Math.round(lv), 0, 2)], cl);
+    if (lv >= 2) bolt(c, h, t, P, cl, P.A);
   },
 };
 /** Streaks toward `toward` degrees: wind on its tile. */

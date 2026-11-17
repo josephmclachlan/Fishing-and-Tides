@@ -35,6 +35,24 @@ describe('conditions tile pictures (PLAN 7.69)', () => {
       expect(caps.filter((x) => x === 'round'), k).toEqual([]);
     }
   });
+  it('keeps every cloud wholly inside its picture, at any tile size and moment (Joseph 2026-11-17)', () => {
+    for (const [w, h] of [[160, 90], [150, 95], [120, 60], [300, 80], [180, 160], [90, 120]])
+      for (const sky of ['partly', 'cloud', 'showers', 'rain', 'storm'] as const)
+        for (const t of [0, 1.7, 4.4, 9, 61]) {
+          const real = recCtx() as unknown as Record<string, unknown>;
+          const out: string[] = [];
+          const spy = new Proxy(real, {
+            get(tg, k: string) {
+              const f = tg[k];
+              if (k === 'arc') return (x: number, y: number, r: number) => { if (x - r < -0.5 || x + r > w + 0.5 || y - r < -0.5) out.push(`arc ${x},${y},${r}`); };
+              return f;
+            },
+            set(tg, k: string, v) { tg[k] = v; return true; },
+          });
+          for (const k of ['weather', 'rain', 'squall'] as const) drawTile(k, spy as unknown as ReturnType<typeof recCtx>, w, h, t, { v: 2, sky, rainPct: 70 }, P);
+          expect(out, `${w}x${h} ${sky} t=${t}`).toEqual([]);
+        }
+  });
   it('draws nothing into a box too small to hold it', () => {
     const c = recCtx();
     drawTile('swell', c, 2, 2, 0, { v: 1 }, P);
