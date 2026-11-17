@@ -24,11 +24,11 @@ import { bestBands, chartLayout, drawChartBase, drawChartTop, rowsFor, type Char
 import { clamp, parseCol, readTokens, rgba, TAU, type Tokens, type TokenName } from './kit';
 import { drawTile } from './tiles';
 import {
-  bestHtml, chartLabelsHtml, chipsHtml, daysHtml, esc, outlookHtml, rateHtml, readoutHtml, shellHtml, spotsHtml, tilesHtml,
+  bestHtml, chartLabelsHtml, chipsHtml, daysHtml, esc, rateHtml, readoutHtml, shellHtml, spotsHtml, tilesHtml,
 } from './render';
 import { dockCells, dockCellsHtml, dockMarks, drawDockStrip, stripHourAt, stripRange } from './dock';
 import {
-  bestTimeView, coverPlace, dayDate, dayLabel, daysView, heroView, n0, n1, outlookView, readoutView, rowText, sentence, spotView, tilesFor, titleCase,
+  bestTimeView, coverPlace, dayDate, dayLabel, daysView, heroView, n0, n1, readoutView, rowText, sentence, spotView, tilesFor, titleCase,
   type TileView, type ViewCtx,
 } from './view';
 import {
@@ -36,6 +36,8 @@ import {
   type FcActivity, type FcDeps, type FcRead, type Level, type TimelineHour,
 } from './model';
 import type { Shot, ShotStore } from './shot-store';
+import { cleanPicks, GRID_DAYS, GRID_MAX, gridCols, gridRows, markBest, RATING, type GridCol, type GridRow, type Range } from './grid';
+import { barHtml, chipsHtml as plChipsHtml, gridHtml, popHtml, stripHtml } from './grid-html';
 import './fonts';
 import './forecast.css';
 
@@ -47,6 +49,9 @@ import { loadCraft, saveCraft } from '../paddle-craft';
 const ACT_KEY = 'ft.fcActivity';
 const SPOT_KEY = 'ft.fcSpot';
 const SCHEME_KEY = 'ft.fcScheme';
+/** PLAN AHEAD: the rows picked per activity, and hours or days. */
+const PL_KEY = 'ft.fcGrid.';
+const PL_MODE_KEY = 'ft.fcGridMode';
 
 type Store = Pick<Storage, 'getItem' | 'setItem'> | undefined;
 const get = (s: Store, k: string) => {
@@ -425,20 +430,71 @@ export function mountForecastPage(deps: ForecastDeps) {
       $('fc-days').querySelectorAll<HTMLElement>('.fc-bar').forEach((b, i) => b.animate?.([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], { duration: 620, delay: i * 50, easing: 'cubic-bezier(.7,0,.2,1)', fill: 'backwards' }));
   };
 
-  // --- days 8 to 16: worked out once the section nears the screen (16 days of windows is more work than the week's 7).
-  // Nothing past day 16: the models stop there and a forecast further out is no use (Joseph 2026-11-17).
-  let olVis = false;
-  let olKey = '';
+  // --- PLAN AHEAD (PLAN 15.5, Joseph 2026-11-17 chose the colour grid over the old days 8 to 16 bars): the person's own
+  // readings over the days they pick, up to day 16, every cell in its rating colour. Worked out once the section nears
+  // the screen; the 16-day plan gives each day's best window and the day strip's colours.
+  let plVis = false;
+  let plKey = '';
+  let plGridKey = '';
   let plan16: Plan | null = null;
-  const renderOutlook = () => {
-    if (!olVis || !plan) return;
+  let plRange: Range = { from: 0, to: 6 };
+  let plMode: 'h' | 'd' = get(storage, PL_MODE_KEY) === 'd' ? 'd' : 'h';
+  let plOpen = false;
+  let plView: { cols: GridCol[]; rows: GridRow[] } | null = null;
+  const plIds = (): string[] => {
+    try {
+      return cleanPicks(act, JSON.parse(get(storage, PL_KEY + act) ?? 'null'));
+    } catch {
+      return cleanPicks(act, null);
+    }
+  };
+  const isDayAt = (ms: number) => {
+    const s = sunOf(ms);
+    return s.sunrise === null || s.sunset === null ? true : ms >= s.sunrise && ms < s.sunset;
+  };
+  /** The coming Saturday and Sunday as days from today (today alone on a Sunday). */
+  const weekend = (startMs: number): Range => {
+    const wd = new Date(startMs + 12 * H + TZ * H).getUTCDay();
+    return wd === 0 ? { from: 0, to: 0 } : { from: 6 - wd, to: 7 - wd };
+  };
+  const hidePlPop = () => ($('fc-pl-pop').hidden = true);
+  const renderPlan = (force = false) => {
+    if (!plVis || !plan) return;
     const sp = spot();
     const k = `${planKey}|${dataVer()}`;
-    if (k !== olKey) (plan16 = daysAt(deps, act, sp, Date.now(), 16)), (olKey = k);
-    if (!plan16) return;
-    html('fc-outlook', outlookHtml(outlookView(plan16, (ms) => read(sp, ms)), t('fc.ol.less')));
-    const on = sel === null ? -1 : Math.floor((localDayStart(sel, TZ) - plan16.startMs) / DAY);
-    $('fc-outlook').querySelectorAll<HTMLElement>('.fc-olr').forEach((b) => b.classList.toggle('on', Number(b.dataset.i) === on));
+    if (k !== plKey) (plan16 = daysAt(deps, act, sp, Date.now(), GRID_DAYS)), (plKey = k);
+    const p16 = plan16;
+    const start = p16?.startMs ?? localDayStart(Date.now(), TZ);
+    const ids = plIds();
+    const days = Array.from({ length: GRID_DAYS }, (_, i) => {
+      const d = new Date(start + i * DAY + 12 * H + TZ * H), pd = p16?.days[i];
+      return { i, wd: sentence(t(`day.${d.getUTCDay()}` as Key)).slice(0, 2), date: d.getUTCDate(), level: pd ? read(sp, pd.startMs).level : null };
+    });
+    html('fc-pl-strip', stripHtml(days, plRange));
+    html('fc-pl-bar', barHtml(plRange, plMode, weekend(start)));
+    html('fc-pl-chips', plChipsHtml(ids, act, plOpen));
+    const gk = `${k}|${ids.join(',')}|${plRange.from}-${plRange.to}|${plMode}|${nowHour()}`;
+    if (!force && gk === plGridKey) return;
+    plGridKey = gk;
+    const raw = gridCols(plMode, plRange, start, Date.now(), p16, isDayAt, TZ);
+    const rows = gridRows(ids, raw, act, sp, deps.env, (ms) => read(sp, ms));
+    const cols = markBest(raw, rows.find((r) => r.id === RATING), plMode);
+    plView = { cols, rows };
+    const dayOf = (d: number) => dayLabel(start + d * DAY, d);
+    const shortOf = (d: number) => {
+      const x = new Date(start + d * DAY + 12 * H + TZ * H);
+      return { wd: sentence(t(`day.${x.getUTCDay()}` as Key)).slice(0, 2), date: x.getUTCDate() };
+    };
+    if (html('fc-pl-grid', gridHtml(cols, rows, act, plMode, { day: dayOf, dayShort: shortOf }))) {
+      hidePlPop();
+      const g = $('fc-pl-grid');
+      const grid = g.firstElementChild as HTMLElement | null;
+      if (grid && !reduced) (grid.classList.add('anim'), window.setTimeout(() => grid.classList.remove('anim'), 1400));
+      // Hours: start the view a little before the first best window.
+      const bw = g.querySelector<HTMLElement>('.fc-plx.bw');
+      const lab = g.querySelector<HTMLElement>('.fc-pll');
+      g.scrollLeft = bw && plMode === 'h' ? Math.max(0, bw.offsetLeft - (lab?.offsetWidth ?? 0) - 2 * bw.offsetWidth) : 0;
+    }
   };
 
   // --- the time dock: the hour the whole page shows, 24 hour cells and the week as a strip to drag along
@@ -770,8 +826,8 @@ export function mountForecastPage(deps: ForecastDeps) {
     new IntersectionObserver((es) => ((heroVis = es[0].isIntersecting), kick())).observe($('fc-hero'));
     new IntersectionObserver((es) => ((chartVis = es[0].isIntersecting), kick())).observe($('fc-hx'));
     new IntersectionObserver((es) => ((liveVis = es[0].isIntersecting), liveVis && ensureShot(), kick())).observe($('fc-radar'));
-    new IntersectionObserver((es) => (olVis = olVis || es[0].isIntersecting) && renderOutlook(), { rootMargin: '400px' }).observe($('fc-ol-sec'));
-  } else (chartVis = liveVis = olVis = true), ensureShot();
+    new IntersectionObserver((es) => (plVis = plVis || es[0].isIntersecting) && renderPlan(), { rootMargin: '400px' }).observe($('fc-pl-sec'));
+  } else (chartVis = liveVis = plVis = true), ensureShot();
   document.addEventListener('visibilitychange', kick);
   motionQ?.addEventListener?.('change', (e) => {
     reduced = e.matches;
@@ -789,7 +845,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     renderSpots();
     renderTiles(anim);
     renderDays(anim);
-    renderOutlook();
+    renderPlan();
     renderChart(anim);
     renderRadar();
     renderDock();
@@ -804,7 +860,6 @@ export function mountForecastPage(deps: ForecastDeps) {
     renderSpots();
     renderTiles(false);
     renderDays(false);
-    renderOutlook();
     renderReadout();
     renderDock();
     if (reduced || !chartVis) drawTop(3);
@@ -976,10 +1031,79 @@ export function mountForecastPage(deps: ForecastDeps) {
     pick(i === 0 && !d ? null : (d?.startMs ?? plan.startMs + i * DAY + 12 * H), true);
   });
   $('fc-now').addEventListener('click', () => pick(null, true));
-  $('fc-outlook').addEventListener('click', (e) => {
-    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-ms]');
-    if (b) pick(Number(b.dataset.ms), false);
+  // PLAN AHEAD: quick ranges, hours or days, the picked rows, the picker, a cell's pop-up, and dragging across the days.
+  $('fc-pl-sec').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-plq],[data-plm],[data-plrm],[data-pladd],[data-plpick],[data-plx]');
+    if (!b) return hidePlPop();
+    const d = b.dataset;
+    if (d.plx !== undefined && plView) {
+      const [ri, ci] = d.plx.split(',').map(Number);
+      const row = plView.rows[ri], col = plView.cols[ci];
+      if (!row || !col) return;
+      const pop = $('fc-pl-pop'), wrap = pop.parentElement!;
+      pop.innerHTML = popHtml(row, ci, col, act, `${dayLabel(localDayStart(col.ms, TZ), col.day)} · ${localClock(col.ms)}`);
+      pop.className = `fc-pl-pop ${row.cells[ci].lv === null ? 'ln' : `l${row.cells[ci].lv}`}`;
+      pop.hidden = false;
+      const wr = wrap.getBoundingClientRect(), br = b.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+      const x = Math.max(0, Math.min(wr.width - pw, br.left - wr.left + br.width / 2 - pw / 2));
+      const below = br.bottom - wr.top + 6;
+      pop.style.left = `${x}px`;
+      pop.style.top = `${below + ph > wr.height + 140 ? br.top - wr.top - ph - 6 : below}px`;
+      return;
+    }
+    if (d.plq) {
+      const [a, z] = d.plq.split(',').map(Number);
+      plRange = { from: a, to: z };
+    } else if (d.plm) {
+      plMode = d.plm === 'd' ? 'd' : 'h';
+      put(storage, PL_MODE_KEY, plMode);
+    } else if (d.plrm && d.plrm !== RATING) put(storage, PL_KEY + act, JSON.stringify(plIds().filter((x) => x !== d.plrm)));
+    else if (d.pladd !== undefined) plOpen = !plOpen;
+    else if (d.plpick && d.plpick !== RATING) {
+      const ids = plIds();
+      const next = ids.includes(d.plpick) ? ids.filter((x) => x !== d.plpick) : ids.length < GRID_MAX ? [...ids, d.plpick] : ids;
+      put(storage, PL_KEY + act, JSON.stringify(next));
+    }
+    hidePlPop();
+    renderPlan();
   });
+  $('fc-pl-grid').addEventListener('scroll', hidePlPop, { passive: true });
+  {
+    // Drag across the day strip to choose a run of days; a tap picks one day.
+    const strip = $('fc-pl-strip');
+    let anchor: number | null = null;
+    const dayAt = (x: number) => {
+      const r = strip.querySelector('.fc-pls')!.getBoundingClientRect();
+      return Math.max(0, Math.min(GRID_DAYS - 1, Math.floor(((x - r.left) / Math.max(1, r.width)) * GRID_DAYS)));
+    };
+    const paint = () =>
+      strip.querySelectorAll<HTMLElement>('.fc-pld').forEach((el, i) => {
+        el.classList.toggle('in', i >= plRange.from && i <= plRange.to);
+        el.classList.toggle('edge', i === plRange.from || i === plRange.to);
+      });
+    strip.addEventListener('pointerdown', (e) => {
+      if (!(e.target as HTMLElement).closest('.fc-pls')) return;
+      anchor = dayAt(e.clientX);
+      plRange = { from: anchor, to: anchor };
+      paint();
+      strip.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    strip.addEventListener('pointermove', (e) => {
+      if (anchor === null) return;
+      const k = dayAt(e.clientX);
+      plRange = { from: Math.min(anchor, k), to: Math.max(anchor, k) };
+      paint();
+    });
+    const end = () => {
+      if (anchor === null) return;
+      anchor = null;
+      hidePlPop();
+      renderPlan();
+    };
+    strip.addEventListener('pointerup', end);
+    strip.addEventListener('pointercancel', end);
+  }
   $('fc-back').addEventListener('click', () => close());
   el.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') (e.stopPropagation(), close());
