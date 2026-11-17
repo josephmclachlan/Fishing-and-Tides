@@ -459,3 +459,51 @@ body.fc-open { overflow: hidden; }
 .fc-down-msg { margin: 14px 0; padding: 14px 16px; border-left: 3px solid var(--fc-ink2); background: var(--fc-c-card); font-size: 15px; line-height: 1.4; }
 .fc-down-msg[hidden] { display: none; }
 .fc-down .fc-sec { display: none; }
+
+/* --- days 8 to 30 (forecast rethink D, 2026-11-17): a row per day, square bars in the rating's colour, two tiers */
+.fc-ol { display: grid; gap: 2px; }
+.fc-olh { margin: 14px 0 6px; color: var(--fc-ink2); border-top: 2px solid var(--fc-ink); padding-top: 8px; }
+.fc-olh:first-child { margin-top: 0; }
+.fc .fc-olr {
+  appearance: none; border: 0; border-radius: 0; background: none; color: var(--fc-ink); font: inherit; text-align: left; cursor: pointer;
+  display: grid; grid-template-columns: 4.6em 5.6em minmax(0, 1fr) 4.6em; align-items: center; gap: 10px; min-height: 34px; padding: 2px 4px;
+}
+.fc .fc-olr:disabled { cursor: default; }
+.fc-old { font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 80; font-size: 16px; line-height: 1; white-space: nowrap; }
+.fc-olw { font-size: 11px; color: var(--fc-ink2); white-space: nowrap; }
+.fc-olb { display: block; height: 12px; background: var(--fc-block); position: relative; }
+.fc-olb i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c, var(--fc-lvn)); }
+.fc-olv { font-family: var(--fc-disp); font-weight: 850; font-variation-settings: 'wdth' 74; font-size: 18px; line-height: 1; text-align: right; white-space: nowrap; }
+.fc-olv small { font-size: 0.62em; font-weight: 700; margin-left: 2px; }
+.fc-olr.t2 { opacity: 0.72; }
+.fc .fc-olr.on { outline: 2px solid var(--fc-ink); outline-offset: -2px; opacity: 1; }
+@media (hover: hover) { .fc .fc-olr:not(:disabled):hover { background: var(--fc-block); } }
+
+/* --- the time dock (forecast rethink D): pinned to the bottom of the page, square and crisp */
+.fc-dock {
+  position: sticky; bottom: 0; z-index: 30; background: var(--fc-bg); border-top: 2px solid var(--fc-ink);
+  padding: 8px var(--fc-g-r) calc(10px + env(safe-area-inset-bottom, 0px)) var(--fc-g-l);
+}
+.fc.fc-down .fc-dock { display: none; }
+.fc-dk-in { max-width: 1312px; margin: 0 auto; }
+.fc-dk-h { display: flex; align-items: center; gap: 10px; min-height: 30px; }
+.fc-dk-when { font-family: var(--fc-disp); font-weight: 850; font-variation-settings: 'wdth' 78; font-size: 20px; line-height: 1; text-transform: uppercase; letter-spacing: -0.005em; white-space: nowrap; }
+.fc-dk-sun { font-size: 11px; color: var(--fc-ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.fc .fc-dk-now {
+  margin-left: auto; flex: none; min-height: 32px; padding: 0 10px; border: 2px solid var(--fc-ink); border-radius: 0; background: var(--fc-ink); color: var(--fc-bg);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+}
+.fc .fc-dk-now[hidden] { display: none; }
+.fc-dk-cells { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 2px; height: 26px; margin-top: 6px; }
+.fc .fc-dk-c { appearance: none; border: 0; border-radius: 0; padding: 0; min-width: 0; background: var(--c, var(--fc-lvn)); cursor: pointer; position: relative; }
+.fc .fc-dk-c.nt { opacity: 0.45; }
+.fc .fc-dk-c.past { opacity: 0.18; cursor: default; }
+.fc .fc-dk-c.on { outline: 2px solid var(--fc-ink); outline-offset: 1px; z-index: 1; }
+.fc-dk-marks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); font-size: 9px; color: var(--fc-ink2); margin-top: 3px; }
+.fc-dk-strip { position: relative; height: 46px; margin-top: 6px; touch-action: none; cursor: ew-resize; }
+.fc-dk-strip canvas { display: block; width: 100%; height: 100%; }
+.fc-dk-strip:focus-visible { outline: 2px solid var(--fc-ink); outline-offset: 2px; }
+@media (min-width: 960px) { .fc-dk-strip { height: 40px; } .fc-dk-cells { height: 22px; } }
+@media (prefers-reduced-motion: no-preference) { .fc .fc-dk-c { transition: background-color 0.4s, opacity 0.3s; } }
+.fc-dk-sun { display: inline-flex; align-items: center; gap: 4px; }
+.fc-dk-sun svg { width: 13px; height: 13px; flex: none; fill: none; stroke: var(--fc-c-sun); stroke-width: 1.6; stroke-linecap: square; }

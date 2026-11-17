@@ -528,6 +528,29 @@ export function daysView(plan: Plan, read: (ms: number) => FcRead, uvs: readonly
   });
 }
 
+export interface OutlookRow { i: number; dd: string; window: string; value: string; unit: string; level: Level | null; width: number; tier: 1 | 2; ms: number | null }
+/**
+ * Days 8 to 30 (plan days 7 to 29) as rows: each day's best window from the plan (between that day's own sunrise and
+ * sunset, as the week's), read at its start; the bar as long as the headline's own number against the longest.
+ * Tier 1 is days 8 to 16 (the models still run, less sure); tier 2 days 17 to 30 (what is typical for the season).
+ */
+export function outlookView(plan: Plan, read: (ms: number) => FcRead, from = 7): OutlookRow[] {
+  const idx = plan.days.map((_, i) => i).filter((i) => i >= from);
+  const reads = idx.map((i) => (plan.days[i] ? read(plan.days[i]!.startMs) : null));
+  const num = (r: FcRead | null) => (!r || r.score === null ? null : r.surf ? r.surf.hb : r.water ? r.water.visM : r.sail ? r.sail.windKt : r.score);
+  const nums = reads.map(num);
+  const top = Math.max(0, ...nums.filter(fin));
+  return idx.map((i, k) => {
+    const d = plan.days[i], r = reads[k], v = nums[k];
+    const hl = r ? headline(r) : { value: dash, unit: '' };
+    return {
+      i, dd: dayDate(plan.startMs + i * DAY + 12 * H), window: d ? `${clockShort(d.startMs)}–${clockShort(d.endMs)}` : '—',
+      value: hl.value, unit: hl.unit, level: r?.level ?? null, width: v === null || !top ? 0 : Math.max(0.08, v / top),
+      tier: i < 16 ? 1 : 2, ms: d ? d.startMs : null,
+    };
+  });
+}
+
 /** A chart row's value as the readout and the labels show it: its decimals, the tide signed to 0.01 m. */
 export function rowText(spec: Pick<RowSpec, 'id' | 'decimals'>, v: number): string {
   if (spec.id === 'tide') return signed2(v);

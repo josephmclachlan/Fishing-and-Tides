@@ -8,7 +8,7 @@ import { dec, t, type Key } from '../i18n';
 import type { FcActivity, Level } from './model';
 import { NT_ACTS, notesHash } from '../notes/route';
 import type { ChartLayout } from './charts';
-import type { BestTimeView, DayView, HeroView, ReadoutView, SpotView, TileView } from './view';
+import type { BestTimeView, DayView, HeroView, OutlookRow, ReadoutView, SpotView, TileView } from './view';
 
 /** Escape text for HTML (spot names and translated words are plain text). */
 export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -106,6 +106,10 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
       <div class="fc-days" id="fc-days"></div>
       <div class="fc-daybase"></div>
     </section>
+    <section class="fc-sec fc-in" aria-labelledby="fc-ol-h" id="fc-ol-sec">
+      <div class="fc-sec-head"><h2 id="fc-ol-h">${esc(t('fc.ol.title'))}</h2><p class="fc-mono">${esc(t('fc.ol.cap'))}</p></div>
+      <div class="fc-ol" id="fc-outlook"></div>
+    </section>
     <section class="fc-sec fc-in" aria-labelledby="fc-hx-h">
       <div class="fc-sec-head"><h2 id="fc-hx-h">${esc(t('fc.hours'))}</h2><p class="fc-mono">${esc(t('fc.hoursCap'))}</p></div>
       <div class="fc-hx-read" id="fc-readout" aria-live="polite"></div>
@@ -116,6 +120,14 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
       <p class="fc-hx-hint fc-mono fc-hx-key"><span><i class="k-night"></i>${esc(t('fc.key.night'))}</span><span><i class="k-win"></i>${esc(t('fc.key.win'))}</span><span><i class="k-sun"></i>${esc(t('fc.key.sun'))}</span><span><i class="k-now"></i>${esc(t('fc.key.now'))}</span><span><i class="k-arr" aria-hidden="true">↗</i>${esc(t('fc.key.wind'))}</span><span><i class="k-tide"></i>${esc(t('fc.key.tide'))}</span><span class="k-rate"><b>${esc(t('fc.key.rate'))}</b>${[0, 1, 2, 3, 4].map((l) => `<span><i class="l${l}"></i>${esc(t(`fc.lvl.${l}` as Key))}</span>`).join('')}</span></p>
     </section>
     <footer class="fc-foot fc-in"><p class="fc-note">${esc(t('fc.note'))}</p></footer>
+  </div>
+  <div class="fc-dock" id="fc-dock" role="group" aria-label="${esc(t('fc.dock.aria'))}">
+    <div class="fc-dk-in">
+      <div class="fc-dk-h"><b class="fc-dk-when" id="fc-dk-when">--</b><span class="fc-mono fc-dk-sun" id="fc-dk-sun"></span><button type="button" class="fc-dk-now fc-mono" id="fc-dk-now" hidden>${esc(t('fc.backNow'))}</button></div>
+      <div class="fc-dk-cells" id="fc-dk-cells"></div>
+      <div class="fc-dk-marks fc-mono" id="fc-dk-marks" aria-hidden="true"></div>
+      <div class="fc-dk-strip" id="fc-dk-strip" role="slider" tabindex="0" aria-label="${esc(t('fc.dock.strip'))}" aria-valuemin="0" aria-valuemax="167" aria-valuenow="0"><canvas id="fc-dk-cv"></canvas></div>
+    </div>
   </div>`;
 }
 
@@ -139,7 +151,7 @@ export function bestHtml(b: BestTimeView): string {
 }
 
 /** The spot cards: name, the headline now, its word, the weather, and the next 12 hours as a level strip. */
-export function spotsHtml(list: readonly (SpotView & { id: string })[], cur: string): string {
+export function spotsHtml(list: readonly (SpotView & { id: string })[], cur: string, from: string = t('fc.now')): string {
   return list
     .map((s) => {
       const strip = s.strip.map((l) => `<i class="${lvCls(l)}" style="height:${l === null ? 12 : (l + 1) * 20}%"></i>`).join('');
@@ -152,7 +164,7 @@ export function spotsHtml(list: readonly (SpotView & { id: string })[], cur: str
         </span>
         <span class="fc-s-b">
           <span class="fc-swx fc-mono">${esc(wx) || '&nbsp;'}</span>
-          <span><span class="fc-strip" aria-hidden="true">${strip}</span><span class="fc-strip-l fc-mono" aria-hidden="true"><span>${esc(t('fc.now'))}</span><span>${esc(t('fc.plus12'))}</span></span></span>
+          <span><span class="fc-strip" aria-hidden="true">${strip}</span><span class="fc-strip-l fc-mono" aria-hidden="true"><span>${esc(from)}</span><span>${esc(t('fc.plus12'))}</span></span></span>
         </span>
       </button>`;
     })
@@ -186,6 +198,14 @@ export function daysHtml(list: readonly DayView[], bestLabel: string): string {
       </button>`;
     })
     .join('');
+}
+
+/** Days 8 to 30: one row per day, its best window, a bar as long as its headline, and the headline; two tiers. */
+export function outlookHtml(list: readonly OutlookRow[], less: string, typical: string): string {
+  const row = (d: OutlookRow) =>
+    `<button type="button" class="fc-olr ${lvCls(d.level)} t${d.tier}" data-i="${d.i}" ${d.ms === null ? 'disabled' : `data-ms="${d.ms}"`}><span class="fc-old">${esc(d.dd)}</span><span class="fc-olw fc-mono">${esc(d.window)}</span><span class="fc-olb" aria-hidden="true"><i style="width:${(d.width * 100).toFixed(0)}%"></i></span><span class="fc-olv">${esc(d.value)}${d.unit ? `<small>${esc(d.unit)}</small>` : ''}</span></button>`;
+  const a = list.filter((d) => d.tier === 1), b = list.filter((d) => d.tier === 2);
+  return `${a.length ? `<p class="fc-olh fc-mono">${esc(less)}</p>${a.map(row).join('')}` : ''}${b.length ? `<p class="fc-olh fc-mono">${esc(typical)}</p>${b.map(row).join('')}` : ''}`;
 }
 
 /** The hour readout: when, the rating, then every row's value (activity rows over weather rows). */
