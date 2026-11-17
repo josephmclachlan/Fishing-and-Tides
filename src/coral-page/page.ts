@@ -19,6 +19,7 @@
  * in the owner's drawer. Nothing on this page is fetched with or sends a site.
  */
 import { brandLine } from '../brand';
+import { setCover } from '../cover';
 import { dec, t, type Key } from '../i18n';
 import { CORAL_REEFS } from '../region';
 import { ALERT_KEYS, coralNow, DHW_BLEACHING, DHW_SEVERE, type CoralData } from '../adapters/coral';
@@ -563,7 +564,7 @@ export function mountCoralPage(deps: CoralPageDeps) {
   const show = () => {
     if (!el.hidden) return;
     el.hidden = false;
-    document.body.classList.add('fc-open');
+    setCover('coral', true);
     mapMeta = meta?.getAttribute('content') ?? null;
     $('cp-back-l').textContent = cameFrom === 'forecast' ? t('cp.backForecast') : t('cp.back');
     applyScheme();
@@ -579,7 +580,7 @@ export function mountCoralPage(deps: CoralPageDeps) {
   const hide = () => {
     if (el.hidden) return;
     el.hidden = true;
-    document.body.classList.remove('fc-open');
+    setCover('coral', false);
     window.clearTimeout(timer);
     if (raf) cancelAnimationFrame(raf), (raf = 0);
     if (mapMeta !== null) meta?.setAttribute('content', mapMeta);

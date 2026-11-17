@@ -90,7 +90,7 @@ export function shellHtml(o: { acts: readonly FcActivity[]; lang: 'en' | 'es'; c
       // Each activity's own field notes (its tabs only, most specific first), and its First aid tab.
       ...NT_ACTS.map((a) => ['a', notesHash(undefined, a), a, 'nt.actLink', 'fc.lk.notes', NOTES_ICON]),
       ...NT_ACTS.map((a) => ['a', notesHash('aid', a), a, 'nt.aidLink', 'fc.lk.aid', AID_ICON]),
-    ] as [string, string, string, Key, Key, string][]).map(([tag, href, ous, full, short, icon]) => `<${tag} class="fc-link" href="${href}" data-for="${ous}" title="${esc(t(full))}">${icon}<span>${esc(t(short))}</span></${tag}>`).join('')}</nav>` : ''}
+    ] as [string, string, string, Key, Key, string][]).map(([tag, href, ous, full, short, icon]) => `<${tag} class="fc-link fc-lk-${short.split('.').pop()}" href="${href}" data-for="${ous}" title="${esc(t(full))}">${icon}<span>${esc(t(short))}</span></${tag}>`).join('')}</nav>` : ''}
     <section class="fc-sec fc-in" aria-labelledby="fc-cond-h">
       <div class="fc-sec-head"><h2 id="fc-cond-h">${esc(t('fc.conditions'))}</h2><p class="fc-mono" id="fc-cond-when"></p></div>
       <div class="fc-tiles" id="fc-tiles"></div>

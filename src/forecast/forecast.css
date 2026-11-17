@@ -462,7 +462,7 @@ body.fc-open { overflow: hidden; }
 }
 
 /* Labelled links to the species ID guide (fish, dive, spear, snorkel) and to kill, bleed, ice (fish, spear). */
-.fc-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.fc-links { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; margin-top: 10px; }
 .fc .fc-link {
   display: none; align-items: center; gap: 6px; min-height: 36px; padding: 0 9px 0 8px;
   border: 2px solid var(--fc-ink); background: var(--fc-card); color: var(--fc-ink); text-decoration: none; font: inherit; border-radius: 0; cursor: pointer;
@@ -470,7 +470,7 @@ body.fc-open { overflow: hidden; }
 }
 .fc[data-act='fish'] .fc-link[data-for~='fish'], .fc[data-act='dive'] .fc-link[data-for~='dive'],
 .fc[data-act='spear'] .fc-link[data-for~='spear'], .fc[data-act='snorkel'] .fc-link[data-for~='snorkel'],
-.fc[data-act='surf'] .fc-link[data-for~='surf'], .fc[data-act='swim'] .fc-link[data-for~='swim'], .fc[data-act='sail'] .fc-link[data-for~='sail'] { display: inline-flex; }
+.fc[data-act='surf'] .fc-link[data-for~='surf'], .fc[data-act='swim'] .fc-link[data-for~='swim'], .fc[data-act='sail'] .fc-link[data-for~='sail'] { display: flex; }
 /* The big Identify button (src/id-button.css), on fish, dive, spear and snorkel. */
 
 .fc .fc-idbig { display: none; margin-top: 14px; }
@@ -483,6 +483,25 @@ body.fc-open { overflow: hidden; }
 .fc .fc-craft button:focus-visible { outline: 3px solid var(--fc-ink); outline-offset: 2px; }
 .fc .fc-link svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: square; stroke-linejoin: miter; }
 .fc .fc-link:focus-visible { outline: 3px solid var(--fc-ink); outline-offset: 2px; }
+/* The links under Identify (Joseph 2026-11-17): one full-width row, each its own colour so they tell apart at a
+   glance (Kill, bleed, ice in ice blue; Field notes amber; First aid red). Square, glass, a line and glow in the
+   colour; on the light scheme the colour darkens toward ink. Long names wrap onto two lines on a phone. */
+.fc .fc-link.fc-lk-handle { --lk: var(--fc-t-paddle); }
+.fc .fc-link.fc-lk-notes { --lk: var(--fc-t-coral); }
+.fc .fc-link.fc-lk-aid { --lk: var(--fc-sev-danger); }
+.fc .fc-links .fc-link {
+  justify-content: center; gap: 8px; min-height: 52px; padding: 0 8px; font-size: 12px; letter-spacing: 0.06em;
+  border: 2px solid var(--lk, var(--fc-ink)); color: var(--lk, var(--fc-ink));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--lk, var(--fc-ink)) 16%, var(--fc-card)), var(--fc-card));
+  transition: box-shadow 0.2s ease, background 0.2s ease;
+}
+.fc .fc-links .fc-link span { white-space: normal; text-align: left; line-height: 1.15; text-wrap: balance; }
+.fc .fc-links .fc-link svg { width: 20px; height: 20px; }
+.fc:not([data-scheme='dark']) .fc-links .fc-link { color: color-mix(in srgb, var(--lk, var(--fc-ink)) 72%, var(--fc-ink)); }
+.fc[data-scheme='dark'] .fc-links .fc-link { box-shadow: 0 0 12px color-mix(in srgb, var(--lk, var(--fc-ink)) 30%, transparent), inset 0 0 14px color-mix(in srgb, var(--lk, var(--fc-ink)) 10%, transparent); }
+.fc[data-scheme='dark'] .fc-links .fc-link svg { filter: drop-shadow(0 0 4px var(--lk, var(--fc-ink))); }
+@media (hover: hover) { .fc .fc-links .fc-link:hover { background: color-mix(in srgb, var(--lk, var(--fc-ink)) 24%, var(--fc-card)); box-shadow: 0 0 18px color-mix(in srgb, var(--lk, var(--fc-ink)) 45%, transparent); } }
+@media (max-width: 400px) { .fc .fc-links { gap: 6px; } .fc .fc-links .fc-link { font-size: 11px; letter-spacing: 0.03em; gap: 5px; padding: 0 4px; } .fc .fc-links .fc-link svg { width: 17px; height: 17px; } }
 
 /* The LIKELY CATCH names open the guide on that kind of fish. */
 .fc .fc-t-go { color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }

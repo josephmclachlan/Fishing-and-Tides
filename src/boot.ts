@@ -349,3 +349,44 @@ export function runMapLoader(hooks: MapHooks, text: MapLoadText, parent: HTMLEle
     await v.gone();
   });
 }
+
+/** How far a task with no milestones of its own is shown along while it runs: quick at first, never quite there. */
+export function taskFraction(ms: number): number {
+  return 0.85 * (1 - Math.exp(-ms / 900));
+}
+
+/**
+ * The same loader over a page that is loading something without milestones (the species guide's list): the icons
+ * light as time passes, the last ones once it is in (or CAP_MS). Joseph 2026-11-17: the guide must say it is
+ * loading the guide, not the map, wherever it was opened from.
+ */
+export function runTaskLoader(task: Promise<unknown>, text: MapLoadText, parent: HTMLElement = document.body): Promise<void> {
+  const wrap = document.createElement('div');
+  wrap.innerHTML = bootHtml('map');
+  const el = wrap.firstElementChild as HTMLElement;
+  el.querySelector<HTMLElement>('.sc-lw')!.textContent = text.title;
+  parent.appendChild(el);
+  const v = view(el);
+  const part = (i: number) => text.parts[i] ?? '';
+  let n = 0;
+  const allow = (f: number) => {
+    n = Math.max(n, litDots(f, 1));
+    v.allow(n, (i) => `✓ ${part(i)}`, n < DOTS ? text.loading(part(n)) : '');
+  };
+  allow(0);
+  const t0 = performance.now();
+  const tick = window.setInterval(() => allow(taskFraction(performance.now() - t0)), 120);
+  const done = task.then(
+    () => false,
+    () => false,
+  );
+  return Promise.race([done, sleep(CAP_MS).then(() => true)]).then(async (capped) => {
+    window.clearInterval(tick);
+    allow(1);
+    await v.full();
+    await sleep(PACE_MS * 0.6);
+    v.say(capped ? text.slow : text.ready);
+    await sleep(reduced() ? 0 : HOLD_MS);
+    await v.gone();
+  });
+}

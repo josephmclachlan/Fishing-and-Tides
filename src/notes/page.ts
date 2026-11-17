@@ -4,6 +4,7 @@
  * Its own link `#notes[/<tab>]` (route.ts); other pages hide on it and it hides on theirs.
  */
 import { brandLine } from '../brand';
+import { setCover } from '../cover';
 import { rememberOrigin, storedOrigin } from '../origin';
 import { t } from '../i18n';
 import { landing, MAP_HASH } from '../forecast/model';
@@ -119,7 +120,7 @@ export function mountNotesPage(deps: NotesPageDeps) {
   const show = () => {
     if (!el.hidden) return;
     el.hidden = false;
-    document.body.classList.add('fc-open');
+    setCover('notes', true);
     mapMeta = meta?.getAttribute('content') ?? null;
     $('nt-back-l').textContent = CHROME.back[backTo()][lang];
     applyScheme();
@@ -130,7 +131,7 @@ export function mountNotesPage(deps: NotesPageDeps) {
   const hide = () => {
     if (el.hidden) return;
     el.hidden = true;
-    document.body.classList.remove('fc-open');
+    setCover('notes', false);
     if (mapMeta !== null) meta?.setAttribute('content', mapMeta);
   };
   /**
