@@ -269,6 +269,8 @@ export function mountKineticMap(d: KmDeps) {
   const $ = <T extends HTMLElement = HTMLElement>(id: string) => app.querySelector<T>(`#${id}`)!;
   const stage = $('k-stage'), railL = $('k-raill'), railR = $('k-railr'), sheet = $('k-sheet'), shBody = $('k-shbody'), shTitle = $('k-shtitle'), scrim = $('k-scrim');
 
+  /** The fish (or spear) controls: on the map on a desktop, at the top of the spot view in the phone's sheet (PLAN 7.164). */
+  const fishEl = $('k-fishsw');
   /* The phone sheet's stops (layout B, PLAN 7.163; the drag and the views are wired with openSheet below). */
   type Stop = 'peek' | 'half' | 'full';
   const HALF_VIEWS = new Set(['spot', 'coral', 'layers', 'here', 'fish', 'spear']);
@@ -1146,7 +1148,7 @@ export function mountKineticMap(d: KmDeps) {
    * best window today, the best spots near the crosshair, and + Catch to log one from the shore or a boat (PLAN 7.143).
    */
   const renderFishSw = () => {
-    const el = $('k-fishsw'), fm = d.fishMode;
+    const el = fishEl, fm = d.fishMode;
     const on = !!fm && (S.act === 'fish' || (S.act === 'spear' && !!fm.spearInfo)) && !S.coral;
     el.hidden = !on;
     if (!on || !fm) return (el.innerHTML = '');
@@ -1213,7 +1215,7 @@ export function mountKineticMap(d: KmDeps) {
       ? si.spots.map((r) => `<li><button type="button" class="k-fspot" data-sfly="${r.lng},${r.lat}"><span class="k-fn">${r.n + 1}</span><span><b>${esc(r.place ? placeCase(r.place) : L2('Unnamed spot', 'Sitio sin nombre'))}</b><small>${esc(sentence(r.line))}</small>${tags(r.why)}</span>${ARROW}</button></li>`).join('')
       : `<li><span>${L2('No open spear water for this target within 15 km of the crosshair. Move the map and look again.', 'No hay agua abierta para este objetivo a 15 km de la mira. Mueva el mapa y mire otra vez.')}</span></li>`
   }</ul>`;
-  $('k-fishsw').addEventListener('click', (e) => {
+  fishEl.addEventListener('click', (e) => {
     const t = (e.target as HTMLElement).closest<HTMLElement>('[data-fsw],[data-freach],[data-fstep],[data-fsheet],[data-sstep]');
     if (!t || !d.fishMode) return;
     if (t.dataset.sstep) {
@@ -1379,7 +1381,9 @@ export function mountKineticMap(d: KmDeps) {
     } else {
       const s = spot(), r = rate(S.act, s, ms()), hl = headline(r);
       dk.className = `k-dk-spot k-lv${r.level ?? 'n'}`;
-      dk.innerHTML = `<span class="k-n">${esc(titleCase(s.name))}<small>${esc(modeName(S.act))} · ${esc(levelWord(r.level))}</small></span><span class="k-v">${esc(hl.value)}<small> ${esc(hl.unit)}</small></span>${ARROW}`;
+      // Phone: with the fish controls in the sheet, the peek still says which fish the map is showing.
+      const fsh = WIDE.matches ? '' : S.act === 'fish' ? (d.fishMode?.info?.()?.name ?? '') : S.act === 'spear' && d.fishMode?.spearInfo ? spearName(d.fishMode.spearInfo()?.target ?? null) : '';
+      dk.innerHTML = `<span class="k-n">${esc(titleCase(s.name))}<small>${esc(modeName(S.act))} · ${esc(levelWord(r.level))}${fsh ? ` · ${esc(titleCase(fsh))}` : ''}</small></span><span class="k-v">${esc(hl.value)}<small> ${esc(hl.unit)}</small></span>${ARROW}`;
     }
     $('k-backsub').textContent = `${titleCase(spot().name)} · ${modeName(S.act)}`;
     if (S.act === 'spear') renderFishSw();
@@ -1400,6 +1404,8 @@ export function mountKineticMap(d: KmDeps) {
     if (S.sheet === 'spot' || S.sheet === 'coral') {
       shBody.innerHTML = S.coral ? coralCardHTML() : spotCardHTML();
       bindCard(shBody);
+      // Phone: the fish controls left the map (layout B); they lead the spot view, so the map stays clear.
+      if (!WIDE.matches && !S.coral) shBody.prepend(fishEl);
       shTitle.textContent = S.coral ? L2('Reef', 'Arrecife') : L2('Spot', 'Sitio');
     }
   };
@@ -1632,12 +1638,14 @@ export function mountKineticMap(d: KmDeps) {
   const phoneMode = () => {
     if (WIDE.matches) {
       if (dock.parentElement !== app) railR.after(dock);
+      if (fishEl.parentElement !== stage) $('k-legmini').before(fishEl);
       sheet.classList.remove('k-phs');
       sheet.style.height = '';
       delete sheet.dataset.stop;
       return;
     }
     if (dock.parentElement !== sheet) grab.after(dock);
+    if (fishEl.parentElement === stage) fishEl.remove();
     sheet.classList.add('k-phs');
     setStop(S.sheet ? stop : 'peek');
   };
