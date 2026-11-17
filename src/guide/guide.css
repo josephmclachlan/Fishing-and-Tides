@@ -724,7 +724,8 @@
 /* --- Flip (PLAN 14.4): any shelf or list as big cards to swipe, on black glass, each card lit in its group's colour. */
 .gd.gd-flipping { overflow: hidden; }
 .gd-countrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.gd-countrow .gd-count { margin-right: auto; }
+.gd-countrow { margin-top: 14px; }
+.gd-countrow .gd-count { flex: 1 1 auto; min-width: 0; margin: 0; }
 .gd .gd-flipb {
   display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; margin-left: auto; cursor: pointer;
   border: 1.5px solid var(--fc-t-swim); background: color-mix(in srgb, var(--fc-t-swim) 10%, var(--fc-card)); color: var(--fc-t-swim);
@@ -780,3 +781,12 @@
 @media (prefers-reduced-motion: reduce) { .gd-flip-deck { scroll-behavior: auto; } }
 .gd .gd-sec-h .gd-flipb svg { width: 16px; height: 16px; padding: 0; border: 0; background: none; box-shadow: none; filter: none; stroke: currentColor; stroke-width: 2; }
 .gd .gd-sec-h .gd-flipb { text-shadow: none; }
+
+/* The list cards on black glass (PLAN 14.5): a thin line and a top edge in the group's colour, square. */
+.gd-list .gd-cards { gap: 8px; }
+.gd-list .gd-card {
+  padding: 8px; background: var(--gd-glass); border: 1px solid color-mix(in srgb, var(--gd-c) 30%, var(--fc-line)); border-top: 2px solid var(--gd-c);
+}
+.gd[data-scheme='dark'] .gd-list .gd-card { box-shadow: 0 -2px 12px color-mix(in srgb, var(--gd-c) 22%, transparent); }
+@media (hover: hover) { .gd .gd-list .gd-card:hover { border-color: var(--gd-c); } }
+@media (min-width: 760px) { .gd-list .gd-card { padding: 0; } }
