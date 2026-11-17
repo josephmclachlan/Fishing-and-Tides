@@ -25,11 +25,15 @@ export const NO_ANSWERS: IdAnswers = { colors: [], pattern: [], position: [], sh
 /** Fresh answers (the arrays are new each time). */
 export const noAnswers = (): IdAnswers => ({ colors: [], pattern: [], position: [], shape: [], features: [] });
 
-export const ID_STEPS = ['kind', 'group', 'sub', 'size', 'shape', 'look', 'where', 'results'] as const;
+/**
+ * The questions, in order. The first is what kind of thing it was, as one picture grid of every group, plants included
+ * (Joseph 2026-11-17: fish, shark, turtle, plant, coral... before anything else), so there is no animal-or-plant step.
+ */
+export const ID_STEPS = ['group', 'sub', 'size', 'shape', 'look', 'where', 'results'] as const;
 export type IdStep = (typeof ID_STEPS)[number];
 
-export const groupsOf = (k: IdKind | undefined): Group[] =>
-  k === 'plant' ? ['plants-algae'] : GROUPS.filter((g) => g !== 'plants-algae');
+export const groupsOf = (k?: IdKind): Group[] =>
+  k === 'plant' ? ['plants-algae'] : k === 'animal' ? GROUPS.filter((g) => g !== 'plants-algae') : [...GROUPS];
 
 /** The subgroups worth asking about in a group: only when there are a few (sharks or rays; turtle, dolphin or manatee). */
 export function subsOf(list: readonly Entry[], group: Group | undefined, max = 8): string[] {
@@ -48,11 +52,10 @@ export function shapesOf(list: readonly Entry[], a: IdAnswers): Shape[] {
   return out.size >= 2 ? [...out] : [];
 }
 
-/** The steps that apply to these answers (plants skip the group; a group without a few subgroups skips that). */
+/** The steps that apply to these answers (a group without a few subgroups skips that one; one shape skips shape). */
 export function stepsFor(list: readonly Entry[], a: IdAnswers): IdStep[] {
   return ID_STEPS.filter((s) =>
-    s === 'group' ? a.kind !== 'plant'
-    : s === 'sub' ? subsOf(list, a.kind === 'plant' ? 'plants-algae' : a.group).length > 0
+    s === 'sub' ? subsOf(list, a.kind === 'plant' ? 'plants-algae' : a.group).length > 0
     : s === 'shape' ? shapesOf(list, a).length > 0
     : true,
   );

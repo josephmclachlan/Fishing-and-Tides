@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fits, guessLook, identify, idScore, noAnswers, stepsFor, subsOf, type IdAnswers } from './identify';
+import { fits, groupsOf, guessLook, identify, idScore, noAnswers, stepsFor, subsOf, type IdAnswers } from './identify';
 import type { Entry } from './types';
 
 const E = (id: string, o: Partial<Entry>): Entry => ({ id, tier: 'full', sci: id, group: 'fish', sub: 'snappers', en: [id], es: [], ...o }) as Entry;
@@ -30,7 +30,20 @@ describe('identify', () => {
     expect(subsOf(LIST, 'sharks-rays')).toEqual(['sharks', 'rays']);
     expect(subsOf(LIST, 'fish')).toEqual([]);
     expect(stepsFor(LIST, A({ kind: 'animal', group: 'sharks-rays' }))).toContain('sub');
-    expect(stepsFor(LIST, A({ kind: 'plant' }))).not.toContain('group');
+    // Joseph 2026-11-17: the first question is what kind of thing it was (fish, shark, turtle, plant, coral...).
+    expect(stepsFor(LIST, A({}))[0]).toBe('group');
+    expect(stepsFor(LIST, A({}))).not.toContain('kind' as never);
+  });
+});
+
+describe('the first question', () => {
+  it('offers every group, plants included, in one grid', () => {
+    expect(groupsOf()).toContain('plants-algae');
+    expect(groupsOf()).toContain('reptiles-mammals');
+    expect(groupsOf().length).toBe(12);
+  });
+  it('holds plants to their own group', () => {
+    expect(identify(LIST, A({ group: 'plants-algae' })).map((r) => r.e.id)).toEqual(['turtle-grass']);
   });
 });
 
