@@ -13,21 +13,20 @@
  * written out by render.ts, which are pure and tested.
  */
 import { t, type Key } from '../i18n';
-import { localDayStart, sunTimes, type SunTimes } from '../physics/astro';
+import { localDayStart } from '../physics/astro';
 import { REGION, SPOTS, SPOT_RENAMES } from '../region';
 import { localClock } from '../tide-chart';
 import type { Spot } from '../metrics/forecast';
 import type { Plan } from '../metrics/plan';
 import { drawRadar, heroParams, HeroEngine, numVar, VMAX } from './art';
 import { bestBands, chartLayout, drawChartBase, drawChartTop, rowsFor, type ChartLayout } from './charts';
-import { clamp, parseCol, readTokens, rgba, TAU, type Tokens, type TokenName } from './kit';
+import { clamp, readTokens, rgba, TAU, type Tokens, type TokenName } from './kit';
 import { drawTile } from './tiles';
 import {
-  bestHtml, chartLabelsHtml, chipsHtml, daysHtml, esc, outlookHtml, rateHtml, readoutHtml, shellHtml, spotsHtml, tilesHtml,
+  bestHtml, chartLabelsHtml, chipsHtml, daysHtml, esc, rateHtml, readoutHtml, shellHtml, spotsHtml, tilesHtml,
 } from './render';
-import { dockCells, dockCellsHtml, dockMarks, drawDockStrip, stripHourAt, stripRange } from './dock';
 import {
-  bestTimeView, coverPlace, dayDate, dayLabel, daysView, heroView, n0, n1, outlookView, readoutView, rowText, sentence, spotView, tilesFor, titleCase,
+  bestTimeView, coverPlace, dayDate, dayLabel, daysView, heroView, n0, n1, readoutView, rowText, sentence, spotView, tilesFor, titleCase,
   type TileView, type ViewCtx,
 } from './view';
 import {
@@ -39,8 +38,6 @@ import './fonts';
 import './forecast.css';
 
 const H = 3.6e6, DAY = 864e5;
-/** A small sun for the dock's daylight hours. */
-const SUN_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6 13 13M3 13l1.4-1.4M11.6 4.4 13 3"/></svg>';
 const TZ = REGION.tzOffsetH;
 import { loadCraft, saveCraft } from '../paddle-craft';
 const ACT_KEY = 'ft.fcActivity';
@@ -119,8 +116,6 @@ export function mountForecastPage(deps: ForecastDeps) {
   const media = window.matchMedia?.('(prefers-color-scheme: dark)');
   const scheme = () => (get(storage, SCHEME_KEY) as 'light' | 'dark' | null) ?? (media?.matches ? 'dark' : 'light');
   let T: Tokens | null = null;
-  /** The hero reads its own tokens: in the dark scheme it is glass tinted with the rating, inked in the bright accent (forecast.css). */
-  const heroTokens = () => readTokens($('fc-hero'));
   const applyScheme = () => {
     const s = scheme();
     el.dataset.scheme = s;
@@ -128,7 +123,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     if (el.hidden) return;
     themeMeta();
     T = readTokens(el);
-    engine.setTokens(heroTokens(), true);
+    engine.setTokens(T, true);
     chartDirty = true;
     drawAll(true);
   };
@@ -331,11 +326,10 @@ export function mountForecastPage(deps: ForecastDeps) {
     return v;
   };
   const renderSpots = () => {
-    // The cards follow the page's hour (the dock, a day bar, the chart), so every beach reads at the same time.
-    const now = when();
+    const now = nowHour();
     const cur = spot().name;
-    $('fc-spots-cap').textContent = sel === null ? t('fc.spotsCap', { act: actWord() }) : t('fc.spotsCapAt', { act: actWord(), time: `${dayDate(now)} ${localClock(now)}` });
-    html('fc-spots', spotsHtml(spots().map((s) => ({ id: s.name, ...spotView(s, read(s, now), stripOf(s, now), hourWeather(deps.env, s, now)) })), cur, sel === null ? t('fc.now') : localClock(now)));
+    $('fc-spots-cap').textContent = t('fc.spotsCap', { act: actWord() });
+    html('fc-spots', spotsHtml(spots().map((s) => ({ id: s.name, ...spotView(s, read(s, now), stripOf(s, now), hourWeather(deps.env, s, now)) })), cur));
     if (cur !== shownSpot) {
       shownSpot = cur;
       const rail = $('fc-spots');
@@ -349,7 +343,7 @@ export function mountForecastPage(deps: ForecastDeps) {
   };
 
   // --- conditions tiles
-  let tiles: { el: HTMLElement; cv: HTMLCanvasElement; c: CanvasRenderingContext2D; w: number; h: number; v: TileView; drawn: boolean; B?: string }[] = [];
+  let tiles: { el: HTMLElement; cv: HTMLCanvasElement; c: CanvasRenderingContext2D; w: number; h: number; v: TileView; drawn: boolean }[] = [];
   const tileVis = new Set<Element>();
   const tio = 'IntersectionObserver' in window ? new IntersectionObserver((es) => es.forEach((e) => (e.isIntersecting ? tileVis.add(e.target) : tileVis.delete(e.target))), { rootMargin: '60px' }) : null;
   const sizeTiles = () => {
@@ -378,13 +372,8 @@ export function mountForecastPage(deps: ForecastDeps) {
     for (const o of tiles) {
       if (!all && !reduced && o.drawn && !tileVis.has(o.el)) continue;
       o.drawn = true;
-      // The knock-outs match the card: in the dark scheme a rated card is glass tinted with its rating (forecast.css --g).
-      if (all || !o.B) {
-        const g = getComputedStyle(o.el).getPropertyValue('--g').trim();
-        o.B = g ? rgba(parseCol(g)) : B;
-      }
       const A = o.v.kind === 'uv' && o.v.lv !== null ? rgba(T[`uv${4 - o.v.lv}` as TokenName]) : o.v.lv !== null ? rgba(T[lvTok(o.v.lv, 'ac')]) : heroA;
-      drawTile(o.v.kind, o.c, o.w, o.h, reduced ? 3.2 : tt, o.v.viz, { I, A, B: o.B, sand: T.sand, reduced, words });
+      drawTile(o.v.kind, o.c, o.w, o.h, reduced ? 3.2 : tt, o.v.viz, { I, A, B, sand: T.sand, reduced, words });
     }
   };
   const renderTiles = (anim: boolean) => {
@@ -422,117 +411,6 @@ export function mountForecastPage(deps: ForecastDeps) {
     if (changed && anim && !reduced)
       $('fc-days').querySelectorAll<HTMLElement>('.fc-bar').forEach((b, i) => b.animate?.([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], { duration: 620, delay: i * 50, easing: 'cubic-bezier(.7,0,.2,1)', fill: 'backwards' }));
   };
-
-  // --- days 8 to 16: worked out once the section nears the screen (16 days of windows is more work than the week's 7).
-  // Nothing past day 16: the models stop there and a forecast further out is no use (Joseph 2026-11-17).
-  let olVis = false;
-  let olKey = '';
-  let plan16: Plan | null = null;
-  const renderOutlook = () => {
-    if (!olVis || !plan) return;
-    const sp = spot();
-    const k = `${planKey}|${dataVer()}`;
-    if (k !== olKey) (plan16 = daysAt(deps, act, sp, Date.now(), 16)), (olKey = k);
-    if (!plan16) return;
-    html('fc-outlook', outlookHtml(outlookView(plan16, (ms) => read(sp, ms)), t('fc.ol.less')));
-    const on = sel === null ? -1 : Math.floor((localDayStart(sel, TZ) - plan16.startMs) / DAY);
-    $('fc-outlook').querySelectorAll<HTMLElement>('.fc-olr').forEach((b) => b.classList.toggle('on', Number(b.dataset.i) === on));
-  };
-
-  // --- the time dock: the hour the whole page shows, 24 hour cells and the week as a strip to drag along
-  const dk = { w: 0, h: 0 };
-  const dkc = ($('fc-dk-cv') as HTMLCanvasElement).getContext('2d')!;
-  const sizeDock = () => {
-    const cv = $('fc-dk-cv') as HTMLCanvasElement;
-    const r = $('fc-dk-strip').getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    dk.w = r.width;
-    dk.h = r.height;
-    cv.width = Math.max(1, Math.round(r.width * dpr));
-    cv.height = Math.max(1, Math.round(r.height * dpr));
-    dkc.setTransform(dpr, 0, 0, dpr, 0, 0);
-  };
-  /** Sunrise and sunset of an hour's local day at the spot, kept per day. */
-  const suns = new Map<string, SunTimes>();
-  const sunOf = (ms: number): SunTimes => {
-    const d = localDayStart(ms, TZ), [lng, lat] = spot().lngLat, k = `${d}|${lng}|${lat}`;
-    let v = suns.get(k);
-    if (!v) {
-      if (suns.size > 80) suns.clear();
-      suns.set(k, (v = sunTimes(d, lat, lng)));
-    }
-    return v;
-  };
-  const dayInitial = (ms: number) => dayDate(ms).replace(/^(\S)\S*\s/, '$1');
-  const renderDock = () => {
-    const ms = when();
-    $('fc-dk-when').textContent = `${sel === null ? t('fc.now') : dayDate(ms)} · ${localClock(ms)}`;
-    const sun = sunOf(ms);
-    $('fc-dk-sun').innerHTML = sun.sunrise !== null && sun.sunset !== null ? `${SUN_ICON}<span>${esc(t('fc.dock.sun', { rise: localClock(sun.sunrise), set: localClock(sun.sunset) }))}</span>` : '';
-    $('fc-dk-sun').title = sun.sunrise !== null && sun.sunset !== null ? t('fc.dock.sunTitle', { rise: localClock(sun.sunrise), set: localClock(sun.sunset) }) : '';
-    $('fc-dk-now').hidden = sel === null;
-    const sp = spot();
-    const cells = dockCells(tl, nowHour(), ms, (x) => localDayStart(x, TZ), (x) => {
-      const s2 = sunOf(x);
-      return { level: read(sp, x).level, day: s2.sunrise !== null && s2.sunset !== null && x + H / 2 >= s2.sunrise && x + H / 2 < s2.sunset };
-    });
-    html('fc-dk-cells', dockCellsHtml(cells, (x) => `${dayDate(x)} ${localClock(x)}`));
-    html('fc-dk-marks', dockMarks(cells, localClock).map((m) => `<span>${esc(m)}</span>`).join(''));
-    drawDock();
-  };
-  const drawDock = () => {
-    if (!T || !tl.length) return;
-    if (!dk.w) sizeDock();
-    const range = stripRange(tl, nowHour());
-    const wins = (plan?.days ?? []).flatMap((d) => (d ? [{ startMs: d.startMs, endMs: d.endMs }] : []));
-    drawDockStrip(dkc, dk.w, dk.h, tl, range, tlIndex(when()), wins, T, dayInitial, (x) => localDayStart(x, TZ));
-    const st = $('fc-dk-strip');
-    st.setAttribute('aria-valuemax', String(Math.max(0, range[1] - range[0] - 1)));
-    st.setAttribute('aria-valuenow', String(Math.max(0, tlIndex(when()) - range[0])));
-    st.setAttribute('aria-valuetext', `${dayDate(when())} ${localClock(when())}`);
-  };
-  {
-    let scrub = false, want: number | null = null, rq = 0;
-    const go = () => {
-      rq = 0;
-      if (want === null) return;
-      const ms = want;
-      want = null;
-      if (ms !== when()) pick(ms <= nowHour() ? null : ms, false, true);
-    };
-    const at = (clientX: number) => {
-      const r = $('fc-dk-strip').getBoundingClientRect();
-      const i = stripHourAt((clientX - r.left) / Math.max(1, r.width), stripRange(tl, nowHour()));
-      if (!tl[i]) return;
-      want = tl[i].ms;
-      if (!rq) rq = requestAnimationFrame(go);
-    };
-    const st = $('fc-dk-strip');
-    st.addEventListener('pointerdown', (e) => {
-      scrub = true;
-      st.setPointerCapture?.(e.pointerId);
-      at(e.clientX);
-    });
-    st.addEventListener('pointermove', (e) => scrub && at(e.clientX));
-    const end = () => (scrub = false);
-    st.addEventListener('pointerup', end);
-    st.addEventListener('pointercancel', end);
-    st.addEventListener('keydown', (e) => {
-      const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : e.key === 'PageDown' ? 24 : e.key === 'PageUp' ? -24 : 0;
-      if (!step || !tl.length) return;
-      e.preventDefault();
-      const [a, b] = stripRange(tl, nowHour());
-      const i = clamp(tlIndex(when()) + step, a, b - 1);
-      pick(tl[i].ms <= nowHour() ? null : tl[i].ms, false, true);
-    });
-    $('fc-dk-cells').addEventListener('click', (e) => {
-      const b = (e.target as HTMLElement).closest<HTMLElement>('[data-ms]');
-      if (!b || b.hasAttribute('disabled')) return;
-      const ms = Number(b.dataset.ms);
-      pick(ms <= nowHour() ? null : ms, false);
-    });
-    $('fc-dk-now').addEventListener('click', () => pick(null, true));
-  }
 
   // --- hour by hour
   let L: ChartLayout | null = null;
@@ -761,15 +639,13 @@ export function mountForecastPage(deps: ForecastDeps) {
       drawBase();
       drawTop(3);
       drawLive(3.2);
-      drawDock();
     }
   };
   if ('IntersectionObserver' in window) {
     new IntersectionObserver((es) => ((heroVis = es[0].isIntersecting), kick())).observe($('fc-hero'));
     new IntersectionObserver((es) => ((chartVis = es[0].isIntersecting), kick())).observe($('fc-hx'));
     new IntersectionObserver((es) => ((liveVis = es[0].isIntersecting), liveVis && ensureShot(), kick())).observe($('fc-radar'));
-    new IntersectionObserver((es) => (olVis = olVis || es[0].isIntersecting) && renderOutlook(), { rootMargin: '400px' }).observe($('fc-ol-sec'));
-  } else (chartVis = liveVis = olVis = true), ensureShot();
+  } else (chartVis = liveVis = true), ensureShot();
   document.addEventListener('visibilitychange', kick);
   motionQ?.addEventListener?.('change', (e) => {
     reduced = e.matches;
@@ -780,36 +656,30 @@ export function mountForecastPage(deps: ForecastDeps) {
 
   const render = (anim = false) => {
     if (el.hidden) return;
-    if (!T) (T = readTokens(el)), engine.setTokens(heroTokens(), true);
+    if (!T) (T = readTokens(el)), engine.setTokens(T, true);
     ensureData();
     renderTabs();
     renderHero();
     renderSpots();
     renderTiles(anim);
     renderDays(anim);
-    renderOutlook();
     renderChart(anim);
     renderRadar();
-    renderDock();
     kick();
   };
 
   /** Move the hero to an hour (a day, the best time, a chart hour); null goes back to now. */
-  const pick = (ms: number | null, scroll: boolean, scrubbing = false) => {
+  const pick = (ms: number | null, scroll: boolean) => {
     sel = ms;
     cursorI = null;
     renderHero();
-    renderSpots();
     renderTiles(false);
     renderDays(false);
-    renderOutlook();
     renderReadout();
-    renderDock();
     if (reduced || !chartVis) drawTop(3);
     const i = ms === null ? -1 : tlIndex(ms);
-    if (scroll && i >= 0 && i < tl.length && L) $('fc-tl').scrollTo({ left: Math.max(0, (i - 3) * L.px), behavior: reduced ? 'auto' : 'smooth' });
-    // A flash on a tap; none while a finger drags the dock (it would strobe).
-    if (!reduced && !scrubbing) $('fc-hero').animate?.([{ filter: 'brightness(1.12)' }, { filter: 'none' }], { duration: 600, easing: 'ease-out' });
+    if (scroll && i >= 0 && L) $('fc-tl').scrollTo({ left: Math.max(0, (i - 3) * L.px), behavior: reduced ? 'auto' : 'smooth' });
+    if (!reduced) $('fc-hero').animate?.([{ filter: 'brightness(1.12)' }, { filter: 'none' }], { duration: 600, easing: 'ease-out' });
   };
 
   // --- events
@@ -935,10 +805,6 @@ export function mountForecastPage(deps: ForecastDeps) {
     pick(i === 0 && !d ? null : (d?.startMs ?? plan.startMs + i * DAY + 12 * H), true);
   });
   $('fc-now').addEventListener('click', () => pick(null, true));
-  $('fc-outlook').addEventListener('click', (e) => {
-    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-ms]');
-    if (b) pick(Number(b.dataset.ms), false);
-  });
   $('fc-back').addEventListener('click', () => close());
   el.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') (e.stopPropagation(), close());
@@ -954,8 +820,6 @@ export function mountForecastPage(deps: ForecastDeps) {
       fitHero();
       sizeTiles();
       sizeLive();
-      sizeDock();
-      drawDock();
       placeBar();
       renderChart(false);
       drawAll();
