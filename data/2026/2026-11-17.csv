@@ -13907,3 +13907,7 @@ t,site,source,model,var,value,issued
 2026-11-17T17:00Z,MRLM,metar,,pressureHpa,1012.6,
 2026-11-17T16:55Z,limon,gauge,,levelM,0.0704,
 2026-11-17T16:55Z,limon,gauge,,tideM,0.051103,
+2026-11-17T17:05Z,limon,gauge,,levelM,0.0683,
+2026-11-17T17:05Z,limon,gauge,,tideM,0.051574,
+2026-11-17T17:15Z,limon,gauge,,levelM,0.0662,
+2026-11-17T17:15Z,limon,gauge,,tideM,0.052441,
