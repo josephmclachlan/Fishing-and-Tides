@@ -8,7 +8,8 @@ import { t, type Key } from '../i18n';
 import { UI } from '../icons/ui';
 import { artFor, artSvg, GROUP_ART } from './art';
 import { fishKindFor } from '../fishing/guide-link';
-import { citeTab } from './cite';
+import { citePage } from './cite';
+import { runPath, RUN_TOKENS } from '../brand';
 import { cleanHtml, dispatchLinkHtml, hasDispatch } from './clean';
 import {
   FLAGS, GROUP_BYS, hurtsToTouch, isFood, latinOnly, nameOf, poisonToEat, riskToEat, SIZE_BANDS, SORTS, TOUCH_KINDS, touchLevel,
@@ -27,11 +28,12 @@ export const icon = (body: string, cls = '') => `<svg viewBox="0 0 24 24" aria-h
 
 /** A link from a ciguatera warning to the CIGUATERA page (PLAN 7.101). */
 /** Ciguatera size advice for this species: the limit to keep, whether it is published or an estimate, and why. */
-export function ciguaSizeHtml(c: NonNullable<Species['eat']>['ciguaSize'], lang: Lang): string {
+export function ciguaSizeHtml(c: NonNullable<Species['eat']>['ciguaSize'], lang: Lang, fold = false): string {
   if (!c || !txt(c.advice, lang)) return '';
   const lim = [c.maxCm ? `${c.maxCm} cm` : '', c.maxKg ? `${c.maxKg} kg` : ''].filter(Boolean).join(' · ');
   const head = lim ? `<p class="gd-csz"><b>${esc(t('gd.csz.keep', { lim }))}</b> <span class="gd-b">${esc(t(`gd.csz.${c.basis}` as Key))}</span></p>` : `<p class="gd-csz"><span class="gd-b">${esc(t(`gd.csz.${c.basis}` as Key))}</span></p>`;
-  return block(t('gd.h.ciguaSize'), head + paras(txt(c.advice, lang)), 'gd-warn');
+  // On the species page the reason waits under "Why this size"; the size itself always shows.
+  return block(t('gd.h.ciguaSize'), head + (fold ? foldHtml(t('gd.ciguaWhy'), paras(txt(c.advice, lang))) : paras(txt(c.advice, lang))), 'gd-warn');
 }
 
 const ciguateraLink = (risks: readonly string[]): string =>
@@ -300,7 +302,7 @@ export function emergencyHtml(s: Pick<Species, 'edible' | 'eat'>): string {
 export function tabsFor(s: Species): GdTab[] {
   const out: GdTab[] = ['about'];
   if (s.idTips || s.variants?.length || s.lookalikes?.length || s.look?.marks) out.push('id');
-  if (s.diet || s.predators || s.behaviour || s.reproduction || s.lifespan) out.push('life');
+  if (s.about || s.facts?.length || s.diet || s.predators || s.behaviour || s.reproduction || s.lifespan) out.push('life');
   // Shown for every species with food notes, not only the edible list: a banned or risky one carries a banner (emergencyHtml).
   if (s.eat && (isFood(s) || hasEatInfo(s.eat))) out.push('catch');
   if (s.eat?.clean || s.eat?.cleanNotes) out.push('clean');
@@ -311,14 +313,17 @@ export function tabsFor(s: Species): GdTab[] {
 
 export interface DetailOpts {
   lang: Lang;
-  tab: GdTab;
+  /** The section the page was opened at (page.ts scrolls to it). */
+  tab?: GdTab;
   base: string;
   /** Position in the current list, for the arrows. */
   pos?: { i: number; n: number; prev?: string; next?: string };
   /** The link to another species (look-alikes), or null when it is not in the guide. */
   link: (sci: string) => string | null;
-  /** The link to one of this species' tabs. */
+  /** The link to one of this species' sections. */
   tabHref: (tab: GdTab) => string;
+  /** A look-alike's name in the reader's language and its bundled thumbnail, when it is in the guide. */
+  peer?: (sci: string) => { name: string; thumb?: string } | null;
   /** Whether the reader has saved it. */
   fav?: boolean;
 }
@@ -364,17 +369,22 @@ function factTiles(s: Species, lang: Lang): string {
     .join('')}</div>`;
 }
 
-function statusBadges(s: Species, lang: Lang): string {
+/**
+ * The species' badges. `top` is the set under its name: the four answers already say whether it is food, whether it
+ * hurts, whether it is illegal and whether it is recorded here, so only the rest show there (the Sources section shows
+ * them all).
+ */
+function statusBadges(s: Species, lang: Lang, top = false): string {
   const out: string[] = [];
   if (s.tier === 'list') out.push(`<span class="gd-b rec">${esc(t('gd.recordsOnly'))}</span>`);
-  if (s.rec && s.rec !== 'here') out.push(`<span class="gd-b rec" title="${esc(s.recWhy ?? '')}">${esc(t(s.rec === 'near' ? 'gd.rec.near' : 'gd.rec.none'))}</span>`);
-  if (s.danger) out.push(`<span class="gd-b dz l${s.danger.level}">${icon(ICONS.danger)}${esc(tx(LEVEL_WORDS[s.danger.level], lang))}</span>`);
+  if (!top && s.rec && s.rec !== 'here') out.push(`<span class="gd-b rec" title="${esc(s.recWhy ?? '')}">${esc(t(s.rec === 'near' ? 'gd.rec.near' : 'gd.rec.none'))}</span>`);
+  if (!top && s.danger) out.push(`<span class="gd-b dz l${s.danger.level}">${icon(ICONS.danger)}${esc(tx(LEVEL_WORDS[s.danger.level], lang))}</span>`);
   const st = s.status;
   const ban = bannedHere({ edible: s.edible, illegal: s.eat?.illegal, protectedCR: st?.protectedCR });
   // "Illegal" already says "do not take" (Joseph 2026-11-16: one word for the law, ratings in words).
-  if (s.edible && !(ban && s.edible === 'protected')) out.push(`<span class="gd-b ed-${s.edible}">${s.edible === 'yes' || s.edible === 'caution' || s.edible === 'toxic' ? icon(ICONS.edible) : s.edible === 'protected' ? icon(ICONS.shield) : ''}${esc(tx(EDIBLE_WORDS[s.edible], lang))}</span>`);
-  if (ban) out.push(`<span class="gd-b iucn i-CR">${icon(ICONS.shield)}${esc(illegalWords(st?.iucn, lang))}</span>`);
-  if (st?.iucn && st.iucn !== 'NE' && !(ban && THREAT.has(st.iucn))) out.push(`<span class="gd-b iucn i-${st.iucn}">${esc(tx(IUCN_WORDS[st.iucn], lang))}</span>`);
+  if (!top && s.edible && !(ban && s.edible === 'protected')) out.push(`<span class="gd-b ed-${s.edible}">${s.edible === 'yes' || s.edible === 'caution' || s.edible === 'toxic' ? icon(ICONS.edible) : s.edible === 'protected' ? icon(ICONS.shield) : ''}${esc(tx(EDIBLE_WORDS[s.edible], lang))}</span>`);
+  if (ban && !top) out.push(`<span class="gd-b iucn i-CR">${icon(ICONS.shield)}${esc(illegalWords(st?.iucn, lang))}</span>`);
+  if (st?.iucn && st.iucn !== 'NE' && !(ban && THREAT.has(st.iucn) && !top)) out.push(`<span class="gd-b iucn i-${st.iucn}">${esc(tx(IUCN_WORDS[st.iucn], lang))}</span>`);
   if (st?.cites) out.push(`<span class="gd-b prot">${icon(ICONS.shield)}CITES ${esc(st.cites)}</span>`);
   if (st?.origin === 'invasive' || st?.origin === 'introduced') out.push(`<span class="gd-b introd">${esc(t('gd.flag.introduced'))}</span>`);
   // No "Not confirmed" here: it read as if the species itself were unconfirmed (snook). It sits beside the line
@@ -400,117 +410,231 @@ const releaseNote = (s: Species): Key | undefined =>
     : undefined;
 const checkMark = () => ` <span class="gd-b chk" title="${esc(t('gd.checkTitle'))}">${icon(ICONS.check)}${esc(t('gd.check'))}</span>`;
 
-function tabBody(s: Species, tab: GdTab, o: DetailOpts): string {
+// ------------------------------------------------------------------ one page per species (Joseph 2026-11-17, option E)
+
+/**
+ * The page's sections, in reading order. The keys are the old tab keys, so `#guide/<view>/<id>/<tab>` links still work:
+ * they open the page at that section. Look first (it answers "what is it?"), then where, life, catch, clean, safety
+ * and sources.
+ */
+export const SECTION_ORDER: readonly GdTab[] = ['id', 'about', 'life', 'catch', 'clean', 'safety', 'sources'];
+
+const SEC_ICONS: Record<GdTab, string> = {
+  id: '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  about: '<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
+  life: '<path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14"/><path d="M5 19l8-8"/>',
+  catch: '<path d="M16 3v11a4.5 4.5 0 0 1-9 0v-2"/><path d="M7 12l-2.5 2.5"/><circle cx="16" cy="3" r="1"/>',
+  clean: '<path d="M3 17l11-11 4 4-11 11H3z"/><path d="M14 6l2-2 4 4-2 2"/>',
+  safety: '<path d="M12 2.8l7.5 2.7v6c0 4.8-3.2 8.3-7.5 9.9-4.3-1.6-7.5-5.1-7.5-9.9v-6z"/><path d="M12 8v5M12 15.5v.5"/>',
+  sources: '<path d="M4 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z"/><path d="M20 4h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/>',
+};
+
+/**
+ * A text cut after its first sentence when it is long: the first sentence shows, the rest waits under "More"
+ * (Joseph 2026-11-16: never walls of text; 2026-11-17: keep every word of the research). A sentence ends at . ! or ?
+ * (and any source markers after it) followed by a capital, a number or the end, so "e.g. three" does not end one.
+ */
+export function splitLead(text: string, max = 26): [string, string] {
+  const s = text.trim();
+  if (s.split(/\s+/).length <= max) return [s, ''];
+  const first = s.split(/\n\s*\n/)[0];
+  const m = /^[\s\S]*?[.!?](?:\[\^\d+\])*(?=\s+[\p{Lu}\d"“¿¡(]|$)/u.exec(first);
+  const lead = (m ? m[0] : first).trim();
+  const rest = s.slice(s.indexOf(lead) + lead.length).trim();
+  // Not worth a button for a few words.
+  return rest.split(/\s+/).length < 6 ? [s, ''] : [lead, rest];
+}
+
+/** A long text as its first sentence, with the rest under "More". */
+function lead(v: Txt | string | undefined, lang: Lang, cls = '', more = t('gd.fold')): string {
+  const s = typeof v === 'string' ? v.trim() : txt(v, lang);
+  if (!s) return '';
+  const [a, b] = splitLead(s);
+  return `<p${cls ? ` class="${cls}"` : ''}>${esc(a).replace(/\n\s*\n/g, '</p><p>')}</p>${b ? foldHtml(more, paras(b)) : ''}`;
+}
+const foldHtml = (label: string, body: string, cls = '') => `<details class="gd-fold${cls ? ` ${cls}` : ''}"><summary>${esc(label)}</summary><div>${body}</div></details>`;
+
+/** How common: N of the SurCast mark's 8 runs lit (Abundant 8 down to No recent sightings 1). */
+const SEEN_RUNS: Record<string, number> = { common: 8, frequent: 6, occasional: 4, rare: 2, records: 1 };
+export function seenMark(n: number): string {
+  return `<svg class="gd-ens" viewBox="2 2 60 60" aria-hidden="true">${RUN_TOKENS.map((k, i) => `<path class="${i < n ? `on r-${k}` : 'off'}" d="${runPath(i)}"/>`).join('')}<circle cx="9" cy="53" r="3"/></svg>`;
+}
+
+interface Answer { k: 'eat' | 'hurts' | 'rules' | 'here'; word: string; tone: 'ok' | 'warn' | 'bad' | 'info' | 'none'; ico: string; to: GdTab }
+
+/** The four things people ask first (Joseph 2026-11-17): can I eat it, does it hurt, what are the rules, is it here. */
+export function answers(s: Species, lang: Lang, has: (k: GdTab) => boolean): Answer[] {
+  const e = s.eat;
+  const ban = bannedHere({ edible: s.edible, illegal: e?.illegal, protectedCR: s.status?.protectedCR });
+  const pick = (...ks: GdTab[]) => ks.find(has) ?? 'about';
+  const eat: Answer = ban
+    ? { k: 'eat', word: t('gd.flag.illegalShort'), tone: 'bad', ico: ICONS.shield, to: pick('catch', 'safety') }
+    : s.edible === 'yes' ? { k: 'eat', word: tx(EDIBLE_WORDS.yes, lang), tone: 'ok', ico: ICONS.edible, to: pick('catch', 'safety') }
+    : s.edible === 'caution' ? { k: 'eat', word: t('gd.ans.care'), tone: 'warn', ico: ICONS.edible, to: pick('catch', 'safety') }
+    : s.edible === 'toxic' ? { k: 'eat', word: t('gd.ans.poison'), tone: 'bad', ico: ICONS.edible, to: pick('safety', 'catch') }
+    : { k: 'eat', word: s.edible === 'no' ? tx(EDIBLE_WORDS.no, lang) : t('gd.ans.unknown'), tone: 'none', ico: ICONS.edible, to: pick('catch', 'safety') };
+  const kinds = (s.danger?.kinds ?? []).filter((k) => k !== 'toxic-to-eat');
+  const eatOnly = !kinds.length && (s.danger?.kinds?.includes('toxic-to-eat') || s.edible === 'toxic' || !!e?.risks?.some((r) => r !== 'spines'));
+  const hurts: Answer = kinds.length
+    ? { k: 'hurts', word: tx(KIND_WORDS[kinds[0]], lang), tone: (s.danger?.level ?? 1) >= 2 ? 'bad' : 'warn', ico: ICONS.danger, to: pick('safety') }
+    : eatOnly ? { k: 'hurts', word: t('gd.ans.ifEaten'), tone: 'warn', ico: ICONS.danger, to: pick('safety') }
+    : { k: 'hurts', word: t('gd.ans.noHarm'), tone: 'ok', ico: '<path d="M5 12.5l4.5 4.5L19 7.5"/>', to: pick('safety', 'about') };
+  const rules: Answer = ban
+    ? { k: 'rules', word: t('gd.flag.illegalShort'), tone: 'bad', ico: ICONS.shield, to: pick('catch', 'safety', 'sources') }
+    : txt(e?.rules, lang) ? { k: 'rules', word: t(e?.rulesCheck ? 'gd.check' : 'gd.ans.seeRules'), tone: 'info', ico: ICONS.shield, to: pick('catch') }
+    : { k: 'rules', word: t('gd.ans.noRules'), tone: 'none', ico: ICONS.shield, to: pick('catch', 'sources') };
+  const here: Answer =
+    s.rec && s.rec !== 'here'
+      ? { k: 'here', word: t(s.rec === 'near' ? 'gd.rec.near' : 'gd.rec.none'), tone: 'none', ico: '', to: 'about' }
+      : s.tier === 'list' || !s.seen ? { k: 'here', word: t('gd.ans.records'), tone: 'none', ico: '', to: pick('sources', 'about') }
+      : { k: 'here', word: tx(SEEN_WORDS[s.seen], lang), tone: 'info', ico: '', to: 'about' };
+  return [eat, hurts, rules, here];
+}
+
+function answersHtml(s: Species, o: DetailOpts, has: (k: GdTab) => boolean): string {
+  const runs = s.rec && s.rec !== 'here' ? 0 : SEEN_RUNS[s.seen ?? ''] ?? 0;
+  return `<nav class="gd-ans" aria-label="${esc(t('gd.ans.title'))}">${answers(s, o.lang, has)
+    .map((a) => `<a class="gd-an t-${a.tone}" href="${esc(o.tabHref(a.to))}" data-jump="${a.to}"><span class="q fc-mono">${esc(t(`gd.ans.${a.k}` as Key))}</span>${a.k === 'here' ? seenMark(runs) : icon(a.ico, 'gd-an-i')}<b>${esc(a.word)}</b></a>`)
+    .join('')}</nav>`;
+}
+
+/** Look-alikes as photo pairs: this species beside the one it is mixed up with, and the tip that tells them apart. */
+function lookalikesHtml(s: Species, o: DetailOpts): string {
+  if (!s.lookalikes?.length) return '';
+  const me = s.photos?.[0]?.src;
+  const myName = nameOf({ en: s.names?.en ?? [], es: s.names?.es ?? [], sci: s.sci }, o.lang);
+  const fig = (src: string | undefined, name: string, cls: string, href?: string | null) => {
+    const img = src ? `<img src="${esc(src)}" alt="" loading="lazy" decoding="async">` : `<span class="gd-la-na g-${s.group}">${artSvg(artFor(s.group, s.sub), 'gd-gal-art')}</span>`;
+    return `<figure class="${cls}">${href ? `<a href="${esc(href)}">${img}</a>` : img}<figcaption>${esc(name)}</figcaption></figure>`;
+  };
+  return block(
+    t('gd.h.lookalikes'),
+    `<ul class="gd-la">${s.lookalikes
+      .map((l) => {
+        const href = o.link(l.sci);
+        const peer = o.peer?.(l.sci);
+        return `<li><div class="gd-la-pair">${fig(me, myName, 'me')}${fig(peer?.thumb, peer?.name ?? l.sci, 'it', href)}</div><p>${esc(txt(l.tip, o.lang))}</p></li>`;
+      })
+      .join('')}</ul>`,
+  );
+}
+
+function sectionBody(s: Species, k: GdTab, o: DetailOpts, has: (k: GdTab) => boolean): string {
   const { lang } = o;
   const e = s.eat;
-  switch (tab) {
-    case 'about':
-      return (
-        (txt(s.about, lang) ? paras(txt(s.about, lang), 'gd-lede') : '') +
-        factsHtml(s, lang) +
-        block(t('gd.h.where'), pText(s.where, lang)) +
-        block(t('gd.h.season'), pText(s.season, lang)) +
-        block(t('gd.k.habitat'), chips((s.habitats ?? []).map((h) => tx(HABITAT_WORDS[h], lang)))) +
-        block(t('gd.k.meet'), chips((s.encounter ?? []).map((h) => tx(ENCOUNTER_WORDS[h], lang)))) +
-        (s.tier === 'list' && txt(s.note, lang) ? block(t('gd.recordsOnly'), pText(s.note, lang)) : '')
-      );
+  switch (k) {
     case 'id':
       return (
         block(t('gd.h.marks'), s.look?.marks && !s.look.guessed ? `<p class="gd-lede">${esc(txt(s.look.marks, lang))}</p>` : '') +
-        block(t('gd.h.idTips'), pText(s.idTips, lang)) +
-        block(t('gd.h.variants'), s.variants?.length ? `<dl class="gd-dl">${s.variants.map((v) => `<dt>${esc(tx(VARIANT_WORDS[v.key], lang))}</dt><dd>${esc(txt(v.text, lang))}</dd>`).join('')}</dl>` : '') +
-        block(
-          t('gd.h.lookalikes'),
-          s.lookalikes?.length
-            ? `<ul class="gd-look">${s.lookalikes
-                .map((l) => {
-                  const href = o.link(l.sci);
-                  return `<li>${href ? `<a href="${esc(href)}"><i>${esc(l.sci)}</i></a>` : `<i>${esc(l.sci)}</i>`}<span>${esc(txt(l.tip, lang))}</span></li>`;
-                })
-                .join('')}</ul>`
-            : '',
-        )
+        lookalikesHtml(s, o) +
+        block(t('gd.h.idTips'), lead(s.idTips, lang)) +
+        block(t('gd.h.variants'), s.variants?.length ? `<dl class="gd-dl">${s.variants.map((v) => `<dt>${esc(tx(VARIANT_WORDS[v.key], lang))}</dt><dd>${lead(v.text, lang)}</dd>`).join('')}</dl>` : '')
+      );
+    case 'about':
+      return (
+        factTiles(s, lang) +
+        block(t('gd.h.where'), lead(s.where, lang)) +
+        block(t('gd.h.season'), lead(s.season, lang)) +
+        block(t('gd.k.habitat'), chips((s.habitats ?? []).map((h) => tx(HABITAT_WORDS[h], lang)))) +
+        block(t('gd.k.meet'), chips((s.encounter ?? []).map((h) => tx(ENCOUNTER_WORDS[h], lang)))) +
+        (s.tier === 'list' && txt(s.note, lang) ? block(t('gd.recordsOnly'), lead(s.note, lang)) : '')
       );
     case 'life':
       return (
-        block(t('gd.h.diet'), pText(s.diet, lang)) +
-        block(t('gd.h.predators'), pText(s.predators, lang)) +
-        block(t('gd.h.behaviour'), pText(s.behaviour, lang)) +
-        block(t('gd.h.repro'), pText(s.reproduction, lang)) +
-        block(t('gd.h.lifespan'), pText(s.lifespan, lang))
+        block(t('gd.h.story'), lead(s.about, lang, 'gd-lede', t('gd.readAll'))) +
+        factsHtml(s, lang) +
+        `<div class="gd-tiles2">${(
+          [['gd.h.diet', s.diet], ['gd.h.predators', s.predators], ['gd.h.behaviour', s.behaviour], ['gd.h.repro', s.reproduction], ['gd.h.lifespan', s.lifespan]] as [Key, Txt | undefined][]
+        )
+          .filter(([, v]) => txt(v, lang))
+          .map(([h, v]) => block(t(h), lead(v, lang), 'gd-tile2'))
+          .join('')}</div>`
       );
     case 'catch': {
       if (!e) return `<p>${esc(t('gd.noCatch'))}</p>`;
       const q = e.quality ? `<p class="gd-q"><span class="gd-pips" aria-label="${e.quality}/5">${pips(e.quality)}</span></p>` : '';
+      const gear = ([['gd.h.bait', e.bait], ['gd.h.lures', e.lures], ['gd.h.tackle', e.tackle], ['gd.h.when', e.when]] as [Key, Txt | undefined][]).filter(([, v]) => txt(v, lang));
       return (
         emergencyHtml(s) +
-        block(t('gd.h.taste'), q + pText(e.taste, lang)) +
-        block(t('gd.h.rules'), txt(e.rules, lang) ? paras(txt(e.rules, lang)) + (e.rulesCheck ? `<p>${checkMark()} ${esc(t('gd.checkTitle'))}</p>` : '') : '', 'gd-rules') +
+        block(t('gd.h.taste'), q + lead(e.taste, lang)) +
+        block(t('gd.h.rules'), txt(e.rules, lang) ? lead(e.rules, lang, '', t('gd.allRules')) + (e.rulesCheck ? `<p>${checkMark()} ${esc(t('gd.checkTitle'))}</p>` : '') : '', 'gd-rules') +
         (releaseNote(s) ? `<p class="gd-release">${icon(ICONS.shield)}${esc(t(releaseNote(s)!))}</p>` : '') +
         block(t('gd.h.methods'), chips((e.methods ?? []).map((m) => tx(METHOD_WORDS[m], lang)))) +
-        `<dl class="gd-dl gd-fish">${(
-          [
-            ['gd.h.bait', e.bait], ['gd.h.lures', e.lures], ['gd.h.tackle', e.tackle], ['gd.h.when', e.when], ['gd.h.whereFish', e.where], ['gd.h.howTo', e.howTo], ['gd.h.spear', e.spear],
-          ] as [Key, Txt | undefined][]
-        )
-          .filter(([, v]) => txt(v, lang))
-          .map(([k, v]) => `<dt>${esc(t(k))}</dt><dd>${esc(txt(v, lang))}</dd>`)
-          .join('')}</dl>` +
+        (gear.length ? `<div class="gd-tiles2">${gear.map(([h, v]) => block(t(h), lead(v, lang), 'gd-tile2')).join('')}</div>` : '') +
+        block(t('gd.h.whereFish'), lead(e.where, lang)) +
+        block(t('gd.h.howTo'), lead(e.howTo, lang)) +
+        block(t('gd.h.spear'), lead(e.spear, lang)) +
         (hasDispatch(s.group) ? dispatchLinkHtml(lang) : '') +
-        ciguaSizeHtml(e.ciguaSize, lang) +
-        (e.risks?.length ? block(t('gd.h.eatRisk'), chips(e.risks.map((r) => tx(RISK_WORDS[r], lang))) + pText(e.riskNote, lang) + ciguateraLink(e.risks), 'gd-warn') : '')
+        ciguaSizeHtml(e.ciguaSize, lang, true) +
+        // The risks of eating it sit once, in Safety; here a pointer to them.
+        (e.risks?.length && has('safety') ? `<p class="gd-note"><a href="${esc(o.tabHref('safety'))}" data-jump="safety">${esc(t('gd.seeRisks'))}</a></p>` : '')
       );
     }
     case 'clean':
-      return emergencyHtml(s) + cleanHtml(e?.clean, lang, e?.cleanNotes, s.group) + block(t('gd.h.cook'), pText(e?.cook, lang));
+      // The emergency banner shows once, over Catch when there is one.
+      return (has('catch') ? '' : emergencyHtml(s)) + cleanHtml(e?.clean, lang, e?.cleanNotes, s.group) + block(t('gd.h.cook'), lead(e?.cook, lang));
     case 'safety': {
       const d = s.danger;
       return (
         (d
-          ? `<section class="gd-blk gd-dz lv${d.level}"><h4 class="fc-mono">${esc(t('gd.h.danger'))} · ${esc(tx(LEVEL_WORDS[d.level], lang))}</h4>${chips(d.kinds.map((k) => tx(KIND_WORDS[k], lang)))}${pText(d.what, lang)}</section>` +
+          ? `<section class="gd-blk gd-dz lv${d.level}"><h4 class="fc-mono">${esc(t('gd.h.danger'))} · ${esc(tx(LEVEL_WORDS[d.level], lang))}</h4>${chips(d.kinds.map((k) => tx(KIND_WORDS[k], lang)))}${lead(d.what, lang)}</section>` +
+            // First aid stays whole: nobody should have to tap to read it in an emergency.
             block(t('gd.h.firstAid'), pText(d.firstAid, lang), 'gd-aid')
           : '') +
-        (e?.risks?.length ? block(t('gd.h.eatRisk'), chips(e.risks.map((r) => tx(RISK_WORDS[r], lang))) + pText(e.riskNote, lang) + ciguateraLink(e.risks), 'gd-warn') : '') +
-        ciguaSizeHtml(e?.ciguaSize, lang) +
-        block(t('gd.h.edible'), (s.edible ? `<p><b>${esc(tx(EDIBLE_WORDS[s.edible], lang))}</b></p>` : '') + pText(s.edibleNote, lang)) +
+        (e?.risks?.length ? block(t('gd.h.eatRisk'), chips(e.risks.map((r) => tx(RISK_WORDS[r], lang))) + lead(e.riskNote, lang) + ciguateraLink(e.risks), 'gd-warn') : '') +
+        // The catch section already shows the size to keep; here only for a species with no catch section.
+        (has('catch') ? '' : ciguaSizeHtml(e?.ciguaSize, lang, true)) +
+        block(t('gd.h.edible'), (s.edible ? `<p><b>${esc(tx(EDIBLE_WORDS[s.edible], lang))}</b></p>` : '') + lead(s.edibleNote, lang)) +
         (d || s.edible === 'toxic' || e?.risks?.length ? sosHtml() : '')
       );
     }
     case 'sources':
       return (
+        statusBadges(s, lang, false) +
         block(t('gd.h.local'), s.recWhy ? `<p>${esc(s.recWhy)}${s.recCheck ? checkMark() : ''}</p>` : '') +
         block(t('gd.h.check'), txt(s.check, lang) ? `<p>${checkMark().trim()} ${esc(txt(s.check, lang))}</p>` : '', 'gd-chk') +
         block(t('gd.h.evidence'), s.evidence?.length ? `<ul class="gd-ev">${s.evidence.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '') +
-        block(
-          t('gd.h.sources'),
-          s.sources?.length
-            ? `<ul class="gd-src">${s.sources.filter((x) => !x.x).map((x) => `<li>${x.u ? `<a href="${esc(x.u)}" target="_blank" rel="noopener">${esc(x.t)}</a>` : esc(x.t)}</li>`).join('')}</ul>`
-            : '',
-        ) +
+        (s.taxon ? block(t('gd.h.tree'), `<dl class="gd-tax">${(['phylum', 'class', 'order', 'family', 'genus'] as const).filter((r) => s.taxon?.[r]).map((r) => `<dt class="fc-mono">${esc(t(`gd.rank.${r}` as Key))}</dt><dd>${esc(s.taxon![r]!)}</dd>`).join('')}</dl>`) : '') +
+        `<section class="gd-blk gd-fn" id="gd-fn"><!--gd-fn--></section>` +
         block(
           t('gd.h.credits'),
           s.photos?.length
-            ? `<ul class="gd-cred">${s.photos.map((p) => `<li>${p.v ? `${esc(tx(VARIANT_WORDS[p.v], lang))}: ` : ''}${credit(p)} · ${p.from === 'inaturalist' ? 'iNaturalist' : 'Wikimedia Commons'}</li>`).join('')}</ul>`
+            ? `<ul class="gd-cred">${s.photos.map((p) => `<li>${p.v && tx(VARIANT_WORDS[p.v], lang) ? `${esc(tx(VARIANT_WORDS[p.v], lang))}: ` : ''}${credit(p)} · ${p.from === 'inaturalist' ? 'iNaturalist' : 'Wikimedia Commons'}</li>`).join('')}</ul>`
             : '',
         )
       );
   }
 }
 
-/** The species page: photos, names, badges, key numbers, then the chosen tab. */
+/**
+ * The species page (Joseph 2026-11-17, option E of the guide rethink): photos and names, the four answers, then every
+ * section on one scrolling page with jump chips that stay at the top. Each section starts with its picture or its
+ * first sentence and keeps the rest of the research under "More"; the sources are numbered once for the whole page.
+ */
 export function detailHtml(s: Species, o: DetailOpts): string {
   const { lang } = o;
   const names = { en: s.names?.en ?? [], es: s.names?.es ?? [], local: s.names?.local ?? [], sci: s.sci };
   const latin = latinOnly(names);
-  const tabs = tabsFor(s);
-  const tab = tabs.includes(o.tab) ? o.tab : 'about';
+  const has = new Set(tabsFor(s));
+  const secs = SECTION_ORDER.filter((k) => has.has(k));
   const other = lang === 'es' ? names.en : names.es;
   // One "also called" line: the other names in this language and the local ones, without repeating the title or, in Spanish, English names.
   const first = nameOf(names, lang);
   const alsoCalled = [...new Set([...(lang === 'es' ? names.es : names.en), ...names.local])].filter((n) => n && n !== first && !(lang === 'es' && names.en.includes(n))).slice(0, 8);
   const sub = tx(SUB_WORDS[s.sub], lang);
-  const fam = [txt(s.familyName, lang), s.taxon?.family, s.taxon?.order].filter(Boolean);
+  // The family once: its everyday name, else the Latin one (the full tree is in Sources).
+  const fam = [txt(s.familyName, lang) || s.taxon?.family].filter(Boolean);
   const pos = o.pos;
+  const body = secs
+    .map((k) => {
+      const inner = sectionBody(s, k, o, (x) => secs.includes(x));
+      return inner ? `<section class="gd-sec s-${k}" id="gd-s-${k}" data-sec="${k}" aria-labelledby="gd-sh-${k}"><h3 class="gd-sec-h" id="gd-sh-${k}">${icon(SEC_ICONS[k])}<span>${esc(t(`gd.tab.${k}` as Key))}</span></h3>${inner}</section>` : '';
+    })
+    .join('');
+  const page = citePage(body, s.sources, (n) => `<h4 class="fc-mono">${esc(t('gd.h.pageSources', { n }))}</h4>`).replace(
+    /(<section class="gd-blk gd-fn" id="gd-fn">)(<h4[^]*?<\/h4>)(<ol id="gd-fn-list">[^]*?<\/ol>)/,
+    (_, a: string, h: string, ol: string) => `${a}${h}<details class="gd-fold gd-fn-fold"><summary>${esc(t('gd.srcShow'))}</summary><div>${ol}</div></details><p class="gd-note">${esc(t('gd.srcTip'))}</p>`,
+  );
   return `<div class="gd-d-top">
       <button type="button" class="fc-ctl gd-d-close" data-close title="${esc(t('gd.d.closeTitle'))}">${icon(ICONS.back)}<span>${esc(t('gd.d.close'))}</span></button>
       <button type="button" class="fc-ctl gd-fav" data-fav aria-pressed="${!!o.fav}" title="${esc(t('gd.fav.title'))}">${icon(ICONS.star)}<span>${esc(t(o.fav ? 'gd.fav.on' : 'gd.fav.off'))}</span></button>
@@ -520,19 +644,18 @@ export function detailHtml(s: Species, o: DetailOpts): string {
     </div>
     ${gallery(s, lang)}
     <header class="gd-d-head g-${s.group}">
-      <p class="gd-d-kind fc-mono">${esc(tx(GROUP_WORDS[s.group].short, lang))}${sub ? ` · ${esc(sub)}` : ''}</p>
+      <p class="gd-d-kind fc-mono">${esc(tx(GROUP_WORDS[s.group].short, lang))}${sub ? ` · ${esc(sub)}` : ''}${fam.length ? ` · ${esc(fam.join(' · '))}` : ''}</p>
       <h2 id="gd-d-title"${latin ? ' class="sci"' : ''}>${esc(nameOf(names, lang))}</h2>
       ${latin ? '' : `<p class="gd-d-sci"><i>${esc(s.sci)}</i>${s.author ? ` <span>${esc(s.author)}</span>` : ''}</p>`}
       ${alsoCalled.length ? `<p class="gd-d-names"><span class="fc-mono">${esc(t('gd.d.local'))}</span> ${esc(alsoCalled.join(' · '))}</p>` : ''}
       ${other.length ? `<p class="gd-d-names"><span class="fc-mono">${esc(t('gd.d.otherNames'))}</span> ${esc(other.join(' · '))}</p>` : ''}
-      ${fam.length ? `<p class="gd-d-fam">${esc(fam.join(' · '))}</p>` : ''}
-      ${statusBadges(s, lang)}
+      ${statusBadges(s, lang, true)}
       ${showMapButton(s)}
     </header>
-    ${factTiles(s, lang)}
-    <nav class="gd-d-tabs" role="tablist" aria-label="${esc(t('gd.d.tabs'))}">${tabs
-      .map((k) => `<a role="tab" class="gd-d-tab" href="${esc(o.tabHref(k))}" data-tab="${k}" aria-selected="${k === tab}"${k === tab ? '' : ' tabindex="-1"'}>${esc(t(`gd.tab.${k}` as Key))}</a>`)
+    ${answersHtml(s, o, (k) => has.has(k))}
+    <nav class="gd-d-tabs" aria-label="${esc(t('gd.d.tabs'))}">${secs
+      .map((k, i) => `<a class="gd-d-tab s-${k}" href="${esc(o.tabHref(k))}" data-jump="${k}"${i === 0 ? ' aria-current="true"' : ''}>${icon(SEC_ICONS[k])}<span>${esc(t(`gd.tab.${k}` as Key))}</span></a>`)
       .join('')}</nav>
-    <div class="gd-d-body" role="tabpanel" data-tab="${tab}">${citeTab(tabBody(s, tab, o), s.sources, t('gd.h.tabSources'))}</div>
+    <div class="gd-d-body">${page}</div>
     <div class="gd-d-lang fc-mono"><span>${esc(t('gd.d.lang'))}</span><div class="fc-lang" role="group" aria-label="${esc(t('fc.langGroup'))}"><button type="button" data-setlang="en" aria-pressed="${lang === 'en'}">EN</button><button type="button" data-setlang="es" aria-pressed="${lang === 'es'}">ES</button></div></div>`;
 }
