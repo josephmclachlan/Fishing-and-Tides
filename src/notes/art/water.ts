@@ -10,54 +10,85 @@ type Lang = 'en' | 'es';
 const w = (lang: Lang, en: string, es: string) => (lang === 'es' ? es : en);
 
 
-/** A row of breaking waves: small curls from x0 to x1 along y, with white water spilling just behind them. */
-const breakers = (x0: number, x1: number, y: number) => {
-  let d = `M${x0} ${y}`;
-  let x = x0;
-  for (; x + 16 <= x1; x += 16) d += ` q8 -7 16 0`;
-  return `<path class="nt-foamb" d="${d} L${x} ${y + 6} L${x0} ${y + 6} Z"/><path class="nt-brk" d="${d}"/>`;
+/** Deterministic 0..1 noise for grain and foam, so the drawing is the same every time. */
+const h1 = (n: number) => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+
+/** A band of white water over a sandbar from x0 to x1, its sharp front on y, foam grains thinning out behind it. */
+const breakers = (x0: number, x1: number, y: number, seed: number) => {
+  let g = '';
+  for (let j = 0; j < (x1 - x0) * 0.45; j++) {
+    const fx = x0 + h1(j * 7 + seed) * (x1 - x0), fd = Math.pow(h1(j * 13 + seed * 3), 1.8) * 14;
+    g += `M${fx.toFixed(1)} ${(y - 5 - fd).toFixed(1)}h2v2h-2z`;
+  }
+  return `<path class="nt-foamg" d="${g}"/><rect class="nt-foamb" x="${x0}" y="${y - 5}" width="${x1 - x0}" height="5"/><path class="nt-brk" d="M${x0} ${y + 0.75}H${x1}"/>`;
 };
 
-/** An arrowhead at (x2, y2) for a line coming from (x1, y1). */
-const head = (x1: number, y1: number, x2: number, y2: number, cls: string, s = 9) => {
-  const a = Math.atan2(y2 - y1, x2 - x1);
-  const p = (da: number) => `${+(x2 - s * Math.cos(a + da)).toFixed(1)} ${+(y2 - s * Math.sin(a + da)).toFixed(1)}`;
-  return `<path class="${cls}" d="M${p(0.6)} L${x2} ${y2} L${p(-0.6)}"/>`;
+/** Hard chevrons along a straight line from (x1, y1) to (x2, y2), every `gap`, marching with the CSS class's animation. */
+const chevrons = (x1: number, y1: number, x2: number, y2: number, gap: number, cls: string, s = 6) => {
+  const L = Math.hypot(x2 - x1, y2 - y1), a = Math.atan2(y2 - y1, x2 - x1), ca = Math.cos(a), sa = Math.sin(a);
+  let d = '';
+  for (let u = gap / 2; u < L; u += gap) {
+    const x = x1 + ca * u, y = y1 + sa * u, p = (q: number, r: number) => `${(x + q * ca - r * sa).toFixed(1)} ${(y + q * sa + r * ca).toFixed(1)}`;
+    d += `M${p(-s * 0.6, -s * 0.75)}L${p(s * 0.4, 0)}L${p(-s * 0.6, s * 0.75)}`;
+  }
+  return `<g class="${cls}" style="--dx:${(ca * gap).toFixed(1)}px;--dy:${(sa * gap).toFixed(1)}px"><path d="${d}"/></g>`;
+};
+
+/** A square label block: ink fill, the words knocked out (the hero pictures' tags). */
+const tagB = (x: number, y: number, s: string, anchor: 'start' | 'middle' | 'end', cls = 'nt-tag') => {
+  const w = s.length * 6.9 + 10, x0 = anchor === 'start' ? x : anchor === 'middle' ? x - w / 2 : x - w;
+  return `<g class="${cls}"><rect x="${x0.toFixed(1)}" y="${y - 9}" width="${w.toFixed(1)}" height="18"/><text x="${(x0 + 5).toFixed(1)}" y="${y + 4}">${s}</text></g>`;
 };
 
 /** A swimmer's head in the water with one arm up, centred on 0 0. */
-const SWIMMER = '<ellipse class="nt-ripple" rx="10" ry="3.4" cy="3"/><path class="nt-arm" d="M3 0 L11 -11"/><circle r="5.5"/>';
+const SWIMMER = '<rect class="nt-ripple" x="-11" y="-7" width="22" height="16"/><path class="nt-arm" d="M3 1 L10 -9 M-3 1 L-10 -5"/><circle r="5"/>';
 
 /** The swimmer's way out: pulled out by the rip, across it parallel to the beach, then back in with the waves. */
-export const RIP_TRACK = { out: 'M160 150 L160 96', across: 'M160 96 L236 96', back: 'M236 96 L258 146' };
+export const RIP_TRACK = { out: 'M160 150 L160 104', across: 'M160 104 L240 104', back: 'M240 104 L256 158' };
 
-/** The rip from above: sea at the top, beach at the bottom, the gap in the breaking waves in the middle. 320 by 236. */
+/**
+ * The rip from above, drawn like the SWIM hero (PLAN 13.7): sea at the top, beach at the bottom. White water over the
+ * sandbars either side; between them the deeper, darker channel where the waves do not break; chevrons marching in
+ * along the shore, out through the gap and fanning into the plume of sandy water past the waves; the way out traced
+ * and swum. Square tags, square badges. 320 by 236.
+ */
 export function ripArt(lang: Lang): string {
-  const flow = (d: string, cls = 'nt-flow') => `<path class="${cls}" d="${d}"/>`;
+  const cx = 160, Y = 176, half = (y: number) => (y >= 64 ? 15 - (Y - y) * 0.02 : 12);
+  let ch = `M${cx - half(Y)} ${Y}`;
+  for (let y = Y; y >= 44; y -= 8) ch += ` L${(cx - half(y)).toFixed(1)} ${y}`;
+  for (let y = 44; y <= Y; y += 8) ch += ` L${(cx + half(y)).toFixed(1)} ${y}`;
+  ch += ' Z';
+  let bars = '';
+  for (let i = 0; i < 260; i++) { const x = h1(i) * 320, y = 64 + h1(i + 999) * 96; if (Math.abs(x - cx) < 20) continue; bars += `M${x.toFixed(1)} ${y.toFixed(1)}h2v2h-2z`; }
+  let grain = '';
+  for (let i = 0; i < 220; i++) grain += `M${(h1(i + 11) * 320).toFixed(1)} ${(180 + h1(i + 23) * 56).toFixed(1)}h1.5v1.5h-1.5z`;
   return (
     '<rect class="nt-sea" x="0" y="0" width="320" height="182"/>' +
-    '<path class="nt-ch" d="M138 178 C141 146 143 116 141 84 C118 70 118 40 160 34 C202 40 202 70 179 84 C177 116 179 146 182 178 Z"/>' +
-    '<path class="nt-sand" d="M0 178 C80 170 240 170 320 178 L320 236 L0 236 Z"/>' +
-    breakers(8, 128, 84) + breakers(192, 312, 84) + breakers(16, 128, 104) + breakers(192, 304, 104) + breakers(8, 124, 124) + breakers(196, 312, 124) +
-    `<text class="nt-lbl nt-lbl-b nt-halo" x="10" y="72">${w(lang, 'BREAKING WAVES', 'OLAS ROMPIENDO')}</text>` +
-    // water running along the shore into the rip
-    flow('M18 166 L122 166', 'nt-flow nt-feed') + flow('M302 166 L198 166', 'nt-flow nt-feed') +
-    '<path class="nt-head" d="M114 160 L123 166 L114 172 M206 160 L197 166 L206 172"/>' +
-    `<text class="nt-lbl nt-lbl-b nt-halo" x="10" y="144">${w(lang, 'WATER RUNS', 'EL AGUA CORRE')}</text>` +
-    `<text class="nt-lbl nt-lbl-b nt-halo" x="10" y="157">${w(lang, 'INTO THE RIP', 'A LA RESACA')}</text>` +
-    // the rip itself, running out to sea
-    flow('M160 170 L160 50') + flow('M149 168 C149 124 147 92 140 62') + flow('M171 168 C171 124 173 92 180 62') +
-    '<path class="nt-head nt-hot" d="M153 58 L160 46 L167 58 M134 70 L138 58 L147 63 M186 70 L182 58 L173 63"/>' +
-    `<text class="nt-lbl nt-lbl-b nt-halo" x="160" y="24" text-anchor="middle">${w(lang, 'RIP CURRENT', 'CORRIENTE DE RESACA')}</text>` +
-    `<text class="nt-lbl nt-lbl-b nt-lbl-in" x="160" y="76" text-anchor="middle">${w(lang, 'GAP', 'HUECO')}</text>` +
+    `<path class="nt-bar" d="${bars}"/>` +
+    `<path class="nt-ch" d="${ch}"/>` +
+    // the plume of sandy water past the waves
+    '<path class="nt-plume" d="M148 46 C132 46 118 40 120 30 C122 16 198 16 200 30 C202 40 188 46 172 46 Z"/>' +
+    breakers(0, cx - 18, 82, 1) + breakers(cx + 18, 320, 82, 2) + breakers(0, cx - 17, 108, 3) + breakers(cx + 17, 320, 108, 4) + breakers(0, cx - 16, 134, 5) + breakers(cx + 16, 320, 134, 6) +
+    // across the channel the wave does not break: only its line
+    '<path class="nt-swl" d="M143 82H177M144 108H176M145 134H175"/>' +
+    '<path class="nt-sand" d="M0 178 L320 178 L320 236 L0 236 Z"/>' +
+    `<path class="nt-grain" d="${grain}"/>` +
+    '<path class="nt-wash" d="M0 177H320"/>' +
+    // water running in along the shore, out through the gap, fanning out at the head
+    chevrons(14, 166, 136, 166, 18, 'nt-cv nt-cv-feed') + chevrons(306, 166, 184, 166, 18, 'nt-cv nt-cv-feed') +
+    chevrons(cx, 172, cx, 50, 14, 'nt-cv nt-cv-out', 7) +
+    chevrons(cx - 4, 44, 126, 32, 14, 'nt-cv nt-cv-feed') + chevrons(cx + 4, 44, 194, 32, 14, 'nt-cv nt-cv-feed') +
     // the way out
     `<path class="nt-trk nt-t-out" d="${RIP_TRACK.out}"/><path class="nt-trk nt-t-across" d="${RIP_TRACK.across}"/><path class="nt-trk nt-t-back" d="${RIP_TRACK.back}"/>` +
-    head(236, 96, 258, 146, 'nt-head nt-go') +
-    `<g class="nt-swimmer">${SWIMMER}<animateMotion dur="9s" repeatCount="indefinite" calcMode="linear" keyPoints="0;0;0.29;0.7;1;1" keyTimes="0;0.06;0.25;0.62;0.94;1" path="${RIP_TRACK.out} L236 96 L258 146"/></g>` +
+    '<path class="nt-go-hd" d="M252 150 L257 160 L262 151 Z"/>' +
+    `<g class="nt-swimmer">${SWIMMER}<animateMotion dur="9s" repeatCount="indefinite" calcMode="linear" keyPoints="0;0;0.29;0.7;1;1" keyTimes="0;0.06;0.25;0.62;0.94;1" path="${RIP_TRACK.out} L240 104 L256 158"/></g>` +
     `<g class="nt-swim0" transform="translate(160 150)">${SWIMMER}</g>` +
-    `<text class="nt-lbl nt-lbl-b" x="160" y="214" text-anchor="middle">${w(lang, 'BEACH', 'PLAYA')}</text>` +
-    `<text class="nt-lbl nt-lbl-s" x="10" y="20">${w(lang, 'SEA', 'MAR')}</text>` +
-    badge(1, 160, 116) + badge(2, 212, 96) + badge(3, 270, 124)
+    tagB(160, 10, w(lang, 'RIP CURRENT', 'CORRIENTE DE RESACA'), 'middle') +
+    tagB(6, 70, w(lang, 'BREAKING WAVES', 'OLAS ROMPIENDO'), 'start', 'nt-tag nt-tag-o') +
+    tagB(6, 152, w(lang, 'WATER RUNS IN', 'EL AGUA ENTRA'), 'start', 'nt-tag nt-tag-o') +
+    tagB(160, 214, w(lang, 'BEACH', 'PLAYA'), 'middle', 'nt-tag nt-tag-o') +
+    `<text class="nt-lbl nt-lbl-s" x="314" y="20" text-anchor="end">${w(lang, 'SEA', 'MAR')}</text>` +
+    badge(1, 182, 150) + badge(2, 200, 92) + badge(3, 274, 136)
   );
 }
 

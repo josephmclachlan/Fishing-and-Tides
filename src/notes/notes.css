@@ -77,7 +77,7 @@
 .nt-art .nt-tick { stroke-width: 1.5; }
 .nt-art .nt-man path, .nt-art .nt-man rect { stroke-width: 3; }
 .nt-art .nt-man circle { fill: currentColor; stroke: none; }
-.nt-bd circle { fill: var(--fc-ink); stroke: none; }
+.nt-bd rect, .nt-bd circle { fill: var(--fc-ink); stroke: none; }
 .nt-bd text { fill: var(--fc-bg) !important; font: 700 10.5px/1 var(--fc-mono); }
 @keyframes nt-run { to { stroke-dashoffset: -14; } }
 @media (prefers-reduced-motion: reduce) {
@@ -219,3 +219,23 @@ a.nt-go strong { font: 700 13.5px/1.2 var(--fc-mono); text-transform: uppercase;
 .nt-art .nt-mask { fill: var(--fc-sea-a); stroke: var(--fc-ink); stroke-width: 1.4; }
 .nt-art .nt-tank { fill: var(--fc-lv1); stroke: var(--fc-ink); stroke-width: 1.4; }
 .nt-art .nt-snork { stroke: var(--fc-ink); stroke-width: 2.4; }
+
+/* The rip from above in the square look (PLAN 13.7): grains, hard foam bands, the darker channel, marching chevrons, square tags. */
+.nt-art .nt-bar { fill: var(--fc-foam); stroke: none; opacity: 0.35; }
+.nt-art .nt-foamg { fill: var(--fc-foam); stroke: none; opacity: 0.6; }
+.nt-art .nt-swl { stroke: var(--fc-foam); stroke-width: 1; opacity: 0.45; }
+.nt-art .nt-plume { fill: color-mix(in srgb, var(--fc-sand) 70%, transparent); stroke: var(--fc-ink); stroke-width: 1.2; stroke-dasharray: 3 3; }
+.nt-art .nt-grain { fill: var(--fc-ink); stroke: none; opacity: 0.18; }
+.nt-art .nt-wash { stroke: var(--fc-foam); stroke-width: 3; }
+.nt-art .nt-cv path { stroke-width: 2.4; stroke-linecap: butt; stroke-linejoin: miter; }
+.nt-art .nt-cv-feed path { stroke: var(--fc-ac1); }
+.nt-art .nt-cv-out path { stroke: var(--fc-ac0); stroke-width: 3; }
+.nt-art .nt-cv { animation: nt-march 1.1s linear infinite; }
+.nt-art .nt-cv-out { animation-duration: 0.7s; }
+@keyframes nt-march { from { transform: translate(0, 0); } to { transform: translate(var(--dx), var(--dy)); } }
+.nt-art .nt-go-hd { fill: var(--fc-ac3); stroke: none; }
+.nt-art .nt-tag rect { fill: var(--fc-ink); stroke: none; }
+.nt-art .nt-tag text { fill: var(--fc-block); font: 800 11px/1 var(--fc-mono); letter-spacing: 0.02em; }
+.nt-art .nt-tag-o rect { fill: var(--fc-block); stroke: var(--fc-ink); stroke-width: 1.5; }
+.nt-art .nt-tag-o text { fill: var(--fc-ink); }
+@media (prefers-reduced-motion: reduce) { .nt-art .nt-cv { animation: none; } }

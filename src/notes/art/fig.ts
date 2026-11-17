@@ -4,9 +4,9 @@ export interface Fig {
   art: (lang: 'en' | 'es') => string;
 }
 
-/** A numbered badge, matched to the figure's list of marks. */
+/** A numbered badge, matched to the figure's list of marks: a hard square block (the square look, PLAN 13.7). */
 export const badge = (n: number, x: number, y: number) =>
-  `<g class="nt-bd"><circle cx="${x}" cy="${y}" r="8.5"/><text x="${x}" y="${y + 3.7}" text-anchor="middle">${n}</text></g>`;
+  `<g class="nt-bd"><rect x="${x - 8.5}" y="${y - 8.5}" width="17" height="17"/><text x="${x}" y="${y + 3.7}" text-anchor="middle">${n}</text></g>`;
 
 /**
  * A wave seen side-on as it breaks: the back rises to the crest, the lip throws forward and down, and the face curls
