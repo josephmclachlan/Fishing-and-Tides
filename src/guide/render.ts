@@ -54,6 +54,10 @@ export const ICONS = {
   identify: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5M8.5 11h5M11 8.5v5"/>',
   /** Protected by law (the symbol set's shield, src/icons/glyphs.ts). */
   shield: '<path d="M12 2.8l7.5 2.7v6c0 4.8-3.2 8.3-7.5 9.9-4.3-1.6-7.5-5.1-7.5-9.9v-6z"/>',
+  /** Shelves: rows of photos. */
+  shelf: '<rect x="3" y="4" width="5" height="6"/><rect x="10" y="4" width="5" height="6"/><path d="M17 4h4v6h-4"/><rect x="3" y="14" width="5" height="6"/><rect x="10" y="14" width="5" height="6"/><path d="M17 14h4v6h-4"/>',
+  list: '<rect x="3" y="4" width="5" height="4"/><rect x="3" y="10" width="5" height="4"/><rect x="3" y="16" width="5" height="4"/><path d="M11 6h10M11 12h10M11 18h10"/>',
+  tick: '<path d="M4 12.5l5 5L20 6.5"/>',
   /** Not checked locally yet (the symbol set's question mark). */
   check: '<path d="M9.3 9.2a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2 1-1.2 1.9v.6"/><path d="M12 17.2v.6"/>',
 } as const;
@@ -74,6 +78,8 @@ export interface ListOpts {
   base: string;
   /** The link to a species from this list. */
   href: (id: string) => string;
+  /** Draw each section as a shelf of photo tiles that scrolls sideways (the Atlas, PLAN 14.2). */
+  shelf?: boolean;
 }
 
 /** Taking it is banned on this coast: protected by law, marked illegal, or not to be eaten because it is protected. */
@@ -141,6 +147,44 @@ export function cardHtml(e: Entry, o: ListOpts): string {
     </span></a>`;
 }
 
+/**
+ * Colour-coded marks on a photo tile, read at a glance (Joseph 2026-11-17): green to eat, amber to eat with care, red
+ * or amber when it hurts by its danger level, red when poisonous or illegal to take. Each has its words for a screen reader.
+ */
+export function tileTags(e: Entry, lang: Lang): string {
+  const out: string[] = [];
+  const tag = (cls: string, ic: string, words: string) => `<i class="gd-tg ${cls}" title="${esc(words)}" role="img" aria-label="${esc(words)}">${icon(ic)}</i>`;
+  if (e.danger && hurtsToTouch(e)) {
+    const k = e.danger.kinds.find((x) => TOUCH_KINDS.includes(x))!;
+    out.push(tag(`dz l${touchLevel(e)}`, ICONS.danger, tx(KIND_WORDS[k], lang)));
+  }
+  if (poisonToEat(e)) out.push(tag('dz l3', ICONS.edible, tx(EDIBLE_WORDS.toxic, lang)));
+  if (bannedHere(e)) out.push(tag('ban', ICONS.shield, t('gd.flag.illegalShort')));
+  else if (isFood(e)) {
+    const risk = riskToEat(e) ? e.risks!.find((r) => r !== 'spines') : undefined;
+    out.push(tag(risk ? 'eat care' : 'eat', ICONS.edible, risk ? `${tx(EDIBLE_WORDS[e.edible!], lang)}: ${tx(RISK_WORDS[risk], lang)}` : tx(EDIBLE_WORDS[e.edible!], lang)));
+  }
+  return out.length ? `<span class="gd-tgs">${out.join('')}</span>` : '';
+}
+
+/** One species as a photo tile on a shelf: the photo with its colour marks, the name, and size and how common here. */
+export function tileHtml(e: Entry, o: ListOpts): string {
+  const { lang } = o;
+  const latin = latinOnly(e);
+  const size = sizeMain(e.size);
+  const facts = [size !== '--' ? size : '', e.seen ? tx(SEEN_WORDS[e.seen], lang) : ''].filter(Boolean).join(' · ');
+  const thumb = e.thumb
+    ? `<img src="${esc(o.base + e.thumb)}" alt="" loading="lazy" decoding="async" width="240" height="180">`
+    : artSvg(artFor(e.group, e.sub));
+  return `<a class="gd-st g-${e.group}" href="${esc(o.href(e.id))}" data-id="${esc(e.id)}"><span class="gd-st-im${e.thumb ? ' gd-ph' : ''}">${thumb}${tileTags(e, lang)}</span><b class="${latin ? 'sci' : ''}">${o.fav?.(e.id) ? `<span class="gd-star" aria-label="${esc(t('gd.mode.saved'))}">${UI.star}</span>` : ''}${esc(nameOf(e, lang))}</b>${facts ? `<small class="fc-mono">${esc(facts)}</small>` : ''}</a>`;
+}
+
+/** What the colours on the tiles mean, over the shelves. */
+export function tileKeyHtml(): string {
+  const k = (cls: string, ic: string, w: string) => `<span><i class="gd-tg ${cls}">${icon(ic)}</i>${esc(w)}</span>`;
+  return `<p class="gd-tkey fc-mono">${k('eat', ICONS.edible, t('gd.key.eat'))}${k('eat care', ICONS.edible, t('gd.key.care'))}${k('dz l1', ICONS.danger, t('gd.key.hurts'))}${k('dz l3', ICONS.danger, t('gd.key.bad'))}${k('ban', ICONS.shield, t('gd.flag.illegalShort'))}</p>`;
+}
+
 /** A one-line "also recorded" species: Latin name, any common name and why it is only a record. */
 export function recHtml(e: Entry, o: ListOpts): string {
   const name = latinOnly(e) ? '' : nameOf(e, o.lang);
@@ -193,14 +237,14 @@ export const itemCount = (rows: readonly Row[]) => new Set(rows.flatMap((r) => (
 export function rowsHtml(rows: readonly Row[], o: ListOpts): string {
   let html = '', open: 'cards' | 'recs' | null = null;
   const close = () => {
-    if (open === 'cards') html += '</div>';
+    if (open === 'cards') html += o.shelf ? '</div></div>' : '</div>';
     else if (open === 'recs') html += '</ul>';
     open = null;
   };
   for (const r of rows) {
     if (r.k === 'card') {
-      if (open !== 'cards') close(), (html += '<div class="gd-cards">'), (open = 'cards');
-      html += cardHtml(r.e, o);
+      if (open !== 'cards') close(), (html += o.shelf ? '<div class="gd-shelf"><div class="gd-lane">' : '<div class="gd-cards">'), (open = 'cards');
+      html += o.shelf ? tileHtml(r.e, o) : cardHtml(r.e, o);
     } else if (r.k === 'rec') {
       if (open !== 'recs') close(), (html += '<ul class="gd-recs">'), (open = 'recs');
       html += recHtml(r.e, o);
@@ -221,8 +265,9 @@ export function rowsHtml(rows: readonly Row[], o: ListOpts): string {
 const MODE_ICON: Record<GdMode, string> = { all: ICONS.all, identify: ICONS.identify, edible: ICONS.edible, danger: ICONS.danger, saved: ICONS.star };
 
 export function modesHtml(mode: GdMode, counts: Record<GdMode, number>): string {
-  return GD_MODES.map(
-    (m) => `<button type="button" role="tab" class="gd-mode" data-mode="${m}" aria-selected="${m === mode}" tabindex="${m === mode ? 0 : -1}" aria-controls="gd-list">${icon(MODE_ICON[m])}<span>${esc(t(`gd.mode.${m}` as Key))}</span><sup class="fc-mono">${m === 'identify' ? '' : counts[m]}</sup></button>`,
+  // Identify has its own wide bar on the home (Joseph 2026-11-17), so the row holds the lists only.
+  return GD_MODES.filter((m) => m !== 'identify').map(
+    (m) => `<button type="button" role="tab" class="gd-mode" data-mode="${m}" aria-selected="${m === mode}" tabindex="${m === mode ? 0 : -1}" aria-controls="gd-list">${icon(MODE_ICON[m])}<span>${esc(t(`gd.mode.${m}` as Key))}</span><sup class="fc-mono">${counts[m]}</sup></button>`,
   ).join('') + '<span class="gd-mode-bar" aria-hidden="true"></span>';
 }
 
@@ -237,6 +282,16 @@ const chipRow = <T extends string>(key: string, label: string, values: readonly 
   `<div class="gd-frow" role="group" aria-label="${esc(label)}"><p class="fc-mono">${esc(label)}</p><div class="gd-chips">${values
     .map((v) => `<button type="button" class="cp-chip gd-chip${on.includes(v) ? ' on' : ''}" data-f="${key}" data-v="${v}" aria-pressed="${on.includes(v)}">${esc(word(v))}</button>`)
     .join('')}</div></div>`;
+
+/** Shelves of photos (the Atlas) or the list with every badge, side by side. */
+export const layHtml = (lay: 'shelf' | 'list') =>
+  `<div class="gd-lay" role="group" aria-label="${esc(t('gd.lay'))}">${(['shelf', 'list'] as const)
+    .map((k) => `<button type="button" data-lay="${k}" aria-pressed="${k === lay}">${icon(k === 'shelf' ? ICONS.shelf : ICONS.list)}<span>${esc(t(`gd.lay.${k}`))}</span></button>`)
+    .join('')}</div>`;
+
+/** One tap for what is common on this coast (Abundant and Common), with the other filters. */
+export const commonHtml = (on: boolean) =>
+  `<button type="button" class="gd-qf" id="gd-common" aria-pressed="${on}">${icon(ICONS.tick)}<span>${esc(t('gd.common'))}</span></button>`;
 
 /** The expanded-species switch, beside the search (Joseph 2026-11-15). */
 export const expandHtml = (on: boolean) =>

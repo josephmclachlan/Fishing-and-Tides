@@ -24,7 +24,7 @@ import {
   activeCount, DEFAULT_FILTER, isHere, groupCounts, GROUP_BYS, haystack, inView, matches, nameOf, modeCounts, sections, SORTS,
   type GdFilter, type GroupBy, type SortKey,
 } from './filter';
-import { detailHtml, esc, expandHtml, filtersHtml, groupsHtml, ICONS, introHtml, itemCount, modesHtml, pickersHtml, rowsFor, rowsHtml, type Row } from './render';
+import { commonHtml, detailHtml, esc, expandHtml, layHtml, tileKeyHtml, filtersHtml, groupsHtml, ICONS, introHtml, itemCount, modesHtml, pickersHtml, rowsFor, rowsHtml, type Row } from './render';
 import { guideHash, isGdTab, parseGuideRoute, type GdMode, type GdTab } from './route';
 import { GROUPS, type Entry, type Group, type GuideIndex, type Lang, type Species } from './types';
 import '../forecast/forecast.css';
@@ -35,8 +35,10 @@ const SORT_KEY = 'ft.gdSort';
 const BY_KEY = 'ft.gdBy';
 const FAV_KEY = 'ft.gdFav';
 const EXP_KEY = 'ft.gdExp';
-/** Species drawn per step as the list scrolls. */
+const LAY_KEY = 'ft.gdLay';
+/** Species drawn per step as the list scrolls; on shelves, whole shelves at a time. */
 const CHUNK = 48;
+const SHELVES = 8;
 
 type Store = Pick<Storage, 'getItem' | 'setItem'> | undefined;
 const get = (s: Store, k: string) => {
@@ -99,13 +101,16 @@ export function mountGuidePage(deps: GuidePageDeps) {
       <nav class="gd-modes fc-in" id="gd-modes" role="tablist" aria-label="${esc(t('gd.modes'))}"></nav>
       <div class="gd-groups-w fc-in"><div class="gd-groups" id="gd-groups" role="toolbar" aria-label="${esc(t('gd.groups'))}"></div></div>
       <div class="gd-tools gd-tools2 fc-in">
+        <div id="gd-common-w"></div>
         <button type="button" class="fc-ctl gd-fbtn" id="gd-fbtn" aria-expanded="false" aria-controls="gd-filters">${svg(ICONS.filter)}<span>${t('gd.filters')}</span><b id="gd-fn" hidden></b></button>
+        <div id="gd-lay-w"></div>
         <div class="gd-picks" id="gd-picks"></div>
         <div id="gd-exp"></div>
       </div>
       <div class="gd-filters fc-in" id="gd-filters" hidden></div>
       <div class="fc-in" id="gd-intro"></div>
       <p class="gd-count fc-in fc-mono" id="gd-count" aria-live="polite"></p>
+      <div class="fc-in" id="gd-tkey"></div>
       <div class="gd-list fc-in" id="gd-list"></div>
       <div class="fc-in gd-more-w"><button type="button" class="fc-ctl gd-more" id="gd-more" hidden>${t('gd.more')}</button></div>
       <footer class="fc-foot fc-in"><p class="fc-note">${t('gd.note')}</p></footer>
@@ -191,13 +196,20 @@ export function mountGuidePage(deps: GuidePageDeps) {
   /** The identify answers and the question showing. */
   let idA: IdAnswers = noAnswers();
   let idStep: IdStep = 'group';
-  const listOpts = { lang, base, href: (id: string) => guideHash({ mode, group, id }), fav: (id: string) => favs.has(id) };
+  /** Shelves of photos (the Atlas home, the default) or the full list. */
+  let lay: 'shelf' | 'list' = get(storage, LAY_KEY) === 'list' ? 'list' : 'shelf';
+  const listOpts = { lang, base, href: (id: string) => guideHash({ mode, group, id }), fav: (id: string) => favs.has(id), shelf: false };
+  /** Common here: Abundant and Common on this coast. */
+  const COMMON = ['common', 'frequent'] as const;
+  const commonOn = () => f.seen.length === COMMON.length && COMMON.every((x) => f.seen.includes(x));
 
   // --- the controls, drawn once and updated in place (keeps focus and the strip's scroll)
   $('gd-modes').innerHTML = modesHtml(mode, { all: 0, identify: 0, edible: 0, danger: 0, saved: 0 });
   $('gd-groups').innerHTML = groupsHtml(group, Object.fromEntries(GROUPS.map((g) => [g, 0])) as Record<Group, number>, lang);
   $('gd-filters').innerHTML = filtersHtml(f, lang);
   $('gd-exp').innerHTML = expandHtml(f.expanded);
+  $('gd-common-w').innerHTML = commonHtml(false);
+  $('gd-lay-w').innerHTML = layHtml(lay);
   const drawPicks = () => ($('gd-picks').innerHTML = pickersHtml({ ...f, by: byNow() }, mode));
   drawPicks();
   const setFilters = (open: boolean) => {
@@ -209,6 +221,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
   const modeBar = () => {
     const on = el.querySelector<HTMLElement>('.gd-mode[aria-selected="true"]');
     const bar = el.querySelector<HTMLElement>('.gd-mode-bar');
+    if (bar && !on) bar.style.width = '0';
     if (!on || !bar || el.hidden) return;
     bar.style.width = `${on.offsetWidth}px`;
     bar.style.transform = `translate(${on.offsetLeft}px, ${on.offsetTop + on.offsetHeight - 5}px)`;
@@ -241,6 +254,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       b.classList.toggle('on', on);
       b.setAttribute('aria-pressed', String(on));
     });
+    $('gd-common').setAttribute('aria-pressed', String(commonOn()));
     el.querySelector<HTMLInputElement>('input[data-f="records"]')!.checked = f.records;
     el.querySelectorAll<HTMLInputElement>('input[data-f="expanded"]').forEach((i) => (i.checked = f.expanded));
     modeBar();
@@ -249,7 +263,10 @@ export function mountGuidePage(deps: GuidePageDeps) {
   // --- the list
   const more = () => {
     let end = drawn, n = 0;
-    while (end < rows.length && n < CHUNK) if (rows[end++].k === 'card' || rows[end - 1].k === 'rec') n++;
+    if (listOpts.shelf) {
+      // Whole shelves: stop at the heading after the eighth.
+      while (end < rows.length && !(n >= SHELVES && end > drawn && (rows[end].k === 'head' || rows[end].k === 'banner'))) if (rows[end++].k === 'head') n++;
+    } else while (end < rows.length && n < CHUNK) if (rows[end++].k === 'card' || rows[end - 1].k === 'rec') n++;
     // Keep a section's heading with its first species.
     while (end < rows.length && rows[end].k !== 'card' && rows[end].k !== 'rec' && end > drawn && rows[end - 1].k !== 'card' && rows[end - 1].k !== 'rec') end++;
     if (end > drawn) list.insertAdjacentHTML('beforeend', rowsHtml(rows.slice(drawn, end), listOpts));
@@ -266,6 +283,8 @@ export function mountGuidePage(deps: GuidePageDeps) {
     const all = idx.entries;
     counts(all);
     if (mode === 'identify') {
+      listOpts.shelf = false;
+      $('gd-tkey').innerHTML = '';
       const r = idHtml(f.expanded ? all : all.filter(isHere), idA, idStep, listOpts, f.expanded);
       order = r.order;
       $('gd-intro').innerHTML = '';
@@ -284,6 +303,16 @@ export function mountGuidePage(deps: GuidePageDeps) {
     const secs = sections(shown, by, f.sort, lang);
     rows = rowsFor(secs, !group && by !== 'none' && by !== 'risk');
     order = rows.flatMap((r) => (r.k === 'card' || r.k === 'rec' ? [r.e.id] : []));
+    // Shelves are families and kinds; a search, and the danger list worst first, read best as a list.
+    const canShelf = by !== 'none' && by !== 'risk' && !f.q.trim();
+    listOpts.shelf = lay === 'shelf' && canShelf;
+    el.dataset.lay = listOpts.shelf ? 'shelf' : 'list';
+    // The switch shows what is on screen; shelves wait while a search or the danger grouping needs the list.
+    el.querySelectorAll<HTMLButtonElement>('[data-lay]').forEach((b) => {
+      b.setAttribute('aria-pressed', String(b.dataset.lay === el.dataset.lay));
+      if (b.dataset.lay === 'shelf') b.disabled = !canShelf;
+    });
+    $('gd-tkey').innerHTML = listOpts.shelf && shown.length ? tileKeyHtml() : '';
     $('gd-intro').innerHTML = introHtml(mode);
     $('gd-count').textContent = shown.length ? t('gd.shown', { n: itemCount(rows) }) : '';
     list.innerHTML = shown.length ? '' : `<p class="gd-empty">${esc(t(mode === 'saved' ? 'gd.fav.none' : 'gd.none'))}</p>`;
@@ -394,12 +423,19 @@ export function mountGuidePage(deps: GuidePageDeps) {
       const arr = f[k] as string[];
       f[k] = (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]) as never;
       render();
+    } else if (hit('#gd-common')) {
+      f.seen = commonOn() ? [] : [...COMMON];
+      render();
+    } else if ((b = hit('[data-lay]'))) {
+      lay = b.dataset.lay === 'list' ? 'list' : 'shelf';
+      put(storage, LAY_KEY, lay);
+      render();
     } else if (hit('[data-clear]')) {
       Object.assign(f, { encounter: [], habitats: [], seen: [], times: [], methods: [], sizes: [], flags: [], records: false });
       render();
     } else if (hit('#gd-fbtn')) setFilters($('gd-filters').hidden === true);
     else if (hit('[data-retry]')) load();
-    else if ((b = hit('a.gd-card, a.gd-rec, .gd-look a, a.gd-id-tl')) && plain) {
+    else if ((b = hit('a.gd-card, a.gd-st, a.gd-rec, .gd-look a, a.gd-id-tl')) && plain) {
       ev.preventDefault();
       const r = parseGuideRoute(b.getAttribute('href') ?? '');
       if (r?.id) {
