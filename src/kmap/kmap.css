@@ -403,7 +403,10 @@
 .km .k-app{background:none;pointer-events:none;z-index:4}
 .km .k-top,.km .k-rail,.km .k-dock,.km .k-sheet,.km .k-scrim.k-on{pointer-events:auto}
 .km .k-stage{background:none;pointer-events:none;cursor:auto;touch-action:auto}
-.km .k-stage>button,.km .k-stage>div:not(.k-confveil):not(.k-xh):not(.k-legmini):not(.k-pins){pointer-events:auto}
+/* Containers that only hold buttons stay see-through, so a drag that starts in a gap between their buttons still pans the map
+   (Joseph 2026-11-17: the FISH bar's box and the Tools/Find/Layers column took every touch over a large part of the phone map). */
+.km .k-stage>button,.km .k-stage>div:not(.k-confveil):not(.k-xh):not(.k-legmini):not(.k-pins):not(.k-fishsw):not(.k-mapbtns):not(.k-views){pointer-events:auto}
+.km .k-stage .k-views>*{pointer-events:auto}
 .km .k-stage .k-mapbtns{pointer-events:none}
 .km .k-stage .k-mapbtns>*{pointer-events:auto}
 .km #map{background:var(--m-land)}
@@ -435,7 +438,7 @@
   .km body.km-tool #hud>.rules-card{width:min(560px,calc(100vw - 424px))!important}
 }
 .km #hud>.rules-card>.ph .rules-close{margin-left:auto}
-.km #hud>.panel.rules-card>.ph .sheet-x,.km #hud>.panel.watch-pop>.ph .sheet-x{display:grid;place-items:center;margin-left:auto;appearance:none;cursor:pointer;width:36px;height:36px;border:2px solid var(--ink);background:none;color:var(--ink);border-radius:2px;font-size:13px;line-height:1;padding:0;flex:0 0 auto}
+.km #hud>.panel.rules-card>.ph .sheet-x,.km #hud>.panel.watch-pop>.ph .sheet-x,.km #hud>.panel.help-card>.ph .sheet-x{display:grid;place-items:center;margin-left:auto;appearance:none;cursor:pointer;width:36px;height:36px;border:2px solid var(--ink);background:none;color:var(--ink);border-radius:2px;font-size:13px;line-height:1;padding:0;flex:0 0 auto}
 .km body.km-on #hud .reticle,.km body.km-on #hud .alert{display:none!important}
 
 /* ---------- rating tiles on the spots (coast.ts) ---------- */
@@ -663,7 +666,8 @@
 /* The fish map's EAT/SPORT and ALL/SHORE/BOAT switches, on the map under the readings whenever FISH is on (2026-11-16). */
 /* The fish bar (option A, PLAN 7.143): rows of switches and chips; each row only as wide as its chips, so the map shows between. */
 .km .k-fishsw{position:absolute;z-index:3;left:10px;top:70px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:calc(100% - 20px);pointer-events:none}
-.km .k-fishsw .k-fbrow{display:flex;flex-wrap:wrap;gap:6px;pointer-events:auto}
+.km .k-fishsw .k-fbrow{display:flex;flex-wrap:wrap;gap:6px;pointer-events:none}
+.km .k-fishsw .k-fbrow>*{pointer-events:auto}
 .km .k-fishsw .k-fpick{display:flex;align-items:center;height:36px;background:var(--c-card);box-shadow:0 1px 3px rgba(0,0,0,.18);border-radius:2px}
 .km .k-fishsw .k-fpick b{min-width:76px;text-align:center;font-family:var(--disp);font-weight:800;font-variation-settings:"wdth" 78;font-size:16px;text-transform:uppercase;padding:0 2px;color:var(--ink)}
 .km .k-fishsw .k-fpick button{appearance:none;cursor:pointer;border:0;background:none;width:36px;height:36px;font-size:20px;font-weight:700;color:var(--ink)}
