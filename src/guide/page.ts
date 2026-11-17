@@ -323,7 +323,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
     listOpts.shelf = lay === 'shelf' && canShelf;
     el.dataset.lay = listOpts.shelf ? 'shelf' : 'list';
     // The switch shows what is on screen; shelves wait while a search or the danger grouping needs the list.
-    el.querySelectorAll<HTMLButtonElement>('[data-lay]').forEach((b) => {
+    el.querySelectorAll<HTMLButtonElement>('button[data-lay]').forEach((b) => {
       b.setAttribute('aria-pressed', String(b.dataset.lay === el.dataset.lay));
       if (b.dataset.lay === 'shelf') b.disabled = !canShelf;
     });
@@ -521,7 +521,9 @@ export function mountGuidePage(deps: GuidePageDeps) {
     } else if (hit('#gd-common')) {
       f.seen = commonOn() ? [] : [...COMMON];
       render();
-    } else if ((b = hit('[data-lay]'))) {
+    } else if ((b = hit('button[data-lay]'))) {
+      // Only the Shelves/List buttons: the page itself also carries data-lay (for its layout), so a bare
+      // [data-lay] matched every click on the page and swallowed it (LIST and the species links did nothing).
       lay = b.dataset.lay === 'list' ? 'list' : 'shelf';
       put(storage, LAY_KEY, lay);
       render();
