@@ -2090,6 +2090,7 @@ export const en = {
   'gd.id.features': 'Anything that stood out',
   'gd.h.marks': 'Key marks',
   'fc.guide': 'Species guide',
+  'fc.guideShort': 'Species',
   'fc.lk.id': 'Identify',
   'fc.lk.handle': 'Handling',
   'fc.lk.notes': 'Field notes',
