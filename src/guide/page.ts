@@ -19,6 +19,7 @@ import { t } from '../i18n';
 import { landing } from '../forecast/model';
 import { loadIndex, loadSpecies } from './data';
 import { noAnswers, stepsFor, type IdAnswers, type IdStep } from './identify';
+import { coastHtml, ZONE_HABITATS, zoneCounts, zoneOf, type Zone } from './coast';
 import { flipDeckHtml } from './flip';
 import { idCheckHtml, idHtml } from './identify-view';
 import {
@@ -101,6 +102,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
       <div class="fc-in"><button type="button" class="gd-idbar" data-idbar>${svg(ICONS.identify)}<span><b>${esc(t('gd.idbar'))}</b><small>${esc(t('gd.idbarSub'))}</small></span>${svg(ICONS.next)}</button></div>
       <nav class="gd-modes fc-in" id="gd-modes" role="tablist" aria-label="${esc(t('gd.modes'))}"></nav>
       <div class="gd-groups-w fc-in"><div class="gd-groups" id="gd-groups" role="toolbar" aria-label="${esc(t('gd.groups'))}"></div></div>
+      <section class="gd-coast fc-in" aria-labelledby="gd-coast-h"><h2 class="gd-coast-h" id="gd-coast-h">${esc(t('gd.coast.title'))}</h2><p class="gd-coast-p">${esc(t('gd.coast.hint'))}</p><div class="gd-coast-d" id="gd-coast"></div><p class="gd-coast-on fc-mono" id="gd-coast-on" hidden></p></section>
       <div class="gd-tools gd-tools2 fc-in">
         <div id="gd-common-w"></div>
         <button type="button" class="fc-ctl gd-fbtn" id="gd-fbtn" aria-expanded="false" aria-controls="gd-filters">${svg(ICONS.filter)}<span>${t('gd.filters')}</span><b id="gd-fn" hidden></b></button>
@@ -252,6 +254,11 @@ export function mountGuidePage(deps: GuidePageDeps) {
       b.querySelector('b')!.textContent = String(n);
       b.toggleAttribute('data-empty', !n);
     });
+    // The coast drawing: each part's count, and the part showing (when the habitat filter is exactly one part).
+    const zone = zoneOf(f.habitats);
+    $('gd-coast').innerHTML = coastHtml(zone, zoneCounts(all, f, mode, group, hays));
+    $('gd-coast-on').hidden = !zone;
+    if (zone) $('gd-coast-on').innerHTML = `<span>${esc(t('gd.coast.on', { zone: t(`gd.coast.${zone}`) }))}</span><button type="button" class="gd-qf" data-coast-clear>${esc(t('gd.coast.clear'))}</button>`;
     const fn = activeCount(f);
     $('gd-fn').textContent = String(fn);
     $('gd-fn').hidden = !fn;
@@ -447,6 +454,20 @@ export function mountGuidePage(deps: GuidePageDeps) {
     return { ids, title: head?.k === 'head' ? head.s.title : '' };
   };
 
+  /** A part of the coast: show what lives there (again: everywhere), and bring the list up to meet it. */
+  const pickZone = (z: Zone) => {
+    f.habitats = zoneOf(f.habitats) === z ? [] : [...ZONE_HABITATS[z]];
+    render();
+    if (f.habitats.length) {
+      const row = el.querySelector<HTMLElement>('.gd-countrow');
+      if (row) el.scrollTo?.({ top: row.offsetTop - 140, behavior: REDUCED() ? 'auto' : 'smooth' });
+    }
+  };
+  el.addEventListener('keydown', (e) => {
+    const g = (e.target as Element)?.closest?.<HTMLElement>('[data-zone]');
+    if (g && (e.key === 'Enter' || e.key === ' ')) (e.preventDefault(), pickZone(g.dataset.zone as Zone));
+  });
+
   // --- clicks and typing
   el.addEventListener('click', (ev) => {
     const target = ev.target as Element;
@@ -480,7 +501,9 @@ export function mountGuidePage(deps: GuidePageDeps) {
     } else if ((b = hit('[data-flip-at]'))) {
       const sh = shelfOf(b.dataset.flipAt!);
       openFlip(sh.ids, sh.title);
-    } else if (hit('[data-flip-all]')) openFlip(order, $('gd-count').textContent ?? '');
+    } else if ((b = hit('[data-zone]'))) pickZone(b.dataset.zone as Zone);
+    else if (hit('[data-coast-clear]')) (f.habitats = []), render();
+    else if (hit('[data-flip-all]')) openFlip(order, $('gd-count').textContent ?? '');
     else if (hit('[data-flip-close]')) closeFlip();
     else if ((b = hit('[data-flip-step]'))) flipBy(Number(b.dataset.flipStep));
     else if (hit('[data-idbar]')) setView('identify', null);
