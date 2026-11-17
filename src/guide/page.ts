@@ -20,7 +20,7 @@ import { t } from '../i18n';
 import { landing } from '../forecast/model';
 import { loadIndex, loadSpecies } from './data';
 import { noAnswers, stepsFor, type IdAnswers, type IdStep } from './identify';
-import { coastHtml, ZONE_HABITATS, zoneCounts, zoneOf, type Zone } from './coast';
+import { updateCoast, wireCoast, ZONE_HABITATS, zoneCounts, zoneOf, type Zone } from './coast';
 import { flipDeckHtml } from './flip';
 import { idCheckHtml, idHtml } from './identify-view';
 import {
@@ -257,7 +257,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
     });
     // The coast drawing: each part's count, and the part showing (when the habitat filter is exactly one part).
     const zone = zoneOf(f.habitats);
-    $('gd-coast').innerHTML = coastHtml(zone, zoneCounts(all, f, mode, group, hays));
+    updateCoast($('gd-coast'), zone, zoneCounts(all, f, mode, group, hays));
     $('gd-coast-on').hidden = !zone;
     if (zone) $('gd-coast-on').innerHTML = `<span>${esc(t('gd.coast.on', { zone: t(`gd.coast.${zone}`) }))}</span><button type="button" class="gd-qf" data-coast-clear>${esc(t('gd.coast.clear'))}</button>`;
     const fn = activeCount(f);
@@ -510,6 +510,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
     return { ids, title: head?.k === 'head' ? head.s.title : '' };
   };
 
+  wireCoast($('gd-coast'));
   /** A part of the coast: show what lives there (again: everywhere), and bring the list up to meet it. */
   const pickZone = (z: Zone) => {
     f.habitats = zoneOf(f.habitats) === z ? [] : [...ZONE_HABITATS[z]];
@@ -521,7 +522,7 @@ export function mountGuidePage(deps: GuidePageDeps) {
   };
   el.addEventListener('keydown', (e) => {
     const g = (e.target as Element)?.closest?.<HTMLElement>('[data-zone]');
-    if (g && (e.key === 'Enter' || e.key === ' ')) (e.preventDefault(), pickZone(g.dataset.zone as Zone));
+    if (g && g.tagName !== 'BUTTON' && (e.key === 'Enter' || e.key === ' ')) (e.preventDefault(), pickZone(g.dataset.zone as Zone));
   });
 
   // --- clicks and typing
