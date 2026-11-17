@@ -286,7 +286,64 @@ export function mountGuidePage(deps: GuidePageDeps) {
     if (end > drawn) list.insertAdjacentHTML('beforeend', rowsHtml(rows.slice(drawn, end), listOpts));
     drawn = end;
     moreBtn.hidden = drawn >= rows.length;
+    if (listOpts.shelf) list.querySelectorAll<HTMLElement>('.gd-lane').forEach(laneEdges);
   };
+
+  // --- shelves on desktop (Joseph 2026-11-17: "arrows AND drag scrolling"): an arrow at each end that moves a shelf
+  // along by most of a screen, shown only where there is more to see, and the mouse can drag a shelf sideways.
+  // Phones swipe as before.
+  /** Mark whether a lane is at its start, its end, both (it all fits) or between, for its arrows. */
+  const laneEdges = (lane: HTMLElement) => {
+    const max = lane.scrollWidth - lane.clientWidth;
+    const at = max <= 2 ? 'both' : lane.scrollLeft <= 2 ? 'start' : lane.scrollLeft >= max - 2 ? 'end' : 'mid';
+    if (lane.parentElement?.dataset.at !== at) lane.parentElement!.dataset.at = at;
+  };
+  const laneBy = (lane: HTMLElement, dir: number) => {
+    const step = Math.max(160, lane.clientWidth - 180);
+    lane.scrollBy({ left: dir * step, behavior: REDUCED() ? 'auto' : 'smooth' });
+  };
+  list.addEventListener('scroll', (e) => (e.target as HTMLElement).classList?.contains('gd-lane') && laneEdges(e.target as HTMLElement), true);
+  window.addEventListener('resize', () => listOpts.shelf && list.querySelectorAll<HTMLElement>('.gd-lane').forEach(laneEdges));
+  let drag: { lane: HTMLElement; x: number; left: number; id: number; moved: boolean } | null = null;
+  let dragged = 0;
+  list.addEventListener('pointerdown', (e) => {
+    const lane = (e.target as Element).closest?.<HTMLElement>('.gd-lane');
+    if (!lane || e.pointerType !== 'mouse' || e.button !== 0) return;
+    drag = { lane, x: e.clientX, left: lane.scrollLeft, id: e.pointerId, moved: false };
+  });
+  list.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dx = e.clientX - drag.x;
+    if (!drag.moved && Math.abs(dx) < 6) return;
+    if (!drag.moved) {
+      drag.moved = true;
+      drag.lane.classList.add('gd-drag');
+      drag.lane.setPointerCapture?.(e.pointerId);
+    }
+    drag.lane.scrollLeft = drag.left - dx;
+  });
+  const endDrag = (e: PointerEvent) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (drag.moved) {
+      dragged = performance.now();
+      const lane = drag.lane;
+      lane.classList.remove('gd-drag');
+      // Settle on the nearest tile, as a swipe would.
+      const tile = lane.querySelector<HTMLElement>('.gd-st');
+      if (tile) {
+        const w = tile.offsetWidth + 8;
+        lane.scrollTo({ left: Math.round(lane.scrollLeft / w) * w, behavior: REDUCED() ? 'auto' : 'smooth' });
+      }
+    }
+    drag = null;
+  };
+  list.addEventListener('pointerup', endDrag);
+  list.addEventListener('pointercancel', endDrag);
+  // A drag is not a tap: the click that ends it does not open the species.
+  list.addEventListener('click', (e) => {
+    if (performance.now() - dragged < 60) (e.preventDefault(), e.stopPropagation());
+  }, true);
+  list.addEventListener('dragstart', (e) => (e.target as Element).closest?.('.gd-lane') && e.preventDefault());
   const render = () => {
     if (!idx) {
       list.innerHTML = failed
@@ -497,6 +554,9 @@ export function mountGuidePage(deps: GuidePageDeps) {
       b.setAttribute('aria-pressed', String(on));
       b.querySelector('span')!.textContent = t(on ? 'gd.fav.on' : 'gd.fav.off');
       render();
+    } else if ((b = hit('[data-shelf-go]'))) {
+      const lane = b.parentElement?.querySelector<HTMLElement>('.gd-lane');
+      if (lane) laneBy(lane, Number(b.dataset.shelfGo));
     } else if ((b = hit('[data-flip-at]'))) {
       const sh = shelfOf(b.dataset.flipAt!);
       openFlip(sh.ids, sh.title);

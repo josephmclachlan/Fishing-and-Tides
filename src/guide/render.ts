@@ -249,6 +249,10 @@ const firstCard = (rows: readonly Row[], i: number): string | undefined => {
   return undefined;
 };
 
+/** An arrow that moves a shelf along by a screen (desktop; phones swipe). */
+const shelfArrow = (dir: -1 | 1) =>
+  `<button type="button" class="gd-sa ${dir < 0 ? 'l' : 'r'}" data-shelf-go="${dir}" tabindex="-1" aria-label="${esc(t(dir < 0 ? 'gd.shelf.back' : 'gd.shelf.more'))}">${icon(dir < 0 ? ICONS.back : ICONS.next)}</button>`;
+
 /** Markup for a run of rows: cards gathered in a grid, records in a list, each run opened and closed here. */
 export function rowsHtml(rows: readonly Row[], o: ListOpts): string {
   let html = '', open: 'cards' | 'recs' | null = null;
@@ -259,7 +263,7 @@ export function rowsHtml(rows: readonly Row[], o: ListOpts): string {
   };
   rows.forEach((r, i) => {
     if (r.k === 'card') {
-      if (open !== 'cards') close(), (html += o.shelf ? '<div class="gd-shelf"><div class="gd-lane">' : '<div class="gd-cards">'), (open = 'cards');
+      if (open !== 'cards') close(), (html += o.shelf ? `<div class="gd-shelf" data-at="start">${shelfArrow(-1)}${shelfArrow(1)}<div class="gd-lane">` : '<div class="gd-cards">'), (open = 'cards');
       html += o.shelf ? tileHtml(r.e, o) : cardHtml(r.e, o);
     } else if (r.k === 'rec') {
       if (open !== 'recs') close(), (html += '<ul class="gd-recs">'), (open = 'recs');

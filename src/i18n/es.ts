@@ -2264,6 +2264,8 @@ export const es: Dict = {
   'gd.tab.safety': 'Seguridad',
   'gd.tab.sources': 'Fuentes',
   'gd.idbar': 'Identificar una especie',
+  'gd.shelf.back': 'Atrás en esta fila',
+  'gd.shelf.more': 'Más en esta fila',
   'gd.idbarSub': '¿Vio algo? Pez, tiburón, tortuga, coral, planta: responda unas preguntas con imágenes.',
   'gd.ans.title': 'Las cuatro respuestas',
   'gd.ans.eat': 'Comer',

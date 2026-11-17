@@ -648,6 +648,36 @@
 .gd .gd-st:focus-visible { outline: 3px solid var(--fc-ink); outline-offset: 2px; }
 @media (min-width: 760px) { .gd .gd-st { flex-basis: 172px; } }
 
+/* Shelf arrows and dragging (desktop, Joseph 2026-11-17). Each end of a shelf fades into the page where there is more
+   to see, with a square glass arrow over the photos; the arrow and fade go at the end the shelf has reached. Phones
+   swipe, so the arrows show only with a mouse. A mouse can also drag a shelf sideways. */
+.gd-shelf { position: relative; }
+.gd .gd-sa { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .gd-lane { cursor: grab; }
+  .gd-lane.gd-drag { cursor: grabbing; scroll-snap-type: none; user-select: none; }
+  .gd-lane.gd-drag .gd-st { pointer-events: none; }
+  .gd .gd-sa {
+    position: absolute; z-index: 2; top: 4px; display: grid; place-items: center; width: 56px; padding: 0;
+    aspect-ratio: auto; height: calc(var(--gd-st-w, 148px) * 0.75); border: 0; cursor: pointer; color: var(--fc-ink);
+    transition: opacity 0.2s ease;
+  }
+  .gd .gd-sa.l { left: 0; background: linear-gradient(90deg, var(--fc-bg) 30%, transparent); justify-items: start; padding-left: max(6px, calc(var(--fc-g-l) - 10px)); }
+  .gd .gd-sa.r { right: 0; background: linear-gradient(270deg, var(--fc-bg) 30%, transparent); justify-items: end; padding-right: max(6px, calc(var(--fc-g-r) - 10px)); }
+  .gd .gd-sa svg {
+    box-sizing: content-box; width: 22px; height: 22px; padding: 8px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: square; stroke-linejoin: miter;
+    background: color-mix(in srgb, var(--fc-card) 86%, transparent); border: 1.5px solid var(--fc-t-snorkel);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .gd[data-scheme='dark'] .gd-sa svg { box-shadow: 0 0 12px color-mix(in srgb, var(--fc-t-snorkel) 45%, transparent); }
+  .gd .gd-sa:hover svg { transform: scale(1.08); box-shadow: 0 0 18px color-mix(in srgb, var(--fc-t-snorkel) 65%, transparent); }
+  .gd .gd-sa.l:hover svg { transform: translateX(-2px) scale(1.08); }
+  .gd .gd-sa.r:hover svg { transform: translateX(2px) scale(1.08); }
+  .gd .gd-sa:focus-visible svg { outline: 3px solid var(--fc-ink); outline-offset: 2px; }
+  .gd-shelf[data-at='start'] .gd-sa.l, .gd-shelf[data-at='end'] .gd-sa.r, .gd-shelf[data-at='both'] .gd-sa { opacity: 0; pointer-events: none; }
+}
+@media (min-width: 760px) { .gd-shelf { --gd-st-w: 172px; } }
+
 /* The colour marks: small square plates, lit in the mark's colour. */
 .gd-tgs { position: absolute; left: 5px; bottom: 5px; display: flex; gap: 3px; }
 .gd .gd-tg {
