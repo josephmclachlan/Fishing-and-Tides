@@ -29,9 +29,9 @@ describe('ciguatera agrees across the map, forecast and guide', () => {
     expect(SPECIES.find((s) => s.id === 'mackerel')!.ciguatera).toBe('listed');
     expect(ciguaSpecies('mackerel').map((s) => s.sci)).toEqual(['Scomberomorus regalis']);
   });
-  it('uses the guide sizes: horse-eye jack 38 cm is the strictest jack', () => {
-    expect(ciguaSpecies('jack').find((s) => s.sci === 'Caranx latus')!.size).toEqual({ basis: 'published', cm: 38, kg: 1 });
-    expect(strictestCm('jack')).toBe(38);
+  it('uses the guide sizes: horse-eye jack 42 cm is the strictest jack', () => {
+    expect(ciguaSpecies('jack').find((s) => s.sci === 'Caranx latus')!.size).toEqual({ basis: 'published', cm: 42, kg: 1 });
+    expect(strictestCm('jack')).toBe(42);
     expect(strictestCm('kingfish')).toBe(75);
     expect(strictestCm('wahoo')).toBe(90);
   });
@@ -39,7 +39,7 @@ describe('ciguatera agrees across the map, forecast and guide', () => {
     const html = ciguaNoteHtml('jack', 'high');
     expect(html).toContain('cz-red');
     expect(html.match(/cz-row/g)!.length).toBe(5);
-    expect(html).toContain('38 cm');
+    expect(html).toContain('42 cm');
     expect(ciguaNoteHtml('snook', undefined)).toBe('');
     expect(ciguaBoatHtml(['kingfish', 'wahoo'])).toContain('75 cm');
   });
@@ -49,7 +49,7 @@ describe('forecast ciguatera line', () => {
   it('gives the strictest size for each listed fish that carries it', async () => {
     const { ciguaLine } = await import('../forecast/view');
     const [line] = ciguaLine(['snook', 'jack', 'grouper']);
-    expect(line).toMatch(/38 cm/);
+    expect(line).toMatch(/42 cm/);
     expect(line).toMatch(/33 cm/);
     expect(ciguaLine(['snook', 'mullet'])).toEqual([]);
   });
