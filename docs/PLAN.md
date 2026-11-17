@@ -327,6 +327,7 @@ Keep the Kinetic Plus page's bold activity words and square cards; the drawings 
 - [x] 15.2 Days 8 to 16 under the week: each day's best window as a row, marked less sure; nothing past day 16 (Joseph 2026-11-17: further out is no use). Replaced by 15.5.
 - [x] 15.4 Dark mode: neutral black glass (no tint) with the rating colour on square edges, words and drawings, and the full glow (Joseph picked B on 2026-11-17); light mode keeps the colour field
 - [x] 15.5 PLAN AHEAD replaces days 8 to 16 (Joseph 2026-11-17 picked mockup 3, the colour grid): drag across 16 days (8 on hatched less sure), pick up to 12 readings from the map's WATCH list (the activity's own set to start), and read every 3 hours or each day's best hour as square cells in the rating colours; tap a cell for what it means (`src/forecast/grid.ts`, `grid-html.ts`)
+- [x] 15.6 The map's WATCH becomes PLAN AHEAD: Tools > Plan ahead opens the forecast page at the map's spot and activity, scrolled to the colour grid; the old WATCH drawer, its 5-day popup and share image are removed (`src/watch-panel.ts`, `metrics/store.ts`, `metrics/share-image.ts`)
 - [ ] 15.3 E: the where-and-when grid (every beach by every day, tap a square for its hero and tiles), as a second view
 
 ## Phase 9: Final review (last, after every task above)

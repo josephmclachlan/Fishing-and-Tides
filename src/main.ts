@@ -39,7 +39,6 @@ import { mountStorms } from './layers/storms';
 import { fetchWeather, weatherAt, type WeatherData } from './adapters/weather';
 import { fetchSpotWind, spotWindAt, type SpotWind } from './adapters/spot-wind';
 import { LIMON_BIG_TIDE, LIMON_HARMONICS } from './data/tides-limon';
-import { mountWatchPanel } from './watch-panel';
 import { mountBoatWindowHud } from './boat-window-hud';
 import { debrisAt } from './boat/debris';
 import { makeReefLookup, shoalAlert, type ReefAt } from './boat/shoal';
@@ -1099,20 +1098,6 @@ const metricEnv = (): MetricEnv => ({
   tide: LIMON_HARMONICS,
   tzOffsetH: REGION.tzOffsetH,
 });
-// BEST DAY FOR follows the CONDITIONS activity until picked in WATCH: SNORKEL or DIVE from the dive panel, the glance strip's under ALL.
-mountWatchPanel(
-  hud, map, sheets, safeStorage(), metricEnv,
-  () => {
-    const a = condGroups.activity();
-    const g = a === 'all' ? (glance?.mode() ?? 'surf') : a;
-    return g === 'dive' ? (diveHud?.mode() ?? 'snorkel') : g;
-  },
-  // The outing score is a water score and the spot pins sit on the shore: read it at the nearest water, as clarity is above.
-  () => {
-    const c = clarityCtx();
-    return diveHud ? (spot, m, ms, h) => diveHud!.outingAt((c && watchWater(spot.lngLat[0], spot.lngLat[1], c)) || spot.lngLat, m, ms, h) : undefined;
-  },
-);
 // FORECAST page (PLAN 7.52): a clean page per spot and activity, its own link (#forecast/<spot>/<activity>).
 /** The map's LAYERS preset for each forecast activity (snorkel and dive share DIVE). */
 const MAP_PRESET: Record<FcActivity, ActivityId> = { fish: 'fishing', surf: 'surf', swim: 'swim', snorkel: 'dive', dive: 'dive', spear: 'spear', sail: 'sail', paddle: 'paddle' };
@@ -1856,7 +1841,7 @@ if (MODERN) {
     },
     tools: [
       { id: 'cond', label: L2('Expand data', 'Ampliar datos'), sub: L2('Every group of the classic CONDITIONS panel, GO or NO-GO per activity', 'Todos los grupos del panel de condiciones, apto o no por actividad') },
-      { id: 'watch', label: L2('Watch', 'Vigilar'), sub: L2('Pick metrics, get the best day over the next five', 'Elija métricas y vea el mejor día de los próximos cinco') },
+      { id: 'plan', label: L2('Plan ahead', 'Planear'), sub: L2('Your own forecast for up to 16 days: pick the readings, see every hour in colour', 'Su propio pronóstico hasta 16 días: elija los datos y vea cada hora en color') },
       { id: 'boat', label: L2('Boat', 'Bote'), sub: L2('GPS track, pins, catches, offshore read and route', 'Ruta GPS, puntos, capturas, lectura mar afuera y ruta') },
       { id: 'coral', label: L2('Coral sites', 'Sitios de coral'), sub: L2('Your private field log, reef heat, spawning and guide', 'Su bitácora privada, calor, desove y guía') },
       { id: 'obs', label: L2('Live observations', 'Observaciones en vivo'), sub: L2('Tide gauge, airport and satellite passes, with ages', 'Mareógrafo, aeropuerto y pasadas de satélite, con su edad') },
