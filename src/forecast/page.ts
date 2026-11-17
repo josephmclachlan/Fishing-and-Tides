@@ -374,7 +374,7 @@ export function mountForecastPage(deps: ForecastDeps) {
       if (!all && !reduced && o.drawn && !tileVis.has(o.el)) continue;
       o.drawn = true;
       const A = o.v.kind === 'uv' && o.v.lv !== null ? rgba(T[`uv${4 - o.v.lv}` as TokenName]) : o.v.lv !== null ? rgba(T[lvTok(o.v.lv, 'ac')]) : heroA;
-      drawTile(o.v.kind, o.c, o.w, o.h, reduced ? 3.2 : tt, o.v.viz, { I, A, B, sand: T.sand, reduced, words });
+      drawTile(o.v.kind, o.c, o.w, o.h, reduced ? 3.2 : tt, o.v.viz, { I, A, B, sand: T.sand, reduced, words, glow: el.dataset.scheme === 'dark' });
     }
   };
   const renderTiles = (anim: boolean) => {

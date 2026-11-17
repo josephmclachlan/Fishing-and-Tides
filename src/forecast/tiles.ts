@@ -46,7 +46,14 @@ export interface TilePaint {
   sand: RGB;
   reduced: boolean;
   words: { period: string; from: string };
+  /** The dark scheme's lit look (Joseph 2026-11-17, forecast option B "full glow"): spectrum fills and lit lines. */
+  glow?: boolean;
 }
+
+/** The lit spectrum along a scale, cold to hot (dark scheme only). */
+const SPECTRUM: [number, string][] = [[0, '#2f8cff'], [0.35, '#2fd6c2'], [0.62, '#7be38f'], [0.82, '#f2c94c'], [1, '#ff7d63']];
+/** The six lit copies under the tide line, low to high. */
+const TIDE_LIT = ['#4d9dff', '#2fd6c2', '#74d65e', '#f2c94c', '#ff7a52', '#ff5fa2'];
 type Draw = (c: Ctx2D, w: number, h: number, t: number, z: TileViz, P: TilePaint) => void;
 
 /** Smooth reef profile 0..1 across, shared with the hero (a fixed shape, not data). */
@@ -124,7 +131,13 @@ function meter(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, v: numbe
   const f = clamp((v - lo) / (hi - lo), 0, 1), y0 = h * 0.38, bh = Math.min(18, h * 0.26);
   c.strokeStyle = P.I; c.lineWidth = 1.5; c.strokeRect(0.75, y0, w - 1.5, bh);
   const ex = 2 + (w - 4) * f;
-  c.fillStyle = P.A; c.fillRect(2, y0 + 2, Math.max(0, ex - 2), bh - 4);
+  if (P.glow && !flow) {
+    // Lit: the bar shows the whole cold-to-hot spectrum of the scale up to the value, glowing.
+    const g = c.createLinearGradient(2, 0, w - 2, 0);
+    for (const [o, col] of SPECTRUM) g.addColorStop(o, col);
+    c.save(); c.fillStyle = g; c.shadowColor = 'rgba(80,200,190,.65)'; c.shadowBlur = 12;
+    c.fillRect(2, y0 + 2, Math.max(0, ex - 2), bh - 4); c.restore();
+  } else { c.fillStyle = P.A; c.fillRect(2, y0 + 2, Math.max(0, ex - 2), bh - 4); }
   // A square pointer above the value, so the reading is one sharp mark on the scale.
   c.fillStyle = P.I; c.beginPath(); c.moveTo(ex - 5, y0 - 8); c.lineTo(ex + 5, y0 - 8); c.lineTo(ex, y0 - 2); c.closePath(); c.fill();
   c.fillRect(Math.round(ex) - 1, y0, 2, bh);
@@ -251,16 +264,26 @@ const TV: Record<TileKind, Draw> = {
     c.fillStyle = P.A; c.globalAlpha = 0.22; c.beginPath(); c.moveTo(hx(0), h);
     for (let hr = 0; hr <= s.length - 1; hr += 0.25) c.lineTo(hx(hr), hy(at(hr)));
     c.lineTo(hx(s.length - 1), h); c.closePath(); c.fill(); c.globalAlpha = 1;
-    c.strokeStyle = P.I; c.lineWidth = 2; c.beginPath();
-    for (let hr = 0; hr <= s.length - 1; hr += 0.25) (hr ? c.lineTo(hx(hr), hy(at(hr))) : c.moveTo(hx(hr), hy(at(hr))));
-    c.stroke();
+    const curve = (dy: number) => {
+      c.beginPath();
+      for (let hr = 0; hr <= s.length - 1; hr += 0.25) (hr ? c.lineTo(hx(hr), hy(at(hr)) + dy) : c.moveTo(hx(hr), hy(at(hr)) + dy));
+      c.stroke();
+    };
+    if (P.glow) {
+      // Lit: six spectrum copies of the curve fanned under the ink line, then the ink line glowing in the accent.
+      c.save(); c.lineWidth = 1.4; c.shadowBlur = 8; c.globalAlpha = 0.85;
+      TIDE_LIT.forEach((col, k) => { c.strokeStyle = col; c.shadowColor = col; curve((k - 2.5) * 2.2); });
+      c.restore();
+      c.save(); c.strokeStyle = P.I; c.lineWidth = 2; c.shadowColor = P.A; c.shadowBlur = 10; curve(0); c.restore();
+    } else { c.strokeStyle = P.I; c.lineWidth = 2; curve(0); }
     if (!P.reduced) { const mh = (t * 1.6) % (s.length - 1); c.fillStyle = P.A; c.fillRect(hx(mh) - 3, hy(at(mh)) - 3, 6, 6); }
     if (fin(z.at)) {
       // Now: a square on the curve with a square ring opening out from it, and a drop line to the floor.
       const pr = (t % 2) / 2, x = Math.round(hx(z.at)), y = Math.round(hy(at(z.at))), q = 5 + pr * 9;
       c.strokeStyle = P.I; c.lineWidth = 1; c.setLineDash([2, 3]); c.beginPath(); c.moveTo(x + 0.5, y); c.lineTo(x + 0.5, h); c.stroke(); c.setLineDash([]);
       c.globalAlpha = P.reduced ? 0 : 1 - pr; c.lineWidth = 1.5; c.strokeRect(x - q, y - q, q * 2, q * 2); c.globalAlpha = 1;
-      c.fillStyle = P.I; c.fillRect(x - 5, y - 5, 10, 10);
+      c.save(); c.fillStyle = P.I; if (P.glow) { c.shadowColor = '#ffffff'; c.shadowBlur = 14; }
+      c.fillRect(x - 5, y - 5, 10, 10); c.restore();
     }
     if (fin(z.turnAt) && z.turnAt <= s.length - 1) tag(c, z.turnHigh ? 'H' : 'L', hx(z.turnAt), hy(at(z.turnAt)) + (z.turnHigh ? -13 : 14), 'center', 8.5, P.I, P.B);
   },

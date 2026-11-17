@@ -20,6 +20,7 @@ describe('conditions tile pictures (PLAN 7.69)', () => {
           const c = recCtx();
           drawTile(k, c, 160, 90, t, z, P);
           drawTile(k, c, 160, 90, t, z, { ...P, reduced: true });
+          drawTile(k, c, 160, 90, t, z, { ...P, glow: true });
         }
   });
   it('draws every line with square ends, never round ones (PLAN 13.6)', () => {
