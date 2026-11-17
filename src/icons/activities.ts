@@ -20,7 +20,7 @@ export const ACTIVITY_GLYPH: Record<ActivityIcon, string> = {
   // a mask with the snorkel tube beside it
   snorkel: '<path d="M3 9.5h12.5a1.5 1.5 0 0 1 1.5 1.5v2.5a3 3 0 0 1-3 3h-1.4l-1.6-2.2-1.6 2.2H6a3 3 0 0 1-3-3Z"/><path d="M20.5 3v13.5a4.5 4.5 0 0 1-4.5 4.5h-3"/>',
   // the diver-down flag: a square with a diagonal band
-  dive: '<rect x="3" y="5" width="18" height="14" rx="1.6"/><path d="M3 7.2 18.8 19M5.2 5 21 16.8"/>',
+  dive: '<rect x="3" y="5" width="18" height="14"/><path d="M3 7.2 18.8 19M5.2 5 21 16.8"/>',
   // a curling wave over the water line
   surf: '<path d="M2.5 18.5c3-.2 5-2 6.2-5.6C10.4 7.6 13.4 5 17 5c2.6 0 4.5 1.6 4.5 3.9 0 1.9-1.4 3.2-3.1 3.2-1.4 0-2.4-1-2.4-2.3"/><path d="M2.5 21.5h19"/>',
   // mainsail and jib on a hull

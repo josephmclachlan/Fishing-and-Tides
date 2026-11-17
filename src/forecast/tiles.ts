@@ -7,7 +7,7 @@
  * Also the tips' bands: which tip a value opens to, on the page's own bands.
  */
 import type { TileKind, TileViz } from './view';
-import { arrow, clamp, D2R, DISP, moonPath, rgba, sq, TAU, txt, type Ctx2D, type RGB } from './kit';
+import { arrow, clamp, D2R, DISP, moonPath, rgba, sq, tag, TAU, txt, type Ctx2D, type RGB } from './kit';
 import { shoreBand } from '../physics/shorebreak';
 
 const fin = (x: number | null | undefined): x is number => typeof x === 'number' && Number.isFinite(x);
@@ -46,7 +46,14 @@ export interface TilePaint {
   sand: RGB;
   reduced: boolean;
   words: { period: string; from: string };
+  /** The dark scheme's lit look (Joseph 2026-11-17, forecast option B "full glow"): spectrum fills and lit lines. */
+  glow?: boolean;
 }
+
+/** The lit spectrum along a scale, cold to hot (dark scheme only). */
+const SPECTRUM: [number, string][] = [[0, '#2f8cff'], [0.35, '#2fd6c2'], [0.62, '#7be38f'], [0.82, '#f2c94c'], [1, '#ff7d63']];
+/** The six lit copies under the tide line, low to high. */
+const TIDE_LIT = ['#4d9dff', '#2fd6c2', '#74d65e', '#f2c94c', '#ff7a52', '#ff5fa2'];
 type Draw = (c: Ctx2D, w: number, h: number, t: number, z: TileViz, P: TilePaint) => void;
 
 /** Smooth reef profile 0..1 across, shared with the hero (a fixed shape, not data). */
@@ -58,7 +65,7 @@ export function reefAt(u: number) {
 
 /** Flat cloud bars drifting across: the Kinetic sky mark. */
 function bars(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, list: [number, number, number, number][]) {
-  c.lineCap = 'round';
+  c.lineCap = 'butt';
   list.forEach(([yf, lf, lw, sp], i) => {
     const len = w * lf, span = w + len, x = (((t * sp + i * 60) % span) + span) % span - len * 0.5, yy = h * yf;
     c.strokeStyle = P.B; c.lineWidth = lw + 6; c.beginPath(); c.moveTo(x, yy); c.lineTo(x + len, yy); c.stroke();
@@ -67,37 +74,36 @@ function bars(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, list: [nu
   c.lineCap = 'butt';
 }
 /**
- * Drifting clouds, each a plain puffy outline (three bumps on a flat base) so it reads as a cloud, not a bar:
- * [y of the base as a share of h, width as a share of w, unused, drift speed].
+ * Drifting clouds, each a plain puffy outline (three bumps on a hard flat base) so it reads as a cloud, not a bar,
+ * with a square ledge in the reading's colour under it: [y of the base as a share of h, width as a share of w, unused, drift speed].
  */
 function clouds(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, list: [number, number, number, number][]) {
   list.forEach(([yf, lf, , sp], i) => {
-    const W = Math.min(w * lf, h * 1.1), span = w + W, x = (((t * sp + i * 60) % span) + span) % span - W * 0.5, by = h * yf;
+    const W = Math.min(w * lf, h * 1.1), span = w + W, x = (((t * sp + i * 60) % span) + span) % span - W * 0.5, by = Math.round(h * yf);
     const parts: [number, number, number][] = [[0.27, -0.2, 0.19], [0.55, -0.3, 0.25], [0.8, -0.17, 0.16]];
     const circ = (cx: number, cy: number, r: number) => { c.moveTo(cx + r, cy); c.arc(cx, cy, r, 0, Math.PI * 2); };
     const shape = (grow: number) => {
       c.beginPath();
       for (const [u, v, r] of parts) circ(x + u * W, by + v * W, r * W + grow);
-      circ(x + 0.12 * W, by - 0.1 * W, 0.1 * W + grow);
-      circ(x + 0.88 * W, by - 0.1 * W, 0.1 * W + grow);
-      c.rect(x + 0.12 * W, by - 0.2 * W - grow, 0.76 * W, 0.2 * W + 2 * grow);
+      c.rect(x + 0.06 * W - grow, by - 0.2 * W - grow, 0.9 * W + 2 * grow, 0.2 * W + 2 * grow);
     };
-    // Ink a little larger, then the card colour on top: only the outer outline stays.
+    // Ink a little larger, then the card colour on top: only the outer outline stays, cut square at the base.
     c.fillStyle = P.I; shape(2); c.fill();
     c.fillStyle = P.B; shape(0); c.fill();
+    c.fillStyle = P.A; c.fillRect(x + 0.06 * W - 2, by + 5, 0.55 * W, 3);
   });
 }
 function drops(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, n: number, y0: number) {
-  c.lineCap = 'round'; c.strokeStyle = P.A; c.lineWidth = 1.8;
+  c.lineCap = 'butt'; c.strokeStyle = P.A; c.lineWidth = 2;
   for (let i = 0; i < n; i++) {
     const x = ((i * 0.618034) % 1) * w, sp = 70 + ((i * 13) % 30), y = y0 + ((t * sp + i * 41) % Math.max(1, h - y0));
     c.globalAlpha = 0.9 - ((y - y0) / Math.max(1, h - y0)) * 0.6;
     c.beginPath(); c.moveTo(x, y); c.lineTo(x - 3, y + 9); c.stroke();
   }
-  c.globalAlpha = 1; c.lineCap = 'butt';
+  c.globalAlpha = 1;
 }
 function sun(c: Ctx2D, x: number, y: number, r: number, t: number, P: TilePaint) {
-  c.strokeStyle = P.A; c.lineWidth = 2;
+  c.strokeStyle = P.A; c.lineWidth = 2.5; c.lineCap = 'butt';
   for (let i = 0; i < 12; i++) {
     const a = (i / 12) * TAU + t * 0.12;
     c.beginPath(); c.moveTo(x + Math.cos(a) * (r + 4), y + Math.sin(a) * (r + 4)); c.lineTo(x + Math.cos(a) * (r + 9), y + Math.sin(a) * (r + 9)); c.stroke();
@@ -109,7 +115,7 @@ function waveBox(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, m: num
   const base = h * 0.84, sc = (h * 0.7) / max;
   c.strokeStyle = P.I; c.globalAlpha = 0.45; c.lineWidth = 1; c.setLineDash([2, 3]);
   c.beginPath(); c.moveTo(0, base - ref * sc); c.lineTo(w, base - ref * sc); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
-  c.fillStyle = P.I; txt(c, `${ref} m`, w, base - ref * sc - 8, 'right', 9.5);
+  tag(c, `${ref} m`, w, base - ref * sc - 10, 'right', 8.5, P.I, P.B);
   const pr = (t / 4) % 1;
   const hAt = (x: number) => {
     const u = x / w - pr * 1.4 + 0.2;
@@ -125,9 +131,16 @@ function meter(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, v: numbe
   const f = clamp((v - lo) / (hi - lo), 0, 1), y0 = h * 0.38, bh = Math.min(18, h * 0.26);
   c.strokeStyle = P.I; c.lineWidth = 1.5; c.strokeRect(0.75, y0, w - 1.5, bh);
   const ex = 2 + (w - 4) * f;
-  c.fillStyle = P.A; c.beginPath(); c.moveTo(2, y0 + 2);
-  for (let yy = y0 + 2; yy <= y0 + bh - 2; yy += 2) c.lineTo(ex + Math.sin(yy * 0.5 + t * 3) * (P.reduced ? 0 : 2), yy);
-  c.lineTo(2, y0 + bh - 2); c.closePath(); c.fill();
+  if (P.glow && !flow) {
+    // Lit: the bar shows the whole cold-to-hot spectrum of the scale up to the value, glowing.
+    const g = c.createLinearGradient(2, 0, w - 2, 0);
+    for (const [o, col] of SPECTRUM) g.addColorStop(o, col);
+    c.save(); c.fillStyle = g; c.shadowColor = 'rgba(80,200,190,.65)'; c.shadowBlur = 12;
+    c.fillRect(2, y0 + 2, Math.max(0, ex - 2), bh - 4); c.restore();
+  } else { c.fillStyle = P.A; c.fillRect(2, y0 + 2, Math.max(0, ex - 2), bh - 4); }
+  // A square pointer above the value, so the reading is one sharp mark on the scale.
+  c.fillStyle = P.I; c.beginPath(); c.moveTo(ex - 5, y0 - 8); c.lineTo(ex + 5, y0 - 8); c.lineTo(ex, y0 - 2); c.closePath(); c.fill();
+  c.fillRect(Math.round(ex) - 1, y0, 2, bh);
   if (flow) {
     // Dashes running along the fill, faster with more current.
     c.strokeStyle = P.B; c.lineWidth = 2;
@@ -146,7 +159,8 @@ function meter(c: Ctx2D, w: number, h: number, t: number, P: TilePaint, v: numbe
 /** A paddler seen from above, bow to the right, at (x, y). */
 function paddlerTop(c: Ctx2D, x: number, y: number, s: number, col: string) {
   c.fillStyle = col; c.beginPath(); c.ellipse(x, y, 11 * s, 3.4 * s, 0, 0, TAU); c.fill();
-  c.strokeStyle = col; c.lineWidth = 1.5 * s; c.lineCap = 'round'; c.beginPath(); c.moveTo(x - 3 * s, y - 8 * s); c.lineTo(x + 3 * s, y + 8 * s); c.stroke(); c.lineCap = 'butt';
+  c.strokeStyle = col; c.lineWidth = 1.5 * s; c.beginPath(); c.moveTo(x - 3 * s, y - 8 * s); c.lineTo(x + 3 * s, y + 8 * s); c.stroke();
+  c.fillStyle = col; c.fillRect(x - 3 * s - 2 * s, y - 8 * s - 1.5 * s, 3 * s, 3 * s); c.fillRect(x + 3 * s - 1 * s, y + 8 * s - 1.5 * s, 3 * s, 3 * s);
 }
 
 const TV: Record<TileKind, Draw> = {
@@ -208,13 +222,13 @@ const TV: Record<TileKind, Draw> = {
       petal(deg - 22.5, L * 0.48, 0.38); petal(deg + 22.5, L * 0.58, 0.38); petal(deg, L, 1);
       for (let k = 0; k < 3; k++) {
         const ph = P.reduced ? 0.25 + k * 0.25 : (t / T + k / 3) % 1, d = R * 1.02 * (1 - ph), sl = R * 0.55 * (1 - ph * 0.55);
-        c.strokeStyle = P.I; c.globalAlpha = Math.sin(ph * Math.PI) * 0.9; c.lineWidth = 2; c.lineCap = 'round'; c.beginPath();
+        c.strokeStyle = P.I; c.globalAlpha = Math.sin(ph * Math.PI) * 0.9; c.lineWidth = 2; c.beginPath();
         c.moveTo(cx + ux * d + px * sl, cy + uy * d + py * sl); c.quadraticCurveTo(cx + ux * (d + 4), cy + uy * (d + 4), cx + ux * d - px * sl, cy + uy * d - py * sl);
-        c.stroke(); c.lineCap = 'butt';
+        c.stroke();
       }
       c.globalAlpha = 1;
     }
-    c.fillStyle = P.I; c.beginPath(); c.arc(cx, cy, 3.2, 0, TAU); c.fill();
+    c.fillStyle = P.I; c.fillRect(cx - 3, cy - 3, 6, 6);
     const tx = cx + R + 10, fz = Math.round(Math.min(h * 0.34, 34, (w - tx) / 1.9));
     if (fz >= 14 && fin(z.period)) {
       c.font = `850 ${fz}px ${DISP}`; c.textAlign = 'left'; c.textBaseline = 'alphabetic';
@@ -250,16 +264,28 @@ const TV: Record<TileKind, Draw> = {
     c.fillStyle = P.A; c.globalAlpha = 0.22; c.beginPath(); c.moveTo(hx(0), h);
     for (let hr = 0; hr <= s.length - 1; hr += 0.25) c.lineTo(hx(hr), hy(at(hr)));
     c.lineTo(hx(s.length - 1), h); c.closePath(); c.fill(); c.globalAlpha = 1;
-    c.strokeStyle = P.I; c.lineWidth = 2; c.beginPath();
-    for (let hr = 0; hr <= s.length - 1; hr += 0.25) (hr ? c.lineTo(hx(hr), hy(at(hr))) : c.moveTo(hx(hr), hy(at(hr))));
-    c.stroke();
-    if (!P.reduced) { const mh = (t * 1.6) % (s.length - 1); c.fillStyle = P.A; c.beginPath(); c.arc(hx(mh), hy(at(mh)), 3.5, 0, TAU); c.fill(); }
+    const curve = (dy: number) => {
+      c.beginPath();
+      for (let hr = 0; hr <= s.length - 1; hr += 0.25) (hr ? c.lineTo(hx(hr), hy(at(hr)) + dy) : c.moveTo(hx(hr), hy(at(hr)) + dy));
+      c.stroke();
+    };
+    if (P.glow) {
+      // Lit: six spectrum copies of the curve fanned under the ink line, then the ink line glowing in the accent.
+      c.save(); c.lineWidth = 1.4; c.shadowBlur = 8; c.globalAlpha = 0.85;
+      TIDE_LIT.forEach((col, k) => { c.strokeStyle = col; c.shadowColor = col; curve((k - 2.5) * 2.2); });
+      c.restore();
+      c.save(); c.strokeStyle = P.I; c.lineWidth = 2; c.shadowColor = P.A; c.shadowBlur = 10; curve(0); c.restore();
+    } else { c.strokeStyle = P.I; c.lineWidth = 2; curve(0); }
+    if (!P.reduced) { const mh = (t * 1.6) % (s.length - 1); c.fillStyle = P.A; c.fillRect(hx(mh) - 3, hy(at(mh)) - 3, 6, 6); }
     if (fin(z.at)) {
-      const pr = (t % 2) / 2, x = hx(z.at), y = hy(at(z.at));
-      c.strokeStyle = P.I; c.globalAlpha = P.reduced ? 0 : 1 - pr; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, 5 + pr * 10, 0, TAU); c.stroke(); c.globalAlpha = 1;
-      c.fillStyle = P.I; c.beginPath(); c.arc(x, y, 5, 0, TAU); c.fill();
+      // Now: a square on the curve with a square ring opening out from it, and a drop line to the floor.
+      const pr = (t % 2) / 2, x = Math.round(hx(z.at)), y = Math.round(hy(at(z.at))), q = 5 + pr * 9;
+      c.strokeStyle = P.I; c.lineWidth = 1; c.setLineDash([2, 3]); c.beginPath(); c.moveTo(x + 0.5, y); c.lineTo(x + 0.5, h); c.stroke(); c.setLineDash([]);
+      c.globalAlpha = P.reduced ? 0 : 1 - pr; c.lineWidth = 1.5; c.strokeRect(x - q, y - q, q * 2, q * 2); c.globalAlpha = 1;
+      c.save(); c.fillStyle = P.I; if (P.glow) { c.shadowColor = '#ffffff'; c.shadowBlur = 14; }
+      c.fillRect(x - 5, y - 5, 10, 10); c.restore();
     }
-    if (fin(z.turnAt) && z.turnAt <= s.length - 1) { c.fillStyle = P.I; txt(c, z.turnHigh ? 'H' : 'L', hx(z.turnAt), hy(at(z.turnAt)) + (z.turnHigh ? -10 : 12), 'center', 9.5, 700); }
+    if (fin(z.turnAt) && z.turnAt <= s.length - 1) tag(c, z.turnHigh ? 'H' : 'L', hx(z.turnAt), hy(at(z.turnAt)) + (z.turnHigh ? -13 : 14), 'center', 8.5, P.I, P.B);
   },
   water(c, w, h, t, z, P) {
     if (!fin(z.v)) return;
@@ -284,8 +310,8 @@ const TV: Record<TileKind, Draw> = {
   rain(c, w, h, t, z, P) {
     if (!fin(z.v)) return;
     const n = Math.round(4 + 0.36 * z.v);
-    c.lineCap = 'round'; c.strokeStyle = P.I; c.lineWidth = 4; c.beginPath(); c.moveTo(w * 0.12, 8); c.lineTo(w * 0.7, 8); c.moveTo(w * 0.4, 18); c.lineTo(w * 0.9, 18); c.stroke(); c.lineCap = 'butt';
-    drops(c, w, h, t, P, n, 26);
+    clouds(c, w, h, t, P, [[0.36, 0.55, 0, 4]]);
+    drops(c, w, h, t, P, n, h * 0.46);
   },
   window(c, w, h, t, z, P) {
     const bx = (hr: number) => (hr / 24) * w, y = h * 0.62;
@@ -307,7 +333,7 @@ const TV: Record<TileKind, Draw> = {
     c.fillStyle = P.I; c.globalAlpha = 0.12; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.fill(); c.globalAlpha = 1;
     c.strokeStyle = P.I; c.lineWidth = 1.2; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.stroke();
     if (z.v > 0.01) { c.fillStyle = P.A; moonPath(c, cx, cy, R, z.v, !!z.waxing); c.fill(); }
-    c.fillStyle = P.I; c.beginPath(); c.arc(ox, oy, 2.5, 0, TAU); c.fill();
+    c.fillStyle = P.I; c.fillRect(ox - 2.5, oy - 2.5, 5, 5);
   },
   catch(c, w, h, t, z, P) {
     // The likely fish as flat silhouettes swimming at three depths.
@@ -338,7 +364,7 @@ const TV: Record<TileKind, Draw> = {
     for (let i = 0; i < n; i++) {
       const s = (t * (0.12 + 0.18 * k0) + i / n) % 1, side = (i % 2 ? 1 : -1) * ((i * 0.37) % 1), spread = s > 0.6 ? (s - 0.6) * 2.2 : 0;
       const x = cx + side * (8 + spread * w * 0.5), y = sy - 6 - s * (sy - h * 0.06);
-      c.globalAlpha = Math.min(1, (1 - s) * 3); c.beginPath(); c.arc(x, y, 2.2, 0, TAU); c.fill();
+      c.globalAlpha = Math.min(1, (1 - s) * 3); c.fillRect(Math.round(x) - 2, Math.round(y) - 2, 4, 4);
     }
     c.globalAlpha = 1;
   },
@@ -397,7 +423,8 @@ const TV: Record<TileKind, Draw> = {
       const y = h * (0.2 + i * 0.12), x0 = w * (0.2 + ((i * 0.37) % 1) * 0.6);
       for (let g = 4; g >= 0; g--) {
         const x = x0 + ph(t - g * 0.12) * amp;
-        c.fillStyle = g ? P.I : P.A; c.globalAlpha = g ? (0.12 * (5 - g)) / 4 : 1; c.beginPath(); c.arc(x, y, g ? 2 : 3, 0, TAU); c.fill();
+        const r = g ? 2 : 3;
+        c.fillStyle = g ? P.I : P.A; c.globalAlpha = g ? (0.12 * (5 - g)) / 4 : 1; c.fillRect(x - r, y - r, r * 2, r * 2);
       }
     }
     c.globalAlpha = 1;
@@ -448,7 +475,7 @@ const TV: Record<TileKind, Draw> = {
 /** Streaks toward `toward` degrees: wind on its tile. */
 function drawStream(c: Ctx2D, w: number, h: number, t: number, toward: number, speed: number, col: string, n: number) {
   const d = toward * D2R, dx = Math.sin(d), dy = -Math.cos(d), nx = -dy, ny = dx, L = Math.hypot(w, h), cx = w / 2, cy = h / 2;
-  c.strokeStyle = col; c.lineCap = 'round';
+  c.strokeStyle = col; c.lineCap = 'butt';
   for (let i = 0; i < n; i++) {
     const lane = (((i * 0.618034) % 1) - 0.5) * L, sp = speed * (0.7 + 0.6 * ((i * 0.37) % 1));
     const u = ((t * sp + i * 97.3) % L) - L / 2, len = 6 + speed * 0.25;
@@ -457,7 +484,7 @@ function drawStream(c: Ctx2D, w: number, h: number, t: number, toward: number, s
     c.globalAlpha = Math.min(1, (1 - Math.abs(u) / (L / 2)) * 1.6); c.lineWidth = 1.6 + ((i * 0.53) % 1) * 1.2;
     c.beginPath(); c.moveTo(x, y); c.lineTo(x - dx * len, y - dy * len); c.stroke();
   }
-  c.globalAlpha = 1; c.lineCap = 'butt';
+  c.globalAlpha = 1;
 }
 
 /** Paint one tile's picture into a w × h box. */

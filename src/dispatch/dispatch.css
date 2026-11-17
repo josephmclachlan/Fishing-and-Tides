@@ -82,7 +82,7 @@
 /* --- the diagram */
 .dp-diagram { margin: 0 0 14px; display: grid; gap: 10px; }
 .dp-art { width: 100%; height: auto; background: var(--fc-block); padding: 6px; color: var(--fc-ink); }
-.dp-art path, .dp-art rect { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.dp-art path, .dp-art rect { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: square; stroke-linejoin: miter; vector-effect: non-scaling-stroke; }
 .dp-art .dp-eye { fill: currentColor; }
 .dp-art .dp-cut { stroke: var(--fc-ac0); stroke-width: 4; }
 .dp-art .dp-skin { fill: var(--fc-card); }

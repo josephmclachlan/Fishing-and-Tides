@@ -69,7 +69,7 @@ const svg = (body: string, cls = '') => `<svg viewBox="0 0 24 24" aria-hidden="t
 
 const TAB_ICONS: Record<CpTab, string> = {
   reefs: '<path d="M12 21v-7M12 14c0-4-3-5-3-9M12 14c0-3 4-4 4-8M9 9c-2 0-4-1-5-3M16 10c2 0 3.5-1 4.5-2.5"/><path d="M5 21h14"/>',
-  sites: '<path d="M12 21s-6-5.6-6-10.5a6 6 0 0 1 12 0C18 15.4 12 21 12 21z"/><rect x="9.5" y="9" width="5" height="4" rx="1"/><path d="M10.5 9V7.8a1.5 1.5 0 0 1 3 0V9"/>',
+  sites: '<path d="M12 21s-6-5.6-6-10.5a6 6 0 0 1 12 0C18 15.4 12 21 12 21z"/><rect x="9.5" y="9" width="5" height="4"/><path d="M10.5 9V7.8a1.5 1.5 0 0 1 3 0V9"/>',
   spawning: '<path d="M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z"/><circle cx="17" cy="5" r=".8"/><circle cx="20" cy="8.5" r=".8"/><circle cx="14.5" cy="3" r=".8"/>',
   guide: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/>',
   rules: '<path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/>',
@@ -83,7 +83,7 @@ const RISK_ICONS: Record<RiskId, string> = {
   swell: '<path d="M2 17c3 0 4-2 6-2s3 2 6 2 4-2 6-2"/><path d="M4 13c1-5 6-8 11-6-3 1-4 3-3 6"/>',
   lowtide: '<path d="M3 8h18M3 8l2-2M3 8l2 2"/><path d="M2 18c3 0 3-1.5 5-1.5s2 1.5 5 1.5 3-1.5 5-1.5 2 1.5 5 1.5"/><path d="M12 11v4M10 13l2 2 2-2"/>',
 };
-const LOCK = svg('<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>', 'cp-lock');
+const LOCK = svg('<rect x="5" y="10.5" width="14" height="10"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>', 'cp-lock');
 const CHEVRON = svg('<path d="M9 5l7 7-7 7"/>');
 /** Badge symbols from the shared set (src/icons/glyphs.ts): the law's shield, the unchecked question mark. */
 const SHIELD = svg('<path d="M12 2.8l7.5 2.7v6c0 4.8-3.2 8.3-7.5 9.9-4.3-1.6-7.5-5.1-7.5-9.9v-6z"/>', 'cp-pg');
