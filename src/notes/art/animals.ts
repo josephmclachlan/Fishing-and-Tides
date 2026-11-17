@@ -59,13 +59,19 @@ export const ANIMALS = {
     '<path class="nt-an-tent" d="M14 20 l3 -4 l3 4 Z M22 16 l3 -4 l3 4 Z M30 13 l3 -4 l3 4 Z M20 26 l3 -4 l3 4 Z M28 22 l3 -4 l3 4 Z M36 18 l3 -4 l3 4 Z M30 30 l3 -4 l3 4 Z M38 26 l3 -4 l3 4 Z M44 20 l3 -4 l3 4 Z"/>' +
     '<path class="nt-an-spire" d="M48 10 C54 12 58 16 58 22"/><path class="nt-an-ven" d="M6 22 L-0 26"/>',
   moray:
-    '<path class="nt-an-rock" d="M2 46 V20 C2 8 14 4 24 6 C30 8 32 14 30 20 C28 26 24 30 24 46 Z M40 46 C40 34 48 30 56 32 C60 34 62 40 62 46 Z"/>' +
-    '<path class="nt-an-eel" d="M20 30 C26 18 40 14 50 18 C56 20 60 24 58 28 L50 26 L58 30 C52 34 42 30 36 30 C30 30 26 34 24 38 Z"/>' +
-    '<path class="nt-an-teeth" d="M51 26.5 l1 2 l1 -2 l1 2 l1 -2"/><circle class="nt-an-eye" cx="48" cy="21" r="1.6"/>',
+    // An eel coming out of a crack in angular rock, jaws open with teeth, the fin running unbroken along its back.
+    '<path class="nt-an-rock" d="M2 46 V22 L8 10 L20 5 L31 12 L33 46 Z M42 46 L45 34 L54 30 L62 35 V46 Z"/>' +
+    '<path class="nt-an-fin" d="M30 35 C32.6 25.4 38.6 19 47.4 16 L48.6 18.6 C40.6 21.4 35 27.4 32.8 37 Z"/>' +
+    '<path class="nt-an-eel" d="M29 44 C30.6 33 36.4 24.6 46.4 20 L55.4 17.8 L61.6 21 L54.6 23.2 L60.6 26.2 L54 28.4 C46.6 30.6 40.6 35 37.8 44 Z"/>' +
+    '<path class="nt-an-teeth" d="M55.4 19.4 l1 1.6 l1 -1.2 l1 1.4 M55.6 26.8 l1 -1.6 l1 1.2 l1 -1.4"/>' +
+    '<rect class="nt-an-blot" x="46" y="23.6" width="2.6" height="2.6"/><circle class="nt-an-eye" cx="52" cy="20.4" r="1.5"/>',
   barracuda:
-    '<path class="nt-an-baracuda" d="M2 26 L14 22 C24 18 44 18 54 22 L62 16 L60 26 L62 36 L54 30 C44 34 24 34 14 30 Z"/>' +
-    '<path class="nt-an-teeth" d="M4 26 l2 2 l2 -2 l2 2 l2 -2"/><path class="nt-an-blot" d="M24 24 h4 v6 h-4 Z M34 23 h4 v8 h-4 Z M44 24 h4 v6 h-4 Z"/>' +
-    '<path class="nt-an-fin" d="M30 19 L34 12 L38 19 M40 31 L44 37 L46 31"/><circle class="nt-an-eye" cx="15" cy="24" r="1.6"/>',
+    // Long and slim, the lower jaw sticking out past the upper with a row of teeth, two dorsal fins far apart, dark bars, forked tail.
+    '<path class="nt-an-baracuda" d="M0 26.8 L9 23 C14 20.4 24 19.4 36 19.6 C46 19.8 52 21 55 22.6 L62 16 L59.6 25.4 L62 34 L55 28.4 C51 30 44 31.2 34 31.4 C22 31.6 13 30.8 8 29 Z"/>' +
+    '<path class="nt-an-teeth" d="M1 26.6 L11 25.4 M3 26.4 l1 -1.4 l1 1.3 l1 -1.4 l1 1.3 l1 -1.4 l1 1.2"/>' +
+    '<path class="nt-an-blot" d="M22 20.4 h3 l-1 5 h-3 Z M30 20 h3 l-1 5.4 h-3 Z M38 20.2 h3 l-1 5 h-3 Z M46 21 h3 l-1 4 h-3 Z"/>' +
+    '<path class="nt-an-fin" d="M26 19.8 L29.4 12.6 L33.4 19.6 M45 20.2 L47.6 14.8 L50 20.8 M44.6 31 L47.4 36.4 L49.6 30.4 M28 31.6 L30 35.6 L32.4 31.6 M15.6 25.4 L23 26.8 L15.6 28.2"/>' +
+    '<circle class="nt-an-eye" cx="12.4" cy="23.6" r="1.7"/>',
   shark:
     '<path class="nt-an-shark" d="M2 28 C10 20 26 18 40 20 L44 8 L48 21 C52 22 54 23 56 24 L62 14 L60 28 L63 40 L55 32 C46 36 30 38 16 34 C10 33 4 31 2 28 Z"/>' +
     '<path class="nt-an-fin" d="M24 33 L20 42 L30 35 M14 27 l2 4 M17 26 l2 4 M20 25.5 l2 4"/><circle class="nt-an-eye" cx="10" cy="26" r="1.6"/>',

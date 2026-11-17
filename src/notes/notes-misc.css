@@ -3,7 +3,8 @@
 /* cooking and glossary drawings: fills (the shared .nt-art rule leaves every shape unfilled) */
 .nt-art .nt-m-body { fill: color-mix(in srgb, var(--fc-ink) 12%, var(--fc-block)); }
 .nt-art .nt-m-red { fill: color-mix(in srgb, var(--fc-ac0) 60%, var(--fc-block)); }
-.nt-art .nt-m-fire { fill: color-mix(in srgb, var(--fc-ac1) 75%, var(--fc-block)); stroke: var(--fc-ac0); stroke-width: 1.5; }
+.nt-art .nt-m-fire { fill: color-mix(in srgb, var(--fc-ac1) 75%, var(--fc-block)); stroke: var(--fc-ac0); stroke-width: 1.5; transform-box: fill-box; transform-origin: 50% 100%; animation: nt-m-flick 0.9s steps(3, jump-none) infinite alternate; }
+@keyframes nt-m-flick { from { transform: scaleY(1); } to { transform: scaleY(0.78); } }
 .nt-art .nt-m-lime { fill: color-mix(in srgb, var(--fc-ac3) 60%, var(--fc-block)); }
 .nt-art .nt-m-leaf { fill: color-mix(in srgb, var(--fc-ac3) 45%, var(--fc-block)); }
 .nt-art .nt-m-milk { fill: var(--fc-card); }
@@ -21,7 +22,7 @@
 .nt-art .nt-m-cube { fill: var(--fc-card); stroke-width: 1.6; }
 .nt-art .nt-m-cut { stroke-width: 1.8; stroke-dasharray: 3 3; }
 .nt-art .nt-m-arm { stroke-width: 7; stroke: color-mix(in srgb, var(--fc-ink) 35%, var(--fc-block)); }
-.nt-art .nt-m-spine { stroke: var(--fc-ac0); stroke-width: 3; }
+.nt-art .nt-m-spine { stroke: var(--fc-ac0); stroke-width: 2.2; }
 .nt-art .nt-m-bad { fill: var(--fc-ac0); }
 .nt-art .nt-m-probe { stroke-width: 3.5; }
 .nt-art .nt-m-dial { fill: var(--fc-ink); }
@@ -47,13 +48,13 @@
 .nt-art .nt-m-warmw { fill: color-mix(in srgb, var(--fc-lv1) 50%, var(--fc-block)); stroke: none; }
 .nt-art .nt-m-midw { fill: color-mix(in srgb, var(--fc-ink) 8%, var(--fc-block)); stroke: none; }
 .nt-art .nt-m-coldw { fill: color-mix(in srgb, var(--fc-sea-b) 50%, var(--fc-block)); stroke: none; }
-.nt-art circle.nt-m-bub { fill: none; stroke: var(--fc-sea-b); stroke-width: 1.8; animation: nt-m-up 2.4s ease-in infinite; }
+.nt-art .nt-m-bub { fill: none; transform-box: fill-box; stroke: var(--fc-sea-b); stroke-width: 1.8; animation: nt-m-up 2.4s ease-in infinite; }
 .nt-art .nt-m-steam { stroke: var(--fc-ink2); stroke-width: 2; opacity: 0.5; animation: nt-m-fade 2.2s ease-in-out infinite; }
 @keyframes nt-m-up { 0% { transform: translateY(8px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(-22px); opacity: 0; } }
 @keyframes nt-m-fade { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.65; } }
 @media (prefers-reduced-motion: reduce) {
-  .nt-art circle.nt-m-bub, .nt-art .nt-m-steam { animation: none; }
-  .nt-art circle.nt-m-bub { opacity: 0.8; }
+  .nt-art .nt-m-bub, .nt-art .nt-m-steam, .nt-art .nt-m-fire { animation: none; }
+  .nt-art .nt-m-bub { opacity: 0.8; }
 }
 /* graphics review 12.5 */
 .nt-art .nt-m-fillet { fill: color-mix(in srgb, var(--fc-card) 70%, var(--fc-coral) 30%); }
@@ -62,7 +63,7 @@
 .nt-art .nt-m-dialok { fill: var(--fc-lv3); }
 .nt-art .nt-m-dialt2 { fill: var(--fc-on3); font: 800 17px/1 var(--fc-mono); }
 .nt-art .nt-m-oil { fill: color-mix(in srgb, var(--fc-lv2) 55%, transparent); stroke: none; }
-.nt-art circle.nt-m-bubo { stroke: var(--fc-ac2); }
+.nt-art .nt-m-bubo { stroke: var(--fc-ac2); }
 .nt-art .nt-m-sauce { fill: var(--fc-card); }
 .nt-art .nt-m-herb { stroke: var(--fc-ac3); stroke-width: 2.4; }
 .nt-art .nt-m-plate { fill: var(--fc-card); }
@@ -81,3 +82,19 @@
 .nt-art .nt-m-wt { fill: var(--fc-ink2); stroke-width: 1.4; }
 .nt-art .nt-m-hk { stroke-width: 3; }
 .nt-art circle.nt-m-hk { fill: none; }
+/* square look (PLAN 13.7): the shared reef fish in the pans and the sea, crisp shells, a lionfish of its own */
+.nt-art .fk-fish .nt-m-gold { fill: color-mix(in srgb, var(--fc-lv1) 55%, var(--fc-card)); }
+.nt-art .nt-m-score { stroke: color-mix(in srgb, var(--fc-ac1) 55%, var(--fc-ink) 45%); stroke-width: 2.4; }
+.nt-art .fk-fish .nt-m-sf { fill: color-mix(in srgb, var(--fc-ink2) 45%, var(--fc-card)); }
+.nt-art .nt-m-grip { fill: var(--fc-ink2); stroke: var(--fc-ink); stroke-width: 1.5; }
+.nt-art .nt-m-slice { stroke: color-mix(in srgb, var(--fc-coral) 60%, var(--fc-card)); stroke-width: 5; }
+.nt-art .nt-m-grate { stroke: var(--fc-ink); stroke-width: 3; }
+.nt-art .nt-m-vein { stroke: var(--fc-ink); stroke-width: 1; opacity: 0.4; }
+.nt-art .nt-m-fold { stroke: var(--fc-ink); stroke-width: 1.4; }
+.nt-art .nt-m-leg { stroke: var(--fc-ink); stroke-width: 3; }
+.nt-art .nt-m-seam { stroke: var(--fc-ink); stroke-width: 1.2; opacity: 0.55; }
+.nt-art .nt-m-lion { fill: var(--fc-card); }
+.nt-art .nt-m-stripe { stroke: color-mix(in srgb, var(--fc-ac0) 55%, var(--fc-card)); stroke-width: 5; stroke-linecap: butt; }
+.nt-art .nt-m-memb { fill: color-mix(in srgb, var(--fc-coral) 22%, var(--fc-card)); stroke-width: 1.4; }
+.nt-art .nt-m-ray { stroke: var(--fc-ink2); stroke-width: 1; }
+.nt-art .nt-m-lead { stroke: var(--fc-ink2); stroke-width: 1.2; }

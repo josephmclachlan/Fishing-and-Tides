@@ -3,110 +3,161 @@
  * `METHODS[].marks`), and one small picture per science step. Flat line art in the page's ink, cuts and blood in its
  * red, water and ice in its sea colours. Pure strings; the styles are in dispatch.css (`.dp-art`).
  * Graphics review D-4, D-5, D-6, D-9, D-11, D-12: one fish with fins, a forked tail, a gill cover and a mouth; the cut
- * drawn solid with its badge on it; blood as clouds; the ikejime spot shown as a zone in a close-up of the head.
+ * drawn solid with its badge by it; blood as clouds; the ikejime spot shown as a zone in a close-up of the head.
+ * PLAN 13.7 (Joseph 2026-11-17, "square and crisp"): the fish is the shared reef fish (notes/art/fishkit.ts), every mark
+ * is placed in that fish's own 100 by 40 box, badges are squares, zones and clouds are faceted, no round ends or corners.
  */
+import { reefFish } from '../notes/art/fishkit';
 import type { Lang, MethodId } from './content';
 
+const n = (v: number) => +v.toFixed(2);
 const w = (lang: Lang, en: string, es: string) => (lang === 'es' ? es : en);
-const badge = (n: number, x: number, y: number) =>
-  `<g class="dp-bd"><circle cx="${x}" cy="${y}" r="8"/><text x="${x}" y="${y + 3.6}" text-anchor="middle">${n}</text></g>`;
-const lbl = (x: number, y: number, t: string, anchor = 'middle') => `<text class="dp-lbl" x="${x}" y="${y}" text-anchor="${anchor}">${t}</text>`;
+/** A numbered mark: a 17 by 17 ink square centred on (x, y), the number centred in it. */
+const badge = (num: number, x: number, y: number) =>
+  `<g class="dp-bd"><rect x="${n(x - 8.5)}" y="${n(y - 8.5)}" width="17" height="17"/><text x="${n(x)}" y="${n(y + 3.6)}" text-anchor="middle">${num}</text></g>`;
+const lbl = (x: number, y: number, t: string, anchor = 'middle') => `<text class="dp-lbl" x="${n(x)}" y="${n(y)}" text-anchor="${anchor}">${t}</text>`;
+/** A thin leader from a label or badge to the part it names. */
+const lead = (d: string) => `<path class="dp-ldr" d="${d}"/>`;
+/** A faceted blob (an octagon with cut corners), for zones and clouds: crisp, not round. */
+const oct = (cx: number, cy: number, rx: number, ry: number, cls: string) => {
+  const p = [[-1, -0.45], [-0.5, -1], [0.5, -1], [1, -0.45], [1, 0.45], [0.5, 1], [-0.5, 1], [-1, 0.45]];
+  return `<path class="${cls}" d="M${p.map(([a, b]) => `${n(cx + a * rx)} ${n(cy + b * ry)}`).join(' L')} Z"/>`;
+};
 
-/** The fish lying head left, 16 to 204 across and 14 to 80 down: fins, forked tail, gill cover, mouth and eye. */
-const FISH =
-  '<path class="dp-fin" d="M86 28 L100 14 L142 22 L152 35"/>' +
-  '<path class="dp-fin" d="M128 69 L138 80 L158 73 L162 63"/>' +
-  '<path class="dp-skin" d="M16 50 C30 30 80 24 126 30 C150 33 168 40 180 46 L204 28 L196 50 L204 72 L180 54 C168 60 150 67 126 70 C80 76 30 70 16 50 Z"/>' +
-  '<path class="dp-line" d="M60 32 C52 42 52 58 60 68"/>' +
-  '<path class="dp-line" d="M16 50 L28 53"/>' +
-  '<path class="dp-fin" d="M68 52 L90 60 L72 60 Z"/>' +
-  '<circle class="dp-eye" cx="36" cy="44" r="4.5"/>';
+/** Where the reef fish sits in a drawing: its 100 by 40 box at (x, y), `s` times. */
+interface At { x: number; y: number; s: number }
+/** A point on the fish (in its own 100 by 40 box) in the drawing's coordinates. */
+const on = (f: At, bx: number, by: number): [number, number] => [n(f.x + bx * f.s), n(f.y + by * f.s)];
 
-/** A solid red slash just behind the gill cover. */
-const GILL_CUT = '<path class="dp-cut" d="M66 31 C58 42 58 58 66 69"/>';
+/*
+ * The marks, in the fish's own 100 by 40 box (fishkit.ts: eye at (12.6, 14.4), gill cover from (22, 5) to (22.6, 34),
+ * tail stalk at x 81.4, between y 15 and 25), so they land on the same parts at any size or turn.
+ */
+/** A solid red slash just behind the gill cover, top to bottom of the body. */
+const GILL_CUT = '<path class="dp-cut" d="M25.4 4.8 C20.6 12.6 20.6 26 26 34.2"/>';
+/** A solid red slash across the tail stalk. */
+const TAIL_CUT = '<path class="dp-cut" d="M80.6 13.2 V26.8"/>';
+/** The wire, from the tail cut forward along the spine to just behind the brain. */
+const WIRE = '<path class="dp-wire" d="M80.6 20 L20.4 12"/>';
+/** Behind and above the eye, between the eye and the gill cover: where the brain is. */
+const BRAIN: [number, number] = [17.6, 9.4];
+
+/** The fish shared by the ikejime and the club: head left, 26 to 175 across, its fins 5 to 79 down. */
+const MAIN: At = { x: 26, y: 14, s: 1.5 };
 
 function ikejime(lang: Lang): string {
+  const [zx, zy] = on(MAIN, ...BRAIN);
+  const [, gy] = on(MAIN, 0, 34.2);
+  const [tx, ty] = on(MAIN, 80.6, 26.8);
+  const [wx, wy] = on(MAIN, 50, 16);
+  // the close-up: the same fish, 3 times, framed on the head (snout at x 14, the top of the head just under the frame)
+  const Z: At = { x: 14, y: 98, s: 3 };
+  const [bx, by] = on(Z, ...BRAIN);
+  const [ex, ey] = on(Z, 12.6, 14.4);
   return (
-    FISH +
-    GILL_CUT +
-    '<path class="dp-cut" d="M178 42 L178 58"/>' +
-    '<path class="dp-wire" d="M178 50 L48 40"/>' +
+    reefFish(MAIN.x, MAIN.y, MAIN.s, { extra: GILL_CUT + TAIL_CUT + WIRE }) +
     // where the spike goes, marked on the whole fish, then shown up close below
-    '<circle class="dp-zone" cx="46" cy="36" r="5"/>' +
-    badge(1, 30, 22) + badge(2, 72, 78) + badge(3, 190, 62) + badge(4, 116, 45) +
-    // the close-up of the head: eye, gill cover, the brain as a zone, the spike going in from the top toward it
-    '<rect class="dp-inset" x="6" y="88" width="208" height="64"/>' +
-    '<path class="dp-skin" d="M20 128 C32 108 78 98 150 96 L212 96 L212 150 L150 150 C78 150 32 146 20 128 Z"/>' +
-    '<path class="dp-line" d="M118 99 C104 112 104 134 118 148"/><path class="dp-line" d="M20 128 L40 134"/>' +
-    '<circle class="dp-eye" cx="58" cy="120" r="7"/>' +
-    '<ellipse class="dp-brain" cx="84" cy="110" rx="15" ry="7"/>' +
-    '<path class="dp-spike" d="M112 78 L90 106"/><path class="dp-arrow" d="M90 106 L91 98 M90 106 L97 102"/>' +
-    lbl(84, 128, w(lang, 'BRAIN', 'CEREBRO')) +
-    lbl(208, 112, w(lang, 'CLOSE-UP', 'DE CERCA'), 'end') +
-    lbl(58, 142, w(lang, 'EYE', 'OJO'))
+    oct(zx, zy, 4.6, 3.4, 'dp-zone') +
+    badge(1, 40, 12) + lead(`M46 20.5 L${n(zx - 2)} ${n(zy - 3)}`) + badge(2, 57, gy + 12) + badge(3, tx + 6, ty + 18) + lead(`M${tx + 6} ${ty + 9.5} L${tx} ${ty + 1}`) +
+    badge(4, wx, wy) +
+    // the close-up of the head: snout, forehead, gill cover and eye; the brain as a zone, the spike going in from above
+    '<clipPath id="dp-ik-clip"><rect x="6" y="92" width="208" height="82"/></clipPath>' +
+    '<rect class="dp-inset" x="6" y="92" width="208" height="82"/>' +
+    `<g clip-path="url(#dp-ik-clip)">${reefFish(Z.x, Z.y, Z.s)}</g>` +
+    oct(bx, by, 9, 5.6, 'dp-brain') +
+    `<path class="dp-spike" d="M84 95 L${n(bx + 2)} ${n(by - 5)}"/>` +
+    `<path class="dp-arrow" d="M${n(bx + 2)} ${n(by - 5)} L${n(bx - 1)} ${n(by - 13)} M${n(bx + 2)} ${n(by - 5)} L${n(bx + 9)} ${n(by - 10)}"/>` +
+    // the frame's tag, then the parts named from the empty water in front of the forehead
+    '<rect class="dp-tag" x="6" y="92" width="60" height="14"/>' +
+    `<text class="dp-lbl dp-tag-t" x="10" y="102.4">${w(lang, 'CLOSE-UP', 'DE CERCA')}</text>` +
+    lbl(10, 118, w(lang, 'BRAIN', 'CEREBRO'), 'start') + lead(`M${n(bx - 10)} ${n(by - 2)} L${lang === 'es' ? 58 : 46} 120`) +
+    lbl(30, n(ey + 3.6), w(lang, 'EYE', 'OJO'), 'end') + lead(`M33 ${ey} H${n(ex - 11)}`)
+  );
+}
+
+/** A fish club from its grip end (ax, ay) to its striking face (bx, by): a wrapped grip, then a straight taper to a square face. */
+function club2(ax: number, ay: number, bx: number, by: number): string {
+  const dx = bx - ax, dy = by - ay, l = Math.hypot(dx, dy), ux = dx / l, uy = dy / l, px = -uy, py = ux;
+  const at = (t: number, h: number) => `${n(ax + dx * t + px * h)} ${n(ay + dy * t + py * h)}`;
+  return (
+    `<path class="dp-clubb" d="M${at(0, -2.4)} L${at(0.34, -2.6)} L${at(1, -5.8)} L${at(1, 5.8)} L${at(0.34, 2.6)} L${at(0, 2.4)} Z"/>` +
+    `<path class="dp-ldr" d="M${at(0.1, -2.4)} L${at(0.1, 2.4)} M${at(0.2, -2.5)} L${at(0.2, 2.5)} M${at(0.3, -2.6)} L${at(0.3, 2.6)}"/>`
   );
 }
 
 /** A club coming down from above onto the top of the head, the strike marked, then the gill cut. */
 function club(): string {
+  // the same fish 8 lower than in the ikejime, for room above its head
+  const F: At = { ...MAIN, y: MAIN.y + 8 };
+  const [hx, hy] = on(F, 15.6, 7);
+  const [, gy] = on(F, 0, 34.2);
   return (
-    FISH +
-    GILL_CUT +
-    '<path class="dp-club" d="M74 2 L58 16"/>' +
-    '<path class="dp-clubhead" d="M60 13 L46 27"/>' +
-    '<path class="dp-hit" d="M36 30 L28 24 M56 32 L64 28 M46 32 L46 31"/>' +
-    badge(1, 22, 22) + badge(2, 72, 78)
+    reefFish(F.x, F.y, F.s, { extra: GILL_CUT }) +
+    // the club swung in from the upper left, its heavy end on the top of the head over the brain
+    club2(8, 2, hx - 1, hy - 3) +
+    `<path class="dp-hit" d="M${hx + 7} ${hy - 4} L${hx + 13} ${hy - 7} M${hx - 11} ${hy + 3} L${hx - 17} ${hy + 6}"/>` +
+    badge(1, n(hx + 9), 10) + badge(2, 57, gy + 12)
   );
 }
 
 /** A bucket of seawater with the whole fish head down under the water, the gill cut open, blood drifting out. */
 function bleed(lang: Lang): string {
+  // the fish turned head down: its box's x runs up the bucket from the snout at y 102, its belly faces right
+  const s = 0.7, X = 76, Y = 102;
   return (
     '<path class="dp-sea" d="M55 24 L65 106 L155 106 L165 24 Z"/>' +
+    `<g transform="translate(${X} ${Y}) rotate(-90)">${reefFish(0, 0, s, { plain: true, extra: GILL_CUT })}</g>` +
+    // blood: clouds drifting up and out of the gills
+    '<g class="dp-bloods">' +
+    oct(X + 32 * s + 10, Y - 26 * s + 2, 7, 4.5, 'dp-blood b0') + oct(124, 66, 9, 5.5, 'dp-blood b1') +
+    oct(138, 48, 7, 4.5, 'dp-blood b2') + oct(118, 36, 5, 3.5, 'dp-blood b3') +
+    '</g>' +
+    '<path class="dp-water" d="M55 24 C66 19 74 29 86 24 C98 19 106 29 118 24 C130 19 138 29 150 24 L165 24"/>' +
     '<path class="dp-line" d="M52 16 L64 106 L156 106 L168 16"/>' +
     '<path class="dp-line" d="M46 16 L174 16"/>' +
-    '<path class="dp-water" d="M55 24 C66 19 74 29 86 24 C98 19 106 29 118 24 C130 19 138 29 150 24 L165 24"/>' +
-    // the fish, head down: its own outline turned, small enough to sit under the water line
-    '<g transform="translate(80 106.4) rotate(-90) scale(0.4)">' + FISH + GILL_CUT + '</g>' +
-    // blood: soft clouds drifting out of the gills
-    '<ellipse class="dp-blood" cx="122" cy="80" rx="10" ry="6"/><ellipse class="dp-blood" cx="134" cy="66" rx="8" ry="5"/>' +
-    '<ellipse class="dp-blood" cx="80" cy="88" rx="8" ry="5"/><ellipse class="dp-blood" cx="140" cy="50" rx="6" ry="4"/>' +
-    '<text class="dp-clock" x="178" y="46">3 min</text>' +
-    '<path class="dp-line" d="M190 66 m-10 0 a10 10 0 1 0 20 0 a10 10 0 1 0 -20 0 M190 66 L190 59 M190 66 L196 69"/>' +
+    // a square timer: face, two hands, the button on top
+    '<text class="dp-clock" x="176" y="44">3 min</text>' +
+    '<rect class="dp-line" x="180" y="56" width="20" height="20"/><path class="dp-line" d="M186 52 H194 M190 52 V56 M190 66 V59 M190 66 L195 70"/>' +
+    '<path class="dp-ldr" d="M190 57 V59.4 M199 66 H196.6 M190 75 V72.6 M181 66 H183.4"/>' +
     lbl(110, 10, w(lang, 'SEAWATER', 'AGUA DE MAR')) +
-    badge(1, 118, 96) + badge(2, 190, 92)
+    badge(1, 128, 92) + lead(`M119.5 92 H${n(X + 34 * s + 3)}`) + badge(2, 190, 92)
   );
 }
 
 /** A cooler about half full of ice in seawater, the fish under it, a wet cloth over the top; below, ice in a big fish's belly. */
 function slurry(lang: Lang): string {
-  const cube = (x: number, y: number, r = 0) =>
-    `<rect class="dp-cube" x="${x}" y="${y}" width="12" height="12" rx="1.5" transform="rotate(${r} ${x + 6} ${y + 6})"/>`;
-  const back: [number, number, number][] = [[28, 50, -10], [46, 46, 6], [150, 48, -6], [168, 52, 10], [184, 46, -4], [96, 46, 8], [120, 50, -8], [70, 48, 4]];
+  const cube = (x: number, y: number, r = 0, z = 12) =>
+    `<rect class="dp-cube" x="${x}" y="${y}" width="${z}" height="${z}" transform="rotate(${r} ${x + z / 2} ${y + z / 2})"/>`;
+  const back: [number, number, number][] = [[30, 48, -10], [48, 46, 6], [150, 46, -6], [170, 50, 10], [184, 62, -4], [96, 46, 8], [122, 47, -8], [72, 47, 4]];
   const front: [number, number, number][] = [
-    [26, 92, 8], [40, 82, -6], [54, 94, 12], [70, 88, -10], [88, 94, 4], [106, 90, -8], [124, 94, 10], [142, 88, -4],
-    [158, 94, 6], [174, 86, -12], [184, 96, 8], [32, 68, 4], [176, 68, -6], [164, 76, 12],
+    [26, 94, 8], [44, 92, -6], [58, 96, 12], [76, 92, -10], [94, 96, 4], [112, 92, -8], [130, 96, 10], [148, 92, -4],
+    [164, 96, 6], [180, 90, -12], [182, 76, 8], [26, 54, 4], [168, 78, 12],
   ];
+  const F: At = { x: 52, y: 53, s: 1.12 };
+  const B: At = { x: 12, y: 120, s: 1.2 };
+  const [cx0, cy0] = on(B, 30, 26);
   return (
     '<path class="dp-sea" d="M22 40 L22 108 L198 108 L198 40 Z"/>' +
     back.map(([x, y, r]) => cube(x, y, r)).join('') +
-    '<g transform="translate(48 52) scale(0.6)">' + FISH + '</g>' +
+    reefFish(F.x, F.y, F.s) +
     front.map(([x, y, r]) => cube(x, y, r)).join('') +
     '<path class="dp-water" d="M22 42 C40 37 50 47 70 42 C90 37 100 47 120 42 C140 37 150 47 170 42 L198 42"/>' +
     '<path class="dp-line" d="M20 30 L20 108 L200 108 L200 30"/>' +
-    // a wet cloth laid over the top, keeping the sun off
-    '<path class="dp-cloth" d="M12 30 C40 24 70 34 100 28 C130 22 160 32 208 26 L208 34 C160 40 130 30 100 36 C70 42 40 32 12 38 Z"/>' +
+    // a wet cloth laid over the top, keeping the sun off, in flat folds
+    '<path class="dp-cloth" d="M12 29 L56 25 L100 31 L148 24 L208 28 L208 36 L148 32 L100 39 L56 33 L12 37 Z"/>' +
+    '<path class="dp-ldr" d="M56 25 V33 M100 31 V39 M148 24 V32"/>' +
     '<text class="dp-clock" x="208" y="16" text-anchor="end">≈ 0 °C / 32 °F</text>' +
     lbl(12, 16, w(lang, 'COVERED', 'CUBIERTO'), 'start') +
-    badge(1, 32, 86) + badge(2, 100, 22) +
-    // big fish: guts out, belly packed with ice
-    '<g transform="translate(20 118) scale(0.5)">' + FISH + '</g>' +
-    '<path class="dp-belly" d="M50 150 C62 157 86 157 98 150 C86 145 62 145 50 150 Z"/>' +
-    cube(54, 144, -6) + cube(68, 146, 8) + cube(82, 144, -4) +
-    lbl(140, 138, w(lang, 'BIG FISH:', 'PEZ GRANDE:'), 'start') +
-    lbl(140, 150, w(lang, 'ICE IN', 'HIELO EN'), 'start') +
-    lbl(140, 162, w(lang, 'THE BELLY', 'LA PANZA'), 'start') +
-    badge(3, 122, 156)
+    badge(1, 38, 78) + badge(2, 86, 12) + lead('M86 20.5 V27') +
+    // big fish: guts out, the belly opened and packed with ice
+    reefFish(B.x, B.y, B.s, {
+      extra: '<path class="dp-belly" d="M29 25.6 L57.4 25 L58.6 35 C48 36.8 38 36.8 29 35.8 Z"/>',
+    }) +
+    cube(n(cx0 + 3), n(cy0 + 2), -6, 8) + cube(n(cx0 + 13), n(cy0 + 3), 8, 8) + cube(n(cx0 + 23), n(cy0 + 2), -4, 8) +
+    lbl(146, 144, w(lang, 'BIG FISH:', 'PEZ GRANDE:'), 'start') +
+    lbl(146, 156, w(lang, 'ICE IN', 'HIELO EN'), 'start') +
+    lbl(146, 168, w(lang, 'THE BELLY', 'LA PANZA'), 'start') +
+    badge(3, 154.5, 126)
   );
 }
 
@@ -120,7 +171,7 @@ export function methodArt(id: MethodId, lang: Lang = 'en'): string {
 }
 
 /** Each drawing's viewBox: the ikejime adds a close-up of the head, the slurry a big fish with ice in its belly. */
-export const ART_VB: Record<MethodId, string> = { ikejime: '0 0 220 156', club: '0 0 220 88', bleed: '0 0 220 112', slurry: '0 0 220 168' };
+export const ART_VB: Record<MethodId, string> = { ikejime: '0 0 220 178', club: '0 0 220 96', bleed: '0 0 220 112', slurry: '0 0 220 176' };
 
 /** How many numbered marks each drawing carries, for the tests that keep them in step with the lists. */
 export const ART_MARKS: Record<MethodId, number> = { ikejime: 4, club: 2, bleed: 2, slurry: 3 };
@@ -151,19 +202,19 @@ export function scienceArt(id: string, lang: Lang): string {
       );
     case 'blood': {
       // two fillets: a bled one is clean, an unbled one is spotted and dark
-      const fillet = (x: number, cls: string) => `<path class="${cls}" d="M${x} 30 C${x + 10} 14 ${x + 50} 12 ${x + 64} 24 L${x + 64} 36 C${x + 50} 48 ${x + 10} 46 ${x} 30 Z"/>`;
-      const spots = [[96, 26], [108, 32], [120, 22], [130, 34], [112, 40], [140, 28]].map(([cx, cy]) => `<circle class="dp-spot" cx="${cx}" cy="${cy}" r="3"/>`).join('');
+      const fillet = (x: number, cls: string) => `<path class="${cls}" d="M${x} 30 L${x + 14} 18 L${x + 46} 15 L${x + 64} 22 V38 L${x + 46} 45 L${x + 14} 42 Z"/>`;
+      const spots = [[96, 26], [108, 32], [120, 22], [130, 34], [112, 40], [140, 28]].map(([cx, cy]) => `<rect class="dp-spot" x="${cx - 2.5}" y="${cy - 2.5}" width="5" height="5"/>`).join('');
       return fillet(8, 'dp-meat') + fillet(88, 'dp-meat dp-dark') + spots + lbl(40, 58, w(lang, 'BLED', 'DESANGRADO')) + lbl(120, 58, w(lang, 'NOT BLED', 'CON SANGRE'));
     }
     case 'k': {
       // the flavour fades step by step: tasty, then flat, then bitter
       const words = lang === 'es' ? ['SABROSO', 'PLANO', 'AMARGO'] : ['TASTY', 'FLAT', 'BITTER'];
-      return [0, 1, 2].map((i) => `<circle class="dp-taste t${i}" cx="${28 + i * 52}" cy="26" r="${14 - i * 3}"/>` + lbl(28 + i * 52, 56, words[i])).join('') +
+      return [0, 1, 2].map((i) => `<rect class="dp-taste t${i}" x="${14 + i * 55}" y="${12 + i * 3}" width="${28 - i * 6}" height="${28 - i * 6}"/>` + lbl(28 + i * 52, 56, words[i])).join('') +
         '<path class="dp-arrow" d="M46 26 H62 M58 22 L62 26 L58 30 M98 26 H116 M112 22 L116 26 L112 30"/>';
     }
     case 'bacteria': {
       // bacteria in a day: a few on ice, many in the heat
-      const dots = (x0: number, n: number) => Array.from({ length: n }, (_, i) => `<circle class="dp-bug" cx="${x0 + (i % 8) * 7}" cy="${16 + Math.floor(i / 8) * 7}" r="2.4"/>`).join('');
+      const dots = (x0: number, n: number) => Array.from({ length: n }, (_, i) => `<rect class="dp-bug" x="${x0 - 2.2 + (i % 8) * 7}" y="${13.8 + Math.floor(i / 8) * 7}" width="4.4" height="4.4"/>`).join('');
       return dots(36, 1) + lbl(40, 58, w(lang, 'ON ICE', 'EN HIELO')) + dots(96, 28) + lbl(122, 58, '28–30 °C') + '<path class="dp-line" d="M80 8 V60"/>';
     }
   }
