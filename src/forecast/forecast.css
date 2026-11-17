@@ -508,16 +508,14 @@ body.fc-open { overflow: hidden; }
 .fc-dk-sun svg { width: 13px; height: 13px; flex: none; fill: none; stroke: var(--fc-c-sun); stroke-width: 1.6; stroke-linecap: square; }
 
 /* --- black glass (dark scheme only; Joseph 2026-11-17: "I don't want to lose a lot of the black glass"). The map's
-   recipe (PR #365): a near-black ground with a soft glow in the activity's colour at the top, panels of smoked glass
+   recipe (PR #365): a plain near-black ground, panels of smoked glass
    (a translucent near-black, a blur, a faint lit hairline and a drop shadow), and the dock's top edge lit in the
    activity colours. Corners stay square; the hero stays the rating's colour field; the light scheme is unchanged.
    The canvases knock shapes out in --fc-block and --fc-c-card, so those match the glass as it sits on the ground. */
 .fc[data-scheme='dark'] {
   --fc-bg: #03060b; --fc-block: #0a1019; --fc-card: #0a1019; --fc-c-card: #0a1019; --fc-c-night: #111a27;
   --fc-glass: rgb(10 16 25 / 0.86); --fc-glass-edge: rgb(237 243 250 / 0.08);
-  background:
-    radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--fc-tbar) 16%, transparent), transparent 70%),
-    var(--fc-bg);
+  background: var(--fc-bg);
 }
 .fc[data-scheme='dark'] .fc-tile { box-shadow: inset 0 0 0 1px var(--fc-glass-edge), 0 6px 20px rgb(0 0 0 / 0.45); }
 .fc[data-scheme='dark'] .fc-hx,
@@ -549,10 +547,10 @@ body.fc-open { overflow: hidden; }
 
 /* --- original D's cards, square (Joseph 2026-11-17: "make the info graphic and cards styled like your original D
    design ... the black glass slightly tinted yellow or green or blue"). In the dark scheme the hero, the spot cards and
-   the rated condition cards are black glass tinted with their rating's colour, drawn and lettered in that colour's
-   bright accent, with a square hairline in it. The day bars, the dock cells and the strips keep the solid colours.
-   `--fc-gl*` tint the cards, `--fc-gh*` (stronger) the hero; plain hex, as the canvases read them. */
-.fc[data-scheme='dark'] { --fc-gl0: #1d1315; --fc-gl1: #1d1614; --fc-gl2: #1c1a12; --fc-gl3: #101c1c; --fc-gl4: #0a1a1d; --fc-gln: #14181e; --fc-gh0: #2f1b1b; --fc-gh1: #2f2119; --fc-gh2: #2c2817; --fc-gh3: #182a28; --fc-gh4: #0e2729; --fc-ghn: #1f242b; }
+   the rated condition cards are plain neutral black glass (Joseph: no tint), drawn and lettered in the rating's bright
+   accent, with a square edge in it. The day bars, the dock cells and the strips keep the solid colours.
+   `--fc-gl*` (cards) and `--fc-gh*` (hero) are kept per level so a card can differ later; plain hex, as the canvases read them. */
+.fc[data-scheme='dark'] { --fc-gl0: #0a1019; --fc-gl1: #0a1019; --fc-gl2: #0a1019; --fc-gl3: #0a1019; --fc-gl4: #0a1019; --fc-gln: #0a1019; --fc-gh0: #070b12; --fc-gh1: #070b12; --fc-gh2: #070b12; --fc-gh3: #070b12; --fc-gh4: #070b12; --fc-ghn: #070b12; }
 .fc[data-scheme='dark'] .l0 { --g: var(--fc-gl0); --a: var(--fc-ac0); }
 .fc[data-scheme='dark'] .l1 { --g: var(--fc-gl1); --a: var(--fc-ac1); }
 .fc[data-scheme='dark'] .l2 { --g: var(--fc-gl2); --a: var(--fc-ac2); }
@@ -560,7 +558,7 @@ body.fc-open { overflow: hidden; }
 .fc[data-scheme='dark'] .l4 { --g: var(--fc-gl4); --a: var(--fc-ac4); }
 .fc[data-scheme='dark'] .ln { --g: var(--fc-gln); --a: var(--fc-acn); }
 .fc[data-scheme='dark'] .fc-hero { --fc-lv0: var(--fc-gh0); --fc-on0: var(--fc-ac0); --fc-lv1: var(--fc-gh1); --fc-on1: var(--fc-ac1); --fc-lv2: var(--fc-gh2); --fc-on2: var(--fc-ac2); --fc-lv3: var(--fc-gh3); --fc-on3: var(--fc-ac3); --fc-lv4: var(--fc-gh4); --fc-on4: var(--fc-ac4); --fc-lvn: var(--fc-ghn); --fc-onn: var(--fc-acn); --fc-field: var(--fc-ghn); --fc-on-field: var(--fc-acn);
-  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fc-on-field) 55%, transparent), inset 0 0 60px color-mix(in srgb, var(--fc-on-field) 10%, transparent); }
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fc-on-field) 55%, transparent) }
 .fc[data-scheme='dark'][data-level='0'] .fc-hero { --fc-field: var(--fc-gh0); --fc-on-field: var(--fc-ac0); }
 .fc[data-scheme='dark'][data-level='1'] .fc-hero { --fc-field: var(--fc-gh1); --fc-on-field: var(--fc-ac1); }
 .fc[data-scheme='dark'][data-level='2'] .fc-hero { --fc-field: var(--fc-gh2); --fc-on-field: var(--fc-ac2); }
