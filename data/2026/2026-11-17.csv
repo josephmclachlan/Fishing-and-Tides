@@ -10331,3 +10331,5 @@ t,site,source,model,var,value,issued
 2026-11-17T22:00Z,GANDOCA,currents,,v,-0.33828,2026-11-17T04:45Z
 2026-11-17T04:35Z,limon,gauge,,levelM,-0.0647,
 2026-11-17T04:35Z,limon,gauge,,tideM,-0.10194,
+2026-11-17T04:45Z,limon,gauge,,levelM,-0.0808,
+2026-11-17T04:45Z,limon,gauge,,tideM,-0.10744,
