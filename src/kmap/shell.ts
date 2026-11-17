@@ -51,7 +51,7 @@ import { saveScheme, currentScheme, storedScheme } from '../theme';
 import { BANDS } from '../time';
 import type { TimeStore } from '../time';
 import {
-  GROUPS, MODES, OLD_PRESET, isCustom, isMode, isOwnLayer, layerDef, loadOrders, moveLayer, offered, orderOf, saveOrders, toggleLayer,
+  GROUPS, MODES, OLD_PRESET, SUGGESTED, isCustom, isMode, isOwnLayer, layerDef, loadOrders, moveLayer, offered, orderOf, saveOrders, toggleLayer,
   type KmGroup, type KmLayer, type Mask, type Mode,
 } from './model';
 import { mountPaddleMap } from './paddle-map';
@@ -59,6 +59,7 @@ import type { PaddleMark } from './paddle-geo';
 import { pushOf } from '../forecast/view';
 import { hex, tok } from './dom';
 import { ARROW, BACK, CLOSE, GRIP, ICON, L2, LOCK, PLUS, compass, esc, fin, levelWord, modeName, resetTokens, setKmLang, svg } from './dom';
+import { mountActWheel } from './wheel';
 import { mountCoast, type PinData } from './coast';
 import { readDetails, type Detail } from './detail';
 import { mountScrub } from './scrub';
@@ -392,7 +393,32 @@ export function mountKineticMap(d: KmDeps) {
     topBar.classList.toggle('k-acts', open);
     pillBtn.setAttribute('aria-expanded', String(open));
   };
-  pillBtn.addEventListener('click', () => showActs(!topBar.classList.contains('k-acts')));
+  /* Press and hold the pill for the activity wheel (PLAN 7.165): slide to an activity and let go. */
+  const wheel = mountActWheel({
+    current: mode,
+    hint: () => [L2('Let go to switch', 'Suelte para cambiar'), L2('Slide to an activity', 'Deslice a una actividad')],
+    onPick: (m) => tabs.querySelector<HTMLElement>(`.k-tab[data-id="${m}"]`)?.click(),
+  });
+  let holdT = 0, held = false;
+  pillBtn.addEventListener('pointerdown', (e) => {
+    if (WIDE.matches || e.button > 0) return;
+    held = false;
+    pillBtn.setPointerCapture(e.pointerId);
+    holdT = window.setTimeout(() => {
+      held = true;
+      showActs(false);
+      wheel.open(pillBtn.getBoundingClientRect().bottom + 6, MODES.map((m) => ({ id: m, label: modeName(m) })));
+    }, 330);
+  });
+  pillBtn.addEventListener('pointermove', (e) => held && wheel.move(e));
+  pillBtn.addEventListener('pointerup', (e) => (clearTimeout(holdT), held && wheel.up(e, true)));
+  pillBtn.addEventListener('pointercancel', () => clearTimeout(holdT));
+  pillBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+  pillBtn.addEventListener('click', () => {
+    // The click that ends a hold belongs to the wheel, not the row.
+    if (held) return void (held = false);
+    showActs(!topBar.classList.contains('k-acts'));
+  });
   tabs.addEventListener('click', (e) => (e.target as HTMLElement).closest('.k-tab') && showActs(false));
   topBar.addEventListener('keydown', (e) => e.key === 'Escape' && topBar.classList.contains('k-acts') && (showActs(false), pillBtn.focus()));
   map.on('dragstart', () => showActs(false));
@@ -594,6 +620,9 @@ export function mountKineticMap(d: KmDeps) {
   const composerHTML = () => {
     const o = order(), m = mode();
     const rest = offered(m).filter((x) => !o.includes(x));
+    // The activity's other good layers first (PLAN 7.166), then everything else by group.
+    const good = SUGGESTED[m].filter((x) => rest.includes(x)), other = rest.filter((x) => !good.includes(x));
+    const chips = (ls: readonly KmLayer[]) => `<div class="k-adds">${ls.map((x) => `<button type="button" class="k-addc" data-add="${x}">${PLUS}${esc(layerName(x))}</button>`).join('')}</div>`;
     const cite = citer(settings.lang());
     return cite.finish(`<div class="k-preset"><div class="k-pl"><span class="k-pv">${esc(modeName(m))}</span><span class="k-pc">${isCustom(orders, m) ? L2('Mine', 'Mía') : L2('Standard', 'Estándar')}</span></div><button type="button" class="k-tbtn" data-reset ${isCustom(orders, m) ? '' : 'disabled'}>${L2('Reset', 'Restablecer')}</button></div>
     <p class="k-lc-cap k-mono"><span>${o.length} ${L2('on', 'activas')}</span><span>${L2('Top layer is drawn over the rest', 'La de arriba se dibuja encima')}</span></p>
@@ -604,9 +633,10 @@ export function mountKineticMap(d: KmDeps) {
       })
       .join('')}</ol>
     <div class="k-addh"><b>${L2('Add a layer', 'Añadir capa')}</b><span class="k-mono">${rest.length}</span></div>
+    ${good.length ? `<p class="k-addg k-mono">${L2('Good for', 'Buenas para')} ${esc(modeName(m))}</p>${chips(good)}` : ''}
     ${GROUPS.map((g) => {
-      const ls = rest.filter((x) => layerDef(x).group === g);
-      return ls.length ? `<p class="k-addg k-mono">${esc(groupName(g))}</p><div class="k-adds">${ls.map((x) => `<button type="button" class="k-addc" data-add="${x}">${PLUS}${esc(layerName(x))}</button>`).join('')}</div>` : '';
+      const ls = other.filter((x) => layerDef(x).group === g);
+      return ls.length ? `<p class="k-addg k-mono">${esc(groupName(g))}</p>${chips(ls)}` : '';
     }).join('')}`, L2('SOURCES', 'FUENTES'));
   };
   const bindComposer = (el: HTMLElement) => {
