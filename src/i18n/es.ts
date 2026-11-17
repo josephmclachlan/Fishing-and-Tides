@@ -2065,7 +2065,7 @@ export const es: Dict = {
   'gd.lay.list': 'Lista',
   'gd.common': 'Comunes aquí',
   'gd.coast.title': '¿Dónde estás?',
-  'gd.coast.hint': 'Toca una parte de la costa para ver qué vive ahí.',
+  'gd.coast.hint': 'Toca una parte de la costa para ver qué vive ahí. Una especie que vive en varias partes aparece en cada una.',
   'gd.coast.beach': 'Playa',
   'gd.coast.mangrove': 'Manglar',
   'gd.coast.seagrass': 'Pastos marinos',

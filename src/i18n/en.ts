@@ -2066,7 +2066,7 @@ export const en = {
   'gd.lay.list': 'List',
   'gd.common': 'Common here',
   'gd.coast.title': 'Where are you?',
-  'gd.coast.hint': 'Tap a part of the coast to see what lives there.',
+  'gd.coast.hint': 'Tap a part of the coast to see what lives there. A species that lives in more than one part shows in each.',
   'gd.coast.beach': 'Beach',
   'gd.coast.mangrove': 'Mangrove',
   'gd.coast.seagrass': 'Seagrass',

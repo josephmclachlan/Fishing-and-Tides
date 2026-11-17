@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { coastHtml, COLS, ZONE_HABITATS, zoneCounts, zoneOf, ZONES } from './coast';
-import { DEFAULT_FILTER } from './filter';
+import { DEFAULT_FILTER, matches } from './filter';
 import { HABITATS, type Entry } from './types';
 
 const e = (id: string, habitats: string[]): Entry => ({ id, tier: 'full', group: 'fish', sub: 'x', sci: id, en: [id], es: [id], rec: 'here', habitats }) as unknown as Entry;
@@ -18,6 +18,11 @@ describe('the coast drawing (PLAN 14.6)', () => {
     const list = [e('a', ['reef', 'seagrass']), e('b', ['beach']), e('c', ['offshore'])];
     const n = zoneCounts(list, { ...DEFAULT_FILTER }, 'all', null);
     expect(n).toMatchObject({ reef: 1, seagrass: 1, beach: 1, deep: 1, open: 0, mangrove: 0 });
+  });
+  it('shows a species that lives in several parts under each of them (Joseph 2026-11-17)', () => {
+    const both = e('both', ['reef', 'seagrass', 'open-water']);
+    for (const z of ['reef', 'seagrass', 'open'] as const) expect(matches(both, { ...DEFAULT_FILTER, habitats: [...ZONE_HABITATS[z]] })).toBe(true);
+    for (const z of ['beach', 'mangrove', 'deep'] as const) expect(matches(both, { ...DEFAULT_FILTER, habitats: [...ZONE_HABITATS[z]] })).toBe(false);
   });
   it('marks the part showing and gives every part its count', () => {
     const h = coastHtml('reef', { beach: 1, mangrove: 2, seagrass: 3, reef: 4, open: 5, deep: 6 });
