@@ -190,6 +190,7 @@
 .gd-more-w { display: flex; justify-content: center; padding: 20px 0 0; }
 
 /* --- a species: full screen on a phone, a panel on the right of a wide screen */
+.gd-scrim { display: none; }
 .gd-sheet { position: fixed; inset: 0; z-index: 10; background: var(--fc-bg); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .gd-sheet-in { padding: 0 var(--fc-g-r) calc(32px + env(safe-area-inset-bottom, 0px)) var(--fc-g-l); animation: gd-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
 @keyframes gd-in { from { opacity: 0; transform: translateY(18px); } }
@@ -420,7 +421,9 @@
 @media (min-width: 960px) {
   .gd-groups-w { margin-top: 6px; margin-left: auto; margin-right: auto; }
   .gd-groups { flex-wrap: wrap; overflow: visible; padding: 4px 0 10px; }
-  .gd-sheet { left: auto; width: min(780px, 64vw); border-left: 2px solid var(--fc-ink); box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--fc-ink) 34%, transparent); }
+  .gd-sheet { left: auto; width: min(780px, 64vw); border-left: 2px solid var(--fc-ink); }
+  /* The dimmed page beside the panel: tap it to close the species. */
+  .gd-scrim:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 10; background: color-mix(in srgb, var(--fc-ink) 34%, transparent); cursor: pointer; animation: gd-fade 0.2s ease; }
   .gd.gd-open .fc-page { pointer-events: none; }
   .gd-sheet-in { animation-name: gd-side; padding-left: 32px; padding-right: 32px; }
   .gd-d-top, .gd-d-tabs, .gd-gal { margin-left: -32px; margin-right: -32px; padding-left: 32px; padding-right: 32px; }
@@ -428,10 +431,11 @@
   .gd-gal.none { margin-left: 0; margin-right: 0; padding: 12px; }
   .gd-clean { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
 }
+@keyframes gd-fade { from { opacity: 0; } }
 @keyframes gd-side { from { opacity: 0; transform: translateX(28px); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .gd-sheet-in { animation: none; }
+  .gd-sheet-in, .gd-scrim:not([hidden]) { animation: none; }
   .gd-mode-bar { transition: none; }
 }
 .gd .gd-d-close:focus-visible, .gd .gd-card:focus-visible, .gd .gd-g:focus-visible { outline: 3px solid var(--fc-ink); outline-offset: 2px; }
