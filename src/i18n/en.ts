@@ -2236,6 +2236,8 @@ export const en = {
   'gd.tab.safety': 'Safety',
   'gd.tab.sources': 'Sources',
   // The one-page species view (Joseph 2026-11-17): four answers first, "More" under every long text.
+  'gd.idbar': 'Identify it',
+  'gd.idbarSub': 'Saw something? Fish, shark, turtle, coral, plant: answer a few picture questions.',
   'gd.ans.title': 'The four answers',
   'gd.ans.eat': 'Eat',
   'gd.ans.hurts': 'Hurts?',

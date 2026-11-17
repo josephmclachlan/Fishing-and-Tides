@@ -544,3 +544,16 @@
 .gd-id-tl span { display: block; padding: 4px 6px 6px; font-size: 11.5px; line-height: 1.2; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (hover: hover) { .gd-id-tl:hover span { text-decoration: underline; } }
 
+/* The Atlas home (Joseph 2026-11-17): search first, then a wide Identify bar between search and the species, square. */
+.gd .gd-idbar {
+  display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 8px; padding: 12px 14px; text-align: left; cursor: pointer;
+  background: var(--fc-t-snorkel); color: var(--fc-bg); border: 2px solid var(--fc-ink); font: inherit;
+}
+.gd .gd-idbar > svg { flex: none; width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: square; stroke-linejoin: miter; }
+.gd .gd-idbar > svg:last-child { width: 22px; height: 22px; margin-left: auto; }
+.gd-idbar span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gd-idbar b { font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 72; font-size: 26px; line-height: 0.95; text-transform: uppercase; }
+.gd-idbar small { font-size: 13px; line-height: 1.3; }
+.gd[data-mode='identify'] .gd-idbar { display: none; }
+@media (hover: hover) { .gd .gd-idbar:hover { outline: 3px solid var(--fc-t-snorkel); outline-offset: 2px; } }
+

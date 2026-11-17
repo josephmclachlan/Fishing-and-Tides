@@ -92,10 +92,13 @@ export function mountGuidePage(deps: GuidePageDeps) {
         <p class="fc-subline fc-mono"><b id="gd-sub">${t('gd.loading')}</b></p>
         <p class="gd-nlinks fc-mono"><a href="#notes/aid">${esc(t('nt.aid'))}</a> · <a href="#notes/rules">${esc(t('nt.rules'))}</a> · <a href="#notes/words">${esc(t('nt.words'))}</a></p>
       </header>
-      <nav class="gd-modes fc-in" id="gd-modes" role="tablist" aria-label="${esc(t('gd.modes'))}"></nav>
-      <div class="gd-groups-w fc-in"><div class="gd-groups" id="gd-groups" role="toolbar" aria-label="${esc(t('gd.groups'))}"></div></div>
       <div class="gd-tools fc-in">
         <label class="gd-search">${svg(ICONS.search)}<input id="gd-q" type="search" enterkeyhint="search" autocomplete="off" spellcheck="false" placeholder="${esc(t('gd.search'))}" aria-label="${esc(t('gd.searchLabel'))}"></label>
+      </div>
+      <div class="fc-in"><button type="button" class="gd-idbar" data-idbar>${svg(ICONS.identify)}<span><b>${esc(t('gd.idbar'))}</b><small>${esc(t('gd.idbarSub'))}</small></span>${svg(ICONS.next)}</button></div>
+      <nav class="gd-modes fc-in" id="gd-modes" role="tablist" aria-label="${esc(t('gd.modes'))}"></nav>
+      <div class="gd-groups-w fc-in"><div class="gd-groups" id="gd-groups" role="toolbar" aria-label="${esc(t('gd.groups'))}"></div></div>
+      <div class="gd-tools gd-tools2 fc-in">
         <button type="button" class="fc-ctl gd-fbtn" id="gd-fbtn" aria-expanded="false" aria-controls="gd-filters">${svg(ICONS.filter)}<span>${t('gd.filters')}</span><b id="gd-fn" hidden></b></button>
         <div class="gd-picks" id="gd-picks"></div>
         <div id="gd-exp"></div>
@@ -379,7 +382,8 @@ export function mountGuidePage(deps: GuidePageDeps) {
       b.setAttribute('aria-pressed', String(on));
       b.querySelector('span')!.textContent = t(on ? 'gd.fav.on' : 'gd.fav.off');
       render();
-    } else if ((b = hit('.gd-mode'))) setView(b.dataset.mode as GdMode, group);
+    } else if (hit('[data-idbar]')) setView('identify', null);
+    else if ((b = hit('.gd-mode'))) setView(b.dataset.mode as GdMode, group);
     else if ((b = hit('.gd-g'))) {
       const g = (b.dataset.group || null) as Group | null;
       setView(mode, g === group ? null : g);
