@@ -933,3 +933,8 @@
   :root[data-theme="modern"][data-scheme="dark"] .k-back,:root[data-theme="modern"][data-scheme="dark"] .k-findtop,
   :root[data-theme="modern"][data-scheme="dark"] .k-ctrls .k-ib,:root[data-theme="modern"][data-scheme="dark"] .k-top.k-acts .k-tab:not([aria-selected="true"]){box-shadow:inset 0 0 0 1.5px var(--line),0 6px 20px rgba(0,0,0,.35)}
 }
+
+/* PLAN 7.169: a drag up from the peek shows the spot view already drawn under the thumb (it is prefilled while hidden). */
+@media (max-width:1099.98px){
+  .km .k-sheet.k-phs.k-drag[data-stop="peek"] .k-sh-head,.km .k-sheet.k-phs.k-drag[data-stop="peek"] .k-sh-body{visibility:visible}
+}
