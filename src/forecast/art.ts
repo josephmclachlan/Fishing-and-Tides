@@ -1691,8 +1691,7 @@ function drawDive(c: Ctx2D, A: Box, tt0: number, a: WaterA, S: Style, kit: 'dive
   const fx0 = x + w * 0.84 + (S.reduced ? 0 : Math.sin(tt * 0.2) * 14), fy0 = dY(reefTop) - (K === 'spear' ? 24 : 46) * k;
   for (let i = 0; i < 6; i++) fish(c, fx0 + (hash1(i + 3) - 0.5) * 56 * k, fy0 + (hash1(i + 13) - 0.5) * 26 * k, 10 * k, -1, tt * 6 + i, S);
   const ex = mx + 0.02 * u;
-  if (K === 'spear') fish(c, F.mx + 0.02 * u + 4 * hm + (S.reduced ? 0 : Math.sin(tt * 0.5) * 3), F.ey - 0.075 * u, 24 * k, 1, tt * 3.5, S);
-  else { const gx = x + w * 0.7; fish(c, gx, top(gx) - 44 * k, 26 * k, 1, tt * 3, S); }
+  if (K !== 'spear') { const gx = x + w * 0.7; fish(c, gx, top(gx) - 44 * k, 26 * k, 1, tt * 3, S); }
 
   // --- What you can see: murk past the visibility, the line where it ends.
   let wx = x + w;
@@ -1704,6 +1703,14 @@ function drawDive(c: Ctx2D, A: Box, tt0: number, a: WaterA, S: Style, kit: 'dive
     c.strokeStyle = S.ink; c.lineWidth = 1; c.beginPath(); for (let xx = s0 - 12; xx < s1 + 12; xx += 4) { c.moveTo(xx, F.ey + 5); c.lineTo(xx + 10, F.ey - 5); } c.stroke(); c.restore();
   }
   sightRuler(c, F.mx + 0.02 * u, F.ey, x + w - 4, hm, hspan, vis, fs, S);
+  if (K === 'spear') {
+    // The target: a snapper 4 m ahead, in the middle of the shot band, just above the line. Drawn over the murk: clear
+    // when the water lets you see that far, faded when it does not (you cannot see it well enough to shoot).
+    const tx = Math.min(x + w - 30 * k, F.mx + 0.02 * u + 4 * hm) + (S.reduced ? 0 : Math.sin(tt * 0.5) * 3), ty = F.ey - 0.17 * u;
+    c.save(); c.globalAlpha = vis === null || vis >= 4 ? 1 : 0.35;
+    fish(c, tx, ty, 24 * k, -1, tt * 3.5, S); c.restore();
+    S.hot.push({ x: tx - 18 * k, y: ty - 12 * k, w: 36 * k, h: 24 * k, k: 'spear.fish' });
+  }
 
   // --- The surface, the depth scale, the line across at the swimmer's depth.
   const at = surface(c, bx + bw, x + w, sy, tt, a.windKt, S);

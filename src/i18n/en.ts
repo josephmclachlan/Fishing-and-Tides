@@ -2027,6 +2027,8 @@ export const en = {
   'fc.pop.dive.diver.b': 'A diver with a tank. The bubbles grow as they rise, because the water presses less near the surface. The score counts the surge, the visibility, the chop, the current and the daylight, and the worst of them counts most.',
   'fc.pop.dive.chop.t': 'Chop on the surface',
   'fc.pop.dive.chop.b': 'Small, steep waves that the wind raises on the surface, where you get in, wait and get out. Under 6 knots of wind the sea is flat, from 11 knots it is choppy, and from 16 knots it is rough.',
+  'fc.pop.spear.fish.t': 'Your target',
+  'fc.pop.spear.fish.b': 'A fish 3 to 5 m ahead, in the striped band, is in range for a shot. When the water is too murky to see that far, the fish fades: you cannot see it, or what is behind it, well enough to shoot safely.',
   'fc.pop.spear.depth.t': 'Spearing depth',
   'fc.pop.spear.depth.b': 'This forecast is for spearing at about 6 m. You need at least 1.5 m of water to dive, and 4 m or more is best. Past 15 m the risk of blacking out climbs with the depth and the effort.',
   'fc.pop.spear.vis.t': 'How far you can see',

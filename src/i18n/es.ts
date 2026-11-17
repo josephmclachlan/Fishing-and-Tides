@@ -2026,6 +2026,8 @@ export const es: Dict = {
   'fc.pop.dive.diver.b': 'Un buzo con tanque. Las burbujas crecen al subir, porque cerca de la superficie el agua aprieta menos. La nota cuenta el vaivén, la visibilidad, el picado, la corriente y la luz del día, y lo peor de todo pesa más.',
   'fc.pop.dive.chop.t': 'Picado en la superficie',
   'fc.pop.dive.chop.b': 'Olas pequeñas y cortas que el viento levanta en la superficie, donde entras, esperas y sales. Con menos de 6 nudos de viento el mar está liso, desde 11 nudos está picado y desde 16 nudos está agitado.',
+  'fc.pop.spear.fish.t': 'Tu presa',
+  'fc.pop.spear.fish.b': 'Un pez entre 3 y 5 m adelante, en la franja rayada, está a distancia de tiro. Si el agua está tan turbia que no ves tan lejos, el pez se desvanece: no lo ves a él, ni lo que hay detrás, lo bastante bien para disparar con seguridad.',
   'fc.pop.spear.depth.t': 'Profundidad de pesca',
   'fc.pop.spear.depth.b': 'Este pronóstico es para pescar con arpón a unos 6 m. Necesitas al menos 1,5 m de agua para bajar, y lo mejor es 4 m o más. Pasados 15 m, el riesgo de desmayarte sube con la profundidad y el esfuerzo.',
   'fc.pop.spear.vis.t': 'Hasta dónde ves',
