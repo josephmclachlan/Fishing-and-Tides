@@ -306,6 +306,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     el.dataset.level = lv;
     $('fc-hero').dataset.level = lv;
     engine.set(heroParams(r, { deps, ms, plan, tl }), performance.now() / 1000);
+    if (!engine.active) $('fc-pop').hidden = true;
     if (numChanged) fitHero();
     if (reduced && T) engine.still();
     // Shimmer placeholders while the feeds load (first 20 s); after that a plain "no data".
@@ -384,7 +385,7 @@ export function mountForecastPage(deps: ForecastDeps) {
         o.B = g ? rgba(parseCol(g)) : B;
       }
       const A = o.v.kind === 'uv' && o.v.lv !== null ? rgba(T[`uv${4 - o.v.lv}` as TokenName]) : o.v.lv !== null ? rgba(T[lvTok(o.v.lv, 'ac')]) : heroA;
-      drawTile(o.v.kind, o.c, o.w, o.h, reduced ? 3.2 : tt, o.v.viz, { I, A, B: o.B, sand: T.sand, reduced, words });
+      drawTile(o.v.kind, o.c, o.w, o.h, reduced ? 3.2 : tt, o.v.viz, { I, A, B: o.B, sand: T.sand, reduced, words, glow: el.dataset.scheme === 'dark' });
     }
   };
   const renderTiles = (anim: boolean) => {
@@ -870,12 +871,51 @@ export function mountForecastPage(deps: ForecastDeps) {
     if (e.pointerType === 'touch') swipe = { x: e.clientX, y: e.clientY, id: e.pointerId };
   });
   $('fc-hero').addEventListener('pointerup', (e) => {
-    if (!swipe || swipe.id !== e.pointerId) return;
-    const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
-    swipe = null;
-    if (Math.abs(dx) > 60 && Math.abs(dy) < 45) stepAct(dx < 0 ? 1 : -1);
+    if (swipe && swipe.id === e.pointerId) {
+      const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+      swipe = null;
+      if (Math.abs(dx) > 60 && Math.abs(dy) < 45) return stepAct(dx < 0 ? 1 : -1);
+      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) return;
+    }
+    if ((e.target as HTMLElement).closest('button, a, .fc-pop')) return;
+    const r = $('fc-hero').getBoundingClientRect(), q = engine.hit(e.clientX - r.left, e.clientY - r.top);
+    showPop(q && q.k !== engine.active ? q.k : null);
   });
+  // A tapped part of the picture: its box bracketed in the drawing, its plain words in a square box beside it.
+  const pop = $('fc-pop');
+  function showPop(k: string | null) {
+    engine.active = k;
+    if (reduced) engine.still();
+    else kick();
+    if (!k) { pop.hidden = true; return; }
+    $('fc-pop-t').textContent = t(`fc.pop.${k}.t` as Key);
+    $('fc-pop-b').textContent = t(`fc.pop.${k}.b` as Key);
+    pop.hidden = false;
+    const q = engine.boxOf(k), hr = $('fc-hero').getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+    if (!q) return;
+    // Below the part when there is room, else above it; kept inside the hero.
+    const left = clamp(q.x + q.w / 2 - pw / 2, 12, hr.width - pw - 12);
+    const below = q.y + q.h + 10 + ph < hr.height - 8;
+    pop.style.left = `${left}px`;
+    pop.style.top = `${below ? q.y + q.h + 10 : Math.max(8, q.y - ph - 10)}px`;
+    pop.style.setProperty('--ax', `${clamp(q.x + q.w / 2 - left, 14, pw - 14)}px`);
+    pop.dataset.side = below ? 'below' : 'above';
+  }
+  $('fc-pop-x').addEventListener('click', () => showPop(null));
+  el.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) showPop(null); });
   $('fc-hero').addEventListener('pointercancel', () => (swipe = null));
+  // Tap a condition card to open its plain-words tip (phones have no hover); tap again, or another card, to swap.
+  $('fc-tiles').addEventListener('click', (e) => {
+    const tg = e.target as HTMLElement;
+    if (tg.closest('a')) return;
+    const card = tg.closest<HTMLElement>('.fc-tile');
+    const open = card?.querySelector('.fc-t-tip') && !card.classList.contains('is-open') ? card : null;
+    $('fc-tiles').querySelectorAll('.fc-tile.is-open').forEach((x) => x.classList.remove('is-open'));
+    open?.classList.add('is-open');
+  });
+  $('fc-tiles').addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') $('fc-tiles').querySelectorAll('.fc-tile.is-open').forEach((x) => x.classList.remove('is-open'));
+  });
   $('fc-best').addEventListener('click', () => {
     const ms = Number($('fc-best').dataset.ms);
     if ($('fc-best').dataset.ms && Number.isFinite(ms)) pick(ms, true);

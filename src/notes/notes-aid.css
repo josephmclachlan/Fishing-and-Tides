@@ -25,7 +25,7 @@
 .nt-anim h4 { margin: 0; font: 700 13.5px/1.2 var(--fc-mono); text-transform: uppercase; }
 .nt-anim p { margin: 0; font-size: 14px; line-height: 1.4; color: var(--fc-ink2); }
 
-svg.nt-an path, svg.nt-an ellipse, svg.nt-an circle { fill: none; stroke: var(--fc-ink); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+svg.nt-an path, svg.nt-an ellipse, svg.nt-an circle { fill: none; stroke: var(--fc-ink); stroke-width: 1.5; stroke-linecap: square; stroke-linejoin: miter; }
 svg.nt-an .nt-an-jel { fill: color-mix(in srgb, var(--fc-jelly) 35%, var(--fc-card)); }
 svg.nt-an .nt-an-ten { stroke: var(--fc-ink2); stroke-width: 1.1; }
 svg.nt-an .nt-an-arm { stroke: var(--fc-jelly); stroke-width: 2.2; }
