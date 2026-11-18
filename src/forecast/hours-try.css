@@ -1,5 +1,5 @@
 /*
- * HOUR BY HOUR trial designs A and C (hours-try.ts). Only --fc-* tokens: light is the Kinetic colour field, dark is
+ * HOUR BY HOUR, the new view (hours-try.ts). Only --fc-* tokens: light is the Kinetic colour field, dark is
  * plain black glass with the rating on square edges and words and a glow in each element's own colour.
  * Per element: --hf field, --ho ink on the field, --he edge, --hm mark (bars, water), --ha accent words.
  */
@@ -56,13 +56,7 @@
 .fc .hy-wx span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .fc .hy-wx .hy-ic { font-size: 17px; }
 
-/* chips (C) */
-.fc .hy-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 9px; }
-.fc .hy-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 6px 3px 5px; font-family: var(--fc-mono); font-size: 12px; background: var(--hy-panel); color: var(--fc-ink); border: 1.5px solid var(--fc-ink); border-bottom: 4px solid var(--hm); white-space: nowrap; }
-.fc[data-scheme='dark'] .hy-chip { border-color: var(--fc-line); border-bottom-color: var(--hm); }
-.fc .hy-chip .hy-ic { font-size: 15px; }
-
-/* tiles (A) */
+/* the four parts */
 .fc .hy-fx { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 10px 0; }
 .fc .hy-ft { appearance: none; border-radius: 0; position: relative; text-align: left; border: 1.5px solid var(--fc-line); border-left: 6px solid var(--hm); background: var(--hy-panel); color: var(--fc-ink); padding: 7px 8px 8px 9px; cursor: pointer; display: grid; grid-template-columns: auto 1fr; gap: 1px 7px; align-items: center; min-width: 0; }
 .fc .hy-ft::after { content: '?'; position: absolute; top: 4px; right: 5px; font-family: var(--fc-mono); font-size: 10px; color: var(--fc-ink2); }
@@ -72,10 +66,7 @@
 .fc .hy-ft .v b { font-family: var(--fc-disp); font-weight: 750; font-variation-settings: 'wdth' 80; font-size: 21px; line-height: 1.05; white-space: nowrap; }
 .fc .hy-ft .v em { font-style: normal; font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 72; font-size: 14px; text-transform: uppercase; color: var(--ha); text-shadow: var(--hy-gl); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* ribbon (A) */
-.fc .hy-rib { touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: ew-resize; margin-top: 4px; }
-.fc .hy-rib svg { display: block; width: 100%; height: auto; overflow: visible; }
-.fc .hy-bar { fill: var(--hm); color: var(--hm); filter: var(--hy-gf); }
+/* best time, each part hour by hour */
 .fc .hy-best { appearance: none; border-radius: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; background: var(--fc-ink); color: var(--fc-bg); border: 0; padding: 10px 12px; cursor: pointer; text-align: left; }
 .fc .hy-best b { font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 72; font-size: 19px; text-transform: uppercase; line-height: 1; }
 .fc .hy-best span { font-family: var(--fc-mono); font-size: 13px; letter-spacing: .04em; }
@@ -100,24 +91,21 @@
 .fc .hy-good span { padding: 3px 6px; background: var(--fc-lv3); color: var(--fc-on3); display: inline-block; }
 .fc .hy-x { appearance: none; background: none; border: 0; color: inherit; cursor: pointer; font-family: var(--fc-mono); font-size: 13px; padding: 0 2px; min-height: 0; }
 
-/* sea picture (C) */
-.fc .hy-cview { position: relative; margin-top: 10px; }
-.fc .hy-cs { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; border-top: 2px solid var(--fc-ink); border-bottom: 2px solid var(--fc-ink); background: var(--hy-panel); cursor: grab; }
+/* the sea picture: no frame lines and no black dividers (Joseph 2026-11-18, keep A's cleanness) */
+.fc .hy-cview { position: relative; margin-top: 12px; }
+.fc .hy-cs { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; background: var(--hy-panel); cursor: grab; }
 .fc .hy-cs::-webkit-scrollbar { display: none; }
 .fc .hy-cs svg { display: block; }
 .fc .hy-water { fill: var(--hm); fill-opacity: var(--hy-wa); }
-.fc .hy-surf { stroke: var(--he); color: var(--he); stroke-width: 3; filter: var(--hy-gf); }
-.fc .hy-needle { position: absolute; top: 0; bottom: 0; left: 50%; width: 0; border-left: 2.5px solid var(--fc-ink); pointer-events: none; transform: translateX(-1px); }
-.fc .hy-needle::before { content: ''; position: absolute; top: -1px; left: -8px; border: 7px solid transparent; border-top: 9px solid var(--fc-ink); }
-.fc .hy-needle::after { content: ''; position: absolute; bottom: -1px; left: -8px; border: 7px solid transparent; border-bottom: 9px solid var(--fc-ink); }
-.fc .hy-cday { position: absolute; left: 0; top: 2px; background: var(--hy-panel); color: var(--fc-ink); padding: 2px 8px 3px 2px; font-family: var(--fc-disp); font-weight: 800; font-variation-settings: 'wdth' 72; font-size: 15px; line-height: 1; pointer-events: none; }
-.fc .hy-jump { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; margin-top: 8px; }
-.fc .hy-jump button { appearance: none; border-radius: 0; border: 1.5px solid var(--fc-ink); background: var(--hy-panel); color: var(--fc-ink); padding: 6px 8px; font-family: var(--fc-mono); font-size: 11.5px; cursor: pointer; white-space: nowrap; min-height: 34px; flex: none; }
-.fc .hy-jump button.bst { background: var(--fc-ink); color: var(--fc-bg); }
+.fc .hy-surf { stroke: var(--ha); color: var(--ha); stroke-width: 3; filter: var(--hy-gf); }
+.fc .hy-needle { position: absolute; top: 22px; bottom: 26px; left: 50%; width: 26px; transform: translateX(-50%); pointer-events: none; background: color-mix(in srgb, var(--fc-ink) 10%, transparent); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fc-ink) 22%, transparent); }
+.fc .hy-needle::before { content: ''; position: absolute; top: -1px; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top: 8px solid var(--fc-ink); }
+.fc .hy-bestband { fill: var(--fc-c-win); fill-opacity: 0.16; }
+.fc .hy-bestbar { fill: var(--fc-c-win); filter: var(--hy-gf); color: var(--fc-c-win); }
 .fc .hy-key { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 10px; font-family: var(--fc-mono); font-size: 10.5px; color: var(--fc-ink2); letter-spacing: .05em; text-transform: uppercase; }
 .fc .hy-key span { display: inline-flex; align-items: center; gap: 5px; }
 .fc .hy-key i { width: 18px; height: 10px; display: inline-block; background: var(--hm); }
-.fc .hy-key i.ink { background: var(--fc-ink); }
+.fc .hy-key i.win { background: var(--fc-c-win); }
 .fc .hy-wrap { position: relative; }
 @media (min-width: 700px) { .fc .hy-body { max-width: 560px; } }
 /* The switch hides today's chart; its own display rules would otherwise win over [hidden]. */

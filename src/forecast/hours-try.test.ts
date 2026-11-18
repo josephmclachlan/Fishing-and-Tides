@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { daysAt, FC_ACTIVITIES, timeline, type FcActivity, type TimelineHour } from './model';
-import { bestOfDay, partsFor, readoutHtml, s3, seaSvg, skyIcon, tideTurns, viewAHtml, viewCHtml, type HyCtx } from './hours-try';
+import { bestOfDay, hyModeOf, partsFor, readoutHtml, s3, seaSvg, skyIcon, tideTurns, viewHtml, type HyCtx } from './hours-try';
 import { DAY0, full, H, spot } from './testkit';
 
 const SPOT_OF: Record<FcActivity, string> = { surf: 'SALSA BRAVA', fish: 'PUNTA UVA', snorkel: 'PUNTA CAHUITA', dive: 'PUNTA CAHUITA', spear: 'PUNTA UVA', swim: 'PLAYA COCLES', sail: 'PLAYA COCLES', paddle: 'PLAYA COCLES' };
@@ -69,16 +69,25 @@ describe('tide turns', () => {
   });
 });
 
-describe('both designs render every activity', () => {
+describe('the view renders every activity', () => {
   for (const a of FC_ACTIVITIES) {
     it(a, () => {
       const c = ctx(a);
-      const html = viewAHtml(c, true) + viewCHtml(c) + readoutHtml(c);
+      const html = viewHtml(c, true) + readoutHtml(c);
       expect(html).not.toMatch(BAD);
-      expect(seaSvg(c)).toContain('clipPath');
+      const sea = seaSvg(c);
+      expect(sea).toContain('clipPath');
       expect(html).toContain('data-hy-part="3"');
+      expect(html).toContain('data-hy-day="6"');
+      // Clean: no black divider lines in the picture (Joseph 2026-11-18), only the dashed sunrise and sunset ones.
+      expect(sea).not.toMatch(/<line[^>]*stroke="var\(--fc-ink\)"/);
+      // Like-rated hours share one block of water, so the see-through dark fill has no seams.
+      expect((sea.match(/hy-water/g) ?? []).length).toBeLessThan(c.tl.length / 2);
     });
   }
+  it('the old chart only when picked; anything else, including the retired C, is the new view', () => {
+    expect([hyModeOf('chart'), hyModeOf('c'), hyModeOf(null), hyModeOf('a')]).toEqual(['chart', 'a', 'a', 'a']);
+  });
   it('the sky reads storm, rain, cloud and clear', () => {
     expect(skyIcon({ squall: 2, cloudPct: 0, rainMmH: 0, rainPct: 0, day: true })).toBe('storm');
     expect(skyIcon({ squall: 0, cloudPct: 90, rainMmH: 2, rainPct: 80, day: true })).toBe('rain');
