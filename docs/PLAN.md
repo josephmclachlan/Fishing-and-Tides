@@ -333,7 +333,7 @@ Keep the Kinetic Plus page's bold activity words and square cards; the drawings 
 
 ## Phase 16: Hour by hour redesign (Joseph 2026-11-18: the stacked rows chart is "unreadable and overwhelming"; 4 mockups in project files `hour-by-hour-redesign/`, artifact https://claude.ai/artifact/G6BYhD2LkYs9XsDs9Ns2yy)
 - [x] 16.1 Try A (day ribbon) and C (sea picture) on live data: a CHART / TRY A / TRY C switch in the section header (today's chart stays the default), `src/forecast/hours-try.ts`
-- [x] 16.2 Joseph's pick: A's day buttons, readout and four tiles over C's scrollable sea drawing (tide as the sea surface, best times as green bands), with no black divider lines; the switch is now NEW / OLD CHART and NEW is the default
+- [x] 16.2 Joseph's pick: A's day buttons, readout and four tiles over C's scrollable sea drawing (tide as the sea surface, best times as green bands), with no black divider lines; the switch is now NEW / OLD CHART and NEW is the default. Follow-up: no panel strips above and below the picture, and dragging it never selects text
 - [ ] 16.3 Remove the old chart once Joseph is happy, move the section's words into i18n and check each part's good range with him
 
 ## Phase 9: Final review (last, after every task above)
