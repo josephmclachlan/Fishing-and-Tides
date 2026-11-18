@@ -1,13 +1,14 @@
 /**
- * Two trial designs for the FORECAST page's HOUR BY HOUR section (Joseph, 2026-11-18: the stacked rows chart is
- * "unreadable and overwhelming"; he asked for working versions of mockups A and C to try on live data before he
- * picks one). A switch in the section's header picks CHART (today's rows, the default), A or C; nothing else on the
- * page changes.
+ * The new HOUR BY HOUR section of the FORECAST page (Joseph, 2026-11-18: the stacked rows chart is "unreadable and
+ * overwhelming"). He tried mockups A and C on live data and picked A with C's sea drawing in place of A's bar ribbon
+ * (15:20Z): "keep the date blocks on top like they are in A ... keep the cleanness of A, remove the top and bottom
+ * horizontal black lines, and the vertical black lines found in C". A switch in the header still offers the old
+ * chart until he signs off on this one.
  *
- * A, DAY RIBBON: one day at a time. A 24-bar ribbon of the rating, dragged with a finger; a big readout of the hour,
- *   its rating and the four parts that decide it, each with a plain verdict and a tap-for-help pop-up.
- * C, SEA PICTURE: the whole week as one drawing. The sea surface is the tide, the water is coloured by the rating, and
- *   sky, temperature and wind sit above it. It slides under a fixed needle; the readout matches the needle.
+ * The day buttons, then a big readout of the hour, its rating and the weather, then the four parts that decide the
+ * rating, each with a plain verdict and a tap-for-help pop-up. Under them the whole week as one drawing: the sea
+ * surface is the tide, the water is coloured by the rating, sky, temperature and wind sit above it, and each day's
+ * best time is a green band. It slides under a fixed marker in the middle; the readout matches the marker.
  *
  * The parts, their verdicts and the best window (from the day's real sunrise to sunset) are pure and tested
  * (hours-try.test.ts). The good ranges per part are first guesses for Joseph to check, not the scores' own limits.
@@ -16,9 +17,11 @@ import { activeLang, dec } from '../i18n';
 import type { FcActivity, Level, TimelineHour } from './model';
 import './hours-try.css';
 
-export type HyMode = 'chart' | 'a' | 'c';
-export const HY_MODES: readonly HyMode[] = ['chart', 'a', 'c'];
-export const isHyMode = (v: unknown): v is HyMode => v === 'chart' || v === 'a' || v === 'c';
+export type HyMode = 'a' | 'chart';
+export const HY_MODES: readonly HyMode[] = ['a', 'chart'];
+/** The stored choice: the old chart only when picked; anything else (including C, tried on 2026-11-18) is the new view. */
+export const hyModeOf = (v: unknown): HyMode => (v === 'chart' ? 'chart' : 'a');
+export const isHyMode = (v: unknown): v is HyMode => v === 'chart' || v === 'a';
 
 type Tx = { en: string; es: string };
 const T = (en: string, es: string): Tx => ({ en, es });
@@ -268,12 +271,12 @@ const skyCol = (k: IconName) => (k === 'sun' || k === 'psun' ? 'var(--fc-c-sun)'
 /* ---------- words */
 const W = {
   best: T('Best time', 'Mejor hora'), noBest: T('No good time this day', 'Hoy no hay buena hora'), now: T('NOW', 'AHORA'), feels: T('feels', 'sensación'),
-  drag: T('Drag along the day', 'Deslice a lo largo del día'), dragC: T('Slide the picture under the needle', 'Deslice el dibujo bajo la aguja'),
+  dragC: T('Slide the picture under the needle', 'Deslice el dibujo bajo la aguja'),
   more: T('Each part, hour by hour', 'Cada parte, hora por hora'), goodWhen: T('Good when', 'Bueno cuando'), high: T('HIGH', 'ALTA'), low: T('LOW', 'BAJA'),
-  water: T('Water colour = rating', 'Color del agua = calificación'), tide: T('Sea level = tide', 'Nivel del mar = marea'), jumpNow: T('Now', 'Ahora'),
+  water: T('Water colour = rating', 'Color del agua = calificación'), tide: T('Sea level = tide', 'Nivel del mar = marea'), 
   days: { en: ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'], es: ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'] },
   lvl: { en: ['Very poor', 'Poor', 'Fair', 'Good', 'Great'], es: ['Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'] },
-  close: T('Close', 'Cerrar'), ribbon: T('Rating for each hour of the day', 'Calificación de cada hora del día'), sea: T('The week as a picture', 'La semana en un dibujo'),
+  close: T('Close', 'Cerrar'), sea: T('The week as a picture', 'La semana en un dibujo'),
 };
 const lvWord = (l: Level | null) => (l == null ? '–' : W.lvl[activeLang()][l]);
 
@@ -307,10 +310,6 @@ export function readoutHtml(c: HyCtx, extra = ''): string {
     <div class="hy-ro-r"><b>${lvWord(l)}</b><span>${h.read.score == null ? '–' : Math.round(h.read.score)} / 100</span></div></div>${extra}${wx(h)}</div>`;
 }
 const partIcon = (p: Part, h: TimelineHour) => (p.dir ? arrowIc(h.windFromDeg) : ic(p.icon));
-export function chipsHtml(c: HyCtx): string {
-  const h = c.tl[c.cur];
-  return `<div class="hy-chips">${partsFor(c.act).map((p) => `<span class="hy-chip ${stC(p.status(h, c.cur, c.tl))}">${partIcon(p, h)}${p.text(h, c.cur, c.tl)}</span>`).join('')}</div>`;
-}
 export function popHtml(p: Part, c: HyCtx): string {
   const h = c.tl[c.cur];
   const g = p.good ? `<div class="hy-good"><span>${L(W.goodWhen)}: ${p.good[0] === 0 ? '< ' + dec(p.good[1], p.good[1] < 2 ? 1 : 0) : '≥ ' + dec(p.good[0], p.good[0] < 2 ? 1 : 0)} ${p.unit ?? ''}</span></div>` : '';
@@ -339,45 +338,13 @@ export function stripsHtml(c: HyCtx): string {
   const d0 = dayStart(c);
   return partsFor(c.act).map((p) => { let cells = ''; for (let i = d0; i < Math.min(c.tl.length, d0 + 24); i++) cells += `<i class="${stC(p.status(c.tl[i], i, c.tl))}${i === c.cur ? ' on' : ''}"></i>`; return `<div class="hy-strip"><span>${L(p.name)}</span><div class="hy-cells">${cells}</div></div>`; }).join('');
 }
-export const RIB_W = 358;
-export function ribbonSvg(c: HyCtx): string {
-  const d0 = dayStart(c), tl = c.tl, bw = RIB_W / 24, top = 54, bot = 112, Hh = 134;
-  const t0 = tl[d0].ms, x = (ms: number) => ((ms - t0) / H) * bw;
-  let s = `<svg viewBox="0 0 ${RIB_W} ${Hh}" role="img" aria-label="${L(W.ribbon)}">`;
-  for (let k = 0; k < 24 && d0 + k < tl.length; k++) if (!tl[d0 + k].day) s += `<rect x="${(k * bw).toFixed(1)}" y="${top - 2}" width="${bw.toFixed(2)}" height="${bot - top + 2}" fill="var(--fc-c-night)"/>`;
-  for (let k = 0; k < 24 && d0 + k < tl.length; k++) {
-    const h = tl[d0 + k], sc = h.read.score ?? 0, bh = 8 + (sc / 100) * (bot - top - 10);
-    s += `<rect class="${lvC(h.read.level)} hy-bar" x="${(k * bw + 1).toFixed(1)}" y="${(bot - bh).toFixed(1)}" width="${(bw - 2).toFixed(2)}" height="${bh.toFixed(1)}"/>`;
-  }
-  for (let k = 1; k < 24 && d0 + k < tl.length; k += 3) { const kk = skyIcon(tl[d0 + k]); s += `<g style="color:${skyCol(kk)}">${sic(kk, k * bw + bw / 2 - 9, 22, 18)}</g>`; }
-  const mid = tl[Math.min(tl.length - 1, d0 + 12)];
-  for (const [ms, n] of [[mid.sunriseMs, 'rise'], [mid.sunsetMs, 'set']] as const) {
-    if (ms == null) continue;
-    const xx = x(ms);
-    s += `<line x1="${xx.toFixed(1)}" x2="${xx.toFixed(1)}" y1="${top - 4}" y2="${bot}" stroke="var(--fc-c-sun)" stroke-width="2" stroke-dasharray="3 3"/><g style="color:var(--fc-c-sun)">${sic(n, xx - 22, 2, 14)}</g><text x="${(xx - 6).toFixed(1)}" y="13" class="hy-tx">${hm(ms, c.tz)}</text>`;
-  }
-  const b = bestOfDay(tl, d0);
-  if (b) s += `<rect x="${x(b.startMs).toFixed(1)}" y="${top - 10}" width="${(x(b.endMs) - x(b.startMs)).toFixed(1)}" height="5" fill="var(--fc-ink)"/>`;
-  for (let k = 0; k <= 24; k += 3) s += `<text x="${Math.min(RIB_W - 8, Math.max(8, k * bw)).toFixed(1)}" y="${bot + 16}" text-anchor="middle" class="hy-tx2">${pad(k % 24)}</text>`;
-  if (c.now >= d0 && c.now < d0 + 24) { const nx = ((c.now - d0) * bw).toFixed(1); s += `<line x1="${nx}" x2="${nx}" y1="${top - 2}" y2="${bot}" stroke="var(--fc-ink)" stroke-width="1.5" stroke-dasharray="2 2"/>`; }
-  const cx = (c.cur - d0) * bw;
-  s += `<rect x="${cx.toFixed(1)}" y="${top - 4}" width="${bw.toFixed(2)}" height="${bot - top + 4}" fill="none" stroke="var(--fc-ink)" stroke-width="2.5"/><rect x="${(cx + bw / 2 - 1.25).toFixed(1)}" y="${bot}" width="2.5" height="5" fill="var(--fc-ink)"/>`;
-  return s + '</svg>';
-}
 export function bestBtnHtml(c: HyCtx): string {
   const b = bestOfDay(c.tl, dayStart(c));
   return b
     ? `<button type="button" class="hy-best" data-hy-go="${b.peak}"><b>${L(W.best)}</b><span>${hm(b.startMs, c.tz)}–${hm(b.endMs, c.tz)} · ${lvWord(b.level)}</span></button>`
     : `<div class="hy-best none"><b>${L(W.noBest)}</b></div>`;
 }
-/** A's whole body; the page swaps its parts in place while a finger drags the ribbon. */
-export function viewAHtml(c: HyCtx, moreOpen: boolean): string {
-  return `${daysHtml(c)}<div data-hy="ro">${readoutHtml(c)}</div><div data-hy="fx">${tilesHtml(c)}</div>
-    <div class="hy-rib" id="fc-hy-rib">${ribbonSvg(c)}</div><p class="hy-hint">↔ ${L(W.drag)}</p><div data-hy="best">${bestBtnHtml(c)}</div>
-    <details class="hy-more" id="fc-hy-more"${moreOpen ? ' open' : ''}><summary>${L(W.more)}</summary><div class="hy-strips" data-hy="strips">${stripsHtml(c)}</div></details>`;
-}
-
-/* ---------- C: sea picture */
+/* ---------- the sea picture */
 export const PXC = 26;
 export const SEA_PAD = 179;
 export function seaSvg(c: HyCtx): string {
@@ -386,13 +353,29 @@ export function seaSvg(c: HyCtx): string {
   let lo = Infinity, hi = -Infinity;
   for (const h of tl) (lo = Math.min(lo, h.tideM)), (hi = Math.max(hi, h.tideM));
   const span = Math.max(0.3, hi - lo), yT = (v: number) => 186 - ((v - lo) / span) * 70;
+  // Each day's best time: a green band behind the sky and sea, and a green bar with its times under the sea.
+  let under = '', over = '';
+  for (let d0 = 0; d0 < n; d0 += 24) {
+    const b = bestOfDay(tl, d0);
+    if (!b) continue;
+    const a = xm(b.startMs).toFixed(1), w = (xm(b.endMs) - xm(b.startMs)).toFixed(1);
+    under += `<rect class="hy-bestband" x="${a}" y="22" width="${w}" height="${WB - 22}"/>`;
+    over += `<rect class="hy-bestbar" x="${a}" y="${WB + 3}" width="${w}" height="8"/><text x="${(xm(b.endMs) + 4).toFixed(1)}" y="${WB + 11}" class="hy-dn hy-sm2">${L(W.best).toUpperCase()} ${hm(b.startMs, c.tz)}–${hm(b.endMs, c.tz)}</text>`;
+  }
   let s = `<svg width="${Wt}" height="${Hh}" viewBox="0 0 ${Wt} ${Hh}" role="img" aria-label="${L(W.sea)}">`;
-  for (let i = 0; i < n; i++) s += `<rect x="${X(i)}" y="22" width="${PXC + 0.5}" height="${WB - 22}" fill="${tl[i].day ? 'var(--hy-day)' : 'var(--fc-c-night)'}"/>`;
+  // Runs of like hours are drawn as one block, so see-through dark-mode fills show no seams between hours.
+  const runs = (key: (i: number) => unknown, draw: (a: number, b: number) => string) => {
+    let out = '';
+    for (let a = 0, b = 1; a < n; a = b, b = a + 1) { while (b < n && key(b) === key(a)) b++; out += draw(a, b); }
+    return out;
+  };
+  s += runs((i) => tl[i].day, (a, b) => `<rect x="${X(a)}" y="22" width="${(b - a) * PXC}" height="${WB - 22}" fill="${tl[a].day ? 'var(--hy-day)' : 'var(--fc-c-night)'}"/>`);
+  s += under;
   let path = `M${X(0)} ${yT(tl[0].tideM).toFixed(1)}`;
   for (let i = 0; i < n; i++) path += ` L${X(i) + PXC / 2} ${yT(tl[i].tideM).toFixed(1)}`;
   path += ` L${X(n)} ${yT(tl[n - 1].tideM).toFixed(1)} L${X(n)} ${WB} L${X(0)} ${WB} Z`;
   s += `<defs><clipPath id="fc-hy-wcl"><path d="${path}"/></clipPath></defs><g clip-path="url(#fc-hy-wcl)">`;
-  for (let i = 0; i < n; i++) s += `<rect class="${lvC(tl[i].read.level)} hy-water" x="${X(i)}" y="100" width="${PXC + 0.5}" height="${WB - 100}"/>`;
+  s += runs((i) => lvC(tl[i].read.level), (a, b) => `<rect class="${lvC(tl[a].read.level)} hy-water" x="${X(a)}" y="100" width="${(b - a) * PXC}" height="${WB - 100}"/>`);
   s += '</g>';
   for (let i = 0; i < n - 1; i++) s += `<line class="${lvC(tl[i].read.level)} hy-surf" x1="${X(i) + PXC / 2}" y1="${yT(tl[i].tideM).toFixed(1)}" x2="${X(i + 1) + PXC / 2}" y2="${yT(tl[i + 1].tideM).toFixed(1)}"/>`;
   for (const tt of tideTurns(tl)) {
@@ -407,10 +390,10 @@ export function seaSvg(c: HyCtx): string {
     s += `<text x="${cx}" y="108" text-anchor="middle" class="hy-tx2 hy-sm">${n0(w)}</text>`;
     if ((h.rainPct ?? 0) >= 30) s += `<g stroke="var(--fc-c-acc)" stroke-width="2">${[-6, 0, 6].map((dx) => `<line x1="${cx + dx}" y1="46" x2="${cx + dx - 2}" y2="52"/>`).join('')}</g>`;
   }
+  // Day names and sunrise and sunset; no dividing lines (Joseph: keep it clean, the nights already split the days).
   for (let d0 = 0; d0 < n; d0 += 24) {
-    const x0 = X(d0), b = bestOfDay(tl, d0), mid = tl[Math.min(n - 1, d0 + 12)];
-    s += `<line x1="${x0}" x2="${x0}" y1="0" y2="${Hh}" stroke="var(--fc-ink)" stroke-width="1.5"/><text x="${x0 + 5}" y="16" class="hy-dn">${dayName(mid.ms, c.tz)} ${dayNum(mid.ms, c.tz)}</text>`;
-    if (b) s += `<rect x="${xm(b.startMs).toFixed(1)}" y="${WB + 3}" width="${(xm(b.endMs) - xm(b.startMs)).toFixed(1)}" height="12" fill="var(--fc-ink)"/><text x="${(xm(b.endMs) + 4).toFixed(1)}" y="${WB + 13}" class="hy-dn hy-sm2">${L(W.best).toUpperCase()} ${hm(b.startMs, c.tz)}–${hm(b.endMs, c.tz)}</text>`;
+    const mid = tl[Math.min(n - 1, d0 + 12)];
+    s += `<text x="${X(d0) + 5}" y="16" class="hy-dn">${dayName(mid.ms, c.tz)} ${dayNum(mid.ms, c.tz)}</text>`;
     for (const [ms, nm] of [[mid.sunriseMs, 'rise'], [mid.sunsetMs, 'set']] as const) {
       if (ms == null) continue;
       const xx = xm(ms);
@@ -418,27 +401,20 @@ export function seaSvg(c: HyCtx): string {
     }
   }
   for (let i = 0; i < n; i++) { const hr = +hh(tl[i].ms, c.tz); if (hr % 6) continue; s += `<text x="${X(i)}" y="${Hh - 4}" text-anchor="middle" class="hy-tx2">${pad(hr)}</text>`; }
-  if (c.now >= 0 && c.now < n) s += `<line x1="${X(c.now)}" x2="${X(c.now)}" y1="22" y2="${WB}" stroke="var(--fc-ink)" stroke-width="1.5" stroke-dasharray="2 3"/><text x="${X(c.now) + 3}" y="${WB - 5}" class="hy-tx hy-b hy-sm">${L(W.now)}</text>`;
-  return s + '</svg>';
+  if (c.now >= 0 && c.now < n) { const nx = X(c.now) + PXC / 2; s += `<path d="M${nx - 5} ${WB}L${nx} ${WB - 7}L${nx + 5} ${WB}Z" fill="var(--fc-ink)"/><text x="${nx}" y="${WB - 10}" text-anchor="middle" class="hy-tx hy-b hy-sm">${L(W.now)}</text>`; }
+  return s + over + '</svg>';
 }
-export function jumpsHtml(c: HyCtx): string {
-  let s = `<button type="button" data-hy-go="${c.now}">${L(W.jumpNow)}</button>`;
-  for (let d0 = 0; d0 < c.tl.length; d0 += 24) {
-    const b = bestOfDay(c.tl, d0), ms = c.tl[Math.min(c.tl.length - 1, d0 + 12)].ms;
-    s += b ? `<button type="button" class="bst" data-hy-go="${b.peak}">${dayName(ms, c.tz)} ${hm(b.startMs, c.tz)}</button>` : `<button type="button" data-hy-go="${d0 + 12}">${dayName(ms, c.tz)} –</button>`;
-  }
-  return s;
-}
-export const seaDayLabel = (c: HyCtx) => { const ms = c.tl[c.cur].ms; return `${dayName(ms, c.tz)} ${dayNum(ms, c.tz)}`; };
-export function viewCHtml(c: HyCtx): string {
-  return `<div data-hy="ro">${readoutHtml(c, chipsHtml(c))}</div>
-    <div class="hy-cview"><div class="hy-cs" id="fc-hy-cs">${seaSvg(c)}</div><div class="hy-needle"></div><div class="hy-cday" data-hy="cday">${seaDayLabel(c)}</div></div>
-    <p class="hy-hint">↔ ${L(W.dragC)}</p><div class="hy-jump">${jumpsHtml(c)}</div>
-    <div class="hy-key"><span><i class="h3"></i><i class="h2"></i><i class="h0"></i> ${L(W.water)}</span><span>${ic('tide')} ${L(W.tide)}</span><span><i class="ink"></i> ${L(W.best)}</span></div>`;
+/** The whole section; the page swaps its parts in place while the picture slides. */
+export function viewHtml(c: HyCtx, moreOpen: boolean): string {
+  return `<div data-hy="days">${daysHtml(c)}</div><div data-hy="ro">${readoutHtml(c)}</div><div data-hy="fx">${tilesHtml(c)}</div>
+    <div class="hy-cview"><div class="hy-cs" id="fc-hy-cs">${seaSvg(c)}</div><div class="hy-needle"></div></div>
+    <p class="hy-hint">↔ ${L(W.dragC)}</p><div data-hy="best">${bestBtnHtml(c)}</div>
+    <div class="hy-key"><span><i class="h3"></i><i class="h2"></i><i class="h0"></i> ${L(W.water)}</span><span>${ic('tide')} ${L(W.tide)}</span><span><i class="win"></i> ${L(W.best)}</span></div>
+    <details class="hy-more" id="fc-hy-more"${moreOpen ? ' open' : ''}><summary>${L(W.more)}</summary><div class="hy-strips" data-hy="strips">${stripsHtml(c)}</div></details>`;
 }
 
 /** The section header's switch. */
 export function switchHtml(mode: HyMode): string {
-  const lab: Record<HyMode, Tx> = { chart: T('Chart', 'Gráfico'), a: T('Try A', 'Probar A'), c: T('Try C', 'Probar C') };
+  const lab: Record<HyMode, Tx> = { a: T('New', 'Nuevo'), chart: T('Old chart', 'Gráfico anterior') };
   return HY_MODES.map((m) => `<button type="button" data-hy-mode="${m}" aria-pressed="${m === mode}">${L(lab[m])}</button>`).join('');
 }

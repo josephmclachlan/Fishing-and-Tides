@@ -333,7 +333,8 @@ Keep the Kinetic Plus page's bold activity words and square cards; the drawings 
 
 ## Phase 16: Hour by hour redesign (Joseph 2026-11-18: the stacked rows chart is "unreadable and overwhelming"; 4 mockups in project files `hour-by-hour-redesign/`, artifact https://claude.ai/artifact/G6BYhD2LkYs9XsDs9Ns2yy)
 - [x] 16.1 Try A (day ribbon) and C (sea picture) on live data: a CHART / TRY A / TRY C switch in the section header (today's chart stays the default), `src/forecast/hours-try.ts`
-- [ ] 16.2 Build the design Joseph picks in place of the chart, move its words into i18n and check each part's good range with him
+- [x] 16.2 Joseph's pick: A's day buttons, readout and four tiles over C's scrollable sea drawing (tide as the sea surface, best times as green bands), with no black divider lines; the switch is now NEW / OLD CHART and NEW is the default
+- [ ] 16.3 Remove the old chart once Joseph is happy, move the section's words into i18n and check each part's good range with him
 
 ## Phase 9: Final review (last, after every task above)
 - [x] 9.1 Full Opus 5.5 (high effort) review of the whole project: for every variable and verdict (surf, dive and snorkel, clarity, fishing shore and offshore, sailing and boat, rip, sargassum, weather), re-check that it uses every data feed now available (forecast, satellite, live observations, climatology) correctly and in depth, with the right units, times and fall-backs. Write the feature x input findings into `docs/SYNC.md` and fix the gaps (**O**, needs all of Phases 2 to 7). Done 2026-11-04: science and math audit, items A to R (tide metres vs cycle position, the wave–current factor, coral alerts 3 to 5, rip channels and break angle, wind per spot and blended gusts, wave trains on their own periods, tide size, one set of verdict limits, Secchi from Lee et al. 2015, IUCN 2022 coral status, lionfish ciguatera note, surge note), fixed in ten PRs; the clarity review that followed is tracked in 7.12
