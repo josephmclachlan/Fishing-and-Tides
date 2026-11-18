@@ -660,7 +660,7 @@ export function mountForecastPage(deps: ForecastDeps) {
       cs.addEventListener('wheel', grab, { passive: true });
       // A mouse drags the picture on a desktop.
       let gx: number | null = null;
-      cs.addEventListener('pointerdown', (e) => { grab(); if (e.pointerType === 'mouse') (gx = e.clientX + cs.scrollLeft), cs.setPointerCapture(e.pointerId); });
+      cs.addEventListener('pointerdown', (e) => { grab(); if (e.pointerType === 'mouse') e.preventDefault(), (gx = e.clientX + cs.scrollLeft), cs.setPointerCapture(e.pointerId); });
       cs.addEventListener('pointermove', (e) => { if (gx !== null) cs.scrollLeft = gx - e.clientX; });
       cs.addEventListener('pointerup', () => (gx = null));
       return;

@@ -92,8 +92,8 @@
 .fc .hy-x { appearance: none; background: none; border: 0; color: inherit; cursor: pointer; font-family: var(--fc-mono); font-size: 13px; padding: 0 2px; min-height: 0; }
 
 /* the sea picture: no frame lines and no black dividers (Joseph 2026-11-18, keep A's cleanness) */
-.fc .hy-cview { position: relative; margin-top: 12px; }
-.fc .hy-cs { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; background: var(--hy-panel); cursor: grab; }
+.fc .hy-cview { position: relative; margin-top: 12px; user-select: none; -webkit-user-select: none; }
+.fc .hy-cs { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; background: none; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .fc .hy-cs::-webkit-scrollbar { display: none; }
 .fc .hy-cs svg { display: block; }
 .fc .hy-water { fill: var(--hm); fill-opacity: var(--hy-wa); }
