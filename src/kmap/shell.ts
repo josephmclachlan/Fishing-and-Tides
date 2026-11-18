@@ -75,6 +75,7 @@ import { loadSummary } from '../offline/sync';
 import type { FishCigua, FishInfo, SpearInfo } from '../fishing-hud';
 import { ciguaSpecies, isRed } from '../fishing/cigua';
 import { speciesById, speciesIn, type SpeciesId } from '../fishing/species';
+import { OFFSHORE, type OffshoreId } from '../fishing/offshore';
 
 type Spot = (typeof SPOTS)[number];
 const asSpot = (s: FcSpot | undefined): Spot => (s ? (SPOTS.find((x) => x.name === s.name) ?? SPOTS[0]) : SPOTS[0]);
@@ -144,7 +145,7 @@ export interface KmDeps {
     /** The fish bar (PLAN 7.143): step the fish, its best windows and spots, fly to a spot, log a catch. */
     step?(d: number): void;
     /** A fish picked from the fish menu, under its EAT or SPORT heading. */
-    pick?(id: SpeciesId, m?: 'eat' | 'sport'): void;
+    pick?(id: SpeciesId | OffshoreId, m?: 'eat' | 'sport'): void;
     info?(): FishInfo | null;
     flySpot?(n: number): void;
     onInfo?(fn: () => void): void;
@@ -1222,7 +1223,7 @@ export function mountKineticMap(d: KmDeps) {
    * headings"): every fish as a tile under EAT (fish, then what is taken by hand) and SPORT, the picked one marked, and a
    * fish out of season this month said so. A fish in both (permit) shows under both and picks that mode.
    */
-  const fishTile = (id: SpeciesId, attr: string, on: boolean, note: string, warn = false) =>
+  const fishTile = (id: SpeciesId | OffshoreId, attr: string, on: boolean, note: string, warn = false) =>
     `<li><button type="button" class="k-fmtile${on ? ' k-on' : ''}" ${attr} aria-pressed="${on}"><b>${esc(t(`fish.${id}` as Key))}</b>${note ? `<small class="${warn ? 'k-fmwarn' : ''}">${esc(note)}</small>` : ''}</button></li>`;
   const fishMenuHTML = () => {
     const fi = d.fishMode?.info?.(), m = d.fishMode?.get() ?? 'eat', mo = new Date(time.validMs()).getUTCMonth();
@@ -1232,9 +1233,21 @@ export function mountKineticMap(d: KmDeps) {
     };
     const eat = speciesIn('eat'), sport = speciesIn('sport');
     const grid = (h: string, ids: readonly SpeciesId[], mode: 'eat' | 'sport') => (ids.length ? `<h3 class="k-mono k-fmh">${h}</h3><ul class="k-fmenu">${ids.map((id) => tile(id, mode)).join('')}</ul>` : '');
+    // Boat fish (mahi, tuna, wahoo...): picking one turns the map to boat water, and its tile says how deep to look.
+    const boatTile = (o: (typeof OFFSHORE)[number], mode: 'eat' | 'sport') => {
+      const [, best, , far] = o.depthM;
+      const deep = far >= 1000 ? L2(`Best past ${best} m`, `Mejor desde ${best} m`) : L2(`Best ${best}–${far} m`, `Mejor ${best}–${far} m`);
+      return fishTile(o.id, `data-fpick="${o.id}" data-fpmode="${mode}"`, fi?.id === o.id && m === mode, deep);
+    };
+    const boatGrid = (h: string, mode: 'eat' | 'sport') => {
+      const list = OFFSHORE.filter((o) => o.modes.includes(mode));
+      return list.length ? `<h3 class="k-mono k-fmh">${h}</h3><ul class="k-fmenu k-fmboat">${list.map((o) => boatTile(o, mode)).join('')}</ul>` : '';
+    };
     return grid(L2('Eat', 'Comer'), eat.filter((s) => !s.byHand).map((s) => s.id), 'eat')
       + grid(L2('Eat · by hand', 'Comer · a mano'), eat.filter((s) => s.byHand).map((s) => s.id), 'eat')
-      + grid(L2('Sport', 'Deporte'), sport.map((s) => s.id), 'sport');
+      + boatGrid(L2('Eat · by boat', 'Comer · en bote'), 'eat')
+      + grid(L2('Sport', 'Deporte'), sport.map((s) => s.id), 'sport')
+      + boatGrid(L2('Sport · by boat', 'Deporte · en bote'), 'sport');
   };
   const spearMenuHTML = (si: SpearInfo) => {
     const fish = si.targets.filter((id) => !speciesById(id).byHand), hand = si.targets.filter((id) => speciesById(id).byHand);
@@ -1308,7 +1321,7 @@ export function mountKineticMap(d: KmDeps) {
       : `<li><span>${L2('No hour today stands out. Bites are spread through the day.', 'Ninguna hora destaca hoy. La picada se reparte en el día.')}</span></li>`;
     const spots = fi.spots.length
       ? fi.spots.map((r) => `<li><button type="button" class="k-fspot${r.on ? ' k-on' : ''}" data-fly="${r.n}"><span class="k-fn">${r.n + 1}</span><span><b>${esc(r.place ? placeCase(r.place) : L2('Unnamed spot', 'Sitio sin nombre'))}</b><small>${esc(sentence(r.line))}</small>${tags(r.why)}</span>${ARROW}</button></li>`).join('')
-      : `<li><span>${L2('No good water for this fish within 15 km of the crosshair. Move the map and look again.', 'No hay buena agua para este pez a 15 km de la mira. Mueva el mapa y mire otra vez.')}</span></li>`;
+      : `<li><span>${L2('No good water for this fish within 15 km of the crosshair. Move the map and look again.', 'No hay buena agua para este pez a 15 km de la mira. Mueva el mapa y mire otra vez.').replace(/15/, String(fi.radiusKm ?? 15))}</span></li>`;
     // The fish's profile in the species guide (Joseph 2026-11-17: the link was missing): its page, or the guide's list of its kind.
     // A kind of one species opens its page; a kind of several (snook) opens the guide listing them.
     const ph = fi.id in KINDS ? guideLinkFor(fi.id as KindId) : '', nm = titleCase(fi.name);
