@@ -12,7 +12,7 @@
  * charts under a readout (charts.ts). Every number comes from src/forecast/model.ts, formatted in view.ts and
  * written out by render.ts, which are pure and tested.
  */
-import { t, type Key } from '../i18n';
+import { activeLang, t, type Key } from '../i18n';
 import { setCover } from '../cover';
 import { localDayStart, sunTimes, type SunTimes } from '../physics/astro';
 import { REGION, SPOTS, SPOT_RENAMES } from '../region';
@@ -38,6 +38,7 @@ import {
 import type { Shot, ShotStore } from './shot-store';
 import { cleanPicks, GRID_DAYS, GRID_MAX, gridCols, gridRows, markBest, RATING, type GridCol, type GridRow, type Range } from './grid';
 import { barHtml, chipsHtml as plChipsHtml, gridHtml, popHtml, stripHtml } from './grid-html';
+import { bestOfDay, chipsHtml as hyChips, isHyMode, partAt, popHtml as hyPop, readoutHtml as hyReadout, ribbonSvg, seaDayLabel, SEA_PAD, PXC, stripsHtml, switchHtml, tilesHtml as hyTiles, bestBtnHtml, viewAHtml, viewCHtml, type HyCtx, type HyMode } from './hours-try';
 import './fonts';
 import './forecast.css';
 
@@ -52,6 +53,8 @@ const SCHEME_KEY = 'ft.fcScheme';
 /** PLAN AHEAD: the rows picked per activity, and hours or days. */
 const PL_KEY = 'ft.fcGrid.';
 const PL_MODE_KEY = 'ft.fcGridMode';
+/** HOUR BY HOUR: today's chart, or trial design A or C (hours-try.ts; Joseph 2026-11-18). */
+const HY_KEY = 'ft.fcHours';
 
 type Store = Pick<Storage, 'getItem' | 'setItem'> | undefined;
 const get = (s: Store, k: string) => {
@@ -592,6 +595,130 @@ export function mountForecastPage(deps: ForecastDeps) {
     $('fc-dk-now').addEventListener('click', () => pick(null, true));
   }
 
+  // --- hour by hour, trial designs A (day ribbon) and C (sea picture), behind the section's switch (hours-try.ts)
+  let hy: HyMode = ((v) => (isHyMode(v) ? v : 'chart'))(get(storage, HY_KEY));
+  let hyFor = '';
+  let hyMore = false;
+  let hyScrolling = false;
+  const hyCtx = (): HyCtx | null => {
+    if (!tl.length) return null;
+    return { tl, act, tz: TZ, cur: clamp(tlIndex(when()), 0, tl.length - 1), now: clamp(tlIndex(nowHour()), 0, tl.length - 1) };
+  };
+  const hyPick = (i: number) => {
+    const c = hyCtx();
+    if (!c) return;
+    i = clamp(i, 0, tl.length - 1);
+    if (i === c.cur) return;
+    pick(i === c.now ? null : tl[i].ms, false, true);
+  };
+  const hySeaLeft = (cs: HTMLElement, i: number) => SEA_PAD + i * PXC + PXC / 2 - cs.clientWidth / 2;
+  const renderHy = () => {
+    html('fc-hy-sw', switchHtml(hy));
+    const on = hy !== 'chart';
+    $('fc-hy').hidden = !on;
+    for (const id of ['fc-readout', 'fc-hx', 'fc-hx-key']) $(id).hidden = on;
+    const c = on ? hyCtx() : null;
+    if (!c) return;
+    const body = $('fc-hy-body');
+    const key = `${hy}|${tlKey}|${activeLang()}|${scheme()}|${hy === 'a' ? Math.floor(c.cur / 24) : ''}`;
+    const part = (q: string) => body.querySelector<HTMLElement>(`[data-hy="${q}"]`);
+    if (key !== hyFor) {
+      hyFor = key;
+      $('fc-hy').querySelector('.hy-pop')?.remove();
+      if (hy === 'a') body.innerHTML = viewAHtml(c, hyMore);
+      else {
+        body.innerHTML = viewCHtml(c);
+        const cs = $('fc-hy-cs');
+        cs.scrollLeft = hySeaLeft(cs, c.cur);
+        let raf = 0;
+        cs.addEventListener('scroll', () => {
+          cancelAnimationFrame(raf);
+          raf = requestAnimationFrame(() => {
+            hyScrolling = true;
+            hyPick(Math.floor((cs.scrollLeft + cs.clientWidth / 2 - SEA_PAD) / PXC));
+            hyScrolling = false;
+          });
+        }, { passive: true });
+        // A mouse drags the picture on a desktop.
+        let gx: number | null = null;
+        cs.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse') (gx = e.clientX + cs.scrollLeft), cs.setPointerCapture(e.pointerId); });
+        cs.addEventListener('pointermove', (e) => { if (gx !== null) cs.scrollLeft = gx - e.clientX; });
+        cs.addEventListener('pointerup', () => (gx = null));
+      }
+      return;
+    }
+    if (hy === 'a') {
+      part('ro')!.innerHTML = hyReadout(c);
+      part('fx')!.innerHTML = hyTiles(c);
+      part('best')!.innerHTML = bestBtnHtml(c);
+      part('strips')!.innerHTML = stripsHtml(c);
+      $('fc-hy-rib').innerHTML = ribbonSvg(c);
+    } else {
+      part('ro')!.innerHTML = hyReadout(c, hyChips(c));
+      part('cday')!.textContent = seaDayLabel(c);
+      if (!hyScrolling) {
+        const cs = $('fc-hy-cs');
+        cs.scrollTo({ left: hySeaLeft(cs, c.cur), behavior: reduced ? 'auto' : 'smooth' });
+      }
+    }
+  };
+  $('fc-hy-sw').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-hy-mode]');
+    if (!b || !isHyMode(b.dataset.hyMode) || b.dataset.hyMode === hy) return;
+    hy = b.dataset.hyMode;
+    put(storage, HY_KEY, hy);
+    hyFor = '';
+    chartDirty = true;
+    renderHy();
+    if (hy === 'chart') renderChart(false);
+  });
+  {
+    const box = $('fc-hy');
+    const closePop = () => box.querySelector('.hy-pop')?.remove();
+    box.addEventListener('click', (e) => {
+      const tg = e.target as HTMLElement;
+      if (tg.closest('[data-hy-close]') || !tg.closest('.hy-pop')) closePop();
+      const d = tg.closest<HTMLElement>('[data-hy-day]');
+      if (d) {
+        const d0 = +d.dataset.hyDay! * 24, c = hyCtx();
+        if (!c) return;
+        if (c.now >= d0 && c.now < d0 + 24) return void pick(null, false);
+        const b = bestOfDay(tl, d0);
+        return void pick(tl[clamp(b ? b.peak : d0 + 7, 0, tl.length - 1)].ms, false);
+      }
+      const g = tg.closest<HTMLElement>('[data-hy-go]');
+      if (g) return void (hy === 'c' ? $('fc-hy-cs').scrollTo({ left: hySeaLeft($('fc-hy-cs'), +g.dataset.hyGo!), behavior: reduced ? 'auto' : 'smooth' }) : hyPick(+g.dataset.hyGo!));
+      const p = tg.closest<HTMLElement>('[data-hy-part]');
+      const c = hyCtx(), pt = p && c ? partAt(act, +p.dataset.hyPart!) : undefined;
+      if (p && c && pt) {
+        const pop = document.createElement('div');
+        pop.className = 'hy-pop';
+        pop.setAttribute('role', 'status');
+        pop.innerHTML = hyPop(pt, c);
+        box.appendChild(pop);
+        const r = p.getBoundingClientRect(), br = box.getBoundingClientRect();
+        pop.style.top = `${r.bottom - br.top + 6}px`;
+      }
+    });
+    box.addEventListener('toggle', (e) => { if ((e.target as HTMLElement).id === 'fc-hy-more') hyMore = (e.target as HTMLDetailsElement).open; }, true);
+    // A: a finger (or mouse) dragged along the ribbon moves the hour; the ribbon element stays, only its drawing is swapped.
+    let ribDown = false;
+    const ribAt = (e: PointerEvent) => {
+      const rib = $('fc-hy-rib'), r = rib.getBoundingClientRect(), c = hyCtx();
+      return c ? Math.floor(c.cur / 24) * 24 + clamp(Math.floor(((e.clientX - r.left) / r.width) * 24), 0, 23) : 0;
+    };
+    box.addEventListener('pointerdown', (e) => {
+      const rib = (e.target as HTMLElement).closest<HTMLElement>('#fc-hy-rib');
+      if (!rib) return;
+      ribDown = true;
+      rib.setPointerCapture(e.pointerId);
+      hyPick(ribAt(e));
+    });
+    box.addEventListener('pointermove', (e) => { if (ribDown) hyPick(ribAt(e)); });
+    box.addEventListener('pointerup', () => (ribDown = false));
+    box.addEventListener('pointercancel', () => (ribDown = false));
+  }
+
   // --- hour by hour
   let L: ChartLayout | null = null;
   let chartDirty = true;
@@ -659,6 +786,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     const h = tl[clamp(i, 0, tl.length - 1)];
     if (!h) return;
     html('fc-readout', readoutHtml(readoutView(h, act, rowsFor(act))));
+    renderHy();
   };
   const setCursor = (i: number | null) => {
     if (L) i = i === null ? null : clamp(i, 0, tl.length - 1);
@@ -847,6 +975,7 @@ export function mountForecastPage(deps: ForecastDeps) {
     renderDays(anim);
     renderPlan();
     renderChart(anim);
+    renderHy();
     renderRadar();
     renderDock();
     kick();
