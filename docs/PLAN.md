@@ -240,6 +240,7 @@ Phone map layout B (Joseph 2026-11-17 picked B after the mockups at https://clau
 - [x] 7.167 The logo's look on the phone map: black glass, glowing activity colours, the spectrum edge on the sheet, and the logo's forecast runs as the time bar (**O**)
 - [x] 7.168 The forecast page's species guide button in the SurCast logo colours: bigger, square, a spectrum edge and a bold SPECIES label (icon only under 400 px) (**S**)
 - [x] 7.169 Phone map: the spot forecast is drawn into the sheet while it rests at the peek, so dragging it up shows the forecast at once instead of an empty sheet that fills on release (**S**)
+- [x] 7.170 Boat fish (mahi/dorado, tuna, wahoo, kingfish, silk snapper; sailfish and marlin under SPORT) are pickable in the map fish menu and with the arrows: picking one turns the map to boat water, highlights its zones and shows its bite, best times and spots (**S**)
 
 ## Phase 8: History and logs (see docs/HISTORY.md)
 Save what the app sees so it can show the past, and keep private logs (catches, coral sites) in a database only approved people can read. One PR per step.

@@ -613,7 +613,7 @@ const boatStore = createBoatStore(safeStorage());
 // Catches logged in the BOAT drawer store their BITE once the fishing panel is up (PLAN 7.16).
 let scoreCatch: CatchScorer | null = null;
 let fishSetSpecies: ((id: SpeciesId) => void) | null = null;
-let fishHudMode: { set(m: FishMode): void; get(): FishMode; setReach(r: Reach): void; reach(): Reach; step(d: number): void; pick(id: SpeciesId, m?: FishMode): void; info(): FishInfo; flySpot(n: number): void; spearInfo(): SpearInfo; setSpearTarget(id: SpeciesId | null): void; flyTo(lng: number, lat: number): void } | null = null;
+let fishHudMode: { set(m: FishMode): void; get(): FishMode; setReach(r: Reach): void; reach(): Reach; step(d: number): void; pick(id: SpeciesId | OffshoreId, m?: FishMode): void; info(): FishInfo; flySpot(n: number): void; spearInfo(): SpearInfo; setSpearTarget(id: SpeciesId | null): void; flyTo(lng: number, lat: number): void } | null = null;
 const fishModeListeners = new Set<() => void>();
 const fishInfoListeners = new Set<() => void>();
 /**
@@ -646,7 +646,7 @@ const fishMode = {
   /** The map's fish bar (PLAN 7.143): step the fish, read its best times and spots, fly to one, log a catch. */
   step: (d: number) => fishHudMode?.step(d),
   /** A fish picked from the map's fish menu, under its EAT or SPORT heading. */
-  pick: (id: SpeciesId, m?: FishMode) => fishHudMode?.pick(id, m),
+  pick: (id: SpeciesId | OffshoreId, m?: FishMode) => fishHudMode?.pick(id, m),
   info: (): FishInfo | null => fishHudMode?.info() ?? null,
   flySpot: (n: number) => fishHudMode?.flySpot(n),
   onInfo: (fn: () => void) => void fishInfoListeners.add(fn),
@@ -862,7 +862,11 @@ const guidePage = mountGuidePage({
       }
       fishSetSpecies?.(shore.id);
       if (fishMode.reach() === 'boat') fishMode.setReach('all');
-    } else fishMode.setReach('boat');
+    } else {
+      // The boat fish itself is picked when the panel is up, so its zones and bite are the ones on the bar.
+      fishMode.pick(kind as OffshoreId, modes[0]);
+      fishMode.setReach('boat');
+    }
     if (km) km.openAct('fish');
     else {
       coralMode.set(false);

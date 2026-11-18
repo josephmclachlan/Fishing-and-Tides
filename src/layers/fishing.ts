@@ -83,7 +83,7 @@ export async function fetchMouths(base: string = import.meta.env.BASE_URL): Prom
 export const SHORE_M = 400;
 /** KAYAK: the water a paddle reaches, past the cast (SHORE_M) out to the end of the shore cells (cells.ts REACH_M), with no boat zones. */
 export type Reach = 'all' | 'shore' | 'kayak' | 'boat';
-export type SpotWhy = 'mouth' | 'reef' | 'drop' | 'surf' | 'sand';
+export type SpotWhy = 'mouth' | 'reef' | 'drop' | 'surf' | 'sand' | 'front' | 'weed';
 export interface Spot { lng: number; lat: number; score: number; depthM: number; coastM: number; why: SpotWhy[]; mouthKm: number }
 
 export interface FishingLayer {
@@ -109,6 +109,12 @@ export interface FishingLayer {
   setRules(zones: readonly ZonePoly[]): void;
   /** Boat water scored per offshore species on a ~2 km grid for the day on the slider (main.ts), or null: its zones. */
   setBoat(cells: readonly ZoneCell<OffshoreId>[] | null, key: string): void;
+  /** A boat fish picked on the fish bar (null: a shore fish): its zones stand out and the shore heat is hidden. */
+  setBoatPick(id: OffshoreId | null): void;
+  /** Boat water score 0..1 for an offshore fish at a point (the nearest ~2 km cell), or null with no boat water near. */
+  boatScoreAt(id: OffshoreId, lng: number, lat: number): number | null;
+  /** The best separated boat-water cells near a point for one offshore fish, best first. */
+  boatSpots(id: OffshoreId, n: number, near: { lng: number; lat: number }, maxKm: number): Spot[];
   /** SPEAR: one picked target (a spear fish, or lobster or octopus by hand), or null for every spear fish (PLAN 7.143). */
   setSpearTarget(id: SpeciesId | null): void;
   /** SPEAR: the best separated cells near a point where spearing is open, for the picked target(s), best first. */
@@ -167,6 +173,8 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   const noZone = (p: ReturnType<typeof zoneAt>) => !!p && (p.status === 'closed' || p.iucn === '2');
   const parkAt = (lng: number, lat: number) => noZone(zoneAt(rules, [lng, lat]));
   let boat: readonly ZoneCell<OffshoreId>[] | null = null, boatKey = '';
+  let boatPick: OffshoreId | null = null;
+  const kmBetween = (aLng: number, aLat: number, bLng: number, bLat: number) => Math.hypot((aLng - bLng) * Math.cos((bLat * Math.PI) / 180), aLat - bLat) * 111.32;
   const depthText = ([d0, d1]: [number, number]) => (d0 === d1 ? `${d0} M` : `${d0}–${d1} M`);
   const zoneFeatures = (z: Zone<string>, names: string, where: string, far: boolean, nearly = false) => {
     const ring = zoneRing(z, 48, isWater);
@@ -331,7 +339,7 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
    */
   const emphasise = () => {
     if (!map.getLayer('fh-zone-fill')) return;
-    const hit: ExpressionSpecification = ['in', `|${sp.id}|`, ['get', 'ids']];
+    const hit: ExpressionSpecification = ['in', `|${boatPick ?? sp.id}|`, ['get', 'ids']];
     const fade = (on: number, off: number): ExpressionSpecification => ['interpolate', ['linear'], ['zoom'], ZONE_Z, 0, ZONE_Z + 0.5, ['case', hit, on, off]];
     map.setPaintProperty('fh-zone-fill', 'fill-opacity', fade(0.42, 0.06));
     map.setPaintProperty('fh-zone-line', 'line-opacity', fade(1, 0.3));
@@ -345,6 +353,8 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
   const heatCache = new globalThis.Map<string, { url: string; coordinates: SeaImage['coordinates'] }>();
   let bakeTimer = 0;
   const paint = () => {
+    // A boat fish has no shore heat: the raster steps aside so it never shows another fish's water.
+    if (map.getLayer('fh-heat')) map.setLayoutProperty('fh-heat', 'visibility', boatPick ? 'none' : 'visible');
     const key = `${month}|${reach}|${catchKey}|${mode}|${sp.id}`;
     if (key === heatKey || !map.getSource('fh-heat')) return;
     heatKey = key;
@@ -510,6 +520,33 @@ export function mountFishing(map: Map, input: FishingInput, initial: { species: 
       boat = cells;
       boatKey = key;
       refreshZones();
+    },
+    setBoatPick(id) {
+      if (id === boatPick) return;
+      boatPick = id;
+      paint();
+      emphasise();
+    },
+    boatScoreAt(id, lng, lat) {
+      let best: { km: number; v: number } | null = null;
+      for (const c of boat ?? []) {
+        if (Math.abs(c.lng - lng) > 0.03 || Math.abs(c.lat - lat) > 0.03) continue;
+        const km = kmBetween(c.lng, c.lat, lng, lat);
+        if (!best || km < best.km) best = { km, v: c.s[id] };
+      }
+      return best ? best.v : null;
+    },
+    boatSpots(id, n, near, maxKm) {
+      const scored = (boat ?? [])
+        .filter((c) => c.s[id] >= 0.3 && !parkAt(c.lng, c.lat) && kmBetween(c.lng, c.lat, near.lng, near.lat) <= maxKm)
+        .sort((a, b) => b.s[id] - a.s[id]);
+      const out: Spot[] = [];
+      for (const c of scored) {
+        if (out.length >= n) break;
+        if (out.some((o) => kmBetween(o.lng, o.lat, c.lng, c.lat) < 3)) continue;
+        out.push({ lng: c.lng, lat: c.lat, score: c.s[id], depthM: c.depthM, coastM: 0, why: c.why.filter((w): w is SpotWhy => w === 'drop' || w === 'front' || w === 'weed'), mouthKm: 99 });
+      }
+      return out;
     },
     setReach(r) {
       reach = r;
