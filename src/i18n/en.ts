@@ -570,7 +570,7 @@ export const en = {
   'fish.octopus': 'OCTOPUS',
   'fish.cigua': 'CIGUA (WHELK)',
   'fish.silksnapper': 'SILK SNAPPER',
-  'fish.mahi': 'MAHI',
+  'fish.mahi': 'MAHI (DORADO)',
   'fish.marlin': 'MARLIN',
   'fish.wahoo': 'WAHOO',
   'fish.kingfish': 'KINGFISH',
