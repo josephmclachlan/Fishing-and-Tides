@@ -8104,3 +8104,8 @@ t,site,source,model,var,value,issued
 2026-11-18T23:45Z,limon,gauge,,tideM,0.1176,
 2026-11-18T23:55Z,limon,gauge,,levelM,0.139,
 2026-11-18T23:55Z,limon,gauge,,tideM,0.11657,
+2026-11-18T12:00Z,-83.983;8.964,sargassum,,cover,0.00766,
+2026-11-18T12:00Z,-83.862;8.964,sargassum,,cover,0.02074,
+2026-11-18T12:00Z,-83.983;8.904,sargassum,,cover,0.0075,
+2026-11-18T12:00Z,-83.803;8.904,sargassum,,cover,0.01786,
+2026-11-18T12:00Z,SARG_BOX,sargassum,,cellsSeen,201,
