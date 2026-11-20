@@ -320,7 +320,7 @@ Keep the whole encyclopedia and every word of the research; answers and pictures
 - [x] 14.3 Identify: first ask what kind of thing it is (fish, shark or ray, turtle, crab, coral, plant and so on), then shape, colours, markings and size as picture answers, with live photo matches after every answer and a side-by-side check with the look-alike at the end
 - [x] 14.4 Flip: swipe photo cards over any shelf, group or search result
 - [x] 14.5 SurCast look on the guide's other pages (ciguatera, dispatch, field notes links and the list cards)
-- [x] 14.6 Coast drawing (F): tap beach, mangrove, seagrass, reef, open water or offshore to browse what lives there
+- [x] 14.6 Coast drawing (F): tap beach, mangrove, seagrass, reef, open water or offshore to browse what lives there Removed 2026-11-20 at Joseph's request (the "Where are you?" section).
 
 ## Phase 15: Forecast page option D (Joseph 2026-11-17: "D now, E's grid later"; mockups in project files `forecast-rethink/`)
 Keep the Kinetic Plus page's bold activity words and square cards; the drawings and the shared square tokens are the "square, bold and colour-coded" thread's.
