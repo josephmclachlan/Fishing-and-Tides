@@ -2457,3 +2457,17 @@ t,site,source,model,var,value,issued
 2026-11-20T23:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_direction_10m,324,2026-11-20T00:21Z
 2026-11-20T23:00Z,MRLM,openmeteo,ecmwf_ifs025,wind_gusts_10m,7.6,2026-11-20T00:21Z
 2026-11-20T23:00Z,MRLM,openmeteo,ecmwf_ifs025,pressure_msl,1010,2026-11-20T00:21Z
+2026-11-20T00:15Z,limon,gauge,,levelM,0.0941,
+2026-11-20T00:15Z,limon,gauge,,tideM,0.069712,
+2026-11-20T00:25Z,limon,gauge,,levelM,0.0904,
+2026-11-20T00:25Z,limon,gauge,,tideM,0.069355,
+2026-11-20T00:35Z,limon,gauge,,levelM,0.0854,
+2026-11-20T00:35Z,limon,gauge,,tideM,0.06867,
+2026-11-20T00:45Z,limon,gauge,,levelM,0.0816,
+2026-11-20T00:45Z,limon,gauge,,tideM,0.06765,
+2026-11-20T00:55Z,limon,gauge,,levelM,0.0832,
+2026-11-20T00:55Z,limon,gauge,,tideM,0.066289,
+2026-11-20T01:05Z,limon,gauge,,levelM,0.0856,
+2026-11-20T01:05Z,limon,gauge,,tideM,0.064584,
+2026-11-20T01:15Z,limon,gauge,,levelM,0.086,
+2026-11-20T01:15Z,limon,gauge,,tideM,0.062535,
